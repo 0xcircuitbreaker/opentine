@@ -66,10 +66,35 @@ class Google:
 
         contents = []
         for m in messages:
-            role = "model" if m["role"] == "assistant" else "user"
-            contents.append(
-                types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
-            )
+            if m["role"] == "tool":
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part.from_function_response(
+                                name=m.get("name", ""),
+                                response={"result": m["content"]},
+                            )
+                        ],
+                    )
+                )
+            elif m["role"] == "assistant" and m.get("tool_calls"):
+                parts: list[Any] = []
+                if m.get("content"):
+                    parts.append(types.Part.from_text(text=m["content"]))
+                for tc in m["tool_calls"]:
+                    parts.append(
+                        types.Part.from_function_call(
+                            name=tc["name"],
+                            args=tc.get("arguments", {}),
+                        )
+                    )
+                contents.append(types.Content(role="model", parts=parts))
+            else:
+                role = "model" if m["role"] == "assistant" else "user"
+                contents.append(
+                    types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
+                )
 
         config = types.GenerateContentConfig(temperature=temperature)
         if system:
@@ -112,10 +137,35 @@ class Google:
 
         contents = []
         for m in messages:
-            role = "model" if m["role"] == "assistant" else "user"
-            contents.append(
-                types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
-            )
+            if m["role"] == "tool":
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part.from_function_response(
+                                name=m.get("name", ""),
+                                response={"result": m["content"]},
+                            )
+                        ],
+                    )
+                )
+            elif m["role"] == "assistant" and m.get("tool_calls"):
+                parts: list[Any] = []
+                if m.get("content"):
+                    parts.append(types.Part.from_text(text=m["content"]))
+                for tc in m["tool_calls"]:
+                    parts.append(
+                        types.Part.from_function_call(
+                            name=tc["name"],
+                            args=tc.get("arguments", {}),
+                        )
+                    )
+                contents.append(types.Content(role="model", parts=parts))
+            else:
+                role = "model" if m["role"] == "assistant" else "user"
+                contents.append(
+                    types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
+                )
 
         config = types.GenerateContentConfig(temperature=temperature)
         if system:

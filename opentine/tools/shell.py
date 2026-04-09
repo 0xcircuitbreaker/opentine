@@ -2,23 +2,43 @@
 
 from __future__ import annotations
 
+import shlex
 import subprocess
+import sys
 
 
-def run(command: str, timeout: int = 30, allowlist: list[str] | None = None) -> str:
+def run(
+    command: str,
+    timeout: int = 30,
+    allowlist: list[str] | None = None,
+    sandbox: bool = True,
+) -> str:
     """Run a shell command and return stdout + stderr.
 
-    If allowlist is provided, only commands starting with an allowed
-    prefix will execute.
+    If sandbox is True (the default), an allowlist must be provided and the
+    executable (first token) must be in that list.  Set sandbox=False to
+    allow arbitrary commands (use with caution).
     """
-    if allowlist:
-        cmd_name = command.split()[0] if command.split() else ""
-        if cmd_name not in allowlist:
-            return f"Error: '{cmd_name}' not in allowlist {allowlist}"
+    try:
+        parts = shlex.split(command, posix=(sys.platform != "win32"))
+    except ValueError as e:
+        return f"Error: failed to parse command: {e}"
+
+    if not parts:
+        return "Error: empty command"
+
+    executable = parts[0]
+
+    if sandbox:
+        if not allowlist:
+            return "Error: sandbox is enabled but no allowlist was provided"
+        if executable not in allowlist:
+            return f"Error: '{executable}' not in allowlist {allowlist}"
+
     try:
         result = subprocess.run(
-            command,
-            shell=True,
+            parts,
+            shell=False,
             capture_output=True,
             text=True,
             timeout=timeout,

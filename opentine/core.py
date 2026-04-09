@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import inspect
 import time
 from collections.abc import AsyncIterator, Callable
 from enum import StrEnum
@@ -13,7 +12,7 @@ from typing import Any, Protocol, runtime_checkable
 
 import msgspec
 
-# --- Step -------------------------------------------------------------------
+from opentine.tools import tool_schema
 
 
 class StepKind(StrEnum):
@@ -40,9 +39,6 @@ def step_id(kind: StepKind, inputs: dict[str, Any], parent_id: str | None = None
     """Content-addressed ID: sha256(kind + inputs + parent)[:12]."""
     blob = msgspec.json.encode({"k": kind.value, "i": inputs, "p": parent_id})
     return hashlib.sha256(blob).hexdigest()[:12]
-
-
-# --- Run (the tree) ---------------------------------------------------------
 
 
 class RunStatus(StrEnum):
@@ -146,9 +142,6 @@ class Run(msgspec.Struct, tag=True):
         return run
 
 
-# --- Model protocol ---------------------------------------------------------
-
-
 @runtime_checkable
 class Model(Protocol):
     @property
@@ -174,29 +167,6 @@ class Model(Protocol):
     ) -> AsyncIterator[dict[str, Any]]: ...
 
 
-# --- Tool introspection -----------------------------------------------------
-
-_TYPE_MAP = {str: "string", int: "integer", float: "number", bool: "boolean"}
-
-
-def tool_schema(fn: Callable) -> dict[str, Any]:
-    """Build a tool-use schema from a function's signature + docstring."""
-    sig = inspect.signature(fn)
-    props, required = {}, []
-    for name, p in sig.parameters.items():
-        props[name] = {"type": _TYPE_MAP.get(p.annotation, "string"), "description": name}
-        if p.default is inspect.Parameter.empty:
-            required.append(name)
-    return {
-        "name": fn.__name__,
-        "description": (fn.__doc__ or "").strip(),
-        "input_schema": {"type": "object", "properties": props, "required": required},
-    }
-
-
-# --- Agent runtime ----------------------------------------------------------
-
-
 class Agent:
     """Executes a run: Model calls, tool dispatch, tree construction."""
 
@@ -206,19 +176,22 @@ class Agent:
         tools: list[Callable] | None = None,
         system: str = "You are a helpful assistant.",
         max_steps: int = 30,
+        max_output_chars: int = 8000,
     ):
         self.model = model
         self.tools = {fn.__name__: fn for fn in (tools or [])}
         self.schemas = [tool_schema(fn) for fn in (tools or [])]
         self.system = system
         self.max_steps = max_steps
+        self.max_output_chars = max_output_chars
 
-    async def _call_tool(self, name: str, args: dict[str, Any]) -> Any:
-        fn = self.tools[name]
-        result = fn(**args)
-        if asyncio.iscoroutine(result):
-            result = await result
-        return result
+    async def _call_tool(self, name: str, args: dict[str, Any]) -> str:
+        result = self.tools[name](**args)
+        result = await result if asyncio.iscoroutine(result) else result
+        out = str(result)
+        if len(out) > self.max_output_chars:
+            out = out[: self.max_output_chars - 14] + "... (truncated)"
+        return f"[Tool output from {name}] {out}"
 
     async def run(self, prompt: str, run_id: str | None = None) -> Run:
         rid = run_id or step_id(StepKind.model, {"prompt": prompt})
@@ -230,7 +203,6 @@ class Agent:
             created_at=time.time(),
         )
         messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
-
         for _ in range(self.max_steps):
             t0 = time.time()
             resp = await self.model.complete(
@@ -242,23 +214,33 @@ class Agent:
                 resp.get("tool_calls", []),
                 resp.get("cost", 0.0),
             )
-
             if text:
                 kind = StepKind.done if not tool_calls else StepKind.think
                 run.add_step(kind, {"text": text}, cost=cost, duration=dt)
-                messages.append({"role": "assistant", "content": text})
+            assistant_msg: dict[str, Any] = {"role": "assistant", "content": text}
+            if tool_calls:
+                assistant_msg["tool_calls"] = tool_calls
+            messages.append(assistant_msg)
             if not tool_calls:
                 run.status = RunStatus.completed
                 break
             for tc in tool_calls:
                 tname, targs = tc["name"], tc.get("arguments", {})
-                run.add_step(StepKind.tool, {"name": tname, "arguments": targs})
+                tc_id = tc.get("id", tname)
                 try:
-                    result_str = str(await self._call_tool(tname, targs))
+                    result_str = await self._call_tool(tname, targs)
                 except Exception as e:
-                    result_str = f"Error: {e}"
-                    run.add_step(StepKind.error, {"tool": tname, "error": result_str})
-                messages.append({"role": "tool", "content": result_str, "name": tname})
+                    result_str = f"[Tool output from {tname}] Error: {e}"
+                    errd = {"tool": tname, "error": result_str}
+                    run.add_step(StepKind.error, errd, outputs={"result": result_str})
+                run.add_step(
+                    StepKind.tool,
+                    {"name": tname, "arguments": targs},
+                    outputs={"result": result_str},
+                )
+                messages.append(
+                    {"role": "tool", "content": result_str, "name": tname, "tool_call_id": tc_id}
+                )
         else:
             run.status = RunStatus.failed
             run.add_step(StepKind.error, {"text": "Max steps reached"})
