@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Git for agent runs. Fork, replay, resume any execution.</strong><br>
-  ~200 lines of core. Any model. Zero lock-in.
+  ~250 lines of core. Any model. Zero lock-in.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 A **tine** is the prong of a fork. opentine literally forks your agent runs.
 
-Every agent execution becomes a **run tree** — content-addressed, serializable, forkable. Pause on your laptop, resume on a server. Branch from step 7 with a different prompt. Diff two runs side by side. All in ~200 lines of core.
+Every agent execution becomes a **run tree** — content-addressed, serializable, forkable. Pause on your laptop, resume on a server. Branch from step 7 with a different prompt. Diff two runs side by side. All in ~250 lines of core.
 
 <!-- Hero GIF: tine show rendering a tree, then tine fork creating a branch -->
 
@@ -37,7 +37,7 @@ from opentine import Agent
 from opentine.models.anthropic import Anthropic
 
 agent = Agent(model=Anthropic("claude-sonnet-4-20250514"))
-run = agent.run("Find the mass of the sun in kilograms")
+run = agent.run_sync("Find the mass of the sun in kilograms")
 run.save("solar.tine")
 ```
 
@@ -85,7 +85,7 @@ tine diff failed_run.tine fixed_run.tine
 | LangGraph | 51 MB | Checkpoints only | Partial | ~50k |
 | CrewAI | 173 MB | No | Partial | ~30k |
 | smolagents | 198 MB | No | Partial | ~15k |
-| **opentine** | **<5 MB** | **Yes** | **Yes** | **~200** |
+| **opentine** | **<5 MB** | **Yes** | **Yes** | **~250** |
 
 ## How It Works
 

@@ -1,7 +1,7 @@
 [project]
 name = "opentine"
 version = "0.1.0"
-description = "Git for agent runs. Fork, replay, resume any execution. ~200 lines core. Any model."
+description = "Git for agent runs. Fork, replay, resume any execution. ~250 lines core. Any model."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
