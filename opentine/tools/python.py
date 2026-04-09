@@ -1,4 +1,5 @@
 """Python execution tool — runs code in a subprocess for real isolation."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,7 +16,9 @@ def execute(code: str, timeout: int = 30) -> str:
     try:
         result = subprocess.run(
             [sys.executable, script_path],
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         output = result.stdout
         if result.stderr:

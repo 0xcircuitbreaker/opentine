@@ -1,4 +1,5 @@
 """Google Gemini adapter via google-genai SDK."""
+
 from __future__ import annotations
 
 import os
@@ -41,14 +42,22 @@ class Google:
             raise ImportError("pip install opentine[google]")
         declarations = []
         for t in tools:
-            declarations.append(types.FunctionDeclaration(
-                name=t["name"], description=t["description"],
-                parameters=t["input_schema"],
-            ))
+            declarations.append(
+                types.FunctionDeclaration(
+                    name=t["name"],
+                    description=t["description"],
+                    parameters=t["input_schema"],
+                )
+            )
         return [types.Tool(function_declarations=declarations)]
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                       system: str | None = None, temperature: float = 0.0) -> dict[str, Any]:
+    async def complete(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
         client = self._get_client()
         try:
             from google.genai import types
@@ -58,7 +67,9 @@ class Google:
         contents = []
         for m in messages:
             role = "model" if m["role"] == "assistant" else "user"
-            contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
+            contents.append(
+                types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
+            )
 
         config = types.GenerateContentConfig(temperature=temperature)
         if system:
@@ -68,7 +79,9 @@ class Google:
             config.tools = gemini_tools
 
         resp = await client.aio.models.generate_content(
-            model=self._model, contents=contents, config=config,
+            model=self._model,
+            contents=contents,
+            config=config,
         )
 
         text = resp.text or ""
@@ -76,12 +89,21 @@ class Google:
         if resp.candidates and resp.candidates[0].content:
             for part in resp.candidates[0].content.parts:
                 if part.function_call:
-                    tool_calls.append({"name": part.function_call.name,
-                                       "arguments": dict(part.function_call.args or {})})
+                    tool_calls.append(
+                        {
+                            "name": part.function_call.name,
+                            "arguments": dict(part.function_call.args or {}),
+                        }
+                    )
         return {"text": text, "tool_calls": tool_calls, "cost": 0.0}
 
-    async def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                     system: str | None = None, temperature: float = 0.0) -> AsyncIterator[dict[str, Any]]:
+    async def stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> AsyncIterator[dict[str, Any]]:
         client = self._get_client()
         try:
             from google.genai import types
@@ -91,14 +113,18 @@ class Google:
         contents = []
         for m in messages:
             role = "model" if m["role"] == "assistant" else "user"
-            contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
+            contents.append(
+                types.Content(role=role, parts=[types.Part.from_text(text=m["content"])])
+            )
 
         config = types.GenerateContentConfig(temperature=temperature)
         if system:
             config.system_instruction = system
 
         async for chunk in await client.aio.models.generate_content_stream(
-            model=self._model, contents=contents, config=config,
+            model=self._model,
+            contents=contents,
+            config=config,
         ):
             if chunk.text:
                 yield {"type": "text_delta", "text": chunk.text}

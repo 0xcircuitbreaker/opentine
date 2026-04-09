@@ -1,4 +1,5 @@
 """Shell tool — run subprocesses with timeout and optional allowlist."""
+
 from __future__ import annotations
 
 import subprocess
@@ -16,7 +17,11 @@ def run(command: str, timeout: int = 30, allowlist: list[str] | None = None) -> 
             return f"Error: '{cmd_name}' not in allowlist {allowlist}"
     try:
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, timeout=timeout,
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         output = result.stdout
         if result.stderr:

@@ -1,4 +1,5 @@
 """OpenAI adapter — GPT, o-series, function calling."""
+
 from __future__ import annotations
 
 import json
@@ -36,25 +37,46 @@ class OpenAI:
     def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         if not tools:
             return None
-        return [{"type": "function", "function": {
-            "name": t["name"], "description": t["description"],
-            "parameters": t["input_schema"],
-        }} for t in tools]
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": t["name"],
+                    "description": t["description"],
+                    "parameters": t["input_schema"],
+                },
+            }
+            for t in tools
+        ]
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                       system: str | None = None, temperature: float = 0.0) -> dict[str, Any]:
+    async def complete(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
         client = self._get_client()
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
         for m in messages:
             if m["role"] == "tool":
-                msgs.append({"role": "tool", "content": m["content"],
-                             "tool_call_id": m.get("tool_call_id", m.get("name", ""))})
+                msgs.append(
+                    {
+                        "role": "tool",
+                        "content": m["content"],
+                        "tool_call_id": m.get("tool_call_id", m.get("name", "")),
+                    }
+                )
             else:
                 msgs.append({"role": m["role"], "content": m["content"]})
 
-        kwargs: dict[str, Any] = {"model": self._model, "messages": msgs, "temperature": temperature}
+        kwargs: dict[str, Any] = {
+            "model": self._model,
+            "messages": msgs,
+            "temperature": temperature,
+        }
         api_tools = self._build_tools(tools)
         if api_tools:
             kwargs["tools"] = api_tools
@@ -65,9 +87,13 @@ class OpenAI:
         tool_calls = []
         if choice.message.tool_calls:
             for tc in choice.message.tool_calls:
-                tool_calls.append({"name": tc.function.name,
-                                   "arguments": json.loads(tc.function.arguments),
-                                   "id": tc.id})
+                tool_calls.append(
+                    {
+                        "name": tc.function.name,
+                        "arguments": json.loads(tc.function.arguments),
+                        "id": tc.id,
+                    }
+                )
 
         cost = 0.0
         if resp.usage:
@@ -76,21 +102,35 @@ class OpenAI:
             cost = input_cost + output_cost
         return {"text": text, "tool_calls": tool_calls, "cost": cost}
 
-    async def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                     system: str | None = None, temperature: float = 0.0) -> AsyncIterator[dict[str, Any]]:
+    async def stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> AsyncIterator[dict[str, Any]]:
         client = self._get_client()
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
         for m in messages:
             if m["role"] == "tool":
-                msgs.append({"role": "tool", "content": m["content"],
-                             "tool_call_id": m.get("tool_call_id", m.get("name", ""))})
+                msgs.append(
+                    {
+                        "role": "tool",
+                        "content": m["content"],
+                        "tool_call_id": m.get("tool_call_id", m.get("name", "")),
+                    }
+                )
             else:
                 msgs.append({"role": m["role"], "content": m["content"]})
 
-        kwargs: dict[str, Any] = {"model": self._model, "messages": msgs, "temperature": temperature,
-                                  "stream": True}
+        kwargs: dict[str, Any] = {
+            "model": self._model,
+            "messages": msgs,
+            "temperature": temperature,
+            "stream": True,
+        }
         api_tools = self._build_tools(tools)
         if api_tools:
             kwargs["tools"] = api_tools

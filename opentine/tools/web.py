@@ -1,4 +1,5 @@
 """HTTP fetch and basic text extraction."""
+
 from __future__ import annotations
 
 import os
@@ -29,5 +30,8 @@ async def fetch_raw(url: str) -> dict[str, Any]:
     proxy = os.environ.get("HTTP_PROXY")
     async with httpx.AsyncClient(timeout=30, proxy=proxy, follow_redirects=True) as client:
         resp = await client.get(url, headers={"User-Agent": "opentine/0.1"})
-        return {"status": resp.status_code, "headers": dict(resp.headers),
-                "body": resp.text[:16000]}
+        return {
+            "status": resp.status_code,
+            "headers": dict(resp.headers),
+            "body": resp.text[:16000],
+        }

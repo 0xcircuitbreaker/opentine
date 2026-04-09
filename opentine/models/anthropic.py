@@ -1,4 +1,5 @@
 """Anthropic adapter — Claude models with tool_use, prompt caching, extended thinking."""
+
 from __future__ import annotations
 
 import os
@@ -35,24 +36,39 @@ class Anthropic:
     def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         if not tools:
             return None
-        return [{"name": t["name"], "description": t["description"],
-                 "input_schema": t["input_schema"]} for t in tools]
+        return [
+            {"name": t["name"], "description": t["description"], "input_schema": t["input_schema"]}
+            for t in tools
+        ]
 
     def _convert_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         out = []
         for m in messages:
             role = m["role"]
             if role == "tool":
-                out.append({"role": "user", "content": [
-                    {"type": "tool_result", "tool_use_id": m.get("tool_use_id", m.get("name", "")),
-                     "content": m["content"]}
-                ]})
+                out.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": m.get("tool_use_id", m.get("name", "")),
+                                "content": m["content"],
+                            }
+                        ],
+                    }
+                )
             else:
                 out.append({"role": role, "content": m["content"]})
         return out
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                       system: str | None = None, temperature: float = 0.0) -> dict[str, Any]:
+    async def complete(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
         client = self._get_client()
         kwargs: dict[str, Any] = {
             "model": self._model,
@@ -74,15 +90,19 @@ class Anthropic:
             if block.type == "text":
                 text += block.text
             elif block.type == "tool_use":
-                tool_calls.append({"name": block.name, "arguments": block.input,
-                                   "id": block.id})
+                tool_calls.append({"name": block.name, "arguments": block.input, "id": block.id})
 
         input_cost = (resp.usage.input_tokens / 1_000_000) * 3.0
         output_cost = (resp.usage.output_tokens / 1_000_000) * 15.0
         return {"text": text, "tool_calls": tool_calls, "cost": input_cost + output_cost}
 
-    async def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-                     system: str | None = None, temperature: float = 0.0) -> AsyncIterator[dict[str, Any]]:
+    async def stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> AsyncIterator[dict[str, Any]]:
         client = self._get_client()
         kwargs: dict[str, Any] = {
             "model": self._model,

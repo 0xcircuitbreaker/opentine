@@ -6,6 +6,7 @@ Usage:
 
 This demonstrates the core opentine primitive: pause anywhere, resume anywhere.
 """
+
 import sys
 
 from opentine import Run, RunStatus, StepKind
@@ -25,7 +26,7 @@ def create_and_pause():
     # Pause at step 5
     run.pause(PAUSE_FILE)
     print(f"\nPaused at step 5. State saved to {PAUSE_FILE}")
-    print(f"Resume with: python examples/resume.py resume")
+    print("Resume with: python examples/resume.py resume")
 
 
 def resume_run():
@@ -42,7 +43,7 @@ def resume_run():
     run.add_step(StepKind.done, {"text": "Counted to 10!"})
     run.save("resumed_run.tine")
     print(f"\nRun completed with {len(run.steps)} total steps")
-    print(f"Saved to resumed_run.tine")
+    print("Saved to resumed_run.tine")
 
 
 if __name__ == "__main__":
