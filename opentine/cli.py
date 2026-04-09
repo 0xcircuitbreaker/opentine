@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import os
+
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -16,18 +18,26 @@ from rich.tree import Tree
 
 from opentine.core import Run, RunStatus, StepKind
 
+# Force UTF-8 on Windows
+if sys.platform == "win32":
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # Blaze Orange palette — Pantone 1505 C (#FF6900)
 BRAND = "#FF6900"
 BRAND_DIM = "#CC5500"
 STEP_ICONS = {
-    StepKind.think: ("[bold bright_yellow]\u25cf[/]", "bright_yellow"),
-    StepKind.tool:  (f"[bold {BRAND}]\u25b6[/]", BRAND),
-    StepKind.model: ("[bold cyan]\u25c6[/]", "cyan"),
-    StepKind.done:  ("[bold green]\u2714[/]", "green"),
-    StepKind.error: ("[bold red]\u2718[/]", "red"),
+    StepKind.think: ("[bold bright_yellow]*[/]", "bright_yellow"),
+    StepKind.tool:  (f"[bold {BRAND}]>[/]", BRAND),
+    StepKind.model: (f"[bold cyan]#[/]", "cyan"),
+    StepKind.done:  ("[bold green]+[/]", "green"),
+    StepKind.error: ("[bold red]x[/]", "red"),
 }
 
-console = Console()
+console = Console(force_terminal=True)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +60,7 @@ def _find_run(run_id: str) -> Path | None:
     return None
 
 def _step_label(step) -> Text:
-    icon, color = STEP_ICONS.get(step.kind, ("\u25cb", "white"))
+    icon, color = STEP_ICONS.get(step.kind, ("o", "white"))
     text = step.inputs.get("text", "")
     name = step.inputs.get("name", "")
     args = step.inputs.get("arguments", {})
@@ -82,7 +92,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         console.print(f"[red]File not found: {script}[/]")
         sys.exit(1)
 
-    console.print(f"[{BRAND}]\u25c6 Running {script.name}...[/]\n")
+    console.print(f"[{BRAND}]# Running {script.name}...[/]\n")
 
     # Execute the script — it should produce a Run
     spec = importlib.util.spec_from_file_location("__tine_script__", str(script))
@@ -124,7 +134,7 @@ def _print_run_tree(run: Run) -> None:
     status_color = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
     sc = status_color.get(run.status.value, "white")
 
-    header = (f"[bold {BRAND}]\u25c6[/] [bold]{run.id}[/]  "
+    header = (f"[bold {BRAND}]#[/] [bold]{run.id}[/]  "
               f"model=[dim]{run.model_info}[/]  "
               f"steps=[dim]{len(run.steps)}[/]  "
               f"cost=[dim]{_cost_str(run.total_cost)}[/]  "
@@ -197,7 +207,7 @@ def cmd_fork(args: argparse.Namespace) -> None:
 
     out = args.save or str(_runs_dir() / f"{forked.id}.tine")
     forked.save(out)
-    console.print(f"[{BRAND}]\u25c6 Forked[/] {run.id} -> {forked.id} from step {step_idx}")
+    console.print(f"[{BRAND}]# Forked[/] {run.id} -> {forked.id} from step {step_idx}")
     console.print(f"[dim]Saved: {out}[/]")
     _print_run_tree(forked)
 
@@ -251,7 +261,7 @@ def cmd_diff(args: argparse.Namespace) -> None:
         sb = run_b.steps[i] if i < len(run_b.steps) else None
         la = str(_step_label(sa)) if sa else "[dim]---[/]"
         lb = str(_step_label(sb)) if sb else "[dim]---[/]"
-        match = "[green]\u2714[/]" if (sa and sb and sa.id == sb.id) else f"[{BRAND}]\u2716[/]"
+        match = "[green]=[/]" if (sa and sb and sa.id == sb.id) else f"[{BRAND}]![/]"
         table.add_row(str(i), la, lb, match)
 
     console.print(table)
@@ -265,7 +275,7 @@ def cmd_resume(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     run = Run.resume(path)
-    console.print(f"[{BRAND}]\u25c6 Resumed[/] {run.id} ({len(run.steps)} steps loaded)")
+    console.print(f"[{BRAND}]# Resumed[/] {run.id} ({len(run.steps)} steps loaded)")
     _print_run_tree(run)
     run.save(path)
 
