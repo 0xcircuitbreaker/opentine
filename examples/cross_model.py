@@ -5,6 +5,7 @@ Usage:
 
 Set the API keys for the providers you want to compare.
 """
+
 import os
 
 from opentine import Agent
@@ -15,19 +16,23 @@ models = []
 
 if os.environ.get("ANTHROPIC_API_KEY"):
     from opentine.models.anthropic import Anthropic
+
     models.append(("anthropic", Anthropic("claude-sonnet-4-20250514")))
 
 if os.environ.get("OPENAI_API_KEY"):
     from opentine.models.openai import OpenAI
+
     models.append(("openai", OpenAI("gpt-4o")))
 
 if os.environ.get("GOOGLE_API_KEY"):
     from opentine.models.google import Google
+
     models.append(("google", Google("gemini-2.0-flash")))
 
 if os.environ.get("OLLAMA_HOST") or True:  # Ollama defaults to localhost
     try:
         from opentine.models.ollama import Ollama
+
         models.append(("ollama", Ollama("llama3.1")))
     except Exception:
         pass

@@ -1,19 +1,16 @@
 """Tests for opentine core: Step, Run, fork, serialization, Agent."""
+
 from __future__ import annotations
 
-import asyncio
 import json
-import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-import pytest
-
-from opentine.core import Agent, Run, RunStatus, Step, StepKind, step_id, tool_schema
-
+from opentine.core import Agent, Run, RunStatus, StepKind, step_id, tool_schema
 
 # --- Step -------------------------------------------------------------------
+
 
 class TestStep:
     def test_content_addressing_deterministic(self):
@@ -42,6 +39,7 @@ class TestStep:
 
 
 # --- Run tree operations ----------------------------------------------------
+
 
 class TestRun:
     def _make_run(self) -> Run:
@@ -102,6 +100,7 @@ class TestRun:
 
 # --- Fork -------------------------------------------------------------------
 
+
 class TestFork:
     def test_fork_preserves_ancestors(self):
         run = Run(id="original")
@@ -133,6 +132,7 @@ class TestFork:
 
 
 # --- Serialization ----------------------------------------------------------
+
 
 class TestSerialization:
     def test_save_load_roundtrip(self, tmp_path: Path):
@@ -169,6 +169,7 @@ class TestSerialization:
 
 # --- Tool schema ------------------------------------------------------------
 
+
 class TestToolSchema:
     def test_basic_function(self):
         def greet(name: str, loud: bool = False) -> str:
@@ -184,11 +185,13 @@ class TestToolSchema:
     def test_no_docstring(self):
         def bare(x: int):
             pass
+
         schema = tool_schema(bare)
         assert schema["description"] == ""
 
 
 # --- Agent with mock model --------------------------------------------------
+
 
 class MockModel:
     def __init__(self, responses: list[dict[str, Any]]):
@@ -212,7 +215,9 @@ class MockModel:
         self._idx = min(self._idx + 1, len(self._responses) - 1)
         return resp
 
-    async def stream(self, messages, tools=None, system=None, temperature=0.0) -> AsyncIterator[dict[str, Any]]:
+    async def stream(
+        self, messages, tools=None, system=None, temperature=0.0
+    ) -> AsyncIterator[dict[str, Any]]:
         yield await self.complete(messages, tools, system, temperature)
 
 
@@ -230,10 +235,15 @@ class TestAgent:
             """Add two numbers."""
             return a + b
 
-        model = MockModel([
-            {"text": "Let me add those.", "tool_calls": [{"name": "add", "arguments": {"a": 2, "b": 3}}]},
-            {"text": "The sum is 5.", "tool_calls": []},
-        ])
+        model = MockModel(
+            [
+                {
+                    "text": "Let me add those.",
+                    "tool_calls": [{"name": "add", "arguments": {"a": 2, "b": 3}}],
+                },
+                {"text": "The sum is 5.", "tool_calls": []},
+            ]
+        )
         agent = Agent(model=model, tools=[add])
         run = agent.run_sync("Add 2 and 3")
         assert run.status == RunStatus.completed
@@ -241,9 +251,12 @@ class TestAgent:
         assert any(s.kind == StepKind.done for s in run.steps)
 
     def test_max_steps_exceeded(self):
-        model = MockModel([
-            {"text": "loop", "tool_calls": [{"name": "noop", "arguments": {}}]},
-        ])
+        model = MockModel(
+            [
+                {"text": "loop", "tool_calls": [{"name": "noop", "arguments": {}}]},
+            ]
+        )
+
         def noop() -> str:
             """Do nothing."""
             return "ok"
@@ -258,10 +271,12 @@ class TestAgent:
             """Always fails."""
             raise ValueError("boom")
 
-        model = MockModel([
-            {"text": "Calling tool.", "tool_calls": [{"name": "explode", "arguments": {}}]},
-            {"text": "That failed.", "tool_calls": []},
-        ])
+        model = MockModel(
+            [
+                {"text": "Calling tool.", "tool_calls": [{"name": "explode", "arguments": {}}]},
+                {"text": "That failed.", "tool_calls": []},
+            ]
+        )
         agent = Agent(model=model, tools=[explode])
         run = agent.run_sync("Do the thing")
         assert run.status == RunStatus.completed

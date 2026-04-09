@@ -13,6 +13,7 @@ Then inspect with:
     tine show fixed_run.tine
     tine diff failed_run.tine fixed_run.tine
 """
+
 from opentine import Run, RunStatus, StepKind
 
 print("=== The Killer Demo: Fork a Failed Run ===\n")
@@ -26,8 +27,18 @@ failed = Run(id="failed_run", model_info="demo-model", user_prompt="Analyze data
 failed.add_step(StepKind.think, {"text": "I need to read the dataset first."})
 failed.add_step(StepKind.tool, {"name": "read", "arguments": {"path": "dataset.csv"}})
 failed.add_step(StepKind.think, {"text": "The dataset has 1000 rows. Let me analyze column types."})
-failed.add_step(StepKind.tool, {"name": "execute", "arguments": {"code": "import pandas; df = pandas.read_csv('dataset.csv'); print(df.dtypes)"}})
-failed.add_step(StepKind.error, {"tool": "execute", "error": "ModuleNotFoundError: No module named 'pandas'"})
+failed.add_step(
+    StepKind.tool,
+    {
+        "name": "execute",
+        "arguments": {
+            "code": "import pandas; df = pandas.read_csv('dataset.csv'); print(df.dtypes)"
+        },
+    },
+)
+failed.add_step(
+    StepKind.error, {"tool": "execute", "error": "ModuleNotFoundError: No module named 'pandas'"}
+)
 
 failed.status = RunStatus.failed
 failed.save("failed_run.tine")
@@ -50,9 +61,26 @@ print(f"   Fork point: {fixed.metadata['fork_point']}\n")
 
 print("3. Continuing with stdlib instead of pandas...\n")
 
-fixed.add_step(StepKind.tool, {"name": "execute", "arguments": {"code": "import csv\nwith open('dataset.csv') as f:\n    reader = csv.reader(f)\n    header = next(reader)\n    print(header)"}})
-fixed.add_step(StepKind.think, {"text": "Successfully read the CSV with stdlib. Columns: name, age, score."})
-fixed.add_step(StepKind.done, {"text": "Analysis complete. The dataset has 3 columns: name (str), age (int), score (float)."})
+fixed.add_step(
+    StepKind.tool,
+    {
+        "name": "execute",
+        "arguments": {
+            "code": (
+                "import csv\nwith open('dataset.csv') as f:\n"
+                "    reader = csv.reader(f)\n    header = next(reader)\n"
+                "    print(header)"
+            )
+        },
+    },
+)
+fixed.add_step(
+    StepKind.think, {"text": "Successfully read the CSV with stdlib. Columns: name, age, score."}
+)
+fixed.add_step(
+    StepKind.done,
+    {"text": "Analysis complete. The dataset has 3 columns: name (str), age (int), score (float)."},
+)
 
 fixed.status = RunStatus.completed
 fixed.save("fixed_run.tine")

@@ -5,9 +5,10 @@ Usage:
 
 Requires OPENAI_API_KEY (or swap the model).
 """
+
 from opentine import Agent
 from opentine.models.openai import OpenAI
-from opentine.tools.fs import read, write, ls
+from opentine.tools.fs import ls, read, write
 from opentine.tools.python import execute
 
 agent = Agent(

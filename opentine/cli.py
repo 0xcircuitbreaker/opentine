@@ -1,22 +1,19 @@
 """CLI for opentine — the demo IS the interface."""
+
 from __future__ import annotations
 
 import argparse
 import importlib
-import json
-import sys
-import time
-from pathlib import Path
-from typing import Any
-
 import os
+import sys
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-from opentine.core import Run, RunStatus, StepKind
+from opentine.core import Run, StepKind
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -31,9 +28,9 @@ BRAND = "#FF6900"
 BRAND_DIM = "#CC5500"
 STEP_ICONS = {
     StepKind.think: ("[bold bright_yellow]*[/]", "bright_yellow"),
-    StepKind.tool:  (f"[bold {BRAND}]>[/]", BRAND),
-    StepKind.model: (f"[bold cyan]#[/]", "cyan"),
-    StepKind.done:  ("[bold green]+[/]", "green"),
+    StepKind.tool: (f"[bold {BRAND}]>[/]", BRAND),
+    StepKind.model: ("[bold cyan]#[/]", "cyan"),
+    StepKind.done: ("[bold green]+[/]", "green"),
     StepKind.error: ("[bold red]x[/]", "red"),
 }
 
@@ -45,9 +42,11 @@ console = Console(force_terminal=True)
 
 RUNS_DIR = Path(".tine_runs")
 
+
 def _runs_dir() -> Path:
     RUNS_DIR.mkdir(exist_ok=True)
     return RUNS_DIR
+
 
 def _find_run(run_id: str) -> Path | None:
     """Find a run file by ID prefix or exact path."""
@@ -59,31 +58,37 @@ def _find_run(run_id: str) -> Path | None:
             return f
     return None
 
+
 def _step_label(step) -> Text:
     icon, color = STEP_ICONS.get(step.kind, ("o", "white"))
     text = step.inputs.get("text", "")
     name = step.inputs.get("name", "")
     args = step.inputs.get("arguments", {})
     if step.kind == StepKind.tool:
-        args_str = ", ".join(f'{k}="{v}"' if isinstance(v, str) else f"{k}={v}" for k, v in args.items())
-        label = f'{icon} [bold]tool[/]  {name}({args_str})'
+        args_str = ", ".join(
+            f'{k}="{v}"' if isinstance(v, str) else f"{k}={v}" for k, v in args.items()
+        )
+        label = f"{icon} [bold]tool[/]  {name}({args_str})"
     elif text:
         preview = text[:80].replace("\n", " ")
         if len(text) > 80:
             preview += "..."
         label = f'{icon} [bold]{step.kind.value}[/]  "{preview}"'
     else:
-        label = f'{icon} [bold]{step.kind.value}[/]  {step.id}'
+        label = f"{icon} [bold]{step.kind.value}[/]  {step.id}"
     return Text.from_markup(label)
+
 
 def _cost_str(cost: float) -> str:
     if cost < 0.01:
         return f"${cost:.4f}"
     return f"${cost:.3f}"
 
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Execute a script that returns a Run, stream steps, save."""
@@ -109,7 +114,10 @@ def cmd_run(args: argparse.Namespace) -> None:
             break
 
     if run is None:
-        console.print("[red]No Run object found in script. Assign the result of agent.run() or agent.run_sync().[/]")
+        console.print(
+            "[red]No Run object found in script."
+            " Assign the result of agent.run() or agent.run_sync().[/]"
+        )
         sys.exit(1)
 
     # Save
@@ -134,11 +142,13 @@ def _print_run_tree(run: Run) -> None:
     status_color = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
     sc = status_color.get(run.status.value, "white")
 
-    header = (f"[bold {BRAND}]#[/] [bold]{run.id}[/]  "
-              f"model=[dim]{run.model_info}[/]  "
-              f"steps=[dim]{len(run.steps)}[/]  "
-              f"cost=[dim]{_cost_str(run.total_cost)}[/]  "
-              f"[{sc}]{run.status.value}[/]")
+    header = (
+        f"[bold {BRAND}]#[/] [bold]{run.id}[/]  "
+        f"model=[dim]{run.model_info}[/]  "
+        f"steps=[dim]{len(run.steps)}[/]  "
+        f"cost=[dim]{_cost_str(run.total_cost)}[/]  "
+        f"[{sc}]{run.status.value}[/]"
+    )
     tree = Tree(Text.from_markup(header))
 
     for step in run.steps:
@@ -153,8 +163,10 @@ def _print_run_tree(run: Run) -> None:
     console.print()
 
     if run.metadata.get("forked_from"):
-        console.print(f"  [{BRAND_DIM}]Forked from:[/] {run.metadata['forked_from']} "
-                       f"at step {run.metadata.get('fork_point', '?')}")
+        console.print(
+            f"  [{BRAND_DIM}]Forked from:[/] {run.metadata['forked_from']} "
+            f"at step {run.metadata.get('fork_point', '?')}"
+        )
         console.print()
 
 
@@ -164,7 +176,9 @@ def cmd_ls(args: argparse.Namespace) -> None:
     files = sorted(runs_dir.glob("*.tine"), key=lambda f: f.stat().st_mtime, reverse=True)
 
     if not files:
-        console.print("[dim]No runs found. Use[/] [bold]tine run <script.py>[/] [dim]to create one.[/]")
+        console.print(
+            "[dim]No runs found. Use[/] [bold]tine run <script.py>[/] [dim]to create one.[/]"
+        )
         return
 
     table = Table(title=f"[{BRAND}]Recent Runs[/]", border_style=BRAND_DIM)
@@ -180,8 +194,14 @@ def cmd_ls(args: argparse.Namespace) -> None:
             run = Run.load(f)
             sc = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
             status = f"[{sc.get(run.status.value, 'white')}]{run.status.value}[/]"
-            table.add_row(run.id, status, run.model_info, str(len(run.steps)),
-                          _cost_str(run.total_cost), f.name)
+            table.add_row(
+                run.id,
+                status,
+                run.model_info,
+                str(len(run.steps)),
+                _cost_str(run.total_cost),
+                f.name,
+            )
         except Exception:
             table.add_row("?", "[red]corrupt[/]", "", "", "", f.name)
 
@@ -222,10 +242,10 @@ def cmd_replay(args: argparse.Namespace) -> None:
 
     if args.from_step is not None:
         if args.from_step < 0 or args.from_step >= len(run.steps):
-            console.print(f"[red]Step index out of range[/]")
+            console.print("[red]Step index out of range[/]")
             sys.exit(1)
         console.print(f"[{BRAND}]Replaying from step {args.from_step}...[/]\n")
-        for step in run.steps[args.from_step:]:
+        for step in run.steps[args.from_step :]:
             label = _step_label(step)
             console.print(f"  {label}")
     else:
@@ -279,9 +299,11 @@ def cmd_resume(args: argparse.Namespace) -> None:
     _print_run_tree(run)
     run.save(path)
 
+
 # ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
@@ -293,7 +315,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_show = sub.add_parser("show", help="Pretty-print a run tree")
     p_show.add_argument("run_id", help="Run ID or .tine file path")
 
-    p_ls = sub.add_parser("ls", help="List recent runs")
+    sub.add_parser("ls", help="List recent runs")
 
     p_fork = sub.add_parser("fork", help="Fork a run from a specific step")
     p_fork.add_argument("run_id", help="Run ID or .tine file path")
@@ -319,8 +341,13 @@ def main() -> None:
     args = parser.parse_args()
 
     commands = {
-        "run": cmd_run, "show": cmd_show, "ls": cmd_ls, "fork": cmd_fork,
-        "replay": cmd_replay, "diff": cmd_diff, "resume": cmd_resume,
+        "run": cmd_run,
+        "show": cmd_show,
+        "ls": cmd_ls,
+        "fork": cmd_fork,
+        "replay": cmd_replay,
+        "diff": cmd_diff,
+        "resume": cmd_resume,
     }
 
     if args.command in commands:
