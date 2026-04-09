@@ -52,12 +52,26 @@ class Anthropic:
                         "content": [
                             {
                                 "type": "tool_result",
-                                "tool_use_id": m.get("tool_use_id", m.get("name", "")),
+                                "tool_use_id": m.get("tool_call_id", m.get("name", "")),
                                 "content": m["content"],
                             }
                         ],
                     }
                 )
+            elif role == "assistant" and m.get("tool_calls"):
+                content: list[dict[str, Any]] = []
+                if m.get("content"):
+                    content.append({"type": "text", "text": m["content"]})
+                for tc in m["tool_calls"]:
+                    content.append(
+                        {
+                            "type": "tool_use",
+                            "id": tc.get("id", tc["name"]),
+                            "name": tc["name"],
+                            "input": tc.get("arguments", {}),
+                        }
+                    )
+                out.append({"role": "assistant", "content": content})
             else:
                 out.append({"role": role, "content": m["content"]})
         return out

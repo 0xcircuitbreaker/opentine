@@ -54,7 +54,26 @@ class Ollama:
         if system:
             msgs.append({"role": "system", "content": system})
         for m in messages:
-            msgs.append({"role": m["role"], "content": m["content"]})
+            if m["role"] == "assistant" and m.get("tool_calls"):
+                msgs.append(
+                    {
+                        "role": "assistant",
+                        "content": m.get("content", ""),
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": tc["name"],
+                                    "arguments": tc.get("arguments", {}),
+                                },
+                            }
+                            for tc in m["tool_calls"]
+                        ],
+                    }
+                )
+            elif m["role"] == "tool":
+                msgs.append({"role": "tool", "content": m["content"], "name": m.get("name", "")})
+            else:
+                msgs.append({"role": m["role"], "content": m["content"]})
 
         payload: dict[str, Any] = {
             "model": self._model,
@@ -89,7 +108,26 @@ class Ollama:
         if system:
             msgs.append({"role": "system", "content": system})
         for m in messages:
-            msgs.append({"role": m["role"], "content": m["content"]})
+            if m["role"] == "assistant" and m.get("tool_calls"):
+                msgs.append(
+                    {
+                        "role": "assistant",
+                        "content": m.get("content", ""),
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": tc["name"],
+                                    "arguments": tc.get("arguments", {}),
+                                },
+                            }
+                            for tc in m["tool_calls"]
+                        ],
+                    }
+                )
+            elif m["role"] == "tool":
+                msgs.append({"role": "tool", "content": m["content"], "name": m.get("name", "")})
+            else:
+                msgs.append({"role": m["role"], "content": m["content"]})
 
         payload: dict[str, Any] = {
             "model": self._model,

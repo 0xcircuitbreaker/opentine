@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import os
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+_SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
+
+
+def _clean_env() -> dict[str, str]:
+    """Return a copy of the environment with sensitive variables removed."""
+    return {k: v for k, v in os.environ.items() if not _SENSITIVE_PAT.search(k)}
 
 
 def execute(code: str, timeout: int = 30) -> str:
@@ -19,6 +28,7 @@ def execute(code: str, timeout: int = 30) -> str:
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=_clean_env(),
         )
         output = result.stdout
         if result.stderr:

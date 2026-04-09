@@ -69,6 +69,21 @@ class OpenAI:
                         "tool_call_id": m.get("tool_call_id", m.get("name", "")),
                     }
                 )
+            elif m["role"] == "assistant" and m.get("tool_calls"):
+                oai_tcs = [
+                    {
+                        "id": tc.get("id", tc["name"]),
+                        "type": "function",
+                        "function": {
+                            "name": tc["name"],
+                            "arguments": json.dumps(tc.get("arguments", {})),
+                        },
+                    }
+                    for tc in m["tool_calls"]
+                ]
+                msgs.append(
+                    {"role": "assistant", "content": m.get("content") or "", "tool_calls": oai_tcs}
+                )
             else:
                 msgs.append({"role": m["role"], "content": m["content"]})
 
@@ -121,6 +136,21 @@ class OpenAI:
                         "content": m["content"],
                         "tool_call_id": m.get("tool_call_id", m.get("name", "")),
                     }
+                )
+            elif m["role"] == "assistant" and m.get("tool_calls"):
+                oai_tcs = [
+                    {
+                        "id": tc.get("id", tc["name"]),
+                        "type": "function",
+                        "function": {
+                            "name": tc["name"],
+                            "arguments": json.dumps(tc.get("arguments", {})),
+                        },
+                    }
+                    for tc in m["tool_calls"]
+                ]
+                msgs.append(
+                    {"role": "assistant", "content": m.get("content") or "", "tool_calls": oai_tcs}
                 )
             else:
                 msgs.append({"role": m["role"], "content": m["content"]})
