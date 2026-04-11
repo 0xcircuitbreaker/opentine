@@ -49,14 +49,53 @@ class Qwen(OpenAI):
 
 
 class GLM(OpenAI):
-    """Zhipu AI GLM models (glm-4, glm-4-flash, glm-4-plus)."""
+    """Zhipu AI GLM models (glm-4, glm-5, etc.). Uses JWT auth, not Bearer tokens."""
 
     def __init__(self, model: str = "glm-4-flash", api_key: str | None = None):
+        raw_key = api_key or os.environ.get("GLM_API_KEY", "")
         super().__init__(
             model=model,
-            api_key=api_key or os.environ.get("GLM_API_KEY", ""),
+            api_key=self._make_jwt(raw_key) if "." in raw_key else raw_key,
             base_url="https://open.bigmodel.cn/api/paas/v4",
         )
+
+    @staticmethod
+    def _make_jwt(api_key: str) -> str:
+        """Generate a JWT from Zhipu's {id}.{secret} key format."""
+        import base64
+        import hashlib
+        import hmac
+        import json
+        import time
+
+        key_id, secret = api_key.split(".", 1)
+        now = int(time.time())
+        header = (
+            base64.urlsafe_b64encode(
+                json.dumps({"alg": "HS256", "sign_type": "SIGN"}, separators=(",", ":")).encode()
+            )
+            .rstrip(b"=")
+            .decode()
+        )
+        payload = (
+            base64.urlsafe_b64encode(
+                json.dumps(
+                    {"api_key": key_id, "exp": now + 3600, "timestamp": now},
+                    separators=(",", ":"),
+                ).encode()
+            )
+            .rstrip(b"=")
+            .decode()
+        )
+        sig_input = f"{header}.{payload}"
+        sig = (
+            base64.urlsafe_b64encode(
+                hmac.new(secret.encode(), sig_input.encode(), hashlib.sha256).digest()
+            )
+            .rstrip(b"=")
+            .decode()
+        )
+        return f"{sig_input}.{sig}"
 
 
 class Groq(OpenAI):
