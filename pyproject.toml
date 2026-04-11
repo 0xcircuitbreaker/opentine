@@ -26,12 +26,13 @@ dependencies = [
 anthropic = ["anthropic>=0.40"]
 openai = ["openai>=1.50"]
 google = ["google-genai>=1.0"]
-ollama = ["ollama>=0.4"]
+# Kimi, DeepSeek, Qwen, GLM, Groq, Together, Mistral all use the openai SDK
+compat = ["openai>=1.50"]
+# Ollama uses httpx (core dep) directly — no extra package needed
 all = [
     "anthropic>=0.40",
     "openai>=1.50",
     "google-genai>=1.0",
-    "ollama>=0.4",
 ]
 
 [project.scripts]
