@@ -99,3 +99,23 @@ print("The key insight: we didn't re-run steps 0-2. We forked from step 3")
 print("and only changed the approach from step 3 onward. In a real agent run,")
 print("those first steps might have cost $0.50 in API calls and 30 seconds.")
 print("opentine saved both.")
+
+# --- Step 4: Pause and resume ---
+
+print("\n\n=== Bonus: Pause & Resume ===\n")
+
+paused = Run(id="pausable_run", model_info="demo-model", user_prompt="Count to 10")
+for i in range(1, 6):
+    paused.add_step(StepKind.think, {"text": f"Step {i}: counting..."})
+
+paused.pause("paused_run.tine")
+print("4. Paused at step 5 -> paused_run.tine")
+
+resumed = Run.resume("paused_run.tine")
+for i in range(6, 11):
+    resumed.add_step(StepKind.think, {"text": f"Step {i}: counting..."})
+resumed.status = RunStatus.completed
+resumed.add_step(StepKind.done, {"text": "Counted to 10!"})
+resumed.save("resumed_run.tine")
+print(f"5. Resumed and completed with {len(resumed.steps)} steps -> resumed_run.tine")
+print("\n  tine show resumed_run.tine  # See the full run")
