@@ -37,23 +37,63 @@ from opentine import Agent
 from opentine.models.anthropic import Anthropic
 
 agent = Agent(model=Anthropic("claude-sonnet-4-20250514"))
-run = agent.run_sync("Find the mass of the sun in kilograms")
-run.save("solar.tine")
+run = agent.run_sync("What is opentine?")
+run.save("result.tine")
 ```
 
 See what happened:
 
 ```bash
-tine show solar.tine
+tine show result.tine
 ```
 
 ```
-◆ run_a3f8c2  model=claude-sonnet-4-20250514  steps=4  cost=$0.003  12s
-├── ● think  "I'll search for the sun's mass..."
-├── ▶ tool   search("mass of the sun in kg")
-├── ● think  "The mass is approximately 1.989 × 10³⁰ kg..."
-└── ✔ done   "The mass of the Sun is approximately 1.989 × 10³⁰ kg."
+# fe3a767307a4  model=claude-sonnet-4-20250514  steps=1  cost=$0.0006  completed
+└── + done  "A tine is one of the pointed prongs or spikes that extend from
+    the head of a fork..."
 ```
+
+## Real Demo Output
+
+Here's `demo_research.py` running a research agent with search + web tools:
+
+```
+$ python examples/demo_research.py
+Detected Anthropic (claude-sonnet-4-20250514) via ANTHROPIC_API_KEY
+
+Researching: What is opentine?
+
+=== Run Tree ===
+
+  0. [think]  I'll search for information about "opentine"...
+  1. [tool]   search(query='opentine developer tool')
+  2. [think]  Let me try a more specific search...
+  3. [tool]   search(query='"opentine" software tool')
+  4. [think]  Found the website, let me fetch it...
+  5. [tool]   fetch(url='https://opentine.com/')
+  6. [done]   (see answer below)
+
+=== Answer ===
+
+Opentine is an open-source Python framework that provides "Git for agent
+runs" — a version control system for AI agent executions. It's ~250 lines
+of core code that lets developers track, debug, and manage AI agent
+workflows.
+
+- Creates forkable run trees: every step is content-addressed and immutable
+- Enables debugging and replay: fork from any step, modify, resume
+- Model agnostic: works with Claude, GPT, Gemini, Llama, and more
+- Cost savings: cached steps mean you don't burn tokens re-executing
+
+=== Run Info ===
+  Model:  claude-sonnet-4-20250514
+  Steps:  7
+  Cost:   $0.0320
+  Status: completed
+  Saved:  demo_research.tine
+```
+
+The demo auto-detects whichever API key you have set. Works with any provider.
 
 ## The Killer Demo
 
@@ -63,19 +103,14 @@ Your agent fails after 10 steps. Instead of re-running everything:
 # See where it went wrong
 tine show failed_run.tine
 
-# Fork from step 7, before the bad tool call
-tine fork failed_run.tine --from-step 7 --save fixed_run.tine
+# Fork from step 3, before the bad tool call
+tine fork failed_run.tine --from-step 3 --save fixed_run.tine
 
-# Resume with a patched prompt
-tine resume fixed_run.tine
-```
-
-Three commands. No re-running the first 7 steps. No lost context. No wasted API calls.
-
-```bash
 # Compare the runs
 tine diff failed_run.tine fixed_run.tine
 ```
+
+Three commands. No re-running the first 3 steps. No lost context. No wasted API calls.
 
 ## Why opentine?
 
