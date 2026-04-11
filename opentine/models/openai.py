@@ -11,9 +11,15 @@ from typing import Any
 class OpenAI:
     """Adapter for OpenAI models."""
 
-    def __init__(self, model: str = "gpt-4o", api_key: str | None = None):
+    def __init__(
+        self,
+        model: str = "gpt-4o",
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ):
         self._model = model
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        self._base_url = base_url or os.environ.get("OPENAI_BASE_URL")
 
     @property
     def name(self) -> str:
@@ -32,7 +38,7 @@ class OpenAI:
             import openai
         except ImportError:
             raise ImportError("pip install opentine[openai]")
-        return openai.AsyncOpenAI(api_key=self._api_key)
+        return openai.AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
 
     def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         if not tools:
