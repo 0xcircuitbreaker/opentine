@@ -35,6 +35,12 @@ all = [
     "google-genai>=1.0",
 ]
 
+dev = [
+    "pytest>=9.0",
+    "pytest-asyncio>=1.0",
+    "ruff>=0.4",
+]
+
 [project.scripts]
 tine = "opentine.cli:main"
 
