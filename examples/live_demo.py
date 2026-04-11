@@ -11,6 +11,7 @@ import sys
 from opentine import Agent
 
 PROVIDERS = {
+    # Cloud providers
     "1": ("Kimi (Moonshot)", "opentine.models.compat", "Kimi", "moonshot-v1-8k", "KIMI_API_KEY"),
     "2": ("OpenAI", "opentine.models.openai", "OpenAI", "gpt-4o", "OPENAI_API_KEY"),
     "3": (
@@ -19,18 +20,43 @@ PROVIDERS = {
         "Anthropic",
         "claude-sonnet-4-20250514",
         "ANTHROPIC_API_KEY",
-    ),
+    ),  # noqa: E501
     "4": ("DeepSeek", "opentine.models.compat", "DeepSeek", "deepseek-chat", "DEEPSEEK_API_KEY"),
     "5": ("Qwen", "opentine.models.compat", "Qwen", "qwen-plus", "QWEN_API_KEY"),
     "6": ("GLM (Zhipu)", "opentine.models.compat", "GLM", "glm-4-flash", "GLM_API_KEY"),
     "7": ("Groq", "opentine.models.compat", "Groq", "llama-3.1-70b-versatile", "GROQ_API_KEY"),
-    "8": ("Ollama (local)", "opentine.models.ollama", "Ollama", "llama3.1", None),
+    "8": (
+        "Together",
+        "opentine.models.compat",
+        "Together",
+        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        "TOGETHER_API_KEY",
+    ),  # noqa: E501
+    "9": (
+        "Mistral",
+        "opentine.models.compat",
+        "Mistral",
+        "mistral-large-latest",
+        "MISTRAL_API_KEY",
+    ),  # noqa: E501
+    # Local providers (no API key needed)
+    "10": ("Ollama (local)", "opentine.models.ollama", "Ollama", "llama3.1", None),
+    "11": ("LM Studio (local)", "opentine.models.compat", "LMStudio", "local-model", None),
+    "12": ("vLLM (local)", "opentine.models.compat", "VLLM", "default", None),
+    "13": ("llama.cpp (local)", "opentine.models.compat", "LlamaCpp", "default", None),
+    "14": ("LocalAI (local)", "opentine.models.compat", "LocalAI", "default", None),
+    "15": ("Jan (local)", "opentine.models.compat", "Jan", "default", None),
 }
 
 print("\n=== opentine live demo ===\n")
-print("Pick a model provider:\n")
+print("Cloud providers:")
 for k, (name, *_) in PROVIDERS.items():
-    print(f"  {k}. {name}")
+    if int(k) <= 9:
+        print(f"  {k:>2}. {name}")
+print("\nLocal providers (no API key needed):")
+for k, (name, *_) in PROVIDERS.items():
+    if int(k) >= 10:
+        print(f"  {k:>2}. {name}")
 
 choice = input("\nEnter number: ").strip()
 if choice not in PROVIDERS:

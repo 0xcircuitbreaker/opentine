@@ -3,6 +3,9 @@
 Any provider that speaks the OpenAI Chat Completions API works here.
 Each class is just the OpenAI adapter with a different endpoint and
 env var. No new code, no new protocol, no impact on core.py.
+
+Cloud providers: Kimi, DeepSeek, Qwen, GLM, Groq, Together, Mistral
+Local providers: LMStudio, VLLM, LlamaCpp, LocalAI, Jan
 """
 
 from __future__ import annotations
@@ -91,3 +94,41 @@ class Mistral(OpenAI):
             api_key=api_key or os.environ.get("MISTRAL_API_KEY", ""),
             base_url="https://api.mistral.ai/v1",
         )
+
+
+# --- Local providers (no API key needed, no pip extra needed) ---------------
+
+
+class LMStudio(OpenAI):
+    """LM Studio local server (any model loaded in the app)."""
+
+    def __init__(self, model: str = "local-model", host: str = "http://localhost:1234"):
+        super().__init__(model=model, api_key="lm-studio", base_url=f"{host}/v1")
+
+
+class VLLM(OpenAI):
+    """vLLM high-performance inference server."""
+
+    def __init__(self, model: str = "default", host: str = "http://localhost:8000"):
+        super().__init__(model=model, api_key="vllm", base_url=f"{host}/v1")
+
+
+class LlamaCpp(OpenAI):
+    """llama.cpp server (lightweight C++ inference)."""
+
+    def __init__(self, model: str = "default", host: str = "http://localhost:8080"):
+        super().__init__(model=model, api_key="llama-cpp", base_url=f"{host}/v1")
+
+
+class LocalAI(OpenAI):
+    """LocalAI — drop-in OpenAI replacement for local models."""
+
+    def __init__(self, model: str = "default", host: str = "http://localhost:8080"):
+        super().__init__(model=model, api_key="local-ai", base_url=f"{host}/v1")
+
+
+class Jan(OpenAI):
+    """Jan desktop app local server."""
+
+    def __init__(self, model: str = "default", host: str = "http://localhost:1337"):
+        super().__init__(model=model, api_key="jan", base_url=f"{host}/v1")
