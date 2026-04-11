@@ -107,10 +107,18 @@ for i, step in enumerate(run.steps):
     if kind == "tool":
         arg_preview = ", ".join(f"{k}={repr(v)[:30]}" for k, v in args.items())
         print(f"  {i}. [{kind}]  {name}({arg_preview})")
+    elif kind == "done":
+        print(f"  {i}. [{kind}]  (see answer below)")
     elif text:
         print(f"  {i}. [{kind}]  {text[:100]}")
 
-print("\n=== Summary ===")
+# Print the final answer in full
+final = [s for s in run.steps if s.kind.value == "done"]
+if final:
+    print("\n=== Answer ===\n")
+    print(final[-1].inputs.get("text", "(no text)"))
+
+print("\n=== Run Info ===")
 print(f"  Model:  {run.model_info}")
 print(f"  Steps:  {len(run.steps)}")
 print(f"  Cost:   ${run.total_cost:.4f}")
