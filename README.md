@@ -131,6 +131,20 @@ agent = Agent(model=Google("gemini-2.0-flash"))
 agent = Agent(model=Ollama("llama3.1"))
 ```
 
+Any OpenAI-compatible provider works out of the box:
+
+```python
+from opentine.models.compat import Kimi, DeepSeek, Qwen, GLM, Groq, Together, Mistral
+
+agent = Agent(model=Kimi("moonshot-v1-8k"))
+agent = Agent(model=DeepSeek("deepseek-chat"))
+agent = Agent(model=Qwen("qwen-plus"))
+agent = Agent(model=GLM("glm-4-flash"))
+agent = Agent(model=Groq("llama-3.1-70b-versatile"))
+agent = Agent(model=Together("meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"))
+agent = Agent(model=Mistral("mistral-large-latest"))
+```
+
 ## Built-in Tools
 
 ```python
