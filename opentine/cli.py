@@ -347,7 +347,11 @@ def cmd_replay(args: argparse.Namespace) -> None:
         wrapped = OpentineHarness(harness)
         out = Path(args.save) if args.save else None
         try:
-            replayed = wrapped.run_sync(task, context=_run_context(run, args.from_step), save_path=out)
+            replayed = wrapped.run_sync(
+                task,
+                context=_run_context(run, args.from_step),
+                save_path=out,
+            )
         except Exception as exc:
             replayed = wrapped.run
             if replayed is not None:
@@ -438,7 +442,11 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     p_run = sub.add_parser("run", help="Execute a script and save the run tree")
-    p_run.add_argument("script", nargs="?", help="Python script to execute, or prompt for --harness")
+    p_run.add_argument(
+        "script",
+        nargs="?",
+        help="Python script to execute, or prompt for --harness",
+    )
     _add_harness_args(p_run)
     p_run.add_argument("--save", help="Output path for harness run")
 
@@ -457,7 +465,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_replay.add_argument("run_id", help="Run ID or .tine file path")
     p_replay.add_argument("--from-step", type=int, default=None, help="Step index to replay from")
     p_replay.add_argument("--save", help="Output path for replayed harness run")
-    p_replay.add_argument("--compare", action="store_true", help="Diff the original and replayed runs")
+    p_replay.add_argument(
+        "--compare",
+        action="store_true",
+        help="Diff the original and replayed runs",
+    )
     _add_harness_args(p_replay)
 
     p_diff = sub.add_parser("diff", help="Diff two runs")
