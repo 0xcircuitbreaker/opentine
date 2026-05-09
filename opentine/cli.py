@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import os
+import shlex
 import sys
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from rich.text import Text
 from rich.tree import Tree
 
 from opentine.core import Run, StepKind
+from opentine.harnesses import ClaudeCodeHarness, CodexCLIHarness, CursorHarness, OpentineHarness
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -41,6 +43,11 @@ console = Console(force_terminal=True)
 # ---------------------------------------------------------------------------
 
 RUNS_DIR = Path(".tine_runs")
+HARNESS_FACTORIES = {
+    "claude-code": ClaudeCodeHarness,
+    "codex": CodexCLIHarness,
+    "cursor": CursorHarness,
+}
 
 
 def _runs_dir() -> Path:
@@ -57,6 +64,33 @@ def _find_run(run_id: str) -> Path | None:
         if f.stem.startswith(run_id):
             return f
     return None
+
+
+def _harness_from_args(args: argparse.Namespace):
+    factory = HARNESS_FACTORIES[args.harness]
+    command = shlex.split(args.harness_command) if args.harness_command else None
+    return factory(
+        command=command,
+        extra_args=args.harness_arg or (),
+        cwd=args.cwd,
+    )
+
+
+def _run_context(run: Run, from_step: int | None = None) -> dict:
+    steps = run.steps[from_step:] if from_step is not None else run.steps
+    return {
+        "source_run": run.id,
+        "from_step": from_step,
+        "steps": [
+            {
+                "id": step.id,
+                "kind": step.kind.value,
+                "inputs": step.inputs,
+                "outputs": step.outputs,
+            }
+            for step in steps
+        ],
+    }
 
 
 def _step_label(step) -> Text:
@@ -92,6 +126,14 @@ def _cost_str(cost: float) -> str:
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Execute a script that returns a Run, stream steps, save."""
+    if args.harness:
+        cmd_run_harness(args)
+        return
+
+    if not args.script:
+        console.print("[red]Provide a Python script or use --harness with --prompt.[/]")
+        sys.exit(1)
+
     script = Path(args.script)
     if not script.exists():
         console.print(f"[red]File not found: {script}[/]")
@@ -122,6 +164,36 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # Save
     out_path = _runs_dir() / f"{run.id}.tine"
+    run.save(out_path)
+    console.print(f"\n[{BRAND}]Saved:[/] {out_path}")
+    _print_run_tree(run)
+
+
+def cmd_run_harness(args: argparse.Namespace) -> None:
+    """Execute an external harness and save its run tree."""
+    task = args.prompt or args.script
+    if not task:
+        console.print("[red]--prompt is required when running a harness.[/]")
+        sys.exit(1)
+
+    harness = _harness_from_args(args)
+    wrapped = OpentineHarness(harness)
+    console.print(f"[{BRAND}]# Running {args.harness} harness...[/]\n")
+
+    out_path = Path(args.save) if args.save else None
+    try:
+        run = wrapped.run_sync(task, context={"cwd": args.cwd}, save_path=out_path)
+    except Exception as exc:
+        run = wrapped.run
+        if run is not None:
+            out_path = out_path or (_runs_dir() / f"{run.id}.tine")
+            run.save(out_path)
+            console.print(f"\n[yellow]Saved failed run:[/] {out_path}")
+            _print_run_tree(run)
+        console.print(f"[red]Harness failed:[/] {exc}")
+        sys.exit(1)
+
+    out_path = out_path or (_runs_dir() / f"{run.id}.tine")
     run.save(out_path)
     console.print(f"\n[{BRAND}]Saved:[/] {out_path}")
     _print_run_tree(run)
@@ -226,8 +298,30 @@ def cmd_fork(args: argparse.Namespace) -> None:
     forked = run.fork(fork_step.id)
 
     out = args.save or str(_runs_dir() / f"{forked.id}.tine")
+    if args.harness:
+        forked.metadata["next_harness"] = args.harness
+        if args.prompt:
+            harness = _harness_from_args(args)
+            wrapped = OpentineHarness(harness, run=forked)
+            try:
+                forked = wrapped.run_sync(
+                    args.prompt,
+                    context={
+                        **_run_context(run, from_step=step_idx),
+                        "forked_from": run.id,
+                        "fork_point": fork_step.id,
+                    },
+                    save_path=out,
+                )
+            except Exception as exc:
+                forked.save(out)
+                console.print(f"[red]Harness failed after fork:[/] {exc}")
+                sys.exit(1)
+
     forked.save(out)
     console.print(f"[{BRAND}]# Forked[/] {run.id} -> {forked.id} from step {step_idx}")
+    if args.harness:
+        console.print(f"[dim]Harness: {args.harness}[/]")
     console.print(f"[dim]Saved: {out}[/]")
     _print_run_tree(forked)
 
@@ -239,6 +333,41 @@ def cmd_replay(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {args.run_id}[/]")
         sys.exit(1)
     run = Run.load(path)
+
+    if args.harness:
+        task = args.prompt or run.user_prompt
+        if not task:
+            console.print("[red]--prompt is required when replaying a harness run.[/]")
+            sys.exit(1)
+        if args.from_step is not None and (args.from_step < 0 or args.from_step >= len(run.steps)):
+            console.print("[red]Step index out of range[/]")
+            sys.exit(1)
+
+        harness = _harness_from_args(args)
+        wrapped = OpentineHarness(harness)
+        out = Path(args.save) if args.save else None
+        try:
+            replayed = wrapped.run_sync(
+                task,
+                context=_run_context(run, args.from_step),
+                save_path=out,
+            )
+        except Exception as exc:
+            replayed = wrapped.run
+            if replayed is not None:
+                out = out or (_runs_dir() / f"{replayed.id}.tine")
+                replayed.save(out)
+            console.print(f"[red]Harness replay failed:[/] {exc}")
+            sys.exit(1)
+
+        out = out or (_runs_dir() / f"{replayed.id}.tine")
+        replayed.save(out)
+        console.print(f"[{BRAND}]# Replayed[/] {run.id} with {args.harness}")
+        console.print(f"[dim]Saved: {out}[/]")
+        _print_run_tree(replayed)
+        if args.compare:
+            _print_diff_table(run, replayed)
+        return
 
     if args.from_step is not None:
         if args.from_step < 0 or args.from_step >= len(run.steps):
@@ -268,7 +397,10 @@ def cmd_diff(args: argparse.Namespace) -> None:
 
     run_a = Run.load(path_a)
     run_b = Run.load(path_b)
+    _print_diff_table(run_a, run_b)
 
+
+def _print_diff_table(run_a: Run, run_b: Run) -> None:
     table = Table(title=f"[{BRAND}]Diff: {run_a.id} vs {run_b.id}[/]", border_style=BRAND_DIM)
     table.add_column("#", justify="right", style="dim")
     table.add_column(f"{run_a.id}", style="cyan")
@@ -310,7 +442,13 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     p_run = sub.add_parser("run", help="Execute a script and save the run tree")
-    p_run.add_argument("script", help="Python script to execute")
+    p_run.add_argument(
+        "script",
+        nargs="?",
+        help="Python script to execute, or prompt for --harness",
+    )
+    _add_harness_args(p_run)
+    p_run.add_argument("--save", help="Output path for harness run")
 
     p_show = sub.add_parser("show", help="Pretty-print a run tree")
     p_show.add_argument("run_id", help="Run ID or .tine file path")
@@ -321,10 +459,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_fork.add_argument("run_id", help="Run ID or .tine file path")
     p_fork.add_argument("--from-step", type=int, required=True, help="Step index to fork from")
     p_fork.add_argument("--save", help="Output path for forked run")
+    _add_harness_args(p_fork)
 
     p_replay = sub.add_parser("replay", help="Replay a run")
     p_replay.add_argument("run_id", help="Run ID or .tine file path")
     p_replay.add_argument("--from-step", type=int, default=None, help="Step index to replay from")
+    p_replay.add_argument("--save", help="Output path for replayed harness run")
+    p_replay.add_argument(
+        "--compare",
+        action="store_true",
+        help="Diff the original and replayed runs",
+    )
+    _add_harness_args(p_replay)
 
     p_diff = sub.add_parser("diff", help="Diff two runs")
     p_diff.add_argument("run_a", help="First run ID or path")
@@ -334,6 +480,26 @@ def _build_parser() -> argparse.ArgumentParser:
     p_resume.add_argument("run_id", help="Run ID or .tine file path")
 
     return parser
+
+
+def _add_harness_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--harness",
+        choices=sorted(HARNESS_FACTORIES),
+        help="External agent harness to run through opentine",
+    )
+    parser.add_argument("--prompt", help="Task prompt for the selected harness")
+    parser.add_argument("--cwd", help="Working directory for harness command")
+    parser.add_argument(
+        "--harness-command",
+        help='Override harness command, e.g. "claude -p" or "codex exec"',
+    )
+    parser.add_argument(
+        "--harness-arg",
+        action="append",
+        default=[],
+        help="Extra argument passed to the harness command; repeat as needed",
+    )
 
 
 def main() -> None:
