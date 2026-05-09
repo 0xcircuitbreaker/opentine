@@ -193,14 +193,93 @@ agent = Agent(
 
 Tools are plain Python functions with type hints. No decorators, no schemas, no framework. opentine introspects the signature.
 
+## Use opentine alongside Claude Code, Codex, Cursor
+
+opentine does not replace your coding agent. It wraps the harness you already
+use and records each observable model/tool/checkpoint event as a `.tine` run
+tree. That gives Claude Code, Codex, Cursor, and similar tools a portable
+"git for agents" layer:
+
+```mermaid
+graph TD
+    User[User task] --> Opentine[opentine harness wrapper]
+    Opentine --> ClaudeCode[Claude Code]
+    Opentine --> Codex[Codex CLI]
+    Opentine --> Cursor[Cursor agent]
+    ClaudeCode --> TineFile[Portable .tine run]
+    Codex --> TineFile
+    Cursor --> TineFile
+    TineFile --> Fork[Fork from any step]
+    TineFile --> Replay[Replay with another harness]
+    TineFile --> Diff[Diff cost and behavior]
+```
+
+### Python wrapper API
+
+```python
+from opentine.harnesses import ClaudeCodeHarness, OpentineHarness
+
+harness = ClaudeCodeHarness(command=("claude", "-p"))
+wrapped = OpentineHarness(harness, autosave_path="latest.tine", autosave_steps=5)
+
+run = wrapped.run_sync("Refactor auth middleware")
+run.save("claude_code_run.tine")
+
+# Later, branch from a useful point without losing prior context.
+forked = wrapped.fork(from_step=3)
+forked.save("retry_from_step_3.tine")
+```
+
+The same wrapper works for `CodexCLIHarness`, `CursorHarness`, any custom
+object with `execute(task, context=None, step_callback=None)`, and OpenAI
+Agents SDK objects through `OpenAIAgentsHarness`.
+
+### CLI harness control
+
+```bash
+# Start a new run through an external harness.
+tine run --harness=codex --prompt="Update dependency pins"
+
+# Override the command when your local tool uses different flags.
+tine run --harness=claude-code \
+  --harness-command="claude -p" \
+  --prompt="Fix the failing auth tests"
+
+# Fork a saved run and continue with another harness.
+tine fork previous.tine --from-step=5 --harness=cursor \
+  --prompt="Try the smaller edit strategy"
+
+# Replay a saved prompt with another harness and diff the result.
+tine replay previous.tine --harness=codex --compare
+```
+
+### MCP server for IDEs and agent tools
+
+`opentine.mcp_server` exposes saved runs to MCP clients:
+
+- `list_runs` - show recent `.tine` files
+- `show_run` - render a run as LLM-readable context
+- `fork_run` - fork a run from a step index
+- `diff_runs` - compare two runs
+- `run://{run_id}` - resource URI for a saved run
+
+Run it with an MCP-compatible environment:
+
+```bash
+python -m opentine.mcp_server
+```
+
+The MCP dependency is optional; install the `mcp` package only for this server.
+
 ## CLI Reference
 
 ```
 tine run <script.py>          Execute agent, stream steps, save run tree
+tine run --harness=codex      Execute an external harness and save the tree
 tine ls                       List recent runs (status, cost, model)
 tine show <run_id>            Pretty-print the tree (like git log --graph)
-tine replay <id> [--from N]   Replay from a step
-tine fork <id> --from-step N  Branch a new run
+tine replay <id> [--from N]   Replay from a step, optionally with --harness
+tine fork <id> --from-step N  Branch a new run, optionally continue with --harness
 tine diff <run_a> <run_b>     Side-by-side comparison
 tine resume <run_id>          Resume a paused run
 ```
