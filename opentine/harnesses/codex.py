@@ -58,7 +58,10 @@ class CodexCLIHarness(ProcessHarness):
             name = data.get("name") or data.get("tool") or data.get("command") or "tool"
             return HarnessStep(
                 kind=StepKind.tool,
-                inputs={"name": str(name), "arguments": data.get("arguments", data.get("args", {}))},
+                inputs={
+                    "name": str(name),
+                    "arguments": data.get("arguments", data.get("args", {})),
+                },
                 outputs={"result": data.get("result") or data.get("output")},
                 cost=cost,
                 duration=float(data.get("duration") or 0.0),

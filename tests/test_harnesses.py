@@ -8,7 +8,12 @@ from typing import Any
 from opentine.cli import _build_parser
 from opentine.core import Run, RunStatus, StepKind
 from opentine.harnesses import CodexCLIHarness, HarnessStep, OpentineHarness
-from opentine.mcp_server import diff_runs_text, fork_run_file, format_run_for_llm, list_run_summaries
+from opentine.mcp_server import (
+    diff_runs_text,
+    fork_run_file,
+    format_run_for_llm,
+    list_run_summaries,
+)
 
 
 class DummyHarness:
