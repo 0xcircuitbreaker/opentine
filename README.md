@@ -1,9 +1,49 @@
-# opentine
+<p align="center">
+  <img src="https://opentine.com/logo.svg" alt="opentine" width="120" />
+</p>
 
-Local-first provenance for agent runs: record model/tool steps as a portable `.tine` artifact, fork from a step, replay cached outputs, rerun through an explicit harness, and diff graph history.
+<h1 align="center">opentine</h1>
+
+<p align="center">
+  <strong>Git for agent runs: record, verify, fork, replay, and diff execution history.</strong><br>
+  Portable <code>.tine</code> artifacts for native agents and external CLI harnesses.
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=FF6900" alt="PyPI" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-FF6900" alt="License" /></a>
+  <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/pyversions/opentine?color=FF6900" alt="Python" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=FF6900" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/status-0.1.x%20beta-FF6900" alt="0.1.x beta" />
+</p>
+
+---
+
+A **tine** is the prong of a fork. opentine forks agent runs.
+
+Every run becomes a content-addressed graph of model calls, tool calls, outputs, errors, cache provenance, and transcript state. Save it as a `.tine` file, verify its checksum, fork from a known-good step, replay recorded work, rerun through an explicit harness, and diff the branch that worked against the branch that failed.
 
 
-The public primitive layer in `opentine/core.py` is intentionally small: currently 52 physical lines. Heavier graph, runtime, cache, and policy logic lives in focused modules.
+## What You Can Do
+
+```bash
+# Inspect a saved execution tree.
+tine show result.tine
+
+# Check that the artifact body still matches its recorded checksum.
+tine verify result.tine
+
+# Branch from a step before a bad tool call.
+tine fork failed.tine --from-step 3 --save retry.tine
+
+# Reuse recorded steps without re-spending model/tool work.
+tine replay result.tine --mode cache --save replayed.tine
+
+# Compare the graph shape of two runs.
+tine diff failed.tine retry.tine
+```
+
+The current 0.1.x release-readiness pass validates the core surface, Ollama, Codex CLI, and Kimi Code CLI in this environment. Other providers and harnesses are compatibility targets until their own live gates pass.
 
 ## Install
 
@@ -11,9 +51,18 @@ The public primitive layer in `opentine/core.py` is intentionally small: current
 pip install opentine
 ```
 
-The opentine package itself is small. Core runtime dependencies install normally, and optional provider SDKs such as Anthropic, OpenAI, and Google packages are selected through dependency extras.
+Core runtime dependencies install normally. Provider SDKs are optional extras, and OpenAI-compatible providers share the OpenAI SDK path.
+
+```bash
+pip install "opentine[anthropic]"
+pip install "opentine[openai]"
+pip install "opentine[google]"
+pip install "opentine[compat]"
+```
 
 ## Quickstart
+
+Write a native opentine agent:
 
 ```python
 from opentine import Agent
@@ -24,177 +73,308 @@ run = agent.run_sync("What is opentine?")
 run.save("result.tine")
 ```
 
+Then inspect and branch the run:
+
 ```bash
 tine show result.tine
 tine verify result.tine
 tine fork result.tine --from-step 0 --save forked.tine
-tine replay result.tine --mode cache --save replayed.tine
 tine replay result.tine --inspect
 tine diff result.tine forked.tine
 ```
 
-`tine replay` is no longer a synonym for printing saved steps. Use `--inspect` or `--dry-run` to view recorded events without creating a replay artifact.
+Example tree shape:
 
-## Testing
-
-Fast local gates validate Opentine runtime behavior with mocks and local fixtures:
-
-```bash
-pytest tests -m "not live and not live_harness"
-ruff check .
-ruff format --check .
+```text
+# fe3a767307a4  model=claude-sonnet-4-20250514  steps=3  cost=$0.0006  completed
+|-- # 9e4b8c2a19dd think  "Planning the answer..."
+|-- > 81bf0f67bb12 tool   search(query="opentine")
+`-- + 6d4a0b270a5f done   "opentine records agent runs as portable artifacts..."
 ```
 
-### 0.1.x Full-Release Readiness Evidence
+## The Debugging Loop
 
-The current release-readiness pass keeps package metadata at `Development Status :: 4 - Beta` while validating the 0.1.x surface that is actually claimed. The fast suite confirms `.tine` save/load, integrity verification, golden v1 fixture behavior, graph refs, fork, diff, cached replay, native rerun/resume with mocks, CLI show/verify/fork/replay/diff, CLI failure paths, harness parsing, secure defaults, provider adapter payload shape for Ollama, OpenAI/OpenAI-compatible, Anthropic, and Google, and a CI-sized graph performance smoke.
-
-Latest local audit results:
-
-- `ruff check .`: passing
-- `ruff format --check .`: passing
-- `pytest tests -m "not live and not live_harness" -q`: 68 passed, 12 deselected
-- `pytest tests -m "not live_harness" -q`: 68 passed, 11 skipped, 1 deselected
-- Focused integrity/golden/performance/CLI suite: 50 passed
-
-Current live validation for this audit environment:
-
-- `pytest tests/test_live.py --provider ollama -q`: 11 passed with local `llama3.1` and `qwen3`
-- `pytest tests/test_live_harness.py -m live_harness --agent-harness codex -q`: 1 passed
-- `pytest tests/test_live_harness.py -m live_harness --agent-harness kimi-code -q`: 1 passed
-- `pytest tests/test_live.py --provider lmstudio -q -rs`: 11 skipped because `http://localhost:1234` was not reachable
-- Package build: `opentine-0.1.0.tar.gz` and `opentine-0.1.0-py3-none-any.whl` built; Twine metadata check passed; clean wheel install, import, `tine --help`, `tine verify`, beta classifier, and `pip check` verified
-
-
-
-### Testing Your Agent CLI
-
-Harness compatibility tests are separate from live model/provider tests. They run real external CLIs in disposable temp repos and skip when the CLI is not installed or not authenticated:
+Your agent fails after ten steps. Instead of rerunning everything:
 
 ```bash
-pytest tests/test_live_harness.py -m live_harness --agent-harness codex
-pytest tests/test_live_harness.py -m live_harness --agent-harness opencode
-pytest tests/test_live_harness.py -m live_harness --agent-harness kimi-code
-pytest tests/test_live_harness.py -m live_harness --agent-harness openclaw
-pytest tests/test_live_harness.py -m live_harness --agent-harness hermes
+tine show failed_run.tine
+tine fork failed_run.tine --from-step 3 --save fixed_run.tine
+tine diff failed_run.tine fixed_run.tine
 ```
 
-The default profiles are:
+That gives you the first three steps as known provenance, a new branch for the repair attempt, and a graph diff that shows what changed.
 
-- `codex`: `codex exec <task>`
-- `claude-code`: `claude -p <task>`
-- `opencode`: `opencode run <task>`
-- `kimi-code`: `kimi --print --output-format stream-json --prompt <task>` after `kimi login`
-- `openclaw`: `openclaw agent --local --json --message <task>`
-- `hermes`: `hermes chat -q <task>`
-- `generic` and `pi`: user-supplied command
+## How It Works
 
-Every profile is overrideable:
+Every `.tine` file stores a content-addressed DAG. Step IDs are full SHA-256 hashes over canonical immutable step payloads: parent links, kind, inputs, outputs, model/tool metadata, and errors.
+
+```mermaid
+graph TD
+    A["run: failed"] --> B["think"]
+    B --> C["tool: search"]
+    C --> D["tool: edit"]
+    D --> E["error"]
+
+    C --> F["run: retry"]
+    F --> G["tool: inspect"]
+    G --> H["done"]
+
+    style A fill:#FF6900,color:#fff
+    style F fill:#FF6900,color:#fff
+```
+
+Core operations are graph operations:
+
+| Operation | Meaning |
+|---|---|
+| Save/load | Serialize the run graph, transcript, cache, manifest, policy metadata, and checksum. |
+| Verify | Recompute the SHA-256 checksum in `metadata.integrity`. |
+| Fork | Copy ancestors up to a chosen step and continue from there. |
+| Replay | Reuse recorded steps, or rerun through an explicit native runtime or harness. |
+| Diff | Compare two run graphs and show the common ancestor plus divergent steps. |
+
+`Run.steps` remains a stable traversal view, but the artifact stores a graph with `parent_ids`, named refs, and branch metadata.
+
+## Harnesses
+
+opentine can wrap external CLI agents and record observable events as a `.tine` run:
 
 ```bash
-tine run --harness generic --harness-command "your-agent run" --prompt "Inspect this repo"
-pytest tests/test_live_harness.py -m live_harness --agent-harness generic --harness-command "your-agent run"
+tine run --harness codex --prompt "Inspect this repo"
+tine run --harness kimi-code --prompt "Summarize README.md"
+tine run --harness generic --harness-command "your-agent run" --prompt "Fix tests"
 ```
 
-Harness subprocesses are isolated by default. For logged-in CLIs, pass `--harness-login-env` to allow only `PATH`, home/config directory variables, and tool-specific config directory variables; opentine does not write pasted secrets to repo files.
-
-### Native Runtime Validation
-
-Live native model/runtime behavior is opt-in. The Ollama validation profile uses `llama3.1` for default-model compatibility and `qwen3` for tool-calling/thinking coverage:
-
-```bash
-ollama pull llama3.1
-ollama pull qwen3
-pytest tests/test_live.py -v --provider ollama
+```mermaid
+graph LR
+    Task["user task"] --> Wrapper["opentine harness wrapper"]
+    Wrapper --> Codex["Codex CLI"]
+    Wrapper --> Kimi["Kimi Code"]
+    Wrapper --> Generic["custom command"]
+    Codex --> Artifact["portable .tine"]
+    Kimi --> Artifact
+    Generic --> Artifact
+    Artifact --> Fork["fork"]
+    Artifact --> Replay["replay"]
+    Artifact --> Diff["diff"]
 ```
 
-The live suite checks Ollama health at `http://localhost:11434`, basic completion for both models, `qwen3` tool-call round trips, `.tine` save/load, fork, cached replay, rerun replay, resume, and local CLI graph operations. Ollama, GLM, LM Studio, Unsloth-compatible endpoints, vLLM, llama.cpp, LocalAI, Jan, and other OpenAI-compatible local runtimes validate opentine's native `Agent` protocol or the model runtime underneath a harness; they are not the main external agent integration surface. To test an agent that uses Ollama, run that agent through the harness layer and configure the agent itself to use Ollama.
+Python wrapper API:
 
-## `.tine` Contract
+```python
+from opentine.harnesses import CodexCLIHarness, OpentineHarness
+
+harness = CodexCLIHarness()
+wrapped = OpentineHarness(harness, autosave_path="latest.tine", autosave_steps=5)
+
+run = wrapped.run_sync("Refactor auth middleware")
+run.save("codex_run.tine")
+
+forked = wrapped.fork(from_step=3)
+forked.save("retry_from_step_3.tine")
+```
+
+Harness subprocesses are isolated by default. For logged-in CLIs, pass `--harness-login-env` to allow only `PATH`, home/config directory variables, and tool-specific config directory variables. opentine does not write pasted secrets to repo files.
+
+## Support Matrix
+
+Status values are intentionally conservative:
+
+| Target | Status | Evidence |
+|---|---:|---|
+| Native `.tine` v1 load/save/fork/diff/replay | Validated | Fast tests, golden fixture, and CLI smoke. |
+| Artifact checksum verification | Validated | `Run.verify_integrity(...)`, `tine verify`, and failure-path tests. |
+| Secure tool defaults | Validated | Filesystem, symlink, network, shell, Python, env, redaction, and output-cap tests. |
+| Ollama `llama3.1` and `qwen3` | Validated | Live gate passed in this audit environment. |
+| Codex CLI | Validated | Live harness gate passed in this audit environment. |
+| Kimi Code CLI | Validated | Live harness gate passed in this audit environment. |
+| Anthropic, OpenAI, Google | Scoped | Adapter contract tests; cloud live gates require user credentials. |
+| Kimi API, DeepSeek, GLM, Groq, Together, Mistral, Qwen API | Scoped | OpenAI-compatible adapter shape; provider-specific live gates required. |
+| LM Studio, vLLM, llama.cpp, LocalAI, Jan, Unsloth-compatible endpoints | Scoped | Endpoint-specific local live gates required. |
+
+
+## Native Models
+
+The native `Agent` API accepts any implementation of the `Model` protocol. Built-in adapters include:
+
+```python
+from opentine.models.anthropic import Anthropic
+from opentine.models.google import Google
+from opentine.models.ollama import Ollama
+from opentine.models.openai import OpenAI
+
+agent = Agent(model=Anthropic("claude-sonnet-4-20250514"))
+agent = Agent(model=OpenAI("gpt-4o"))
+agent = Agent(model=Google("gemini-2.0-flash"))
+agent = Agent(model=Ollama("llama3.1"))
+```
+
+OpenAI-compatible wrappers:
+
+```python
+from opentine.models.compat import DeepSeek, GLM, Groq, Kimi, Mistral, Qwen, Together
+
+agent = Agent(model=Kimi("moonshot-v1-8k"))
+agent = Agent(model=DeepSeek("deepseek-chat"))
+agent = Agent(model=Qwen("qwen-plus"))
+agent = Agent(model=GLM("glm-4-flash"))
+agent = Agent(model=Groq("llama-3.1-70b-versatile"))
+agent = Agent(model=Together("meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"))
+agent = Agent(model=Mistral("mistral-large-latest"))
+```
+
+These wrappers make integration easy, but a provider is only counted as live-validated after its gate passes in the release environment.
+
+## Tools And Policies
+
+Tools are plain Python callables with type hints:
+
+```python
+from opentine.tools import fs, python, search, shell, web
+
+agent = Agent(
+    model=Ollama("llama3.1"),
+    tools=[web.fetch, search.search, fs.read],
+)
+```
+
+Defaults are restrictive:
+
+- Filesystem access is rooted, size-capped, and denies symlinks by default.
+- Network fetch blocks private, link-local, loopback, reserved, and multicast hosts by default.
+- Shell execution is disabled unless a `ShellPolicy` enables it.
+- Python execution is disabled unless a `PythonPolicy` enables it.
+- Harness subprocesses do not inherit the parent environment by default.
+- Saved artifacts redact common secret-bearing keys before writing.
+
+See [SECURITY_MODEL.md](SECURITY_MODEL.md) for the detailed model.
+
+## `.tine` Format
 
 Top-level fields:
 
 `format_version`, `run_id`, `created_at`, `status`, `graph`, `refs`, `transcript`, `manifest`, `policies`, `cache`, `metadata`.
 
-The graph is content-addressed. Step IDs are full SHA-256 hashes over an immutable canonical payload including parent links, kind, inputs, outputs, model/tool metadata, and errors. CLI output displays short IDs for readability.
+Current compatibility promise: `format_version == 1` only. `Run.load()` rejects missing, old, or future format versions instead of guessing. Migration support is future work.
 
-`Run.steps` remains as a stable traversal view for compatibility, but the stored artifact is a DAG with `parent_ids`, branch/tip refs, common-ancestor lookup, and graph-aware diff.
+Saved artifacts include:
 
-Saved artifacts include `metadata.integrity` with a SHA-256 checksum. Use `Run.verify_integrity(path_or_data)` or `tine verify <run.tine>` to check it. This is an integrity checksum, not tamper-proof signing; HMAC/signature support is future work.
+```json
+{
+  "metadata": {
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "..."
+    }
+  }
+}
+```
 
-The current compatibility promise is `format_version == 1` only. Future or missing format versions are rejected clearly, and migration support is future work. See [TINE_FORMAT.md](TINE_FORMAT.md).
+This is an integrity checksum, not tamper-proof signing. A user who can edit the file can also rewrite the digest. HMAC/signature support is future work. See [TINE_FORMAT.md](TINE_FORMAT.md).
 
-## Replay And Resume Scope
+## CLI Reference
 
-opentine-native `Agent` runs get:
+```text
+tine run <script.py>              Execute a Python script that produces a Run
+tine run --harness codex          Execute an external harness and save the graph
+tine ls                           List recent runs
+tine show <run.tine>              Pretty-print the graph
+tine verify <run.tine>            Verify the artifact checksum
+tine replay <run.tine> --inspect  Print recorded events without replaying
+tine replay <run.tine> --mode cache --save replayed.tine
+tine fork <run.tine> --from-step 3 --save retry.tine
+tine diff <run_a.tine> <run_b.tine>
+tine resume <run.tine>            Resume only when the manifest declares support
+```
 
-- full event recording
-- cached replay using recorded outputs
-- rerun replay through the model/tool runtime
-- resume from saved provider-neutral transcript/tool state
+## MCP Server
 
-External harnesses get:
+`opentine.mcp_server` exposes saved runs to MCP clients:
 
-- event recording
-- fork context
-- cached replay of recorded outputs
-- rerun by invoking the harness again
-- command metadata, harness name, and model/session metadata when available
-- best-effort resume only when the external tool exposes session support and the adapter explicitly declares it
+- `list_runs`: show recent `.tine` files
+- `show_run`: render a run as LLM-readable context
+- `fork_run`: fork a run from a step index
+- `diff_runs`: compare two runs
+- `run://{run_id}`: resource URI for a saved run
 
-If a run manifest does not declare resume support, `tine resume` fails with a precise explanation instead of pretending that loading a file continued the agent.
+Run it with an MCP-compatible environment:
 
-Support levels:
+```bash
+python -m opentine.mcp_server
+```
 
-- `Structured`: CLI emits JSON/JSONL, which gives the best step fidelity.
-- `Text`: CLI emits plain output, so opentine records line-level events with simple heuristics.
-- `Session-aware`: harness can record session IDs and command metadata; true resume depends on the external tool.
-- `Native Agent`: opentine directly controls the model/tool loop.
+The MCP dependency is optional; install the `mcp` package only for this server.
 
-## Security Defaults
+## Release Evidence
 
-The built-in policy profiles are explicit:
+The 0.1.x readiness pass keeps package metadata at `Development Status :: 4 - Beta` while validating the claimed surface.
 
-- `secure_profile()` is the baseline.
-- `dev_profile()` opens common local development affordances.
-- `isolated_profile()` is stricter for tamper-sensitive workflows.
+Current local gates:
 
-Tool defaults are conservative:
+```bash
+ruff check .
+ruff format --check .
+pytest tests -m "not live and not live_harness" -q
+pytest tests -m "not live_harness" -q
+python -m build --sdist --wheel --outdir dist
+python -m twine check dist/*
+python scripts/wheel_smoke.py
+```
 
-- Filesystem access uses `Path.relative_to`, sandbox roots, optional symlink denial, max file sizes, and write allowlists.
-- Network fetch blocks private, link-local, loopback, reserved, and multicast hosts by default and re-checks redirects.
-- Shell execution is disabled unless a `ShellPolicy` enables it; commands are parsed to arrays, env inheritance is off by default, and output is capped.
-- Python execution is disabled unless a `PythonPolicy` enables it; subprocess env is scrubbed by default and output is capped.
-- Harness subprocesses do not inherit the parent environment by default.
+Current live gates validated in this audit environment:
 
+```bash
+pytest tests/test_live.py --provider ollama -q
+pytest tests/test_live_harness.py -m live_harness --agent-harness codex -q
+pytest tests/test_live_harness.py -m live_harness --agent-harness kimi-code -q
+```
+
+Full evidence:
+
+| Document | What it covers |
+|---|---|
+| [CHANGELOG.md](CHANGELOG.md) | Verified user-visible changes. |
+| [SUPPORT.md](SUPPORT.md) | Supported Python versions and support levels. |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common validation, harness, and policy failures. |
 
 ## Comparison
 
-Git stores content-addressed DAGs for source history. opentine stores a content-addressed DAG for agent execution provenance: model calls, tool calls, outputs, errors, cache provenance, and transcript state.
+Git stores content-addressed source history. opentine stores content-addressed agent execution provenance.
 
-GitHub Copilot and Codex provide hosted/cloud or CLI workflows around tasks, worktrees, sandboxes, logs, and review flows. opentine is a portable local artifact and replay layer that can wrap external harnesses but does not replace their hosted workflow features. GitHub documents Copilot session logs and tool traces, plus a cloud-agent firewall with documented limitations. OpenAI’s Codex docs expose product areas for app, CLI, worktrees, sandboxing, and security.
-
-GitHub Models focuses on prompt development, model comparison, evaluators, and prompt configs in repositories. opentine focuses on tool-using execution traces and replayable run provenance.
-
-Hugging Face Hub repositories are Git repositories optimized for models, datasets, Spaces, and large AI/ML artifacts. opentine `.tine` files can be hosted there or in Git, but the artifact format is specifically for agent run provenance.
 
 LangGraph is the closest technical comparison for checkpoint replay and time travel, but it is framework/checkpointer-oriented rather than a standalone `.tine` artifact. LangSmith and CrewAI tracing are stronger observability/evaluation surfaces; opentine is a local provenance artifact and graph-operation layer.
 
-Sources:
+## The Name
 
+A **tine** is a prong of a fork. The `.tine` extension stores serialized run graphs, and `tine` is the CLI command.
+
+## Contributing
+
+```bash
+git clone https://github.com/0xcircuitbreaker/opentine.git
+cd opentine
+uv sync --all-extras
+uv run pytest tests -m "not live and not live_harness"
+uv run ruff check .
+uv run ruff format --check .
+```
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
+
+Built by the [opentine contributors](https://github.com/0xcircuitbreaker/opentine/graphs/contributors).
+
+## Sources
+
+- Previous opentine README structure: https://github.com/0xcircuitbreaker/opentine/blob/7d5b1126bd35a3d48c476ed2ef959cc8c826a5e4/README.md
+- Hermes Agent README/docs structure: https://github.com/NousResearch/hermes-agent/blob/main/README.md
+- Hermes Agent docs: https://hermes-agent.nousresearch.com/docs/
+- OpenClaw CLI reference: https://docs.openclaw.ai/cli
 - Ollama chat API: https://docs.ollama.com/api/chat
-- Ollama pull API: https://docs.ollama.com/api/pull
 - Ollama tool calling: https://docs.ollama.com/capabilities/tool-calling
 - Ollama thinking: https://docs.ollama.com/capabilities/thinking
-- OpenCode CLI: https://opencode.ai/docs/cli/
 - Kimi Code CLI: https://www.kimi.com/code/docs/en/kimi-code-cli/reference/kimi-command.html
-- OpenClaw agent CLI: https://docs.openclaw.ai/cli/agent
-- Hermes Agent CLI: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/cli.md
-- GitHub Copilot session logs: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/track-copilot-sessions
-- GitHub Copilot cloud-agent firewall: https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/customize-the-agent-firewall
-- GitHub Models: https://docs.github.com/en/github-models/about-github-models
-- Hugging Face Hub repositories: https://huggingface.co/docs/hub/en/repositories
 - LangGraph persistence/time travel: https://docs.langchain.com/oss/python/langgraph/persistence
 - LangSmith evaluations: https://docs.langchain.com/langsmith/evaluation
 - CrewAI observability/tracing: https://docs.crewai.com/en/observability
-- OpenAI Codex docs: https://developers.openai.com/codex/cloud
