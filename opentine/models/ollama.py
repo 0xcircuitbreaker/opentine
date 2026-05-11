@@ -12,9 +12,15 @@ import httpx
 class Ollama:
     """Adapter for Ollama local models."""
 
-    def __init__(self, model: str = "llama3.1", host: str | None = None):
+    def __init__(
+        self,
+        model: str = "llama3.1",
+        host: str | None = None,
+        think: bool | str | None = None,
+    ):
         self._model = model
         self._host = (host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
+        self._think = think
 
     @property
     def name(self) -> str:
@@ -26,7 +32,13 @@ class Ollama:
 
     @property
     def supports_thinking(self) -> bool:
-        return False
+        model = self._model.lower()
+        return (
+            model.startswith("qwen3")
+            or model.startswith("deepseek-r1")
+            or model.startswith("deepseek-v3.1")
+            or model.startswith("gpt-oss")
+        )
 
     def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         if not tools:
@@ -43,13 +55,9 @@ class Ollama:
             for t in tools
         ]
 
-    async def complete(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None = None,
-        system: str | None = None,
-        temperature: float = 0.0,
-    ) -> dict[str, Any]:
+    def _build_messages(
+        self, messages: list[dict[str, Any]], system: str | None
+    ) -> list[dict[str, Any]]:
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
@@ -61,6 +69,7 @@ class Ollama:
                         "content": m.get("content", ""),
                         "tool_calls": [
                             {
+                                "type": "function",
                                 "function": {
                                     "name": tc["name"],
                                     "arguments": tc.get("arguments", {}),
@@ -71,31 +80,67 @@ class Ollama:
                     }
                 )
             elif m["role"] == "tool":
-                msgs.append({"role": "tool", "content": m["content"], "name": m.get("name", "")})
+                msgs.append(
+                    {
+                        "role": "tool",
+                        "content": m["content"],
+                        "tool_name": m.get("tool_name")
+                        or m.get("name")
+                        or m.get("tool_call_id", ""),
+                    }
+                )
             else:
                 msgs.append({"role": m["role"], "content": m["content"]})
+        return msgs
 
+    def _build_payload(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        system: str | None,
+        temperature: float,
+        *,
+        stream: bool,
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": self._model,
-            "messages": msgs,
-            "stream": False,
+            "messages": self._build_messages(messages, system),
+            "stream": stream,
             "options": {"temperature": temperature},
         }
         api_tools = self._build_tools(tools)
         if api_tools:
             payload["tools"] = api_tools
+        if self._think is not None:
+            payload["think"] = self._think
+        return payload
+
+    async def complete(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
+        payload = self._build_payload(messages, tools, system, temperature, stream=False)
 
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(f"{self._host}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
 
-        text = data.get("message", {}).get("content", "")
+        message = data.get("message", {})
+        text = message.get("content", "")
         tool_calls = []
-        for tc in data.get("message", {}).get("tool_calls", []):
+        for tc in message.get("tool_calls", []):
             fn = tc.get("function", {})
             tool_calls.append({"name": fn.get("name", ""), "arguments": fn.get("arguments", {})})
-        return {"text": text, "tool_calls": tool_calls, "cost": 0.0}
+        return {
+            "text": text,
+            "thinking": message.get("thinking", ""),
+            "tool_calls": tool_calls,
+            "cost": 0.0,
+        }
 
     async def stream(
         self,
@@ -104,37 +149,7 @@ class Ollama:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
-        msgs = []
-        if system:
-            msgs.append({"role": "system", "content": system})
-        for m in messages:
-            if m["role"] == "assistant" and m.get("tool_calls"):
-                msgs.append(
-                    {
-                        "role": "assistant",
-                        "content": m.get("content", ""),
-                        "tool_calls": [
-                            {
-                                "function": {
-                                    "name": tc["name"],
-                                    "arguments": tc.get("arguments", {}),
-                                },
-                            }
-                            for tc in m["tool_calls"]
-                        ],
-                    }
-                )
-            elif m["role"] == "tool":
-                msgs.append({"role": "tool", "content": m["content"], "name": m.get("name", "")})
-            else:
-                msgs.append({"role": m["role"], "content": m["content"]})
-
-        payload: dict[str, Any] = {
-            "model": self._model,
-            "messages": msgs,
-            "stream": True,
-            "options": {"temperature": temperature},
-        }
+        payload = self._build_payload(messages, tools, system, temperature, stream=True)
 
         async with httpx.AsyncClient(timeout=120) as client:
             async with client.stream("POST", f"{self._host}/api/chat", json=payload) as resp:
@@ -144,6 +159,10 @@ class Ollama:
                 async for line in resp.aiter_lines():
                     if line.strip():
                         chunk = json.loads(line)
-                        content = chunk.get("message", {}).get("content", "")
+                        message = chunk.get("message", {})
+                        thinking = message.get("thinking", "")
+                        if thinking:
+                            yield {"type": "thinking_delta", "text": thinking}
+                        content = message.get("content", "")
                         if content:
                             yield {"type": "text_delta", "text": content}

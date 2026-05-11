@@ -1,0 +1,535 @@
+"""Content-addressed run graph and .tine persistence."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import time
+from dataclasses import asdict, dataclass, field, is_dataclass
+from enum import StrEnum
+from pathlib import Path
+from typing import Any
+
+FORMAT_VERSION = 1
+
+
+class StepKind(StrEnum):
+    think = "think"
+    tool = "tool"
+    model = "model"
+    done = "done"
+    error = "error"
+
+
+class RunStatus(StrEnum):
+    running = "running"
+    paused = "paused"
+    completed = "completed"
+    failed = "failed"
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, StrEnum):
+        return value.value
+    if is_dataclass(value):
+        return _jsonable(asdict(value))
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
+
+
+def _canonical_bytes(value: Any) -> bytes:
+    return json.dumps(_jsonable(value), sort_keys=True, separators=(",", ":")).encode()
+
+
+@dataclass(frozen=True)
+class Step:
+    id: str
+    parent_ids: list[str]
+    kind: StepKind
+    inputs: dict[str, Any]
+    outputs: dict[str, Any] = field(default_factory=dict)
+    model_info: str = ""
+    tool_info: dict[str, Any] = field(default_factory=dict)
+    error: dict[str, Any] = field(default_factory=dict)
+    timestamp: float = 0.0
+    duration: float = 0.0
+    cost: float = 0.0
+
+    @property
+    def parent_id(self) -> str | None:
+        return self.parent_ids[-1] if self.parent_ids else None
+
+    @property
+    def short_id(self) -> str:
+        return self.id[:12]
+
+
+@dataclass
+class Graph:
+    steps: dict[str, Step] = field(default_factory=dict)
+    order: list[str] = field(default_factory=list)
+
+    def add(self, step: Step) -> None:
+        missing = [pid for pid in step.parent_ids if pid not in self.steps]
+        if missing:
+            raise ValueError(f"Unknown parent step(s): {', '.join(short_id(m) for m in missing)}")
+        if step.id not in self.steps:
+            self.order.append(step.id)
+        self.steps[step.id] = step
+
+    def ordered(self) -> list[Step]:
+        return [self.steps[sid] for sid in self.order if sid in self.steps]
+
+    def roots(self) -> list[Step]:
+        return [step for step in self.ordered() if not step.parent_ids]
+
+    def children(self, step_id: str) -> list[Step]:
+        sid = self.resolve(step_id)
+        return [step for step in self.ordered() if sid in step.parent_ids]
+
+    def resolve(self, ref: str) -> str:
+        if ref in self.steps:
+            return ref
+        matches = [sid for sid in self.steps if sid.startswith(ref)]
+        if not matches:
+            raise KeyError(f"Unknown step ref: {ref}")
+        if len(matches) > 1:
+            raise ValueError(f"Ambiguous step ref {ref}: {', '.join(short_id(m) for m in matches)}")
+        return matches[0]
+
+    def ancestors(self, step_ref: str) -> list[Step]:
+        seen: set[str] = set()
+        out: list[Step] = []
+
+        def visit(sid: str) -> None:
+            if sid in seen:
+                return
+            step = self.steps[sid]
+            for parent in step.parent_ids:
+                visit(parent)
+            seen.add(sid)
+            out.append(step)
+
+        visit(self.resolve(step_ref))
+        return out
+
+    def descendant_closure(self, step_ref: str) -> set[str]:
+        root = self.resolve(step_ref)
+        out = {root}
+        changed = True
+        while changed:
+            changed = False
+            for step in self.ordered():
+                if step.id not in out and any(parent in out for parent in step.parent_ids):
+                    out.add(step.id)
+                    changed = True
+        return out
+
+
+def step_id(
+    kind: StepKind,
+    inputs: dict[str, Any],
+    parent_id: str | None = None,
+    *,
+    parent_ids: list[str] | None = None,
+    outputs: dict[str, Any] | None = None,
+    model_info: str = "",
+    tool_info: dict[str, Any] | None = None,
+    error: dict[str, Any] | None = None,
+) -> str:
+    parents = list(parent_ids if parent_ids is not None else ([parent_id] if parent_id else []))
+    payload = {
+        "kind": kind.value,
+        "parent_ids": parents,
+        "inputs": inputs,
+        "outputs": outputs or {},
+        "model_info": model_info,
+        "tool_info": tool_info or {},
+        "error": error or {},
+    }
+    return hashlib.sha256(_canonical_bytes(payload)).hexdigest()
+
+
+def short_id(value: str) -> str:
+    return value[:12]
+
+
+@dataclass
+class RunDiff:
+    common_ancestor: str | None
+    only_a: list[Step]
+    only_b: list[Step]
+    changed: list[tuple[Step, Step]]
+
+
+@dataclass(frozen=True)
+class IntegrityResult:
+    ok: bool
+    algorithm: str | None
+    expected: str | None
+    actual: str | None
+    reason: str
+
+
+@dataclass
+class Run:
+    run_id: str | None = None
+    status: RunStatus = RunStatus.running
+    graph: Graph = field(default_factory=Graph)
+    refs: dict[str, str] = field(default_factory=dict)
+    transcript: list[dict[str, Any]] = field(default_factory=list)
+    manifest: dict[str, Any] = field(default_factory=dict)
+    policies: dict[str, Any] = field(default_factory=dict)
+    cache: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: float = 0.0
+    model_info: str = ""
+    system_prompt: str = ""
+    user_prompt: str = ""
+    format_version: int = FORMAT_VERSION
+
+    def __init__(self, id: str | None = None, **kwargs: Any):
+        self.run_id = kwargs.pop("run_id", id)
+        self.status = kwargs.pop("status", RunStatus.running)
+        self.graph = kwargs.pop("graph", Graph())
+        self.refs = kwargs.pop("refs", {})
+        self.transcript = kwargs.pop("transcript", [])
+        self.manifest = kwargs.pop("manifest", {})
+        self.policies = kwargs.pop("policies", {})
+        self.cache = kwargs.pop("cache", {})
+        self.metadata = kwargs.pop("metadata", {})
+        self.created_at = kwargs.pop("created_at", 0.0)
+        self.model_info = kwargs.pop("model_info", "")
+        self.system_prompt = kwargs.pop("system_prompt", "")
+        self.user_prompt = kwargs.pop("user_prompt", "")
+        self.format_version = kwargs.pop("format_version", FORMAT_VERSION)
+        if kwargs:
+            raise TypeError(f"Unexpected Run field(s): {', '.join(kwargs)}")
+        self.run_id = self.run_id or step_id(StepKind.model, {"created_at": time.time_ns()})
+        self.status = RunStatus(self.status)
+        self.graph = self.graph if isinstance(self.graph, Graph) else _graph_from_dict(self.graph)
+        self.refs = dict(self.refs)
+        self.transcript = list(self.transcript)
+        self.manifest = dict(self.manifest)
+        self.policies = dict(self.policies)
+        self.cache = dict(self.cache)
+        self.metadata = dict(self.metadata)
+        self.created_at = self.created_at or time.time()
+        self.format_version = FORMAT_VERSION
+        self.refs.setdefault("main", self.graph.order[-1] if self.graph.order else "")
+
+    @property
+    def id(self) -> str:
+        return self.run_id or ""
+
+    @property
+    def steps(self) -> list[Step]:
+        return self.graph.ordered()
+
+    def add_step(
+        self,
+        kind: StepKind,
+        inputs: dict[str, Any],
+        outputs: dict[str, Any] | None = None,
+        parent_id: str | None = None,
+        parent_ids: list[str] | None = None,
+        duration: float = 0.0,
+        cost: float = 0.0,
+        model_info: str | None = None,
+        tool_info: dict[str, Any] | None = None,
+        error: dict[str, Any] | None = None,
+        ref: str = "main",
+    ) -> Step:
+        parents = parent_ids if parent_ids is not None else ([parent_id] if parent_id else [])
+        if not parents and self.refs.get(ref):
+            parents = [self.refs[ref]]
+        parents = [self.graph.resolve(p) for p in parents]
+        sid = step_id(
+            kind,
+            inputs,
+            parent_ids=parents,
+            outputs=outputs,
+            model_info=model_info or self.model_info,
+            tool_info=tool_info,
+            error=error,
+        )
+        step = Step(
+            id=sid,
+            parent_ids=parents,
+            kind=StepKind(kind),
+            inputs=_jsonable(inputs),
+            outputs=_jsonable(outputs or {}),
+            model_info=model_info or self.model_info,
+            tool_info=_jsonable(tool_info or {}),
+            error=_jsonable(error or {}),
+            timestamp=time.time(),
+            duration=duration,
+            cost=cost,
+        )
+        self.graph.add(step)
+        self.refs[ref] = sid
+        return step
+
+    def get_step(self, sid: str) -> Step | None:
+        try:
+            return self.graph.steps[self.graph.resolve(sid)]
+        except (KeyError, ValueError):
+            return None
+
+    def children(self, sid: str) -> list[Step]:
+        return self.graph.children(sid)
+
+    def root_steps(self) -> list[Step]:
+        return self.graph.roots()
+
+    def ancestors(self, sid: str) -> list[Step]:
+        return self.graph.ancestors(sid)
+
+    def common_ancestor(self, a_ref: str, b_ref: str) -> Step | None:
+        a = [s.id for s in self.ancestors(a_ref)]
+        b = {s.id for s in self.ancestors(b_ref)}
+        for sid in reversed(a):
+            if sid in b:
+                return self.graph.steps[sid]
+        return None
+
+    @property
+    def total_cost(self) -> float:
+        return sum(s.cost for s in self.steps)
+
+    @property
+    def total_duration(self) -> float:
+        return sum(s.duration for s in self.steps)
+
+    def fork(self, from_step_id: str, new_run_id: str | None = None, branch: str = "main") -> Run:
+        fork_point = self.graph.resolve(from_step_id)
+        kept = self.ancestors(fork_point)
+        graph = Graph()
+        for step in kept:
+            graph.add(step)
+        rid = new_run_id or step_id(StepKind.model, {"fork": self.id, "from": fork_point})
+        refs = {branch: fork_point, "fork_point": fork_point}
+        return Run(
+            id=rid,
+            status=RunStatus.running,
+            graph=graph,
+            refs=refs,
+            transcript=[m for m in self.transcript if m.get("step_id") in graph.steps],
+            manifest=dict(self.manifest),
+            policies=dict(self.policies),
+            metadata={**self.metadata, "forked_from": self.id, "fork_point": fork_point},
+            model_info=self.model_info,
+            system_prompt=self.system_prompt,
+            user_prompt=self.user_prompt,
+        )
+
+    def diff(self, other: Run) -> RunDiff:
+        ids_a, ids_b = set(self.graph.steps), set(other.graph.steps)
+        tip_a = self.refs.get("main") or (self.steps[-1].id if self.steps else "")
+        tip_b = other.refs.get("main") or (other.steps[-1].id if other.steps else "")
+        common = None
+        if tip_a and tip_b:
+            ancestors_a = [s.id for s in self.ancestors(tip_a)]
+            ancestors_b = {s.id for s in other.ancestors(tip_b)}
+            common = next((sid for sid in reversed(ancestors_a) if sid in ancestors_b), None)
+        return RunDiff(
+            common,
+            [self.graph.steps[sid] for sid in self.graph.order if sid in ids_a - ids_b],
+            [other.graph.steps[sid] for sid in other.graph.order if sid in ids_b - ids_a],
+            [],
+        )
+
+    def save(self, path: str | Path) -> Path:
+        p = Path(path)
+        data = self.to_dict(redact=True)
+        data["metadata"]["integrity"] = {
+            "algorithm": "sha256",
+            "digest": _integrity_digest(data),
+        }
+        p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+        return p
+
+    @staticmethod
+    def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResult:
+        """Verify the SHA-256 digest stored in ``metadata.integrity``."""
+        try:
+            if isinstance(path_or_data, dict):
+                data = path_or_data
+            else:
+                data = json.loads(Path(path_or_data).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return IntegrityResult(False, None, None, None, "file not found")
+        except OSError as exc:
+            return IntegrityResult(False, None, None, None, f"read error: {exc}")
+        except json.JSONDecodeError as exc:
+            return IntegrityResult(False, None, None, None, f"invalid json: {exc.msg}")
+
+        if not isinstance(data, dict):
+            return IntegrityResult(False, None, None, None, "artifact root is not an object")
+
+        if data.get("format_version") != FORMAT_VERSION:
+            found = data.get("format_version", "missing")
+            return IntegrityResult(
+                False,
+                None,
+                None,
+                None,
+                f"unsupported .tine format_version={found!r}; expected {FORMAT_VERSION}",
+            )
+
+        metadata = data.get("metadata")
+        if not isinstance(metadata, dict):
+            return IntegrityResult(False, None, None, None, "missing metadata object")
+        integrity = metadata.get("integrity")
+        if not isinstance(integrity, dict):
+            return IntegrityResult(False, None, None, None, "missing integrity digest")
+
+        algorithm = integrity.get("algorithm")
+        expected = integrity.get("digest")
+        if algorithm != "sha256":
+            return IntegrityResult(False, str(algorithm), expected, None, "unsupported algorithm")
+        if not isinstance(expected, str) or len(expected) != 64:
+            return IntegrityResult(False, "sha256", expected, None, "malformed digest")
+        try:
+            int(expected, 16)
+        except ValueError:
+            return IntegrityResult(False, "sha256", expected, None, "malformed digest")
+
+        actual = _integrity_digest(data)
+        ok = actual == expected
+        return IntegrityResult(
+            ok,
+            "sha256",
+            expected,
+            actual,
+            "ok" if ok else "digest mismatch",
+        )
+
+    @classmethod
+    def load(cls, path: str | Path) -> Run:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        if data.get("format_version") != FORMAT_VERSION:
+            found = data.get("format_version", "missing")
+            raise ValueError(
+                f"Unsupported .tine format_version={found!r}; expected {FORMAT_VERSION}"
+            )
+        return _run_from_dict(data)
+
+    def pause(self, path: str | Path) -> Path:
+        self.status = RunStatus.paused
+        return self.save(path)
+
+    @classmethod
+    def resume(cls, path: str | Path) -> Run:
+        run = cls.load(path)
+        run.status = RunStatus.running
+        return run
+
+    def to_dict(self, *, redact: bool = False) -> dict[str, Any]:
+        data = {
+            "format_version": FORMAT_VERSION,
+            "run_id": self.id,
+            "created_at": self.created_at,
+            "status": self.status.value,
+            "graph": {
+                "steps": {sid: _step_to_dict(step) for sid, step in self.graph.steps.items()},
+                "order": list(self.graph.order),
+            },
+            "refs": dict(self.refs),
+            "transcript": list(self.transcript),
+            "manifest": dict(self.manifest),
+            "policies": dict(self.policies),
+            "cache": dict(self.cache),
+            "metadata": {
+                **self.metadata,
+                "model_info": self.model_info,
+                "system_prompt": self.system_prompt,
+                "user_prompt": self.user_prompt,
+            },
+        }
+        return _redact(data) if redact else data
+
+
+def _step_to_dict(step: Step) -> dict[str, Any]:
+    return {
+        "id": step.id,
+        "parent_ids": list(step.parent_ids),
+        "kind": step.kind.value,
+        "inputs": step.inputs,
+        "outputs": step.outputs,
+        "model_info": step.model_info,
+        "tool_info": step.tool_info,
+        "error": step.error,
+        "timestamp": step.timestamp,
+        "duration": step.duration,
+        "cost": step.cost,
+    }
+
+
+def _step_from_dict(data: dict[str, Any]) -> Step:
+    parents = data.get("parent_ids")
+    if parents is None:
+        parent = data.get("parent_id")
+        parents = [parent] if parent else []
+    return Step(
+        id=data["id"],
+        parent_ids=list(parents),
+        kind=StepKind(data["kind"]),
+        inputs=dict(data.get("inputs") or {}),
+        outputs=dict(data.get("outputs") or {}),
+        model_info=data.get("model_info", ""),
+        tool_info=dict(data.get("tool_info") or {}),
+        error=dict(data.get("error") or {}),
+        timestamp=float(data.get("timestamp") or 0.0),
+        duration=float(data.get("duration") or 0.0),
+        cost=float(data.get("cost") or 0.0),
+    )
+
+
+def _graph_from_dict(data: dict[str, Any]) -> Graph:
+    graph = Graph()
+    steps = data.get("steps", {})
+    for sid in data.get("order", list(steps)):
+        graph.add(_step_from_dict(steps[sid]))
+    return graph
+
+
+def _run_from_dict(data: dict[str, Any]) -> Run:
+    run = Run(
+        run_id=data["run_id"],
+        status=RunStatus(data.get("status", "running")),
+        graph=_graph_from_dict(data.get("graph", {})),
+        refs=data.get("refs", {}),
+        transcript=data.get("transcript", []),
+        manifest=data.get("manifest", {}),
+        policies=data.get("policies", {}),
+        cache=data.get("cache", {}),
+        metadata=data.get("metadata", {}),
+        created_at=data.get("created_at", 0.0),
+    )
+    run.model_info = run.manifest.get("model", {}).get("name", run.metadata.get("model_info", ""))
+    run.system_prompt = run.metadata.get("system_prompt", "")
+    run.user_prompt = run.metadata.get("user_prompt", "")
+    return run
+
+
+def _integrity_digest(data: dict[str, Any]) -> str:
+    digest_payload = {k: v for k, v in data.items() if k != "metadata"}
+    return hashlib.sha256(_canonical_bytes(digest_payload)).hexdigest()
+
+
+def _redact(value: Any) -> Any:
+    secret_words = ("key", "secret", "token", "password", "credential", "auth")
+    if isinstance(value, dict):
+        return {
+            k: ("[REDACTED]" if any(w in str(k).lower() for w in secret_words) else _redact(v))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact(v) for v in value]
+    return value

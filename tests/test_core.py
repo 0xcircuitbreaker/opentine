@@ -7,7 +7,19 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from opentine.core import Agent, Run, RunStatus, StepKind, step_id, tool_schema
+from opentine.core import (
+    Agent,
+    FilesystemPolicy,
+    NetworkPolicy,
+    PythonPolicy,
+    Run,
+    RunStatus,
+    ShellPolicy,
+    StepKind,
+    step_id,
+    tool_schema,
+)
+from opentine.tools import fs, python, shell, web
 
 # --- Step -------------------------------------------------------------------
 
@@ -33,9 +45,14 @@ class TestStep:
         b = step_id(StepKind.think, {"text": "hello"}, parent_id="def")
         assert a != b
 
-    def test_step_id_is_12_chars(self):
+    def test_step_id_is_full_hash(self):
         sid = step_id(StepKind.think, {"text": "hello"})
-        assert len(sid) == 12
+        assert len(sid) == 64
+
+    def test_content_addressing_includes_outputs(self):
+        a = step_id(StepKind.tool, {"name": "x"}, outputs={"result": "a"})
+        b = step_id(StepKind.tool, {"name": "x"}, outputs={"result": "b"})
+        assert a != b
 
 
 # --- Run tree operations ----------------------------------------------------
@@ -85,6 +102,20 @@ class TestRun:
         assert anc[0].id == run.steps[0].id
         assert anc[-1].id == run.steps[3].id
 
+    def test_graph_branch_common_ancestor_and_diff(self):
+        run = Run(id="branchy")
+        root = run.add_step(StepKind.think, {"text": "root"})
+        left = run.add_step(StepKind.tool, {"name": "left"}, parent_id=root.id, ref="left")
+        right = run.add_step(StepKind.tool, {"name": "right"}, parent_id=root.id, ref="right")
+        assert run.common_ancestor(left.id, right.id).id == root.id
+
+        forked = run.fork(root.id, new_run_id="forked")
+        forked.add_step(StepKind.done, {"text": "new"})
+        diff = run.diff(forked)
+        assert diff.common_ancestor == root.id
+        assert any(step.inputs.get("name") == "left" for step in diff.only_a)
+        assert any(step.inputs.get("text") == "new" for step in diff.only_b)
+
     def test_total_cost(self):
         run = Run(id="cost_test")
         run.add_step(StepKind.think, {"text": "a"}, cost=0.001)
@@ -130,6 +161,16 @@ class TestFork:
         assert forked.system_prompt == "sys"
         assert forked.user_prompt == "user"
 
+    def test_fork_missing_step_ref_fails(self):
+        run = Run(id="original")
+        run.add_step(StepKind.think, {"text": "step1"})
+        try:
+            run.fork("missing")
+        except KeyError as exc:
+            assert "Unknown step ref" in str(exc)
+        else:
+            raise AssertionError("fork should reject missing refs")
+
 
 # --- Serialization ----------------------------------------------------------
 
@@ -164,7 +205,91 @@ class TestSerialization:
         run.add_step(StepKind.done, {"text": "ok"})
         path = run.save(tmp_path / "check.tine")
         data = json.loads(path.read_text())
-        assert data["id"] == "json_test"
+        assert data["format_version"] == 1
+        assert data["run_id"] == "json_test"
+        expected = {"graph", "refs", "transcript", "manifest", "policies", "cache", "metadata"}
+        assert expected.issubset(data)
+        assert data["metadata"]["integrity"]["algorithm"] == "sha256"
+        assert Run.verify_integrity(path).ok
+
+    def test_old_linear_format_is_rejected(self, tmp_path: Path):
+        path = tmp_path / "old.tine"
+        path.write_text(json.dumps({"id": "old", "steps": []}), encoding="utf-8")
+        try:
+            Run.load(path)
+        except ValueError as exc:
+            assert "Unsupported .tine format_version" in str(exc)
+        else:
+            raise AssertionError("old linear .tine format should be rejected")
+
+    def test_future_format_is_rejected(self, tmp_path: Path):
+        run = Run(id="future_test")
+        run.add_step(StepKind.done, {"text": "ok"})
+        path = run.save(tmp_path / "future.tine")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["format_version"] = 2
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        result = Run.verify_integrity(path)
+        assert not result.ok
+        assert "unsupported .tine format_version=2" in result.reason
+        try:
+            Run.load(path)
+        except ValueError as exc:
+            assert "Unsupported .tine format_version=2" in str(exc)
+        else:
+            raise AssertionError("future .tine format should be rejected")
+
+    def test_integrity_verification_detects_mismatch(self, tmp_path: Path):
+        run = Run(id="integrity_test")
+        run.add_step(StepKind.done, {"text": "ok"})
+        path = run.save(tmp_path / "integrity.tine")
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["graph"]["steps"][run.steps[0].id]["inputs"]["text"] = "tampered"
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        result = Run.verify_integrity(path)
+        assert not result.ok
+        assert result.algorithm == "sha256"
+        assert result.expected
+        assert result.actual
+        assert result.expected != result.actual
+        assert result.reason == "digest mismatch"
+
+    def test_integrity_verification_rejects_missing_or_malformed_digest(self, tmp_path: Path):
+        run = Run(id="integrity_missing")
+        run.add_step(StepKind.done, {"text": "ok"})
+        path = run.save(tmp_path / "missing.tine")
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["metadata"].pop("integrity")
+        assert Run.verify_integrity(data).reason == "missing integrity digest"
+
+        data["metadata"]["integrity"] = {"algorithm": "sha256", "digest": "not-a-digest"}
+        result = Run.verify_integrity(data)
+        assert not result.ok
+        assert result.reason == "malformed digest"
+
+        data["metadata"]["integrity"] = {"algorithm": "sha512", "digest": "0" * 64}
+        result = Run.verify_integrity(data)
+        assert not result.ok
+        assert result.reason == "unsupported algorithm"
+
+    def test_save_redacts_common_secret_keys(self, tmp_path: Path):
+        run = Run(id="redact_test")
+        run.add_step(
+            StepKind.tool,
+            {
+                "name": "call_api",
+                "arguments": {"api_key": "shh-value", "nested": {"token": "bearer-value"}},
+            },
+        )
+        path = run.save(tmp_path / "redacted.tine")
+        text = path.read_text(encoding="utf-8")
+        assert "shh-value" not in text
+        assert "bearer-value" not in text
+        assert "[REDACTED]" in text
 
 
 # --- Tool schema ------------------------------------------------------------
@@ -249,6 +374,16 @@ class TestAgent:
         assert run.status == RunStatus.completed
         assert any(s.kind == StepKind.tool for s in run.steps)
         assert any(s.kind == StepKind.done for s in run.steps)
+        assert any(entry["kind"] == "model.complete" for entry in run.cache.values())
+        assert any(entry["kind"] == "tool.call" for entry in run.cache.values())
+
+    def test_cached_replay_marks_provenance(self):
+        model = MockModel([{"text": "done", "tool_calls": []}])
+        agent = Agent(model=model)
+        run = agent.run_sync("Do it")
+        replayed = agent.replay_sync(run, mode="cache")
+        assert replayed.metadata["replay"]["mode"] == "cache"
+        assert replayed.metadata["replay"]["reused_steps"] == len(run.steps)
 
     def test_max_steps_exceeded(self):
         model = MockModel(
@@ -281,3 +416,71 @@ class TestAgent:
         run = agent.run_sync("Do the thing")
         assert run.status == RunStatus.completed
         assert any(s.kind == StepKind.error for s in run.steps)
+
+
+class TestSecurity:
+    def test_path_prefix_bypass_rejected(self, tmp_path: Path):
+        root = tmp_path / "root"
+        root.mkdir()
+        outside = tmp_path / "root_evil"
+        outside.mkdir()
+        (outside / "x.txt").write_text("no", encoding="utf-8")
+        try:
+            fs.read(str(outside / "x.txt"), policy=FilesystemPolicy(roots=(str(root),)))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("absolute sibling path should not pass prefix check")
+
+    def test_symlink_escape_rejected(self, tmp_path: Path):
+        root = tmp_path / "root"
+        root.mkdir()
+        outside = tmp_path / "secret.txt"
+        outside.write_text("secret", encoding="utf-8")
+        (root / "link").symlink_to(outside)
+        try:
+            fs.read("link", policy=FilesystemPolicy(roots=(str(root),), deny_symlinks=True))
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("symlink escape should be denied")
+
+    def test_private_network_hosts_are_blocked(self):
+        try:
+            web._check_url("https://127.0.0.1/private", NetworkPolicy())
+        except PermissionError as exc:
+            assert "Private/link-local/loopback host denied" in str(exc)
+        else:
+            raise AssertionError("private network hosts should be denied by default")
+
+    def test_shell_disabled_by_default(self):
+        assert "disabled by policy" in shell.run("python3 -c 'print(1)'")
+
+    def test_shell_allowlist_and_output_cap(self):
+        out = shell.run(
+            "python3 -c 'print(\"x\" * 100)'",
+            policy=ShellPolicy(enabled=True, executables=("python3",), max_output_chars=20),
+        )
+        assert "truncated" in out
+
+    def test_shell_env_isolated_by_default(self, monkeypatch):
+        monkeypatch.setenv("SECRET_TOKEN", "leak")
+        out = shell.run(
+            'python3 -c \'import os; print(os.environ.get("SECRET_TOKEN", "missing"))\'',
+            policy=ShellPolicy(enabled=True, executables=("python3",)),
+        )
+        assert out == "missing"
+
+    def test_python_disabled_env_scrubbed_and_output_capped(self, monkeypatch):
+        monkeypatch.setenv("SECRET_TOKEN", "leak")
+        assert "disabled by policy" in python.execute("print('x')")
+        out = python.execute(
+            "import os; print(os.environ.get('SECRET_TOKEN', 'missing'))",
+            policy=PythonPolicy(enabled=True),
+        )
+        assert out == "missing"
+        capped = python.execute(
+            "print('x' * 100)",
+            policy=PythonPolicy(enabled=True, max_output_chars=20),
+        )
+        assert "truncated" in capped

@@ -152,6 +152,13 @@ class VLLM(OpenAI):
         super().__init__(model=model, api_key="vllm", base_url=f"{host}/v1")
 
 
+class Unsloth(OpenAI):
+    """Unsloth-compatible OpenAI API server."""
+
+    def __init__(self, model: str = "default", host: str = "http://localhost:8000"):
+        super().__init__(model=model, api_key="unsloth", base_url=f"{host}/v1")
+
+
 class LlamaCpp(OpenAI):
     """llama.cpp server (lightweight C++ inference)."""
 

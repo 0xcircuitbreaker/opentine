@@ -4,18 +4,31 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import os
 import shlex
 import sys
 from pathlib import Path
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-from opentine.core import Run, StepKind
-from opentine.harnesses import ClaudeCodeHarness, CodexCLIHarness, CursorHarness, OpentineHarness
+from opentine.core import Run, StepKind, short_id
+from opentine.harnesses import (
+    ClaudeCodeHarness,
+    CodexCLIHarness,
+    CursorHarness,
+    GenericHarness,
+    HermesHarness,
+    KimiCodeHarness,
+    OpenClawHarness,
+    OpenCodeHarness,
+    OpentineHarness,
+    PiHarness,
+)
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -47,6 +60,12 @@ HARNESS_FACTORIES = {
     "claude-code": ClaudeCodeHarness,
     "codex": CodexCLIHarness,
     "cursor": CursorHarness,
+    "generic": GenericHarness,
+    "hermes": HermesHarness,
+    "kimi-code": KimiCodeHarness,
+    "openclaw": OpenClawHarness,
+    "opencode": OpenCodeHarness,
+    "pi": PiHarness,
 }
 
 
@@ -69,21 +88,44 @@ def _find_run(run_id: str) -> Path | None:
 def _harness_from_args(args: argparse.Namespace):
     factory = HARNESS_FACTORIES[args.harness]
     command = shlex.split(args.harness_command) if args.harness_command else None
+    if args.harness in {"generic", "pi"} and not command:
+        raise SystemExit(f"--harness-command is required for {args.harness}")
     return factory(
         command=command,
         extra_args=args.harness_arg or (),
         cwd=args.cwd,
+        login_env=args.harness_login_env,
+        env_allowlist=args.harness_env or (),
     )
 
 
-def _run_context(run: Run, from_step: int | None = None) -> dict:
-    steps = run.steps[from_step:] if from_step is not None else run.steps
+def _resolve_step_ref(run: Run, ref: str | None) -> str:
+    if ref is None:
+        if not run.steps:
+            raise ValueError("Run has no steps")
+        return run.steps[-1].id
+    if ref.isdigit():
+        idx = int(ref)
+        if idx < 0 or idx >= len(run.steps):
+            raise ValueError(f"Step index {idx} out of range (0-{len(run.steps) - 1})")
+        return run.steps[idx].id
+    return run.graph.resolve(ref)
+
+
+def _run_context(run: Run, from_step: str | None = None) -> dict:
+    if from_step is None:
+        steps = run.steps
+    else:
+        start = run.graph.resolve(from_step)
+        keep = run.graph.descendant_closure(start)
+        steps = [step for step in run.steps if step.id in keep]
     return {
         "source_run": run.id,
         "from_step": from_step,
         "steps": [
             {
                 "id": step.id,
+                "short_id": short_id(step.id),
                 "kind": step.kind.value,
                 "inputs": step.inputs,
                 "outputs": step.outputs,
@@ -99,18 +141,37 @@ def _step_label(step) -> Text:
     name = step.inputs.get("name", "")
     args = step.inputs.get("arguments", {})
     if step.kind == StepKind.tool:
-        args_str = ", ".join(
-            f'{k}="{v}"' if isinstance(v, str) else f"{k}={v}" for k, v in args.items()
+        if isinstance(args, dict):
+            args_str = ", ".join(
+                f'{escape(str(k))}="{escape(v)}"'
+                if isinstance(v, str)
+                else f"{escape(str(k))}={escape(_display_value(v))}"
+                for k, v in args.items()
+            )
+        else:
+            args_str = escape(_display_value(args))
+        label = (
+            f"{icon} [dim]{step.short_id}[/] [bold]tool[/]  "
+            f"{escape(_display_value(name))}({args_str})"
         )
-        label = f"{icon} [bold]tool[/]  {name}({args_str})"
     elif text:
-        preview = text[:80].replace("\n", " ")
-        if len(text) > 80:
+        rendered_text = _display_value(text)
+        preview = rendered_text[:80].replace("\n", " ")
+        if len(rendered_text) > 80:
             preview += "..."
-        label = f'{icon} [bold]{step.kind.value}[/]  "{preview}"'
+        label = f'{icon} [dim]{step.short_id}[/] [bold]{step.kind.value}[/]  "{escape(preview)}"'
     else:
-        label = f"{icon} [bold]{step.kind.value}[/]  {step.id}"
+        label = f"{icon} [dim]{step.short_id}[/] [bold]{step.kind.value}[/]"
     return Text.from_markup(label)
+
+
+def _display_value(value) -> str:
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, sort_keys=True)
+    except TypeError:
+        return repr(value)
 
 
 def _cost_str(cost: float) -> str:
@@ -209,13 +270,38 @@ def cmd_show(args: argparse.Namespace) -> None:
     _print_run_tree(run)
 
 
+def cmd_verify(args: argparse.Namespace) -> None:
+    """Verify a .tine artifact integrity digest."""
+    path = _find_run(args.run_id)
+    if not path:
+        result = Run.verify_integrity(args.run_id)
+        console.print(
+            f"[red]FAILED[/] {escape(args.run_id)}: {escape(result.reason)}",
+            highlight=False,
+        )
+        sys.exit(1)
+
+    result = Run.verify_integrity(path)
+    if result.ok:
+        digest = result.actual or result.expected or ""
+        console.print(f"[green]OK[/] {escape(str(path))} sha256:{digest[:12]}", highlight=False)
+        return
+
+    console.print(f"[red]FAILED[/] {escape(str(path))}: {escape(result.reason)}", highlight=False)
+    if result.expected:
+        console.print(f"[dim]expected:[/] {escape(result.expected)}", highlight=False)
+    if result.actual:
+        console.print(f"[dim]actual:[/]   {escape(result.actual)}", highlight=False)
+    sys.exit(1)
+
+
 def _print_run_tree(run: Run) -> None:
     """Render the run tree like git log --graph."""
     status_color = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
     sc = status_color.get(run.status.value, "white")
 
     header = (
-        f"[bold {BRAND}]#[/] [bold]{run.id}[/]  "
+        f"[bold {BRAND}]#[/] [bold]{short_id(run.id)}[/]  "
         f"model=[dim]{run.model_info}[/]  "
         f"steps=[dim]{len(run.steps)}[/]  "
         f"cost=[dim]{_cost_str(run.total_cost)}[/]  "
@@ -267,7 +353,7 @@ def cmd_ls(args: argparse.Namespace) -> None:
             sc = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
             status = f"[{sc.get(run.status.value, 'white')}]{run.status.value}[/]"
             table.add_row(
-                run.id,
+                short_id(run.id),
                 status,
                 run.model_info,
                 str(len(run.steps)),
@@ -288,16 +374,21 @@ def cmd_fork(args: argparse.Namespace) -> None:
         sys.exit(1)
     run = Run.load(path)
 
-    # Find the step to fork from
-    step_idx = args.from_step
-    if step_idx < 0 or step_idx >= len(run.steps):
-        console.print(f"[red]Step index {step_idx} out of range (0-{len(run.steps) - 1})[/]")
+    try:
+        fork_step_id = _resolve_step_ref(run, args.from_step)
+    except (KeyError, ValueError) as exc:
+        console.print(f"[red]{exc}[/]")
         sys.exit(1)
-
-    fork_step = run.steps[step_idx]
+    fork_step = run.get_step(fork_step_id)
+    assert fork_step is not None
     forked = run.fork(fork_step.id)
 
     out = args.save or str(_runs_dir() / f"{forked.id}.tine")
+    if Path(out).exists() and not args.force:
+        console.print(
+            f"[red]Refusing to overwrite existing file: {out}. Pass --force to replace it.[/]"
+        )
+        sys.exit(1)
     if args.harness:
         forked.metadata["next_harness"] = args.harness
         if args.prompt:
@@ -307,7 +398,7 @@ def cmd_fork(args: argparse.Namespace) -> None:
                 forked = wrapped.run_sync(
                     args.prompt,
                     context={
-                        **_run_context(run, from_step=step_idx),
+                        **_run_context(run, from_step=fork_step.id),
                         "forked_from": run.id,
                         "fork_point": fork_step.id,
                     },
@@ -319,7 +410,10 @@ def cmd_fork(args: argparse.Namespace) -> None:
                 sys.exit(1)
 
     forked.save(out)
-    console.print(f"[{BRAND}]# Forked[/] {run.id} -> {forked.id} from step {step_idx}")
+    console.print(
+        f"[{BRAND}]# Forked[/] {short_id(run.id)} -> {short_id(forked.id)} "
+        f"from {short_id(fork_step.id)}"
+    )
     if args.harness:
         console.print(f"[dim]Harness: {args.harness}[/]")
     console.print(f"[dim]Saved: {out}[/]")
@@ -334,13 +428,30 @@ def cmd_replay(args: argparse.Namespace) -> None:
         sys.exit(1)
     run = Run.load(path)
 
+    if args.inspect or args.dry_run:
+        selected = run.steps
+        if args.from_step is not None:
+            try:
+                start = _resolve_step_ref(run, args.from_step)
+            except (KeyError, ValueError) as exc:
+                console.print(f"[red]{exc}[/]")
+                sys.exit(1)
+            keep = run.graph.descendant_closure(start)
+            selected = [step for step in run.steps if step.id in keep]
+        console.print(f"[{BRAND}]Inspecting recorded steps...[/]\n")
+        for step in selected:
+            console.print(f"  {_step_label(step)}")
+        return
+
     if args.harness:
         task = args.prompt or run.user_prompt
         if not task:
             console.print("[red]--prompt is required when replaying a harness run.[/]")
             sys.exit(1)
-        if args.from_step is not None and (args.from_step < 0 or args.from_step >= len(run.steps)):
-            console.print("[red]Step index out of range[/]")
+        try:
+            start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
+        except (KeyError, ValueError) as exc:
+            console.print(f"[red]{exc}[/]")
             sys.exit(1)
 
         harness = _harness_from_args(args)
@@ -349,7 +460,7 @@ def cmd_replay(args: argparse.Namespace) -> None:
         try:
             replayed = wrapped.run_sync(
                 task,
-                context=_run_context(run, args.from_step),
+                context=_run_context(run, start),
                 save_path=out,
             )
         except Exception as exc:
@@ -369,19 +480,22 @@ def cmd_replay(args: argparse.Namespace) -> None:
             _print_diff_table(run, replayed)
         return
 
-    if args.from_step is not None:
-        if args.from_step < 0 or args.from_step >= len(run.steps):
-            console.print("[red]Step index out of range[/]")
-            sys.exit(1)
-        console.print(f"[{BRAND}]Replaying from step {args.from_step}...[/]\n")
-        for step in run.steps[args.from_step :]:
-            label = _step_label(step)
-            console.print(f"  {label}")
-    else:
-        console.print(f"[{BRAND}]Replaying full run...[/]\n")
-        for step in run.steps:
-            label = _step_label(step)
-            console.print(f"  {label}")
+    if args.mode == "rerun":
+        console.print(
+            "[red]Rerun replay requires an explicit --harness or opentine-native Agent API.[/]"
+        )
+        sys.exit(1)
+    replayed = run.fork(_resolve_step_ref(run, args.from_step), new_run_id=f"{run.id}-replay")
+    replayed.metadata["replay"] = {
+        "mode": "cache",
+        "source_run": run.id,
+        "reused_steps": len(replayed.steps),
+    }
+    replayed.status = run.status
+    out = Path(args.save) if args.save else _runs_dir() / f"{replayed.id}.tine"
+    replayed.save(out)
+    console.print(f"[{BRAND}]# Cached replay[/] reused {len(replayed.steps)} recorded steps")
+    console.print(f"[dim]Saved: {out}[/]")
 
 
 def cmd_diff(args: argparse.Namespace) -> None:
@@ -401,20 +515,23 @@ def cmd_diff(args: argparse.Namespace) -> None:
 
 
 def _print_diff_table(run_a: Run, run_b: Run) -> None:
-    table = Table(title=f"[{BRAND}]Diff: {run_a.id} vs {run_b.id}[/]", border_style=BRAND_DIM)
+    table = Table(
+        title=f"[{BRAND}]Diff: {short_id(run_a.id)} vs {short_id(run_b.id)}[/]",
+        border_style=BRAND_DIM,
+    )
     table.add_column("#", justify="right", style="dim")
-    table.add_column(f"{run_a.id}", style="cyan")
-    table.add_column(f"{run_b.id}", style="bright_yellow")
+    table.add_column(f"{short_id(run_a.id)}", style="cyan")
+    table.add_column(f"{short_id(run_b.id)}", style="bright_yellow")
     table.add_column("Match")
 
-    max_steps = max(len(run_a.steps), len(run_b.steps))
-    for i in range(max_steps):
-        sa = run_a.steps[i] if i < len(run_a.steps) else None
-        sb = run_b.steps[i] if i < len(run_b.steps) else None
-        la = str(_step_label(sa)) if sa else "[dim]---[/]"
-        lb = str(_step_label(sb)) if sb else "[dim]---[/]"
-        match = "[green]=[/]" if (sa and sb and sa.id == sb.id) else f"[{BRAND}]![/]"
-        table.add_row(str(i), la, lb, match)
+    diff = run_a.diff(run_b)
+    common = short_id(diff.common_ancestor) if diff.common_ancestor else "-"
+    marker = "[green]=[/]" if diff.common_ancestor else f"[{BRAND}]![/]"
+    table.add_row("base", common, common, marker)
+    for step in diff.only_a:
+        table.add_row("", str(_step_label(step)), "[dim]---[/]", f"[{BRAND}]only A[/]")
+    for step in diff.only_b:
+        table.add_row("", "[dim]---[/]", str(_step_label(step)), f"[{BRAND}]only B[/]")
 
     console.print(table)
 
@@ -426,8 +543,15 @@ def cmd_resume(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {args.run_id}[/]")
         sys.exit(1)
 
+    run = Run.load(path)
+    if not run.manifest.get("resume", False):
+        kind = run.manifest.get("kind", "unknown")
+        console.print(
+            f"[red]Run is not resumable: manifest kind={kind!r} does not declare resume support.[/]"
+        )
+        sys.exit(1)
     run = Run.resume(path)
-    console.print(f"[{BRAND}]# Resumed[/] {run.id} ({len(run.steps)} steps loaded)")
+    console.print(f"[{BRAND}]# Loaded resumable run[/] {short_id(run.id)} ({len(run.steps)} steps)")
     _print_run_tree(run)
     run.save(path)
 
@@ -453,17 +577,36 @@ def _build_parser() -> argparse.ArgumentParser:
     p_show = sub.add_parser("show", help="Pretty-print a run tree")
     p_show.add_argument("run_id", help="Run ID or .tine file path")
 
+    p_verify = sub.add_parser("verify", help="Verify a .tine integrity digest")
+    p_verify.add_argument("run_id", help="Run ID or .tine file path")
+
     sub.add_parser("ls", help="List recent runs")
 
     p_fork = sub.add_parser("fork", help="Fork a run from a specific step")
     p_fork.add_argument("run_id", help="Run ID or .tine file path")
-    p_fork.add_argument("--from-step", type=int, required=True, help="Step index to fork from")
+    p_fork.add_argument(
+        "--from-step",
+        required=True,
+        help="Step index, full id, or unique id prefix",
+    )
     p_fork.add_argument("--save", help="Output path for forked run")
+    p_fork.add_argument("--force", action="store_true", help="Allow overwriting --save output")
     _add_harness_args(p_fork)
 
     p_replay = sub.add_parser("replay", help="Replay a run")
     p_replay.add_argument("run_id", help="Run ID or .tine file path")
-    p_replay.add_argument("--from-step", type=int, default=None, help="Step index to replay from")
+    p_replay.add_argument(
+        "--from-step",
+        default=None,
+        help="Step index, full id, or unique id prefix",
+    )
+    p_replay.add_argument("--mode", choices=("cache", "rerun"), default="cache", help="Replay mode")
+    p_replay.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Print recorded steps instead of replaying",
+    )
+    p_replay.add_argument("--dry-run", action="store_true", help="Alias for --inspect")
     p_replay.add_argument("--save", help="Output path for replayed harness run")
     p_replay.add_argument(
         "--compare",
@@ -500,6 +643,18 @@ def _add_harness_args(parser: argparse.ArgumentParser) -> None:
         default=[],
         help="Extra argument passed to the harness command; repeat as needed",
     )
+    parser.add_argument(
+        "--harness-login-env",
+        action="store_true",
+        help="Pass PATH, home/config directories, and tool-specific config env to the harness",
+    )
+    parser.add_argument(
+        "--harness-env",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Additional environment variable name to pass with --harness-login-env",
+    )
 
 
 def main() -> None:
@@ -509,6 +664,7 @@ def main() -> None:
     commands = {
         "run": cmd_run,
         "show": cmd_show,
+        "verify": cmd_verify,
         "ls": cmd_ls,
         "fork": cmd_fork,
         "replay": cmd_replay,

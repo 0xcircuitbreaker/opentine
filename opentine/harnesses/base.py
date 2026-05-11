@@ -77,6 +77,9 @@ class HarnessAdapter(Protocol):
     @property
     def model_info(self) -> str: ...
 
+    @property
+    def supports_resume(self) -> bool: ...
+
     def execute(
         self,
         task: str,
@@ -222,6 +225,12 @@ class OpentineHarness:
                 model_info=self.harness.model_info,
                 user_prompt=task,
                 created_at=time.time(),
+                manifest={
+                    "kind": "external-harness",
+                    "harness": self.harness.name,
+                    "resume": bool(getattr(self.harness, "supports_resume", False)),
+                    "replay": ["cache"],
+                },
                 metadata={"harness": self.harness.name, "context": _jsonable(context or {})},
             )
             self._last_step_id = None
@@ -257,6 +266,7 @@ class ProcessHarness:
 
     name = "process"
     default_command: tuple[str, ...] = ()
+    login_env_keys: tuple[str, ...] = ()
 
     def __init__(
         self,
@@ -265,15 +275,23 @@ class ProcessHarness:
         extra_args: Sequence[str] | None = None,
         cwd: str | Path | None = None,
         env: Mapping[str, str] | None = None,
+        login_env: bool = False,
+        env_allowlist: Sequence[str] | None = None,
     ):
         self.command = tuple(command or self.default_command)
         self.extra_args = tuple(extra_args or ())
         self.cwd = Path(cwd) if cwd else None
         self.env = dict(env or {})
+        self.login_env = login_env
+        self.env_allowlist = tuple(env_allowlist or ())
 
     @property
     def model_info(self) -> str:
         return self.name
+
+    @property
+    def supports_resume(self) -> bool:
+        return False
 
     def build_command(self, task: str, context: dict[str, Any] | None = None) -> list[str]:
         return [*self.command, *self.extra_args, task]
@@ -303,7 +321,7 @@ class ProcessHarness:
             cwd=str(self.cwd) if self.cwd else None,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
-            env=None if not self.env else {**os.environ, **self.env},
+            env=self.build_env(),
         )
 
         lines: list[str] = []
@@ -329,6 +347,31 @@ class ProcessHarness:
             raise RuntimeError(f"{self.name} exited with status {returncode}")
 
         return {"returncode": returncode, "output": output}
+
+    def build_env(self) -> dict[str, str]:
+        """Return the subprocess environment.
+
+        Harnesses are isolated by default. Login-env mode only passes enough
+        local shell state for authenticated CLIs to find their executable and
+        config directories; explicit ``env`` values always win.
+        """
+        built: dict[str, str] = {}
+        if self.login_env:
+            keys = {
+                "PATH",
+                "HOME",
+                "USERPROFILE",
+                "APPDATA",
+                "LOCALAPPDATA",
+                "XDG_CONFIG_HOME",
+                "XDG_DATA_HOME",
+                "XDG_CACHE_HOME",
+                *self.login_env_keys,
+                *self.env_allowlist,
+            }
+            built.update({key: value for key in keys if (value := os.environ.get(key))})
+        built.update(self.env)
+        return built
 
     def parse_line(self, line: str) -> HarnessStep | None:
         if not line:

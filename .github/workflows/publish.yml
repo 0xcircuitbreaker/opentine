@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: GitHub Release Artifacts
 
 on:
   push:
@@ -6,11 +6,10 @@ on:
       - "v*"
 
 jobs:
-  publish:
+  release-artifacts:
     runs-on: ubuntu-latest
-    environment: release
     permissions:
-      id-token: write  # Required for trusted publishing
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +20,38 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
-      - name: Build package
-        run: uv build
+      - name: Install dependencies
+        run: uv sync --extra dev
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Run fast gates
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pytest tests -m "not live and not live_harness" -q
+
+      - name: Build package
+        run: uv build --sdist --wheel --out-dir dist
+
+      - name: Check package metadata
+        run: uv run --with twine twine check dist/*
+
+      - name: Wheel smoke test
+        run: uv run python scripts/wheel_smoke.py
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          sha256sum opentine-* > SHA256SUMS
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opentine-release-artifacts
+          path: |
+            dist/opentine-*
+            dist/SHA256SUMS
+
+      - name: Attach artifacts to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/opentine-* dist/SHA256SUMS --verify-tag --generate-notes

@@ -9,6 +9,7 @@ NOT run in CI. Requires an API key. Run manually with:
   uv run pytest tests/test_live.py -v --provider kimi
   uv run pytest tests/test_live.py -v --provider deepseek
   uv run pytest tests/test_live.py -v --provider glm
+  uv run pytest tests/test_live.py -v --provider lmstudio
   uv run pytest tests/test_live.py -v --provider groq
 
 Or just pick whichever you have a key for:
@@ -22,9 +23,15 @@ from __future__ import annotations
 import json
 import os
 
+import httpx
 import pytest
 
 from opentine import Agent, Run, RunStatus, StepKind
+from opentine.models.ollama import Ollama
+
+pytestmark = pytest.mark.live
+
+OLLAMA_VALIDATION_MODELS = ("llama3.1", "qwen3")
 
 # ---------------------------------------------------------------------------
 # Provider setup
@@ -52,6 +59,21 @@ PROVIDERS = {
     ),
     "mistral": ("opentine.models.compat", "Mistral", "mistral-large-latest", "MISTRAL_API_KEY"),
     "qwen": ("opentine.models.compat", "Qwen", "qwen-plus", "QWEN_API_KEY"),
+    "lmstudio": ("opentine.models.compat", "LMStudio", "local-model", None),
+    "unsloth": ("opentine.models.compat", "Unsloth", "default", None),
+    "vllm": ("opentine.models.compat", "VLLM", "default", None),
+    "llamacpp": ("opentine.models.compat", "LlamaCpp", "default", None),
+    "localai": ("opentine.models.compat", "LocalAI", "default", None),
+    "jan": ("opentine.models.compat", "Jan", "default", None),
+}
+
+LOCAL_OPENAI_COMPAT = {
+    "lmstudio": ("LMSTUDIO_HOST", "LMSTUDIO_MODEL", "http://localhost:1234"),
+    "unsloth": ("UNSLOTH_HOST", "UNSLOTH_MODEL", "http://localhost:8000"),
+    "vllm": ("VLLM_HOST", "VLLM_MODEL", "http://localhost:8000"),
+    "llamacpp": ("LLAMACPP_HOST", "LLAMACPP_MODEL", "http://localhost:8080"),
+    "localai": ("LOCALAI_HOST", "LOCALAI_MODEL", "http://localhost:8080"),
+    "jan": ("JAN_HOST", "JAN_MODEL", "http://localhost:1337"),
 }
 
 
@@ -68,16 +90,58 @@ def model(provider):
     module_path, class_name, default_model, env_key = PROVIDERS[provider]
     if env_key and not os.environ.get(env_key):
         pytest.skip(f"Set {env_key} env var to run live tests with {provider}")
+    if provider == "ollama":
+        _require_ollama_model(default_model)
+    if provider in LOCAL_OPENAI_COMPAT:
+        host_env, model_env, default_host = LOCAL_OPENAI_COMPAT[provider]
+        host = os.environ.get(host_env, default_host).rstrip("/")
+        _require_openai_compatible(provider, host)
+        default_model = os.environ.get(model_env, default_model)
     import importlib
 
     mod = importlib.import_module(module_path)
     adapter_cls = getattr(mod, class_name)
+    if provider == "ollama":
+        return adapter_cls(default_model, host=_ollama_host())
+    if provider in LOCAL_OPENAI_COMPAT:
+        return adapter_cls(default_model, host=host)
     return adapter_cls(default_model)
 
 
 @pytest.fixture
 def agent(model):
     return Agent(model=model, system="Answer concisely in one sentence.", max_steps=5)
+
+
+def _ollama_host() -> str:
+    return os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+
+
+def _require_ollama_model(model_name: str) -> None:
+    host = _ollama_host()
+    try:
+        with httpx.Client(timeout=5) as client:
+            client.get(f"{host}/api/version").raise_for_status()
+            tags = client.get(f"{host}/api/tags")
+            tags.raise_for_status()
+    except httpx.HTTPError as exc:
+        pytest.skip(f"Ollama is not reachable at {host}: {exc}")
+
+    installed = {
+        item.get("model") or item.get("name")
+        for item in tags.json().get("models", [])
+        if item.get("model") or item.get("name")
+    }
+    if not any(name == model_name or name.startswith(f"{model_name}:") for name in installed):
+        pytest.skip(f"Install Ollama model first: ollama pull {model_name}")
+
+
+def _require_openai_compatible(provider: str, host: str) -> None:
+    try:
+        with httpx.Client(timeout=5) as client:
+            client.get(f"{host}/v1/models").raise_for_status()
+    except httpx.HTTPError as exc:
+        pytest.skip(f"{provider} is not reachable at {host}: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +200,9 @@ class TestLiveSaveLoad:
         run.save(path)
 
         data = json.loads(path.read_text(encoding="utf-8"))
-        assert data["id"] == run.id
-        assert len(data["steps"]) == len(run.steps)
+        assert data["format_version"] == 1
+        assert data["run_id"] == run.id
+        assert len(data["graph"]["steps"]) == len(run.steps)
 
 
 class TestLiveFork:
@@ -173,3 +238,84 @@ class TestLiveDiff:
         assert text_a != text_b
         print(f"\n  A: {text_a[:60]}")
         print(f"  B: {text_b[:60]}")
+
+
+class TestLiveOllamaValidation:
+    """Opt-in Ollama provider validation.
+
+    Required setup:
+
+      ollama pull qwen3
+      ollama pull llama3.1
+      uv run pytest tests/test_live.py -v --provider ollama
+    """
+
+    @pytest.mark.parametrize("model_name", OLLAMA_VALIDATION_MODELS)
+    def test_ollama_completion_for_validation_models(self, provider, model_name, tmp_path):
+        if provider != "ollama":
+            pytest.skip("Ollama-only validation")
+        _require_ollama_model(model_name)
+
+        model = Ollama(
+            model_name, host=_ollama_host(), think=True if model_name == "qwen3" else None
+        )
+        agent = Agent(model=model, system="Answer with only the final answer.", max_steps=4)
+        run = agent.run_sync("What is 6 * 7?")
+
+        assert run.status == RunStatus.completed
+        assert run.model_info == f"ollama/{model_name}"
+        assert run.steps[-1].kind == StepKind.done
+        assert run.steps[-1].inputs.get("text")
+
+        path = tmp_path / f"{model_name.replace(':', '_')}.tine"
+        run.save(path)
+        loaded = Run.load(path)
+        assert loaded.model_info == run.model_info
+        assert loaded.steps[-1].inputs == run.steps[-1].inputs
+
+    def test_ollama_qwen3_tool_call_round_trip(self, provider):
+        if provider != "ollama":
+            pytest.skip("Ollama-only validation")
+        _require_ollama_model("qwen3")
+
+        def get_temperature(city: str) -> str:
+            """Get the current temperature for a city."""
+            return "22 C" if city else "unknown"
+
+        model = Ollama("qwen3", host=_ollama_host(), think=True)
+        agent = Agent(
+            model=model,
+            tools=[get_temperature],
+            system=(
+                "Use get_temperature when asked for a temperature. "
+                "After receiving the tool result, answer in one short sentence."
+            ),
+            max_steps=6,
+        )
+        run = agent.run_sync("What is the temperature in Paris? Use the tool.")
+
+        assert run.status == RunStatus.completed
+        assert any(step.kind == StepKind.tool for step in run.steps)
+        assert any(step.inputs.get("name") == "get_temperature" for step in run.steps)
+        assert run.steps[-1].kind == StepKind.done
+
+    def test_ollama_agent_replay_rerun_and_resume(self, provider):
+        if provider != "ollama":
+            pytest.skip("Ollama-only validation")
+        _require_ollama_model("llama3.1")
+
+        agent = Agent(
+            model=Ollama("llama3.1", host=_ollama_host()),
+            system="Answer concisely.",
+            max_steps=4,
+        )
+        run = agent.run_sync("Name one primary color.")
+        cached = agent.replay_sync(run, mode="cache")
+        rerun = agent.replay_sync(run, mode="rerun")
+        resumed = agent.resume_sync(run, prompt="Now name one different primary color.")
+
+        assert cached.metadata["replay"]["mode"] == "cache"
+        assert cached.metadata["replay"]["reused_steps"] == len(run.steps)
+        assert rerun.status == RunStatus.completed
+        assert resumed.status == RunStatus.completed
+        assert resumed.metadata["forked_from"] == run.id

@@ -7,7 +7,16 @@ from typing import Any
 
 from opentine.cli import _build_parser
 from opentine.core import Run, RunStatus, StepKind
-from opentine.harnesses import CodexCLIHarness, HarnessStep, OpentineHarness
+from opentine.harnesses import (
+    CodexCLIHarness,
+    GenericHarness,
+    HarnessStep,
+    HermesHarness,
+    KimiCodeHarness,
+    OpenClawHarness,
+    OpenCodeHarness,
+    OpentineHarness,
+)
 from opentine.mcp_server import (
     diff_runs_text,
     fork_run_file,
@@ -85,6 +94,73 @@ def test_codex_json_event_parser_extracts_tool_steps():
     assert step.outputs["result"] == "ok"
     assert step.cost == 0.04
     assert step.duration == 1.2
+
+
+def test_agent_cli_harness_command_defaults():
+    assert CodexCLIHarness().build_command("task") == ["codex", "exec", "task"]
+    assert OpenCodeHarness().build_command("task") == ["opencode", "run", "task"]
+    assert KimiCodeHarness().build_command("task") == [
+        "kimi",
+        "--print",
+        "--output-format",
+        "stream-json",
+        "--prompt",
+        "task",
+    ]
+    assert OpenClawHarness().build_command("task") == [
+        "openclaw",
+        "agent",
+        "--local",
+        "--json",
+        "--message",
+        "task",
+    ]
+    assert HermesHarness().build_command("task") == ["hermes", "chat", "-q", "task"]
+    assert GenericHarness(command=("agent", "run")).build_command("task") == [
+        "agent",
+        "run",
+        "task",
+    ]
+
+
+def test_agent_cli_harness_parses_structured_and_text_events():
+    kimi = KimiCodeHarness()
+    step = kimi.parse_line(
+        '{"type":"tool_call","name":"read_file","arguments":{"path":"README.md"},'
+        '"output":"ok","session_id":"s1"}'
+    )
+    assert step is not None
+    assert step.kind == StepKind.tool
+    assert step.inputs["name"] == "read_file"
+    assert step.inputs["session_id"] == "s1"
+
+    openclaw = OpenClawHarness()
+    step = openclaw.parse_line('{"type":"message","content":"done","sessionId":"abc"}')
+    assert step is not None
+    assert step.kind == StepKind.think
+    assert step.inputs["sessionId"] == "abc"
+
+    hermes = HermesHarness()
+    step = hermes.parse_line("Tool terminal: read README.md")
+    assert step is not None
+    assert step.kind == StepKind.tool
+    assert step.inputs["name"] == "read"
+
+
+def test_login_env_mode_is_allowlisted(monkeypatch):
+    monkeypatch.setenv("PATH", "/bin")
+    monkeypatch.setenv("HOME", "/tmp/home")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setenv("CUSTOM_CONFIG_DIR", "/tmp/custom")
+
+    isolated = OpenCodeHarness().build_env()
+    login = OpenCodeHarness(login_env=True, env_allowlist=("CUSTOM_CONFIG_DIR",)).build_env()
+
+    assert isolated == {}
+    assert login["PATH"] == "/bin"
+    assert login["HOME"] == "/tmp/home"
+    assert login["CUSTOM_CONFIG_DIR"] == "/tmp/custom"
+    assert "OPENAI_API_KEY" not in login
 
 
 def test_mcp_helpers_list_fork_and_diff_runs(tmp_path: Path):

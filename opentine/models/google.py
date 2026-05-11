@@ -170,6 +170,9 @@ class Google:
         config = types.GenerateContentConfig(temperature=temperature)
         if system:
             config.system_instruction = system
+        gemini_tools = self._build_tools(tools)
+        if gemini_tools:
+            config.tools = gemini_tools
 
         async for chunk in await client.aio.models.generate_content_stream(
             model=self._model,
