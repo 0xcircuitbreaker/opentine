@@ -17,6 +17,14 @@
   <img src="https://img.shields.io/badge/status-0.1.x%20beta-FF6900" alt="0.1.x beta" />
 </p>
 
+<p align="center">
+  <img
+    src="docs/assets/readme-hero-terminal.gif"
+    alt="Animated opentine terminal demo showing run capture and graph inspection"
+    width="900"
+  />
+</p>
+
 ---
 
 A **tine** is the prong of a fork. opentine forks agent runs.
@@ -43,7 +51,7 @@ tine replay result.tine --mode cache --save replayed.tine
 tine diff failed.tine retry.tine
 ```
 
-The current 0.1.x release-readiness pass validates the core surface, Ollama, Codex CLI, and Kimi Code CLI in this environment. Other providers and harnesses are compatibility targets until their own live gates pass.
+The current 0.1.x public beta readiness pass validates the core surface, Ollama, Codex CLI, and Kimi Code CLI in this environment. Other providers and harnesses are compatibility targets until their own live gates pass.
 
 ## Install
 
@@ -108,20 +116,13 @@ That gives you the first three steps as known provenance, a new branch for the r
 
 Every `.tine` file stores a content-addressed DAG. Step IDs are full SHA-256 hashes over canonical immutable step payloads: parent links, kind, inputs, outputs, model/tool metadata, and errors.
 
-```mermaid
-graph TD
-    A["run: failed"] --> B["think"]
-    B --> C["tool: search"]
-    C --> D["tool: edit"]
-    D --> E["error"]
-
-    C --> F["run: retry"]
-    F --> G["tool: inspect"]
-    G --> H["done"]
-
-    style A fill:#FF6900,color:#fff
-    style F fill:#FF6900,color:#fff
-```
+<p align="center">
+  <img
+    src="docs/assets/readme-run-tree.gif"
+    alt="Animated opentine run tree showing a root run, model and tool steps, a fork branch, retry path, and verified outcome"
+    width="900"
+  />
+</p>
 
 Core operations are graph operations:
 
@@ -307,7 +308,7 @@ The MCP dependency is optional; install the `mcp` package only for this server.
 
 ## Release Evidence
 
-The 0.1.x readiness pass keeps package metadata at `Development Status :: 4 - Beta` while validating the claimed surface.
+Opentine is prepared for a public 0.1.x open-source beta release of the validated release-ready surface. Package metadata remains `Development Status :: 4 - Beta`.
 
 Current local gates:
 
