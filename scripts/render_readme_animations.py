@@ -157,8 +157,8 @@ def hero_states() -> Iterable[tuple[list[Line], bool, int]]:
     graph_output: list[Line] = [
         [("* ", ORANGE), ("a7f3c2 run: research.py", TEXT)],
         [("|-- ", DIM), ("model", BLUE), ('  qwen3        "draft synthesis"', TEXT)],
-        [("|-- ", DIM), ("tool ", TEAL), ('  search       cache hit', TEXT)],
-        [("|-- ", DIM), ("tool ", TEAL), ('  fs.write     checksum ok', TEXT)],
+        [("|-- ", DIM), ("tool ", TEAL), ("  search       cache hit", TEXT)],
+        [("|-- ", DIM), ("tool ", TEAL), ("  fs.write     checksum ok", TEXT)],
         [("`-- ", DIM), ("done ", GREEN), ("  verified     portable .tine", TEXT)],
     ]
 
@@ -295,9 +295,7 @@ def draw_arrowhead(draw: ImageDraw.ImageDraw, start: Point, end: Point, color: C
 
 
 def path_length(points: Sequence[Point]) -> float:
-    return sum(
-        math.dist(points[index], points[index + 1]) for index in range(len(points) - 1)
-    )
+    return sum(math.dist(points[index], points[index + 1]) for index in range(len(points) - 1))
 
 
 def draw_path(

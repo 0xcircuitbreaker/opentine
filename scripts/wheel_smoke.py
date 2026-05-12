@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,20 @@ import venv
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DIST = ROOT / "dist"
+
+
+def _dist_dir() -> Path:
+    configured = os.environ.get("OPENTINE_WHEEL_SMOKE_DIST")
+    if not configured:
+        return ROOT / "dist"
+
+    path = Path(configured)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path
+
+
+DIST = _dist_dir()
 
 
 def _venv_python(venv_dir: Path) -> Path:

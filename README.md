@@ -360,6 +360,10 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+When Docker is available, `python scripts/ci_docker.py` rehearses the Ubuntu GitHub
+Actions matrix locally for Python 3.11, 3.12, and 3.13. GitHub Actions remains
+authoritative for macOS and Windows.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
