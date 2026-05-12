@@ -11,6 +11,25 @@ from pathlib import Path
 from opentine.policies import ShellPolicy
 
 
+def _strip_outer_quotes(part: str) -> str:
+    if len(part) >= 2 and part[0] == part[-1] and part[0] in {"'", '"'}:
+        return part[1:-1]
+    return part
+
+
+def _split_command(command: str) -> list[str]:
+    parts = shlex.split(command, posix=(sys.platform != "win32"))
+    if sys.platform == "win32":
+        parts = [_strip_outer_quotes(part) for part in parts]
+    return parts
+
+
+def _subprocess_parts(parts: list[str]) -> list[str]:
+    if sys.platform == "win32" and parts[0] in {"python", "python3"}:
+        return [sys.executable, *parts[1:]]
+    return parts
+
+
 def _clean_env(policy: ShellPolicy) -> dict[str, str]:
     if policy.inherit_env:
         return dict(os.environ)
@@ -31,7 +50,7 @@ def run(
     allow arbitrary commands (use with caution).
     """
     try:
-        parts = shlex.split(command, posix=(sys.platform != "win32"))
+        parts = _split_command(command)
     except ValueError as e:
         return f"Error: failed to parse command: {e}"
 
@@ -58,7 +77,7 @@ def run(
 
     try:
         result = subprocess.run(
-            parts,
+            _subprocess_parts(parts),
             shell=False,
             capture_output=True,
             text=True,

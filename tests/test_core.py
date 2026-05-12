@@ -471,6 +471,14 @@ class TestSecurity:
         )
         assert out == "missing"
 
+    def test_shell_windows_python3_alias_handles_single_quotes(self, monkeypatch):
+        monkeypatch.setattr(shell.sys, "platform", "win32")
+        out = shell.run(
+            "python3 -c 'print(\"ok\")'",
+            policy=ShellPolicy(enabled=True, executables=("python3",)),
+        )
+        assert out == "ok"
+
     def test_python_disabled_env_scrubbed_and_output_capped(self, monkeypatch):
         monkeypatch.setenv("SECRET_TOKEN", "leak")
         assert "disabled by policy" in python.execute("print('x')")
