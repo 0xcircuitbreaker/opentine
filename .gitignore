@@ -33,6 +33,8 @@ uv.lock
 
 # opentine run files
 *.tine
+!tests/fixtures/
+!tests/fixtures/*.tine
 .tine_runs/
 
 # OS
