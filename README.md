@@ -336,6 +336,16 @@ pytest tests/test_live_harness.py -m live_harness --agent-harness codex -q
 pytest tests/test_live_harness.py -m live_harness --agent-harness kimi-code -q
 ```
 
+GitHub Actions runs the local gates on every push and pull request across
+Ubuntu, macOS, and Windows for Python 3.11–3.13, and uploads the built
+wheel/sdist as a downloadable `opentine-dist` artifact. Tagged `v*` releases
+additionally publish `SHA256SUMS` and a build-provenance attestation you can
+verify against the source workflow:
+
+```bash
+gh attestation verify opentine-0.1.1-py3-none-any.whl --repo 0xcircuitbreaker/opentine
+```
+
 Related docs:
 
 | Document | What it covers |

@@ -14,6 +14,9 @@
 - Removed the unused `msgspec` runtime dependency.
 - Added a `mcp` optional extra (`pip install opentine[mcp]`) for the MCP server.
 - Fixed the broken README logo (now a committed `docs/assets/opentine-logo.svg`).
+- CI now runs `twine check` and uploads the built wheel/sdist as a downloadable
+  artifact on every run; tagged releases carry `SHA256SUMS` plus a verifiable
+  build-provenance attestation (`gh attestation verify`).
 
 ## 0.1.0
 

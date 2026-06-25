@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +44,11 @@ jobs:
         run: |
           cd dist
           sha256sum opentine-* > SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: dist/opentine-*
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
