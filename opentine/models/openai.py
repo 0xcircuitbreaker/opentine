@@ -16,10 +16,15 @@ class OpenAI:
         model: str = "gpt-4o",
         api_key: str | None = None,
         base_url: str | None = None,
+        *,
+        input_cost_per_mtok: float = 2.5,
+        output_cost_per_mtok: float = 10.0,
     ):
         self._model = model
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self._base_url = base_url or os.environ.get("OPENAI_BASE_URL")
+        self._input_cost_per_mtok = input_cost_per_mtok
+        self._output_cost_per_mtok = output_cost_per_mtok
 
     @property
     def name(self) -> str:
@@ -118,8 +123,8 @@ class OpenAI:
 
         cost = 0.0
         if resp.usage:
-            input_cost = (resp.usage.prompt_tokens / 1_000_000) * 2.5
-            output_cost = (resp.usage.completion_tokens / 1_000_000) * 10.0
+            input_cost = (resp.usage.prompt_tokens / 1_000_000) * self._input_cost_per_mtok
+            output_cost = (resp.usage.completion_tokens / 1_000_000) * self._output_cost_per_mtok
             cost = input_cost + output_cost
         return {"text": text, "tool_calls": tool_calls, "cost": cost}
 
