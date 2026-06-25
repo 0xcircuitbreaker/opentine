@@ -21,14 +21,33 @@ class Ollama:
         self._model = model
         self._host = (host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
         self._think = think
+        self._capabilities: set[str] | None = None
 
     @property
     def name(self) -> str:
         return f"ollama/{self._model}"
 
+    def _tools_capable(self) -> bool:
+        """Report whether the model advertises tool calling via /api/show.
+
+        Result is cached per instance. Ollama rejects tool payloads for models
+        without the ``tools`` capability (e.g. gemma3, codellama) with a hard
+        400, so we probe once. If the server is unreachable or the response is
+        unexpected we stay optimistic (``True``) and let the request proceed.
+        """
+        if self._capabilities is None:
+            try:
+                with httpx.Client(timeout=5) as client:
+                    resp = client.post(f"{self._host}/api/show", json={"model": self._model})
+                    resp.raise_for_status()
+                    self._capabilities = set(resp.json().get("capabilities") or ["tools"])
+            except Exception:
+                self._capabilities = {"tools"}
+        return "tools" in self._capabilities
+
     @property
     def supports_tools(self) -> bool:
-        return True
+        return self._tools_capable()
 
     @property
     def supports_thinking(self) -> bool:
@@ -122,6 +141,10 @@ class Ollama:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
+        warnings: list[str] = []
+        if tools and not self._tools_capable():
+            warnings.append(f"{self.name}: model does not support tool calling; ran without tools")
+            tools = None
         payload = self._build_payload(messages, tools, system, temperature, stream=False)
 
         async with httpx.AsyncClient(timeout=120) as client:
@@ -140,6 +163,7 @@ class Ollama:
             "thinking": message.get("thinking", ""),
             "tool_calls": tool_calls,
             "cost": 0.0,
+            "warnings": warnings,
         }
 
     async def stream(
@@ -149,6 +173,8 @@ class Ollama:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
+        if tools and not self._tools_capable():
+            tools = None
         payload = self._build_payload(messages, tools, system, temperature, stream=True)
 
         async with httpx.AsyncClient(timeout=120) as client:

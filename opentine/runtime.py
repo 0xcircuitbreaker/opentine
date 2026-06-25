@@ -113,6 +113,10 @@ class Agent:
                 dict(resp),
                 {"mode": "rerun", "model": self.model.name},
             ).to_dict()
+            for warning in resp.get("warnings", []):
+                warnings = run.metadata.setdefault("warnings", [])
+                if warning not in warnings:
+                    warnings.append(warning)
             text = resp.get("text", "")
             tool_calls = resp.get("tool_calls", [])
             cost = resp.get("cost", 0.0)
