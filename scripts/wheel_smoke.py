@@ -60,7 +60,7 @@ def main() -> None:
 
         _run([python, "-m", "pip", "install", "--disable-pip-version-check", wheel])
         _run([python, "-m", "pip", "check"])
-        _run([python, "-c", "import opentine; assert opentine.__version__ == '0.1.0'"])
+        _run([python, "-c", "import opentine; assert opentine.__version__ == '0.1.1'"])
         _run([tine, "--help"])
         _run(
             [

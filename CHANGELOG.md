@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-06-25
 
 - Ollama adapter now detects tool-calling capability via `/api/show` (cached) so
   `Ollama(...).supports_tools` is accurate. Agents with tools on a model that
