@@ -17,7 +17,7 @@ from opentine.core import Run, RunStatus, StepKind, step_id
 
 
 def _jsonable(value: Any) -> Any:
-    """Convert arbitrary harness payloads into msgspec-serializable data."""
+    """Convert arbitrary harness payloads into JSON-serializable data."""
     if value is None or isinstance(value, str | int | float | bool):
         return value
     if isinstance(value, Mapping):
