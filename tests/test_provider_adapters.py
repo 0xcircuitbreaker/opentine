@@ -175,3 +175,31 @@ def test_openai_compatible_wrappers_set_expected_endpoints():
     glm = GLM(api_key="id.secret")
     assert glm._base_url == "https://open.bigmodel.cn/api/paas/v4"
     assert len(glm._api_key.split(".")) == 3
+
+
+def _fake_openai_client_with_usage() -> Any:
+    class FakeCompletions:
+        async def create(self, **kwargs: Any):
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None))],
+                usage=SimpleNamespace(prompt_tokens=1_000_000, completion_tokens=1_000_000),
+            )
+
+    return SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+
+
+@pytest.mark.asyncio
+async def test_openai_default_cost_uses_gpt4o_pricing(monkeypatch: pytest.MonkeyPatch):
+    adapter = OpenAI("gpt-4o")
+    monkeypatch.setattr(adapter, "_get_client", _fake_openai_client_with_usage)
+    resp = await adapter.complete([{"role": "user", "content": "hi"}])
+    # 1M input @ $2.5 + 1M output @ $10 = $12.5
+    assert resp["cost"] == pytest.approx(12.5)
+
+
+@pytest.mark.asyncio
+async def test_local_compat_wrappers_report_zero_cost(monkeypatch: pytest.MonkeyPatch):
+    adapter = LMStudio()
+    monkeypatch.setattr(adapter, "_get_client", _fake_openai_client_with_usage)
+    resp = await adapter.complete([{"role": "user", "content": "hi"}])
+    assert resp["cost"] == 0.0

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://opentine.com/logo.svg" alt="opentine" width="120" />
+  <img src="docs/assets/opentine-logo.svg" alt="opentine" width="120" />
 </p>
 
 <h1 align="center">opentine</h1>
@@ -51,7 +51,7 @@ tine replay result.tine --mode cache --save replayed.tine
 tine diff failed.tine retry.tine
 ```
 
-The current 0.1.x public beta readiness pass validates the core surface, Ollama, Codex CLI, and Kimi Code CLI in this environment. Other providers and harnesses are compatibility targets until their own live gates pass.
+The current 0.1.x public beta validates the core surface, Ollama, Codex CLI, and Kimi Code CLI through the gates listed in [Release Validation](#release-validation). Other providers and harnesses are compatibility targets until their own live gates pass.
 
 ## Install
 
@@ -186,9 +186,9 @@ Status values are intentionally conservative:
 | Native `.tine` v1 load/save/fork/diff/replay | Validated | Fast tests, golden fixture, and CLI smoke. |
 | Artifact checksum verification | Validated | `Run.verify_integrity(...)`, `tine verify`, and failure-path tests. |
 | Secure tool defaults | Validated | Filesystem, symlink, network, shell, Python, env, redaction, and output-cap tests. |
-| Ollama `llama3.1` and `qwen3` | Validated | Live gate passed in this audit environment. |
-| Codex CLI | Validated | Live harness gate passed in this audit environment. |
-| Kimi Code CLI | Validated | Live harness gate passed in this audit environment. |
+| Ollama `llama3.1` and `qwen3` | Validated | Live gate passed for the current 0.1.x beta. |
+| Codex CLI | Validated | Live harness gate passed for the current 0.1.x beta. |
+| Kimi Code CLI | Validated | Live harness gate passed for the current 0.1.x beta. |
 | Anthropic, OpenAI, Google | Scoped | Adapter contract tests; cloud live gates require user credentials. |
 | Kimi API, DeepSeek, GLM, Groq, Together, Mistral, Qwen API | Scoped | OpenAI-compatible adapter shape; provider-specific live gates required. |
 | LM Studio, vLLM, llama.cpp, LocalAI, Jan, Unsloth-compatible endpoints | Scoped | Endpoint-specific local live gates required. |
@@ -210,6 +210,12 @@ agent = Agent(model=Google("gemini-2.0-flash"))
 agent = Agent(model=Ollama("llama3.1"))
 ```
 
+Not every local model can call tools. Ollama models such as `gemma`, `codellama`,
+`phi4`, and `deepseek-r1` advertise no `tools` capability; opentine detects this
+(`Ollama(...).supports_tools`), runs them without tools instead of crashing, and
+records a note in `run.metadata["warnings"]`. For tool-using agents pick a
+tools-capable model like `llama3.1`, `qwen2.5`, `qwen3`, or `mistral`.
+
 OpenAI-compatible wrappers:
 
 ```python
@@ -224,7 +230,7 @@ agent = Agent(model=Together("meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"))
 agent = Agent(model=Mistral("mistral-large-latest"))
 ```
 
-These wrappers make integration easy, but a provider is only counted as live-validated after its gate passes in the release environment.
+These wrappers make integration easy, but a provider is only counted as live-validated after its project validation gate passes.
 
 ## Tools And Policies
 
@@ -306,9 +312,9 @@ python -m opentine.mcp_server
 
 The MCP dependency is optional; install the `mcp` package only for this server.
 
-## Release Evidence
+## Release Validation
 
-Opentine is prepared for a public 0.1.x open-source beta release of the validated release-ready surface. Package metadata remains `Development Status :: 4 - Beta`.
+Opentine is a public 0.1.x open-source beta. Package metadata remains `Development Status :: 4 - Beta`.
 
 Current local gates:
 
@@ -322,7 +328,7 @@ python -m twine check dist/*
 python scripts/wheel_smoke.py
 ```
 
-Current live gates validated in this audit environment:
+Current live gates:
 
 ```bash
 pytest tests/test_live.py --provider ollama -q
@@ -330,7 +336,17 @@ pytest tests/test_live_harness.py -m live_harness --agent-harness codex -q
 pytest tests/test_live_harness.py -m live_harness --agent-harness kimi-code -q
 ```
 
-Full evidence:
+GitHub Actions runs the local gates on every push and pull request across
+Ubuntu, macOS, and Windows for Python 3.11–3.13, and uploads the built
+wheel/sdist as a downloadable `opentine-dist` artifact. Tagged `v*` releases
+additionally publish `SHA256SUMS` and a build-provenance attestation you can
+verify against the source workflow:
+
+```bash
+gh attestation verify opentine-0.1.1-py3-none-any.whl --repo 0xcircuitbreaker/opentine
+```
+
+Related docs:
 
 | Document | What it covers |
 |---|---|
@@ -369,17 +385,3 @@ authoritative for macOS and Windows.
 Apache-2.0. See [LICENSE](LICENSE).
 
 Built by the [opentine contributors](https://github.com/0xcircuitbreaker/opentine/graphs/contributors).
-
-## Sources
-
-- Previous opentine README structure: https://github.com/0xcircuitbreaker/opentine/blob/7d5b1126bd35a3d48c476ed2ef959cc8c826a5e4/README.md
-- Hermes Agent README/docs structure: https://github.com/NousResearch/hermes-agent/blob/main/README.md
-- Hermes Agent docs: https://hermes-agent.nousresearch.com/docs/
-- OpenClaw CLI reference: https://docs.openclaw.ai/cli
-- Ollama chat API: https://docs.ollama.com/api/chat
-- Ollama tool calling: https://docs.ollama.com/capabilities/tool-calling
-- Ollama thinking: https://docs.ollama.com/capabilities/thinking
-- Kimi Code CLI: https://www.kimi.com/code/docs/en/kimi-code-cli/reference/kimi-command.html
-- LangGraph persistence/time travel: https://docs.langchain.com/oss/python/langgraph/persistence
-- LangSmith evaluations: https://docs.langchain.com/langsmith/evaluation
-- CrewAI observability/tracing: https://docs.crewai.com/en/observability

@@ -138,43 +138,59 @@ class Mistral(OpenAI):
 # --- Local providers (no API key needed, no pip extra needed) ---------------
 
 
+# Local inference is free, so these wrappers report $0 cost by default. Pass
+# input_cost_per_mtok / output_cost_per_mtok to override (e.g. metered hosting).
+
+
 class LMStudio(OpenAI):
     """LM Studio local server (any model loaded in the app)."""
 
-    def __init__(self, model: str = "local-model", host: str = "http://localhost:1234"):
-        super().__init__(model=model, api_key="lm-studio", base_url=f"{host}/v1")
+    def __init__(self, model: str = "local-model", host: str = "http://localhost:1234", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="lm-studio", base_url=f"{host}/v1", **kwargs)
 
 
 class VLLM(OpenAI):
     """vLLM high-performance inference server."""
 
-    def __init__(self, model: str = "default", host: str = "http://localhost:8000"):
-        super().__init__(model=model, api_key="vllm", base_url=f"{host}/v1")
+    def __init__(self, model: str = "default", host: str = "http://localhost:8000", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="vllm", base_url=f"{host}/v1", **kwargs)
 
 
 class Unsloth(OpenAI):
     """Unsloth-compatible OpenAI API server."""
 
-    def __init__(self, model: str = "default", host: str = "http://localhost:8000"):
-        super().__init__(model=model, api_key="unsloth", base_url=f"{host}/v1")
+    def __init__(self, model: str = "default", host: str = "http://localhost:8000", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="unsloth", base_url=f"{host}/v1", **kwargs)
 
 
 class LlamaCpp(OpenAI):
     """llama.cpp server (lightweight C++ inference)."""
 
-    def __init__(self, model: str = "default", host: str = "http://localhost:8080"):
-        super().__init__(model=model, api_key="llama-cpp", base_url=f"{host}/v1")
+    def __init__(self, model: str = "default", host: str = "http://localhost:8080", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="llama-cpp", base_url=f"{host}/v1", **kwargs)
 
 
 class LocalAI(OpenAI):
     """LocalAI — drop-in OpenAI replacement for local models."""
 
-    def __init__(self, model: str = "default", host: str = "http://localhost:8080"):
-        super().__init__(model=model, api_key="local-ai", base_url=f"{host}/v1")
+    def __init__(self, model: str = "default", host: str = "http://localhost:8080", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="local-ai", base_url=f"{host}/v1", **kwargs)
 
 
 class Jan(OpenAI):
     """Jan desktop app local server."""
 
-    def __init__(self, model: str = "default", host: str = "http://localhost:1337"):
-        super().__init__(model=model, api_key="jan", base_url=f"{host}/v1")
+    def __init__(self, model: str = "default", host: str = "http://localhost:1337", **kwargs):
+        kwargs.setdefault("input_cost_per_mtok", 0.0)
+        kwargs.setdefault("output_cost_per_mtok", 0.0)
+        super().__init__(model=model, api_key="jan", base_url=f"{host}/v1", **kwargs)

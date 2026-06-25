@@ -1,8 +1,26 @@
 # Changelog
 
+## 0.1.1 — 2026-06-25
+
+- Ollama adapter now detects tool-calling capability via `/api/show` (cached) so
+  `Ollama(...).supports_tools` is accurate. Agents with tools on a model that
+  does not support them (e.g. `gemma3`, `codellama`, `phi4`, `deepseek-r1`) now
+  run without tools and record a note in `run.metadata["warnings"]` instead of
+  failing with an opaque Ollama `400`.
+- OpenAI adapter token pricing is now configurable
+  (`input_cost_per_mtok` / `output_cost_per_mtok`). Local OpenAI-compatible
+  wrappers (`LMStudio`, `VLLM`, `Unsloth`, `LlamaCpp`, `LocalAI`, `Jan`) report
+  `$0` cost by default instead of inheriting gpt-4o pricing.
+- Removed the unused `msgspec` runtime dependency.
+- Added a `mcp` optional extra (`pip install opentine[mcp]`) for the MCP server.
+- Fixed the broken README logo (now a committed `docs/assets/opentine-logo.svg`).
+- CI now runs `twine check` and uploads the built wheel/sdist as a downloadable
+  artifact on every run; tagged releases carry `SHA256SUMS` plus a verifiable
+  build-provenance attestation (`gh attestation verify`).
+
 ## 0.1.0
 
-Release-readiness pass for the current beta-classified 0.1.x surface.
+Initial public beta for the current 0.1.x surface.
 
 - Added explicit `.tine` integrity verification through `Run.verify_integrity(...)` and `tine verify`.
 - Added golden v1 `.tine` fixture coverage for load, save, fork, and diff behavior.
@@ -10,7 +28,7 @@ Release-readiness pass for the current beta-classified 0.1.x surface.
 - Added a CI-sized graph performance smoke test for save, load, fork, and diff.
 - Added wheel smoke testing for installed-package import, `tine --help`, and `tine verify`.
 - Replaced PyPI publishing automation with a GitHub release artifact workflow that builds sdist/wheel, checks metadata, generates `SHA256SUMS`, and attaches artifacts to tagged GitHub releases.
-- Documented the security model, current `.tine` v1 format policy, live validation matrix, troubleshooting notes, support policy, and release checklist.
+- Documented the security model, current `.tine` v1 format policy, troubleshooting notes, and support policy.
 
 Known scope:
 

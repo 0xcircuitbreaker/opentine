@@ -10,7 +10,7 @@ The package remains classified as:
 
 `Development Status :: 4 - Beta`
 
-That is intentional. The 0.1.x full-release readiness work validates the current surface, but it does not promise a 1.0-stable API or long-term `.tine` migration contract.
+That is intentional. The 0.1.x beta validates the current surface, but it does not promise a 1.0-stable API or long-term `.tine` migration contract.
 
 ## `.tine` Compatibility
 
@@ -24,7 +24,7 @@ Report suspected security issues privately to the project maintainers before pub
 
 ## Integration Support Levels
 
-- `Validated`: a repeatable gate passed in the release environment.
+- `Validated`: a repeatable gate passed for the current beta.
 - `Scoped`: adapter or compatibility code exists, but live behavior depends on user environment or provider configuration.
 - `Skipped`: a gate was attempted but prerequisite services were unavailable.
-- `Unavailable`: the target was not installed, authenticated, or otherwise runnable in the release environment.
+- `Unavailable`: the target was not installed, authenticated, or otherwise runnable for the validation gate.

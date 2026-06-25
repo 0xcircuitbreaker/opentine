@@ -1,6 +1,6 @@
 """opentine — local-first provenance for agent runs."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from opentine.core import (
     Agent,
