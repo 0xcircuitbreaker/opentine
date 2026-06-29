@@ -19,6 +19,7 @@ from opentine._canon import (
     _redact,
     atomic_write_text,
 )
+from opentine.budget import Budget, CostBreakdown
 from opentine.migrations import migrate_dict
 
 
@@ -50,6 +51,9 @@ class Step:
     timestamp: float = 0.0
     duration: float = 0.0
     cost: float = 0.0
+    # token usage {"input": int, "output": int}. Recorded data only — like cost
+    # and duration, usage is NOT part of the content-addressed step id.
+    usage: dict[str, int] = field(default_factory=dict)
 
     @property
     def parent_id(self) -> str | None:
@@ -277,6 +281,7 @@ class Run:
         tool_info: dict[str, Any] | None = None,
         error: dict[str, Any] | None = None,
         ref: str = "main",
+        usage: dict[str, int] | None = None,
     ) -> Step:
         parents = parent_ids if parent_ids is not None else ([parent_id] if parent_id else [])
         if not parents and self.refs.get(ref):
@@ -303,6 +308,7 @@ class Run:
             timestamp=time.time(),
             duration=duration,
             cost=cost,
+            usage={k: int(v) for k, v in (usage or {}).items()},
         )
         self.graph.add(step)
         self.refs[ref] = sid
@@ -338,6 +344,63 @@ class Run:
     @property
     def total_duration(self) -> float:
         return sum(s.duration for s in self.steps)
+
+    @property
+    def total_tokens(self) -> int:
+        return sum(int(s.usage.get("input", 0)) + int(s.usage.get("output", 0)) for s in self.steps)
+
+    def cost_breakdown(self) -> CostBreakdown:
+        """Aggregate cost/usage by model, step kind, and branch tip."""
+        by_model: dict[str, float] = {}
+        by_kind: dict[str, float] = {}
+        input_tokens = output_tokens = 0
+        for step in self.steps:
+            by_model[step.model_info] = by_model.get(step.model_info, 0.0) + step.cost
+            by_kind[step.kind.value] = by_kind.get(step.kind.value, 0.0) + step.cost
+            input_tokens += int(step.usage.get("input", 0))
+            output_tokens += int(step.usage.get("output", 0))
+        by_ref: dict[str, float] = {}
+        for ref, tip in self.refs.items():
+            if not tip:  # fresh runs default refs["main"] to "" — skip, never resolve("")
+                continue
+            try:
+                ancestors = self.ancestors(tip)
+            except (KeyError, ValueError):
+                continue
+            by_ref[ref] = sum(a.cost for a in ancestors)
+        return CostBreakdown(
+            total_cost=self.total_cost,
+            total_tokens=input_tokens + output_tokens,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            by_model=by_model,
+            by_kind=by_kind,
+            by_ref=by_ref,
+        )
+
+    def set_budget(
+        self,
+        *,
+        max_cost: float | None = None,
+        max_steps: int | None = None,
+        max_duration: float | None = None,
+        max_usage: int | None = None,
+        on_breach: str = "stop",
+    ) -> Budget:
+        """Attach a spend budget (stored in manifest.budget, inside the digest)."""
+        budget = Budget(
+            max_cost=max_cost,
+            max_steps=max_steps,
+            max_duration=max_duration,
+            max_usage=max_usage,
+            on_breach=on_breach,
+        )
+        self.manifest["budget"] = budget.to_dict()
+        return budget
+
+    def budget(self) -> Budget | None:
+        raw = self.manifest.get("budget")
+        return Budget.from_dict(raw) if isinstance(raw, dict) and raw else None
 
     def fork(self, from_step_id: str, new_run_id: str | None = None, branch: str = "main") -> Run:
         fork_point = self.graph.resolve(from_step_id)
@@ -509,7 +572,7 @@ class Run:
 
 
 def _step_to_dict(step: Step) -> dict[str, Any]:
-    return {
+    data = {
         "id": step.id,
         "parent_ids": list(step.parent_ids),
         "kind": step.kind.value,
@@ -522,6 +585,10 @@ def _step_to_dict(step: Step) -> dict[str, Any]:
         "duration": step.duration,
         "cost": step.cost,
     }
+    # Emit usage only when present so v1 golden artifacts re-save without it.
+    if step.usage:
+        data["usage"] = {k: int(v) for k, v in step.usage.items()}
+    return data
 
 
 def _step_from_dict(data: dict[str, Any]) -> Step:
@@ -541,6 +608,7 @@ def _step_from_dict(data: dict[str, Any]) -> Step:
         timestamp=float(data.get("timestamp") or 0.0),
         duration=float(data.get("duration") or 0.0),
         cost=float(data.get("cost") or 0.0),
+        usage={k: int(v) for k, v in (data.get("usage") or {}).items()},
     )
 
 

@@ -3,9 +3,13 @@
 from opentine._version import __version__
 from opentine.core import (
     Agent,
+    Budget,
+    BudgetExceeded,
+    CostBreakdown,
     IntegrityResult,
     Model,
     Run,
+    RunIndex,
     RunStatus,
     Step,
     StepKind,
@@ -17,10 +21,14 @@ from opentine.tools import tool_schema
 
 __all__ = [
     "Agent",
+    "Budget",
+    "BudgetExceeded",
+    "CostBreakdown",
     "IntegrityResult",
     "MigrationError",
     "Model",
     "Run",
+    "RunIndex",
     "RunStatus",
     "Step",
     "StepKind",

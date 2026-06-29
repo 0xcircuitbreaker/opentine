@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind, step_id
 
 
@@ -201,7 +202,36 @@ class OpentineHarness:
         run.model_info = original_model_info
         self._last_step_id = added.id
         self._autosave()
+        self._enforce_budget(run)
         return added.id
+
+    def _enforce_budget(self, run: Run) -> None:
+        """Abort the run if a budget is breached.
+
+        An external CLI harness cannot be paused mid-stream, so any breach (stop
+        or raise) aborts via BudgetExceeded. The surrounding ``execute`` records
+        the single terminal error step, so this only sets ``budget_state`` here.
+        """
+        budget = run.budget()
+        if budget is None:
+            return
+        breach = budget.check(
+            cost=run.total_cost,
+            usage=run.total_tokens,
+            steps=len(run.steps),
+            duration=run.total_duration,
+        )
+        if breach is None:
+            return
+        run.metadata["budget_state"] = {
+            "breached": True,
+            **breach.to_dict(),
+            "cost": run.total_cost,
+            "usage": run.total_tokens,
+            "steps": len(run.steps),
+            "duration": run.total_duration,
+        }
+        raise BudgetExceeded(breach, run=run)
 
     def fork(self, from_step: int | str, new_run_id: str | None = None) -> Run:
         """Fork the current run from a step index or step id."""

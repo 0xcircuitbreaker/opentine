@@ -386,6 +386,61 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         console.print("[yellow]Signature was dropped by migration — re-sign if needed.[/]")
 
 
+def _budget_str(budget) -> str:
+    parts = []
+    if budget.max_cost is not None:
+        parts.append(f"cost<=${budget.max_cost}")
+    if budget.max_usage is not None:
+        parts.append(f"tokens<={budget.max_usage}")
+    if budget.max_steps is not None:
+        parts.append(f"steps<={budget.max_steps}")
+    if budget.max_duration is not None:
+        parts.append(f"duration<={budget.max_duration}s")
+    parts.append(f"on_breach={budget.on_breach}")
+    return ", ".join(parts)
+
+
+def cmd_cost(args: argparse.Namespace) -> None:
+    """Show a cost/usage breakdown and budget state for a run."""
+    path = _find_run(args.run_id)
+    if not path:
+        console.print(f"[red]Run not found: {args.run_id}[/]")
+        sys.exit(1)
+    run = Run.load(path)
+    bd = run.cost_breakdown()
+    console.print(
+        f"[{BRAND}]# Cost[/] {short_id(run.id)}  total={_cost_str(bd.total_cost)}  "
+        f"tokens={bd.total_tokens} (in {bd.input_tokens} / out {bd.output_tokens})"
+    )
+
+    if bd.by_model:
+        table = Table(title="By model", border_style=BRAND_DIM)
+        table.add_column("Model")
+        table.add_column("Cost", justify="right")
+        for model, cost in sorted(bd.by_model.items(), key=lambda kv: kv[1], reverse=True):
+            table.add_row(escape(model or "-"), _cost_str(cost))
+        console.print(table)
+    if len(bd.by_kind) > 1:
+        table = Table(title="By step kind", border_style=BRAND_DIM)
+        table.add_column("Kind")
+        table.add_column("Cost", justify="right")
+        for kind, cost in sorted(bd.by_kind.items(), key=lambda kv: kv[1], reverse=True):
+            table.add_row(kind, _cost_str(cost))
+        console.print(table)
+
+    budget = run.budget()
+    if budget:
+        console.print(f"[{BRAND_DIM}]Budget:[/] {_budget_str(budget)}")
+    state = run.metadata.get("budget_state")
+    if isinstance(state, dict) and state.get("breached"):
+        console.print(
+            f"[red]Over budget:[/] {escape(str(state.get('dimension')))} "
+            f"{state.get('incurred')} > {state.get('limit')}",
+            highlight=False,
+        )
+        sys.exit(1)
+
+
 def _print_run_tree(run: Run) -> None:
     """Render the run tree like git log --graph."""
     status_color = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
@@ -417,6 +472,17 @@ def _print_run_tree(run: Run) -> None:
             f"at step {run.metadata.get('fork_point', '?')}"
         )
         console.print()
+
+    budget = run.budget()
+    if budget:
+        console.print(f"  [{BRAND_DIM}]budget:[/] {_budget_str(budget)}")
+    state = run.metadata.get("budget_state")
+    if isinstance(state, dict) and state.get("breached"):
+        console.print(
+            f"  [red]over budget:[/] {escape(str(state.get('dimension')))} "
+            f"{state.get('incurred')} > {state.get('limit')}",
+            highlight=False,
+        )
 
 
 STATUS_COLORS = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
@@ -795,6 +861,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("reindex", help="Rebuild the run index")
 
+    p_cost = sub.add_parser("cost", help="Show cost/usage breakdown and budget state")
+    p_cost.add_argument("run_id", help="Run ID or .tine file path")
+
     p_fork = sub.add_parser("fork", help="Fork a run from a specific step")
     p_fork.add_argument("run_id", help="Run ID or .tine file path")
     p_fork.add_argument(
@@ -898,6 +967,7 @@ def main() -> None:
         "search": cmd_search,
         "tag": cmd_tag,
         "reindex": cmd_reindex,
+        "cost": cmd_cost,
         "fork": cmd_fork,
         "replay": cmd_replay,
         "diff": cmd_diff,

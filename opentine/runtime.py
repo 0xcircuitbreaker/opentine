@@ -7,6 +7,7 @@ import time
 from collections.abc import AsyncIterator, Callable
 from typing import Any, Literal, Protocol, runtime_checkable
 
+from opentine.budget import Budget, BudgetExceeded
 from opentine.cache import CacheEntry, semantic_key
 from opentine.graph import Run, RunStatus, StepKind, step_id
 from opentine.tools import tool_schema
@@ -50,6 +51,7 @@ class Agent:
         system: str = "You are a helpful assistant.",
         max_steps: int = 30,
         max_output_chars: int = 8000,
+        budget: Budget | None = None,
     ):
         self.model = model
         self.tools = {fn.__name__: fn for fn in (tools or [])}
@@ -57,6 +59,7 @@ class Agent:
         self.system = system
         self.max_steps = max_steps
         self.max_output_chars = max_output_chars
+        self.budget = budget
 
     async def _call_tool(self, name: str, args: dict[str, Any]) -> str:
         result = self.tools[name](**args)
@@ -87,13 +90,52 @@ class Agent:
                 "user_prompt": prompt,
             },
         )
+        if self.budget is not None:
+            run.manifest["budget"] = self.budget.to_dict()
         messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
         run.transcript.append({"role": "user", "content": prompt})
         await self._continue(run, messages)
         return run
 
+    def _enforce_budget(self, run: Run, budget: Budget) -> bool:
+        """Record + halt if the budget is breached; return True when it was.
+
+        Always records a metadata.budget_state and a terminal error step so an
+        artifact exists either way. on_breach='raise' raises BudgetExceeded
+        (carrying the run so the caller can still save it); 'stop' returns True.
+        """
+        breach = budget.check(
+            cost=run.total_cost,
+            usage=run.total_tokens,
+            steps=len(run.steps),
+            duration=run.total_duration,
+        )
+        if breach is None:
+            return False
+        run.metadata["budget_state"] = {
+            "breached": True,
+            **breach.to_dict(),
+            "cost": run.total_cost,
+            "usage": run.total_tokens,
+            "steps": len(run.steps),
+            "duration": run.total_duration,
+        }
+        run.add_step(
+            StepKind.error,
+            {"text": f"Budget exceeded: {breach.dimension}"},
+            error={"type": "BudgetExceeded", **breach.to_dict()},
+        )
+        run.status = RunStatus.failed
+        if budget.on_breach == "raise":
+            raise BudgetExceeded(breach, run=run)
+        return True
+
     async def _continue(self, run: Run, messages: list[dict[str, Any]]) -> Run:
+        budget = run.budget()
         for _ in range(self.max_steps):
+            # Enforce the budget BEFORE spending on the next model call.
+            if budget is not None and self._enforce_budget(run, budget):
+                return run
             request = {
                 "model": self.model.name,
                 "messages": messages,
@@ -120,9 +162,10 @@ class Agent:
             text = resp.get("text", "")
             tool_calls = resp.get("tool_calls", [])
             cost = resp.get("cost", 0.0)
+            usage = resp.get("usage")
             if text:
                 kind = StepKind.done if not tool_calls else StepKind.think
-                step = run.add_step(kind, {"text": text}, cost=cost, duration=dt)
+                step = run.add_step(kind, {"text": text}, cost=cost, duration=dt, usage=usage)
                 run.transcript.append({"step_id": step.id, "role": "assistant", "content": text})
             assistant_msg: dict[str, Any] = {"role": "assistant", "content": text}
             if tool_calls:

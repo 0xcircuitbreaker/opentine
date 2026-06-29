@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from opentine.budget import Budget, BudgetBreach, BudgetExceeded, CostBreakdown
 from opentine.graph import (
     FORMAT_VERSION,
     Graph,
@@ -32,6 +33,10 @@ from opentine.tools import tool_schema
 __all__ = [
     "Agent",
     "FORMAT_VERSION",
+    "Budget",
+    "BudgetBreach",
+    "BudgetExceeded",
+    "CostBreakdown",
     "FilesystemPolicy",
     "Graph",
     "IntegrityResult",
