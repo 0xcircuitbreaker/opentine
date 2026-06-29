@@ -95,6 +95,21 @@ def test_flush_finalizes_terminal_run(tmp_path: Path):
     assert Run.verify_integrity(tmp_path / "a.tine").draft is False
 
 
+def test_resaving_loaded_draft_strips_autosave(tmp_path: Path):
+    run = Run(id="x")
+    run.add_step(StepKind.done, {"text": "ok"})
+    run.status = RunStatus.completed
+    draft_path = run.save(tmp_path / "d.tine", draft=True)
+    assert "autosave" in json.loads(draft_path.read_text())["metadata"]
+
+    # Loading a draft carries metadata.autosave; a final re-save must drop it.
+    loaded = Run.load(draft_path)
+    final = loaded.save(tmp_path / "f.tine")
+    data = json.loads(final.read_text())
+    assert "draft" not in data
+    assert "autosave" not in data["metadata"]
+
+
 def test_flush_keeps_draft_for_nonterminal_run(tmp_path: Path):
     run = Run(id="x")
     run.add_step(StepKind.think, {"text": "wip"})  # status running

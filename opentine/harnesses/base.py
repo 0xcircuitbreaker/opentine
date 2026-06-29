@@ -112,6 +112,7 @@ class OpentineHarness:
             self.autosave_path, every_n_steps=autosave_steps, every_seconds=autosave_seconds
         )
         self._last_step_id: str | None = run.steps[-1].id if run and run.steps else None
+        self._budget_breached = False
 
     async def execute(
         self,
@@ -144,6 +145,24 @@ class OpentineHarness:
                 duration=time.time() - started,
             )
             run.status = RunStatus.completed
+        except BudgetExceeded as exc:
+            # A budget breach unwinds the stream loop via this exception (an
+            # external CLI can't be paused mid-stream). Record one error step
+            # (the breach flag stops record_step from re-raising), mark failed,
+            # then honor on_breach: 'raise' propagates, 'stop' returns the run.
+            self.record_step(
+                StepKind.error,
+                inputs={"error": f"BudgetExceeded: {exc.breach.dimension}"},
+                outputs={"error": str(exc)},
+                parent_id=self._last_step_id or root,
+                duration=time.time() - started,
+            )
+            run.status = RunStatus.failed
+            self._save_if_requested(save_path)
+            budget = run.budget()
+            if budget is not None and budget.on_breach == "raise":
+                raise
+            return run
         except Exception as exc:
             self.record_step(
                 StepKind.error,
@@ -211,12 +230,16 @@ class OpentineHarness:
         return added.id
 
     def _enforce_budget(self, run: Run) -> None:
-        """Abort the run if a budget is breached.
+        """Unwind the run if a budget is breached.
 
-        An external CLI harness cannot be paused mid-stream, so any breach (stop
-        or raise) aborts via BudgetExceeded. The surrounding ``execute`` records
-        the single terminal error step, so this only sets ``budget_state`` here.
+        An external CLI harness can't be paused mid-stream, so a breach raises
+        BudgetExceeded to unwind the streaming loop; ``execute`` then translates
+        that into the run's ``on_breach`` semantics (return for 'stop', re-raise
+        for 'raise'). The ``_budget_breached`` flag makes this idempotent so the
+        error-step recorded by ``execute`` does not re-trigger the raise.
         """
+        if self._budget_breached:
+            return
         budget = run.budget()
         if budget is None:
             return
@@ -228,6 +251,7 @@ class OpentineHarness:
         )
         if breach is None:
             return
+        self._budget_breached = True
         run.metadata["budget_state"] = {
             "breached": True,
             **breach.to_dict(),
@@ -236,6 +260,7 @@ class OpentineHarness:
             "steps": len(run.steps),
             "duration": run.total_duration,
         }
+        run.status = RunStatus.failed
         raise BudgetExceeded(breach, run=run)
 
     def fork(self, from_step: int | str, new_run_id: str | None = None) -> Run:

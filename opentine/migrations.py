@@ -89,9 +89,11 @@ def _v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
         metadata = {}
         data["metadata"] = metadata
 
-    chain = metadata.setdefault("migration", [])
-    if isinstance(chain, list):
-        chain.append({"from": 1, "to": 2, "tool": f"opentine/{_TOOL_VERSION}"})
+    chain = metadata.get("migration")
+    if not isinstance(chain, list):  # repair a missing/corrupt breadcrumb field
+        chain = []
+        metadata["migration"] = chain
+    chain.append({"from": 1, "to": 2, "tool": f"opentine/{_TOOL_VERSION}"})
 
     integrity = metadata.get("integrity")
     if isinstance(integrity, dict):

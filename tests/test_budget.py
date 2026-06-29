@@ -199,3 +199,43 @@ def test_no_budget_runs_normally():
     # hits max_steps (no budget), not a budget breach
     assert run.status == RunStatus.failed
     assert run.metadata.get("budget_state") is None
+
+
+# --- harness budget enforcement ---------------------------------------------
+
+
+class _CostHarness:
+    name = "fake"
+    model_info = "fake"
+    supports_resume = False
+
+    def execute(self, task, context=None, step_callback=None):
+        from opentine.harnesses.base import HarnessStep
+
+        for i in range(10):
+            step_callback(HarnessStep(kind=StepKind.think, inputs={"text": f"s{i}"}, cost=1.0))
+        return {"ok": True}
+
+
+def _harness_with_budget(on_breach: str):
+    from opentine.harnesses.base import OpentineHarness
+
+    run = Run(id="h")
+    run.set_budget(max_cost=2.5, on_breach=on_breach)
+    return OpentineHarness(_CostHarness(), run=run)
+
+
+def test_harness_budget_stop_returns_failed_run_without_raising():
+    wrapped = _harness_with_budget("stop")
+    out = wrapped.run_sync("go")  # must NOT raise
+    assert out.status == RunStatus.failed
+    assert out.metadata["budget_state"]["breached"] is True
+    assert any(s.kind == StepKind.error for s in out.steps)
+    # only one budget error step (no double-record)
+    assert sum(1 for s in out.steps if s.kind == StepKind.error) == 1
+
+
+def test_harness_budget_raise_propagates():
+    wrapped = _harness_with_budget("raise")
+    with pytest.raises(BudgetExceeded):
+        wrapped.run_sync("go")

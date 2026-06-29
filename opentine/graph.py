@@ -529,6 +529,11 @@ class Run:
                 "step_count": len(self.steps),
                 "status": self.status.value,
             }
+        else:
+            # A final save is never a draft: strip any autosave breadcrumb that
+            # rode in via metadata (e.g. when re-saving a run loaded from a draft
+            # checkpoint), so autosave stays transient as documented.
+            data["metadata"].pop("autosave", None)
         data["metadata"]["integrity"] = {
             "algorithm": "sha256",
             "digest": _integrity_digest(data),
