@@ -43,5 +43,14 @@ def test_golden_v1_load_save_fork_and_diff(tmp_path):
 
     assert len(forked.steps) == 3
     assert diff.common_ancestor == run.steps[1].id
-    assert diff.only_a == [run.steps[2]]
-    assert diff.only_b == [forked.steps[-1]]
+    # The original `done` step and the forked `done` step share a lineage
+    # position + kind but differ in content, so they pair as a field-level change
+    # rather than only_a/only_b.
+    assert diff.only_a == [] and diff.only_b == []
+    assert len(diff.changed) == 1
+    change = diff.changed[0]
+    assert change.step_a.id == run.steps[2].id
+    assert change.step_b.id == forked.steps[-1].id
+    assert change.step_a.inputs.get("text") == "done"
+    assert change.step_b.inputs.get("text") == "forked result"
+    assert any(d.name == "inputs" and "text" in d.changed_keys for d in change.fields)

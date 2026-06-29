@@ -795,6 +795,24 @@ def _print_diff_table(run_a: Run, run_b: Run) -> None:
         table.add_row("", str(_step_label(step)), "[dim]---[/]", f"[{BRAND}]only A[/]")
     for step in diff.only_b:
         table.add_row("", "[dim]---[/]", str(_step_label(step)), f"[{BRAND}]only B[/]")
+    for change in diff.changed:
+        table.add_row(
+            "",
+            str(_step_label(change.step_a)),
+            str(_step_label(change.step_b)),
+            "[yellow]changed[/]",
+        )
+        for delta in change.fields:
+            keys = f" [{', '.join(delta.changed_keys)}]" if delta.changed_keys else ""
+            label = f"{escape(delta.name)}{escape(keys)}"
+            before = escape(_display_value(delta.before))[:48]
+            after = escape(_display_value(delta.after))[:48]
+            table.add_row(
+                "",
+                f"[red]- {label}: {before}[/]",
+                f"[green]+ {label}: {after}[/]",
+                "",
+            )
 
     console.print(table)
 

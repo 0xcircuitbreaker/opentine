@@ -172,12 +172,31 @@ def _normalize_tags(tags: Any) -> list[str]:
     return sorted(out)
 
 
+@dataclass(frozen=True)
+class FieldDelta:
+    #: which step field changed: inputs/outputs/model_info/tool_info/error/cost/usage/duration
+    name: str
+    before: Any
+    after: Any
+    #: for dict fields, the specific sub-keys that differ (empty for scalars)
+    changed_keys: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class StepChange:
+    """Two steps occupying the same lineage position whose content/cost diverged."""
+
+    step_a: Step
+    step_b: Step
+    fields: list[FieldDelta]
+
+
 @dataclass
 class RunDiff:
     common_ancestor: str | None
     only_a: list[Step]
     only_b: list[Step]
-    changed: list[tuple[Step, Step]]
+    changed: list[StepChange]
 
 
 @dataclass(frozen=True)
@@ -439,12 +458,43 @@ class Run:
             ancestors_a = [s.id for s in self.ancestors(tip_a)]
             ancestors_b = {s.id for s in other.ancestors(tip_b)}
             common = next((sid for sid in reversed(ancestors_a) if sid in ancestors_b), None)
-        return RunDiff(
-            common,
-            [self.graph.steps[sid] for sid in self.graph.order if sid in ids_a - ids_b],
-            [other.graph.steps[sid] for sid in other.graph.order if sid in ids_b - ids_a],
-            [],
-        )
+
+        # Align steps by lineage position + kind. Two steps at the same position
+        # with the same kind are "the same logical step"; if their ids differ the
+        # content changed, and even when ids match cost/usage/duration may have
+        # drifted (those are excluded from the id) — both surface as `changed`.
+        pos_a = _position_keys(self)
+        pos_b = _position_keys(other)
+        by_pos_kind_b = {(pk, str(other.graph.steps[sid].kind)): sid for sid, pk in pos_b.items()}
+
+        changed: list[StepChange] = []
+        consumed_a: set[str] = set()
+        consumed_b: set[str] = set()
+        for sid_a, pk in pos_a.items():
+            step_a = self.graph.steps[sid_a]
+            sid_b = by_pos_kind_b.get((pk, str(step_a.kind)))
+            if sid_b is None:
+                continue
+            step_b = other.graph.steps[sid_b]
+            consumed_a.add(sid_a)
+            consumed_b.add(sid_b)
+            deltas = (
+                _field_deltas(step_a, step_b) if sid_a != sid_b else _drift_deltas(step_a, step_b)
+            )
+            if deltas:
+                changed.append(StepChange(step_a, step_b, deltas))
+
+        only_a = [
+            self.graph.steps[sid]
+            for sid in self.graph.order
+            if sid in ids_a - ids_b and sid not in consumed_a
+        ]
+        only_b = [
+            other.graph.steps[sid]
+            for sid in other.graph.order
+            if sid in ids_b - ids_a and sid not in consumed_b
+        ]
+        return RunDiff(common, only_a, only_b, changed)
 
     def save(self, path: str | Path, *, draft: bool = False, fsync: bool = False) -> Path:
         p = Path(path)
@@ -581,6 +631,63 @@ class Run:
         else:
             data["metadata"].pop("tags", None)
         return _redact(data) if redact else data
+
+
+def _position_keys(run: Run) -> dict[str, str]:
+    """Map each step id to a lineage position key like '0', '0.0', '0.1.0'.
+
+    The key is the path from a root through primary parents (parent_ids[0]) with
+    siblings ordered by id, so the same logical position is stable across runs
+    even when content (and thus the step id) changes. Iterative to avoid hitting
+    the recursion limit on deep linear chains.
+    """
+    children_of: dict[str | None, list[str]] = {}
+    for sid in run.graph.order:
+        step = run.graph.steps[sid]
+        primary = step.parent_ids[0] if step.parent_ids else None
+        children_of.setdefault(primary, []).append(sid)
+    keys: dict[str, str] = {}
+    stack = [(root, str(i)) for i, root in enumerate(sorted(children_of.get(None, [])))]
+    while stack:
+        sid, key = stack.pop()
+        keys[sid] = key
+        for i, child in enumerate(sorted(children_of.get(sid, []))):
+            stack.append((child, f"{key}.{i}"))
+    return keys
+
+
+_DIFF_FIELDS = ("inputs", "outputs", "model_info", "tool_info", "error")
+
+
+def _dict_changed_keys(a: Any, b: Any) -> list[str]:
+    if isinstance(a, dict) and isinstance(b, dict):
+        return sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
+    return []
+
+
+def _drift_deltas(a: Step, b: Step) -> list[FieldDelta]:
+    """Deltas for fields excluded from the step id (cost, usage).
+
+    These surface even when two steps share an id — e.g. a cached replay that
+    re-derived identical content at a different price. Duration is intentionally
+    omitted as wall-clock noise.
+    """
+    deltas: list[FieldDelta] = []
+    if abs(a.cost - b.cost) > 1e-12:
+        deltas.append(FieldDelta("cost", a.cost, b.cost))
+    if a.usage != b.usage:
+        deltas.append(FieldDelta("usage", a.usage, b.usage, _dict_changed_keys(a.usage, b.usage)))
+    return deltas
+
+
+def _field_deltas(a: Step, b: Step) -> list[FieldDelta]:
+    deltas: list[FieldDelta] = []
+    for name in _DIFF_FIELDS:
+        va, vb = getattr(a, name), getattr(b, name)
+        if va != vb:
+            deltas.append(FieldDelta(name, va, vb, _dict_changed_keys(va, vb)))
+    deltas.extend(_drift_deltas(a, b))
+    return deltas
 
 
 def _step_to_dict(step: Step) -> dict[str, Any]:
