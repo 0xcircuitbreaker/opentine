@@ -1,7 +1,7 @@
 [project]
 name = "opentine"
-version = "0.1.1"
-description = "Local-first provenance for agent runs: content-addressed traces, fork, replay, and scoped resume."
+version = "0.2.0"
+description = "Local-first provenance for agent runs: content-addressed traces, fork, replay, sign, and scoped resume."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
