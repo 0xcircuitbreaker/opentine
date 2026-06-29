@@ -30,6 +30,7 @@ from opentine.harnesses import (
     OpentineHarness,
     PiHarness,
 )
+from opentine.index import IndexEntry, Query, QueryError, RunIndex, _parse_date, match_entry
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -76,14 +77,30 @@ def _runs_dir() -> Path:
 
 
 def _find_run(run_id: str) -> Path | None:
-    """Find a run file by ID prefix or exact path."""
+    """Find a run file by path, filename-stem prefix, or indexed run-id."""
     p = Path(run_id)
     if p.exists():
         return p
     for f in _runs_dir().glob("*.tine"):
         if f.stem.startswith(run_id):
             return f
+    # Fall back to the index for runs saved under a custom filename.
+    entry = RunIndex.open(_runs_dir()).lookup(run_id)
+    if entry:
+        candidate = _runs_dir() / entry.file
+        if candidate.exists():
+            return candidate
     return None
+
+
+def _index_update(path: str | Path | None) -> None:
+    """Best-effort: refresh the index entry for a freshly written run file."""
+    if not path:
+        return
+    try:
+        RunIndex.open(_runs_dir()).update_from_file(path)
+    except Exception:
+        pass
 
 
 def _harness_from_args(args: argparse.Namespace):
@@ -402,42 +419,135 @@ def _print_run_tree(run: Run) -> None:
         console.print()
 
 
-def cmd_ls(args: argparse.Namespace) -> None:
-    """List recent runs."""
-    runs_dir = _runs_dir()
-    files = sorted(runs_dir.glob("*.tine"), key=lambda f: f.stat().st_mtime, reverse=True)
+STATUS_COLORS = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
 
-    if not files:
-        console.print(
-            "[dim]No runs found. Use[/] [bold]tine run <script.py>[/] [dim]to create one.[/]"
-        )
-        return
 
-    table = Table(title=f"[{BRAND}]Recent Runs[/]", border_style=BRAND_DIM)
+def _has_filters(query: Query) -> bool:
+    return bool(
+        query.text
+        or query.tags
+        or query.model
+        or query.status
+        or query.cost_min is not None
+        or query.cost_max is not None
+        or query.after is not None
+        or query.before is not None
+    )
+
+
+def _query_from_ls_args(args: argparse.Namespace) -> Query:
+    query = Query()
+    query.tags = [t.strip().lower() for t in (args.tag or []) if t.strip()]
+    query.model = args.model.lower() if args.model else None
+    query.status = args.status.lower() if args.status else None
+    query.cost_min = args.cost_min
+    query.cost_max = args.cost_max
+    query.after = _parse_date(args.since) if args.since else None
+    query.before = _parse_date(args.until) if args.until else None
+    query.text = [g.lower() for g in (args.grep or [])]
+    return query
+
+
+def _entries_table(title: str, entries: list[IndexEntry], *, show_unreadable: bool) -> Table:
+    table = Table(title=f"[{BRAND}]{title}[/]", border_style=BRAND_DIM)
     table.add_column("ID", style="bold")
     table.add_column("Status")
     table.add_column("Model", style="dim")
     table.add_column("Steps", justify="right")
     table.add_column("Cost", justify="right")
+    table.add_column("Tags", style=BRAND_DIM)
     table.add_column("File", style="dim")
+    for entry in entries:
+        if entry.unreadable:
+            if show_unreadable:
+                table.add_row("?", "[red]corrupt[/]", "", "", "", "", escape(entry.file))
+            continue
+        status = f"[{STATUS_COLORS.get(entry.status, 'white')}]{escape(entry.status)}[/]"
+        table.add_row(
+            short_id(entry.run_id),
+            status,
+            escape(entry.model),
+            str(entry.steps),
+            _cost_str(entry.cost),
+            escape(", ".join(entry.tags)),
+            escape(entry.file),
+        )
+    return table
 
-    for f in files[:20]:
-        try:
-            run = Run.load(f)
-            sc = {"completed": "green", "failed": "red", "paused": "yellow", "running": "cyan"}
-            status = f"[{sc.get(run.status.value, 'white')}]{run.status.value}[/]"
-            table.add_row(
-                short_id(run.id),
-                status,
-                run.model_info,
-                str(len(run.steps)),
-                _cost_str(run.total_cost),
-                f.name,
-            )
-        except Exception:
-            table.add_row("?", "[red]corrupt[/]", "", "", "", f.name)
 
-    console.print(table)
+def cmd_ls(args: argparse.Namespace) -> None:
+    """List recent runs, optionally filtered by tag/model/status/cost/date/text."""
+    index = RunIndex.open(_runs_dir()).sync()
+    if not index.entries:
+        console.print(
+            "[dim]No runs found. Use[/] [bold]tine run <script.py>[/] [dim]to create one.[/]"
+        )
+        return
+
+    query = _query_from_ls_args(args)
+    filtering = _has_filters(query)
+    readable = [e for e in index.entries.values() if not e.unreadable and match_entry(e, query)]
+    readable.sort(key=lambda e: e.created_at, reverse=True)
+    limit = args.limit or 20
+    rows = readable[:limit]
+    # Only surface corrupt files in an unfiltered listing.
+    if not filtering:
+        rows = rows + [e for e in index.entries.values() if e.unreadable]
+
+    if filtering and not readable:
+        console.print("[dim]No runs match the given filters.[/]")
+        return
+    console.print(_entries_table("Recent Runs", rows, show_unreadable=not filtering))
+
+
+def cmd_search(args: argparse.Namespace) -> None:
+    """Search runs with a small query DSL (tag:/model:/status:/cost:/after:/before: + free text)."""
+    query_str = " ".join(args.query)
+    index = RunIndex.open(_runs_dir())
+    try:
+        results = index.search(query_str)
+    except QueryError as exc:
+        console.print(f"[red]Bad query:[/] {escape(str(exc))}", highlight=False)
+        sys.exit(1)
+    if not results:
+        console.print("[dim]No runs match.[/]")
+        return
+    console.print(_entries_table(f"Search: {query_str or '*'}", results, show_unreadable=False))
+
+
+def cmd_reindex(args: argparse.Namespace) -> None:
+    """Rebuild the run index from scratch."""
+    index = RunIndex.open(_runs_dir()).reindex()
+    total = len(index.entries)
+    bad = sum(1 for e in index.entries.values() if e.unreadable)
+    console.print(f"[{BRAND}]# Reindexed[/] {total} run(s), {bad} unreadable -> {index.path}")
+
+
+def cmd_tag(args: argparse.Namespace) -> None:
+    """Add, remove, or list tags on a run."""
+    path = _find_run(args.run_id)
+    if not path:
+        console.print(f"[red]Run not found: {args.run_id}[/]")
+        sys.exit(1)
+    run = Run.load(path)
+
+    if args.list or (not args.add and not args.remove):
+        if run.tags:
+            console.print(", ".join(run.tags))
+        else:
+            console.print("[dim](no tags)[/]")
+        return
+
+    changed = False
+    for tag in args.add or []:
+        changed |= run.add_tag(tag)
+    for tag in args.remove or []:
+        changed |= run.remove_tag(tag)
+    if changed:
+        run.save(path)
+        _index_update(path)
+    tags_str = ", ".join(run.tags) if run.tags else "(none)"
+    console.print(f"[{BRAND}]# Tags[/] {short_id(run.id)}: {tags_str}")
 
 
 def cmd_fork(args: argparse.Namespace) -> None:
@@ -666,7 +776,24 @@ def _build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", help="Migrate despite a failed source check / overwrite"
     )
 
-    sub.add_parser("ls", help="List recent runs")
+    p_ls = sub.add_parser("ls", help="List recent runs (with optional filters)")
+    _add_filter_args(p_ls)
+    p_ls.add_argument("--limit", type=int, default=20, help="Max rows to show")
+
+    p_search = sub.add_parser("search", help="Search runs with a query DSL")
+    p_search.add_argument(
+        "query",
+        nargs="*",
+        help="tag:x model:y status:z cost:>0.01 after:YYYY-MM-DD plus free text",
+    )
+
+    p_tag = sub.add_parser("tag", help="Add, remove, or list tags on a run")
+    p_tag.add_argument("run_id", help="Run ID or .tine file path")
+    p_tag.add_argument("--add", action="append", default=[], metavar="TAG", help="Tag to add")
+    p_tag.add_argument("--remove", action="append", default=[], metavar="TAG", help="Tag to remove")
+    p_tag.add_argument("--list", action="store_true", help="List current tags")
+
+    sub.add_parser("reindex", help="Rebuild the run index")
 
     p_fork = sub.add_parser("fork", help="Fork a run from a specific step")
     p_fork.add_argument("run_id", help="Run ID or .tine file path")
@@ -711,6 +838,21 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _add_filter_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--tag", action="append", default=[], metavar="TAG", help="Require this tag"
+    )
+    parser.add_argument("--model", help="Substring match on model")
+    parser.add_argument("--status", help="Exact status (completed/failed/paused/running)")
+    parser.add_argument("--cost-min", type=float, default=None, help="Minimum total cost")
+    parser.add_argument("--cost-max", type=float, default=None, help="Maximum total cost")
+    parser.add_argument("--since", help="Only runs created on/after this date (YYYY-MM-DD)")
+    parser.add_argument("--until", help="Only runs created on/before this date (YYYY-MM-DD)")
+    parser.add_argument(
+        "--grep", action="append", default=[], metavar="TEXT", help="Free-text substring (AND)"
+    )
+
+
 def _add_harness_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--harness",
@@ -753,6 +895,9 @@ def main() -> None:
         "verify": cmd_verify,
         "migrate": cmd_migrate,
         "ls": cmd_ls,
+        "search": cmd_search,
+        "tag": cmd_tag,
+        "reindex": cmd_reindex,
         "fork": cmd_fork,
         "replay": cmd_replay,
         "diff": cmd_diff,

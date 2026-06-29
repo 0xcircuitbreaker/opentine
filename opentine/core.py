@@ -14,6 +14,7 @@ from opentine.graph import (
     short_id,
     step_id,
 )
+from opentine.index import Query, QueryError, RunIndex, parse_query
 from opentine.policies import (
     FilesystemPolicy,
     NetworkPolicy,
@@ -38,15 +39,19 @@ __all__ = [
     "NetworkPolicy",
     "PolicySet",
     "PythonPolicy",
+    "Query",
+    "QueryError",
     "RedactionPolicy",
     "Run",
     "RunDiff",
+    "RunIndex",
     "RunStatus",
     "ShellPolicy",
     "Step",
     "StepKind",
     "dev_profile",
     "isolated_profile",
+    "parse_query",
     "secure_profile",
     "short_id",
     "step_id",

@@ -150,6 +150,24 @@ def short_id(value: str) -> str:
     return value[:12]
 
 
+def _normalize_tag(tag: str) -> str:
+    return str(tag).strip().lower()
+
+
+def _normalize_tags(tags: Any) -> list[str]:
+    """Lower/strip/dedupe/sort an iterable of tags into a stable list."""
+    if isinstance(tags, str):
+        tags = [tags]
+    seen: set[str] = set()
+    out: list[str] = []
+    for tag in tags or []:
+        norm = _normalize_tag(tag)
+        if norm and norm not in seen:
+            seen.add(norm)
+            out.append(norm)
+    return sorted(out)
+
+
 @dataclass
 class RunDiff:
     common_ancestor: str | None
@@ -183,6 +201,7 @@ class Run:
     system_prompt: str = ""
     user_prompt: str = ""
     format_version: int = FORMAT_VERSION
+    tags: list[str] = field(default_factory=list)
 
     def __init__(self, id: str | None = None, **kwargs: Any):
         self.run_id = kwargs.pop("run_id", id)
@@ -199,6 +218,7 @@ class Run:
         self.system_prompt = kwargs.pop("system_prompt", "")
         self.user_prompt = kwargs.pop("user_prompt", "")
         self.format_version = kwargs.pop("format_version", FORMAT_VERSION)
+        tags_kwarg = kwargs.pop("tags", None)
         if kwargs:
             raise TypeError(f"Unexpected Run field(s): {', '.join(kwargs)}")
         self.run_id = self.run_id or step_id(StepKind.model, {"created_at": time.time_ns()})
@@ -211,6 +231,10 @@ class Run:
         self.cache = dict(self.cache)
         self.metadata = dict(self.metadata)
         self.created_at = self.created_at or time.time()
+        # Tags come from an explicit kwarg, else from a loaded artifact's
+        # metadata.tags. They are normalized (lower, stripped, deduped, sorted).
+        raw_tags = tags_kwarg if tags_kwarg is not None else self.metadata.get("tags", [])
+        self.tags = _normalize_tags(raw_tags)
         self.refs.setdefault("main", self.graph.order[-1] if self.graph.order else "")
 
     @property
@@ -220,6 +244,25 @@ class Run:
     @property
     def steps(self) -> list[Step]:
         return self.graph.ordered()
+
+    def add_tag(self, tag: str) -> bool:
+        """Add a tag (normalized). Returns True if it was newly added."""
+        norm = _normalize_tag(tag)
+        if not norm or norm in self.tags:
+            return False
+        self.tags = sorted([*self.tags, norm])
+        return True
+
+    def remove_tag(self, tag: str) -> bool:
+        """Remove a tag (normalized). Returns True if it was present."""
+        norm = _normalize_tag(tag)
+        if norm not in self.tags:
+            return False
+        self.tags = [t for t in self.tags if t != norm]
+        return True
+
+    def has_tag(self, tag: str) -> bool:
+        return _normalize_tag(tag) in self.tags
 
     def add_step(
         self,
@@ -304,6 +347,10 @@ class Run:
             graph.add(step)
         rid = new_run_id or step_id(StepKind.model, {"fork": self.id, "from": fork_point})
         refs = {branch: fork_point, "fork_point": fork_point}
+        # A fork is a new artifact: it does not inherit the parent's tags (fresh
+        # labels). Strip any inherited metadata.tags so the forked run starts clean.
+        forked_metadata = {k: v for k, v in self.metadata.items() if k != "tags"}
+        forked_metadata.update({"forked_from": self.id, "fork_point": fork_point})
         return Run(
             id=rid,
             status=RunStatus.running,
@@ -312,10 +359,11 @@ class Run:
             transcript=[m for m in self.transcript if m.get("step_id") in graph.steps],
             manifest=dict(self.manifest),
             policies=dict(self.policies),
-            metadata={**self.metadata, "forked_from": self.id, "fork_point": fork_point},
+            metadata=forked_metadata,
             model_info=self.model_info,
             system_prompt=self.system_prompt,
             user_prompt=self.user_prompt,
+            tags=[],
         )
 
     def diff(self, other: Run) -> RunDiff:
@@ -450,6 +498,13 @@ class Run:
                 "user_prompt": self.user_prompt,
             },
         }
+        # Tags live in metadata (outside the integrity digest, so re-tagging never
+        # invalidates a digest/signature). Emit only when non-empty so v1 artifacts
+        # with no tags re-save without spurious fields.
+        if self.tags:
+            data["metadata"]["tags"] = list(self.tags)
+        else:
+            data["metadata"].pop("tags", None)
         return _redact(data) if redact else data
 
 
