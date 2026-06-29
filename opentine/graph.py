@@ -5,12 +5,21 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-FORMAT_VERSION = 1
+from opentine._canon import (
+    FORMAT_VERSION,
+    SUPPORTED_VERSIONS,
+    _canonical_bytes,
+    _integrity_digest,
+    _jsonable,
+    _redact,
+    atomic_write_text,
+)
+from opentine.migrations import migrate_dict
 
 
 class StepKind(StrEnum):
@@ -26,24 +35,6 @@ class RunStatus(StrEnum):
     paused = "paused"
     completed = "completed"
     failed = "failed"
-
-
-def _jsonable(value: Any) -> Any:
-    if isinstance(value, StrEnum):
-        return value.value
-    if is_dataclass(value):
-        return _jsonable(asdict(value))
-    if isinstance(value, dict):
-        return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
-    if isinstance(value, (list, tuple)):
-        return [_jsonable(v) for v in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return repr(value)
-
-
-def _canonical_bytes(value: Any) -> bytes:
-    return json.dumps(_jsonable(value), sort_keys=True, separators=(",", ":")).encode()
 
 
 @dataclass(frozen=True)
@@ -220,7 +211,6 @@ class Run:
         self.cache = dict(self.cache)
         self.metadata = dict(self.metadata)
         self.created_at = self.created_at or time.time()
-        self.format_version = FORMAT_VERSION
         self.refs.setdefault("main", self.graph.order[-1] if self.graph.order else "")
 
     @property
@@ -351,7 +341,7 @@ class Run:
             "algorithm": "sha256",
             "digest": _integrity_digest(data),
         }
-        p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+        atomic_write_text(p, json.dumps(data, indent=2, sort_keys=True))
         return p
 
     @staticmethod
@@ -372,15 +362,20 @@ class Run:
         if not isinstance(data, dict):
             return IntegrityResult(False, None, None, None, "artifact root is not an object")
 
-        if data.get("format_version") != FORMAT_VERSION:
-            found = data.get("format_version", "missing")
-            return IntegrityResult(
-                False,
-                None,
-                None,
-                None,
-                f"unsupported .tine format_version={found!r}; expected {FORMAT_VERSION}",
-            )
+        version = data.get("format_version")
+        if version not in SUPPORTED_VERSIONS:
+            found = version if version is not None else "missing"
+            is_int = isinstance(version, int) and not isinstance(version, bool)
+            if is_int and version > FORMAT_VERSION:
+                reason = (
+                    f"unsupported .tine format_version={found}; "
+                    f"written by a newer opentine (max supported {FORMAT_VERSION})"
+                )
+            else:
+                reason = (
+                    f"unsupported .tine format_version={found!r}; supported {SUPPORTED_VERSIONS}"
+                )
+            return IntegrityResult(False, None, None, None, reason)
 
         metadata = data.get("metadata")
         if not isinstance(metadata, dict):
@@ -413,11 +408,14 @@ class Run:
     @classmethod
     def load(cls, path: str | Path) -> Run:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
-        if data.get("format_version") != FORMAT_VERSION:
-            found = data.get("format_version", "missing")
+        version = data.get("format_version")
+        if version not in SUPPORTED_VERSIONS:
+            found = version if version is not None else "missing"
             raise ValueError(
-                f"Unsupported .tine format_version={found!r}; expected {FORMAT_VERSION}"
+                f"Unsupported .tine format_version={found!r}; supported {SUPPORTED_VERSIONS}"
             )
+        if version != FORMAT_VERSION:
+            data = migrate_dict(data, FORMAT_VERSION)
         return _run_from_dict(data)
 
     def pause(self, path: str | Path) -> Path:
@@ -432,7 +430,7 @@ class Run:
 
     def to_dict(self, *, redact: bool = False) -> dict[str, Any]:
         data = {
-            "format_version": FORMAT_VERSION,
+            "format_version": self.format_version,
             "run_id": self.id,
             "created_at": self.created_at,
             "status": self.status.value,
@@ -511,25 +509,9 @@ def _run_from_dict(data: dict[str, Any]) -> Run:
         cache=data.get("cache", {}),
         metadata=data.get("metadata", {}),
         created_at=data.get("created_at", 0.0),
+        format_version=data.get("format_version", FORMAT_VERSION),
     )
     run.model_info = run.manifest.get("model", {}).get("name", run.metadata.get("model_info", ""))
     run.system_prompt = run.metadata.get("system_prompt", "")
     run.user_prompt = run.metadata.get("user_prompt", "")
     return run
-
-
-def _integrity_digest(data: dict[str, Any]) -> str:
-    digest_payload = {k: v for k, v in data.items() if k != "metadata"}
-    return hashlib.sha256(_canonical_bytes(digest_payload)).hexdigest()
-
-
-def _redact(value: Any) -> Any:
-    secret_words = ("key", "secret", "token", "password", "credential", "auth")
-    if isinstance(value, dict):
-        return {
-            k: ("[REDACTED]" if any(w in str(k).lower() for w in secret_words) else _redact(v))
-            for k, v in value.items()
-        }
-    if isinstance(value, list):
-        return [_redact(v) for v in value]
-    return value

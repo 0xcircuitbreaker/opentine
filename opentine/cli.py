@@ -16,6 +16,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
+from opentine._canon import FORMAT_VERSION, _integrity_digest
 from opentine.core import Run, StepKind, short_id
 from opentine.harnesses import (
     ClaudeCodeHarness,
@@ -293,6 +294,79 @@ def cmd_verify(args: argparse.Namespace) -> None:
     if result.actual:
         console.print(f"[dim]actual:[/]   {escape(result.actual)}", highlight=False)
     sys.exit(1)
+
+
+def cmd_migrate(args: argparse.Namespace) -> None:
+    """Upgrade a .tine artifact to the current format version."""
+    path = _find_run(args.run_id)
+    if not path:
+        console.print(f"[red]Run not found: {args.run_id}[/]")
+        sys.exit(1)
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        msg = f"[red]Cannot read {escape(str(path))}: {escape(str(exc))}[/]"
+        console.print(msg, highlight=False)
+        sys.exit(1)
+
+    src_version = raw.get("format_version", "missing")
+    target = args.to if args.to is not None else FORMAT_VERSION
+    if target != FORMAT_VERSION:
+        console.print(f"[red]This build only migrates to the current format v{FORMAT_VERSION}.[/]")
+        sys.exit(1)
+
+    # Migration is not a trust boundary: verify the source first so a tampered
+    # artifact is not silently "laundered" into a fresh valid digest.
+    src_result = Run.verify_integrity(path)
+    if not src_result.ok and not args.force:
+        console.print(
+            f"[red]Refusing to migrate: source integrity check failed "
+            f"({escape(src_result.reason)}). Pass --force to migrate anyway.[/]",
+            highlight=False,
+        )
+        sys.exit(1)
+
+    try:
+        run = Run.load(path)  # auto-migrates in memory; raises on unknown/future versions
+    except ValueError as exc:
+        console.print(f"[red]Migration failed:[/] {escape(str(exc))}", highlight=False)
+        sys.exit(1)
+
+    if src_version == run.format_version:
+        console.print(
+            f"[dim]{path.name} is already at format v{run.format_version}; nothing to do.[/]"
+        )
+        return
+
+    preview = run.to_dict(redact=True)
+    preview["metadata"]["integrity"] = {"algorithm": "sha256", "digest": _integrity_digest(preview)}
+    new_digest = preview["metadata"]["integrity"]["digest"]
+    old_digest = ((raw.get("metadata") or {}).get("integrity") or {}).get("digest", "")
+    sig_dropped = bool(((raw.get("metadata") or {}).get("integrity") or {}).get("signature"))
+
+    if args.dry_run or (not args.in_place and not args.save):
+        console.print(f"[{BRAND}]# Migration preview[/] {escape(path.name)}", highlight=False)
+        console.print(f"  format_version: {src_version} -> {run.format_version}")
+        console.print(f"  digest: {old_digest[:12] or '-'} -> {new_digest[:12]}")
+        if sig_dropped:
+            console.print("  [yellow]signature dropped — re-sign after migrating[/]")
+        console.print("[dim]Dry run — no file written. Use --in-place or --save PATH to apply.[/]")
+        return
+
+    out = path if args.in_place else Path(args.save)
+    if not args.in_place and out.exists() and not args.force:
+        console.print(f"[red]Refusing to overwrite existing file: {out}. Pass --force.[/]")
+        sys.exit(1)
+    run.save(out)
+    result = Run.verify_integrity(out)
+    badge = "[green]OK[/]" if result.ok else "[red]FAILED[/]"
+    console.print(
+        f"[{BRAND}]# Migrated[/] {escape(path.name)} v{src_version} -> v{run.format_version}",
+        highlight=False,
+    )
+    console.print(f"[dim]Saved:[/] {escape(str(out))} {badge}", highlight=False)
+    if sig_dropped:
+        console.print("[yellow]Signature was dropped by migration — re-sign if needed.[/]")
 
 
 def _print_run_tree(run: Run) -> None:
@@ -580,6 +654,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_verify = sub.add_parser("verify", help="Verify a .tine integrity digest")
     p_verify.add_argument("run_id", help="Run ID or .tine file path")
 
+    p_migrate = sub.add_parser("migrate", help="Upgrade a .tine artifact to the current format")
+    p_migrate.add_argument("run_id", help="Run ID or .tine file path")
+    p_migrate.add_argument(
+        "--to", type=int, default=None, help=f"Target format version (default {FORMAT_VERSION})"
+    )
+    p_migrate.add_argument("--dry-run", action="store_true", help="Preview without writing")
+    p_migrate.add_argument("--in-place", action="store_true", help="Overwrite the source file")
+    p_migrate.add_argument("--save", help="Write the migrated artifact to this path")
+    p_migrate.add_argument(
+        "--force", action="store_true", help="Migrate despite a failed source check / overwrite"
+    )
+
     sub.add_parser("ls", help="List recent runs")
 
     p_fork = sub.add_parser("fork", help="Fork a run from a specific step")
@@ -665,6 +751,7 @@ def main() -> None:
         "run": cmd_run,
         "show": cmd_show,
         "verify": cmd_verify,
+        "migrate": cmd_migrate,
         "ls": cmd_ls,
         "fork": cmd_fork,
         "replay": cmd_replay,
