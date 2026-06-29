@@ -187,6 +187,7 @@ class IntegrityResult:
     expected: str | None
     actual: str | None
     reason: str
+    draft: bool = False
 
 
 @dataclass
@@ -445,14 +446,24 @@ class Run:
             [],
         )
 
-    def save(self, path: str | Path) -> Path:
+    def save(self, path: str | Path, *, draft: bool = False, fsync: bool = False) -> Path:
         p = Path(path)
         data = self.to_dict(redact=True)
+        if draft:
+            # Draft marker is a top-level key (inside the digest) so it is
+            # authenticated, not a forgeable metadata breadcrumb. Final saves omit
+            # it entirely, so a completed artifact's digest is unaffected.
+            data["draft"] = True
+            data["metadata"]["autosave"] = {
+                "partial": True,
+                "step_count": len(self.steps),
+                "status": self.status.value,
+            }
         data["metadata"]["integrity"] = {
             "algorithm": "sha256",
             "digest": _integrity_digest(data),
         }
-        atomic_write_text(p, json.dumps(data, indent=2, sort_keys=True))
+        atomic_write_text(p, json.dumps(data, indent=2, sort_keys=True), fsync=fsync)
         return p
 
     @staticmethod
@@ -514,6 +525,7 @@ class Run:
             expected,
             actual,
             "ok" if ok else "digest mismatch",
+            draft=bool(data.get("draft")),
         )
 
     @classmethod

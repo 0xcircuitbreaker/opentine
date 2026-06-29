@@ -7,6 +7,7 @@ import time
 from collections.abc import AsyncIterator, Callable
 from typing import Any, Literal, Protocol, runtime_checkable
 
+from opentine.autosave import Autosaver
 from opentine.budget import Budget, BudgetExceeded
 from opentine.cache import CacheEntry, semantic_key
 from opentine.graph import Run, RunStatus, StepKind, step_id
@@ -52,6 +53,9 @@ class Agent:
         max_steps: int = 30,
         max_output_chars: int = 8000,
         budget: Budget | None = None,
+        autosave_path: str | None = None,
+        autosave_every_n_steps: int = 0,
+        autosave_every_seconds: float = 0.0,
     ):
         self.model = model
         self.tools = {fn.__name__: fn for fn in (tools or [])}
@@ -60,6 +64,16 @@ class Agent:
         self.max_steps = max_steps
         self.max_output_chars = max_output_chars
         self.budget = budget
+        self.autosave_path = autosave_path
+        self.autosave_every_n_steps = autosave_every_n_steps
+        self.autosave_every_seconds = autosave_every_seconds
+
+    def _make_autosaver(self) -> Autosaver:
+        return Autosaver(
+            self.autosave_path,
+            every_n_steps=self.autosave_every_n_steps,
+            every_seconds=self.autosave_every_seconds,
+        )
 
     async def _call_tool(self, name: str, args: dict[str, Any]) -> str:
         result = self.tools[name](**args)
@@ -94,7 +108,12 @@ class Agent:
             run.manifest["budget"] = self.budget.to_dict()
         messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
         run.transcript.append({"role": "user", "content": prompt})
-        await self._continue(run, messages)
+        autosaver = self._make_autosaver()
+        try:
+            await self._continue(run, messages, autosaver=autosaver)
+        finally:
+            # Always finalize: a clean artifact on success, a draft on crash.
+            await asyncio.to_thread(autosaver.flush, run)
         return run
 
     def _enforce_budget(self, run: Run, budget: Budget) -> bool:
@@ -130,7 +149,9 @@ class Agent:
             raise BudgetExceeded(breach, run=run)
         return True
 
-    async def _continue(self, run: Run, messages: list[dict[str, Any]]) -> Run:
+    async def _continue(
+        self, run: Run, messages: list[dict[str, Any]], autosaver: Autosaver | None = None
+    ) -> Run:
         budget = run.budget()
         for _ in range(self.max_steps):
             # Enforce the budget BEFORE spending on the next model call.
@@ -217,6 +238,10 @@ class Agent:
                         "tool_call_id": tc_id,
                     }
                 )
+            # Safe-boundary checkpoint: the assistant turn and all of its tool
+            # results are recorded, so this draft is resumable.
+            if autosaver is not None:
+                autosaver.maybe_save(run)
         else:
             run.status = RunStatus.failed
             run.add_step(StepKind.error, {"text": "Max steps reached"})
@@ -247,7 +272,12 @@ class Agent:
             messages.append({"role": "user", "content": prompt})
             resumed.transcript.append({"role": "user", "content": prompt})
         resumed.status = RunStatus.running
-        return await self._continue(resumed, messages)
+        autosaver = self._make_autosaver()
+        try:
+            await self._continue(resumed, messages, autosaver=autosaver)
+        finally:
+            await asyncio.to_thread(autosaver.flush, resumed)
+        return resumed
 
     def run_sync(self, prompt: str, run_id: str | None = None) -> Run:
         return asyncio.run(self.run(prompt, run_id))

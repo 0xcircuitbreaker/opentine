@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from opentine.autosave import Autosaver
 from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind, step_id
 
@@ -100,12 +101,16 @@ class OpentineHarness:
         run_id: str | None = None,
         autosave_path: str | Path | None = None,
         autosave_steps: int = 0,
+        autosave_seconds: float = 0.0,
     ):
         self.harness = harness
         self.run = run
         self.run_id = run_id
         self.autosave_path = Path(autosave_path) if autosave_path else None
         self.autosave_steps = autosave_steps
+        self._autosaver = Autosaver(
+            self.autosave_path, every_n_steps=autosave_steps, every_seconds=autosave_seconds
+        )
         self._last_step_id: str | None = run.steps[-1].id if run and run.steps else None
 
     async def execute(
@@ -280,15 +285,16 @@ class OpentineHarness:
         return self.run
 
     def _autosave(self) -> None:
-        if not self.autosave_path or self.autosave_steps <= 0 or self.run is None:
-            return
-        if len(self.run.steps) % self.autosave_steps == 0:
-            self.run.save(self.autosave_path)
+        if self.run is not None:
+            self._autosaver.maybe_save(self.run)
 
     def _save_if_requested(self, save_path: str | Path | None) -> None:
-        path = Path(save_path) if save_path else self.autosave_path
-        if path and self.run is not None:
-            self.run.save(path)
+        if self.run is None:
+            return
+        if save_path:
+            self.run.save(Path(save_path))  # explicit final save
+        # Finalize the autosave checkpoint (strips the draft marker on success).
+        self._autosaver.flush(self.run)
 
 
 class ProcessHarness:

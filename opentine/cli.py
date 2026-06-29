@@ -256,7 +256,17 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     harness = _harness_from_args(args)
-    wrapped = OpentineHarness(harness)
+    autosave_path = getattr(args, "autosave", None)
+    interval = getattr(args, "autosave_interval", 0) or 0
+    seconds = getattr(args, "autosave_seconds", 0.0) or 0.0
+    if autosave_path and not interval and not seconds:
+        interval = 1  # `--autosave PATH` alone -> checkpoint every step
+    wrapped = OpentineHarness(
+        harness,
+        autosave_path=autosave_path,
+        autosave_steps=interval,
+        autosave_seconds=seconds,
+    )
     console.print(f"[{BRAND}]# Running {args.harness} harness...[/]\n")
 
     out_path = Path(args.save) if args.save else None
@@ -302,7 +312,10 @@ def cmd_verify(args: argparse.Namespace) -> None:
     result = Run.verify_integrity(path)
     if result.ok:
         digest = result.actual or result.expected or ""
-        console.print(f"[green]OK[/] {escape(str(path))} sha256:{digest[:12]}", highlight=False)
+        draft = " [yellow](draft / autosave checkpoint)[/]" if result.draft else ""
+        console.print(
+            f"[green]OK[/] {escape(str(path))} sha256:{digest[:12]}{draft}", highlight=False
+        )
         return
 
     console.print(f"[red]FAILED[/] {escape(str(path))}: {escape(result.reason)}", highlight=False)
@@ -823,6 +836,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_harness_args(p_run)
     p_run.add_argument("--save", help="Output path for harness run")
+    p_run.add_argument("--autosave", help="Stream crash-safe draft checkpoints to this path")
+    p_run.add_argument(
+        "--autosave-interval", type=int, default=0, metavar="N", help="Checkpoint every N steps"
+    )
+    p_run.add_argument(
+        "--autosave-seconds",
+        type=float,
+        default=0.0,
+        metavar="T",
+        help="Checkpoint every T seconds",
+    )
 
     p_show = sub.add_parser("show", help="Pretty-print a run tree")
     p_show.add_argument("run_id", help="Run ID or .tine file path")
