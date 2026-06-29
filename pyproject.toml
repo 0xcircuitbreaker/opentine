@@ -1,7 +1,7 @@
 [project]
 name = "opentine"
-version = "0.1.1"
-description = "Local-first provenance for agent runs: content-addressed traces, fork, replay, and scoped resume."
+version = "0.2.0"
+description = "Local-first provenance for agent runs: content-addressed traces, fork, replay, sign, and scoped resume."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
@@ -30,14 +30,18 @@ compat = ["openai>=1.50"]
 # Ollama uses httpx (core dep) directly — no extra package needed
 # MCP server (opentine.mcp_server) needs the mcp package
 mcp = ["mcp>=1.0"]
+# Ed25519 artifact signing (HMAC signing uses the stdlib and needs no extra)
+crypto = ["cryptography>=42"]
 all = [
     "anthropic>=0.40",
     "openai>=1.50",
     "google-genai>=1.0",
+    "cryptography>=42",
 ]
 
 dev = [
     "build>=1.2",
+    "cryptography>=42",
     "pytest>=9.0",
     "pytest-asyncio>=1.0",
     "ruff>=0.4",

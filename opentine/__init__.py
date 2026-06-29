@@ -1,28 +1,39 @@
 """opentine — local-first provenance for agent runs."""
 
-__version__ = "0.1.1"
-
+from opentine._version import __version__
 from opentine.core import (
     Agent,
+    Budget,
+    BudgetExceeded,
+    CostBreakdown,
     IntegrityResult,
     Model,
     Run,
+    RunIndex,
     RunStatus,
     Step,
     StepKind,
     short_id,
     step_id,
 )
+from opentine.migrations import MigrationError, migrate_dict
 from opentine.tools import tool_schema
 
 __all__ = [
     "Agent",
+    "Budget",
+    "BudgetExceeded",
+    "CostBreakdown",
     "IntegrityResult",
+    "MigrationError",
     "Model",
     "Run",
+    "RunIndex",
     "RunStatus",
     "Step",
     "StepKind",
+    "__version__",
+    "migrate_dict",
     "short_id",
     "step_id",
     "tool_schema",

@@ -108,7 +108,12 @@ class Anthropic:
 
         input_cost = (resp.usage.input_tokens / 1_000_000) * 3.0
         output_cost = (resp.usage.output_tokens / 1_000_000) * 15.0
-        return {"text": text, "tool_calls": tool_calls, "cost": input_cost + output_cost}
+        return {
+            "text": text,
+            "tool_calls": tool_calls,
+            "cost": input_cost + output_cost,
+            "usage": {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens},
+        }
 
     async def stream(
         self,

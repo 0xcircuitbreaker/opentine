@@ -1,0 +1,134 @@
+{
+  "cache": {
+    "fixture-cache-key": "[REDACTED]"
+  },
+  "created_at": 1710000000.0,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+      "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+      "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178"
+    ],
+    "steps": {
+      "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f": {
+        "cost": 0.0,
+        "duration": 0.2,
+        "error": {},
+        "id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+        "inputs": {
+          "arguments": {
+            "path": "README.md"
+          },
+          "name": "read"
+        },
+        "kind": "tool",
+        "model_info": "mock-golden",
+        "outputs": {
+          "result": "ok"
+        },
+        "parent_ids": [
+          "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd"
+        ],
+        "timestamp": 1710000002.0,
+        "tool_info": {
+          "name": "read"
+        }
+      },
+      "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd": {
+        "cost": 0.0,
+        "duration": 0.1,
+        "error": {},
+        "id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+        "inputs": {
+          "text": "plan"
+        },
+        "kind": "think",
+        "model_info": "mock-golden",
+        "outputs": {},
+        "parent_ids": [],
+        "timestamp": 1710000001.0,
+        "tool_info": {}
+      },
+      "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178": {
+        "cost": 0.0,
+        "duration": 0.3,
+        "error": {},
+        "id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+        "inputs": {
+          "text": "done"
+        },
+        "kind": "done",
+        "model_info": "mock-golden",
+        "outputs": {},
+        "parent_ids": [
+          "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f"
+        ],
+        "timestamp": 1710000003.0,
+        "tool_info": {}
+      }
+    }
+  },
+  "manifest": {
+    "kind": "opentine-native",
+    "model": {
+      "name": "mock-golden"
+    },
+    "replay": [
+      "cache",
+      "rerun"
+    ],
+    "resume": true,
+    "tools": [
+      "read"
+    ]
+  },
+  "metadata": {
+    "fixture": "golden-v2",
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "d13b1040a821c70481763c1aff639bf67fb0ee90298bc6028a471c8788dd4836",
+      "signature": {
+        "alg": "hmac-sha256",
+        "key_id": "golden",
+        "scheme": "tine-sig/1",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "opentine-tests",
+        "value": "cb2f2f3dbd83ad9bc63d53f046691c472287b0f6b65aeed6aa63cc6d8a60701f"
+      }
+    },
+    "model_info": "mock-golden",
+    "system_prompt": "system",
+    "user_prompt": "task"
+  },
+  "policies": {
+    "profile": "secure"
+  },
+  "refs": {
+    "main": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178"
+  },
+  "run_id": "golden-v2",
+  "status": "completed",
+  "transcript": [
+    {
+      "content": "task",
+      "role": "user"
+    },
+    {
+      "content": "plan",
+      "role": "assistant",
+      "step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd"
+    },
+    {
+      "content": "ok",
+      "name": "read",
+      "role": "tool",
+      "step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f"
+    },
+    {
+      "content": "done",
+      "role": "assistant",
+      "step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178"
+    }
+  ]
+}

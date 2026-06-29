@@ -49,6 +49,10 @@ def main() -> None:
     if not wheels:
         raise SystemExit(f"No wheel found in {DIST}")
     wheel = wheels[-1]
+    # Version-agnostic: assert the installed package matches the built wheel's
+    # own version (parsed from "opentine-<version>-py3-none-any.whl") so a
+    # version bump never requires editing this smoke test.
+    wheel_version = wheel.name.split("-")[1]
 
     with tempfile.TemporaryDirectory(prefix="opentine-wheel-smoke-") as tmp:
         work = Path(tmp)
@@ -60,7 +64,14 @@ def main() -> None:
 
         _run([python, "-m", "pip", "install", "--disable-pip-version-check", wheel])
         _run([python, "-m", "pip", "check"])
-        _run([python, "-c", "import opentine; assert opentine.__version__ == '0.1.1'"])
+        _run(
+            [
+                python,
+                "-c",
+                f"import opentine; assert opentine.__version__ == {wheel_version!r}, "
+                f"opentine.__version__",
+            ]
+        )
         _run([tine, "--help"])
         _run(
             [

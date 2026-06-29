@@ -14,7 +14,7 @@
   <a href="https://github.com/0xcircuitbreaker/opentine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-FF6900" alt="License" /></a>
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/pyversions/opentine?color=FF6900" alt="Python" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=FF6900" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.1.x%20beta-FF6900" alt="0.1.x beta" />
+  <img src="https://img.shields.io/badge/status-0.2.x%20beta-FF6900" alt="0.2.x beta" />
 </p>
 
 <p align="center">
@@ -47,11 +47,28 @@ tine fork failed.tine --from-step 3 --save retry.tine
 # Reuse recorded steps without re-spending model/tool work.
 tine replay result.tine --mode cache --save replayed.tine
 
-# Compare the graph shape of two runs.
+# Compare two runs field by field (per-step before/after).
 tine diff failed.tine retry.tine
+
+# Label and find runs.
+tine tag result.tine --add prod
+tine search "tag:prod model:claude cost:>0.05"
+
+# Inspect cost/token spend and budget state.
+tine cost result.tine
+
+# Upgrade an older .tine to the current format.
+tine migrate old.tine --in-place
+
+# Sign for tamper-evidence, then verify fail-closed.
+export TINE_KEY=...                       # >= 16 bytes
+tine sign result.tine --key-env TINE_KEY --key-id prod
+tine verify result.tine --key-env TINE_KEY
 ```
 
-The current 0.1.x public beta validates the core surface, Ollama, Codex CLI, and Kimi Code CLI through the gates listed in [Release Validation](#release-validation). Other providers and harnesses are compatibility targets until their own live gates pass.
+Long runs can stream crash-safe checkpoints with `tine run --autosave run.tine`.
+
+The current 0.2.x public beta validates the core surface, Ollama, Codex CLI, and Kimi Code CLI through the gates listed in [Release Validation](#release-validation). Other providers and harnesses are compatibility targets until their own live gates pass.
 
 ## Install
 
@@ -66,6 +83,7 @@ pip install "opentine[anthropic]"
 pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"
+pip install "opentine[crypto]"   # Ed25519 signing (HMAC signing needs no extra)
 ```
 
 ## Quickstart

@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from opentine.autosave import Autosaver
+from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind, step_id
 
 
@@ -99,13 +101,18 @@ class OpentineHarness:
         run_id: str | None = None,
         autosave_path: str | Path | None = None,
         autosave_steps: int = 0,
+        autosave_seconds: float = 0.0,
     ):
         self.harness = harness
         self.run = run
         self.run_id = run_id
         self.autosave_path = Path(autosave_path) if autosave_path else None
         self.autosave_steps = autosave_steps
+        self._autosaver = Autosaver(
+            self.autosave_path, every_n_steps=autosave_steps, every_seconds=autosave_seconds
+        )
         self._last_step_id: str | None = run.steps[-1].id if run and run.steps else None
+        self._budget_breached = False
 
     async def execute(
         self,
@@ -138,6 +145,24 @@ class OpentineHarness:
                 duration=time.time() - started,
             )
             run.status = RunStatus.completed
+        except BudgetExceeded as exc:
+            # A budget breach unwinds the stream loop via this exception (an
+            # external CLI can't be paused mid-stream). Record one error step
+            # (the breach flag stops record_step from re-raising), mark failed,
+            # then honor on_breach: 'raise' propagates, 'stop' returns the run.
+            self.record_step(
+                StepKind.error,
+                inputs={"error": f"BudgetExceeded: {exc.breach.dimension}"},
+                outputs={"error": str(exc)},
+                parent_id=self._last_step_id or root,
+                duration=time.time() - started,
+            )
+            run.status = RunStatus.failed
+            self._save_if_requested(save_path)
+            budget = run.budget()
+            if budget is not None and budget.on_breach == "raise":
+                raise
+            return run
         except Exception as exc:
             self.record_step(
                 StepKind.error,
@@ -201,7 +226,42 @@ class OpentineHarness:
         run.model_info = original_model_info
         self._last_step_id = added.id
         self._autosave()
+        self._enforce_budget(run)
         return added.id
+
+    def _enforce_budget(self, run: Run) -> None:
+        """Unwind the run if a budget is breached.
+
+        An external CLI harness can't be paused mid-stream, so a breach raises
+        BudgetExceeded to unwind the streaming loop; ``execute`` then translates
+        that into the run's ``on_breach`` semantics (return for 'stop', re-raise
+        for 'raise'). The ``_budget_breached`` flag makes this idempotent so the
+        error-step recorded by ``execute`` does not re-trigger the raise.
+        """
+        if self._budget_breached:
+            return
+        budget = run.budget()
+        if budget is None:
+            return
+        breach = budget.check(
+            cost=run.total_cost,
+            usage=run.total_tokens,
+            steps=len(run.steps),
+            duration=run.total_duration,
+        )
+        if breach is None:
+            return
+        self._budget_breached = True
+        run.metadata["budget_state"] = {
+            "breached": True,
+            **breach.to_dict(),
+            "cost": run.total_cost,
+            "usage": run.total_tokens,
+            "steps": len(run.steps),
+            "duration": run.total_duration,
+        }
+        run.status = RunStatus.failed
+        raise BudgetExceeded(breach, run=run)
 
     def fork(self, from_step: int | str, new_run_id: str | None = None) -> Run:
         """Fork the current run from a step index or step id."""
@@ -250,15 +310,16 @@ class OpentineHarness:
         return self.run
 
     def _autosave(self) -> None:
-        if not self.autosave_path or self.autosave_steps <= 0 or self.run is None:
-            return
-        if len(self.run.steps) % self.autosave_steps == 0:
-            self.run.save(self.autosave_path)
+        if self.run is not None:
+            self._autosaver.maybe_save(self.run)
 
     def _save_if_requested(self, save_path: str | Path | None) -> None:
-        path = Path(save_path) if save_path else self.autosave_path
-        if path and self.run is not None:
-            self.run.save(path)
+        if self.run is None:
+            return
+        if save_path:
+            self.run.save(Path(save_path))  # explicit final save
+        # Finalize the autosave checkpoint (strips the draft marker on success).
+        self._autosaver.flush(self.run)
 
 
 class ProcessHarness:

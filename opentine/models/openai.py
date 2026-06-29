@@ -122,11 +122,13 @@ class OpenAI:
                 )
 
         cost = 0.0
+        usage: dict[str, int] = {}
         if resp.usage:
             input_cost = (resp.usage.prompt_tokens / 1_000_000) * self._input_cost_per_mtok
             output_cost = (resp.usage.completion_tokens / 1_000_000) * self._output_cost_per_mtok
             cost = input_cost + output_cost
-        return {"text": text, "tool_calls": tool_calls, "cost": cost}
+            usage = {"input": resp.usage.prompt_tokens, "output": resp.usage.completion_tokens}
+        return {"text": text, "tool_calls": tool_calls, "cost": cost, "usage": usage}
 
     async def stream(
         self,

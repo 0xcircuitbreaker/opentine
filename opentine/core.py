@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
+from opentine.budget import Budget, BudgetBreach, BudgetExceeded, CostBreakdown
 from opentine.graph import (
     FORMAT_VERSION,
+    FieldDelta,
     Graph,
     IntegrityResult,
     Run,
     RunDiff,
     RunStatus,
     Step,
+    StepChange,
     StepKind,
     short_id,
     step_id,
 )
+from opentine.index import Query, QueryError, RunIndex, parse_query
 from opentine.policies import (
     FilesystemPolicy,
     NetworkPolicy,
@@ -26,11 +30,17 @@ from opentine.policies import (
     secure_profile,
 )
 from opentine.runtime import Agent, Model
+from opentine.signing import SignatureError, SignatureResult, sign_artifact, verify_artifact
 from opentine.tools import tool_schema
 
 __all__ = [
     "Agent",
     "FORMAT_VERSION",
+    "Budget",
+    "BudgetBreach",
+    "BudgetExceeded",
+    "CostBreakdown",
+    "FieldDelta",
     "FilesystemPolicy",
     "Graph",
     "IntegrityResult",
@@ -38,17 +48,26 @@ __all__ = [
     "NetworkPolicy",
     "PolicySet",
     "PythonPolicy",
+    "Query",
+    "QueryError",
     "RedactionPolicy",
     "Run",
     "RunDiff",
+    "RunIndex",
     "RunStatus",
     "ShellPolicy",
+    "SignatureError",
+    "SignatureResult",
     "Step",
+    "StepChange",
     "StepKind",
     "dev_profile",
     "isolated_profile",
+    "parse_query",
     "secure_profile",
     "short_id",
+    "sign_artifact",
     "step_id",
     "tool_schema",
+    "verify_artifact",
 ]

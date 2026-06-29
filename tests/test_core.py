@@ -205,7 +205,7 @@ class TestSerialization:
         run.add_step(StepKind.done, {"text": "ok"})
         path = run.save(tmp_path / "check.tine")
         data = json.loads(path.read_text())
-        assert data["format_version"] == 1
+        assert data["format_version"] == 2
         assert data["run_id"] == "json_test"
         expected = {"graph", "refs", "transcript", "manifest", "policies", "cache", "metadata"}
         assert expected.issubset(data)
@@ -227,16 +227,17 @@ class TestSerialization:
         run.add_step(StepKind.done, {"text": "ok"})
         path = run.save(tmp_path / "future.tine")
         data = json.loads(path.read_text(encoding="utf-8"))
-        data["format_version"] = 2
+        data["format_version"] = 3
         path.write_text(json.dumps(data), encoding="utf-8")
 
         result = Run.verify_integrity(path)
         assert not result.ok
-        assert "unsupported .tine format_version=2" in result.reason
+        assert "unsupported .tine format_version=3" in result.reason
+        assert "newer opentine" in result.reason
         try:
             Run.load(path)
         except ValueError as exc:
-            assert "Unsupported .tine format_version=2" in str(exc)
+            assert "Unsupported .tine format_version=3" in str(exc)
         else:
             raise AssertionError("future .tine format should be rejected")
 
