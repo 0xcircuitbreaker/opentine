@@ -30,6 +30,7 @@ from opentine.policies import (
     secure_profile,
 )
 from opentine.runtime import Agent, Model
+from opentine.signing import SignatureError, SignatureResult, sign_artifact, verify_artifact
 from opentine.tools import tool_schema
 
 __all__ = [
@@ -55,6 +56,8 @@ __all__ = [
     "RunIndex",
     "RunStatus",
     "ShellPolicy",
+    "SignatureError",
+    "SignatureResult",
     "Step",
     "StepChange",
     "StepKind",
@@ -63,6 +66,8 @@ __all__ = [
     "parse_query",
     "secure_profile",
     "short_id",
+    "sign_artifact",
     "step_id",
     "tool_schema",
+    "verify_artifact",
 ]

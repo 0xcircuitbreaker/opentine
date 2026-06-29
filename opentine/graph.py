@@ -496,8 +496,28 @@ class Run:
         ]
         return RunDiff(common, only_a, only_b, changed)
 
-    def save(self, path: str | Path, *, draft: bool = False, fsync: bool = False) -> Path:
+    def save(
+        self,
+        path: str | Path,
+        *,
+        draft: bool = False,
+        fsync: bool = False,
+        sign_key: Any | None = None,
+        sign_algorithm: str = "hmac-sha256",
+        key_id: str | None = None,
+        signer: str | None = None,
+        signed_at: str | None = None,
+    ) -> Path:
         p = Path(path)
+        if sign_key is not None:
+            from opentine.signing import SignatureError, sign_artifact
+
+            if draft:
+                raise SignatureError("refusing to sign a draft checkpoint")
+            if self.status not in (RunStatus.completed, RunStatus.failed):
+                raise SignatureError(
+                    f"refusing to sign a non-terminal run (status={self.status.value})"
+                )
         data = self.to_dict(redact=True)
         if draft:
             # Draft marker is a top-level key (inside the digest) so it is
@@ -513,8 +533,45 @@ class Run:
             "algorithm": "sha256",
             "digest": _integrity_digest(data),
         }
+        if sign_key is not None:
+            # Inject AFTER redaction + digest so key_id (which contains "key") is
+            # not blanked, and so the signature commits to content (not the digest).
+            data["metadata"]["integrity"]["signature"] = sign_artifact(
+                data,
+                sign_key,
+                algorithm=sign_algorithm,
+                key_id=key_id,
+                signer=signer,
+                signed_at=signed_at,
+            )
         atomic_write_text(p, json.dumps(data, indent=2, sort_keys=True), fsync=fsync)
         return p
+
+    @staticmethod
+    def verify_signature(
+        path_or_data: str | Path | dict[str, Any],
+        *,
+        hmac_key: bytes | None = None,
+        public_key: Any | None = None,
+        trust_embedded: bool = False,
+    ):
+        """Verify the ``tine-sig/1`` signature. Returns a ``SignatureResult``."""
+        from opentine.signing import SignatureResult, verify_artifact
+
+        try:
+            if isinstance(path_or_data, dict):
+                data = path_or_data
+            else:
+                data = json.loads(Path(path_or_data).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return SignatureResult(False, "error", None, None, None, None, "file not found")
+        except (OSError, json.JSONDecodeError) as exc:
+            return SignatureResult(False, "error", None, None, None, None, f"unreadable: {exc}")
+        if not isinstance(data, dict):
+            return SignatureResult(False, "error", None, None, None, None, "root is not an object")
+        return verify_artifact(
+            data, hmac_key=hmac_key, public_key=public_key, trust_embedded=trust_embedded
+        )
 
     @staticmethod
     def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResult:

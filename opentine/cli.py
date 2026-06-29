@@ -310,20 +310,148 @@ def cmd_verify(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     result = Run.verify_integrity(path)
-    if result.ok:
-        digest = result.actual or result.expected or ""
-        draft = " [yellow](draft / autosave checkpoint)[/]" if result.draft else ""
+    if not result.ok:
         console.print(
-            f"[green]OK[/] {escape(str(path))} sha256:{digest[:12]}{draft}", highlight=False
+            f"[red]FAILED[/] {escape(str(path))}: {escape(result.reason)}", highlight=False
+        )
+        if result.expected:
+            console.print(f"[dim]expected:[/] {escape(result.expected)}", highlight=False)
+        if result.actual:
+            console.print(f"[dim]actual:[/]   {escape(result.actual)}", highlight=False)
+        sys.exit(1)
+
+    digest = result.actual or result.expected or ""
+    draft = " [yellow](draft / autosave checkpoint)[/]" if result.draft else ""
+    console.print(f"[green]OK[/] {escape(str(path))} sha256:{digest[:12]}{draft}", highlight=False)
+    _verify_signature_if_requested(args, path)
+
+
+def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None:
+    """Fail-closed signature check: supplying any key implies --require-signature."""
+    from opentine.signing import (
+        SignatureError,
+        ed25519_public_from_file,
+        hmac_key_from_env,
+        hmac_key_from_file,
+    )
+
+    key_env = getattr(args, "key_env", None)
+    key_file = getattr(args, "key_file", None)
+    pubkey = getattr(args, "pubkey", None)
+    require = bool(key_env or key_file or pubkey or getattr(args, "require_signature", False))
+    if not require:
+        return
+    try:
+        hmac_key = None
+        if key_env:
+            hmac_key = hmac_key_from_env(key_env)
+        elif key_file:
+            hmac_key = hmac_key_from_file(key_file)
+        public_key = ed25519_public_from_file(pubkey) if pubkey else None
+    except SignatureError as exc:
+        console.print(f"[red]SIGNATURE FAILED[/] {escape(str(exc))}", highlight=False)
+        sys.exit(1)
+
+    sig = Run.verify_signature(
+        path,
+        hmac_key=hmac_key,
+        public_key=public_key,
+        trust_embedded=getattr(args, "trust_embedded_key", False),
+    )
+    if sig.ok:
+        tofu = " [yellow](TOFU — self-asserted key, not verified)[/]" if "tofu" in sig.state else ""
+        console.print(
+            f"[green]SIGNATURE OK[/] alg={sig.algorithm} key_id={sig.key_id or '-'} "
+            f"signer={escape(str(sig.signer or '-'))}{tofu}",
+            highlight=False,
         )
         return
-
-    console.print(f"[red]FAILED[/] {escape(str(path))}: {escape(result.reason)}", highlight=False)
-    if result.expected:
-        console.print(f"[dim]expected:[/] {escape(result.expected)}", highlight=False)
-    if result.actual:
-        console.print(f"[dim]actual:[/]   {escape(result.actual)}", highlight=False)
+    console.print(
+        f"[red]SIGNATURE FAILED[/] state={sig.state}: {escape(sig.reason)}", highlight=False
+    )
     sys.exit(1)
+
+
+def cmd_sign(args: argparse.Namespace) -> None:
+    """Sign a .tine artifact (HMAC-SHA256 by default, Ed25519 optional)."""
+    path = _find_run(args.run_id)
+    if not path:
+        console.print(f"[red]Run not found: {args.run_id}[/]")
+        sys.exit(1)
+    from opentine.signing import (
+        SignatureError,
+        ed25519_private_from_file,
+        hmac_key_from_env,
+        hmac_key_from_file,
+    )
+
+    integ = Run.verify_integrity(path)
+    if not integ.ok and not args.force:
+        console.print(
+            f"[red]Refusing to sign: integrity check failed "
+            f"({escape(integ.reason)}). Pass --force to override.[/]",
+            highlight=False,
+        )
+        sys.exit(1)
+
+    run = Run.load(path)
+    algo = args.algorithm
+    try:
+        if algo == "ed25519":
+            if not args.ed25519_key_file:
+                console.print("[red]--ed25519-key-file is required for ed25519 signing.[/]")
+                sys.exit(1)
+            key = ed25519_private_from_file(args.ed25519_key_file)
+        elif args.key_env:
+            key = hmac_key_from_env(args.key_env)
+        elif args.key_file:
+            key = hmac_key_from_file(args.key_file)
+        else:
+            console.print("[red]Provide --key-env NAME or --key-file PATH for HMAC signing.[/]")
+            sys.exit(1)
+        out = Path(args.save) if args.save else path
+        run.save(
+            out,
+            sign_key=key,
+            sign_algorithm=algo,
+            key_id=args.key_id,
+            signer=args.signer,
+        )
+    except SignatureError as exc:
+        console.print(f"[red]Signing failed:[/] {escape(str(exc))}", highlight=False)
+        sys.exit(1)
+
+    console.print(f"[{BRAND}]# Signed[/] {short_id(run.id)} alg={algo} key_id={args.key_id or '-'}")
+    console.print(f"[dim]Saved:[/] {escape(str(out))}", highlight=False)
+
+
+def cmd_keygen(args: argparse.Namespace) -> None:
+    """Generate an Ed25519 keypair for signing."""
+    from opentine._canon import atomic_write_text
+    from opentine.signing import SignatureError, generate_ed25519
+
+    try:
+        seed, pub = generate_ed25519()
+    except SignatureError as exc:
+        console.print(f"[red]{escape(str(exc))}[/]", highlight=False)
+        sys.exit(1)
+
+    if args.out:
+        atomic_write_text(args.out, seed + "\n")
+        try:
+            os.chmod(args.out, 0o600)
+        except OSError:
+            pass
+        console.print(f"[dim]private key (ed25519 seed) ->[/] {escape(args.out)}", highlight=False)
+    else:
+        console.print(f"private (seed hex): {seed}")
+
+    pub_target = args.pub or (args.out + ".pub" if args.out else None)
+    if pub_target:
+        atomic_write_text(pub_target, pub + "\n")
+        console.print(f"[dim]public key ->[/] {escape(pub_target)}", highlight=False)
+    else:
+        console.print(f"public (hex): {pub}")
 
 
 def cmd_migrate(args: argparse.Namespace) -> None:
@@ -869,8 +997,36 @@ def _build_parser() -> argparse.ArgumentParser:
     p_show = sub.add_parser("show", help="Pretty-print a run tree")
     p_show.add_argument("run_id", help="Run ID or .tine file path")
 
-    p_verify = sub.add_parser("verify", help="Verify a .tine integrity digest")
+    p_verify = sub.add_parser("verify", help="Verify a .tine integrity digest (and signature)")
     p_verify.add_argument("run_id", help="Run ID or .tine file path")
+    p_verify.add_argument("--key-env", metavar="NAME", help="HMAC key from this env var")
+    p_verify.add_argument("--key-file", metavar="PATH", help="HMAC key from this file")
+    p_verify.add_argument("--pubkey", metavar="PATH", help="Ed25519 public key file")
+    p_verify.add_argument(
+        "--require-signature", action="store_true", help="Fail if no valid signature"
+    )
+    p_verify.add_argument(
+        "--trust-embedded-key",
+        action="store_true",
+        help="Trust the artifact's embedded Ed25519 key (TOFU)",
+    )
+
+    p_sign = sub.add_parser("sign", help="Sign a .tine artifact")
+    p_sign.add_argument("run_id", help="Run ID or .tine file path")
+    p_sign.add_argument("--algorithm", choices=("hmac-sha256", "ed25519"), default="hmac-sha256")
+    p_sign.add_argument("--key-env", metavar="NAME", help="HMAC key from this env var")
+    p_sign.add_argument("--key-file", metavar="PATH", help="HMAC key from this file")
+    p_sign.add_argument("--ed25519-key-file", metavar="PATH", help="Ed25519 private key file")
+    p_sign.add_argument("--key-id", help="Optional key identifier recorded in the signature")
+    p_sign.add_argument("--signer", help="Optional signer label (display only, not an identity)")
+    p_sign.add_argument("--save", help="Write the signed artifact here (default: in place)")
+    p_sign.add_argument(
+        "--force", action="store_true", help="Sign despite a failed integrity check"
+    )
+
+    p_keygen = sub.add_parser("keygen", help="Generate an Ed25519 signing keypair")
+    p_keygen.add_argument("--out", help="Write the private seed here (and PUB.pub)")
+    p_keygen.add_argument("--pub", help="Write the public key here")
 
     p_migrate = sub.add_parser("migrate", help="Upgrade a .tine artifact to the current format")
     p_migrate.add_argument("run_id", help="Run ID or .tine file path")
@@ -1004,6 +1160,8 @@ def main() -> None:
         "run": cmd_run,
         "show": cmd_show,
         "verify": cmd_verify,
+        "sign": cmd_sign,
+        "keygen": cmd_keygen,
         "migrate": cmd_migrate,
         "ls": cmd_ls,
         "search": cmd_search,
