@@ -71,9 +71,13 @@ See `SECURITY_MODEL.md` for what a signature does and does not prove.
 
 ## Compatibility
 
-A 0.2.x reader loads and migrates v1. A 0.1.x reader **cannot** read v2, and once
-a v1 file is re-saved it becomes v2 (one-way). `verify_integrity` checks an
-artifact under its own on-disk version and refuses a newer (e.g. v3) file.
+A 0.2.x reader loads and migrates v1, and also **best-effort imports the legacy
+0.1.0 "linear" format** (no `format_version`, flat `steps`, short ids) on load —
+recomputing full content-addressed step ids (so they change). A 0.1.x reader
+**cannot** read v2, and once a v1 file is re-saved it becomes v2 (one-way).
+`verify_integrity` checks an artifact under its own on-disk version and refuses a
+newer (e.g. v3) file; the legacy 0.1.0 format has no digest verifiable under
+current rules, so import it with `Run.load` / `tine migrate` rather than `verify`.
 
 ## Golden Fixtures
 
