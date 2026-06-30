@@ -467,22 +467,28 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         console.print(msg, highlight=False)
         sys.exit(1)
 
-    src_version = raw.get("format_version", "missing")
+    from opentine.migrations import is_legacy_linear
+
+    legacy = is_legacy_linear(raw)
+    src_version = "0 (legacy 0.1.0)" if legacy else raw.get("format_version", "missing")
     target = args.to if args.to is not None else FORMAT_VERSION
     if target != FORMAT_VERSION:
         console.print(f"[red]This build only migrates to the current format v{FORMAT_VERSION}.[/]")
         sys.exit(1)
 
     # Migration is not a trust boundary: verify the source first so a tampered
-    # artifact is not silently "laundered" into a fresh valid digest.
-    src_result = Run.verify_integrity(path)
-    if not src_result.ok and not args.force:
-        console.print(
-            f"[red]Refusing to migrate: source integrity check failed "
-            f"({escape(src_result.reason)}). Pass --force to migrate anyway.[/]",
-            highlight=False,
-        )
-        sys.exit(1)
+    # artifact is not silently "laundered" into a fresh valid digest. The legacy
+    # 0.1.0 format has no digest verifiable under current rules, so skip the gate
+    # for it (it is a best-effort import that recomputes ids and digest).
+    if not legacy:
+        src_result = Run.verify_integrity(path)
+        if not src_result.ok and not args.force:
+            console.print(
+                f"[red]Refusing to migrate: source integrity check failed "
+                f"({escape(src_result.reason)}). Pass --force to migrate anyway.[/]",
+                highlight=False,
+            )
+            sys.exit(1)
 
     try:
         run = Run.load(path)  # auto-migrates in memory; raises on unknown/future versions

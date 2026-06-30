@@ -20,7 +20,7 @@ from opentine._canon import (
     atomic_write_text,
 )
 from opentine.budget import Budget, CostBreakdown
-from opentine.migrations import migrate_dict
+from opentine.migrations import LEGACY_VERSION, MigrationError, detect_version, migrate_dict
 
 
 class StepKind(StrEnum):
@@ -643,9 +643,12 @@ class Run:
     @classmethod
     def load(cls, path: str | Path) -> Run:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
-        version = data.get("format_version")
-        if version not in SUPPORTED_VERSIONS:
-            found = version if version is not None else "missing"
+        try:
+            version = detect_version(data)  # LEGACY_VERSION(0) for the 0.1.0 linear format
+        except MigrationError:
+            version = None
+        if version is None or version not in (LEGACY_VERSION, *SUPPORTED_VERSIONS):
+            found = data.get("format_version", "missing")
             raise ValueError(
                 f"Unsupported .tine format_version={found!r}; supported {SUPPORTED_VERSIONS}"
             )

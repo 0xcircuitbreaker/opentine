@@ -105,6 +105,54 @@ def test_golden_v2_native_roundtrip(tmp_path: Path):
     assert Run.verify_integrity(out).ok
 
 
+# --- legacy 0.1.0 linear import ---------------------------------------------
+
+
+def test_legacy_010_linear_import(tmp_path: Path):
+    src = FIXTURES / "golden_v0_linear.tine"
+    run = Run.load(src)  # 0.1.0 linear -> v2 in memory
+    assert run.format_version == FORMAT_VERSION
+    assert run.id == "legacy-010"
+    assert run.model_info == "mock-legacy"
+    assert [s.kind for s in run.steps] == [StepKind.think, StepKind.tool, StepKind.done]
+    # ids are recomputed as full content hashes, parent chain intact
+    assert all(len(s.id) == 64 for s in run.steps)
+    assert run.steps[1].parent_id == run.steps[0].id
+    assert run.steps[2].parent_id == run.steps[1].id
+
+    out = tmp_path / "imported.tine"
+    run.save(out)
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["format_version"] == 2
+    assert Run.verify_integrity(out).ok
+    assert [(m["from"], m["to"]) for m in data["metadata"]["migration"]] == [(0, 1), (1, 2)]
+
+
+def test_legacy_import_ids_match_native_reconstruction():
+    # The recomputed ids must equal what 0.2.0 produces natively for the same
+    # content (proves _legacy_step_id stays in sync with graph.step_id).
+    run = Run.load(FIXTURES / "golden_v0_linear.tine")
+    native = Run(id="native", model_info="mock-legacy")
+    t = native.add_step(StepKind.think, {"text": "plan the work"})
+    tool = native.add_step(
+        StepKind.tool,
+        {"name": "read", "arguments": {"path": "README.md"}},
+        outputs={"result": "ok"},
+        parent_id=t.id,
+    )
+    native.add_step(StepKind.done, {"text": "all done"}, parent_id=tool.id)
+    assert [s.id for s in run.steps] == [s.id for s in native.steps]
+
+
+def test_legacy_detection_requires_type_marker():
+    from opentine.migrations import is_legacy_linear
+
+    assert is_legacy_linear({"type": "Run", "steps": []}) is True
+    # a generic blob without the 0.1.0 marker is NOT importable
+    assert is_legacy_linear({"id": "old", "steps": []}) is False
+    assert is_legacy_linear({"type": "Run", "graph": {}}) is False
+
+
 # --- atomic write -----------------------------------------------------------
 
 

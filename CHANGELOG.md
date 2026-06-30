@@ -10,7 +10,9 @@ supported; the public Python API only grows.
 - **Format migration** — `FORMAT_VERSION` 2 with a pure migration registry.
   `Run.load` auto-migrates v1 in memory (never rewriting the file); re-saving
   upgrades to v2. New `tine migrate` (dry-run by default; verifies the source
-  first). New `golden_v2.tine` / `golden_signed_v2.tine` fixtures.
+  first). Also best-effort imports the legacy **0.1.0 linear format** (recomputes
+  step ids). New `golden_v2.tine` / `golden_signed_v2.tine` / `golden_v0_linear.tine`
+  fixtures.
 - **Run tags + search** — `Run.tags` (+ `add_tag`/`remove_tag`/`has_tag`),
   persisted at `metadata.tags` outside the digest so re-tagging never changes a
   digest/signature. New `tine tag` / `tine search` (query DSL) / `tine reindex`
