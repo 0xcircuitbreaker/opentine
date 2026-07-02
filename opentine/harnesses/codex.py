@@ -16,7 +16,7 @@ class CodexCLIHarness(ProcessHarness):
     """
 
     name = "codex"
-    default_command = ("codex", "exec")
+    default_command = ("codex", "exec", "--skip-git-repo-check")
 
     @property
     def model_info(self) -> str:

@@ -97,7 +97,12 @@ def test_codex_json_event_parser_extracts_tool_steps():
 
 
 def test_agent_cli_harness_command_defaults():
-    assert CodexCLIHarness().build_command("task") == ["codex", "exec", "task"]
+    assert CodexCLIHarness().build_command("task") == [
+        "codex",
+        "exec",
+        "--skip-git-repo-check",
+        "task",
+    ]
     assert OpenCodeHarness().build_command("task") == ["opencode", "run", "task"]
     assert KimiCodeHarness().build_command("task") == [
         "kimi",
