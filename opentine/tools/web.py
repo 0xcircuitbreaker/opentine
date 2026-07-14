@@ -50,7 +50,7 @@ async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
         current = url
         for _ in range(10):
             _check_url(current, policy)
-            resp = await client.get(current, headers={"User-Agent": "opentine/0.1"})
+            resp = await client.get(current, headers={"User-Agent": "opentine/0.3"})
             if resp.is_redirect:
                 location = resp.headers.get("location")
                 if not location:

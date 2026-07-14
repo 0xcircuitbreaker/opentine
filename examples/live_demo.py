@@ -12,31 +12,37 @@ from opentine import Agent
 
 PROVIDERS = {
     # Cloud providers
-    "1": ("Kimi (Moonshot)", "opentine.models.compat", "Kimi", "moonshot-v1-8k", "KIMI_API_KEY"),
-    "2": ("OpenAI", "opentine.models.openai", "OpenAI", "gpt-4o", "OPENAI_API_KEY"),
+    "1": ("Kimi (Moonshot)", "opentine.models.compat", "Kimi", "kimi-k2.6", "KIMI_API_KEY"),
+    "2": ("OpenAI", "opentine.models.openai", "OpenAI", "gpt-5.6", "OPENAI_API_KEY"),
     "3": (
         "Anthropic",
         "opentine.models.anthropic",
         "Anthropic",
-        "claude-sonnet-4-20250514",
+        "claude-sonnet-5",
         "ANTHROPIC_API_KEY",
     ),  # noqa: E501
-    "4": ("DeepSeek", "opentine.models.compat", "DeepSeek", "deepseek-chat", "DEEPSEEK_API_KEY"),
-    "5": ("Qwen", "opentine.models.compat", "Qwen", "qwen-plus", "QWEN_API_KEY"),
-    "6": ("GLM (Zhipu)", "opentine.models.compat", "GLM", "glm-4-flash", "GLM_API_KEY"),
-    "7": ("Groq", "opentine.models.compat", "Groq", "llama-3.1-70b-versatile", "GROQ_API_KEY"),
+    "4": (
+        "DeepSeek",
+        "opentine.models.compat",
+        "DeepSeek",
+        "deepseek-v4-flash",
+        "DEEPSEEK_API_KEY",
+    ),
+    "5": ("Qwen", "opentine.models.compat", "Qwen", "qwen3.7-max", "QWEN_API_KEY"),
+    "6": ("GLM / Z.AI", "opentine.models.compat", "GLM", "glm-5.1", "GLM_API_KEY"),
+    "7": ("Grok / xAI", "opentine.models.compat", "Grok", "grok-4.5", "XAI_API_KEY"),
     "8": (
         "Together",
         "opentine.models.compat",
         "Together",
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "TOGETHER_API_KEY",
     ),  # noqa: E501
     "9": (
-        "Mistral",
+        "Ministral",
         "opentine.models.compat",
-        "Mistral",
-        "mistral-large-latest",
+        "Ministral",
+        "ministral-3-14b",
         "MISTRAL_API_KEY",
     ),  # noqa: E501
     # Local providers (no API key needed)

@@ -11,6 +11,8 @@ NOT run in CI. Requires an API key. Run manually with:
   uv run pytest tests/test_live.py -v --provider glm
   uv run pytest tests/test_live.py -v --provider lmstudio
   uv run pytest tests/test_live.py -v --provider groq
+  uv run pytest tests/test_live.py -v --provider grok
+  uv run pytest tests/test_live.py -v --provider ministral
 
 Or just pick whichever you have a key for:
 
@@ -41,24 +43,53 @@ PROVIDERS = {
     "anthropic": (
         "opentine.models.anthropic",
         "Anthropic",
-        "claude-sonnet-4-20250514",
+        "claude-sonnet-5",
         "ANTHROPIC_API_KEY",
     ),
-    "openai": ("opentine.models.openai", "OpenAI", "gpt-4o", "OPENAI_API_KEY"),
-    "google": ("opentine.models.google", "Google", "gemini-2.0-flash", "GOOGLE_API_KEY"),
+    "openai": ("opentine.models.openai", "OpenAI", "gpt-5.6", "OPENAI_API_KEY"),
+    "google": (
+        "opentine.models.google",
+        "Google",
+        "gemini-3-flash-preview",
+        "GOOGLE_API_KEY",
+    ),
     "ollama": ("opentine.models.ollama", "Ollama", "llama3.1", None),
-    "kimi": ("opentine.models.compat", "Kimi", "moonshot-v1-8k", "KIMI_API_KEY"),
-    "deepseek": ("opentine.models.compat", "DeepSeek", "deepseek-chat", "DEEPSEEK_API_KEY"),
-    "glm": ("opentine.models.compat", "GLM", "glm-4-flash", "GLM_API_KEY"),
-    "groq": ("opentine.models.compat", "Groq", "llama-3.1-70b-versatile", "GROQ_API_KEY"),
+    "kimi": ("opentine.models.compat", "Kimi", "kimi-k2.6", "KIMI_API_KEY"),
+    "deepseek": (
+        "opentine.models.compat",
+        "DeepSeek",
+        "deepseek-v4-flash",
+        "DEEPSEEK_API_KEY",
+    ),
+    "glm": ("opentine.models.compat", "GLM", "glm-5.1", "GLM_API_KEY"),
+    "grok": ("opentine.models.compat", "Grok", "grok-4.5", "XAI_API_KEY"),
+    "groq": (
+        "opentine.models.compat",
+        "Groq",
+        "llama-3.3-70b-versatile",
+        "GROQ_API_KEY",
+    ),
     "together": (
         "opentine.models.compat",
         "Together",
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "TOGETHER_API_KEY",
     ),
-    "mistral": ("opentine.models.compat", "Mistral", "mistral-large-latest", "MISTRAL_API_KEY"),
-    "qwen": ("opentine.models.compat", "Qwen", "qwen-plus", "QWEN_API_KEY"),
+    "mistral": ("opentine.models.compat", "Mistral", "mistral-large-3", "MISTRAL_API_KEY"),
+    "ministral": (
+        "opentine.models.compat",
+        "Ministral",
+        "ministral-3-14b",
+        "MISTRAL_API_KEY",
+    ),
+    "qwen": ("opentine.models.compat", "Qwen", "qwen3.7-max", "QWEN_API_KEY"),
+    "openrouter": (
+        "opentine.models.compat",
+        "OpenRouter",
+        "nousresearch/hermes-4-70b",
+        "OPENROUTER_API_KEY",
+    ),
+    "hermes": ("opentine.models.compat", "Hermes", "Hermes-4-70B", "NOUS_API_KEY"),
     "lmstudio": ("opentine.models.compat", "LMStudio", "local-model", None),
     "unsloth": ("opentine.models.compat", "Unsloth", "default", None),
     "vllm": ("opentine.models.compat", "VLLM", "default", None),

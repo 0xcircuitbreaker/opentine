@@ -201,6 +201,35 @@ def test_no_budget_runs_normally():
     assert run.metadata.get("budget_state") is None
 
 
+def test_strict_cost_budget_stops_before_call_after_unknown_price():
+    model = LoopingModel(cost=0)
+    model.calls = 0
+
+    async def unknown_complete(messages, tools=None, system=None, temperature=0.0):
+        model.calls += 1
+        response = await LoopingModel.complete(
+            model, messages, tools=tools, system=system, temperature=temperature
+        )
+        response["billing"] = {
+            "status": "unknown",
+            "amount_usd": None,
+            "known_subtotal_usd": "0",
+            "warnings": ["price is unknown"],
+        }
+        return response
+
+    model.complete = unknown_complete
+    run = Agent(
+        model=model,
+        tools=[_noop],
+        max_steps=20,
+        budget=Budget(max_cost=1, strict_cost=True),
+    ).run_sync("go")
+    assert model.calls == 1
+    assert run.status == RunStatus.failed
+    assert run.metadata["budget_state"]["dimension"] == "cost_completeness"
+
+
 # --- harness budget enforcement ---------------------------------------------
 
 

@@ -26,21 +26,21 @@ from opentine.tools.web import fetch
 # --- Auto-detect provider from env vars ---
 
 DETECT_ORDER = [
-    ("ANTHROPIC_API_KEY", "opentine.models.anthropic", "Anthropic", "claude-sonnet-4-20250514"),
-    ("OPENAI_API_KEY", "opentine.models.openai", "OpenAI", "gpt-4o"),
-    ("GOOGLE_API_KEY", "opentine.models.google", "Google", "gemini-2.0-flash"),
-    ("GROQ_API_KEY", "opentine.models.compat", "Groq", "llama-3.1-70b-versatile"),
-    ("DEEPSEEK_API_KEY", "opentine.models.compat", "DeepSeek", "deepseek-chat"),
-    ("KIMI_API_KEY", "opentine.models.compat", "Kimi", "moonshot-v1-8k"),
-    ("GLM_API_KEY", "opentine.models.compat", "GLM", "glm-4-flash"),
+    ("ANTHROPIC_API_KEY", "opentine.models.anthropic", "Anthropic", "claude-sonnet-5"),
+    ("OPENAI_API_KEY", "opentine.models.openai", "OpenAI", "gpt-5.6"),
+    ("GOOGLE_API_KEY", "opentine.models.google", "Google", "gemini-3-flash-preview"),
+    ("GROQ_API_KEY", "opentine.models.compat", "Groq", "llama-3.3-70b-versatile"),
+    ("DEEPSEEK_API_KEY", "opentine.models.compat", "DeepSeek", "deepseek-v4-flash"),
+    ("KIMI_API_KEY", "opentine.models.compat", "Kimi", "kimi-k2.6"),
+    ("GLM_API_KEY", "opentine.models.compat", "GLM", "glm-5.1"),
     (
         "TOGETHER_API_KEY",
         "opentine.models.compat",
         "Together",
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     ),  # noqa: E501
-    ("MISTRAL_API_KEY", "opentine.models.compat", "Mistral", "mistral-large-latest"),
-    ("QWEN_API_KEY", "opentine.models.compat", "Qwen", "qwen-plus"),
+    ("MISTRAL_API_KEY", "opentine.models.compat", "Mistral", "mistral-large-3"),
+    ("QWEN_API_KEY", "opentine.models.compat", "Qwen", "qwen3.7-max"),
 ]
 
 model = None

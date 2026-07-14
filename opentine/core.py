@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from opentine.billing import BillingResult, PricingCatalog, RateCard, Usage
 from opentine.budget import Budget, BudgetBreach, BudgetExceeded, CostBreakdown
 from opentine.graph import (
     FORMAT_VERSION,
@@ -39,6 +40,7 @@ __all__ = [
     "Budget",
     "BudgetBreach",
     "BudgetExceeded",
+    "BillingResult",
     "CostBreakdown",
     "FieldDelta",
     "FilesystemPolicy",
@@ -47,6 +49,7 @@ __all__ = [
     "Model",
     "NetworkPolicy",
     "PolicySet",
+    "PricingCatalog",
     "PythonPolicy",
     "Query",
     "QueryError",
@@ -55,12 +58,14 @@ __all__ = [
     "RunDiff",
     "RunIndex",
     "RunStatus",
+    "RateCard",
     "ShellPolicy",
     "SignatureError",
     "SignatureResult",
     "Step",
     "StepChange",
     "StepKind",
+    "Usage",
     "dev_profile",
     "isolated_profile",
     "parse_query",

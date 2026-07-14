@@ -167,8 +167,10 @@ async def test_anthropic_stream_payload_includes_tools_and_transcript(
 
 
 def test_openai_compatible_wrappers_set_expected_endpoints():
-    assert Kimi(api_key="k")._base_url == "https://api.moonshot.cn/v1"
-    assert Kimi(api_key="k")._api_key == "k"
+    kimi = Kimi(api_key="k")
+    assert kimi._base_url == "https://api.moonshot.ai/v1"
+    assert kimi._model == "kimi-k2.6"
+    assert kimi._api_key == "k"
     assert LMStudio(host="http://127.0.0.1:1234")._base_url == "http://127.0.0.1:1234/v1"
     assert LlamaCpp(host="http://127.0.0.1:8080")._api_key == "llama-cpp"
 

@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncIterator
+from decimal import Decimal
 from typing import Any
 
 import httpx
+
+from opentine.billing import PricingCatalog
+from opentine.models._usage import metered_response, ollama_usage
 
 
 class Ollama:
@@ -17,24 +21,38 @@ class Ollama:
         model: str = "llama3.1",
         host: str | None = None,
         think: bool | str | None = None,
+        *,
+        input_cost_per_mtok: float | None = None,
+        output_cost_per_mtok: float | None = None,
+        compute_cost_per_second: float | None = None,
+        catalog: PricingCatalog | None = None,
     ):
         self._model = model
         self._host = (host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
         self._think = think
         self._capabilities: set[str] | None = None
+        self._catalog = catalog
+        self._rate_override: dict[str, Any] | None = None
+        if any(
+            value is not None
+            for value in (input_cost_per_mtok, output_cost_per_mtok, compute_cost_per_second)
+        ):
+            per_second = Decimal(str(compute_cost_per_second or 0)) * 1_000_000
+            self._rate_override = {
+                "input": input_cost_per_mtok or 0,
+                "output": output_cost_per_mtok or 0,
+                "prompt_eval_seconds": per_second,
+                "eval_seconds": per_second,
+                "total_seconds": 0,
+                "load_seconds": 0,
+            }
 
     @property
     def name(self) -> str:
         return f"ollama/{self._model}"
 
     def _tools_capable(self) -> bool:
-        """Report whether the model advertises tool calling via /api/show.
-
-        Result is cached per instance. Ollama rejects tool payloads for models
-        without the ``tools`` capability (e.g. gemma3, codellama) with a hard
-        400, so we probe once. If the server is unreachable or the response is
-        unexpected we stay optimistic (``True``) and let the request proceed.
-        """
+        """Cache the model capabilities reported by ``/api/show``."""
         if self._capabilities is None:
             try:
                 with httpx.Client(timeout=5) as client:
@@ -134,6 +152,27 @@ class Ollama:
             payload["think"] = self._think
         return payload
 
+    def _meter(self, data: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(data)
+        for source, target in (
+            ("total_duration", "total_seconds"),
+            ("load_duration", "load_seconds"),
+            ("prompt_eval_duration", "prompt_eval_seconds"),
+            ("eval_duration", "eval_seconds"),
+        ):
+            if source in normalized:
+                normalized[target] = Decimal(normalized[source]) / Decimal(1_000_000_000)
+                normalized.pop(source)
+        usage = ollama_usage(normalized)
+        return metered_response(
+            "ollama",
+            self._model,
+            usage,
+            catalog=self._catalog,
+            rate_override=self._rate_override,
+            unmetered=self._rate_override is None,
+        )
+
     async def complete(
         self,
         messages: list[dict[str, Any]],
@@ -158,13 +197,26 @@ class Ollama:
         for tc in message.get("tool_calls", []):
             fn = tc.get("function", {})
             tool_calls.append({"name": fn.get("name", ""), "arguments": fn.get("arguments", {})})
-        return {
+        result = {
             "text": text,
             "thinking": message.get("thinking", ""),
             "tool_calls": tool_calls,
-            "cost": 0.0,
             "warnings": warnings,
+            "metrics": {
+                key: data[key]
+                for key in (
+                    "total_duration",
+                    "load_duration",
+                    "prompt_eval_count",
+                    "prompt_eval_duration",
+                    "eval_count",
+                    "eval_duration",
+                )
+                if key in data
+            },
         }
+        result.update(self._meter(data))
+        return result
 
     async def stream(
         self,
@@ -192,3 +244,5 @@ class Ollama:
                         content = message.get("content", "")
                         if content:
                             yield {"type": "text_delta", "text": content}
+                        if chunk.get("done"):
+                            yield {"type": "usage", **self._meter(chunk)}

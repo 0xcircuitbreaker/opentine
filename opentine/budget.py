@@ -30,6 +30,8 @@ class BudgetBreach:
     incurred: float
 
     def __str__(self) -> str:
+        if self.dimension == "cost_completeness":
+            return "budget stopped: model price is incomplete or unknown"
         return f"budget exceeded: {self.dimension} {self.incurred} > limit {self.limit}"
 
     def to_dict(self) -> dict:
@@ -45,6 +47,7 @@ class Budget:
     #: redaction layer blanks any serialized key containing "token".
     max_usage: int | None = None
     on_breach: str = "stop"  # "stop" -> mark failed and halt; "raise" -> BudgetExceeded
+    strict_cost: bool = False  # halt before another call after incomplete billing
 
     def __post_init__(self) -> None:
         if self.on_breach not in ("stop", "raise"):
@@ -72,6 +75,8 @@ class Budget:
             value = getattr(self, name)
             if value is not None:
                 data[name] = value
+        if self.strict_cost:
+            data["strict_cost"] = True
         return data
 
     @classmethod
@@ -82,6 +87,7 @@ class Budget:
             max_duration=data.get("max_duration"),
             max_usage=data.get("max_usage"),
             on_breach=data.get("on_breach", "stop"),
+            strict_cost=bool(data.get("strict_cost", False)),
         )
 
 

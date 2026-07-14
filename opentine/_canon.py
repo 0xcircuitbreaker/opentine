@@ -57,20 +57,57 @@ def _integrity_digest(data: dict[str, Any]) -> str:
 
 
 def _redact(value: Any) -> Any:
-    """Replace values whose *key* name suggests a secret.
-
-    NOTE: this matches dict *keys* by substring, so any serialized field whose
-    key contains one of these words has its value blown away on save. Persisted
-    numeric/structural fields must therefore avoid these substrings in their keys
-    (e.g. use ``usage``/``max_usage`` rather than ``tokens``/``max_tokens``).
-    """
-    secret_words = ("key", "secret", "token", "password", "credential", "auth")
+    """Redact credential fields without deleting numeric usage dimensions."""
+    credential_names = {
+        "api_key",
+        "apikey",
+        "api_token",
+        "access_key",
+        "secret_access_key",
+        "access_token",
+        "refresh_token",
+        "auth_token",
+        "bearer_token",
+        "id_token",
+        "session_token",
+        "password",
+        "passwd",
+        "passphrase",
+        "secret",
+        "client_secret",
+        "private_key",
+        "credential",
+        "credentials",
+        "authorization",
+        "proxy_authorization",
+        "cookie",
+        "set_cookie",
+    }
     if isinstance(value, dict):
-        return {
-            k: ("[REDACTED]" if any(w in str(k).lower() for w in secret_words) else _redact(v))
-            for k, v in value.items()
-        }
-    if isinstance(value, list):
+        redacted: dict[Any, Any] = {}
+        for key, item in value.items():
+            name = str(key).strip().lower().replace("-", "_")
+            suffixes = (
+                "_api_key",
+                "_api_token",
+                "_access_key",
+                "_access_token",
+                "_auth_token",
+                "_client_secret",
+                "_credentials",
+                "_password",
+                "_passwd",
+                "_private_key",
+                "_refresh_token",
+                "_secret",
+                "_session_token",
+            )
+            is_secret = name in credential_names or name.endswith(suffixes)
+            if name == "token" and not isinstance(item, (int, float)):
+                is_secret = True
+            redacted[key] = "[REDACTED]" if is_secret else _redact(item)
+        return redacted
+    if isinstance(value, (list, tuple)):
         return [_redact(v) for v in value]
     return value
 

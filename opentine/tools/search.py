@@ -73,7 +73,7 @@ async def _duckduckgo(query: str, max_results: int) -> str:
         resp = await client.get(
             "https://html.duckduckgo.com/html/",
             params={"q": query},
-            headers={"User-Agent": "opentine/0.1"},
+            headers={"User-Agent": "opentine/0.3"},
         )
         resp.raise_for_status()
     # Extract result snippets from HTML

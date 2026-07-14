@@ -1,12 +1,12 @@
 [project]
 name = "opentine"
-version = "0.2.0"
-description = "Local-first provenance for agent runs: content-addressed traces, fork, replay, sign, and scoped resume."
+version = "0.2.1"
+description = "Provider-neutral provenance for agent runs with signed pricing and exact usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{ name = "opentine contributors" }]
-keywords = ["agents", "llm", "fork", "replay", "run-tree", "ai"]
+keywords = ["agents", "llm", "fork", "replay", "provenance", "pricing", "ai"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -17,6 +17,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
+    "cryptography>=42",
     "httpx>=0.27",
     "rich>=13.0",
 ]
@@ -25,12 +26,13 @@ dependencies = [
 anthropic = ["anthropic>=0.40"]
 openai = ["openai>=1.50"]
 google = ["google-genai>=1.0"]
-# Kimi, DeepSeek, Qwen, GLM, Groq, Together, Mistral all use the openai SDK
+# Kimi, DeepSeek, Qwen, GLM, Grok, Groq, Together, Mistral/Ministral,
+# OpenRouter, and Hermes use the OpenAI SDK transport.
 compat = ["openai>=1.50"]
 # Ollama uses httpx (core dep) directly — no extra package needed
 # MCP server (opentine.mcp_server) needs the mcp package
 mcp = ["mcp>=1.0"]
-# Ed25519 artifact signing (HMAC signing uses the stdlib and needs no extra)
+# Retained as a compatibility extra; signed catalogs and encrypted remotes use it in core.
 crypto = ["cryptography>=42"]
 all = [
     "anthropic>=0.40",

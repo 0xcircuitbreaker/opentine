@@ -1,4 +1,4 @@
-"""Anthropic adapter — Claude models with tool_use, prompt caching, extended thinking."""
+"""Anthropic Messages adapter with cache/refusal-aware billing."""
 
 from __future__ import annotations
 
@@ -6,13 +6,25 @@ import os
 from collections.abc import AsyncIterator
 from typing import Any
 
+from opentine.billing import PricingCatalog
+from opentine.models._usage import anthropic_usage, metered_response, value
+
 
 class Anthropic:
-    """Adapter for Anthropic Claude models."""
-
-    def __init__(self, model: str = "claude-sonnet-4-20250514", api_key: str | None = None):
+    def __init__(
+        self,
+        model: str = "claude-sonnet-5",
+        api_key: str | None = None,
+        *,
+        rates: dict[str, Any] | None = None,
+        catalog: PricingCatalog | None = None,
+        service_tier: str | None = None,
+    ):
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        self._rate_override = rates
+        self._catalog = catalog
+        self._service_tier = service_tier
 
     @property
     def name(self) -> str:
@@ -24,57 +36,116 @@ class Anthropic:
 
     @property
     def supports_thinking(self) -> bool:
-        return "opus" in self._model or "sonnet" in self._model
+        lowered = self._model.lower()
+        return any(name in lowered for name in ("opus", "sonnet", "fable"))
+
+    @property
+    def _adaptive(self) -> bool:
+        lowered = self._model.lower()
+        return (
+            "fable-5" in lowered
+            or "sonnet-5" in lowered
+            or any(f"opus-4-{minor}" in lowered for minor in range(6, 10))
+        )
 
     def _get_client(self):
         try:
             import anthropic
         except ImportError:
-            raise ImportError("pip install opentine[anthropic]")
+            raise ImportError("pip install opentine[anthropic]") from None
         return anthropic.AsyncAnthropic(api_key=self._api_key)
 
-    def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+    @staticmethod
+    def _build_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         if not tools:
             return None
         return [
-            {"name": t["name"], "description": t["description"], "input_schema": t["input_schema"]}
-            for t in tools
+            {
+                "name": tool["name"],
+                "description": tool["description"],
+                "input_schema": tool["input_schema"],
+            }
+            for tool in tools
         ]
 
-    def _convert_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        out = []
-        for m in messages:
-            role = m["role"]
+    @staticmethod
+    def _convert_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        converted: list[dict[str, Any]] = []
+        for message in messages:
+            role = message["role"]
             if role == "tool":
-                out.append(
+                converted.append(
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "tool_result",
-                                "tool_use_id": m.get("tool_call_id", m.get("name", "")),
-                                "content": m["content"],
+                                "tool_use_id": message.get("tool_call_id", message.get("name", "")),
+                                "content": message["content"],
                             }
                         ],
                     }
                 )
-            elif role == "assistant" and m.get("tool_calls"):
+                continue
+            if role == "assistant" and message.get("tool_calls"):
                 content: list[dict[str, Any]] = []
-                if m.get("content"):
-                    content.append({"type": "text", "text": m["content"]})
-                for tc in m["tool_calls"]:
+                if message.get("content"):
+                    content.append({"type": "text", "text": message["content"]})
+                for call in message["tool_calls"]:
                     content.append(
                         {
                             "type": "tool_use",
-                            "id": tc.get("id", tc["name"]),
-                            "name": tc["name"],
-                            "input": tc.get("arguments", {}),
+                            "id": call.get("id", call["name"]),
+                            "name": call["name"],
+                            "input": call.get("arguments", {}),
                         }
                     )
-                out.append({"role": "assistant", "content": content})
-            else:
-                out.append({"role": role, "content": m["content"]})
-        return out
+                converted.append({"role": "assistant", "content": content})
+                continue
+            converted.append({"role": role, "content": message["content"]})
+        return converted
+
+    def _kwargs(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        system: str | None,
+        temperature: float,
+    ) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "model": self._model,
+            "max_tokens": 4096,
+            "messages": self._convert_messages(messages),
+        }
+        if not self._adaptive:
+            kwargs["temperature"] = temperature
+        if system:
+            kwargs["system"] = system
+        api_tools = self._build_tools(tools)
+        if api_tools:
+            kwargs["tools"] = api_tools
+        if self._service_tier:
+            kwargs["service_tier"] = self._service_tier
+        return kwargs
+
+    def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
+        payload = metered_response(
+            "anthropic",
+            self._model,
+            anthropic_usage(value(response, "usage")),
+            catalog=self._catalog,
+            rate_override=self._rate_override,
+            service_tier=value(response, "service_tier", self._service_tier),
+        )
+        if early_refusal:
+            billing = payload["billing"]
+            billing["status"] = "complete"
+            billing["amount_usd"] = "0"
+            billing["known_subtotal_usd"] = "0"
+            billing["warnings"].append("early empty refusal is non-billable")
+            billing["calculation"]["refusal_modifier"] = "0"
+            payload["cost"] = 0.0
+        return payload
 
     async def complete(
         self,
@@ -83,37 +154,35 @@ class Anthropic:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
-        client = self._get_client()
-        kwargs: dict[str, Any] = {
-            "model": self._model,
-            "max_tokens": 4096,
-            "messages": self._convert_messages(messages),
-            "temperature": temperature,
-        }
-        if system:
-            kwargs["system"] = system
-        api_tools = self._build_tools(tools)
-        if api_tools:
-            kwargs["tools"] = api_tools
-
-        resp = await client.messages.create(**kwargs)
-
-        text = ""
-        tool_calls = []
-        for block in resp.content:
-            if block.type == "text":
-                text += block.text
-            elif block.type == "tool_use":
-                tool_calls.append({"name": block.name, "arguments": block.input, "id": block.id})
-
-        input_cost = (resp.usage.input_tokens / 1_000_000) * 3.0
-        output_cost = (resp.usage.output_tokens / 1_000_000) * 15.0
-        return {
-            "text": text,
-            "tool_calls": tool_calls,
-            "cost": input_cost + output_cost,
-            "usage": {"input": resp.usage.input_tokens, "output": resp.usage.output_tokens},
-        }
+        response = await self._get_client().messages.create(
+            **self._kwargs(messages, tools, system, temperature)
+        )
+        text_parts: list[str] = []
+        calls: list[dict[str, Any]] = []
+        refusals: list[str] = []
+        for block in value(response, "content", []) or []:
+            block_type = value(block, "type")
+            if block_type == "text":
+                text_parts.append(value(block, "text", ""))
+            elif block_type == "tool_use":
+                calls.append(
+                    {
+                        "name": value(block, "name", ""),
+                        "arguments": value(block, "input", {}),
+                        "id": value(block, "id"),
+                    }
+                )
+            elif block_type == "refusal":
+                refusals.append(value(block, "refusal", value(block, "text", "")))
+        text = "".join(text_parts)
+        refused = value(response, "stop_reason") == "refusal" or bool(refusals)
+        result: dict[str, Any] = {"text": text, "tool_calls": calls}
+        if refused:
+            result["refusal"] = "\n".join(refusals) or "refused"
+        usage = anthropic_usage(value(response, "usage"))
+        early_refusal = refused and not text and not calls and usage.output == 0
+        result.update(self._meter(response, early_refusal=early_refusal))
+        return result
 
     async def stream(
         self,
@@ -122,21 +191,17 @@ class Anthropic:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
-        client = self._get_client()
-        kwargs: dict[str, Any] = {
-            "model": self._model,
-            "max_tokens": 4096,
-            "messages": self._convert_messages(messages),
-            "temperature": temperature,
-        }
-        if system:
-            kwargs["system"] = system
-        api_tools = self._build_tools(tools)
-        if api_tools:
-            kwargs["tools"] = api_tools
-
-        async with client.messages.stream(**kwargs) as stream:
+        manager = self._get_client().messages.stream(
+            **self._kwargs(messages, tools, system, temperature)
+        )
+        async with manager as stream:
             async for event in stream:
-                if hasattr(event, "type"):
-                    if event.type == "content_block_delta" and hasattr(event.delta, "text"):
-                        yield {"type": "text_delta", "text": event.delta.text}
+                if value(event, "type") == "content_block_delta":
+                    delta = value(event, "delta")
+                    text = value(delta, "text")
+                    if text:
+                        yield {"type": "text_delta", "text": text}
+            final = getattr(stream, "get_final_message", None)
+            if callable(final):
+                response = await final()
+                yield {"type": "usage", **self._meter(response)}

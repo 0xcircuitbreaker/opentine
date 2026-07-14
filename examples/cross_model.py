@@ -17,17 +17,17 @@ models = []
 if os.environ.get("ANTHROPIC_API_KEY"):
     from opentine.models.anthropic import Anthropic
 
-    models.append(("anthropic", Anthropic("claude-sonnet-4-20250514")))
+    models.append(("anthropic", Anthropic("claude-sonnet-5")))
 
 if os.environ.get("OPENAI_API_KEY"):
     from opentine.models.openai import OpenAI
 
-    models.append(("openai", OpenAI("gpt-4o")))
+    models.append(("openai", OpenAI("gpt-5.6")))
 
 if os.environ.get("GOOGLE_API_KEY"):
     from opentine.models.google import Google
 
-    models.append(("google", Google("gemini-2.0-flash")))
+    models.append(("google", Google("gemini-3-flash-preview")))
 
 if os.environ.get("OLLAMA_HOST") or True:  # Ollama defaults to localhost
     try:
