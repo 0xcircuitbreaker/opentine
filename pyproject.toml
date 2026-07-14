@@ -1,12 +1,12 @@
 [project]
 name = "opentine"
-version = "0.2.1"
-description = "Provider-neutral provenance for agent runs with signed pricing and exact usage accounting."
+version = "0.3.0"
+description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{ name = "opentine contributors" }]
-keywords = ["agents", "llm", "fork", "replay", "provenance", "pricing", "ai"]
+keywords = ["agents", "llm", "fork", "replay", "provenance", "repository", "ai"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

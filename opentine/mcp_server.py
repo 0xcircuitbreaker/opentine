@@ -115,7 +115,7 @@ def diff_runs_text(run_a: str, run_b: str, runs_dir: str | Path = ".tine_runs") 
     return "\n".join(lines)
 
 
-def create_server(runs_dir: str | Path = ".tine_runs"):
+def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "."):
     """Create a FastMCP server. Requires the optional ``mcp`` package."""
     try:
         from mcp.server.fastmcp import FastMCP
@@ -148,6 +148,13 @@ def create_server(runs_dir: str | Path = ".tine_runs"):
     def run_resource(run_id: str) -> str:
         """Expose a run as an MCP resource."""
         return format_run_for_llm(Run.load(find_run(run_id, runs_dir)))
+
+    try:
+        from opentine.mcp_repository import register_repository_tools
+
+        register_repository_tools(mcp, str(repo_path))
+    except FileNotFoundError:
+        pass
 
     return mcp
 

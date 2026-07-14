@@ -7,12 +7,12 @@ import argparse
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_common import HARNESS_FACTORIES
 from opentine.pricing_cli import add_pricing_parser
+from opentine.remote.server import add_serve_parser
+from opentine.repo_cli import add_repo_parsers
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="tine", description="opentine — provider-neutral agent run provenance"
-    )
+    parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script or harness")
@@ -98,6 +98,8 @@ def _build_parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id")
 
     add_pricing_parser(sub)
+    add_serve_parser(sub)
+    add_repo_parsers(sub)
     return parser
 
 

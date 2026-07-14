@@ -86,6 +86,21 @@ def main() -> None:
             ]
         )
         _run([tine, "verify", artifact])
+        _run([tine, "pricing", "check"])
+        repository = work / "repo"
+        _run([tine, "init", repository])
+        _run(
+            [
+                python,
+                "-c",
+                (
+                    "from opentine import Repo; "
+                    f"r=Repo.open({str(repository)!r}); "
+                    "oid=r.put('blob', b'wheel'); "
+                    "assert r.get(oid).body == b'wheel'; assert r.fsck().ok"
+                ),
+            ]
+        )
 
 
 if __name__ == "__main__":

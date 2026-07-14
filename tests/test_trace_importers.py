@@ -1,0 +1,159 @@
+"""Normalized trace importer fixtures."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from opentine import Run, StepKind
+from opentine.trace import framework_events, jsonl_events, native_events, otel_genai_events
+
+
+def test_native_jsonl_and_otel_importers(tmp_path):
+    run = Run(id="native", model_info="model")
+    step = run.add_step(StepKind.done, {"text": "ok"}, usage={"input": 3, "output": 1})
+    native = native_events(run)
+    assert native[0].span_id == step.id and native[0].usage["input"] == 3
+
+    path = tmp_path / "trace.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "kind": "tool",
+                "timestamp": 1,
+                "trace_id": "t",
+                "span_id": "s",
+                "inputs": {"name": "lookup"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    assert jsonl_events(path)[0].kind == "tool"
+
+    spans = [
+        {
+            "name": "chat",
+            "trace_id": "trace",
+            "span_id": "span",
+            "start_time_unix_nano": 2_000_000_000,
+            "attributes": {
+                "gen_ai.operation.name": "chat",
+                "gen_ai.request.model": "gpt-5.6",
+                "gen_ai.usage.input_tokens": 5,
+                "gen_ai.usage.output_tokens": 2,
+            },
+        }
+    ]
+    imported = otel_genai_events(spans)[0]
+    assert imported.timestamp == 2 and imported.usage == {"input": 5, "output": 2}
+
+
+@pytest.mark.parametrize(
+    "framework", ["langchain", "llamaindex", "autogen", "crewai", "openai-agents"]
+)
+def test_framework_importers(framework):
+    event = framework_events(
+        [{"id": "1", "type": "tool_call", "input": {"q": 1}, "output": {"ok": True}}],
+        framework,
+    )[0]
+    assert event.kind == "tool"
+    assert event.attributes["framework"] == framework
+
+
+def test_otel_importer_parses_real_otlp_json():
+    # Real OTLP/JSON: camelCase keys and typed AnyValue attribute values.
+    spans = [
+        {
+            "name": "chat",
+            "traceId": "abc",
+            "spanId": "def",
+            "parentSpanId": "root",
+            "startTimeUnixNano": "1784034408576553954",
+            "attributes": [
+                {"key": "gen_ai.operation.name", "value": {"stringValue": "chat"}},
+                {"key": "gen_ai.request.model", "value": {"stringValue": "gpt-5.6"}},
+                {"key": "gen_ai.usage.input_tokens", "value": {"intValue": "120"}},
+                {"key": "gen_ai.usage.output_tokens", "value": {"intValue": "45"}},
+            ],
+        }
+    ]
+    event = otel_genai_events(spans)[0]
+    assert event.trace_id == "abc" and event.span_id == "def"
+    assert event.parent_span_id == "root" and event.model == "gpt-5.6"
+    assert event.usage == {"input": 120, "output": 45}
+    assert event.timestamp > 0
+
+
+def test_jsonl_importer_handles_iso_timestamp_and_list_messages():
+    line = json.dumps(
+        {
+            "kind": "model",
+            "timestamp": "2026-07-14T00:00:00Z",
+            "trace_id": "t",
+            "span_id": "s",
+            "inputs": [{"role": "user", "content": "hi"}],
+        }
+    )
+    event = jsonl_events([line])[0]
+    assert event.timestamp > 0  # ISO-8601 parsed, not crashed
+    assert event.inputs == {"messages": [{"role": "user", "content": "hi"}]}
+
+
+def test_framework_importer_survives_list_shaped_messages():
+    event = framework_events(
+        [{"id": "1", "type": "tool_call", "input": [{"role": "user", "content": "x"}]}],
+        "langchain",
+    )[0]
+    assert event.kind == "tool"
+    assert event.inputs == {"messages": [{"role": "user", "content": "x"}]}
+
+
+def test_otel_importer_accepts_complete_export_and_defensive_anyvalues():
+    document = {
+        "resourceSpans": [
+            {
+                "scopeSpans": [
+                    {
+                        "spans": [
+                            {
+                                "traceId": "trace",
+                                "spanId": "span",
+                                "startTimeUnixNano": "2000000000",
+                                "attributes": [
+                                    {
+                                        "key": "gen_ai.operation.name",
+                                        "value": {"stringValue": "chat"},
+                                    },
+                                    {"key": "flag", "value": {"boolValue": "false"}},
+                                    {
+                                        "key": "large_id",
+                                        "value": {"intValue": "9223372036854775807"},
+                                    },
+                                    42,
+                                ],
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    event = otel_genai_events(document)[0]
+    assert event.timestamp == 2
+    assert event.attributes["flag"] is False
+    assert event.attributes["large_id"] == "9223372036854775807"
+
+
+def test_importers_skip_well_formed_unexpected_records():
+    assert jsonl_events(["[]", '"scalar"']) == []
+    assert otel_genai_events([{"attributes": [42]}, [], "span"]) == []
+    assert framework_events([[], "record"], "langchain") == []
+
+
+def test_jsonl_naive_iso_timestamp_is_deterministically_utc():
+    event = jsonl_events(
+        [json.dumps({"timestamp": "1970-01-01T00:00:01", "trace_id": "t", "span_id": "s"})]
+    )[0]
+    assert event.timestamp == 1

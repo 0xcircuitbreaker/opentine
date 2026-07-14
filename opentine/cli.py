@@ -41,6 +41,20 @@ from opentine._cli_security import (
     cmd_verify,
 )
 from opentine.pricing_cli import cmd_pricing
+from opentine.remote.server import cmd_serve
+from opentine.repo_cli import cmd_repo
+
+_REPO_COMMANDS = {
+    "clone",
+    "fetch",
+    "fsck",
+    "init",
+    "migrate-v3",
+    "object",
+    "pack",
+    "push",
+    "repo-log",
+}
 
 
 def main() -> None:
@@ -60,6 +74,7 @@ def main() -> None:
         "resume": cmd_resume,
         "run": cmd_run,
         "search": cmd_search,
+        "serve": lambda namespace: cmd_serve(namespace, console),
         "show": cmd_show,
         "sign": cmd_sign,
         "tag": cmd_tag,
@@ -67,6 +82,8 @@ def main() -> None:
     }
     if args.command in commands:
         commands[args.command](args)
+    elif args.command in _REPO_COMMANDS:
+        cmd_repo(args, console)
     else:
         console.print(f"\n  [{BRAND}]opentine[/] — git for agent runs\n")
         parser.print_help()

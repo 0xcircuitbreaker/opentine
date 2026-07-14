@@ -1,0 +1,256 @@
+"""Regression tests for remote-layer audit follow-ups (M4 audit chain, M5 OIDC, M6 limits)."""
+
+from __future__ import annotations
+
+import base64
+import json
+import sqlite3
+import threading
+import time
+from pathlib import Path
+
+import pytest
+
+from opentine.remote.backend import SQLiteBackend
+from opentine.remote.interfaces import AuditEvent
+from opentine.remote.security import LocalKeyProvider
+
+crypto = pytest.importorskip("cryptography")
+
+
+# --- M4: tamper-evident hash-chained audit log ----------------------------------------
+
+
+def _seed_audit(tmp_path: Path) -> SQLiteBackend:
+    db = SQLiteBackend(tmp_path / "meta.sqlite3")
+    for i in range(4):
+        db.append(
+            AuditEvent(f"e{i}", f"2026-07-14T00:00:0{i}", "t1", "alice", "fetch", "ok", {"n": i})
+        )
+    return db
+
+
+def test_m4_audit_chain_is_valid_when_untampered(tmp_path: Path):
+    db = _seed_audit(tmp_path)
+    assert db.verify_audit_chain() is True
+    assert db.verify_audit_chain(expected_head=db.audit_head()) is True
+
+
+def test_m4_audit_chain_detects_interior_tampering(tmp_path: Path):
+    db = _seed_audit(tmp_path)
+    con = sqlite3.connect(db.path)
+    con.execute("DROP TRIGGER audit_no_update")  # even bypassing the soft trigger...
+    con.execute("UPDATE audit SET details='{\"n\":999}' WHERE event_id='e1'")
+    con.commit()
+    con.close()
+    assert db.verify_audit_chain() is False  # ...the chain still catches it
+
+
+def test_m4_audit_chain_detects_truncation_against_checkpoint(tmp_path: Path):
+    db = _seed_audit(tmp_path)
+    head = db.audit_head()
+    con = sqlite3.connect(db.path)
+    con.execute("DROP TRIGGER audit_no_delete")
+    con.execute("DELETE FROM audit WHERE event_id='e3'")  # drop the last row
+    con.commit()
+    con.close()
+    # Internally consistent again, but no longer matches the anchored checkpoint.
+    assert db.verify_audit_chain() is True
+    assert db.verify_audit_chain(expected_head=head) is False
+
+
+def test_m4_concurrent_appends_form_one_valid_chain(tmp_path: Path):
+    db = SQLiteBackend(tmp_path / "meta.sqlite3")
+    barrier = threading.Barrier(8)
+    errors = []
+
+    def append(index: int) -> None:
+        try:
+            barrier.wait()
+            db.append(AuditEvent(f"e{index}", str(index), "t1", "a", "read", "ok", {"n": index}))
+        except Exception as exc:  # pragma: no cover - asserted below
+            errors.append(exc)
+
+    threads = [threading.Thread(target=append, args=(index,)) for index in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    with sqlite3.connect(db.path) as database:
+        count = database.execute("SELECT count(*) FROM audit").fetchone()[0]
+    assert not errors and count == 8
+    assert db.verify_audit_chain()
+
+
+def test_m4_existing_unchained_audit_rows_are_migrated(tmp_path: Path):
+    path = tmp_path / "legacy.sqlite3"
+    with sqlite3.connect(path) as database:
+        database.execute(
+            "CREATE TABLE audit (sequence INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "event_id TEXT UNIQUE NOT NULL, timestamp TEXT NOT NULL, tenant TEXT NOT NULL, "
+            "actor TEXT NOT NULL, action TEXT NOT NULL, outcome TEXT NOT NULL, "
+            "details TEXT NOT NULL)"
+        )
+        database.execute(
+            "INSERT INTO audit(event_id,timestamp,tenant,actor,action,outcome,details) "
+            "VALUES(?,?,?,?,?,?,?)",
+            ("old", "1", "t1", "a", "read", "ok", '{"n":1}'),
+        )
+    db = SQLiteBackend(path)
+    assert db.verify_audit_chain()
+    db.append(AuditEvent("new", "2", "t1", "a", "read", "ok", {}))
+    assert db.verify_audit_chain()
+
+
+# --- M5: real OIDC/JWT verification ----------------------------------------------------
+
+
+def _b64(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def _int_bytes(value: int, size: int | None = None) -> bytes:
+    size = size or (value.bit_length() + 7) // 8
+    return value.to_bytes(size, "big")
+
+
+def _rs256(payload: dict, key, kid: str = "r1") -> str:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+
+    header = _b64(json.dumps({"alg": "RS256", "kid": kid}).encode())
+    body = _b64(json.dumps(payload).encode())
+    sig = key.sign(f"{header}.{body}".encode(), padding.PKCS1v15(), hashes.SHA256())
+    return f"{header}.{body}.{_b64(sig)}"
+
+
+def _es256(payload: dict, key, kid: str = "e1") -> str:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec, utils
+
+    header = _b64(json.dumps({"alg": "ES256", "kid": kid}).encode())
+    body = _b64(json.dumps(payload).encode())
+    der = key.sign(f"{header}.{body}".encode(), ec.ECDSA(hashes.SHA256()))
+    r, s = utils.decode_dss_signature(der)
+    return f"{header}.{body}.{_b64(_int_bytes(r, 32) + _int_bytes(s, 32))}"
+
+
+def test_m5_oidc_verifier_accepts_valid_and_rejects_bad(tmp_path: Path):
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from opentine.remote._oidc import JWTVerifier, OIDCError
+    from opentine.remote.security import OIDCIdentityProvider
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    numbers = key.public_key().public_numbers()
+    jwks = {
+        "keys": [
+            {
+                "kty": "RSA",
+                "kid": "r1",
+                "n": _b64(_int_bytes(numbers.n)),
+                "e": _b64(_int_bytes(numbers.e)),
+            }
+        ]
+    }
+    now = time.time()
+    verifier = JWTVerifier(jwks, issuer="https://idp", audience="tine", now=lambda: now)
+
+    valid = _rs256(
+        {
+            "iss": "https://idp",
+            "aud": "tine",
+            "sub": "u1",
+            "exp": now + 300,
+            "tenant": "t1",
+            "roles": ["writer"],
+        },
+        key,
+    )
+    assert verifier(valid)["sub"] == "u1"
+
+    for payload in (
+        {"iss": "https://idp", "aud": "tine", "sub": "u", "exp": now - 100},  # expired
+        {"iss": "https://idp", "aud": "other", "sub": "u", "exp": now + 300},  # wrong aud
+        {"iss": "https://evil", "aud": "tine", "sub": "u", "exp": now + 300},  # wrong iss
+    ):
+        with pytest.raises(OIDCError):
+            verifier(_rs256(payload, key))
+
+    tampered = valid[:-6] + ("AAAAAA" if valid[-6:] != "AAAAAA" else "BBBBBB")
+    with pytest.raises(OIDCError):
+        verifier(tampered)
+
+    # The identity provider maps verified claims into a tenant-scoped Identity.
+    provider = OIDCIdentityProvider.from_jwks(jwks, issuer="https://idp", audience="tine")
+    provider.verifier = verifier
+    identity = provider.authenticate({"authorization": f"Bearer {valid}"})
+    assert identity.tenant == "t1" and "writer" in identity.roles
+    provider.verifier = lambda token: {
+        "sub": "u",
+        "tenant": "t1",
+        "roles": {"admin": True},
+    }
+    with pytest.raises(PermissionError, match="roles claim"):
+        provider.authenticate({"authorization": "Bearer signed"})
+
+
+def test_m5_es256_and_algorithm_confusion_guards():
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    from opentine.remote._oidc import JWTVerifier, OIDCError
+
+    now = time.time()
+    key = ec.generate_private_key(ec.SECP256R1())
+    numbers = key.public_key().public_numbers()
+    jwk = {
+        "alg": "ES256",
+        "crv": "P-256",
+        "kid": "e1",
+        "kty": "EC",
+        "use": "sig",
+        "x": _b64(_int_bytes(numbers.x, 32)),
+        "y": _b64(_int_bytes(numbers.y, 32)),
+    }
+    verifier = JWTVerifier({"keys": [jwk]}, issuer="https://idp", audience="tine", now=lambda: now)
+    claims = {"iss": "https://idp", "aud": "tine", "sub": "u", "exp": now + 300}
+    assert verifier(_es256(claims, key))["sub"] == "u"
+    confused_header = _b64(json.dumps({"alg": "RS256", "kid": "e1"}).encode())
+    confused_body = _b64(json.dumps(claims).encode())
+    confused = f"{confused_header}.{confused_body}.{_b64(b'x' * 64)}"
+    with pytest.raises(OIDCError, match="algorithm"):
+        verifier(confused)
+    with pytest.raises(OIDCError, match="unique"):
+        JWTVerifier({"keys": [jwk, jwk]}, issuer="https://idp", audience="tine")
+
+
+def test_local_encryption_derives_tenant_keys_and_reads_legacy_ciphertext():
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    provider = LocalKeyProvider(b"k" * 32)
+    first = provider.encrypt("tenant-a", b"same")
+    second = provider.encrypt("tenant-b", b"same")
+    assert first.startswith(b"TINEAES2") and second.startswith(b"TINEAES2")
+    assert provider.decrypt("tenant-a", first) == b"same"
+    with pytest.raises(InvalidTag):
+        provider.decrypt("tenant-b", first)
+    nonce = b"n" * 12
+    legacy = b"TINEAES1" + nonce + AESGCM(b"k" * 32).encrypt(nonce, b"old", b"tenant-a")
+    assert provider.decrypt("tenant-a", legacy) == b"old"
+
+
+# --- M6: server limits -----------------------------------------------------------------
+
+
+def test_m6_server_has_conservative_defaults():
+    import inspect
+
+    from opentine.remote.app import RemoteApp
+    from opentine.remote.server import ThreadingWSGIServer, TimeoutRequestHandler
+
+    assert TimeoutRequestHandler.timeout == 30 and ThreadingWSGIServer.max_workers == 16
+    # Single requests are small; resumable uploads retain a separately bounded total.
+    default = inspect.signature(RemoteApp.__init__).parameters["max_request_bytes"].default
+    upload = inspect.signature(RemoteApp.__init__).parameters["max_upload_bytes"].default
+    assert default == 16 * 1024 * 1024 and upload == 256 * 1024 * 1024

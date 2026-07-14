@@ -30,9 +30,11 @@ from opentine.policies import (
     isolated_profile,
     secure_profile,
 )
+from opentine.repo import Repo
 from opentine.runtime import Agent, Model
 from opentine.signing import SignatureError, SignatureResult, sign_artifact, verify_artifact
 from opentine.tools import tool_schema
+from opentine.trace import Recorder, TraceEvent
 
 __all__ = [
     "Agent",
@@ -54,6 +56,8 @@ __all__ = [
     "Query",
     "QueryError",
     "RedactionPolicy",
+    "Recorder",
+    "Repo",
     "Run",
     "RunDiff",
     "RunIndex",
@@ -65,6 +69,7 @@ __all__ = [
     "Step",
     "StepChange",
     "StepKind",
+    "TraceEvent",
     "Usage",
     "dev_profile",
     "isolated_profile",

@@ -1,0 +1,111 @@
+"""MCP registration for v3 search/inspect/fork/evaluate/attest/promote."""
+
+from __future__ import annotations
+
+from dataclasses import asdict
+from typing import Any
+
+from opentine.repo import Repo
+
+
+def register_repository_tools(mcp, repo_path: str = ".") -> None:
+    repo = Repo.open(repo_path)
+
+    @mcp.tool()
+    def search_runs(
+        query: str = "",
+        successful_only: bool = True,
+        min_score: float | None = None,
+        model: str | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Search successful v3 runs and evaluation scores."""
+        return [
+            asdict(result)
+            for result in repo.search(
+                query,
+                successful_only=successful_only,
+                min_score=min_score,
+                model=model,
+                limit=limit,
+            )
+        ]
+
+    @mcp.tool()
+    def inspect_object(object_id: str, resolve_blobs: bool = True) -> dict[str, Any]:
+        """Inspect a verified v3 object and optionally resolve its content blobs."""
+        return repo.inspect(object_id, resolve_blobs=resolve_blobs)
+
+    @mcp.tool()
+    def context_slice(event_id: str, depth: int = 8) -> list[dict[str, Any]]:
+        """Retrieve only the causal ancestors needed for an event."""
+        return [asdict(entry) for entry in repo.context_slice(event_id, depth=depth)]
+
+    @mcp.tool()
+    def semantic_diff(run_a: str, run_b: str) -> dict[str, Any]:
+        """Compare cost, latency, tool path, content, and event identity."""
+        return asdict(repo.diff(run_a, run_b))
+
+    @mcp.tool()
+    def fork_run_v3(
+        run_id: str,
+        from_event: str,
+        ref: str,
+        model: str | None = None,
+        prompt: str | None = None,
+    ) -> dict[str, str]:
+        """Fork from the last good event with optional model/prompt overrides."""
+        forked = repo.fork(
+            run_id,
+            from_event,
+            overrides={"model": model, "prompt": prompt},
+            ref=ref,
+        )
+        return {"ref": ref, "run_id": forked}
+
+    @mcp.tool()
+    def resume_run_v3(run_id: str, ref: str) -> dict[str, str]:
+        """Resume at a run's last verified tip by creating a running fork."""
+        payload = repo.get(run_id).payload()
+        tips = payload.get("tips") or []
+        if not tips:
+            raise ValueError("cannot resume a run without an event tip")
+        resumed = repo.fork(run_id, tips[-1], overrides={"resume": True}, ref=ref)
+        return {"ref": ref, "run_id": resumed}
+
+    @mcp.tool()
+    def evaluate_run(
+        run_id: str,
+        scores: dict[str, float],
+        evaluator: str,
+    ) -> dict[str, str]:
+        """Attach immutable evaluation scores to a run."""
+        attestation = repo.attest(
+            run_id,
+            {"kind": "evaluation", "scores": scores},
+            signer=evaluator,
+        )
+        return {"attestation_id": attestation}
+
+    @mcp.tool()
+    def attest_run(
+        run_id: str,
+        claim: dict[str, Any],
+        signer: str,
+    ) -> dict[str, str]:
+        """Attach an approval or provenance claim to a run."""
+        return {"attestation_id": repo.attest(run_id, claim, signer=signer)}
+
+    @mcp.tool()
+    def promote_run(
+        run_id: str,
+        name: str,
+        expected_old: str | None = None,
+    ) -> dict[str, str]:
+        """CAS-update a promotion ref after evaluation or approval."""
+        repo.promote(run_id, name, expected_old=expected_old)
+        return {"ref": f"promotions/{name}", "run_id": run_id}
+
+    @mcp.resource("tine-object://{object_id}")
+    def object_resource(object_id: str) -> dict[str, Any]:
+        return repo.inspect(object_id, resolve_blobs=True)

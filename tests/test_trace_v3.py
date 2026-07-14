@@ -1,0 +1,109 @@
+"""End-to-end agent record, fork, evaluate, promote, and clone workflow."""
+
+from __future__ import annotations
+
+import threading
+from wsgiref.simple_server import make_server
+
+from opentine import Agent, Run
+from opentine.remote import (
+    FilesystemObjectStore,
+    Identity,
+    LocalKeyProvider,
+    RemoteApp,
+    RemoteService,
+    RoleAuthorizationPolicy,
+    SQLiteBackend,
+    StaticTokenIdentityProvider,
+)
+from opentine.repository import Repo
+from opentine.repository.client import clone as clone_remote
+from opentine.repository.pack import reachable
+from opentine.trace import Recorder, TraceEvent
+
+
+def _event(span: str, *, parent: str | None = None, output: str = "ok") -> TraceEvent:
+    return TraceEvent(
+        "model",
+        1.0,
+        "trace-1",
+        span,
+        parent_span_id=parent,
+        model="kimi-k2.6",
+        inputs={"prompt": "hello", "api_key": "secret"},
+        outputs={"text": output},
+        usage={"input": 5, "output": 2},
+        billing={"status": "complete", "known_subtotal_usd": "0.00001"},
+    )
+
+
+def test_multi_agent_repository_workflow(tmp_path):
+    repo = Repo.init(tmp_path / "origin")
+    recorder = Recorder.start(repo, capture=False, pricing={"catalog_id": "test"})
+    first = recorder.append(_event("span-1"))
+    second = recorder.append(_event("span-2", parent="span-1"))
+    original = recorder.finalize()
+
+    fork = recorder.fork(first, ref="experiments/alternate", model="glm-5.1")
+    fork.append(_event("span-3", output="alternate"))
+    alternate = fork.finalize()
+    evaluation = fork.evaluate({"quality": 0.9}, evaluator="judge")
+    approval = fork.approve(approver="reviewer", note="accepted")
+    fork.promote("production")
+    repo.update_ref("heads/main", alternate, expected_old=original)
+
+    assert repo.read_ref("promotions/production") == alternate
+    assert repo.get(evaluation).payload()["target_id"] == alternate
+    assert repo.get(approval).payload()["claim"]["kind"] == "approval"
+    assert evaluation in reachable(repo, [alternate])
+    assert approval in reachable(repo, [alternate])
+    assert [entry.oid for entry in repo.context_slice(second)] == [first, second]
+    comparison = repo.diff(original, alternate)
+    assert comparison.only_right
+
+    clone = Repo.init(tmp_path / "clone")
+    clone.import_pack(repo.pack())
+    assert clone.fsck().ok
+    assert clone.has(alternate) and clone.has(evaluation) and clone.has(approval)
+    inspected = repo.inspect(first, resolve_blobs=True)
+    assert inspected["resolved_blobs"]["input_blob"]["api_key"] == "[REDACTED]"
+
+    objects = FilesystemObjectStore(tmp_path / "remote-objects", LocalKeyProvider(b"k" * 32))
+    index = SQLiteBackend(tmp_path / "remote.sqlite3")
+    identities = StaticTokenIdentityProvider(
+        {"writer-token": Identity("writer", "team", ("writer",))}
+    )
+    app = RemoteApp(
+        RemoteService(objects, index, identities, RoleAuthorizationPolicy()),
+        tmp_path / "remote-state",
+    )
+    server = make_server("127.0.0.1", 0, app)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{server.server_port}"
+    try:
+        pushed = repo.push(url, tenant="team", token="writer-token")
+        remote_clone = clone_remote(
+            url,
+            tmp_path / "remote-clone",
+            tenant="team",
+            token="writer-token",
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert pushed.ref == "heads/main"
+    assert remote_clone.read_ref("heads/main") == alternate
+    assert remote_clone.has(evaluation) and remote_clone.has(approval)
+    assert remote_clone.fsck().ok
+
+    class ReplayModel:
+        name = "replay-only"
+        supports_tools = False
+        supports_thinking = False
+
+    replayed = Agent(ReplayModel()).replay_sync(Run.load(tmp_path / "remote-clone"))
+    assert replayed.status.value == "completed"
+    assert replayed.metadata["replay"]["mode"] == "cache"
