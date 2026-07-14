@@ -27,9 +27,13 @@ jobs:
 
       - name: Run fast gates
         run: |
+          uv run python scripts/check_architecture.py
           uv run ruff check .
           uv run ruff format --check .
           uv run pytest tests -m "not live and not live_harness" -q
+
+      - name: Verify tag matches package version
+        run: test "v$(uv run python -c 'import opentine; print(opentine.__version__)')" = "$GITHUB_REF_NAME"
 
       - name: Build package
         run: uv build --sdist --wheel --out-dir dist

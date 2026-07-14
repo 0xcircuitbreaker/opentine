@@ -2,7 +2,8 @@
 
 ## Supported Python Versions
 
-Opentine 0.1.x supports Python 3.11, 3.12, and 3.13. CI is configured to run on Linux, macOS, and Windows for those versions.
+OpenTine 0.3.x supports Python 3.11, 3.12, and 3.13. CI runs on
+Linux, macOS, and Windows for those versions.
 
 ## Package Stage
 
@@ -10,13 +11,16 @@ The package remains classified as:
 
 `Development Status :: 4 - Beta`
 
-That is intentional. The 0.1.x beta validates the current surface, but it does not promise a 1.0-stable API or long-term `.tine` migration contract.
+That is intentional. The 0.3.x beta validates the current surface, but it does
+not promise a 1.0-stable API. Released v1/v2 compatibility files and v3 object
+identity vectors are covered by golden tests.
 
 ## `.tine` Compatibility
 
-Current compatibility promise: `format_version == 1`.
-
-Future format versions will be rejected until migration support is designed and tested. Patch releases may add validation, tests, or documentation around v1, but should not silently reinterpret future artifact versions.
+Portable files are written as `format_version == 2`; v1 and v2 are readable,
+and v1 is migrated to v2 in memory. Repository object format v3 is stored under
+`.tine/`. Future portable or object schema versions are rejected until an
+explicit migration is implemented and tested. See `TINE_FORMAT.md`.
 
 ## Security Reports
 

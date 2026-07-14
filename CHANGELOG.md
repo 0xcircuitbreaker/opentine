@@ -1,5 +1,107 @@
 # Changelog
 
+## 0.3.0 — 2026-07-14
+
+Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
+v2; repository objects use the new verified v3 format.
+
+### Added
+
+- Dependency-free trusted semantic kernel (≤250 physical lines) with RFC 8785
+  canonical JSON, raw blobs, typed SHA-256 IDs, immutable envelopes, typed
+  parent/causal links, verification, and a minimal repository protocol.
+- `.tine/` object storage, refs/reflogs, CAS ref updates, semantic log/diff,
+  fork, causal context slices, deep `fsck`, deterministic packs, shallow
+  boundaries, missing-object negotiation, fetch/push, and clone.
+- `blob`, `event`, `run`, `attestation`, and separately versioned `annotation`
+  objects. Redaction occurs before canonicalization and hashing.
+- V2 migration that retains the exact legacy bytes and original verification
+  result, recomputes v3 identities, stores a deterministic ID map, and scopes
+  the legacy signature to the legacy blob only.
+- Normalized native/JSONL/OpenTelemetry/framework trace importers and a live
+  `Recorder` workflow for record, resume, fork, evaluate, approve, and promote.
+- Python and MCP search, inspect, minimal context, semantic diff, fork/resume,
+  evaluation, attestation, and promotion operations.
+- Minimal self-hosted HTTP remote with discovery, filtered/shallow fetch,
+  resumable pack transfer, tenant-scoped RBAC, static-token/OIDC seams,
+  encrypted filesystem objects, SQLite metadata, hash-chained audit records, and
+  pluggable storage/index/identity/authz/key/audit/retention/admission policies.
+- CLI commands: `init`, `fsck`, `repo-log`, `object`, `pack`, `migrate-v3`,
+  `fetch`, `push`, `clone`, and `serve`.
+
+### Fixed (post-audit hardening)
+
+- Canonical JSON now rejects integers beyond the exactly representable range
+  (±(2**53−1)) instead of silently coercing them to a float, which could collide
+  two distinct values onto one object id and corrupt stored values.
+- Pack transfer and decompression are bounded (default 256 MiB), reject trailing
+  compressed data, and stream client downloads under the same cap, so a zlib bomb
+  from an untrusted remote or authenticated writer cannot grow memory without
+  bound. The reference server limits individual requests to 16 MiB, caps resumed
+  packs separately, bounds worker concurrency, and applies a socket timeout.
+- Repository JSON CLI commands (`fsck`, `object`, `migrate-v3`, `fetch`, `push`)
+  emit plain JSON; the shared console no longer forces ANSI color, so piped or
+  redirected output is machine-readable and honors `NO_COLOR`.
+- Local CAS ref updates take an exclusive lock, making the compare-and-swap
+  atomic (no lost updates) and directory writes are fsynced for durability.
+- V2 migration is fail-closed: a source that fails integrity (or a requested
+  signature) is refused unless `--allow-unverified` / `strict=False` is passed.
+- Object envelope headers are bound to exactly `{encoding, schema, type}`, and
+  `Run.save` to a repository target rejects `.tine` signing/draft options rather
+  than silently ignoring them.
+- Audit rows are hash-chained and verifiable (`verify_audit_chain`, `audit_head`);
+  read operations are now audited. OIDC ships a real `JWTVerifier` (RS256/ES256,
+  JWKS + issuer/audience/expiry validation).
+- Credential redaction catches vendor-prefixed and header-style key names
+  (`OPENAI_API_KEY`, `x-api-key`, …) while preserving numeric usage counters.
+- The OTel importer parses extracted spans or complete OTLP/JSON exports
+  (camelCase/snake_case keys and typed `AnyValue` attributes); JSONL/framework
+  importers accept ISO-8601 timestamps and
+  list-shaped messages without crashing or corrupting data.
+- Billing: tiered context multipliers apply only the highest matching tier
+  (no compounding); OpenAI-compatible top-level cache tokens
+  (`prompt_cache_hit_tokens`) are billed at the cache rate, not as fresh input.
+
+### Architecture and compatibility
+
+- Every production Python module is capped at 250 physical lines; CI also caps
+  the complete trusted kernel and rejects dependency-layer violations.
+- `Run.save/load` can wrap repositories while legacy file behavior stays v2.
+- The enterprise claim applies to the repository and extension seams. The
+  bundled bounded WSGI server targets development and small self-hosted use,
+  not turnkey HA, hosted SaaS, or billing/payment services.
+
+## 0.2.1 — 2026-07-14
+
+Provider-neutral usage and cost accounting without changing `.tine` v2.
+
+### Added
+
+- Public `Usage`, `BillingResult`, `RateCard`, and `PricingCatalog` records with
+  Decimal arithmetic, effective dates, cache/reasoning dimensions, context
+  thresholds, service modifiers, currencies, and explicit complete/partial/
+  unknown/unmetered states.
+- Signed bundled pricing snapshot plus explicit `tine pricing list`, `show`,
+  `check`, and `update`; local discount/infrastructure overlays remain separate
+  from the signed upstream snapshot. No inference-time network lookup.
+- Provider-scoped cards for OpenAI, Anthropic, Kimi, DeepSeek, Gemini,
+  Grok/xAI, GLM/Z.AI, Qwen, Groq, Together, Mistral/Ministral, and Hermes. An
+  unknown exact price is visible and never inherits another provider's rate.
+- Digest-covered catalog signature/hash provenance, rate-card selection, and
+  calculation inputs; the existing `cost` field is the known subtotal.
+- Strict cost-completeness budgets through `Budget(strict_cost=True)`.
+
+### Changed
+
+- Native OpenAI models use Responses API semantics; compatible services retain
+  a separate Chat Completions transport.
+- Anthropic retains cache buckets and distinguishes early non-billable from
+  midstream billable refusals. Kimi uses its current endpoint/default and
+  preserves reasoning continuation. Google and Ollama retain usage/timing.
+- Every invocation is recorded even for tool-only output, refusal, or a raised
+  error carrying billable partial output.
+- Credential redaction is typed/path-aware so numeric usage counters survive.
+
 ## 0.2.0 — 2026-06-29
 
 Format `.tine` v2 plus six coordinated features. Reading v1 stays fully

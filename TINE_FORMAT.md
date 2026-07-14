@@ -1,6 +1,14 @@
-# `.tine` Format Policy
+# OpenTine format policy
 
-Current format: `format_version == 2`. Supported for reading: `{1, 2}`.
+There are two distinct current formats:
+
+- Portable `*.tine` compatibility files use `format_version == 2`; supported
+  for reading: `{1, 2}`.
+- A `.tine/` repository uses the verified v3 object model described below.
+
+The v3 repository does not change the bytes or identity rules of existing v2
+files. `Run.save(path.tine)` remains v2; `Run.save(repository_directory)` is a
+compatibility wrapper that writes v3 repository objects.
 
 `Run.load()` reads v1 and v2 artifacts. A v1 file is **migrated to v2 in memory**
 on load (the file on disk is never rewritten); re-saving it upgrades it to v2. A
@@ -34,11 +42,18 @@ steps with identical content but different cost share an ID (and surface as a
 | `draft` (top-level bool) | autosave checkpoint marker; emitted only when `true` | absent |
 | `manifest.budget` | `{max_cost, max_steps, max_duration, max_usage, on_breach}` | absent |
 | `graph.steps.<id>.usage` | `{input, output}` token counts; emitted only when present | absent |
+| `graph.steps.<id>.billing` | explicit complete/partial/unknown/unmetered result and calculation provenance | absent |
 | `metadata.tags` | normalized `list[str]`; emitted only when non-empty | absent |
 | `metadata.budget_state` | derived breach record (never authoritative) | absent |
 | `metadata.autosave` | autosave breadcrumb (stripped on final save) | absent |
 | `metadata.migration` | append-only migration chain | recorded on migration |
 | `metadata.integrity.signature` | `tine-sig/1` signature block | absent |
+
+OpenTine 0.2.1 extends v2 without changing `format_version`: normalized usage
+may include input, output, cache-read, 5-minute/1-hour cache-write, reasoning,
+provider total, and typed extra dimensions. `manifest.pricing` pins catalog
+ID/hash/signature provenance, rate-card IDs, effective dates, and calculation
+inputs. The numeric `cost` field remains the known subtotal.
 
 `.tine_runs/index.json` is a **rebuildable sidecar** for `tine search` / `tine ls`
 filters. It is a cache, never part of an artifact, and never authoritative.
@@ -71,13 +86,69 @@ See `SECURITY_MODEL.md` for what a signature does and does not prove.
 
 ## Compatibility
 
-A 0.2.x reader loads and migrates v1, and also **best-effort imports the legacy
+A 0.2.1 or 0.3.x reader loads and migrates v1, and also **best-effort imports the legacy
 0.1.0 "linear" format** (no `format_version`, flat `steps`, short ids) on load —
 recomputing full content-addressed step ids (so they change). A 0.1.x reader
 **cannot** read v2, and once a v1 file is re-saved it becomes v2 (one-way).
 `verify_integrity` checks an artifact under its own on-disk version and refuses a
 newer (e.g. v3) file; the legacy 0.1.0 format has no digest verifiable under
 current rules, so import it with `Run.load` / `tine migrate` rather than `verify`.
+
+### Known v2 identity limitation
+
+V2 preserves its released identity semantics for compatibility. A step ID can
+be formed from in-memory fields before save-time redaction, then the serialized
+step contains the redacted value. The artifact-level digest still verifies,
+but that individual step ID may not identify the exact serialized step bytes.
+V3 corrects this by redacting before canonicalization and object hashing. The
+v2→v3 migrator always recomputes IDs and never carries this identity claim
+forward.
+
+## V3 repository objects
+
+The allowed types are `blob`, `event`, `run`, `attestation`, and `annotation`.
+Objects are immutable envelopes with a positive safe-integer schema version and
+either raw blob bytes or canonical JSON bytes. The typed ID is:
+
+```text
+TYPE:sha256:SHA256(TYPE || NUL || DECIMAL_SCHEMA || NUL || STORED_BODY)
+```
+
+JSON bodies use RFC 8785/JCS canonical encoding, including UTF-16 property-name
+ordering and ECMAScript-compatible number rendering. Envelope headers are also
+canonical. Decoding rejects malformed/non-canonical bodies, encoding/type
+mismatches, and ID mismatches.
+
+Python integer inputs outside JSON's interoperable safe range
+`[-(2**53)+1, 2**53-1]` are rejected rather than rounded; encode 64-bit IDs,
+nanosecond timestamps, and arbitrary-precision amounts as strings. IEEE-754
+float values remain valid even when their canonical spelling uses integer digits.
+
+Typed links are validated:
+
+- event `parent_ids` and `causal_ids` point to events;
+- event input/output/artifact fields point to blobs;
+- run events, roots, and tips point to events, with roots/tips included in the
+  run's event set;
+- run manifests and other `*_blob` fields point to blobs;
+- annotation `previous_id` points to an annotation;
+- every linked object exists locally or is recorded as an explicit shallow
+  boundary.
+
+Deep `fsck` verifies all loose/packed objects, refs, causal links, and event
+cycles. Client-side typed/path-aware redaction runs before JCS encoding and
+hashing; raw credential-shaped text blobs are scrubbed before their ID is
+computed.
+
+### V2 migration boundary
+
+Migration is strict by default and rejects a source with a failing integrity
+check; `strict=False` / `--allow-unverified` is the explicit recovery path. It
+stores the original v2 bytes as an unmodified legacy blob and records the source
+artifact's integrity/signature result. It then creates newly redacted and hashed
+v3 content plus a deterministic old→new map. The run object
+sets `signature_scope = "legacy_blob_only"`; a legacy signature is never an
+attestation over the generated v3 objects.
 
 ## Golden Fixtures
 
