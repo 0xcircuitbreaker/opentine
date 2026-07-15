@@ -51,9 +51,9 @@ a stale expected value is rejected instead of silently overwriting another
 writer.
 
 Semantic diff reports common/divergent events, cost, latency, tool path,
-content/blob changes, usage, and billing. Transcript line merging is not an
-operation. Agents select, compose, fork, resume, evaluate, attest, and promote
-run graphs instead.
+content/blob and artifact changes, usage, billing, and evaluation scores.
+Transcript line merging is not an operation. Agents select, compose, fork,
+resume, evaluate, attest, and promote run graphs instead.
 
 ## V2 migration
 
@@ -71,6 +71,12 @@ Migration:
 5. stores a deterministic old-step-ID → event-ID map;
 6. marks any v2 signature as `legacy_blob_only`.
 
+Migration is fail-closed by default for a bad integrity digest and for any
+signature the caller requested to verify. `--allow-unverified` is an explicit
+escape hatch and the failed result remains recorded. The exact legacy blob is
+intentionally not redacted, so it can contain credentials present in the source
+artifact and should be treated as sensitive.
+
 It never claims a v2 signature authenticates newly generated v3 objects. This
 also closes a v2 identity limitation: v2 compatibility saves can redact fields
 after a step ID was formed, whereas v3 always hashes the redacted stored bytes.
@@ -81,7 +87,9 @@ after a step ID was formed, whereas v3 always hashes the redacted stored bytes.
 pricing manifests, then appends normalized events live. The code manifest marks
 capture failures explicitly when Git state is unavailable. Importers accept native
 OpenTine records, JSONL, and OpenTelemetry GenAI spans or complete OTLP/JSON
-exports. Framework importers best-effort normalize common serialized shapes
+exports. Malformed JSONL lines are skipped independently, large integers are
+string-preserved, and imported dependencies are ordered before recording.
+Framework importers best-effort normalize common serialized shapes
 from LangChain, LlamaIndex, AutoGen, CrewAI, and OpenAI Agents.
 
 Local search retrieves successful runs and evaluation scores. `context_slice`
@@ -102,7 +110,9 @@ with a SHA-256 checksum. Negotiation sends only objects reachable from wanted
 IDs that the receiver does not already have. Packs support shallow boundaries
 and filtered fetch without pretending omitted history is present. Compressed
 transfers and decompressed manifests are capped at 256 MiB and trailing zlib
-streams/data are rejected.
+streams/data are rejected. Client control responses are streamed under a 1 MiB
+cap; resumable offsets must advance, loops are bounded, and abandoned upload
+state is reaped.
 
 The HTTP protocol exposes:
 
@@ -119,7 +129,8 @@ ref update.
 ## Reference self-hosted remote
 
 The reference deployment uses encrypted filesystem objects and SQLite for
-object metadata, refs, and hash-chained audit records. AES-GCM is required by
+object metadata, refs, and HMAC-chained audit records with an authenticated
+head outside SQLite. AES-GCM is required by
 the reference server; production deployments provide a KMS-backed
 `KeyProvider`.
 
@@ -130,8 +141,9 @@ Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
 be injected. Validated claims map to reader/writer/admin roles and a tenant.
 
 Authorization is tenant-scoped and enforced on every read and mutating path.
-Audit rows are hash-chained so tampering is detectable via `verify_audit_chain`
-(triggers remain as defense in depth). Retention hooks gate object deletion, and
+Audit verification detects interior edits and end truncation. Legacy rows need
+an explicit trust-on-migration flag and retain a warning (triggers remain as
+defense in depth). Retention hooks gate object deletion, and
 admission policies can reject pack bytes/object counts or ref updates based on
 rate and budget policy. Resumable uploads invoke admission at declaration and
 again after pack inspection so policies can bound both bytes and object counts.

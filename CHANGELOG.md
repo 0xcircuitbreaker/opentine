@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-14
+## 0.3.0 — 2026-07-15
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -34,7 +34,7 @@ v2; repository objects use the new verified v3 format.
 - Canonical JSON now rejects integers beyond the exactly representable range
   (±(2**53−1)) instead of silently coercing them to a float, which could collide
   two distinct values onto one object id and corrupt stored values.
-- Pack transfer and decompression are bounded (default 256 MiB), reject trailing
+- Pack transfer and decompression are bounded (maximum 256 MiB), reject trailing
   compressed data, and stream client downloads under the same cap, so a zlib bomb
   from an untrusted remote or authenticated writer cannot grow memory without
   bound. The reference server limits individual requests to 16 MiB, caps resumed
@@ -49,9 +49,13 @@ v2; repository objects use the new verified v3 format.
 - Object envelope headers are bound to exactly `{encoding, schema, type}`, and
   `Run.save` to a repository target rejects `.tine` signing/draft options rather
   than silently ignoring them.
-- Audit rows are hash-chained and verifiable (`verify_audit_chain`, `audit_head`);
-  read operations are now audited. OIDC ships a real `JWTVerifier` (RS256/ES256,
-  JWKS + issuer/audience/expiry validation).
+- Audit rows use a serialized HMAC chain and authenticated external head;
+  startup and `verify_audit_chain` detect modification, reordering, and
+  truncation. Legacy rows require explicit trust-on-migration and remain marked
+  unverified. Read operations are audited.
+- OIDC ships a real `JWTVerifier` with RS256/ES256 algorithm/key binding, JWKS,
+  issuer/audience/authorized-party/time validation, critical-header rejection,
+  and bounded discovery documents.
 - Credential redaction catches vendor-prefixed and header-style key names
   (`OPENAI_API_KEY`, `x-api-key`, …) while preserving numeric usage counters.
 - The OTel importer parses extracted spans or complete OTLP/JSON exports
@@ -61,6 +65,23 @@ v2; repository objects use the new verified v3 format.
 - Billing: tiered context multipliers apply only the highest matching tier
   (no compounding); OpenAI-compatible top-level cache tokens
   (`prompt_cache_hit_tokens`) are billed at the cache rate, not as fresh input.
+- All client control-plane JSON is streamed under a 1 MiB cap. Resumable upload
+  offsets must advance, loops are bounded, upload IDs are validated, per-upload
+  locks are released, and stale partial uploads are reaped. Agent web fetches
+  also enforce their policy body cap during streaming rather than after buffering.
+- Raw and structured redaction covers Basic/Cookie credentials in header lines,
+  arrays, pairs, and HAR-style `{name, value}` records. Large trace integers are
+  string-preserved, malformed JSONL records are skipped per line, and imported
+  parents/causal links are ordered before recording.
+- Kernel errors now wrap oversized integer literals; v2 migration parses the
+  verified bytes only; OIDC rejects unsupported critical headers; pack manifests
+  require an integer version; repository descriptors are bounded and versioned.
+- The signed catalog was reverified and rotated to a retained release key. It
+  adds Gemini 3.5 Flash and GLM-5.2, maps current DeepSeek compatibility aliases
+  to V4 Flash, distinguishes Gemini audio/cache dimensions and exact service
+  rates, and updates current Mistral model-card sources.
+- Live traces retain cost and latency, causal forks retain causal ancestors, and
+  semantic diff includes artifacts and evaluation scores.
 
 ### Architecture and compatibility
 
@@ -71,7 +92,7 @@ v2; repository objects use the new verified v3 format.
   bundled bounded WSGI server targets development and small self-hosted use,
   not turnkey HA, hosted SaaS, or billing/payment services.
 
-## 0.2.1 — 2026-07-14
+## 0.2.1 — 2026-07-15
 
 Provider-neutral usage and cost accounting without changing `.tine` v2.
 

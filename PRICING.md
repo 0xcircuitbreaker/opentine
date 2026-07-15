@@ -17,9 +17,9 @@ along with `amount_usd`, `known_subtotal_usd`, warnings, the calculation inputs,
 catalog provenance, the applicable rate-card ID, and its effective date.
 
 `RateCard` identifies one provider/model (plus aliases), effective range,
-per-million-token rates, context thresholds, service modifiers, currency,
-source URLs, and verification date. `PricingCatalog` performs deterministic
-provider + model + date resolution.
+per-million-token rates, context thresholds, service modifiers or exact
+service-specific rates, currency, source URLs, and verification date.
+`PricingCatalog` performs deterministic provider + model + date resolution.
 
 All arithmetic uses `Decimal`. The legacy numeric response field `cost` remains
 the known USD subtotal for compatibility. For incomplete billing, `cost` can be
@@ -59,7 +59,7 @@ releases without making an old run depend on today's catalog.
 
 ## Frontier snapshot
 
-The bundled snapshot verified on 2026-07-14 includes these required frontier
+The bundled snapshot verified on 2026-07-15 includes these required frontier
 cards (USD per million tokens):
 
 | Family | Input | Cache read | Output | Other rules |
@@ -78,6 +78,19 @@ Groq, Together, Mistral/Ministral, and OpenRouter Hermes. Use `tine pricing
 list` for the exact effective records rather than copying rates into code.
 Direct Nous/Hermes rates are dynamic in the upstream service, so that card is
 intentionally `unknown` until a local overlay supplies a price.
+
+The current snapshot includes Gemini 3.5 Flash, GLM-5.2, DeepSeek V4
+Pro/Flash, and the current DeepSeek `deepseek-chat`/`deepseek-reasoner` aliases.
+Gemini audio and cached-audio tokens remain separate dimensions, and exact
+Batch/Flex/Priority rates are pinned where a scalar modifier would be wrong.
+The direct GLM adapter prices the Z.AI global endpoint; a China-region key uses
+provider identity `glm-cn` and remains visibly unpriced unless a regional local
+overlay is supplied.
+
+Release maintainers sign snapshots with
+`python -m scripts.sign_pricing_catalog ... --key /secure/private.pem --key-id ...`.
+Private release keys must remain outside the source tree; old public keys stay
+trusted so previously signed snapshots continue to verify.
 
 Primary rate sources are linked on every card, including the
 [OpenAI model catalog](https://developers.openai.com/api/docs/models),

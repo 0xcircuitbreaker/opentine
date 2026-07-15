@@ -120,7 +120,7 @@ from opentine.models.openai import OpenAI
 
 OpenAI("gpt-5.6")                 # native Responses API
 Anthropic("claude-sonnet-5")
-Google("gemini-3-flash-preview")
+Google("gemini-3.5-flash")
 Ollama("qwen3")                  # usage/timing retained; API is unmetered
 ```
 
@@ -135,13 +135,17 @@ from opentine.models.compat import (
 
 Kimi()                            # kimi-k2.6, api.moonshot.ai
 DeepSeek()                        # deepseek-v4-flash
-GLM()                             # glm-5.1 / Z.AI global endpoint
+GLM()                             # glm-5.2 / Z.AI global endpoint
 Grok()                            # grok-4.5
 Qwen()                            # qwen3.7-max international endpoint
 Ministral()                       # ministral-3-14b
 OpenRouter()                      # nousresearch/hermes-4-70b
 Hermes()                          # direct Nous; local price overlay expected
 ```
+
+`GLM_REGION=china` (or a legacy dotted GLM key) selects the BigModel China
+endpoint and provider identity `glm-cn`; add a regional catalog overlay rather
+than applying Z.AI global USD rates to that endpoint.
 
 OpenAI native calls use Responses API items, tool-call continuation state,
 refusals, and final usage. Anthropic handles cache-write buckets and adaptive
@@ -183,7 +187,10 @@ and rejects upward imports into the kernel.
 The v2→v3 migrator preserves the exact original artifact as a legacy blob,
 records its original integrity/signature result, rebuilds redacted v3 objects,
 and stores an old→new ID map. A legacy signature is explicitly scoped to the
-legacy blob; it is never presented as a signature over new v3 objects.
+legacy blob; it is never presented as a signature over new v3 objects. Bad
+integrity or a requested signature failure is refused unless
+`--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
+retain source secrets and should be reviewed before synchronization.
 
 See [REPOSITORY.md](REPOSITORY.md) for object semantics and synchronization.
 
@@ -238,6 +245,12 @@ pluggable. The repository and extension seams are the enterprise foundation;
 the bundled WSGI server is a bounded reference deployment for development and
 small self-hosted installations, not a turnkey HA service, hosted control plane,
 or payment product.
+
+Audit rows use a serialized HMAC chain and authenticated head outside SQLite;
+legacy rows require explicit trust-on-migration. The reference app derives the
+audit key from its local KMS master. Operators using a custom KMS adapter should
+provide a separately derived audit key and protect both its checkpoint and
+backups.
 
 ```bash
 tine push https://runs.example --tenant team --repo .
