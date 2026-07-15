@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+from opentine.kernel import KernelError
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -22,16 +25,27 @@ class SearchResult:
     matched_text: str = ""
 
 
+def _finite(value: Any, default: float | None = None) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return number if math.isfinite(number) else default
+
+
 def _text(repo: Repo, event: dict[str, Any]) -> str:
     values: list[str] = []
     for field in ("input_blob", "output_blob"):
         oid = event.get(field)
         if not oid or not repo.has(oid):
             continue
-        raw = repo.get(oid).body
+        try:
+            raw = repo.get(oid).body
+        except (KernelError, KeyError, OSError):
+            continue
         try:
             values.append(json.dumps(json.loads(raw), sort_keys=True))
-        except (UnicodeDecodeError, json.JSONDecodeError):
+        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
             values.append(raw.decode(errors="replace"))
     return " ".join(values)
 
@@ -45,36 +59,63 @@ def search(
     model: str | None = None,
     limit: int = 20,
 ) -> list[SearchResult]:
+    if type(limit) is not int or not 1 <= limit <= 1000:
+        raise ValueError("search limit must be between 1 and 1000")
     scores: dict[str, list[float]] = {}
     for oid in repo.iter_oids():
         if not oid.startswith("attestation:"):
             continue
-        payload = repo.get(oid).payload()
+        try:
+            payload = repo.get(oid).payload()
+        except (KernelError, KeyError, OSError):
+            continue
         claim = payload.get("claim") or {}
+        if not isinstance(claim, dict) or not isinstance(claim.get("scores") or {}, dict):
+            continue
         if claim.get("kind") != "evaluation":
             continue
-        values = [float(value) for value in (claim.get("scores") or {}).values()]
-        if values:
-            scores.setdefault(payload["target_id"], []).append(sum(values) / len(values))
+        values = [
+            number
+            for value in (claim.get("scores") or {}).values()
+            if (number := _finite(value)) is not None
+        ]
+        target = payload.get("target_id")
+        average = _finite(sum(values) / len(values)) if values else None
+        if isinstance(target, str) and average is not None:
+            scores.setdefault(target, []).append(average)
 
-    candidates = set(repo.list_refs().values())
-    candidates.update(
-        oid
-        for oid in repo.iter_oids()
-        if oid.startswith("run:")
-        and repo.get(oid).payload().get("status") in {"completed", "failed"}
-    )
+    try:
+        candidates = set(repo.list_refs().values())
+    except (KernelError, OSError, UnicodeError, ValueError):
+        candidates = set()
+    for oid in repo.iter_oids():
+        if not oid.startswith("run:"):
+            continue
+        try:
+            payload = repo.get(oid).payload()
+        except (KernelError, KeyError, OSError):
+            continue
+        if payload.get("status") in {"completed", "failed"}:
+            candidates.add(oid)
     needle = query.casefold().strip()
     results: list[SearchResult] = []
     for run_id in candidates:
-        envelope = repo.get(run_id)
+        try:
+            envelope = repo.get(run_id)
+        except (KernelError, KeyError, OSError):
+            continue
         if envelope.object_type != "run":
             continue
         payload = envelope.payload()
         status = str(payload.get("status", "running"))
         if successful_only and status != "completed":
             continue
-        events = [repo.get(oid).payload() for oid in payload.get("events") or [] if repo.has(oid)]
+        events = []
+        for oid in payload.get("events") or []:
+            try:
+                events.append(repo.get(oid).payload())
+            except (KernelError, KeyError, OSError):
+                continue
         models = tuple(sorted({str(event.get("model")) for event in events if event.get("model")}))
         if model and not any(model.casefold() in name.casefold() for name in models):
             continue
@@ -90,8 +131,8 @@ def search(
                 run_id,
                 status,
                 score,
-                sum(float(event.get("cost") or 0) for event in events),
-                sum(float(event.get("duration") or 0) for event in events),
+                sum(_finite(event.get("cost"), 0) or 0 for event in events),
+                sum(_finite(event.get("duration"), 0) or 0 for event in events),
                 models,
                 text[:240],
             )
@@ -127,7 +168,7 @@ def inspect(repo: Repo, oid: str, *, resolve_blobs: bool = False) -> dict[str, A
                 raw = repo.get(value).body
                 try:
                     blobs[field] = json.loads(raw)
-                except (UnicodeDecodeError, json.JSONDecodeError):
+                except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
                     blobs[field] = raw.decode(errors="replace")
         result["resolved_blobs"] = blobs
     return result

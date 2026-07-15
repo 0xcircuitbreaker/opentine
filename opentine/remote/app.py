@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
+from opentine.kernel import OBJECT_TYPES
+from opentine.remote._uploads import UploadRegistry
 from opentine.remote.service import RemoteService
 from opentine.repository.pack import MAX_PACK_BYTES
 
@@ -24,6 +26,8 @@ class RemoteApp:
         *,
         max_request_bytes: int = 16 * 1024 * 1024,
         max_upload_bytes: int = MAX_PACK_BYTES,
+        upload_ttl_seconds: float = 24 * 60 * 60,
+        max_pending_uploads: int = 1024,
     ):
         self.service = service
         self.state = Path(state_dir).resolve()
@@ -33,8 +37,11 @@ class RemoteApp:
         self.max_upload_bytes = min(max_upload_bytes, MAX_PACK_BYTES)
         if self.max_request_bytes < 1 or self.max_upload_bytes < 1:
             raise ValueError("request and upload limits must be positive")
-        self._upload_guard = threading.Lock()
-        self._upload_locks: dict[str, threading.Lock] = {}
+        self._uploads = UploadRegistry(
+            self.uploads,
+            ttl_seconds=upload_ttl_seconds,
+            max_pending=max_pending_uploads,
+        )
         self._install_guard = threading.BoundedSemaphore(2)
 
     @staticmethod
@@ -86,7 +93,12 @@ class RemoteApp:
             path = environ.get("PATH_INFO", "/").rstrip("/") or "/"
             if method == "GET" and path == "/v1/capabilities":
                 return self._json_response(start_response, "200 OK", self.service.capabilities())
-            identity = self.service.authenticate(self._headers(environ))
+            try:
+                identity = self.service.authenticate(self._headers(environ))
+            except PermissionError:
+                return self._json_response(
+                    start_response, "401 Unauthorized", {"error": "authentication failed"}
+                )
             prefix = "/v1/tenants/"
             if not path.startswith(prefix):
                 return self._json_response(start_response, "404 Not Found", {"error": "not found"})
@@ -95,14 +107,16 @@ class RemoteApp:
             if not separator:
                 raise ValueError("missing tenant resource")
             return self._dispatch(identity, tenant, resource, method, environ, start_response)
-        except json.JSONDecodeError as exc:
-            return self._json_response(start_response, "400 Bad Request", {"error": str(exc)})
-        except PermissionError as exc:
-            return self._json_response(start_response, "403 Forbidden", {"error": str(exc)})
-        except KeyError as exc:
-            return self._json_response(start_response, "404 Not Found", {"error": str(exc)})
-        except ValueError as exc:
-            return self._json_response(start_response, "400 Bad Request", {"error": str(exc)})
+        except json.JSONDecodeError:
+            return self._json_response(start_response, "400 Bad Request", {"error": "invalid JSON"})
+        except PermissionError:
+            return self._json_response(start_response, "403 Forbidden", {"error": "forbidden"})
+        except KeyError:
+            return self._json_response(start_response, "404 Not Found", {"error": "not found"})
+        except ValueError:
+            return self._json_response(
+                start_response, "400 Bad Request", {"error": "invalid request"}
+            )
         except Exception as exc:
             return self._json_response(
                 start_response, "500 Internal Server Error", {"error": type(exc).__name__}
@@ -133,6 +147,11 @@ class RemoteApp:
             return self._json_response(start_response, "200 OK", {"missing": missing})
         if resource == "fetch" and method == "POST":
             request = self._json(environ)
+            raw_types = request.get("object_types") or []
+            if not isinstance(raw_types, list) or not all(
+                isinstance(item, str) and item in OBJECT_TYPES for item in raw_types
+            ):
+                raise ValueError("invalid object type filter")
             with self._install_guard:
                 data = self.service.fetch_pack(
                     identity,
@@ -140,13 +159,12 @@ class RemoteApp:
                     request.get("wants") or [],
                     request.get("haves") or [],
                     depth=request.get("depth"),
-                    object_types=set(request.get("object_types") or []) or None,
+                    object_types=set(raw_types) or None,
                 )
             return self._response(start_response, "200 OK", data, "application/vnd.opentine.pack")
         if resource == "packs" and method == "POST":
             content_type = self._headers(environ).get("content-type", "")
             if content_type.startswith("application/vnd.opentine.pack"):
-                # Authorize before reading the (potentially large) body into memory.
                 self.service._authorize(identity, "upload", tenant)
                 with self._install_guard:
                     pack_id, count = self.service.install_pack(
@@ -162,20 +180,17 @@ class RemoteApp:
         if resource == "search" and method == "POST":
             results = self.service.search(identity, tenant, self._json(environ))
             return self._json_response(start_response, "200 OK", {"objects": results})
+        if resource == "audit/verify" and method == "GET":
+            result = self.service.verify_audit_chain(identity, tenant)
+            return self._json_response(start_response, "200 OK", result)
         return self._json_response(start_response, "404 Not Found", {"error": "not found"})
-
-    def _upload_paths(self, tenant: str, upload_id: str) -> tuple[Path, Path]:
-        if not upload_id.isalnum():
-            raise ValueError("invalid upload id")
-        directory = self.uploads / tenant
-        directory.mkdir(parents=True, exist_ok=True)
-        return directory / f"{upload_id}.part", directory / f"{upload_id}.json"
 
     def _start_upload(self, identity, tenant, request, start_response):
         self.service._authorize(identity, "upload", tenant)
-        size = int(request["size"])
+        size = request.get("size")
         digest = str(request["sha256"])
-        if size < 0 or size > self.max_upload_bytes or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        valid_size = type(size) is int and 0 <= size <= self.max_upload_bytes
+        if not valid_size or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError("invalid resumable upload declaration")
         self.service.admission.admit(
             identity,
@@ -183,29 +198,39 @@ class RemoteApp:
             {"bytes": size, "objects": 0, "phase": "declaration", "tenant": tenant},
         )
         upload_id = uuid.uuid4().hex
-        part, metadata = self._upload_paths(tenant, upload_id)
-        part.touch(exist_ok=False)
-        metadata.write_text(json.dumps({"sha256": digest, "size": size}), encoding="utf-8")
+        self._uploads.create(tenant, upload_id, {"sha256": digest, "size": size})
         return self._json_response(
             start_response, "201 Created", {"offset": 0, "upload_id": upload_id}
         )
 
     def _upload(self, identity, tenant, upload_id, method, environ, start_response):
         self.service._authorize(identity, "upload", tenant)
-        with self._upload_guard:
-            lock = self._upload_locks.setdefault(f"{tenant}/{upload_id}", threading.Lock())
-        with lock:
-            return self._upload_locked(identity, tenant, upload_id, method, environ, start_response)
+        with self._uploads.locked(tenant, upload_id) as paths:
+            terminal = False
+            try:
+                response, terminal = self._upload_locked(
+                    identity, tenant, method, environ, start_response, paths
+                )
+                return response
+            except Exception:
+                terminal = True
+                raise
+            finally:
+                if terminal:
+                    self._uploads.cleanup(paths)
 
-    def _upload_locked(self, identity, tenant, upload_id, method, environ, start_response):
-        part, metadata_path = self._upload_paths(tenant, upload_id)
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    def _upload_locked(self, identity, tenant, method, environ, start_response, paths):
+        part, metadata_path = paths
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise KeyError("upload not found") from exc
         offset = part.stat().st_size
         if method == "HEAD":
-            return self._json_response(start_response, "200 OK", {"offset": offset})
+            return self._json_response(start_response, "200 OK", {"offset": offset}), False
         expected_offset = int(self._headers(environ).get("upload-offset", "-1"))
         if expected_offset != offset:
-            return self._json_response(start_response, "409 Conflict", {"offset": offset})
+            return self._json_response(start_response, "409 Conflict", {"offset": offset}), False
         chunk = self._body(environ)
         if offset + len(chunk) > metadata["size"]:
             raise ValueError("upload exceeds declared size")
@@ -215,16 +240,11 @@ class RemoteApp:
             os.fsync(handle.fileno())
         offset += len(chunk)
         if offset != metadata["size"]:
-            return self._json_response(start_response, "200 OK", {"offset": offset})
+            return self._json_response(start_response, "200 OK", {"offset": offset}), False
         with self._install_guard:
             data = part.read_bytes()
             if hashlib.sha256(data).hexdigest() != metadata["sha256"]:
                 raise ValueError("resumable upload checksum mismatch")
             pack_id, count = self.service.install_pack(identity, tenant, data)
-        part.unlink()
-        metadata_path.unlink()
-        return self._json_response(
-            start_response,
-            "201 Created",
-            {"objects": count, "offset": offset, "pack_id": pack_id},
-        )
+        result = {"objects": count, "offset": offset, "pack_id": pack_id}
+        return self._json_response(start_response, "201 Created", result), True

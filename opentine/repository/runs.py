@@ -8,11 +8,22 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from opentine._canon import _redact
+from opentine._jsonsafe import json_safe
 from opentine.kernel import canonical_json
 
 if TYPE_CHECKING:
     from opentine.graph import Run
     from opentine.repository.store import Repo
+
+MAX_V2_ARTIFACT_BYTES = 256 * 1024 * 1024
+
+
+def _read_v2(path: Path) -> bytes:
+    with path.open("rb") as handle:
+        raw = handle.read(MAX_V2_ARTIFACT_BYTES + 1)
+    if len(raw) > MAX_V2_ARTIFACT_BYTES:
+        raise ValueError("v2 artifact exceeds migration size limit")
+    return raw
 
 
 @dataclass(frozen=True)
@@ -23,7 +34,7 @@ class RunObjectResult:
 
 
 def _json_blob(repo: Repo, value: Any) -> str:
-    return repo.put("blob", canonical_json(_redact(value)), redact=False)
+    return repo.put("blob", canonical_json(_redact(json_safe(value))), redact=False)
 
 
 def put_run(
@@ -55,7 +66,7 @@ def put_run(
             "tool": _redact(step.tool_info),
             "usage": _redact(step.usage),
         }
-        event_id = repo.put("event", payload)
+        event_id = repo.put("event", json_safe(payload))
         event_map[step.id] = event_id
         events.append(event_id)
 
@@ -88,13 +99,13 @@ def put_run(
                 "signature_scope": "legacy_blob_only",
             }
         )
-    run_id = repo.put("run", payload)
+    run_id = repo.put("run", json_safe(payload))
     annotation_id = None
     mutable = {"metadata": run.metadata, "tags": run.tags}
     if any(mutable.values()):
         annotation_id = repo.put(
             "annotation",
-            {"previous_id": None, "target_id": run_id, "value": mutable},
+            {"previous_id": None, "target_id": run_id, "value": json_safe(mutable)},
         )
     if ref:
         old = repo.read_ref(ref)
@@ -181,10 +192,10 @@ def migrate_v2(
     trust_embedded: bool = False,
     strict: bool = True,
 ) -> RunObjectResult:
-    from opentine.graph import Run
+    from opentine.graph import Run, _run_from_dict
 
     source = Path(path)
-    raw = source.read_bytes()
+    raw = _read_v2(source)
     data = json.loads(raw)
     if data.get("format_version") != 2:
         raise ValueError("v3 repository migration requires a .tine v2 source")
@@ -213,7 +224,7 @@ def migrate_v2(
         "scope": "original-v2-artifact",
     }
     legacy_blob = repo.put("blob", raw, redact=False)
-    run = Run.load(source)
+    run = _run_from_dict(data)
     return put_run(
         repo,
         run,

@@ -6,6 +6,7 @@ import base64
 import hashlib
 import json
 import zlib
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,7 @@ MAGIC = b"TINEPACK3\0"
 #: object bytes as base64, so 256 MiB still permits roughly 190 MiB of raw objects.
 MAX_PACK_BYTES = 256 * 1024 * 1024
 MAX_PACK_BODY_BYTES = 256 * 1024 * 1024
+MAX_PACK_OBJECTS = 10_000
 
 
 def _bounded_decompress(data: bytes, limit: int) -> bytes:
@@ -51,13 +53,23 @@ def reachable(
     depth: int | None = None,
     include_associated: bool = True,
 ) -> list[str]:
-    queue = [(oid, 0) for oid in wants]
+    if not isinstance(wants, list) or not all(isinstance(oid, str) for oid in wants):
+        raise KernelError("pack wants must be a list of object ids")
+    if len(wants) > MAX_PACK_OBJECTS or (
+        depth is not None and (type(depth) is not int or depth < 0)
+    ):
+        raise KernelError("invalid or excessive pack negotiation request")
+    for oid in wants:
+        parse_oid(oid)
+    queue = deque((oid, 0) for oid in wants)
     seen: set[str] = set()
     while True:
         while queue:
-            oid, event_depth = queue.pop(0)
+            oid, event_depth = queue.popleft()
             if oid in seen or not repo.has(oid):
                 continue
+            if len(seen) >= MAX_PACK_OBJECTS:
+                raise KernelError("pack graph exceeds maximum object count")
             seen.add(oid)
             envelope = repo.get(oid)
             links = list(validate_links(envelope))
@@ -87,23 +99,35 @@ def reachable(
 def negotiate(
     repo: Repo, wants: list[str], haves: list[str], *, depth: int | None = None
 ) -> list[str]:
-    available = set(reachable(repo, wants, depth=depth))
-    possessed: set[str] = set()
+    if not isinstance(haves, list) or not all(isinstance(oid, str) for oid in haves):
+        raise KernelError("pack haves must be a list of object ids")
     for oid in haves:
-        if repo.has(oid):
-            possessed.update(reachable(repo, [oid], include_associated=False))
+        parse_oid(oid)
+    available = set(reachable(repo, wants, depth=depth))
+    if len(haves) > MAX_PACK_OBJECTS:
+        raise KernelError("pack negotiation has too many haves")
+    possessed = set(reachable(repo, haves, include_associated=False))
     return sorted(available - possessed)
 
 
 def create_pack(repo: Repo, oids: list[str], *, max_body: int = MAX_PACK_BODY_BYTES) -> bytes:
+    if not isinstance(oids, list) or not all(isinstance(oid, str) for oid in oids):
+        raise KernelError("pack objects must be a list of object ids")
+    if type(max_body) is not int or max_body < 1 or len(oids) > MAX_PACK_OBJECTS:
+        raise KernelError("invalid or excessive pack creation request")
     unique = sorted(set(oids))
     selected = set(unique)
     shallow = sorted(
         {link for oid in unique for link in validate_links(repo.get(oid)) if link not in selected}
     )
-    entries = [
-        {"data": base64.b64encode(repo.raw(oid)).decode("ascii"), "id": oid} for oid in unique
-    ]
+    estimated = 128 + sum(len(oid) + 4 for oid in shallow)
+    entries = []
+    for oid in unique:
+        encoded = base64.b64encode(repo.raw(oid)).decode("ascii")
+        estimated += len(encoded) + len(oid) + 32
+        if estimated > max_body:
+            raise KernelError("pack exceeds maximum decompressed size")
+        entries.append({"data": encoded, "id": oid})
     body = canonical_json({"objects": entries, "shallow": shallow, "version": 1})
     if len(body) > max_body:
         raise KernelError("pack exceeds maximum decompressed size")
@@ -134,14 +158,22 @@ def inspect_pack(
         raise KernelError("pack checksum mismatch")
     try:
         payload = json.loads(body)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, RecursionError) as exc:
         raise KernelError("invalid pack manifest") from exc
-    if not isinstance(payload, dict) or canonical_json(payload) != body:
+    try:
+        canonical = canonical_json(payload)
+    except (KernelError, RecursionError) as exc:
+        raise KernelError("invalid pack manifest") from exc
+    if not isinstance(payload, dict) or canonical != body:
         raise KernelError("non-canonical or unsupported pack")
-    if set(payload) != {"objects", "shallow", "version"} or payload.get("version") != 1:
+    if set(payload) != {"objects", "shallow", "version"} or type(payload.get("version")) is not int:
+        raise KernelError("non-canonical or unsupported pack")
+    if payload["version"] != 1:
         raise KernelError("non-canonical or unsupported pack")
     if not isinstance(payload.get("objects"), list) or not isinstance(payload.get("shallow"), list):
         raise KernelError("invalid pack manifest")
+    if len(payload["objects"]) > MAX_PACK_OBJECTS or len(payload["shallow"]) > MAX_PACK_OBJECTS:
+        raise KernelError("pack exceeds maximum object count")
     objects: list[tuple[str, bytes]] = []
     for entry in payload.get("objects") or []:
         try:
@@ -158,6 +190,8 @@ def inspect_pack(
         raise KernelError("invalid shallow object id")
     if len(set(object_ids)) != len(object_ids) or len(set(shallow)) != len(shallow):
         raise KernelError("pack contains duplicate object ids")
+    if set(object_ids) & set(shallow):
+        raise KernelError("packed objects cannot also be shallow boundaries")
     for oid in shallow:
         parse_oid(oid)
     return f"sha256:{actual.hex()}", objects, shallow
@@ -186,8 +220,10 @@ def install_pack(
     pack_path = repo.path / "packs" / f"{pack_id[7:]}.pack"
     if not pack_path.exists():
         _atomic_bytes(pack_path, data)
-    if shallow:
-        shallow_path = repo.path / "shallow"
+    shallow_path = repo.path / "shallow"
+    if shallow or shallow_path.exists():
         existing = set(shallow_path.read_text().splitlines()) if shallow_path.exists() else set()
-        _atomic_bytes(shallow_path, ("\n".join(sorted(existing | set(shallow))) + "\n").encode())
+        boundaries = (existing - packed_ids) | set(shallow)
+        body = ("\n".join(sorted(boundaries)) + ("\n" if boundaries else "")).encode()
+        _atomic_bytes(shallow_path, body)
     return PackResult(pack_id, tuple(oid for oid, _ in objects), written)

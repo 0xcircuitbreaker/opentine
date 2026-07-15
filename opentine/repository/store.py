@@ -18,6 +18,7 @@ from opentine.kernel import (
     verify_object,
 )
 from opentine.redaction import redact_blob
+from opentine.repository._config import validate_config
 from opentine.repository._reflog import append_reflog
 
 _UNSET = object()
@@ -49,8 +50,7 @@ def _repo_path(path: str | Path) -> Path:
 class Repo:
     def __init__(self, tine_dir: str | Path):
         self.path = Path(tine_dir).resolve()
-        if not (self.path / "config.json").is_file():
-            raise FileNotFoundError(f"not an OpenTine repository: {self.path}")
+        validate_config(self.path / "config.json")
 
     @classmethod
     def init(cls, path: str | Path = ".", *, bare: bool = False) -> Repo:
@@ -162,7 +162,12 @@ class Repo:
     @staticmethod
     def _ref_name(name: str) -> str:
         normalized = name.removeprefix("refs/")
-        if not _REF_RE.fullmatch(normalized) or ".." in normalized.split("/"):
+        parts = normalized.split("/")
+        if (
+            len(normalized) > 512
+            or not _REF_RE.fullmatch(normalized)
+            or any(part in {"", ".", ".."} or part.endswith(".lock") for part in parts)
+        ):
             raise ValueError(f"invalid ref name: {name!r}")
         return normalized
 
@@ -199,6 +204,7 @@ class Repo:
             if expected_old is not _UNSET and old != expected_old:
                 raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
             with os.fdopen(fd, "wb") as handle:
+                fd = -1
                 handle.write((new_oid + "\n").encode())
                 handle.flush()
                 os.fsync(handle.fileno())
@@ -206,10 +212,8 @@ class Repo:
             committed = True
         finally:
             if not committed:
-                try:
+                if fd >= 0:
                     os.close(fd)
-                except OSError:
-                    pass
                 lock_path.unlink(missing_ok=True)
         _fsync_dir(ref_path.parent)
         append_reflog(self.path, normalized, old, new_oid, actor)

@@ -58,13 +58,21 @@ def reference_app(
     keys: KeyProvider | None = None,
     authorization=None,
     admission=None,
+    audit_key: bytes | None = None,
+    migrate_legacy_audit: bool = False,
     max_request_bytes: int = 16 * 1024 * 1024,
     max_upload_bytes: int = 256 * 1024 * 1024,
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
     objects = FilesystemObjectStore(state / "objects", key_provider)
-    index = SQLiteBackend(state / "metadata.sqlite3")
+    derive = getattr(key_provider, "derive_audit_key", None)
+    chain_key = audit_key or (derive() if callable(derive) else None)
+    index = SQLiteBackend(
+        state / "metadata.sqlite3",
+        audit_key=chain_key,
+        migrate_legacy_audit=migrate_legacy_audit,
+    )
     service = RemoteService(
         objects,
         index,
@@ -97,6 +105,11 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         "--max-upload-mb", type=int, default=256, help="Max resumed pack size (MiB)"
     )
     parser.add_argument("--max-connections", type=int, default=16, help="Maximum worker threads")
+    parser.add_argument(
+        "--migrate-legacy-audit",
+        action="store_true",
+        help="One-time trust-on-migration for pre-HMAC audit rows",
+    )
 
 
 def cmd_serve(args: argparse.Namespace, console: Any) -> None:
@@ -115,6 +128,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         identities=identities,
         max_request_bytes=args.max_body_mb * 1024 * 1024,
         max_upload_bytes=args.max_upload_mb * 1024 * 1024,
+        migrate_legacy_audit=args.migrate_legacy_audit,
     )
     handler = type("_Handler", (TimeoutRequestHandler,), {"timeout": args.timeout})
     server_class = type("_Server", (ThreadingWSGIServer,), {"max_workers": args.max_connections})

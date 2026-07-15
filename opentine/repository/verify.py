@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from opentine.kernel import KernelError, verify_object
+from opentine.kernel import KernelError, parse_oid, verify_object
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -27,40 +28,52 @@ def _cycle_errors(repo: Repo, oids: list[str]) -> list[str]:
                 payload = repo.get(oid).payload()
             except (KernelError, OSError):
                 continue
-            parents[oid] = list(payload.get("parent_ids") or [])
-    visiting: set[str] = set()
-    visited: set[str] = set()
-    cycles: set[str] = set()
-
-    def visit(oid: str) -> bool:
-        if oid in visiting:
-            cycles.add(oid)
-            return True
-        if oid in visited:
-            return False
-        visiting.add(oid)
-        cyclic = any(parent in parents and visit(parent) for parent in parents[oid])
-        visiting.remove(oid)
-        visited.add(oid)
-        if cyclic:
-            cycles.add(oid)
-        return cyclic
-
-    for oid in parents:
-        visit(oid)
-    return [f"event graph cycle reachable from {oid}" for oid in sorted(cycles)]
+            parents[oid] = [
+                *(payload.get("parent_ids") or []),
+                *(payload.get("causal_ids") or []),
+            ]
+    children: dict[str, list[str]] = defaultdict(list)
+    degrees = {oid: 0 for oid in parents}
+    for child, values in parents.items():
+        for parent in values:
+            if parent in parents:
+                children[parent].append(child)
+                degrees[child] += 1
+    ready = deque(oid for oid, degree in degrees.items() if degree == 0)
+    while ready:
+        for child in children[ready.popleft()]:
+            degrees[child] -= 1
+            if degrees[child] == 0:
+                ready.append(child)
+    cycles = sorted(oid for oid, degree in degrees.items() if degree)
+    return [f"event graph cycle reachable from {oid}" for oid in cycles]
 
 
 def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     errors: list[str] = []
     oids = repo.iter_oids()
+    try:
+        for oid in repo.shallow_oids():
+            parse_oid(oid)
+    except (KernelError, OSError, UnicodeError) as exc:
+        errors.append(f"shallow: {exc}")
     for oid in oids:
         try:
             verify_object(repo.raw(oid), oid, repo._link_exists if deep else None)
         except (KernelError, OSError) as exc:
             errors.append(f"{oid}: {exc}")
-    refs = repo.list_refs()
+    try:
+        refs = repo.list_refs()
+    except (KernelError, OSError, UnicodeError, ValueError) as exc:
+        errors.append(f"refs: {exc}")
+        refs = {}
     for name, oid in refs.items():
+        try:
+            repo._ref_name(name)
+            parse_oid(oid)
+        except (KernelError, ValueError) as exc:
+            errors.append(f"ref {name}: {exc}")
+            continue
         if not repo.has(oid):
             errors.append(f"ref {name}: missing {oid}")
     if deep:

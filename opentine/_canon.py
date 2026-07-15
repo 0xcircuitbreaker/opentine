@@ -83,32 +83,70 @@ def _redact(value: Any) -> Any:
         "cookie",
         "set_cookie",
     }
+    suffixes = (
+        "_api_key",
+        "_api_token",
+        "_access_key",
+        "_access_token",
+        "_auth_token",
+        "_client_secret",
+        "_credentials",
+        "_password",
+        "_passwd",
+        "_private_key",
+        "_refresh_token",
+        "_secret",
+        "_session_token",
+    )
     if isinstance(value, dict):
+        header_name_key = next((key for key in value if str(key).strip().lower() == "name"), None)
+        header_value = next((key for key in value if str(key).strip().lower() == "value"), None)
+        header_name = value.get(header_name_key) if header_name_key is not None else None
+        header = (
+            str(header_name).strip().lower().replace("-", "_")
+            if isinstance(header_name, str)
+            else ""
+        )
         redacted: dict[Any, Any] = {}
         for key, item in value.items():
             name = str(key).strip().lower().replace("-", "_")
-            suffixes = (
-                "_api_key",
-                "_api_token",
-                "_access_key",
-                "_access_token",
-                "_auth_token",
-                "_client_secret",
-                "_credentials",
-                "_password",
-                "_passwd",
-                "_private_key",
-                "_refresh_token",
-                "_secret",
-                "_session_token",
+            is_secret = (
+                name in credential_names
+                or name.endswith(suffixes)
+                or (
+                    key == header_value
+                    and (header in credential_names or header.endswith(suffixes))
+                )
             )
-            is_secret = name in credential_names or name.endswith(suffixes)
             if name == "token" and not isinstance(item, (int, float)):
                 is_secret = True
             redacted[key] = "[REDACTED]" if is_secret else _redact(item)
         return redacted
     if isinstance(value, (list, tuple)):
-        return [_redact(v) for v in value]
+        items = list(value)
+        headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
+        if len(items) == 2 and isinstance(items[0], str):
+            name = items[0].strip().lower().replace("-", "_")
+            if name in headers or name in credential_names or name.endswith(suffixes):
+                return [items[0], "[REDACTED]"]
+        redacted = []
+        for item in items:
+            if isinstance(item, str) and ":" in item:
+                name, separator, _ = item.partition(":")
+                if name.strip().lower().replace("-", "_") in headers:
+                    redacted.append(name + separator + " [REDACTED]")
+                    continue
+            redacted.append(_redact(item))
+        return redacted
+    if isinstance(value, str) and ":" in value:
+        label, separator, candidate = value.partition(":")
+        name = label.strip().lower().replace("-", "_")
+        headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
+        first_word = candidate.strip().split(maxsplit=1)[0].casefold() if candidate.strip() else ""
+        prose = {"can", "could", "how", "should", "what", "when", "where", "which", "why"}
+        if name in headers or name in credential_names or name.endswith(suffixes):
+            if name in headers or first_word not in prose:
+                return label + separator + " [REDACTED]"
     return value
 
 

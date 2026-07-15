@@ -63,6 +63,8 @@ def _verify_signature(alg: str, jwk: dict[str, Any], message: bytes, signature: 
     if key_ops is not None and (not isinstance(key_ops, list) or "verify" not in key_ops):
         raise OIDCError("JWK is not permitted for signature verification")
     public = _public_key(jwk)
+    if alg == "RS256" and public.key_size < 2048:
+        raise OIDCError("RSA verification keys must be at least 2048 bits")
     try:
         if alg == "RS256":
             public.verify(signature, message, padding.PKCS1v15(), hashes.SHA256())
@@ -84,10 +86,22 @@ def _verify_signature(alg: str, jwk: dict[str, Any], message: bytes, signature: 
 def _json_object(segment: str, label: str) -> dict[str, Any]:
     try:
         value = json.loads(_b64url(segment))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
         raise OIDCError(f"malformed JWT {label}") from exc
     if not isinstance(value, dict):
         raise OIDCError(f"JWT {label} must be an object")
+    return value
+
+
+def _document(raw: bytes | str, label: str) -> dict[str, Any]:
+    if not isinstance(raw, (bytes, str)) or len(raw) > 4 * 1024 * 1024:
+        raise OIDCError(f"OIDC {label} exceeds the document limit")
+    try:
+        value = json.loads(raw)
+    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
+        raise OIDCError(f"malformed OIDC {label}") from exc
+    if not isinstance(value, dict):
+        raise OIDCError(f"OIDC {label} must be an object")
     return value
 
 
@@ -105,8 +119,8 @@ class JWTVerifier:
         now: Callable[[], float] = time.time,
     ):
         keys = jwks.get("keys", []) if isinstance(jwks, dict) else jwks
-        if not isinstance(keys, list) or not keys:
-            raise OIDCError("JWKS contains no keys")
+        if not isinstance(keys, list) or not keys or len(keys) > 100:
+            raise OIDCError("JWKS must contain between 1 and 100 keys")
         self.keys: dict[str, dict[str, Any]] = {}
         for key in keys:
             kid = key.get("kid") if isinstance(key, dict) else None
@@ -128,13 +142,17 @@ class JWTVerifier:
     def from_discovery(
         cls, issuer: str, audience: str, fetch: Callable[[str], bytes], **kwargs: Any
     ) -> JWTVerifier:
-        config = json.loads(fetch(issuer.rstrip("/") + "/.well-known/openid-configuration"))
-        if not isinstance(config, dict) or config.get("issuer") != issuer:
+        if not issuer.startswith("https://"):
+            raise OIDCError("OIDC discovery requires an HTTPS issuer")
+        config = _document(
+            fetch(issuer.rstrip("/") + "/.well-known/openid-configuration"), "discovery"
+        )
+        if config.get("issuer") != issuer:
             raise OIDCError("OIDC discovery issuer mismatch")
         jwks_uri = config.get("jwks_uri")
         if not isinstance(jwks_uri, str) or not jwks_uri.startswith("https://"):
             raise OIDCError("OIDC discovery requires an HTTPS jwks_uri")
-        jwks = json.loads(fetch(jwks_uri))
+        jwks = _document(fetch(jwks_uri), "JWKS")
         return cls(jwks, issuer=issuer, audience=audience, **kwargs)
 
     def __call__(self, token: str) -> dict[str, Any]:
@@ -143,6 +161,8 @@ class JWTVerifier:
         except ValueError as exc:
             raise OIDCError("malformed JWT") from exc
         header = _json_object(header_b64, "header")
+        if "crit" in header or "b64" in header:
+            raise OIDCError("unsupported JWT critical header")
         alg = header.get("alg")
         if alg not in self.algorithms:
             raise OIDCError(f"disallowed JWT algorithm: {alg}")

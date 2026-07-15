@@ -18,7 +18,7 @@ from opentine.remote.security import LocalKeyProvider
 crypto = pytest.importorskip("cryptography")
 
 
-# --- M4: tamper-evident hash-chained audit log ----------------------------------------
+# --- M4: HMAC-chained audit log with an authenticated external head -------------------
 
 
 def _seed_audit(tmp_path: Path) -> SQLiteBackend:
@@ -54,8 +54,8 @@ def test_m4_audit_chain_detects_truncation_against_checkpoint(tmp_path: Path):
     con.execute("DELETE FROM audit WHERE event_id='e3'")  # drop the last row
     con.commit()
     con.close()
-    # Internally consistent again, but no longer matches the anchored checkpoint.
-    assert db.verify_audit_chain() is True
+    # The authenticated sidecar anchor makes end truncation fail by default.
+    assert db.verify_audit_chain() is False
     assert db.verify_audit_chain(expected_head=head) is False
 
 
@@ -96,7 +96,9 @@ def test_m4_existing_unchained_audit_rows_are_migrated(tmp_path: Path):
             "VALUES(?,?,?,?,?,?,?)",
             ("old", "1", "t1", "a", "read", "ok", '{"n":1}'),
         )
-    db = SQLiteBackend(path)
+    with pytest.raises(RuntimeError, match="explicit migration"):
+        SQLiteBackend(path)
+    db = SQLiteBackend(path, migrate_legacy_audit=True)
     assert db.verify_audit_chain()
     db.append(AuditEvent("new", "2", "t1", "a", "read", "ok", {}))
     assert db.verify_audit_chain()
@@ -193,6 +195,8 @@ def test_m5_oidc_verifier_accepts_valid_and_rejects_bad(tmp_path: Path):
     }
     with pytest.raises(PermissionError, match="roles claim"):
         provider.authenticate({"authorization": "Bearer signed"})
+    provider.verifier = lambda token: {"sub": "u", "tenant": "t1", "roles": []}
+    assert provider.authenticate({"authorization": "Bearer signed"}).roles == ()
 
 
 def test_m5_es256_and_algorithm_confusion_guards():

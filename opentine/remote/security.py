@@ -84,7 +84,7 @@ class OIDCIdentityProvider:
         tenant = claims.get(self.tenant_claim)
         if not isinstance(subject, str) or not subject or not isinstance(tenant, str) or not tenant:
             raise AuthenticationError("OIDC token lacks subject or tenant")
-        roles = claims.get(self.roles_claim) or ["reader"]
+        roles = claims[self.roles_claim] if self.roles_claim in claims else ["reader"]
         if isinstance(roles, str):
             roles = roles.split()
         if not isinstance(roles, (list, tuple)) or not all(isinstance(role, str) for role in roles):
@@ -140,6 +140,9 @@ class LocalKeyProvider:
             self.key, b"opentine.tenant-key.v1\0" + tenant.encode(), hashlib.sha256
         ).digest()
         return b"TINEAES2" + nonce + AESGCM(key).encrypt(nonce, plaintext, tenant.encode())
+
+    def derive_audit_key(self) -> bytes:
+        return hmac.new(self.key, b"opentine.audit-chain-key.v1\0", hashlib.sha256).digest()
 
     def decrypt(self, tenant: str, ciphertext: bytes) -> bytes:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM

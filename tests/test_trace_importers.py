@@ -15,6 +15,7 @@ def test_native_jsonl_and_otel_importers(tmp_path):
     step = run.add_step(StepKind.done, {"text": "ok"}, usage={"input": 3, "output": 1})
     native = native_events(run)
     assert native[0].span_id == step.id and native[0].usage["input"] == 3
+    assert native[0].cost == step.cost and native[0].duration == step.duration
 
     path = tmp_path / "trace.jsonl"
     path.write_text(
@@ -38,6 +39,7 @@ def test_native_jsonl_and_otel_importers(tmp_path):
             "trace_id": "trace",
             "span_id": "span",
             "start_time_unix_nano": 2_000_000_000,
+            "end_time_unix_nano": 3_500_000_000,
             "attributes": {
                 "gen_ai.operation.name": "chat",
                 "gen_ai.request.model": "gpt-5.6",
@@ -48,6 +50,7 @@ def test_native_jsonl_and_otel_importers(tmp_path):
     ]
     imported = otel_genai_events(spans)[0]
     assert imported.timestamp == 2 and imported.usage == {"input": 5, "output": 2}
+    assert imported.duration == 1.5
 
 
 @pytest.mark.parametrize(

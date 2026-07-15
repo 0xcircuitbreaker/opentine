@@ -38,7 +38,10 @@ def mapping(value: Any) -> dict[str, Any]:
 
 def timestamp(value: Any) -> float:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        result = float(value)
+        try:
+            result = float(value)
+        except OverflowError:
+            return 0.0
         return result if math.isfinite(result) else 0.0
     if isinstance(value, str) and value.strip():
         text = value.strip()

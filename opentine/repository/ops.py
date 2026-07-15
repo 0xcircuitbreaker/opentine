@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -70,12 +71,32 @@ def _run_payload(repo: Repo, value: str) -> tuple[str, dict[str, Any]]:
 
 
 def _metric(repo: Repo, events: list[str], name: str) -> float:
-    return sum(float(repo.get(event).payload().get(name) or 0) for event in events)
+    total = 0.0
+    for event in events:
+        try:
+            value = float(repo.get(event).payload().get(name) or 0)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if math.isfinite(value):
+            total += value
+    return total
+
+
+def _evaluations(repo: Repo, target: str) -> list[dict[str, Any]]:
+    evaluations: list[dict[str, Any]] = []
+    for oid in repo.iter_oids():
+        if not oid.startswith("attestation:"):
+            continue
+        payload = repo.get(oid).payload()
+        claim = payload.get("claim") or {}
+        if payload.get("target_id") == target and claim.get("kind") == "evaluation":
+            evaluations.append({"attestation": oid, "scores": claim.get("scores") or {}})
+    return evaluations
 
 
 def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
-    _, left_run = _run_payload(repo, left)
-    _, right_run = _run_payload(repo, right)
+    left_id, left_run = _run_payload(repo, left)
+    right_id, right_run = _run_payload(repo, right)
     left_events = list(left_run.get("events") or [])
     right_events = list(right_run.get("events") or [])
     common = tuple(event for event in left_events if event in set(right_events))
@@ -83,11 +104,11 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
     only_right = tuple(event for event in right_events if event not in set(common))
     changed: list[dict[str, Any]] = []
     for index in range(min(len(left_events), len(right_events))):
-        left_id, right_id = left_events[index], right_events[index]
-        if left_id == right_id:
+        left_event_id, right_event_id = left_events[index], right_events[index]
+        if left_event_id == right_event_id:
             continue
-        before = repo.get(left_id).payload()
-        after = repo.get(right_id).payload()
+        before = repo.get(left_event_id).payload()
+        after = repo.get(right_event_id).payload()
         fields = [
             name
             for name in (
@@ -99,11 +120,19 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
                 "billing",
                 "input_blob",
                 "output_blob",
+                "artifact_blob",
                 "tool",
             )
             if before.get(name) != after.get(name)
         ]
-        changed.append({"after": right_id, "before": left_id, "fields": fields, "index": index})
+        changed.append(
+            {
+                "after": right_event_id,
+                "before": left_event_id,
+                "fields": fields,
+                "index": index,
+            }
+        )
     summary = {
         "cost": {
             "left": _metric(repo, left_events, "cost"),
@@ -112,6 +141,14 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
         "latency": {
             "left": _metric(repo, left_events, "duration"),
             "right": _metric(repo, right_events, "duration"),
+        },
+        "artifacts": {
+            "left": [repo.get(event).payload().get("artifact_blob") for event in left_events],
+            "right": [repo.get(event).payload().get("artifact_blob") for event in right_events],
+        },
+        "evaluations": {
+            "left": _evaluations(repo, left_id),
+            "right": _evaluations(repo, right_id),
         },
         "tool_path": {
             "left": [repo.get(event).payload().get("tool") for event in left_events],
@@ -158,7 +195,9 @@ def fork_run(
         if event in keep:
             continue
         keep.add(event)
-        queue.extend(repo.get(event).payload().get("parent_ids") or [])
+        event_payload = repo.get(event).payload()
+        queue.extend(event_payload.get("parent_ids") or [])
+        queue.extend(event_payload.get("causal_ids") or [])
     forked = dict(payload)
     forked.update(
         {

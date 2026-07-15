@@ -41,6 +41,8 @@ def _check_url(url: str, policy: NetworkPolicy) -> None:
 
 
 async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
+    if policy.max_body_bytes < 1:
+        raise ValueError("max_body_bytes must be positive")
     proxy = os.environ.get("HTTP_PROXY")
     async with httpx.AsyncClient(
         timeout=policy.timeout_seconds,
@@ -50,14 +52,39 @@ async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
         current = url
         for _ in range(10):
             _check_url(current, policy)
-            resp = await client.get(current, headers={"User-Agent": "opentine/0.3"})
-            if resp.is_redirect:
-                location = resp.headers.get("location")
-                if not location:
-                    break
-                current = urljoin(current, location)
-                continue
-            return resp
+            async with client.stream(
+                "GET",
+                current,
+                headers={"Accept-Encoding": "identity", "User-Agent": "opentine/0.3"},
+            ) as resp:
+                if resp.is_redirect:
+                    location = resp.headers.get("location")
+                    if not location:
+                        break
+                    current = urljoin(current, location)
+                    continue
+                encoding = resp.headers.get("content-encoding", "identity").casefold()
+                if encoding not in {"", "identity"}:
+                    raise ValueError("compressed web responses are not accepted")
+                declared = resp.headers.get("content-length")
+                if declared is not None:
+                    try:
+                        length = int(declared)
+                    except ValueError as exc:
+                        raise ValueError("web response has invalid Content-Length") from exc
+                    if length < 0 or length > policy.max_body_bytes:
+                        raise ValueError(f"Response exceeds max_body_bytes={policy.max_body_bytes}")
+                body = bytearray()
+                async for chunk in resp.aiter_raw():
+                    body.extend(chunk)
+                    if len(body) > policy.max_body_bytes:
+                        raise ValueError(f"Response exceeds max_body_bytes={policy.max_body_bytes}")
+                return httpx.Response(
+                    resp.status_code,
+                    content=bytes(body),
+                    headers=resp.headers,
+                    request=resp.request,
+                )
     raise RuntimeError("Too many redirects")
 
 
@@ -66,9 +93,7 @@ async def fetch(url: str, max_chars: int = 8000, policy: NetworkPolicy | None = 
     pol = policy or NetworkPolicy(max_body_bytes=max_chars)
     resp = await _get(url, pol)
     resp.raise_for_status()
-    body = resp.content[: pol.max_body_bytes + 1]
-    if len(body) > pol.max_body_bytes:
-        raise ValueError(f"Response exceeds max_body_bytes={pol.max_body_bytes}")
+    body = resp.content
     text = body.decode(resp.encoding or "utf-8", errors="replace")
 
     # Strip HTML tags for a rough text extraction
@@ -83,9 +108,7 @@ async def fetch_raw(url: str, policy: NetworkPolicy | None = None) -> dict[str, 
     """Fetch a URL and return status, headers, and raw body."""
     pol = policy or NetworkPolicy()
     resp = await _get(url, pol)
-    body = resp.content[: pol.max_body_bytes + 1]
-    if len(body) > pol.max_body_bytes:
-        raise ValueError(f"Response exceeds max_body_bytes={pol.max_body_bytes}")
+    body = resp.content
     return {
         "status": resp.status_code,
         "headers": dict(resp.headers),

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sqlite3
@@ -11,14 +10,16 @@ from pathlib import Path
 from typing import Any
 
 from opentine._canon import _fsync_dir
-from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
-from opentine.remote._audit import FIELDS, GENESIS, chain
+from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
+from opentine.remote._audit import GENESIS, load_key, read_anchor, write_anchor
+from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._schema import initialize
-from opentine.remote.interfaces import AuditEvent, KeyProvider, RetentionHook
+from opentine.remote.interfaces import KeyProvider, RetentionHook
 
 _TENANT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _REF = re.compile(r"^(?:heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
-_LAST_ROW_HASH = "SELECT row_hash FROM audit ORDER BY sequence DESC LIMIT 1"
+MAX_CONTROL_RESULTS = 1000
+MAX_OBJECT_LIST = 100_000
 
 
 def valid_tenant(tenant: str) -> str:
@@ -29,7 +30,12 @@ def valid_tenant(tenant: str) -> str:
 
 def valid_ref(name: str) -> str:
     normalized = name.removeprefix("refs/")
-    if not _REF.fullmatch(normalized) or ".." in normalized.split("/"):
+    parts = normalized.split("/")
+    if (
+        len(normalized) > 512
+        or not _REF.fullmatch(normalized)
+        or any(part in {"", ".", ".."} or part.endswith(".lock") for part in parts)
+    ):
         raise ValueError("invalid ref name")
     return normalized
 
@@ -103,22 +109,48 @@ class FilesystemObjectStore:
                     digest = prefix.name + item.name
                     if len(digest) == 64:
                         found.append(f"{object_type.name}:sha256:{digest}")
+                        if len(found) > MAX_OBJECT_LIST:
+                            raise ValueError(
+                                "tenant object listing exceeds reference backend limit"
+                            )
         return found
 
 
-class SQLiteBackend:
-    def __init__(self, path: str | Path):
+class SQLiteBackend(SQLiteAuditMixin):
+    validate_tenant = staticmethod(valid_tenant)
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        audit_key: bytes | None = None,
+        migrate_legacy_audit: bool = False,
+    ):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._initialize()
+        self._key_path = Path(str(self.path) + ".audit-key")
+        self._anchor_path = Path(str(self.path) + ".audit-head")
+        self._audit_key, _ = load_key(self._key_path, audit_key)
+        allow_legacy = migrate_legacy_audit and not self._anchor_path.exists()
+        self._initialize(allow_legacy)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=30)
         connection.execute("PRAGMA journal_mode=WAL")
         return connection
 
-    def _initialize(self) -> None:
-        initialize(self._connect)
+    def _initialize(self, allow_legacy: bool) -> None:
+        migrated = initialize(self._connect, self._audit_key, allow_legacy=allow_legacy)
+        valid, head = self._verified_head()
+        if not valid:
+            raise RuntimeError("audit chain verification failed")
+        anchored = read_anchor(self._anchor_path, self._audit_key)
+        if anchored is None:
+            if head != GENESIS and not (allow_legacy or migrated):
+                raise RuntimeError("audit anchor is missing; explicit recovery is required")
+            write_anchor(self._anchor_path, head, self._audit_key)
+        elif anchored != head:
+            raise RuntimeError("audit chain does not match its authenticated anchor")
 
     def record_object(self, tenant: str, oid: str, size: int) -> None:
         with self._connect() as database:
@@ -130,8 +162,11 @@ class SQLiteBackend:
     def list_refs(self, tenant: str) -> dict[str, str]:
         with self._connect() as database:
             rows = database.execute(
-                "SELECT name,oid FROM refs WHERE tenant=? ORDER BY name", (valid_tenant(tenant),)
-            )
+                "SELECT name,oid FROM refs WHERE tenant=? ORDER BY name LIMIT ?",
+                (valid_tenant(tenant), MAX_CONTROL_RESULTS + 1),
+            ).fetchall()
+        if len(rows) > MAX_CONTROL_RESULTS:
+            raise ValueError("ref listing exceeds control-plane result limit")
         return dict(rows)
 
     def read_ref(self, tenant: str, name: str) -> str | None:
@@ -163,70 +198,14 @@ class SQLiteBackend:
 
     def search(self, tenant: str, query: dict[str, Any]) -> list[str]:
         prefix = str(query.get("type") or "")
+        if prefix and prefix not in OBJECT_TYPES:
+            raise ValueError("invalid object type filter")
         with self._connect() as database:
             rows = database.execute(
-                "SELECT oid FROM objects WHERE tenant=? AND oid LIKE ? ORDER BY created_at DESC",
-                (valid_tenant(tenant), f"{prefix}%"),
-            )
-        return [row[0] for row in rows]
-
-    def append(self, event: AuditEvent) -> None:
-        row = {
-            "action": event.action,
-            "actor": event.actor,
-            "details": json.dumps(event.details, sort_keys=True, separators=(",", ":")),
-            "event_id": event.event_id,
-            "outcome": event.outcome,
-            "tenant": valid_tenant(event.tenant),
-            "timestamp": event.timestamp,
-        }
-        with self._connect() as database:
-            database.execute("BEGIN IMMEDIATE")
-            last = database.execute(_LAST_ROW_HASH).fetchone()
-            prev = last[0] if last else GENESIS
-            columns = ",".join(FIELDS)
-            placeholders = ",".join("?" * (len(FIELDS) + 2))
-            database.execute(
-                f"INSERT INTO audit({columns},prev_hash,row_hash) VALUES({placeholders})",
-                [row[field] for field in FIELDS] + [prev, chain(prev, row)],
-            )
-
-    def audit_head(self) -> str:
-        with self._connect() as database:
-            last = database.execute(_LAST_ROW_HASH).fetchone()
-        return last[0] if last else GENESIS
-
-    def verify_audit_chain(self, *, expected_head: str | None = None) -> bool:
-        prev = GENESIS
-        with self._connect() as database:
-            rows = database.execute(
-                "SELECT " + ",".join(FIELDS) + ",prev_hash,row_hash FROM audit ORDER BY sequence"
+                "SELECT oid FROM objects WHERE tenant=? AND oid LIKE ? "
+                "ORDER BY created_at DESC LIMIT ?",
+                (valid_tenant(tenant), f"{prefix}%", MAX_CONTROL_RESULTS + 1),
             ).fetchall()
-        for record in rows:
-            row = dict(zip(FIELDS, record))
-            if record[-2] != prev or chain(prev, row) != record[-1]:
-                return False
-            prev = record[-1]
-        return expected_head is None or prev == expected_head
-
-
-class TenantRepo:
-    """Read adapter that lets pack negotiation operate over a tenant store."""
-
-    def __init__(self, tenant: str, objects: FilesystemObjectStore):
-        self.tenant = valid_tenant(tenant)
-        self.objects = objects
-
-    def has(self, oid: str) -> bool:
-        return self.objects.has(self.tenant, oid)
-
-    def raw(self, oid: str) -> bytes:
-        return self.objects.get(self.tenant, oid)
-
-    def get(self, oid: str) -> ObjectEnvelope:
-        envelope = ObjectEnvelope.decode(self.raw(oid), oid)
-        validate_links(envelope, self.has)
-        return envelope
-
-    def iter_oids(self) -> list[str]:
-        return self.objects.list(self.tenant)
+        if len(rows) > MAX_CONTROL_RESULTS:
+            raise ValueError("search exceeds control-plane result limit")
+        return [row[0] for row in rows]

@@ -60,6 +60,8 @@ def test_multi_agent_repository_workflow(tmp_path):
     assert [entry.oid for entry in repo.context_slice(second)] == [first, second]
     comparison = repo.diff(original, alternate)
     assert comparison.only_right
+    assert comparison.summary["cost"] == {"left": 0.00002, "right": 0.00002}
+    assert comparison.summary["evaluations"]["right"][0]["attestation"] == evaluation
 
     clone = Repo.init(tmp_path / "clone")
     clone.import_pack(repo.pack())

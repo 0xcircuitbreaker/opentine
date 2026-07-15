@@ -21,6 +21,25 @@ _BEARER = re.compile(rb"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=-]{8,}")
 _QUOTED_HEADER = re.compile(
     rb"(?i)([\"'](?:authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"']\s*:\s*[\"'])([^\"']*)([\"'])"
 )
+_HEADER_PAIR = re.compile(
+    rb"(?i)(\[\s*[\"'](?:"
+    + _NAME
+    + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)"
+    + rb"[\"']\s*,\s*[\"'])([^\"']*)([\"'])"
+)
+_QUOTED_HEADER_LINE = re.compile(
+    rb"(?i)([\"'](?:authorization|proxy-authorization|cookie|set-cookie)\s*:\s*)([^\"'\r\n]*)([\"'])"
+)
+_NAMED_HEADER = re.compile(
+    rb"(?i)([\"']name[\"']\s*:\s*[\"'](?:"
+    + _NAME
+    + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)"
+    + rb"[\"']\s*,\s*[\"']value[\"']\s*:\s*[\"'])([^\"']*)([\"'])"
+)
+_REVERSED_NAMED_HEADER = re.compile(
+    rb"(?i)([\"']value[\"']\s*:\s*[\"'])([^\"']*)([\"']\s*,\s*[\"']name[\"']\s*:\s*"
+    rb"[\"'](?:" + _NAME + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"'])"
+)
 _HEADER_LINE = re.compile(
     rb"(?im)^([ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)[ \t]*:[ \t]*)([^\r\n]*)"
 )
@@ -38,6 +57,14 @@ _TOKEN_SHAPES = re.compile(
     rb"|xox[baprs]-[A-Za-z0-9-]{10,}"  # Slack tokens
     rb")"
 )
+_PROSE_VALUES = {b"can", b"could", b"how", b"should", b"what", b"when", b"where", b"which", b"why"}
+
+
+def _assignment(match: re.Match[bytes]) -> bytes:
+    separator, candidate = match.group(2), match.group(3)
+    if b":" in separator and candidate.lower() in _PROSE_VALUES:
+        return match.group(0)
+    return match.group(1) + separator + b"[REDACTED]"
 
 
 def redact_blob(value: bytes) -> bytes:
@@ -46,13 +73,21 @@ def redact_blob(value: bytes) -> bytes:
         value.decode("utf-8")
     except UnicodeDecodeError:
         return value
+    value = _NAMED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
+    value = _REVERSED_NAMED_HEADER.sub(
+        lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
+    )
+    value = _HEADER_PAIR.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
+    value = _QUOTED_HEADER_LINE.sub(
+        lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
+    )
     value = _QUOTED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
     value = _QUOTED_TOKEN.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
     value = _QUOTED_ASSIGNMENT.sub(
         lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
     )
     value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = _ASSIGNMENT.sub(lambda match: match.group(1) + match.group(2) + b"[REDACTED]", value)
+    value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)
     return _PRIVATE_KEY.sub(b"[REDACTED PRIVATE KEY]", value)

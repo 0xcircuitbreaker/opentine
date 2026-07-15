@@ -7,13 +7,17 @@ from datetime import UTC, datetime
 from typing import Any
 
 from opentine.kernel import ObjectEnvelope, validate_links
-from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend, TenantRepo, valid_tenant
+from opentine.remote._tenant_repo import TenantRepo
+from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
     AuditEvent,
+    AuditSink,
     AuthorizationPolicy,
     Identity,
     IdentityProvider,
+    IndexBackend,
+    ObjectStore,
 )
 from opentine.repository.pack import create_pack, inspect_pack, negotiate
 
@@ -26,18 +30,22 @@ class AllowAdmission:
 class RemoteService:
     def __init__(
         self,
-        objects: FilesystemObjectStore,
-        index: SQLiteBackend,
+        objects: ObjectStore,
+        index: IndexBackend,
         identities: IdentityProvider,
         authorization: AuthorizationPolicy,
         *,
         admission: AdmissionPolicy | None = None,
+        audit: AuditSink | None = None,
     ):
         self.objects = objects
         self.index = index
         self.identities = identities
         self.authorization = authorization
         self.admission = admission or AllowAdmission()
+        self.audit = audit or index
+        if not callable(getattr(self.audit, "append", None)):
+            raise TypeError("remote service requires an AuditSink")
 
     @staticmethod
     def capabilities() -> dict[str, Any]:
@@ -68,7 +76,7 @@ class RemoteService:
         outcome: str,
         details: dict[str, Any],
     ) -> None:
-        self.index.append(
+        self.audit.append(
             AuditEvent(
                 str(uuid.uuid4()),
                 datetime.now(UTC).isoformat(),
@@ -88,8 +96,20 @@ class RemoteService:
 
     def verify_audit_chain(self, identity: Identity, tenant: str) -> dict[str, Any]:
         self._authorize(identity, "audit", tenant)
-        self._audit(identity, tenant, "audit", "requested", {})
-        return {"ok": self.index.verify_audit_chain(), "head": self.index.audit_head()}
+        verify = getattr(self.audit, "verify_audit_chain", None)
+        head = getattr(self.audit, "audit_head", None)
+        warnings = getattr(self.audit, "audit_warnings", None)
+        if not all(callable(item) for item in (verify, head, warnings)):
+            raise RuntimeError("configured AuditSink does not expose chain verification")
+        ok = verify()
+        if ok:
+            self._audit(identity, tenant, "audit", "requested", {})
+            ok = verify()
+        return {
+            "head": head(),
+            "ok": ok,
+            "warnings": warnings(),
+        }
 
     def negotiate(
         self,

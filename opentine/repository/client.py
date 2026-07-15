@@ -3,15 +3,28 @@
 from __future__ import annotations
 
 import hashlib
-import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from urllib.parse import quote, urlparse
+from urllib.parse import quote
 
 import httpx
 
-from opentine.repository.pack import MAX_PACK_BYTES, create_pack, negotiate
+from opentine.kernel import KernelError, parse_oid
+from opentine.repository._http import (
+    client as _client,
+)
+from opentine.repository._http import (
+    read_pack as _read_pack,
+)
+from opentine.repository._http import (
+    request_json as _request_json,
+)
+from opentine.repository._http import (
+    require_secure_remote as _require_secure_remote,
+)
+from opentine.repository.pack import create_pack, negotiate
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -35,35 +48,29 @@ def _remote(remote: str, tenant: str | None) -> tuple[str, str]:
     return url, tenant
 
 
-def _require_secure_remote(base: str, allow_insecure: bool) -> None:
-    parsed = urlparse(base)
-    if parsed.scheme != "https" and not (
-        allow_insecure or parsed.hostname in {"localhost", "127.0.0.1", "::1"}
-    ):
-        raise ValueError("remote requires HTTPS; opt into insecure development explicitly")
-
-
-def _client(
-    base: str,
-    token: str | None,
-    *,
-    allow_insecure: bool,
-    timeout: float,
-) -> httpx.Client:
-    _require_secure_remote(base, allow_insecure)
-    secret = token or os.environ.get("TINE_REMOTE_TOKEN")
-    if not secret:
-        raise ValueError("remote bearer token is required")
-    return httpx.Client(
-        base_url=base,
-        headers={"Authorization": f"Bearer {secret}"},
-        timeout=timeout,
-        follow_redirects=False,
-    )
-
-
 def _prefix(tenant: str) -> str:
     return f"/v1/tenants/{quote(tenant, safe='')}"
+
+
+def _refs(value: dict[str, Any]) -> dict[str, str]:
+    refs = value.get("refs")
+    if not isinstance(refs, dict) or not all(
+        isinstance(name, str) and isinstance(oid, str) for name, oid in refs.items()
+    ):
+        raise ValueError("remote returned an invalid ref listing")
+    try:
+        for oid in refs.values():
+            parse_oid(oid)
+    except KernelError as exc:
+        raise ValueError("remote returned an invalid ref target") from exc
+    return refs
+
+
+def _offset(state: dict[str, Any], default: int = -1) -> int:
+    raw = state.get("offset", default)
+    if type(raw) is not int:
+        raise ValueError("remote returned an invalid upload offset")
+    return raw
 
 
 def capabilities(
@@ -72,24 +79,10 @@ def capabilities(
     base = remote.rstrip("/")
     _require_secure_remote(base, allow_insecure)
     with httpx.Client(base_url=base, timeout=timeout, follow_redirects=False) as client:
-        response = client.get("/v1/capabilities")
-        response.raise_for_status()
-        data = response.json()
+        _, data = _request_json(client, "GET", "/v1/capabilities", max_seconds=timeout)
     if data.get("object_format") != "opentine-v3":
         raise ValueError("remote does not support OpenTine v3 objects")
     return data
-
-
-def _read_pack(response: httpx.Response, limit: int = MAX_PACK_BYTES) -> bytes:
-    declared = response.headers.get("content-length")
-    if declared is not None and int(declared) > limit:
-        raise ValueError("remote pack exceeds maximum transfer size")
-    data = bytearray()
-    for chunk in response.iter_bytes():
-        data.extend(chunk)
-        if len(data) > limit:
-            raise ValueError("remote pack exceeds maximum transfer size")
-    return bytes(data)
 
 
 def fetch(
@@ -108,13 +101,11 @@ def fetch(
 ) -> TransferResult:
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
-        caps = client.get("/v1/capabilities")
-        caps.raise_for_status()
-        if caps.json().get("object_format") != "opentine-v3":
+        _, caps = _request_json(client, "GET", "/v1/capabilities")
+        if caps.get("object_format") != "opentine-v3":
             raise ValueError("remote object format is incompatible")
-        refs_response = client.get(_prefix(namespace) + "/refs")
-        refs_response.raise_for_status()
-        remote_refs = refs_response.json().get("refs") or {}
+        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs")
+        remote_refs = _refs(refs)
         selected = wants or ([remote_refs[ref]] if ref in remote_refs else [])
         if not selected:
             raise KeyError(f"remote ref not found: {ref}")
@@ -129,7 +120,7 @@ def fetch(
             },
         ) as response:
             response.raise_for_status()
-            pack = _read_pack(response)
+            pack = _read_pack(response, max_seconds=timeout)
     result = repo.import_pack(pack)
     if ref in remote_refs:
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
@@ -144,23 +135,43 @@ def _upload(
     *,
     chunk_size: int,
 ) -> dict[str, Any]:
-    declaration = client.post(
+    if chunk_size < 1:
+        raise ValueError("upload chunk size must be positive")
+    _, state = _request_json(
+        client,
+        "POST",
         endpoint,
+        allowed=(200, 201),
         json={"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)},
     )
-    declaration.raise_for_status()
-    state = declaration.json()
-    upload = endpoint + "/" + state["upload_id"]
-    offset = int(state.get("offset", 0))
+    upload_id = state.get("upload_id")
+    if not isinstance(upload_id, str) or not re.fullmatch(r"[0-9a-f]{32}", upload_id):
+        raise ValueError("remote returned an invalid upload id")
+    upload = endpoint + "/" + upload_id
+    offset = _offset(state, 0)
+    if not 0 <= offset <= len(data):
+        raise ValueError("remote returned an invalid upload offset")
+    max_iterations = (len(data) + chunk_size - 1) // chunk_size + 4
+    iterations = 0
     while offset < len(data):
+        iterations += 1
+        if iterations > max_iterations:
+            raise ValueError("remote upload did not converge")
         chunk = data[offset : offset + chunk_size]
-        response = client.patch(upload, content=chunk, headers={"Upload-Offset": str(offset)})
-        if response.status_code == 409:
-            offset = int(response.json()["offset"])
-            continue
-        response.raise_for_status()
-        state = response.json()
-        offset = int(state["offset"])
+        status, state = _request_json(
+            client,
+            "PATCH",
+            upload,
+            allowed=(200, 201, 409),
+            content=chunk,
+            headers={"Upload-Offset": str(offset)},
+        )
+        next_offset = _offset(state)
+        if not offset < next_offset <= len(data):
+            raise ValueError("remote upload offset did not advance")
+        if status != 409 and next_offset != offset + len(chunk):
+            raise ValueError("remote acknowledged an invalid upload length")
+        offset = next_offset
     return state
 
 
@@ -182,19 +193,20 @@ def push(
     destination = remote_ref or ref
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
-        refs_response = client.get(_prefix(namespace) + "/refs")
-        refs_response.raise_for_status()
-        old = (refs_response.json().get("refs") or {}).get(destination)
+        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs")
+        old = _refs(refs).get(destination)
         missing = negotiate(repo, [local_oid], [old] if old else [])
         pack = create_pack(repo, missing)
         uploaded = _upload(client, _prefix(namespace) + "/packs", pack, chunk_size=chunk_size)
-        update = client.put(
+        status, _ = _request_json(
+            client,
+            "PUT",
             _prefix(namespace) + "/refs/" + quote(destination, safe=""),
+            allowed=(200, 409),
             json={"expected_old": old, "new": local_oid},
         )
-        if update.status_code == 409:
+        if status == 409:
             raise ValueError("remote ref changed concurrently")
-        update.raise_for_status()
     return TransferResult(int(uploaded.get("objects", 0)), uploaded["pack_id"], destination)
 
 

@@ -27,8 +27,7 @@ def _number(value: int | float) -> str:
     if value == 0:
         return "0"
     raw = repr(value).lower()
-    absolute = abs(value)
-    if 1e-6 <= absolute < 1e21:
+    if 1e-6 <= abs(value) < 1e21:
         if "e" in raw:
             raw = format(Decimal(raw), "f")
         if "." in raw:
@@ -39,12 +38,14 @@ def _number(value: int | float) -> str:
     coefficient, exponent = raw.split("e")
     coefficient = coefficient.rstrip("0").rstrip(".")
     exponent_number = int(exponent)
-    sign = "+" if exponent_number >= 0 else ""
-    return f"{coefficient}e{sign}{exponent_number}"
+    return f"{coefficient}e{'+' if exponent_number >= 0 else ''}{exponent_number}"
 
 
 def _parse_int(value: str) -> int | float:
-    integer = int(value)
+    try:
+        integer = int(value)
+    except ValueError as exc:
+        raise KernelError("canonical JSON integer literal is too large") from exc
     return integer if abs(integer) <= 9_007_199_254_740_991 else float(value)
 
 
@@ -54,10 +55,6 @@ def _string(value: str) -> str:
     except UnicodeEncodeError as exc:
         raise KernelError("canonical JSON forbids lone Unicode surrogates") from exc
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-
-
-def _sort_key(value: str) -> bytes:
-    return value.encode("utf-16be")
 
 
 def _encode(value: Any) -> str:
@@ -76,13 +73,16 @@ def _encode(value: Any) -> str:
     if isinstance(value, dict):
         if not all(isinstance(key, str) for key in value):
             raise KernelError("canonical JSON object keys must be strings")
-        pairs = (_string(key) + ":" + _encode(value[key]) for key in sorted(value, key=_sort_key))
-        return "{" + ",".join(pairs) + "}"
+        keys = sorted(value, key=lambda item: item.encode("utf-16be"))
+        return "{" + ",".join(_string(key) + ":" + _encode(value[key]) for key in keys) + "}"
     raise KernelError(f"unsupported canonical JSON type: {type(value).__name__}")
 
 
 def canonical_json(value: Any) -> bytes:
-    return _encode(value).encode("utf-8")
+    try:
+        return _encode(value).encode("utf-8")
+    except (RecursionError, UnicodeEncodeError) as exc:
+        raise KernelError("canonical JSON nesting or Unicode key is invalid") from exc
 
 
 def parse_oid(oid: str) -> tuple[str, str]:
@@ -134,12 +134,12 @@ class ObjectEnvelope:
         try:
             raw_header, body = stored.split(b"\n", 1)
             header = json.loads(raw_header)
-        except (ValueError, json.JSONDecodeError) as exc:
+        except (ValueError, RecursionError) as exc:
             raise KernelError("malformed object envelope") from exc
         if not isinstance(header, dict) or len(header) != 3 or canonical_json(header) != raw_header:
             raise KernelError("non-canonical object header")
         schema = header.get("schema")
-        if type(schema) is not int or schema < 1:
+        if type(schema) is not int or not 1 <= schema < 2**53:
             raise KernelError("invalid object schema")
         envelope = cls(str(header.get("type")), schema, body, str(header.get("encoding")))
         if envelope.object_type not in OBJECT_TYPES:
@@ -149,7 +149,7 @@ class ObjectEnvelope:
         if envelope.encoding == "json":
             try:
                 parsed = json.loads(body, parse_int=_parse_int)
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, RecursionError) as exc:
                 raise KernelError("malformed object JSON") from exc
             if canonical_json(parsed) != body:
                 raise KernelError("non-canonical object body")
@@ -178,7 +178,8 @@ def _links(payload: dict[str, Any], object_type: str) -> list[str]:
         values = [payload["target_id"]] if payload.get("target_id") else []
         if object_type == "annotation" and payload.get("previous_id"):
             values.append(payload["previous_id"])
-        values.extend(payload.get("evidence_ids") or [])
+        evidence = payload.get("evidence_ids", [])
+        values.extend(evidence if isinstance(evidence, list) else [None])
         return values
     return []
 
@@ -195,12 +196,11 @@ def validate_links(
     payload = envelope.payload()
     if not isinstance(payload, dict):
         raise KernelError(f"{envelope.object_type} payload must be an object")
-    if envelope.object_type == "run" and not isinstance(payload.get("manifests") or {}, dict):
+    if envelope.object_type == "run" and not isinstance(payload.get("manifests", {}), dict):
         raise KernelError("manifests must be an object")
-    links = _links(payload, envelope.object_type)
     if envelope.object_type == "event":
         for field in ("parent_ids", "causal_ids"):
-            values = payload.get(field) or []
+            values = payload.get(field, [])
             if not event_ids(values):
                 raise KernelError(f"{field} must contain event ids")
             if len(set(values)) != len(values):
@@ -209,17 +209,17 @@ def validate_links(
             if payload.get(field) and parse_oid(payload[field])[0] != "blob":
                 raise KernelError(f"{field} must contain a blob id")
     if envelope.object_type == "run":
-        event_values = payload.get("events") or []
+        event_values = payload.get("events", [])
         if not event_ids(event_values):
             raise KernelError("events must contain event ids")
         events = set(event_values)
         for field in ("roots", "tips"):
-            values = payload.get(field) or []
+            values = payload.get(field, [])
             if not event_ids(values):
                 raise KernelError(f"{field} must contain event ids")
             if not set(values) <= events:
                 raise KernelError(f"{field} must be a subset of events")
-        manifest_map = payload.get("manifests") or {}
+        manifest_map = payload.get("manifests", {})
         if any(parse_oid(value)[0] != "blob" for value in manifest_map.values()):
             raise KernelError("manifests must contain blob ids")
         blob_values = [value for key, value in payload.items() if key.endswith("_blob") and value]
@@ -228,6 +228,7 @@ def validate_links(
     if envelope.object_type == "annotation" and payload.get("previous_id"):
         if parse_oid(payload["previous_id"])[0] != "annotation":
             raise KernelError("previous_id must contain an annotation id")
+    links = _links(payload, envelope.object_type)
     for link in links:
         parse_oid(link)
         if link == envelope.oid:
