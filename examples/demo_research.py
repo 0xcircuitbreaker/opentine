@@ -32,7 +32,7 @@ DETECT_ORDER = [
     ("GROQ_API_KEY", "opentine.models.compat", "Groq", "llama-3.3-70b-versatile"),
     ("DEEPSEEK_API_KEY", "opentine.models.compat", "DeepSeek", "deepseek-v4-flash"),
     ("KIMI_API_KEY", "opentine.models.compat", "Kimi", "kimi-k2.6"),
-    ("GLM_API_KEY", "opentine.models.compat", "GLM", "glm-5.1"),
+    ("GLM_API_KEY", "opentine.models.compat", "GLM", "glm-5.2"),
     (
         "TOGETHER_API_KEY",
         "opentine.models.compat",

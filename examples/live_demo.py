@@ -29,7 +29,7 @@ PROVIDERS = {
         "DEEPSEEK_API_KEY",
     ),
     "5": ("Qwen", "opentine.models.compat", "Qwen", "qwen3.7-max", "QWEN_API_KEY"),
-    "6": ("GLM / Z.AI", "opentine.models.compat", "GLM", "glm-5.1", "GLM_API_KEY"),
+    "6": ("GLM / Z.AI", "opentine.models.compat", "GLM", "glm-5.2", "GLM_API_KEY"),
     "7": ("Grok / xAI", "opentine.models.compat", "Grok", "grok-4.5", "XAI_API_KEY"),
     "8": (
         "Together",

@@ -13,13 +13,18 @@ from opentine.models._usage import google_usage, metered_response, value
 class Google:
     def __init__(
         self,
-        model: str = "gemini-3-flash-preview",
+        model: str = "gemini-3.5-flash",
         api_key: str | None = None,
         *,
         rates: dict[str, Any] | None = None,
         catalog: PricingCatalog | None = None,
         service_tier: str | None = None,
     ):
+        if service_tier not in (None, "standard"):
+            raise ValueError(
+                "Google service tiers require a provider batch, flex, or priority API; "
+                "GenerateContent uses standard pricing"
+            )
         self._model = model
         self._api_key = api_key or os.environ.get("GOOGLE_API_KEY", "")
         self._rate_override = rates

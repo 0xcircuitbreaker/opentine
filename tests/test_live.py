@@ -50,7 +50,7 @@ PROVIDERS = {
     "google": (
         "opentine.models.google",
         "Google",
-        "gemini-3-flash-preview",
+        "gemini-3.5-flash",
         "GOOGLE_API_KEY",
     ),
     "ollama": ("opentine.models.ollama", "Ollama", "llama3.1", None),
@@ -61,7 +61,7 @@ PROVIDERS = {
         "deepseek-v4-flash",
         "DEEPSEEK_API_KEY",
     ),
-    "glm": ("opentine.models.compat", "GLM", "glm-5.1", "GLM_API_KEY"),
+    "glm": ("opentine.models.compat", "GLM", "glm-5.2", "GLM_API_KEY"),
     "grok": ("opentine.models.compat", "Grok", "grok-4.5", "XAI_API_KEY"),
     "groq": (
         "opentine.models.compat",

@@ -71,18 +71,45 @@ def anthropic_usage(raw: Any) -> Usage:
     )
 
 
+def _google_modalities(raw: Any, name: str, wire_name: str) -> dict[str, int]:
+    result: dict[str, int] = {}
+    details = value(raw, name, _MISSING)
+    if details is _MISSING:
+        details = value(raw, wire_name, [])
+    for item in details or []:
+        modality = str(value(item, "modality", "")).lower().rsplit(".", 1)[-1]
+        if modality:
+            count = integer(item, "token_count", integer(item, "tokenCount"))
+            result[modality] = result.get(modality, 0) + count
+    return result
+
+
 def google_usage(raw: Any) -> Usage:
-    prompt = integer(raw, "prompt_token_count")
-    cached = integer(raw, "cached_content_token_count")
-    output = integer(raw, "candidates_token_count")
-    reasoning = integer(raw, "thoughts_token_count")
-    total = integer(raw, "total_token_count") or prompt + output + reasoning
+    prompt = integer(raw, "prompt_token_count", integer(raw, "promptTokenCount"))
+    cached = integer(raw, "cached_content_token_count", integer(raw, "cachedContentTokenCount"))
+    output = integer(raw, "candidates_token_count", integer(raw, "candidatesTokenCount"))
+    reasoning = integer(raw, "thoughts_token_count", integer(raw, "thoughtsTokenCount"))
+    total = integer(raw, "total_token_count", integer(raw, "totalTokenCount"))
+    total = total or prompt + output + reasoning
+    prompt_modalities = _google_modalities(raw, "prompt_tokens_details", "promptTokensDetails")
+    cache_modalities = _google_modalities(raw, "cache_tokens_details", "cacheTokensDetails")
+    audio_input = max(0, prompt_modalities.get("audio", 0) - cache_modalities.get("audio", 0))
+    audio_cache = min(cached, cache_modalities.get("audio", 0))
+    extra = {
+        name: count
+        for name, count in {
+            "input_audio": audio_input,
+            "cache_read_audio": audio_cache,
+        }.items()
+        if count
+    }
     return Usage(
-        input=max(0, prompt - cached),
+        input=max(0, prompt - cached - audio_input),
         output=output,
-        cache_read=cached,
+        cache_read=max(0, cached - audio_cache),
         reasoning=reasoning,
         total=total,
+        extra=extra,
     )
 
 

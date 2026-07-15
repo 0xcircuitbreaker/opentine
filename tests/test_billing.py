@@ -8,7 +8,8 @@ import pytest
 
 from opentine.billing import PricingCatalog, RateCard, Usage, bill, calculate, load_catalogs
 from opentine.billing.catalog import BUNDLED_CATALOG
-from opentine.models._usage import metered_response
+from opentine.models._usage import google_usage, metered_response
+from opentine.models.google import Google
 from opentine.runtime import Agent
 
 
@@ -79,12 +80,12 @@ def test_sonnet_5_introductory_rate_transition(catalog: PricingCatalog):
     ("provider", "model", "card_prefix"),
     [
         ("kimi", "kimi-k2.6", "kimi:"),
-        ("glm", "glm-5.1", "glm:"),
+        ("glm", "glm-5.2", "glm:"),
         ("xai", "grok-4.5", "xai:"),
         ("mistral", "ministral-3-14b", "mistral:ministral"),
         ("qwen", "qwen3.7-max", "qwen:"),
         ("groq", "qwen/qwen3-32b", "groq:"),
-        ("together", "moonshotai/Kimi-K2.6", "together:"),
+        ("together", "moonshotai/Kimi-K2.7-Code", "together:"),
         ("openrouter", "nousresearch/hermes-4-70b", "openrouter:"),
     ],
 )
@@ -96,11 +97,119 @@ def test_requested_hosted_families_have_provider_scoped_prices(
         model,
         Usage(input=1_000_000, output=1_000_000),
         catalog=catalog,
-        effective_at="2026-07-14",
+        effective_at="2026-07-15",
     )
     assert result.status == "complete"
     assert result.rate_card_id and result.rate_card_id.startswith(card_prefix)
     assert result.amount_usd is not None
+
+
+def test_current_deepseek_aliases_resolve_to_v4_flash(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    legacy = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-07-13")
+    current = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-07-15")
+    assert legacy.rate_card_id == "deepseek:deepseek-chat:legacy-2026-07"
+    assert legacy.amount_usd == Decimal("0.70")
+    assert current.rate_card_id == "deepseek:deepseek-v4-flash:2026-07-14"
+    assert current.amount_usd == Decimal("0.42")
+
+
+def test_current_together_cards_and_effective_transition(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    legacy = bill(
+        "together",
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-14",
+    )
+    current = bill(
+        "together",
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-15",
+    )
+    kimi = bill(
+        "together",
+        "moonshotai/Kimi-K2.7-Code",
+        Usage(input=1_000_000, cache_read=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-15",
+    )
+    assert legacy.amount_usd == Decimal("1.76")
+    assert current.amount_usd == Decimal("2.08")
+    assert kimi.amount_usd == Decimal("5.14")
+
+
+def test_google_service_rates_and_audio_dimensions_are_exact(catalog: PricingCatalog):
+    usage = google_usage(
+        {
+            "promptTokenCount": 1_000_000,
+            "cachedContentTokenCount": 200_000,
+            "candidatesTokenCount": 1_000_000,
+            "promptTokensDetails": [{"modality": "AUDIO", "tokenCount": 600_000}],
+            "cacheTokensDetails": [{"modality": "AUDIO", "tokenCount": 200_000}],
+        }
+    )
+    assert usage.to_dict() == {
+        "input": 400_000,
+        "output": 1_000_000,
+        "input_audio": 400_000,
+        "cache_read_audio": 200_000,
+        "total": 2_000_000,
+    }
+    standard = bill(
+        "google", "gemini-3-flash-preview", usage, catalog=catalog, effective_at="2026-07-15"
+    )
+    batch = bill(
+        "google",
+        "gemini-3-flash-preview",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-15",
+        service_tier="batch",
+    )
+    flex = bill(
+        "google",
+        "gemini-3.5-flash",
+        Usage(input=1_000_000, cache_read=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-15",
+        service_tier="flex",
+    )
+    assert standard.amount_usd == Decimal("3.62")
+    assert batch.amount_usd == Decimal("1.82")
+    assert flex.amount_usd == Decimal("5.33")
+    assert flex.calculation["service_rates_per_million"]["cache_read"] == "0.08"
+
+
+def test_google_generate_content_rejects_unimplemented_service_transport():
+    assert Google().name == "gemini-3.5-flash"
+    with pytest.raises(ValueError, match="GenerateContent uses standard pricing"):
+        Google(service_tier="batch")
+
+
+def test_unknown_service_tier_has_no_false_known_subtotal(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000)
+    unknown = bill(
+        "openai",
+        "gpt-5.6",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-15",
+        service_tier="experimental",
+    )
+    default = bill(
+        "openai",
+        "gpt-5.6",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-15",
+        service_tier="default",
+    )
+    assert unknown.status == "unknown" and unknown.known_subtotal_usd == 0
+    assert default.status == "complete" and default.amount_usd == Decimal("10")
 
 
 def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCatalog):
@@ -117,6 +226,10 @@ def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCata
     assert partial.status == "partial" and partial.known_subtotal_usd == 2
     with pytest.raises(ValueError, match="finite and non-negative"):
         Usage(extra={"compute_seconds": Decimal("NaN")})
+    with pytest.raises(ValueError, match="non-negative integer"):
+        Usage(input=1.5)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="finite and non-negative"):
+        RateCard("invalid", "vendor", "model", {"input": Decimal("NaN")})
 
 
 def test_local_overlay_wins_without_mutating_signed_snapshot(catalog: PricingCatalog):

@@ -71,7 +71,7 @@ class Qwen(ChatCompletions):
 
 
 class GLM(ChatCompletions):
-    def __init__(self, model: str = "glm-5.1", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "glm-5.2", api_key: str | None = None, **kwargs: Any):
         raw_key = api_key or env_key("GLM_API_KEY")
         configured_region = os.environ.get("GLM_REGION")
         china = (configured_region or "").lower() == "china" or (
@@ -79,12 +79,11 @@ class GLM(ChatCompletions):
         )
         if china and "." in raw_key:
             raw_key = glm_jwt(raw_key)
-        url = (
-            "https://open.bigmodel.cn/api/paas/v4"
-            if china
-            else os.environ.get("GLM_BASE_URL", "https://api.z.ai/api/paas/v4")
+        default_url = (
+            "https://open.bigmodel.cn/api/paas/v4" if china else "https://api.z.ai/api/paas/v4"
         )
-        _base(self, model, "glm", raw_key, "GLM_API_KEY", url, kwargs)
+        url = os.environ.get("GLM_BASE_URL", default_url)
+        _base(self, model, "glm-cn" if china else "glm", raw_key, "GLM_API_KEY", url, kwargs)
 
     _make_jwt = staticmethod(glm_jwt)
 

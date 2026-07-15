@@ -57,7 +57,20 @@ class ChatCompletions:
     @property
     def supports_thinking(self) -> bool:
         name = self._model.lower()
-        return any(item in name for item in ("reason", "thinking", "gpt-5", "grok-4", "kimi-k2"))
+        return any(
+            item in name
+            for item in (
+                "reason",
+                "thinking",
+                "gpt-5",
+                "grok-4",
+                "kimi-k2",
+                "deepseek-v4",
+                "glm-5",
+                "qwen3",
+                "mistral-small-4",
+            )
+        )
 
     def _get_client(self):
         try:

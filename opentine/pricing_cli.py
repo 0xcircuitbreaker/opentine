@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 import httpx
@@ -11,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from opentine.billing import BUNDLED_CATALOG, PricingCatalog, install_catalog, load_catalogs
-from opentine.billing.catalog import CatalogError
+from opentine.billing.catalog import MAX_CATALOG_BYTES, CatalogError
 
 
 def add_pricing_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -97,13 +98,25 @@ def _cmd_update(args: argparse.Namespace, console: Console) -> None:
     if args.source.startswith("http://"):
         raise ValueError("remote catalog updates require HTTPS")
     if args.source.startswith("https://"):
-        response = httpx.get(args.source, timeout=30, follow_redirects=True)
-        response.raise_for_status()
-        if response.url.scheme != "https":
-            raise ValueError("catalog update redirected away from HTTPS")
-        raw = response.content
+        with httpx.stream("GET", args.source, timeout=30, follow_redirects=False) as response:
+            response.raise_for_status()
+            if response.is_redirect:
+                raise ValueError("catalog update redirects are not followed")
+            declared = int(response.headers.get("content-length", "0"))
+            if declared > MAX_CATALOG_BYTES:
+                raise ValueError("pricing catalog exceeds maximum size")
+            downloaded = bytearray()
+            started = time.monotonic()
+            for chunk in response.iter_bytes():
+                if time.monotonic() - started > 30:
+                    raise ValueError("pricing catalog download exceeded total deadline")
+                downloaded.extend(chunk)
+                if len(downloaded) > MAX_CATALOG_BYTES:
+                    raise ValueError("pricing catalog exceeds maximum size")
+            raw = bytes(downloaded)
     else:
-        raw = Path(args.source).read_bytes()
+        with Path(args.source).open("rb") as handle:
+            raw = handle.read(MAX_CATALOG_BYTES + 1)
     catalog = install_catalog(raw, args.dest)
     console.print(f"[green]Installed[/] {catalog.id} -> {args.dest}")
 

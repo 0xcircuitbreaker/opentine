@@ -49,18 +49,26 @@ class Usage:
             "cache_write_1h",
             "reasoning",
         ):
-            if getattr(self, name) < 0:
-                raise ValueError(f"usage.{name} must be non-negative")
-        if self.total is not None and self.total < 0:
-            raise ValueError("usage.total must be non-negative")
+            if type(getattr(self, name)) is not int or getattr(self, name) < 0:
+                raise ValueError(f"usage.{name} must be a non-negative integer")
+        if self.total is not None and (type(self.total) is not int or self.total < 0):
+            raise ValueError("usage.total must be a non-negative integer")
         for name, value in self.extra.items():
             number = decimal(value)
             if not number.is_finite() or number < 0:
                 raise ValueError(f"usage.extra.{name} must be finite and non-negative")
 
     @property
-    def input_total(self) -> int:
-        return self.input + self.cache_read + self.cache_write_5m + self.cache_write_1h
+    def input_total(self) -> Number:
+        extra = sum(
+            (
+                decimal(value)
+                for name, value in self.extra.items()
+                if name.startswith(("input_", "cache_read_", "cache_write_"))
+            ),
+            Decimal("0"),
+        )
+        return self.input + self.cache_read + self.cache_write_5m + self.cache_write_1h + extra
 
     def dimensions(self) -> dict[str, Number]:
         values: dict[str, Number] = {
@@ -115,13 +123,27 @@ class RateCard:
     effective_from: date = date.min
     effective_until: date | None = None
     context_thresholds: tuple[dict[str, Any], ...] = ()
-    service_modifiers: dict[str, Decimal] = field(default_factory=dict)
+    service_modifiers: dict[str, Decimal | dict[str, Decimal]] = field(default_factory=dict)
+    service_rates: dict[str, dict[str, Decimal]] = field(default_factory=dict)
     currency: str = "USD"
     currency_to_usd: Decimal = Decimal("1")
     source_urls: tuple[str, ...] = ()
     verified_at: date | None = None
     unmetered: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        groups = [self.rates, *self.service_rates.values()]
+        scalars = [self.currency_to_usd]
+        for modifier in self.service_modifiers.values():
+            groups.append(modifier) if isinstance(modifier, dict) else scalars.append(modifier)
+        groups.extend((rule.get("multipliers") or {}) for rule in self.context_thresholds)
+        rates = [decimal(value) for group in groups for value in group.values()]
+        if any(not value.is_finite() or value < 0 for value in rates):
+            raise ValueError("rate-card values must be finite and non-negative")
+        conversion = decimal(self.currency_to_usd)
+        if not conversion.is_finite() or conversion <= 0:
+            raise ValueError("currency conversion must be finite and positive")
 
     def active(self, when: date) -> bool:
         return self.effective_from <= when and (
@@ -145,7 +167,14 @@ class RateCard:
             "rates": {key: str(value) for key, value in sorted(self.rates.items())},
             "context_thresholds": list(self.context_thresholds),
             "service_modifiers": {
-                key: str(value) for key, value in sorted(self.service_modifiers.items())
+                key: {name: str(rate) for name, rate in sorted(value.items())}
+                if isinstance(value, dict)
+                else str(value)
+                for key, value in sorted(self.service_modifiers.items())
+            },
+            "service_rates": {
+                tier: {name: str(rate) for name, rate in sorted(rates.items())}
+                for tier, rates in sorted(self.service_rates.items())
             },
             "currency": self.currency,
             "currency_to_usd": str(self.currency_to_usd),
@@ -169,7 +198,14 @@ class RateCard:
             rates={key: decimal(value) for key, value in (data.get("rates") or {}).items()},
             context_thresholds=tuple(data.get("context_thresholds") or ()),
             service_modifiers={
-                key: decimal(value) for key, value in (data.get("service_modifiers") or {}).items()
+                key: {name: decimal(rate) for name, rate in value.items()}
+                if isinstance(value, dict)
+                else decimal(value)
+                for key, value in (data.get("service_modifiers") or {}).items()
+            },
+            service_rates={
+                tier: {name: decimal(rate) for name, rate in rates.items()}
+                for tier, rates in (data.get("service_rates") or {}).items()
             },
             currency=data.get("currency", "USD"),
             currency_to_usd=decimal(data.get("currency_to_usd"), "1"),

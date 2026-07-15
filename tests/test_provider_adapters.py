@@ -176,7 +176,12 @@ def test_openai_compatible_wrappers_set_expected_endpoints():
 
     glm = GLM(api_key="id.secret")
     assert glm._base_url == "https://open.bigmodel.cn/api/paas/v4"
+    assert glm._provider == "glm-cn"
     assert len(glm._api_key.split(".")) == 3
+    global_glm = GLM(api_key="opaque-global-key")
+    assert global_glm._base_url == "https://api.z.ai/api/paas/v4"
+    assert global_glm._provider == "glm"
+    assert global_glm.supports_thinking and kimi.supports_thinking
 
 
 def _fake_openai_client_with_usage() -> Any:

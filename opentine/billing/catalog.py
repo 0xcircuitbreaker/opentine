@@ -16,8 +16,10 @@ from opentine._canon import _canonical_bytes, atomic_write_text
 from opentine.billing.types import RateCard, as_date
 
 BUNDLED_CATALOG = Path(__file__).parent.parent / "data" / "pricing_catalog.json"
+MAX_CATALOG_BYTES = 16 * 1024 * 1024
 TRUSTED_KEYS = {
     "opentine-release-2026-07": "7dcohQb6JY+k202f3eeEy1t003t30ez4UG36muaUBYk=",
+    "opentine-release-2026-07-r2": "iYgA1zHDiavTjKeMko9jOZMlzxq+ZVDwnG9LlQR2W78=",
 }
 
 
@@ -157,8 +159,12 @@ class PricingCatalog:
     ) -> PricingCatalog:
         p = Path(path)
         try:
-            raw = json.loads(p.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+            with p.open("rb") as handle:
+                data = handle.read(MAX_CATALOG_BYTES + 1)
+            if len(data) > MAX_CATALOG_BYTES:
+                raise CatalogError("pricing catalog exceeds maximum size")
+            raw = json.loads(data)
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise CatalogError(f"cannot load pricing catalog {p}: {exc}") from exc
         if not isinstance(raw, dict):
             raise CatalogError("pricing catalog root is not an object")
@@ -194,6 +200,8 @@ def load_catalogs(
 
 
 def install_catalog(data: bytes, path: str | Path) -> PricingCatalog:
+    if len(data) > MAX_CATALOG_BYTES:
+        raise CatalogError("pricing catalog exceeds maximum size")
     try:
         raw = json.loads(data)
     except json.JSONDecodeError as exc:

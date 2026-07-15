@@ -11,8 +11,10 @@ from opentine.billing.types import BillingResult, RateCard, Usage, as_date, deci
 _MILLION = Decimal(1_000_000)
 
 
-def _threshold_rates(card: RateCard, usage: Usage) -> tuple[dict[str, Decimal], list[str]]:
-    rates = dict(card.rates)
+def _threshold_rates(
+    card: RateCard, usage: Usage, rates: dict[str, Decimal] | None = None
+) -> tuple[dict[str, Decimal], list[str]]:
+    rates = dict(rates or card.rates)
     matching = [
         rule
         for rule in card.context_thresholds
@@ -73,9 +75,38 @@ def calculate(
             catalog_provenance,
         )
 
-    rates, threshold_rules = _threshold_rates(card, usage)
-    requested_tier = service_tier or "standard"
-    modifier = card.service_modifiers.get(requested_tier, Decimal("1"))
+    reported_tier = str(service_tier) if service_tier not in (None, "") else "standard"
+    requested_tier = (
+        "standard" if reported_tier in {"default", "standard", "standard_only"} else reported_tier
+    )
+    calculation["service_tier"] = reported_tier
+    if requested_tier != reported_tier:
+        calculation["normalized_service_tier"] = requested_tier
+    known_tiers = card.service_modifiers.keys() | card.service_rates.keys()
+    if (
+        requested_tier != "standard"
+        and requested_tier not in known_tiers
+        and not card.metadata.get("override")
+    ):
+        return BillingResult(
+            "unknown",
+            None,
+            Decimal("0"),
+            catalog_id,
+            catalog_hash,
+            card.id,
+            iso_when,
+            (f"rate card has no pricing for service tier {reported_tier!r}",),
+            calculation,
+            catalog_provenance,
+        )
+    rates = dict(card.rates)
+    service_rates = card.service_rates.get(requested_tier, {})
+    rates.update(service_rates)
+    rates, threshold_rules = _threshold_rates(card, usage, rates)
+    raw_modifier = card.service_modifiers.get(requested_tier, Decimal("1"))
+    dimensional_modifier = isinstance(raw_modifier, dict)
+    dimension_modifiers = raw_modifier if dimensional_modifier else {}
     known = Decimal("0")
     missing: list[str] = []
     components: dict[str, str] = {}
@@ -87,14 +118,16 @@ def calculate(
         if rate is None:
             missing.append(dimension)
             continue
+        modifier = (
+            decimal(dimension_modifiers.get(dimension), "1")
+            if dimensional_modifier
+            else decimal(raw_modifier, "1")
+        )
         amount = count * rate / _MILLION * modifier * card.currency_to_usd
         known += amount
         components[dimension] = str(amount)
 
     warnings: list[str] = []
-    if requested_tier != "standard" and requested_tier not in card.service_modifiers:
-        missing.append(f"service_tier:{requested_tier}")
-        warnings.append(f"rate card has no modifier for service tier {requested_tier!r}")
     if missing:
         warnings.append("missing rates for usage dimensions: " + ", ".join(sorted(missing)))
     if card.currency != "USD":
@@ -106,7 +139,14 @@ def calculate(
             "rates_per_million": {key: str(value) for key, value in sorted(rates.items())},
             "components_usd": components,
             "context_rules": threshold_rules,
-            "service_modifier": str(modifier),
+            "service_modifier": {
+                key: str(value) for key, value in sorted(dimension_modifiers.items())
+            }
+            if dimensional_modifier
+            else str(raw_modifier),
+            "service_rates_per_million": {
+                key: str(value) for key, value in sorted(service_rates.items())
+            },
             "currency": card.currency,
             "currency_to_usd": str(card.currency_to_usd),
         }
