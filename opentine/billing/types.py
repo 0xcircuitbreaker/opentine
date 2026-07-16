@@ -139,6 +139,7 @@ class RateCard:
             groups.append(modifier) if isinstance(modifier, dict) else scalars.append(modifier)
         groups.extend((rule.get("multipliers") or {}) for rule in self.context_thresholds)
         rates = [decimal(value) for group in groups for value in group.values()]
+        rates.extend(decimal(value) for value in scalars)
         if any(not value.is_finite() or value < 0 for value in rates):
             raise ValueError("rate-card values must be finite and non-negative")
         conversion = decimal(self.currency_to_usd)

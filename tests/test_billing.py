@@ -212,6 +212,18 @@ def test_unknown_service_tier_has_no_false_known_subtotal(catalog: PricingCatalo
     assert default.status == "complete" and default.amount_usd == Decimal("10")
 
 
+@pytest.mark.parametrize("value", [Decimal("-1"), Decimal("Infinity"), Decimal("NaN")])
+def test_scalar_service_modifiers_are_finite_and_non_negative(value: Decimal):
+    with pytest.raises(ValueError, match="finite and non-negative"):
+        RateCard(
+            "bad",
+            "provider",
+            "model",
+            {"input": Decimal("1")},
+            service_modifiers={"priority": value},
+        )
+
+
 def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCatalog):
     unknown = bill("openai", "kimi-k2.6", Usage(input=10), catalog=catalog)
     dynamic = bill("nous", "Hermes-4-70B", Usage(input=10), catalog=catalog)
