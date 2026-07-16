@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 from opentine.policies import PythonPolicy
+from opentine.tools._process import run_bounded
 
 _SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
 
@@ -30,22 +30,16 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
         with tempfile.TemporaryDirectory(prefix="opentine-python-") as tmp:
             script_path = str(Path(tmp) / "snippet.py")
             Path(script_path).write_text(code, encoding="utf-8")
-            result = subprocess.run(
+            result = run_bounded(
                 [sys.executable, script_path],
-                capture_output=True,
-                text=True,
                 timeout=pol.timeout_seconds,
+                max_chars=pol.max_output_chars,
                 env=_clean_env(pol),
                 cwd=tmp,
             )
-            output = result.stdout
-            if result.stderr:
-                output += f"\nSTDERR:\n{result.stderr}"
-            if len(output) > pol.max_output_chars:
-                output = output[: pol.max_output_chars - 14] + "... (truncated)"
-            return output.strip() or "(no output)"
-    except subprocess.TimeoutExpired:
-        return f"Error: execution timed out after {pol.timeout_seconds}s"
+            if result.timed_out:
+                return f"Error: execution timed out after {pol.timeout_seconds}s"
+            return result.output(pol.max_output_chars)
     except Exception as e:
         return f"Error: {e}"
 
@@ -56,19 +50,15 @@ def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
         f.write(code)
         script_path = f.name
     try:
-        result = subprocess.run(
+        result = run_bounded(
             [sys.executable, script_path],
-            capture_output=True,
-            text=True,
             timeout=timeout,
+            max_chars=8_000,
             env=_clean_env(PythonPolicy(enabled=True, inherit_env=True)),
         )
-        output = result.stdout
-        if result.stderr:
-            output += f"\nSTDERR:\n{result.stderr}"
-        return output.strip() or "(no output)"
-    except subprocess.TimeoutExpired:
-        return f"Error: execution timed out after {timeout}s"
+        if result.timed_out:
+            return f"Error: execution timed out after {timeout}s"
+        return result.output(8_000)
     except Exception as e:
         return f"Error: {e}"
     finally:

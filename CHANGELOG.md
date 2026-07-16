@@ -97,6 +97,8 @@ v2; repository objects use the new verified v3 format.
 - Search-provider responses are streamed under a fixed body cap with compressed
   payloads and redirects refused. Release metadata checks invoke Twine through
   the interpreter consistently in CI and tag-publish workflows.
+- Enabled shell and Python tools drain child pipes continuously while retaining
+  only a bounded prefix, so their output caps also bound resident capture memory.
 
 ### Architecture and compatibility
 

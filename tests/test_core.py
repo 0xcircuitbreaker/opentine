@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -463,6 +464,18 @@ class TestSecurity:
             policy=ShellPolicy(enabled=True, executables=("python3",), max_output_chars=20),
         )
         assert "truncated" in out
+
+    def test_subprocess_output_is_drained_under_a_resident_cap(self):
+        from opentine.tools._process import run_bounded
+
+        result = run_bounded(
+            [sys.executable, "-c", "import sys; sys.stdout.write('x' * 1_000_000)"],
+            timeout=10,
+            max_chars=20,
+        )
+        assert not result.timed_out
+        assert len(result.stdout) <= 1024
+        assert "truncated" in result.output(20)
 
     def test_shell_env_isolated_by_default(self, monkeypatch):
         monkeypatch.setenv("SECRET_TOKEN", "leak")

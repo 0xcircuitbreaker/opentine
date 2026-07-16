@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 import shlex
-import subprocess
 import sys
 from pathlib import Path
 
 from opentine.policies import ShellPolicy
+from opentine.tools._process import run_bounded
 
 
 def _strip_outer_quotes(part: str) -> str:
@@ -76,22 +76,15 @@ def run(
         return f"Error: cwd escapes shell policy root {cwd_root}"
 
     try:
-        result = subprocess.run(
+        result = run_bounded(
             _subprocess_parts(parts),
-            shell=False,
-            capture_output=True,
-            text=True,
             timeout=pol.timeout_seconds,
+            max_chars=pol.max_output_chars,
             cwd=str(Path.cwd()),
             env=_clean_env(pol),
         )
-        output = result.stdout
-        if result.stderr:
-            output += f"\nSTDERR:\n{result.stderr}"
-        if len(output) > pol.max_output_chars:
-            output = output[: pol.max_output_chars - 14] + "... (truncated)"
-        return output.strip() or "(no output)"
-    except subprocess.TimeoutExpired:
-        return f"Error: command timed out after {pol.timeout_seconds}s"
+        if result.timed_out:
+            return f"Error: command timed out after {pol.timeout_seconds}s"
+        return result.output(pol.max_output_chars)
     except Exception as e:
         return f"Error: {e}"
