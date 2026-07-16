@@ -99,9 +99,10 @@ def test_m4_existing_unchained_audit_rows_are_migrated(tmp_path: Path):
     with pytest.raises(RuntimeError, match="explicit migration"):
         SQLiteBackend(path)
     db = SQLiteBackend(path, migrate_legacy_audit=True)
-    assert db.verify_audit_chain()
+    assert db.audit_status() == "legacy-unverified"
+    assert db.verify_audit_chain() is False
     db.append(AuditEvent("new", "2", "t1", "a", "read", "ok", {}))
-    assert db.verify_audit_chain()
+    assert db.audit_status() == "legacy-unverified"
 
 
 # --- M5: real OIDC/JWT verification ----------------------------------------------------

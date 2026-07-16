@@ -9,7 +9,7 @@ import re
 # excluded so numeric usage counters (input_tokens, cached_tokens, reasoning_tokens) and
 # benign names (public_key, idempotency_key) are never scrubbed.
 _NAME = (
-    rb"(?:[A-Za-z0-9]+[_-])*"
+    rb"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-])*"
     rb"(?:api[_-]?keys?|api[_-]?tokens?|access[_-]?keys?|access[_-]?tokens?|"
     rb"secret[_-]?access[_-]?keys?|secret[_-]?keys?|private[_-]?keys?|"
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
@@ -44,10 +44,8 @@ _HEADER_LINE = re.compile(
     rb"(?im)^([ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)[ \t]*:[ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
-_PRIVATE_KEY = re.compile(
-    rb"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
-    re.DOTALL,
-)
+_PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
+_PRIVATE_KEY_END = re.compile(rb"-----END [A-Z ]{0,64}PRIVATE KEY-----")
 # High-confidence secret token shapes, scrubbed regardless of the surrounding field name.
 _TOKEN_SHAPES = re.compile(
     rb"(?i)\b(?:"
@@ -57,7 +55,19 @@ _TOKEN_SHAPES = re.compile(
     rb"|xox[baprs]-[A-Za-z0-9-]{10,}"  # Slack tokens
     rb")"
 )
-_PROSE_VALUES = {b"can", b"could", b"how", b"should", b"what", b"when", b"where", b"which", b"why"}
+_PROSE_VALUES = {
+    b"can",
+    b"could",
+    b"how",
+    b"should",
+    b"what",
+    b"when",
+    b"where",
+    b"which",
+    b"why",
+}
+_ARTICLES = {b"a", b"an", b"the", b"this"}
+_HEADER_NOUNS = {b"field", b"header", b"label", b"setting", b"value"}
 
 
 def _assignment(match: re.Match[bytes]) -> bytes:
@@ -65,6 +75,32 @@ def _assignment(match: re.Match[bytes]) -> bytes:
     if b":" in separator and candidate.lower() in _PROSE_VALUES:
         return match.group(0)
     return match.group(1) + separator + b"[REDACTED]"
+
+
+def _header_line(match: re.Match[bytes]) -> bytes:
+    words = match.group(2).strip().split(maxsplit=1)
+    first_word = words[0].lower() if words else b""
+    prose = first_word in _PROSE_VALUES
+    prose |= (
+        len(words) > 1
+        and first_word in _ARTICLES
+        and (words[1].split(maxsplit=1)[0].lower() in _HEADER_NOUNS)
+    )
+    return match.group(0) if prose else match.group(1) + b"[REDACTED]"
+
+
+def _private_keys(value: bytes) -> bytes:
+    output = bytearray()
+    cursor = 0
+    while begin := _PRIVATE_KEY_BEGIN.search(value, cursor):
+        output.extend(value[cursor : begin.start()])
+        output.extend(b"[REDACTED PRIVATE KEY]")
+        end = _PRIVATE_KEY_END.search(value, begin.end())
+        if end is None:
+            return bytes(output)
+        cursor = end.end()
+    output.extend(value[cursor:])
+    return bytes(output)
 
 
 def redact_blob(value: bytes) -> bytes:
@@ -86,8 +122,8 @@ def redact_blob(value: bytes) -> bytes:
     value = _QUOTED_ASSIGNMENT.sub(
         lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
     )
-    value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
+    value = _HEADER_LINE.sub(_header_line, value)
     value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)
-    return _PRIVATE_KEY.sub(b"[REDACTED PRIVATE KEY]", value)
+    return _private_keys(value)

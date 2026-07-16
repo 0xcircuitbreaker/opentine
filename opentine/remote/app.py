@@ -1,7 +1,5 @@
 """Minimal WSGI HTTP transport for the OpenTine remote protocol."""
 
-from __future__ import annotations
-
 import hashlib
 import json
 import os
@@ -13,7 +11,7 @@ from typing import Any
 from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES
-from opentine.remote._uploads import UploadRegistry
+from opentine.remote._uploads import TerminalUploadError, UploadRegistry
 from opentine.remote.service import RemoteService
 from opentine.repository.pack import MAX_PACK_BYTES
 
@@ -192,13 +190,17 @@ class RemoteApp:
         valid_size = type(size) is int and 0 <= size <= self.max_upload_bytes
         if not valid_size or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError("invalid resumable upload declaration")
-        self.service.admission.admit(
-            identity,
-            "upload",
-            {"bytes": size, "objects": 0, "phase": "declaration", "tenant": tenant},
-        )
         upload_id = uuid.uuid4().hex
-        self._uploads.create(tenant, upload_id, {"sha256": digest, "size": size})
+        paths = self._uploads.create(tenant, upload_id, {"sha256": digest, "size": size})
+        try:
+            self.service.admission.admit(
+                identity,
+                "upload",
+                {"bytes": size, "objects": 0, "phase": "declaration", "tenant": tenant},
+            )
+        except Exception:
+            self._uploads.cleanup(paths)
+            raise
         return self._json_response(
             start_response, "201 Created", {"offset": 0, "upload_id": upload_id}
         )
@@ -206,18 +208,16 @@ class RemoteApp:
     def _upload(self, identity, tenant, upload_id, method, environ, start_response):
         self.service._authorize(identity, "upload", tenant)
         with self._uploads.locked(tenant, upload_id) as paths:
-            terminal = False
             try:
                 response, terminal = self._upload_locked(
                     identity, tenant, method, environ, start_response, paths
                 )
-                return response
-            except Exception:
-                terminal = True
+            except TerminalUploadError:
+                self._uploads.cleanup(paths)
                 raise
-            finally:
-                if terminal:
-                    self._uploads.cleanup(paths)
+            if terminal:
+                self._uploads.cleanup(paths)
+            return response
 
     def _upload_locked(self, identity, tenant, method, environ, start_response, paths):
         part, metadata_path = paths
@@ -233,7 +233,7 @@ class RemoteApp:
             return self._json_response(start_response, "409 Conflict", {"offset": offset}), False
         chunk = self._body(environ)
         if offset + len(chunk) > metadata["size"]:
-            raise ValueError("upload exceeds declared size")
+            raise TerminalUploadError("upload exceeds declared size")
         with part.open("ab") as handle:
             handle.write(chunk)
             handle.flush()
@@ -244,7 +244,7 @@ class RemoteApp:
         with self._install_guard:
             data = part.read_bytes()
             if hashlib.sha256(data).hexdigest() != metadata["sha256"]:
-                raise ValueError("resumable upload checksum mismatch")
+                raise TerminalUploadError("resumable upload checksum mismatch")
             pack_id, count = self.service.install_pack(identity, tenant, data)
         result = {"objects": count, "offset": offset, "pack_id": pack_id}
         return self._json_response(start_response, "201 Created", result), True

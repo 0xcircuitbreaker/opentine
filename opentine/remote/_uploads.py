@@ -14,6 +14,10 @@ from typing import Any
 _UPLOAD_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
+class TerminalUploadError(ValueError):
+    """An upload declaration cannot be resumed and should be discarded."""
+
+
 class UploadRegistry:
     def __init__(self, root: Path, *, ttl_seconds: float, max_pending: int):
         if ttl_seconds <= 0 or max_pending < 1:

@@ -159,18 +159,28 @@ class LocalKeyProvider:
 
 
 class KMSKeyProvider:
-    """Adapter for AWS/GCP/Azure/Vault-style encrypt/decrypt callables."""
+    """Adapter for KMS encrypt/decrypt and audit-key derivation callables."""
 
     def __init__(
         self,
         encrypt: Callable[[str, bytes], bytes],
         decrypt: Callable[[str, bytes], bytes],
+        derive_audit_key: Callable[[], bytes] | None = None,
     ):
         self._encrypt = encrypt
         self._decrypt = decrypt
+        self._derive_audit_key = derive_audit_key
 
     def encrypt(self, tenant: str, plaintext: bytes) -> bytes:
         return self._encrypt(tenant, plaintext)
 
     def decrypt(self, tenant: str, ciphertext: bytes) -> bytes:
         return self._decrypt(tenant, ciphertext)
+
+    def derive_audit_key(self) -> bytes:
+        if self._derive_audit_key is None:
+            raise RuntimeError("KMS audit-key derivation is not configured")
+        key = self._derive_audit_key()
+        if not isinstance(key, bytes) or len(key) < 16:
+            raise ValueError("derived audit HMAC key must contain at least 16 bytes")
+        return key

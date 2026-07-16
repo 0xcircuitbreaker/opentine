@@ -133,7 +133,8 @@ def test_m1_audit_is_keyed_anchored_and_legacy_migration_is_loud(tmp_path: Path)
     with pytest.raises(RuntimeError, match="explicit migration"):
         SQLiteBackend(legacy, audit_key=key)
     migrated = SQLiteBackend(legacy, audit_key=key, migrate_legacy_audit=True)
-    assert migrated.verify_audit_chain()
+    assert migrated.verify_audit_chain() is False
+    assert migrated.audit_status() == "legacy-unverified"
     assert migrated.audit_warnings() == ["legacy audit rows were migrated without authenticity"]
 
 

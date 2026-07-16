@@ -60,18 +60,24 @@ def reference_app(
     admission=None,
     audit_key: bytes | None = None,
     migrate_legacy_audit: bool = False,
+    reanchor_audit_head: str | None = None,
     max_request_bytes: int = 16 * 1024 * 1024,
     max_upload_bytes: int = 256 * 1024 * 1024,
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
     objects = FilesystemObjectStore(state / "objects", key_provider)
-    derive = getattr(key_provider, "derive_audit_key", None)
-    chain_key = audit_key or (derive() if callable(derive) else None)
+    chain_key = audit_key
+    if chain_key is None:
+        derive = getattr(key_provider, "derive_audit_key", None)
+        if not callable(derive):
+            raise RuntimeError("key provider must derive an audit key or receive audit_key")
+        chain_key = derive()
     index = SQLiteBackend(
         state / "metadata.sqlite3",
         audit_key=chain_key,
         migrate_legacy_audit=migrate_legacy_audit,
+        reanchor_audit_head=reanchor_audit_head,
     )
     service = RemoteService(
         objects,
@@ -110,6 +116,11 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="One-time trust-on-migration for pre-HMAC audit rows",
     )
+    parser.add_argument(
+        "--reanchor-audit-head",
+        metavar="SHA256",
+        help="Recover a verified chain only when its computed head equals SHA256",
+    )
 
 
 def cmd_serve(args: argparse.Namespace, console: Any) -> None:
@@ -129,6 +140,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         max_request_bytes=args.max_body_mb * 1024 * 1024,
         max_upload_bytes=args.max_upload_mb * 1024 * 1024,
         migrate_legacy_audit=args.migrate_legacy_audit,
+        reanchor_audit_head=args.reanchor_audit_head,
     )
     handler = type("_Handler", (TimeoutRequestHandler,), {"timeout": args.timeout})
     server_class = type("_Server", (ThreadingWSGIServer,), {"max_workers": args.max_connections})

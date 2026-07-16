@@ -6,6 +6,7 @@ import os
 import re
 import sqlite3
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -125,32 +126,52 @@ class SQLiteBackend(SQLiteAuditMixin):
         *,
         audit_key: bytes | None = None,
         migrate_legacy_audit: bool = False,
+        reanchor_audit_head: str | None = None,
     ):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._key_path = Path(str(self.path) + ".audit-key")
         self._anchor_path = Path(str(self.path) + ".audit-head")
         self._audit_key, _ = load_key(self._key_path, audit_key)
+        self._audit_lock = threading.Lock()
+        if reanchor_audit_head is not None and not re.fullmatch(
+            r"[0-9a-f]{64}", reanchor_audit_head
+        ):
+            raise ValueError("re-anchor head must be a lowercase SHA-256 digest")
         allow_legacy = migrate_legacy_audit and not self._anchor_path.exists()
-        self._initialize(allow_legacy)
+        self._initialize(allow_legacy, reanchor_audit_head)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=30)
         connection.execute("PRAGMA journal_mode=WAL")
         return connection
 
-    def _initialize(self, allow_legacy: bool) -> None:
+    def _initialize(self, allow_legacy: bool, reanchor: str | None) -> None:
         migrated = initialize(self._connect, self._audit_key, allow_legacy=allow_legacy)
         valid, head = self._verified_head()
         if not valid:
             raise RuntimeError("audit chain verification failed")
-        anchored = read_anchor(self._anchor_path, self._audit_key)
+        try:
+            anchored = read_anchor(self._anchor_path, self._audit_key)
+        except RuntimeError:
+            if reanchor != head:
+                raise
+            anchored = None
         if anchored is None:
-            if head != GENESIS and not (allow_legacy or migrated):
+            if head != GENESIS and not (migrated or reanchor == head):
                 raise RuntimeError("audit anchor is missing; explicit recovery is required")
             write_anchor(self._anchor_path, head, self._audit_key)
         elif anchored != head:
-            raise RuntimeError("audit chain does not match its authenticated anchor")
+            with self._connect() as database:
+                last = database.execute(
+                    "SELECT prev_hash FROM audit ORDER BY sequence DESC LIMIT 1"
+                ).fetchone()
+            if last and anchored == last[0]:
+                write_anchor(self._anchor_path, head, self._audit_key)
+            elif reanchor == head:
+                write_anchor(self._anchor_path, head, self._audit_key)
+            else:
+                raise RuntimeError("audit chain does not match its authenticated anchor")
 
     def record_object(self, tenant: str, oid: str, size: int) -> None:
         with self._connect() as database:

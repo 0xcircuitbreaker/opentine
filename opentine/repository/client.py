@@ -73,6 +73,15 @@ def _offset(state: dict[str, Any], default: int = -1) -> int:
     return raw
 
 
+def _upload_result(state: dict[str, Any]) -> tuple[int, str]:
+    objects, pack_id = state.get("objects"), state.get("pack_id")
+    if type(objects) is not int or objects < 0:
+        raise ValueError("remote returned an invalid uploaded-object count")
+    if not isinstance(pack_id, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", pack_id):
+        raise ValueError("remote returned an invalid pack id")
+    return objects, pack_id
+
+
 def capabilities(
     remote: str, *, timeout: float = 30, allow_insecure: bool = False
 ) -> dict[str, Any]:
@@ -198,6 +207,7 @@ def push(
         missing = negotiate(repo, [local_oid], [old] if old else [])
         pack = create_pack(repo, missing)
         uploaded = _upload(client, _prefix(namespace) + "/packs", pack, chunk_size=chunk_size)
+        objects, pack_id = _upload_result(uploaded)
         status, _ = _request_json(
             client,
             "PUT",
@@ -207,7 +217,7 @@ def push(
         )
         if status == 409:
             raise ValueError("remote ref changed concurrently")
-    return TransferResult(int(uploaded.get("objects", 0)), uploaded["pack_id"], destination)
+    return TransferResult(objects, pack_id, destination)
 
 
 def clone(

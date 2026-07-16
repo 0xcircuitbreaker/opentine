@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import stat
 from pathlib import Path
 
 from opentine._canon import _fsync_dir, atomic_write_text
@@ -28,9 +29,31 @@ def _anchor_mac(head: str, key: bytes) -> str:
     return hmac.new(key, b"opentine.audit-anchor.v1\0" + head.encode(), hashlib.sha256).hexdigest()
 
 
-def _read_small(path: Path, maximum: int) -> bytes:
-    with path.open("rb") as handle:
-        value = handle.read(maximum + 1)
+def _read_small(path: Path, maximum: int, *, private: bool = False) -> bytes:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise RuntimeError("stored audit sidecar cannot be opened safely") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise RuntimeError("stored audit sidecar is not a regular file")
+        if private and stat.S_IMODE(info.st_mode) != 0o600 and hasattr(os, "fchmod"):
+            os.fchmod(fd, 0o600)
+        chunks = []
+        remaining = maximum + 1
+        while remaining:
+            chunk = os.read(fd, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        value = b"".join(chunks)
+    finally:
+        os.close(fd)
     if len(value) > maximum:
         raise RuntimeError(f"stored audit sidecar exceeds {maximum} bytes")
     return value
@@ -42,14 +65,14 @@ def load_key(path: Path, supplied: bytes | None) -> tuple[bytes, bool]:
             raise ValueError("audit HMAC key must contain at least 16 bytes")
         return supplied, False
     try:
-        key = _read_small(path, 64)
+        key = _read_small(path, 64, private=True)
         created = False
     except FileNotFoundError:
         key = os.urandom(32)
         try:
             fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
-            key, created = _read_small(path, 64), False
+            key, created = _read_small(path, 64, private=True), False
         else:
             with os.fdopen(fd, "wb") as handle:
                 handle.write(key)
@@ -69,10 +92,12 @@ def read_anchor(path: Path, key: bytes) -> str | None:
         return None
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise RuntimeError("stored audit anchor is malformed") from exc
+    algorithm = value.get("algorithm") if isinstance(value, dict) else None
     head = value.get("head") if isinstance(value, dict) else None
     mac = value.get("mac") if isinstance(value, dict) else None
     if (
-        not isinstance(head, str)
+        algorithm != "hmac-sha256"
+        or not isinstance(head, str)
         or len(head) != 64
         or not isinstance(mac, str)
         or not hmac.compare_digest(mac, _anchor_mac(head, key))

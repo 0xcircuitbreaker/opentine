@@ -97,18 +97,26 @@ class RemoteService:
     def verify_audit_chain(self, identity: Identity, tenant: str) -> dict[str, Any]:
         self._authorize(identity, "audit", tenant)
         verify = getattr(self.audit, "verify_audit_chain", None)
+        status_method = getattr(self.audit, "audit_status", None)
         head = getattr(self.audit, "audit_head", None)
         warnings = getattr(self.audit, "audit_warnings", None)
         if not all(callable(item) for item in (verify, head, warnings)):
             raise RuntimeError("configured AuditSink does not expose chain verification")
-        ok = verify()
-        if ok:
-            self._audit(identity, tenant, "audit", "requested", {})
-            ok = verify()
+        warning_list = warnings()
+        if callable(status_method):
+            status = status_method()
+        else:
+            valid = verify()
+            status = (
+                "verified"
+                if valid and not warning_list
+                else ("legacy-unverified" if valid else "invalid")
+            )
         return {
             "head": head(),
-            "ok": ok,
-            "warnings": warnings(),
+            "ok": status == "verified",
+            "status": status,
+            "warnings": warning_list,
         }
 
     def negotiate(
