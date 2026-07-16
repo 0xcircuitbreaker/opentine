@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import socket
 import ssl
 import threading
 from pathlib import Path
@@ -26,6 +27,8 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     daemon_threads = True
     request_queue_size = 64
     max_workers = 16
+    request_deadline = 60
+    ssl_context: ssl.SSLContext | None = None
 
     def __init__(self, *args, **kwargs):
         self._request_slots = threading.BoundedSemaphore(self.max_workers)
@@ -39,15 +42,39 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
             self._request_slots.release()
             raise
 
+    def get_request(self):
+        request, address = super().get_request()
+        if self.ssl_context is None:
+            return request, address
+        try:
+            wrapped = self.ssl_context.wrap_socket(
+                request, server_side=True, do_handshake_on_connect=False
+            )
+        except BaseException:
+            request.close()
+            raise
+        return wrapped, address
+
     def process_request_thread(self, request, client_address) -> None:
+        def expire() -> None:
+            try:
+                request.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+
+        deadline = threading.Timer(self.request_deadline, expire)
+        deadline.daemon = True
+        deadline.start()
         try:
             super().process_request_thread(request, client_address)
         finally:
+            deadline.cancel()
+            deadline.join()
             self._request_slots.release()
 
 
 class TimeoutRequestHandler(WSGIRequestHandler):
-    #: Per-connection socket timeout (seconds); mitigates slowloris-style stalls.
+    #: Per-connection inactivity timeout; the server also has an absolute deadline.
     timeout = 30
 
 
@@ -106,6 +133,9 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--key")
     parser.add_argument("--insecure-dev", action="store_true")
     parser.add_argument("--timeout", type=int, default=30, help="Per-connection socket timeout (s)")
+    parser.add_argument(
+        "--request-deadline", type=int, default=60, help="Absolute request deadline (s)"
+    )
     parser.add_argument("--max-body-mb", type=int, default=16, help="Max single request size (MiB)")
     parser.add_argument(
         "--max-upload-mb", type=int, default=256, help="Max resumed pack size (MiB)"
@@ -129,7 +159,16 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         raise SystemExit(f"{args.token_env} must contain the development bearer token")
     if not args.insecure_dev and not (args.cert and args.key):
         raise SystemExit("TLS --cert and --key are required unless --insecure-dev is explicit")
-    if min(args.timeout, args.max_body_mb, args.max_upload_mb, args.max_connections) < 1:
+    if (
+        min(
+            args.timeout,
+            args.request_deadline,
+            args.max_body_mb,
+            args.max_upload_mb,
+            args.max_connections,
+        )
+        < 1
+    ):
         raise SystemExit("timeout and server limits must be positive")
     identities = StaticTokenIdentityProvider(
         {token: Identity("development", args.tenant, (args.role,))}
@@ -143,7 +182,11 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         reanchor_audit_head=args.reanchor_audit_head,
     )
     handler = type("_Handler", (TimeoutRequestHandler,), {"timeout": args.timeout})
-    server_class = type("_Server", (ThreadingWSGIServer,), {"max_workers": args.max_connections})
+    server_class = type(
+        "_Server",
+        (ThreadingWSGIServer,),
+        {"max_workers": args.max_connections, "request_deadline": args.request_deadline},
+    )
     server = make_server(
         args.host,
         args.port,
@@ -156,7 +199,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.load_cert_chain(args.cert, args.key)
-        server.socket = context.wrap_socket(server.socket, server_side=True)
+        server.ssl_context = context
         scheme = "https"
     console.print(f"OpenTine remote listening on {scheme}://{args.host}:{args.port}")
     try:

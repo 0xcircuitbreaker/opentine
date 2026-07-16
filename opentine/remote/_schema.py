@@ -53,11 +53,17 @@ def _upgrade_audit(database: Connection, columns: set[str], key: bytes, allow_le
         return False
     hashes_present = {"prev_hash", "row_hash"} <= columns
     if hashes_present:
-        incomplete = database.execute(
-            "SELECT 1 FROM audit WHERE prev_hash IS NULL OR row_hash IS NULL LIMIT 1"
-        ).fetchone()
-        if not incomplete and _valid_keyed(_rows(database), key):
+        rows = _rows(database)
+        if _valid_keyed(rows, key):
             return False
+        keyed = database.execute(
+            "SELECT 1 FROM audit WHERE prev_hash IS NOT NULL OR row_hash IS NOT NULL LIMIT 1"
+        ).fetchone()
+        if keyed:
+            raise RuntimeError(
+                "audit chain verification failed; keyed audit rows cannot be migrated as "
+                "unauthenticated legacy data"
+            )
     count = database.execute("SELECT count(*) FROM audit").fetchone()[0]
     if count and not allow_legacy:
         raise RuntimeError(

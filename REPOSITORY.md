@@ -92,7 +92,10 @@ after a step ID was formed, whereas v3 always hashes the redacted stored bytes.
 
 `Recorder` starts a run with code/dirty patch, environment, policy, budget, and
 pricing manifests, then appends normalized events live. The code manifest marks
-capture failures explicitly when Git state is unavailable. Importers accept native
+capture failures explicitly when Git state is unavailable or a patch exceeds the
+16 MiB capture ceiling. Untracked paths mark the worktree dirty and are listed,
+but their contents are not captured, so the manifest is explicitly incomplete
+until they are added or staged. Importers accept native
 OpenTine records, JSONL, and OpenTelemetry GenAI spans or complete OTLP/JSON
 exports. Malformed JSONL lines are skipped independently, large integers are
 string-preserved, and imported dependencies are ordered before recording.
@@ -118,8 +121,9 @@ IDs that the receiver does not already have. Packs support shallow boundaries
 and filtered fetch without pretending omitted history is present. Compressed
 transfers and decompressed manifests are capped at 256 MiB and trailing zlib
 streams/data are rejected. Client control responses are streamed under a 1 MiB
-cap; resumable offsets must advance, loops are bounded, transient short reads
-retain partial upload state, and abandoned upload state is reaped.
+raw-byte cap and non-identity HTTP content encodings are rejected; resumable
+offsets must advance, loops are bounded, transient short reads retain partial
+upload state, and abandoned upload state is reaped.
 
 The HTTP protocol exposes:
 
@@ -130,8 +134,9 @@ The HTTP protocol exposes:
 - compare-and-swap ref updates.
 
 Clients require HTTPS except for loopback or explicit `--allow-insecure`
-development. Push uploads verified missing objects before attempting the CAS
-ref update.
+development. Authenticated clients ignore ambient proxy variables so local
+development credentials are not forwarded unexpectedly. Push uploads verified
+missing objects before attempting the CAS ref update.
 
 ## Reference self-hosted remote
 
@@ -162,6 +167,10 @@ to SQLite. Retention hooks gate object deletion, and
 admission policies can reject pack bytes/object counts or ref updates based on
 rate and budget policy. Resumable uploads invoke admission at declaration and
 again after pack inspection so policies can bound both bytes and object counts.
+Installed objects and resumable `.part` staging are encrypted through the configured
+tenant-aware key provider. Staging uses independently authenticated frames so a
+restart can resume without writing plaintext packs; its directories and files are
+also tightened to mode 0700/0600 on POSIX and TTL-reaped.
 
 The 0.3.0 scope is an enterprise repository foundation. The bundled bounded
 WSGI server targets development and small self-hosted deployments, not turnkey

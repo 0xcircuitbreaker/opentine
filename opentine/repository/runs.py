@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine.kernel import canonical_json
+from opentine.redaction import redact_value
 
 if TYPE_CHECKING:
     from opentine.graph import Run
@@ -34,7 +35,8 @@ class RunObjectResult:
 
 
 def _json_blob(repo: Repo, value: Any) -> str:
-    return repo.put("blob", canonical_json(_redact(json_safe(value))), redact=False)
+    redacted = redact_value(_redact(json_safe(value)))
+    return repo.put("blob", canonical_json(redacted), redact=False)
 
 
 def put_run(

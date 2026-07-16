@@ -10,12 +10,14 @@ from typing import Any
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine.kernel import canonical_json
+from opentine.redaction import redact_value
 from opentine.trace.capture import code_manifest, environment_manifest
 from opentine.trace.schema import TraceEvent
 
 
 def _json_blob(repo, value: Any) -> str:
-    return repo.put("blob", canonical_json(_redact(json_safe(value))), redact=False)
+    redacted = redact_value(_redact(json_safe(value)))
+    return repo.put("blob", canonical_json(redacted), redact=False)
 
 
 class Recorder:

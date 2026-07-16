@@ -3,12 +3,32 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from opentine.core import StepKind, step_id
+
+
+def _meter(value: Any, name: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"harness {name} must be finite and non-negative") from exc
+    if isinstance(value, bool) or not math.isfinite(number) or number < 0:
+        raise ValueError(f"harness {name} must be finite and non-negative")
+    return number
+
+
+def meter_value(data: Mapping[str, Any], *names: str) -> Any:
+    """Return the first present, non-null external metric, or zero."""
+    for name in names:
+        value = data.get(name)
+        if value is not None:
+            return value
+    return 0.0
 
 
 def _jsonable(value: Any) -> Any:
@@ -45,6 +65,10 @@ class HarnessStep:
     model_info: str | None = None
     cost: float = 0.0
     duration: float = 0.0
+
+    def __post_init__(self) -> None:
+        self.cost = _meter(self.cost, "cost")
+        self.duration = _meter(self.duration, "duration")
 
     @classmethod
     def from_line(

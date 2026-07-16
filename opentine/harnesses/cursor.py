@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._types import meter_value
 from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
 
 
@@ -54,7 +55,7 @@ class CursorHarness(ProcessHarness):
     def _parse_json_event(self, data: dict[str, Any]) -> HarnessStep:
         event_type = str(data.get("type") or data.get("event") or data.get("kind") or "")
         lower = event_type.lower()
-        cost = float(data.get("cost") or data.get("price") or 0.0)
+        cost = meter_value(data, "cost", "price")
 
         if "tool" in lower or lower in {"terminal", "edit", "read_file"}:
             name = data.get("name") or data.get("tool") or data.get("action") or "tool"
@@ -63,7 +64,7 @@ class CursorHarness(ProcessHarness):
                 inputs={"name": str(name), "arguments": data.get("arguments", {})},
                 outputs={"result": data.get("result") or data.get("output")},
                 cost=cost,
-                duration=float(data.get("duration") or 0.0),
+                duration=data.get("duration") or 0.0,
                 model_info=self.model_info,
             )
         if "error" in lower:

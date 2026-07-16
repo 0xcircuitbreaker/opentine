@@ -1,9 +1,4 @@
-"""Import OpenTine, JSONL, OpenTelemetry GenAI, and common framework traces.
-
-The JSONL/OTel/framework importers are defensive: they accept real-world shapes
-(OTLP camelCase keys and typed ``AnyValue`` attributes, list-shaped chat messages,
-ISO-8601 or epoch timestamps) and never raise on a well-formed-but-unexpected record.
-"""
+"""Defensive importers for OpenTine, JSONL, OTLP/JSON, and framework traces."""
 
 from __future__ import annotations
 
@@ -18,6 +13,7 @@ from opentine.trace._import_helpers import (
 )
 from opentine.trace._import_helpers import (
     dictionary,
+    logical_size,
     otel_spans,
 )
 from opentine.trace._import_helpers import (
@@ -36,14 +32,29 @@ from opentine.trace.schema import TraceEvent
 
 MAX_TRACE_EVENTS = 100_000
 MAX_JSONL_LINE_BYTES = 16 * 1024 * 1024
+MAX_TRACE_IMPORT_BYTES = 256 * 1024 * 1024
+
+
+def _consume(total: int, value: Any) -> int:
+    total += logical_size(value, MAX_TRACE_IMPORT_BYTES - total)
+    if total > MAX_TRACE_IMPORT_BYTES:
+        raise ValueError("trace import exceeds aggregate payload limit")
+    return total
 
 
 def _file_lines(path: str | Path):
+    total = 0
     with Path(path).open("rb") as handle:
         while line := handle.readline(MAX_JSONL_LINE_BYTES + 1):
+            total += len(line)
+            if total > MAX_TRACE_IMPORT_BYTES:
+                raise ValueError("trace import exceeds aggregate payload limit")
             oversized = len(line) > MAX_JSONL_LINE_BYTES
             while oversized and not line.endswith(b"\n"):
                 line = handle.readline(MAX_JSONL_LINE_BYTES + 1)
+                total += len(line)
+                if total > MAX_TRACE_IMPORT_BYTES:
+                    raise ValueError("trace import exceeds aggregate payload limit")
                 if not line:
                     break
             if not oversized:
@@ -67,7 +78,11 @@ def _kind(value: Any) -> str:
 
 def native_events(run) -> list[TraceEvent]:
     events: list[TraceEvent] = []
+    total = 0
     for index, step in enumerate(run.steps):
+        if len(events) >= MAX_TRACE_EVENTS:
+            raise ValueError("trace import exceeds maximum event count")
+        total = _consume(total, (step.inputs, step.outputs, step.usage, step.billing))
         kind = "model"
         if step.kind.value == "tool":
             kind = "tool"
@@ -97,14 +112,16 @@ def native_events(run) -> list[TraceEvent]:
 def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
     lines = _file_lines(source) if isinstance(source, (str, Path)) else source
     events: list[TraceEvent] = []
+    total = 0
     for line in lines:
+        total = _consume(total, line)
         if not isinstance(line, (str, bytes)) or len(line) > MAX_JSONL_LINE_BYTES:
             continue
         if not line.strip():
             continue
         try:
             item = json.loads(line)
-        except (json.JSONDecodeError, RecursionError, TypeError, UnicodeDecodeError):
+        except (ValueError, RecursionError, TypeError, UnicodeDecodeError):
             continue
         if not isinstance(item, dict):
             continue
@@ -139,12 +156,13 @@ def otel_genai_events(
     spans: Iterable[dict[str, Any]] | dict[str, Any],
 ) -> list[TraceEvent]:
     events: list[TraceEvent] = []
+    total = 0
     for span in otel_spans(spans):
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
+        total = _consume(total, span)
         attributes = _attributes(span)
         operation = str(attributes.get("gen_ai.operation.name", span.get("name", "")))
-        kind = _kind(operation)
         usage = _safe(
             {
                 "input": _int(attributes.get("gen_ai.usage.input_tokens")),
@@ -155,7 +173,7 @@ def otel_genai_events(
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         events.append(
             TraceEvent(
-                kind=kind,
+                kind=_kind(operation),
                 timestamp=_timestamp(nanos) / 1_000_000_000,
                 trace_id=str(_first(span, "traceId", "trace_id", default="")),
                 span_id=str(_first(span, "spanId", "span_id", default=len(events))),
@@ -197,11 +215,13 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
         raise ValueError(f"unsupported framework importer: {framework}")
     id_field, parent_field, actor_field = _FRAMEWORK_FIELDS[key]
     events: list[TraceEvent] = []
+    total = 0
     for index, record in enumerate(records):
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
         if not isinstance(record, dict):
             continue
+        total = _consume(total, record)
         event_type = str(_first(record, "type", "event", actor_field, default="model")).lower()
         kind = _kind(event_type)
         events.append(

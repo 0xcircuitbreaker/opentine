@@ -17,14 +17,21 @@ from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._schema import initialize
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 
-_TENANT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+_TENANT = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
+_WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
+    f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
+}
 _REF = re.compile(r"^(?:heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
 MAX_CONTROL_RESULTS = 1000
 MAX_OBJECT_LIST = 100_000
 
 
 def valid_tenant(tenant: str) -> str:
-    if not _TENANT.fullmatch(tenant):
+    if (
+        not _TENANT.fullmatch(tenant)
+        or tenant.endswith(".")
+        or tenant.split(".", 1)[0] in _WINDOWS_NAMES
+    ):
         raise ValueError("invalid tenant namespace")
     return tenant
 

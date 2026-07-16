@@ -2,24 +2,31 @@
 
 from __future__ import annotations
 
+import asyncio
 import multiprocessing
 import os
 import signal
+import socket
 import sqlite3
 import sys
 import time
+from io import BytesIO
 from pathlib import Path
 
+import httpx
 import pytest
 
 from opentine import Repo, cli
 from opentine._canon import _redact
 from opentine.kernel import KernelError
+from opentine.policies import NetworkPolicy
 from opentine.redaction import redact_blob
 from opentine.remote import _audit_backend
 from opentine.remote.backend import SQLiteBackend
 from opentine.remote.interfaces import AuditEvent
-from opentine.tools._process import run_bounded
+from opentine.tools import _process
+from opentine.tools._process import BoundedResult, run_bounded
+from opentine.tools.web import _get as web_get
 
 _AUDIT_KEY = b"a" * 32
 
@@ -36,6 +43,127 @@ def _append_worker(path: str, prefix: str, count: int) -> None:
 
 def _run(repo: Repo) -> str:
     return repo.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
+
+
+@pytest.mark.asyncio
+async def test_web_fetch_pins_dns_answer_and_preserves_https_identity(monkeypatch):
+    resolutions = []
+    requests = []
+
+    def resolve(host, port, **kwargs):
+        resolutions.append((host, port))
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+
+    class Body(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            yield b"safe"
+
+    async def handler(request):
+        requests.append(request)
+        return httpx.Response(200, stream=Body(), request=request)
+
+    transport = httpx.MockTransport(handler)
+
+    class Client(httpx.AsyncClient):
+        def __init__(self, **kwargs):
+            assert kwargs["trust_env"] is False
+            super().__init__(transport=transport, **kwargs)
+
+    monkeypatch.setattr("opentine.tools.web.socket.getaddrinfo", resolve)
+    monkeypatch.setattr("opentine.tools.web.httpx.AsyncClient", Client)
+    response = await web_get("https://public.example/path", NetworkPolicy())
+    assert response.content == b"safe" and resolutions == [("public.example", 443)]
+    assert requests[0].url.host == "93.184.216.34"
+    assert requests[0].headers["host"] == "public.example"
+    assert requests[0].extensions["sni_hostname"] == "public.example"
+
+
+@pytest.mark.asyncio
+async def test_web_fetch_rejects_mixed_public_private_dns_answers(monkeypatch):
+    monkeypatch.setattr(
+        "opentine.tools.web.socket.getaddrinfo",
+        lambda *args, **kwargs: [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443)),
+        ],
+    )
+    with pytest.raises(PermissionError, match="Private/link-local/loopback"):
+        await web_get("https://mixed.example", NetworkPolicy())
+
+
+@pytest.mark.asyncio
+async def test_web_fetch_enforces_whole_response_deadline(monkeypatch):
+    class Drip(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            for _ in range(20):
+                await asyncio.sleep(0.01)
+                yield b"x"
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, stream=Drip(), request=request)
+    )
+
+    class Client(httpx.AsyncClient):
+        def __init__(self, **kwargs):
+            super().__init__(transport=transport, **kwargs)
+
+    monkeypatch.setattr(
+        "opentine.tools.web.socket.getaddrinfo",
+        lambda *args, **kwargs: [(2, 1, 6, "", ("93.184.216.34", 443))],
+    )
+    monkeypatch.setattr("opentine.tools.web.httpx.AsyncClient", Client)
+    with pytest.raises(TimeoutError):
+        await web_get(
+            "https://drip.example", NetworkPolicy(timeout_seconds=0.04, max_body_bytes=100)
+        )
+
+
+@pytest.mark.asyncio
+async def test_web_fetch_dns_timeout_does_not_block_event_loop_shutdown(monkeypatch):
+    import threading
+
+    release = threading.Event()
+
+    def stuck(*args, **kwargs):
+        release.wait(timeout=1)
+        return [(2, 1, 6, "", ("93.184.216.34", 443))]
+
+    monkeypatch.setattr("opentine.tools.web.socket.getaddrinfo", stuck)
+    try:
+        with pytest.raises(TimeoutError):
+            await web_get("https://stuck.example", NetworkPolicy(timeout_seconds=0.03))
+    finally:
+        release.set()
+
+
+@pytest.mark.asyncio
+async def test_web_fetch_caps_stuck_resolver_threads(monkeypatch):
+    import threading
+
+    release = threading.Event()
+    calls = 0
+    guard = threading.Lock()
+
+    def stuck(*args, **kwargs):
+        nonlocal calls
+        with guard:
+            calls += 1
+        release.wait(timeout=1)
+        return [(2, 1, 6, "", ("93.184.216.34", 443))]
+
+    monkeypatch.setattr("opentine.tools.web.socket.getaddrinfo", stuck)
+    try:
+        results = await asyncio.gather(
+            *(
+                web_get(f"https://stuck-{index}.example", NetworkPolicy(timeout_seconds=0.04))
+                for index in range(9)
+            ),
+            return_exceptions=True,
+        )
+        assert calls <= 8
+        assert any("capacity is exhausted" in str(result) for result in results)
+    finally:
+        release.set()
 
 
 def test_m1_append_refuses_to_anchor_an_unauthenticated_last_row(tmp_path: Path):
@@ -63,6 +191,18 @@ def test_m1_append_authenticates_the_current_tail_before_extending(tmp_path: Pat
         database.execute("UPDATE audit SET details='tampered'")
     with pytest.raises(RuntimeError, match="tail failed authentication"):
         backend.append(_event("next"))
+
+
+def test_m1_legacy_flag_cannot_launder_tampered_keyed_rows(tmp_path: Path):
+    path = tmp_path / "audit.sqlite3"
+    backend = SQLiteBackend(path, audit_key=_AUDIT_KEY)
+    backend.append(_event("trusted"))
+    Path(str(path) + ".audit-head").unlink()
+    with sqlite3.connect(path) as database:
+        database.execute("DROP TRIGGER audit_no_update")
+        database.execute("UPDATE audit SET details='tampered'")
+    with pytest.raises(RuntimeError, match="keyed audit rows cannot be migrated"):
+        SQLiteBackend(path, audit_key=_AUDIT_KEY, migrate_legacy_audit=True)
 
 
 def test_l2_audit_commit_and_anchor_are_serialized_across_processes(tmp_path: Path):
@@ -128,6 +268,97 @@ def test_m2_timeout_kills_descendants_and_keeps_bounded_diagnostics():
             os.kill(child_pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX process-group assertion")
+def test_m2_normal_parent_exit_cleans_up_descendants_without_blocking():
+    script = (
+        "import subprocess,sys; "
+        "a=subprocess.Popen([sys.executable,'-c','import time; time.sleep(5)']); "
+        "b=subprocess.Popen([sys.executable,'-c','import time; time.sleep(5)'],"
+        "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); "
+        "print(f'children={a.pid},{b.pid}', flush=True)"
+    )
+    started = time.monotonic()
+    result = run_bounded([sys.executable, "-c", script], timeout=1, max_chars=180)
+    child_pids = [int(pid) for pid in result.stdout.split(b"=", 1)[1].split(b",")]
+    try:
+        assert not result.timed_out and result.returncode == 0
+        assert time.monotonic() - started < 2
+        for child_pid in child_pids:
+            for _ in range(40):
+                state = Path(f"/proc/{child_pid}/stat")
+                try:
+                    stopped = state.read_text().split()[2] == "Z"
+                except (FileNotFoundError, ProcessLookupError):
+                    stopped = True
+                if stopped:
+                    break
+                time.sleep(0.05)
+            else:
+                pytest.fail("normal-exit subprocess descendant is still running")
+    finally:
+        for child_pid in child_pids:
+            try:
+                os.kill(child_pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def test_bounded_result_empty_fallback_honors_output_limit():
+    assert BoundedResult(0, b"", b"").output(1) == "("
+
+
+def test_run_bounded_closes_owned_job_when_wait_is_interrupted(monkeypatch):
+    class InterruptedProcess:
+        pid = 123
+        stdout = BytesIO()
+        stderr = BytesIO()
+        waits = 0
+
+        def wait(self, timeout=None):
+            self.waits += 1
+            if self.waits == 1:
+                raise KeyboardInterrupt
+            return -9
+
+    class Job:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    process, job = InterruptedProcess(), Job()
+    monkeypatch.setattr(_process.subprocess, "Popen", lambda *args, **kwargs: process)
+    monkeypatch.setattr(_process, "_attach_kill_job", lambda _process: job)
+    with pytest.raises(KeyboardInterrupt):
+        run_bounded(["interrupted"], timeout=1, max_chars=10)
+    assert job.closed and process.waits == 2
+
+
+def test_failed_job_close_falls_back_to_process_tree_kill(monkeypatch):
+    class BrokenJob:
+        def close(self):
+            raise OSError("job close failed")
+
+    killed = []
+    monkeypatch.setattr(_process, "_kill_tree", killed.append)
+    process = object()
+    _process._cleanup_owned(process, BrokenJob())
+    assert killed == [process]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows Job Object assertion")
+def test_windows_job_cleans_descendant_after_normal_parent_exit(tmp_path: Path):
+    marker = tmp_path / "escaped"
+    child = f"import time,pathlib;time.sleep(1);pathlib.Path({str(marker)!r}).touch()"
+    script = (
+        f"import subprocess,sys; subprocess.Popen([sys.executable,'-c',{child!r}],close_fds=True)"
+    )
+    result = run_bounded([sys.executable, "-c", script], timeout=2, max_chars=100)
+    assert result.returncode == 0 and not result.timed_out
+    time.sleep(1.5)
+    assert not marker.exists()
 
 
 def test_l1_run_refs_attestations_and_fsck_enforce_target_types(tmp_path: Path):

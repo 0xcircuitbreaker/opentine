@@ -39,7 +39,7 @@ DETECT_ORDER = [
         "Together",
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     ),  # noqa: E501
-    ("MISTRAL_API_KEY", "opentine.models.compat", "Mistral", "mistral-large-3"),
+    ("MISTRAL_API_KEY", "opentine.models.compat", "Mistral", "mistral-large-2512"),
     ("QWEN_API_KEY", "opentine.models.compat", "Qwen", "qwen3.7-max"),
 ]
 

@@ -19,12 +19,14 @@ class Anthropic:
         rates: dict[str, Any] | None = None,
         catalog: PricingCatalog | None = None,
         service_tier: str | None = None,
+        inference_geo: str | None = None,
     ):
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self._rate_override = rates
         self._catalog = catalog
         self._service_tier = service_tier
+        self._inference_geo = inference_geo
 
     @property
     def name(self) -> str:
@@ -126,7 +128,19 @@ class Anthropic:
             kwargs["tools"] = api_tools
         if self._service_tier:
             kwargs["service_tier"] = self._service_tier
+        if self._inference_geo:
+            kwargs["inference_geo"] = self._inference_geo
         return kwargs
+
+    def _pricing_tier(self, response: Any) -> str | None:
+        usage = value(response, "usage")
+        tier = value(response, "service_tier", self._service_tier)
+        geo = value(usage, "inference_geo", self._inference_geo)
+        if geo != "us":
+            return tier
+        if tier in (None, "", "default", "standard", "standard_only"):
+            return "us"
+        return f"{tier}_us"
 
     def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
         payload = metered_response(
@@ -135,7 +149,7 @@ class Anthropic:
             anthropic_usage(value(response, "usage")),
             catalog=self._catalog,
             rate_override=self._rate_override,
-            service_tier=value(response, "service_tier", self._service_tier),
+            service_tier=self._pricing_tier(response),
         )
         if early_refusal:
             billing = payload["billing"]

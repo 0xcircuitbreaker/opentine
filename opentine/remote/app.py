@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import os
 import re
 import threading
 import uuid
@@ -12,6 +11,7 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES
 from opentine.remote._uploads import TerminalUploadError, UploadRegistry
+from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
 from opentine.repository.pack import MAX_PACK_BYTES
 
@@ -26,6 +26,7 @@ class RemoteApp:
         max_upload_bytes: int = MAX_PACK_BYTES,
         upload_ttl_seconds: float = 24 * 60 * 60,
         max_pending_uploads: int = 1024,
+        staging_keys: KeyProvider | None = None,
     ):
         self.service = service
         self.state = Path(state_dir).resolve()
@@ -35,10 +36,13 @@ class RemoteApp:
         self.max_upload_bytes = min(max_upload_bytes, MAX_PACK_BYTES)
         if self.max_request_bytes < 1 or self.max_upload_bytes < 1:
             raise ValueError("request and upload limits must be positive")
+        keys = staging_keys or getattr(service.objects, "keys", None)
         self._uploads = UploadRegistry(
             self.uploads,
+            keys,
             ttl_seconds=upload_ttl_seconds,
             max_pending=max_pending_uploads,
+            max_bytes=self.max_upload_bytes,
         )
         self._install_guard = threading.BoundedSemaphore(2)
 
@@ -220,12 +224,11 @@ class RemoteApp:
             return response
 
     def _upload_locked(self, identity, tenant, method, environ, start_response, paths):
-        part, metadata_path = paths
         try:
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata = self._uploads.load(tenant, paths)
         except FileNotFoundError as exc:
             raise KeyError("upload not found") from exc
-        offset = part.stat().st_size
+        offset = metadata["offset"]
         if method == "HEAD":
             return self._json_response(start_response, "200 OK", {"offset": offset}), False
         expected_offset = int(self._headers(environ).get("upload-offset", "-1"))
@@ -234,15 +237,12 @@ class RemoteApp:
         chunk = self._body(environ)
         if offset + len(chunk) > metadata["size"]:
             raise TerminalUploadError("upload exceeds declared size")
-        with part.open("ab") as handle:
-            handle.write(chunk)
-            handle.flush()
-            os.fsync(handle.fileno())
-        offset += len(chunk)
+        metadata = self._uploads.append(tenant, paths, metadata, chunk)
+        offset = metadata["offset"]
         if offset != metadata["size"]:
             return self._json_response(start_response, "200 OK", {"offset": offset}), False
         with self._install_guard:
-            data = part.read_bytes()
+            data = self._uploads.materialize(tenant, paths, metadata)
             if hashlib.sha256(data).hexdigest() != metadata["sha256"]:
                 raise TerminalUploadError("resumable upload checksum mismatch")
             pack_id, count = self.service.install_pack(identity, tenant, data)

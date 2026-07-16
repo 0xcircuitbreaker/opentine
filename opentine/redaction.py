@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 # A credential-bearing identifier: an optional vendor/scope prefix (OPENAI_, X-, AWS_, …)
 # followed by an unambiguous credential compound. Bare "token"/"key" are intentionally
@@ -41,7 +42,8 @@ _REVERSED_NAMED_HEADER = re.compile(
     rb"[\"'](?:" + _NAME + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"'])"
 )
 _HEADER_LINE = re.compile(
-    rb"(?im)^([ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)[ \t]*:[ \t]*)([^\r\n]*)"
+    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)"
+    rb"[ \t]*:[ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
 _PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
@@ -140,3 +142,22 @@ def redact_blob(value: bytes) -> bytes:
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)
     return _private_keys(value)
+
+
+def redact_value(value: Any) -> Any:
+    """Scrub free-form strings inside an already type-redacted value."""
+    if isinstance(value, str):
+        return redact_blob(value.encode("utf-8")).decode("utf-8")
+    if isinstance(value, dict):
+        redacted = {}
+        for key, item in value.items():
+            clean_key = redact_value(key) if isinstance(key, str) else key
+            if clean_key in redacted:
+                raise ValueError("redaction collapsed distinct object keys")
+            redacted[clean_key] = redact_value(item)
+        return redacted
+    if isinstance(value, list):
+        return [redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_value(item) for item in value)
+    return value

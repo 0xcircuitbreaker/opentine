@@ -8,6 +8,61 @@ from datetime import UTC, datetime
 from typing import Any
 
 
+def logical_size(value: Any, limit: int) -> int:
+    """Estimate retained JSON-safe size with bounded-depth, incremental traversal."""
+    total = 0
+    active: set[int] = set()
+
+    def visit(item: Any, depth: int) -> None:
+        nonlocal total
+        if total > limit:
+            return
+        identity = id(item)
+        if isinstance(item, str):
+            total += len(item) * 4 + 32
+        elif isinstance(item, (bytes, bytearray)):
+            total += len(item) * 4 + 32
+        elif item is None or isinstance(item, (bool, float)):
+            total += 32
+        elif isinstance(item, int):
+            digits = item.bit_length() * 30103 // 100000 + 1
+            total += max(32, digits * 4 + 8)
+        elif isinstance(item, dict):
+            total += 64
+            if identity in active or depth >= 100:
+                total += 64
+            else:
+                total += len(item) * 16
+                active.add(identity)
+                try:
+                    for key, child in item.items():
+                        visit(key, depth + 1)
+                        visit(child, depth + 1)
+                        if total > limit:
+                            break
+                finally:
+                    active.remove(identity)
+        elif isinstance(item, (list, tuple)):
+            total += 64
+            if identity in active or depth >= 100:
+                total += 64
+            else:
+                total += len(item) * 8
+                active.add(identity)
+                try:
+                    for child in item:
+                        visit(child, depth + 1)
+                        if total > limit:
+                            break
+                finally:
+                    active.remove(identity)
+        else:
+            raise ValueError(f"trace import contains unsupported {type(item).__name__} payload")
+
+    visit(value, 0)
+    return total
+
+
 def first(source: dict[str, Any], *names: str, default: Any = None) -> Any:
     for name in names:
         value = source.get(name)

@@ -1,43 +1,43 @@
 {
   "schema": "opentine-pricing/1",
-  "generated_at": "2026-07-15T00:00:00Z",
-  "verified_at": "2026-07-15",
+  "generated_at": "2026-07-16T00:00:00Z",
+  "verified_at": "2026-07-16",
   "cards": [
     {
-      "id": "openai:gpt-5.6-sol:2026-07-14",
+      "id": "openai:gpt-5.6-sol:2026-07-09",
       "provider": "openai",
       "model": "gpt-5.6-sol",
       "aliases": ["gpt-5.6"],
-      "effective_from": "2026-07-14",
+      "effective_from": "2026-07-09",
       "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "6.25", "output": "30", "reasoning": "30"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://developers.openai.com/api/docs/models", "https://developers.openai.com/api/docs/models/gpt-5.6-sol"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models/gpt-5.6-sol"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "openai:gpt-5.6-terra:2026-07-14",
+      "id": "openai:gpt-5.6-terra:2026-07-09",
       "provider": "openai",
       "model": "gpt-5.6-terra",
-      "aliases": ["gpt-5.6-terra-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": [],
+      "effective_from": "2026-07-09",
       "rates": {"input": "2.50", "cache_read": "0.25", "cache_write_5m": "3.125", "cache_write_1h": "3.125", "output": "15", "reasoning": "15"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "openai:gpt-5.6-luna:2026-07-14",
+      "id": "openai:gpt-5.6-luna:2026-07-09",
       "provider": "openai",
       "model": "gpt-5.6-luna",
-      "aliases": ["gpt-5.6-luna-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": [],
+      "effective_from": "2026-07-09",
       "rates": {"input": "1", "cache_read": "0.10", "cache_write_5m": "1.25", "cache_write_1h": "1.25", "output": "6", "reasoning": "6"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "openai:gpt-5:2025-08-07",
@@ -47,112 +47,207 @@
       "rates": {"input": "1.25", "cache_read": "0.125", "output": "10", "reasoning": "10"},
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
       "source_urls": ["https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "openai:gpt-4o-2024-05-13:stable",
+      "provider": "openai",
+      "model": "gpt-4o-2024-05-13",
+      "effective_from": "2024-05-13",
+      "rates": {"input": "5", "output": "15"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "openai:gpt-4o:2024-05-13",
       "provider": "openai",
       "model": "gpt-4o",
-      "aliases": ["gpt-4o-latest"],
       "effective_from": "2024-05-13",
+      "effective_until": "2024-08-05",
+      "rates": {"input": "5", "output": "15"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "openai:gpt-4o-2024-08-06:pre-cache",
+      "provider": "openai",
+      "model": "gpt-4o-2024-08-06",
+      "effective_from": "2024-08-06",
+      "effective_until": "2024-09-30",
+      "rates": {"input": "2.50", "output": "10"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "openai:gpt-4o:2024-08-06",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "effective_from": "2024-08-06",
+      "effective_until": "2024-09-30",
+      "rates": {"input": "2.50", "output": "10"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://openai.com/index/introducing-structured-outputs-in-the-api/"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "openai:gpt-4o-2024-08-06:cached",
+      "provider": "openai",
+      "model": "gpt-4o-2024-08-06",
+      "effective_from": "2024-10-01",
       "rates": {"input": "2.50", "cache_read": "1.25", "output": "10"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://openai.com/index/api-prompt-caching/"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "anthropic:claude-fable-5:2026-07-14",
+      "id": "openai:gpt-4o-2024-11-20:cached",
+      "provider": "openai",
+      "model": "gpt-4o-2024-11-20",
+      "effective_from": "2024-11-20",
+      "rates": {"input": "2.50", "cache_read": "1.25", "output": "10"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://developers.openai.com/api/docs/models/gpt-4o"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "openai:gpt-4o:cached",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "effective_from": "2024-10-01",
+      "rates": {"input": "2.50", "cache_read": "1.25", "output": "10"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://openai.com/index/api-prompt-caching/", "https://developers.openai.com/api/docs/models/gpt-4o"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "anthropic:claude-fable-5:2026-06-09",
       "provider": "anthropic",
       "model": "claude-fable-5",
-      "aliases": ["claude-fable-5-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": [],
+      "effective_from": "2026-06-09",
       "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
-      "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/claude/fable"],
-      "verified_at": "2026-07-15"
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-fable-5-mythos-5"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "anthropic:claude-opus-4.8:2026-07-14",
+      "id": "anthropic:claude-opus-4.5:2025-11-24",
       "provider": "anthropic",
-      "model": "claude-opus-4-8",
-      "aliases": ["claude-opus-4.8", "claude-opus-4-8-latest", "claude-opus-4-7", "claude-opus-4.7", "claude-opus-4-6", "claude-opus-4.6", "claude-opus-4-5", "claude-opus-4.5"],
+      "model": "claude-opus-4-5-20251101",
+      "aliases": ["claude-opus-4-5"],
       "effective_from": "2025-11-24",
       "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/release-notes/overview"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "anthropic:claude-opus-4.6:2026-02-05",
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "effective_from": "2026-02-05",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/release-notes/overview"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "anthropic:claude-opus-4.7:2026-04-16",
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "effective_from": "2026-04-16",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/release-notes/overview"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "anthropic:claude-opus-4.8:2026-05-28",
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "effective_from": "2026-05-28",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-opus-4-8"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "anthropic:claude-sonnet-5:intro",
       "provider": "anthropic",
       "model": "claude-sonnet-5",
-      "aliases": ["claude-sonnet-5-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": [],
+      "effective_from": "2026-06-30",
       "effective_until": "2026-08-31",
       "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
-      "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing"],
-      "verified_at": "2026-07-15",
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-sonnet-5"],
+      "verified_at": "2026-07-16",
       "metadata": {"introductory": true}
     },
     {
       "id": "anthropic:claude-sonnet-5:standard",
       "provider": "anthropic",
       "model": "claude-sonnet-5",
-      "aliases": ["claude-sonnet-5-latest"],
+      "aliases": [],
       "effective_from": "2026-09-01",
       "rates": {"input": "3", "cache_read": "0.30", "cache_write_5m": "3.75", "cache_write_1h": "6", "output": "15", "reasoning": "15"},
-      "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing"],
-      "verified_at": "2026-07-15"
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-sonnet-5"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "anthropic:claude-sonnet-4.5:2025-09-29",
       "provider": "anthropic",
-      "model": "claude-sonnet-4-5",
-      "aliases": ["claude-sonnet-4.5", "claude-sonnet-4-5-latest"],
+      "model": "claude-sonnet-4-5-20250929",
+      "aliases": ["claude-sonnet-4-5"],
       "effective_from": "2025-09-29",
       "rates": {"input": "3", "cache_read": "0.30", "cache_write_5m": "3.75", "cache_write_1h": "6", "output": "15", "reasoning": "15"},
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "kimi:kimi-k2.7-code:2026-07-14",
+      "id": "kimi:kimi-k2.7-code:2026-06-25",
       "provider": "kimi",
       "model": "kimi-k2.7-code",
-      "effective_from": "2026-07-14",
+      "effective_from": "2026-06-25",
       "rates": {"input": "0.95", "cache_read": "0.19", "output": "4", "reasoning": "4"},
-      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k27-code"],
-      "verified_at": "2026-07-15"
+      "service_rates": {"batch": {"input": "0.57", "cache_read": "0.114", "output": "2.40", "reasoning": "2.40"}},
+      "source_urls": ["https://www.kimi.com/resources/kimi-k2-7-code-pricing", "https://platform.kimi.ai/docs/pricing/chat-k27-code", "https://platform.kimi.ai/docs/pricing/batch"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "kimi:kimi-k2.7-code-highspeed:2026-07-14",
+      "id": "kimi:kimi-k2.7-code-highspeed:2026-06-25",
       "provider": "kimi",
       "model": "kimi-k2.7-code-highspeed",
-      "effective_from": "2026-07-14",
+      "effective_from": "2026-06-25",
       "rates": {"input": "1.90", "cache_read": "0.38", "output": "8", "reasoning": "8"},
-      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k27-code"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://www.kimi.com/resources/kimi-k2-7-code-pricing", "https://platform.kimi.ai/docs/pricing/chat-k27-code"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "kimi:kimi-k2.6:2025-12-01",
+      "id": "kimi:kimi-k2.6:2026-04-20",
       "provider": "kimi",
       "model": "kimi-k2.6",
-      "aliases": ["kimi-k2.6-thinking", "kimi-k2.6-instant"],
-      "effective_from": "2025-12-01",
+      "aliases": [],
+      "effective_from": "2026-04-20",
       "rates": {"input": "0.95", "cache_read": "0.16", "output": "4", "reasoning": "4"},
-      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k26"],
-      "verified_at": "2026-07-15"
+      "service_rates": {"batch": {"input": "0.57", "cache_read": "0.10", "output": "2.40", "reasoning": "2.40"}},
+      "source_urls": ["https://www.kimi.com/en/blog/", "https://platform.kimi.ai/docs/pricing/chat-k26", "https://platform.kimi.ai/docs/pricing/batch"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "kimi:kimi-k2.5:2025-09-01",
+      "id": "kimi:kimi-k2.5:2026-01-27",
       "provider": "kimi",
       "model": "kimi-k2.5",
-      "effective_from": "2025-09-01",
+      "effective_from": "2026-01-27",
       "rates": {"input": "0.60", "cache_read": "0.10", "output": "3", "reasoning": "3"},
-      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k25"],
-      "verified_at": "2026-07-15"
+      "service_rates": {"batch": {"input": "0.36", "cache_read": "0.06", "output": "1.80", "reasoning": "1.80"}},
+      "source_urls": ["https://www.kimi.com/en/blog/", "https://platform.kimi.ai/docs/pricing/chat-k25", "https://platform.kimi.ai/docs/pricing/batch"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "deepseek:deepseek-v4-pro:2026-07-14",
@@ -161,7 +256,7 @@
       "effective_from": "2026-07-14",
       "rates": {"input": "0.435", "cache_read": "0.003625", "output": "0.87", "reasoning": "0.87"},
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "deepseek:deepseek-v4-flash:2026-07-14",
@@ -171,7 +266,7 @@
       "effective_from": "2026-07-14",
       "rates": {"input": "0.14", "cache_read": "0.0028", "output": "0.28", "reasoning": "0.28"},
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "deepseek:deepseek-chat:legacy-2026-07",
@@ -182,7 +277,7 @@
       "effective_until": "2026-07-13",
       "rates": {"input": "0.28", "cache_read": "0.028", "output": "0.42", "reasoning": "0.42"},
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-15",
+      "verified_at": "2026-07-16",
       "metadata": {"superseded_by": "deepseek-v4-flash"}
     },
     {
@@ -197,13 +292,13 @@
         "priority": {"input": "2.70", "input_audio": "2.70", "cache_read": "0.27", "cache_read_audio": "0.27", "output": "16.20", "reasoning": "16.20"}
       },
       "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "google:gemini-3.1-pro:2026-02-19",
       "provider": "google",
       "model": "gemini-3.1-pro-preview",
-      "aliases": ["gemini-3.1-pro"],
+      "aliases": [],
       "effective_from": "2026-02-19",
       "rates": {"input": "2", "input_audio": "2", "cache_read": "0.20", "cache_read_audio": "0.20", "output": "12", "reasoning": "12"},
       "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "input_audio": "2", "cache_read": "2", "cache_read_audio": "2", "output": "1.5", "reasoning": "1.5"}}],
@@ -213,13 +308,13 @@
         "priority": "1.8"
       },
       "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "google:gemini-3-flash:2025-12-17",
       "provider": "google",
       "model": "gemini-3-flash-preview",
-      "aliases": ["gemini-3-flash"],
+      "aliases": [],
       "effective_from": "2025-12-17",
       "rates": {"input": "0.50", "input_audio": "1", "cache_read": "0.05", "cache_read_audio": "0.10", "output": "3", "reasoning": "3"},
       "service_modifiers": {
@@ -228,7 +323,7 @@
         "priority": "1.8"
       },
       "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "google:gemini-2.5-pro:2025-06-17",
@@ -243,67 +338,81 @@
         "priority": "1.8"
       },
       "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "xai:grok-4.5:2026-07-14",
+      "id": "xai:grok-4.5:2026-07-08",
       "provider": "xai",
       "model": "grok-4.5",
-      "aliases": ["grok-4.5-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": ["grok-4.5-latest", "grok-build-latest"],
+      "effective_from": "2026-07-08",
       "rates": {"input": "2", "cache_read": "0.50", "output": "6", "reasoning": "6"},
+      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"priority": "2"},
-      "source_urls": ["https://docs.x.ai/developers/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.5"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "xai:grok-4.3:2026-07-14",
+      "id": "xai:grok-4.3:2026-05-15",
       "provider": "xai",
       "model": "grok-4.3",
-      "aliases": ["grok-4.20", "grok-4.3-latest", "grok-4.20-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": ["grok-4.3-latest", "grok-latest"],
+      "effective_from": "2026-05-15",
       "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
+      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"batch": "0.8", "priority": "2"},
-      "source_urls": ["https://docs.x.ai/developers/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.3"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "glm:glm-5.2:2026-07-15",
+      "id": "xai:grok-4.20-0309-reasoning:2026-03-09",
+      "provider": "xai",
+      "model": "grok-4.20-0309-reasoning",
+      "aliases": ["grok-4.20", "grok-4.20-reasoning", "grok-4.20-0309", "grok-4.20-reasoning-latest"],
+      "effective_from": "2026-03-09",
+      "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
+      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "service_modifiers": {"batch": "0.8", "priority": "2"},
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.20-reasoning"],
+      "verified_at": "2026-07-16"
+    },
+    {
+      "id": "glm:glm-5.2:2026-06-16",
       "provider": "glm",
       "model": "glm-5.2",
-      "aliases": ["glm-5.2-latest"],
-      "effective_from": "2026-07-15",
+      "aliases": [],
+      "effective_from": "2026-06-16",
       "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
-      "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "glm:glm-5.1:2026-07-14",
+      "id": "glm:glm-5.1:2026-04-07",
       "provider": "glm",
       "model": "glm-5.1",
-      "aliases": ["glm-5.1-latest"],
-      "effective_from": "2026-07-14",
+      "aliases": [],
+      "effective_from": "2026-04-07",
       "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
-      "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "glm:glm-5:2026-02-01",
+      "id": "glm:glm-5:2026-02-12",
       "provider": "glm",
       "model": "glm-5",
-      "effective_from": "2026-02-01",
+      "effective_from": "2026-02-12",
       "rates": {"input": "1", "cache_read": "0.20", "output": "3.20", "reasoning": "3.20"},
-      "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "glm:glm-5-turbo:2026-07-14",
+      "id": "glm:glm-5-turbo:2026-03-15",
       "provider": "glm",
       "model": "glm-5-turbo",
-      "effective_from": "2026-07-14",
+      "effective_from": "2026-03-15",
       "rates": {"input": "1.20", "cache_read": "0.24", "output": "4", "reasoning": "4"},
-      "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "glm:glm-4.7:2025-12-22",
@@ -312,90 +421,104 @@
       "effective_from": "2025-12-22",
       "rates": {"input": "0.60", "cache_read": "0.11", "output": "2.20", "reasoning": "2.20"},
       "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "glm:glm-4.5-flash:free",
       "provider": "glm",
       "model": "glm-4.5-flash",
-      "aliases": ["glm-4-flash"],
+      "aliases": [],
       "effective_from": "2025-07-28",
       "rates": {"input": "0", "cache_read": "0", "output": "0", "reasoning": "0"},
       "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
-      "verified_at": "2026-07-15",
+      "verified_at": "2026-07-16",
       "metadata": {"free_api_tier": true}
     },
     {
-      "id": "qwen:qwen3.7-max:international-2026-07",
+      "id": "qwen:qwen3.7-max:international-promo-2026-05",
       "provider": "qwen",
       "model": "qwen3.7-max",
-      "effective_from": "2026-07-14",
-      "rates": {"input": "2.50", "output": "7.50", "reasoning": "7.50"},
-      "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
-      "verified_at": "2026-07-15",
+      "effective_from": "2026-05-26",
+      "effective_until": "2026-07-23",
+      "rates": {"input": "1.25", "cache_read": "0.25", "cache_write_5m": "1.5625", "output": "3.75", "reasoning": "3.75"},
+      "service_rates": {"explicit_cache": {"cache_read": "0.125"}},
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.7-max", "https://www.alibabacloud.com/en/campaign/qwen-discount", "https://www.alibabacloud.com/help/en/model-studio/context-cache"],
+      "verified_at": "2026-07-16",
+      "metadata": {"region": "international", "promotion": "50-percent"}
+    },
+    {
+      "id": "qwen:qwen3.7-max:international-2026-07-24",
+      "provider": "qwen",
+      "model": "qwen3.7-max",
+      "effective_from": "2026-07-24",
+      "rates": {"input": "2.50", "cache_read": "0.50", "cache_write_5m": "3.125", "output": "7.50", "reasoning": "7.50"},
+      "service_rates": {"explicit_cache": {"cache_read": "0.25"}},
+      "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing", "https://www.alibabacloud.com/help/en/model-studio/context-cache"],
+      "verified_at": "2026-07-16",
       "metadata": {"region": "international"}
     },
     {
       "id": "qwen:qwen-max:international-2026-07",
       "provider": "qwen",
       "model": "qwen-max",
-      "aliases": ["qwen-max-latest"],
+      "aliases": [],
       "effective_from": "2026-01-01",
       "rates": {"input": "1.60", "output": "6.40", "reasoning": "6.40"},
       "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
-      "verified_at": "2026-07-15",
+      "verified_at": "2026-07-16",
       "metadata": {"region": "international"}
     },
     {
       "id": "qwen:qwen3.6-27b:international-2026-07",
       "provider": "qwen",
       "model": "qwen3.6-27b",
-      "aliases": ["qwen-plus"],
       "effective_from": "2026-07-14",
       "rates": {"input": "0.60", "output": "3.60", "reasoning": "3.60"},
       "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
-      "verified_at": "2026-07-15",
+      "verified_at": "2026-07-16",
       "metadata": {"region": "international"}
     },
     {
       "id": "groq:llama-3.3-70b:2026-07",
       "provider": "groq",
       "model": "llama-3.3-70b-versatile",
-      "effective_from": "2025-01-01",
+      "effective_from": "2024-12-06",
       "rates": {"input": "0.59", "output": "0.79"},
-      "source_urls": ["https://groq.com/pricing"],
-      "verified_at": "2026-07-15"
+      "service_modifiers": {"batch": "0.5", "flex": "1", "on_demand": "1"},
+      "source_urls": ["https://groq.com/pricing", "https://console.groq.com/docs/deprecations", "https://console.groq.com/docs/batch"],
+      "verified_at": "2026-07-16",
+      "metadata": {"public_tier_shutdown": "2026-08-16", "enterprise_committed_spend_exempt": true}
     },
     {
       "id": "groq:qwen3-32b:2026-07",
       "provider": "groq",
       "model": "qwen/qwen3-32b",
-      "aliases": ["qwen3-32b"],
-      "effective_from": "2025-01-01",
+      "aliases": [],
+      "effective_from": "2025-06-10",
       "rates": {"input": "0.29", "output": "0.59", "reasoning": "0.59"},
-      "source_urls": ["https://groq.com/pricing"],
-      "verified_at": "2026-07-15"
+      "service_modifiers": {"flex": "1", "on_demand": "1"},
+      "source_urls": ["https://groq.com/pricing", "https://console.groq.com/docs/deprecations"],
+      "verified_at": "2026-07-16",
+      "metadata": {"public_tier_shutdown": "2026-07-17", "enterprise_committed_spend_exempt": true}
     },
     {
-      "id": "together:llama-3.3-70b:legacy-2026-07",
+      "id": "together:llama-3.3-70b:legacy-2026-05",
       "provider": "together",
       "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      "aliases": ["meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"],
       "effective_from": "2025-01-01",
-      "effective_until": "2026-07-14",
+      "effective_until": "2026-05-28",
       "rates": {"input": "0.88", "output": "0.88"},
-      "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "together:llama-3.3-70b:2026-07-15",
+      "id": "together:llama-3.3-70b:2026-05-29",
       "provider": "together",
       "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      "aliases": ["meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"],
-      "effective_from": "2026-07-15",
+      "effective_from": "2026-05-29",
       "rates": {"input": "1.04", "output": "1.04"},
-      "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "source_urls": ["https://docs.together.ai/docs/serverless/models", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:kimi-k2.6:2026-07",
@@ -404,7 +527,7 @@
       "effective_from": "2026-01-01",
       "rates": {"input": "1.20", "cache_read": "0.20", "output": "4.50", "reasoning": "4.50"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:kimi-k2.7-code:2026-07",
@@ -413,7 +536,7 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "0.95", "cache_read": "0.19", "output": "4", "reasoning": "4"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:glm-5.1:2026-07",
@@ -422,7 +545,7 @@
       "effective_from": "2026-07-14",
       "rates": {"input": "1.40", "output": "4.40", "reasoning": "4.40"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:glm-5.2:2026-07",
@@ -431,7 +554,7 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:qwen3.7-max:2026-07",
@@ -440,7 +563,7 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "1.25", "output": "3.75", "reasoning": "3.75"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "together:deepseek-v4-pro:2026-07",
@@ -449,51 +572,51 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "1.74", "cache_read": "0.20", "output": "3.48", "reasoning": "3.48"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "mistral:mistral-medium-3.5:2026-04",
+      "id": "mistral:mistral-medium-3-5:2026-04-28",
       "provider": "mistral",
-      "model": "mistral-medium-3.5",
-      "aliases": ["mistral-medium-latest"],
-      "effective_from": "2026-04-01",
+      "model": "mistral-medium-3-5",
+      "aliases": ["mistral-medium-3", "mistral-medium-latest"],
+      "effective_from": "2026-04-28",
       "rates": {"input": "1.50", "cache_read": "0.15", "output": "7.50"},
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-medium-3-5-26-04"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "mistral:mistral-large-3:2025-12",
+      "id": "mistral:mistral-large-2512:2025-12-02",
       "provider": "mistral",
-      "model": "mistral-large-3",
+      "model": "mistral-large-2512",
       "aliases": ["mistral-large-latest"],
-      "effective_from": "2025-12-01",
+      "effective_from": "2025-12-02",
       "rates": {"input": "0.50", "cache_read": "0.05", "output": "1.50"},
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-large-3-25-12"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "mistral:mistral-small-4:2026-03",
+      "id": "mistral:mistral-small-2603:2026-03-16",
       "provider": "mistral",
-      "model": "mistral-small-4",
+      "model": "mistral-small-2603",
       "aliases": ["mistral-small-latest"],
-      "effective_from": "2026-03-01",
+      "effective_from": "2026-03-16",
       "rates": {"input": "0.15", "cache_read": "0.015", "output": "0.60"},
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
-      "id": "mistral:ministral-3-14b:2025-12",
+      "id": "mistral:ministral-14b-2512:2025-12-02",
       "provider": "mistral",
-      "model": "ministral-3-14b",
+      "model": "ministral-14b-2512",
       "aliases": ["ministral-14b-latest"],
-      "effective_from": "2025-12-01",
+      "effective_from": "2025-12-02",
       "rates": {"input": "0.20", "cache_read": "0.02", "output": "0.20"},
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://docs.mistral.ai/models/model-cards/ministral-3-14b-25-12"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "openrouter:hermes-4-70b:2026-07",
@@ -503,7 +626,7 @@
       "effective_from": "2026-07-14",
       "rates": {"input": "0.13", "output": "0.40", "reasoning": "0.40"},
       "source_urls": ["https://openrouter.ai/nousresearch/hermes-4-70b/pricing"],
-      "verified_at": "2026-07-15"
+      "verified_at": "2026-07-16"
     },
     {
       "id": "nous:hermes-4-70b:dynamic",
@@ -513,14 +636,14 @@
       "effective_from": "2026-07-14",
       "rates": {},
       "source_urls": ["https://portal.nousresearch.com/api-docs"],
-      "verified_at": "2026-07-15",
+      "verified_at": "2026-07-16",
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:0969987e7c8f92ead322a0b02621db53deff4c171ce36b59fe7af192e4f1f132",
+  "catalog_id": "sha256:bb4defcca4a96289dd05e8af539607e22312d8e2d23e0d5096269bb5f41f0e80",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r2",
-    "value": "laoFuVk2bX1jIW6c3Tga+Q6RvgkAoDVjs9O6hAb7yGF4ei246anJSJg/1WInFi3ZD7MkksdiFNleVxSCNGb8Ag=="
+    "value": "c9PWEbURXjQzFzSNPCRarvxbiwn+EFLP0RmkUEY3aCDGMPLBuWgjEavgyglBM9DtO0KEVOhoAlMiT0JxkpZCCg=="
   }
 }

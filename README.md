@@ -93,7 +93,7 @@ through explicit commands:
 ```bash
 tine pricing list --provider kimi
 tine pricing show xai grok-4.5
-tine pricing show mistral ministral-3-14b --json
+tine pricing show mistral ministral-14b-2512 --json
 tine pricing check
 tine pricing update ./new-signed-catalog.json
 ```
@@ -138,7 +138,7 @@ DeepSeek()                        # deepseek-v4-flash
 GLM()                             # glm-5.2 / Z.AI global endpoint
 Grok()                            # grok-4.5
 Qwen()                            # qwen3.7-max international endpoint
-Ministral()                       # ministral-3-14b
+Ministral()                       # ministral-14b-2512
 OpenRouter()                      # nousresearch/hermes-4-70b
 Hermes()                          # direct Nous; local price overlay expected
 ```
@@ -148,8 +148,8 @@ endpoint and provider identity `glm-cn`; add a regional catalog overlay rather
 than applying Z.AI global USD rates to that endpoint.
 
 OpenAI native calls use Responses API items, tool-call continuation state,
-refusals, and final usage. Anthropic handles cache-write buckets and adaptive
-sampling restrictions. Kimi omits unsupported temperature fields and preserves
+refusals, and final usage. Anthropic handles cache-write buckets, reported
+inference geography, and adaptive sampling restrictions. Kimi omits unsupported temperature fields and preserves
 reasoning continuation. Google extracts usage instead of reporting zero, and
 Ollama retains token counts plus load/evaluation timing.
 
@@ -272,12 +272,18 @@ tine run --harness kimi-code --prompt "Summarize README.md" --save run.tine
 tine run --harness generic --harness-command "agent run" --prompt "Fix tests"
 ```
 
+Process harnesses default to a one-hour wall timeout, 4-million-character total
+output ceiling, and 10,000 parsed events. Override them with
+`--harness-timeout`, `--harness-max-output`, `--harness-max-events`, and
+`--harness-max-line-bytes`.
+
 Filesystem, network, shell, Python, and harness execution use restrictive
 policies. Harnesses do not inherit the parent environment by default. Review
 free-form model/tool output before sharing: credential redaction is typed and
 path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
-Enabled shell/Python timeouts terminate the spawned process tree and return only
-bounded partial output, with space reserved for stderr diagnostics.
+Enabled shell/Python timeouts terminate the owned process group or Windows Job
+Object and return only bounded partial output, with space reserved for stderr
+diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
 See [SECURITY_MODEL.md](SECURITY_MODEL.md).
 
 ## Validation
@@ -289,7 +295,8 @@ uv run ruff format --check .
 uv run python scripts/check_architecture.py
 uv run pytest tests -m "not live and not live_harness" -q
 uv build --sdist --wheel --out-dir dist
-uv run --with twine twine check dist/*
+uv run python scripts/check_release_inventory.py dist
+uv run --with twine python -m twine check dist/*
 uv run python scripts/wheel_smoke.py
 ```
 

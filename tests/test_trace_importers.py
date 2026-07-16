@@ -160,3 +160,35 @@ def test_jsonl_naive_iso_timestamp_is_deterministically_utc():
         [json.dumps({"timestamp": "1970-01-01T00:00:01", "trace_id": "t", "span_id": "s"})]
     )[0]
     assert event.timestamp == 1
+
+
+def test_importers_enforce_aggregate_payload_and_accounting_bounds(monkeypatch):
+    import opentine.trace.importers as module
+
+    monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 32)
+    with pytest.raises(ValueError, match="aggregate payload limit"):
+        jsonl_events([json.dumps({"span_id": "x", "inputs": {"text": "x" * 40}})])
+    monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 1024)
+    with pytest.raises(ValueError, match="trace cost must be finite"):
+        jsonl_events([json.dumps({"span_id": "x", "cost": -1})])
+
+
+def test_importer_bound_counts_empty_and_repeated_containers(monkeypatch):
+    import opentine.trace.importers as module
+
+    shared: dict = {}
+    monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 128)
+    with pytest.raises(ValueError, match="aggregate payload limit"):
+        framework_events([{"input": [shared] * 20}], "langchain")
+    monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 1_000_000)
+    with pytest.raises(ValueError, match="unsupported set payload"):
+        framework_events([{"input": {str(index) for index in range(10_000)}}], "langchain")
+
+
+def test_iterable_jsonl_bound_counts_oversized_skipped_records(monkeypatch):
+    import opentine.trace.importers as module
+
+    monkeypatch.setattr(module, "MAX_JSONL_LINE_BYTES", 16)
+    monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 64)
+    with pytest.raises(ValueError, match="aggregate payload limit"):
+        jsonl_events(["x" * 17])

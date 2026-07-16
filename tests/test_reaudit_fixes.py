@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import io
 import json
 import os
 import sqlite3
+import stat
+import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -30,11 +34,13 @@ from opentine.remote import (
     SQLiteBackend,
     StaticTokenIdentityProvider,
 )
+from opentine.remote._uploads import UploadRegistry
 from opentine.remote.interfaces import AuditEvent
-from opentine.repository._http import MAX_CONTROL_BYTES, request_json
+from opentine.repository._http import MAX_CONTROL_BYTES, read_json, request_json
 from opentine.repository.client import _upload
 from opentine.repository.pack import MAGIC, MAX_PACK_OBJECTS, create_pack, inspect_pack, negotiate
 from opentine.repository.search import search
+from opentine.tools._html import visible_text
 from opentine.tools.web import _get as web_get
 from opentine.trace.importers import framework_events, jsonl_events, otel_genai_events
 from opentine.trace.schema import TraceEvent
@@ -88,6 +94,121 @@ def test_h1_all_control_plane_json_is_streamed_and_bounded(monkeypatch):
         client_module.capabilities("https://remote.example")
 
 
+def test_h1_control_plane_deadline_includes_response_headers():
+    class BlockedStream:
+        def __init__(self, session):
+            self.session = session
+
+        def __enter__(self):
+            self.session.release.wait(timeout=1)
+            raise httpx.ReadTimeout("interrupted")
+
+        def __exit__(self, *args):
+            return False
+
+    class Session:
+        def __init__(self):
+            self.release = threading.Event()
+            self.closed = False
+
+        def stream(self, *args, **kwargs):
+            return BlockedStream(self)
+
+        def close(self):
+            self.closed = True
+
+    session = Session()
+    started = time.monotonic()
+    try:
+        with pytest.raises(ValueError, match="total request deadline"):
+            request_json(session, "GET", "/v1/capabilities", max_seconds=0.03)
+        assert time.monotonic() - started < 0.5 and session.closed
+    finally:
+        session.release.set()
+
+
+def test_authenticated_repository_client_ignores_environment_proxies(monkeypatch):
+    import opentine.repository._http as module
+
+    seen = {}
+    sentinel = object()
+
+    def client(**kwargs):
+        seen.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(module.httpx, "Client", client)
+    assert (
+        module.client("http://127.0.0.1:8787", "secret", allow_insecure=False, timeout=1)
+        is sentinel
+    )
+    assert seen["trust_env"] is False
+
+
+def test_html_text_extraction_is_linear_for_unclosed_script_tags():
+    malicious = "<script>" * 20_000 + "trailing"
+    assert visible_text(malicious, 100) == ""
+    assert visible_text("<p>Hello <b>world</b></p>", 100) == "Hello world"
+
+
+def test_resumable_client_rejects_disk_amplifying_tiny_chunks():
+    with pytest.raises(ValueError, match="safe resumable minimum"):
+        _upload(object(), "/packs", b"x" * 2_000, chunk_size=1)
+
+
+def test_h1_control_json_rejects_transparent_content_decoding():
+    expanded = b'{"padding":"' + b"x" * MAX_CONTROL_BYTES + b'"}'
+    compressed = gzip.compress(expanded, compresslevel=9)
+    assert len(compressed) < MAX_CONTROL_BYTES
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            200,
+            content=compressed,
+            headers={"Content-Encoding": "gzip"},
+            request=request,
+        )
+    )
+    with httpx.Client(base_url="https://remote.example", transport=transport) as session:
+        with pytest.raises(ValueError, match="unsupported Content-Encoding"):
+            request_json(session, "GET", "/v1/capabilities")
+
+    identity_transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            200,
+            stream=httpx.ByteStream(b"{}"),
+            headers={"Content-Encoding": "identity"},
+            request=request,
+        )
+    )
+    with httpx.Client(base_url="https://remote.example", transport=identity_transport) as session:
+        with session.stream("GET", "/v1/capabilities") as response:
+            assert read_json(response) == {}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits are not Windows ACLs")
+def test_upload_staging_permissions_are_private_and_existing_paths_tighten(tmp_path: Path):
+    root = tmp_path / "uploads"
+    root.mkdir(mode=0o777)
+    root.chmod(0o777)
+    registry = UploadRegistry(root, LocalKeyProvider(b"u" * 32), ttl_seconds=60, max_pending=8)
+    assert stat.S_IMODE(root.stat().st_mode) == 0o700
+
+    part, metadata = registry.create("acme", "a" * 32, {"sha256": "0" * 64, "size": 1})
+    assert stat.S_IMODE(part.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(part.stat().st_mode) == 0o600
+    assert stat.S_IMODE(metadata.stat().st_mode) == 0o600
+
+    part.parent.chmod(0o777)
+    root.chmod(0o777)
+    part.chmod(0o666)
+    metadata.chmod(0o666)
+    assert registry.paths("acme", "a" * 32) == (part, metadata)
+    assert stat.S_IMODE(root.stat().st_mode) == 0o700
+    assert stat.S_IMODE(part.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(part.stat().st_mode) == 0o600
+    assert stat.S_IMODE(metadata.stat().st_mode) == 0o600
+
+
 @pytest.mark.asyncio
 async def test_independent_web_fetch_is_bounded_during_streaming(monkeypatch):
     transport = httpx.MockTransport(
@@ -99,7 +220,10 @@ async def test_independent_web_fetch_is_bounded_during_streaming(monkeypatch):
             super().__init__(transport=transport, **kwargs)
 
     monkeypatch.setattr("opentine.tools.web.httpx.AsyncClient", Client)
-    monkeypatch.setattr("opentine.tools.web._check_url", lambda url, policy: None)
+    monkeypatch.setattr(
+        "opentine.tools.web.socket.getaddrinfo",
+        lambda *args, **kwargs: [(2, 1, 6, "", ("93.184.216.34", 443))],
+    )
     with pytest.raises(ValueError, match="max_body_bytes"):
         await web_get("https://remote.example", NetworkPolicy(max_body_bytes=64))
 

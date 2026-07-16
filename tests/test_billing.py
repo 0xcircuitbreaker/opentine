@@ -8,7 +8,7 @@ import pytest
 
 from opentine.billing import PricingCatalog, RateCard, Usage, bill, calculate, load_catalogs
 from opentine.billing.catalog import BUNDLED_CATALOG
-from opentine.models._usage import google_usage, metered_response
+from opentine.models._usage import google_usage, metered_response, openai_usage
 from opentine.models.google import Google
 from opentine.runtime import Agent
 
@@ -64,6 +64,263 @@ def test_gpt_56_long_context_and_service_modifier(catalog: PricingCatalog):
     assert batch.amount_usd == Decimal("23.8650")
 
 
+def test_gpt_4o_effective_rates_and_snapshot_identity(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    launch = bill("openai", "gpt-4o", usage, catalog=catalog, effective_at="2024-05-13")
+    august = bill("openai", "gpt-4o", usage, catalog=catalog, effective_at="2024-08-06")
+    cached = bill(
+        "openai",
+        "gpt-4o",
+        Usage(input=1_000_000, cache_read=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2024-10-01",
+    )
+    old_snapshot = bill(
+        "openai",
+        "gpt-4o-2024-05-13",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert launch.amount_usd == Decimal("20")
+    assert august.amount_usd == Decimal("12.50")
+    assert cached.amount_usd == Decimal("13.75")
+    assert old_snapshot.amount_usd == Decimal("20")
+
+
+def test_anthropic_us_inference_geo_modifiers(catalog: PricingCatalog):
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        cache_write_1h=1_000_000,
+        output=1_000_000,
+    )
+    standard = bill(
+        "anthropic", "claude-fable-5", usage, catalog=catalog, effective_at="2026-07-16"
+    )
+    us = bill(
+        "anthropic",
+        "claude-fable-5",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="us",
+    )
+    batch_us = bill(
+        "anthropic",
+        "claude-fable-5",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="batch_us",
+    )
+    unsupported = bill(
+        "anthropic",
+        "claude-sonnet-4-5",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="us",
+    )
+    assert standard.amount_usd == Decimal("93.50")
+    assert us.amount_usd == Decimal("102.850")
+    assert batch_us.amount_usd == Decimal("51.4250")
+    assert unsupported.status == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("canonical", "alias"),
+    [
+        ("mistral-medium-3-5", "mistral-medium-latest"),
+        ("mistral-medium-3-5", "mistral-medium-3"),
+        ("mistral-large-2512", "mistral-large-latest"),
+        ("mistral-small-2603", "mistral-small-latest"),
+        ("ministral-14b-2512", "ministral-14b-latest"),
+    ],
+)
+def test_mistral_canonical_ids_and_stable_aliases(
+    catalog: PricingCatalog, canonical: str, alias: str
+):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    exact = bill("mistral", canonical, usage, catalog=catalog, effective_at="2026-07-16")
+    latest = bill("mistral", alias, usage, catalog=catalog, effective_at="2026-07-16")
+    assert exact.status == "complete"
+    assert latest.rate_card_id == exact.rate_card_id
+
+
+@pytest.mark.parametrize(
+    ("provider", "model"),
+    [
+        ("openai", "gpt-4o-latest"),
+        ("openai", "gpt-5.6-terra-latest"),
+        ("google", "gemini-3.1-pro"),
+        ("groq", "qwen3-32b"),
+        ("mistral", "mistral-large-3"),
+        ("mistral", "ministral-3-14b"),
+        ("anthropic", "claude-opus-4.8"),
+        ("xai", "grok-4.20-latest"),
+        ("glm", "glm-4-flash"),
+        ("glm", "glm-5.2-latest"),
+        ("kimi", "kimi-k2.6-thinking"),
+        ("qwen", "qwen-max-latest"),
+    ],
+)
+def test_unsupported_provider_aliases_remain_unpriced(
+    catalog: PricingCatalog, provider: str, model: str
+):
+    result = bill(
+        provider,
+        model,
+        Usage(input=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert result.status == "unknown"
+    assert result.rate_card_id is None
+
+
+@pytest.mark.parametrize(
+    ("model", "short_total", "long_total"),
+    [
+        ("grok-4.5", Decimal("6.85"), Decimal("13.700004")),
+        ("grok-4.3", Decimal("2.895"), Decimal("5.79000250")),
+        ("grok-4.20", Decimal("2.895"), Decimal("5.79000250")),
+    ],
+)
+def test_grok_long_context_rates_start_above_200k(
+    catalog: PricingCatalog,
+    model: str,
+    short_total: Decimal,
+    long_total: Decimal,
+):
+    usage = Usage(input=100_000, cache_read=100_000, output=1_000_000, reasoning=100_000)
+    short = bill("xai", model, usage, catalog=catalog, effective_at="2026-07-16")
+    long = bill(
+        "xai",
+        model,
+        Usage(input=100_001, cache_read=100_000, output=1_000_000, reasoning=100_000),
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert short.amount_usd == short_total
+    assert short.calculation["context_rules"] == []
+    assert long.amount_usd == long_total
+    assert long.calculation["context_rules"] == ["over-200k"]
+    assert all(
+        Decimal(long.calculation["rates_per_million"][dimension])
+        == Decimal(short.calculation["rates_per_million"][dimension]) * 2
+        for dimension in ("input", "cache_read", "output", "reasoning")
+    )
+
+
+def test_qwen_plus_does_not_borrow_qwen36_rates(catalog: PricingCatalog):
+    result = bill(
+        "qwen",
+        "qwen-plus",
+        Usage(input=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert result.status == "unknown"
+    assert result.amount_usd is None
+    assert result.rate_card_id is None
+
+
+def test_qwen37_promotion_cache_modes_and_transition(catalog: PricingCatalog):
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        output=1_000_000,
+    )
+    implicit = bill("qwen", "qwen3.7-max", usage, catalog=catalog, effective_at="2026-07-23")
+    explicit = bill(
+        "qwen",
+        "qwen3.7-max",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-23",
+        service_tier="explicit_cache",
+    )
+    list_price = bill(
+        "qwen",
+        "qwen3.7-max",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-24",
+        service_tier="explicit_cache",
+    )
+    assert implicit.amount_usd == Decimal("6.8125")
+    assert explicit.amount_usd == Decimal("6.6875")
+    assert list_price.amount_usd == Decimal("13.375")
+
+
+def test_qwen_explicit_cache_creation_usage_is_exclusive():
+    usage = openai_usage(
+        {
+            "prompt_tokens": 100,
+            "completion_tokens": 5,
+            "prompt_tokens_details": {
+                "cached_tokens": 10,
+                "cache_creation_input_tokens": 20,
+            },
+        }
+    )
+    assert usage.input == 70
+    assert usage.cache_read == 10
+    assert usage.cache_write_5m == 20
+
+
+def test_kimi_batch_uses_provider_exact_rates(catalog: PricingCatalog):
+    result = bill(
+        "kimi",
+        "kimi-k2.6",
+        Usage(input=1_000_000, cache_read=1_000_000, output=1_000_000, reasoning=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="batch",
+    )
+    assert result.status == "complete"
+    assert result.amount_usd == Decimal("5.47")
+    assert result.calculation["service_rates_per_million"]["cache_read"] == "0.10"
+
+
+def test_groq_service_tiers_and_scoped_public_lifecycle(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    flex = bill(
+        "groq",
+        "llama-3.3-70b-versatile",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="flex",
+    )
+    batch = bill(
+        "groq",
+        "llama-3.3-70b-versatile",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="batch",
+    )
+    qwen_batch = bill(
+        "groq",
+        "qwen/qwen3-32b",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+        service_tier="batch",
+    )
+    card = catalog.lookup("groq", "qwen/qwen3-32b", effective_at="2026-07-17")
+    assert flex.amount_usd == Decimal("1.38")
+    assert batch.amount_usd == Decimal("0.690")
+    assert qwen_batch.status == "unknown"
+    assert card is not None
+    assert card.metadata["public_tier_shutdown"] == "2026-07-17"
+    assert card.metadata["enterprise_committed_spend_exempt"] is True
+
+
 def test_sonnet_5_introductory_rate_transition(catalog: PricingCatalog):
     usage = Usage(input=1_000_000, output=1_000_000)
     intro = bill("anthropic", "claude-sonnet-5", usage, catalog=catalog, effective_at="2026-08-31")
@@ -82,7 +339,8 @@ def test_sonnet_5_introductory_rate_transition(catalog: PricingCatalog):
         ("kimi", "kimi-k2.6", "kimi:"),
         ("glm", "glm-5.2", "glm:"),
         ("xai", "grok-4.5", "xai:"),
-        ("mistral", "ministral-3-14b", "mistral:ministral"),
+        ("xai", "grok-4.20", "xai:grok-4.20"),
+        ("mistral", "ministral-14b-2512", "mistral:ministral"),
         ("qwen", "qwen3.7-max", "qwen:"),
         ("groq", "qwen/qwen3-32b", "groq:"),
         ("together", "moonshotai/Kimi-K2.7-Code", "together:"),
@@ -121,14 +379,14 @@ def test_current_together_cards_and_effective_transition(catalog: PricingCatalog
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         usage,
         catalog=catalog,
-        effective_at="2026-07-14",
+        effective_at="2026-05-28",
     )
     current = bill(
         "together",
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         usage,
         catalog=catalog,
-        effective_at="2026-07-15",
+        effective_at="2026-05-29",
     )
     kimi = bill(
         "together",
@@ -140,6 +398,15 @@ def test_current_together_cards_and_effective_transition(catalog: PricingCatalog
     assert legacy.amount_usd == Decimal("1.76")
     assert current.amount_usd == Decimal("2.08")
     assert kimi.amount_usd == Decimal("5.14")
+
+    deprecated = bill(
+        "together",
+        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        usage,
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert deprecated.status == "unknown" and deprecated.rate_card_id is None
 
 
 def test_google_service_rates_and_audio_dimensions_are_exact(catalog: PricingCatalog):

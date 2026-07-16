@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
 TraceKind = Literal["model", "tool", "human", "policy", "approval", "subagent", "error"]
@@ -30,6 +32,27 @@ class TraceEvent:
     def __post_init__(self) -> None:
         if self.kind not in TRACE_KINDS:
             raise ValueError(f"invalid trace event kind: {self.kind!r}")
+        try:
+            if isinstance(self.duration, str) and len(self.duration) > 128:
+                raise ValueError
+            duration = float(self.duration)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("trace duration must be finite and non-negative") from exc
+        if isinstance(self.duration, bool) or not math.isfinite(duration):
+            raise ValueError("trace duration must be finite and non-negative")
+        if duration < 0:
+            raise ValueError("trace duration must be finite and non-negative")
+        billed = self.billing.get("known_subtotal_usd") if isinstance(self.billing, dict) else None
+        values = [self.cost, billed]
+        for value in (item for item in values if item is not None):
+            try:
+                if isinstance(value, str) and len(value) > 128:
+                    raise ValueError
+                amount = Decimal(str(value))
+            except (InvalidOperation, ValueError) as exc:
+                raise ValueError("trace cost must be finite and non-negative") from exc
+            if isinstance(value, bool) or not amount.is_finite() or amount < 0:
+                raise ValueError("trace cost must be finite and non-negative")
 
     def to_dict(self) -> dict[str, Any]:
         return {

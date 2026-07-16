@@ -68,7 +68,7 @@ class ChatCompletions:
                 "deepseek-v4",
                 "glm-5",
                 "qwen3",
-                "mistral-small-4",
+                "mistral-small",
             )
         )
 
@@ -165,6 +165,10 @@ class ChatCompletions:
             unmetered=self._unmetered,
         )
 
+    def _billing_tier(self, messages: list[dict[str, Any]], reported: str | None) -> str | None:
+        del messages
+        return reported or self._service_tier
+
     async def complete(
         self,
         messages: list[dict[str, Any]],
@@ -172,9 +176,8 @@ class ChatCompletions:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
-        response = await self._get_client().chat.completions.create(
-            **self._kwargs(messages, tools, system, temperature)
-        )
+        kwargs = self._kwargs(messages, tools, system, temperature)
+        response = await self._get_client().chat.completions.create(**kwargs)
         choice = response.choices[0]
         message = choice.message
         calls: list[dict[str, Any]] = []
@@ -207,7 +210,8 @@ class ChatCompletions:
         reasoning = value(message, "reasoning_content")
         if reasoning:
             result["reasoning_content"] = reasoning
-        result.update(self._meter(value(response, "usage"), value(response, "service_tier")))
+        tier = self._billing_tier(kwargs["messages"], value(response, "service_tier"))
+        result.update(self._meter(value(response, "usage"), tier))
         return result
 
     async def stream(
@@ -219,7 +223,7 @@ class ChatCompletions:
     ) -> AsyncIterator[dict[str, Any]]:
         kwargs = self._kwargs(messages, tools, system, temperature)
         kwargs["stream"] = True
-        if self._provider in {"openai", "xai"}:
+        if self._provider in {"openai", "qwen", "xai"}:
             kwargs["stream_options"] = {"include_usage": True}
         stream = await self._get_client().chat.completions.create(**kwargs)
         async for chunk in stream:
@@ -231,7 +235,8 @@ class ChatCompletions:
                     yield {"type": "text_delta", "text": text}
             raw_usage = value(chunk, "usage")
             if raw_usage:
-                yield {"type": "usage", **self._meter(raw_usage, value(chunk, "service_tier"))}
+                tier = self._billing_tier(kwargs["messages"], value(chunk, "service_tier"))
+                yield {"type": "usage", **self._meter(raw_usage, tier)}
 
 
 def env_key(name: str) -> str:

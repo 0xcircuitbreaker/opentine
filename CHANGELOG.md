@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-15
+## 0.3.0 — 2026-07-16
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -38,7 +38,8 @@ v2; repository objects use the new verified v3 format.
   compressed data, and stream client downloads under the same cap, so a zlib bomb
   from an untrusted remote or authenticated writer cannot grow memory without
   bound. The reference server limits individual requests to 16 MiB, caps resumed
-  packs separately, bounds worker concurrency, and applies a socket timeout.
+  packs separately, bounds worker concurrency, and applies inactivity plus absolute
+  request timeouts.
 - Repository JSON CLI commands (`fsck`, `object`, `migrate-v3`, `fetch`, `push`)
   emit plain JSON; the shared console no longer forces ANSI color, so piped or
   redirected output is machine-readable and honors `NO_COLOR`.
@@ -65,10 +66,13 @@ v2; repository objects use the new verified v3 format.
 - Billing: tiered context multipliers apply only the highest matching tier
   (no compounding); OpenAI-compatible top-level cache tokens
   (`prompt_cache_hit_tokens`) are billed at the cache rate, not as fresh input.
-- All client control-plane JSON is streamed under a 1 MiB cap. Resumable upload
-  offsets must advance, loops are bounded, upload IDs are validated, per-upload
-  locks are released, and stale partial uploads are reaped. Agent web fetches
-  also enforce their policy body cap during streaming rather than after buffering.
+- All client control-plane JSON is streamed under a 1 MiB raw-byte cap and
+  non-identity content encodings are rejected, with a wall-clock deadline that
+  includes response headers. Resumable upload offsets must advance, loops are
+  bounded, upload IDs are validated, staging uses encrypted tenant-bound frames
+  plus private POSIX modes, per-upload locks are released, and stale partial
+  uploads are reaped. Agent web fetches pin validated DNS answers, ignore implicit
+  proxies, and enforce whole-response time and body limits.
 - Raw and structured redaction covers Basic/Cookie credentials in header lines,
   arrays, pairs, and HAR-style `{name, value}` records. Large trace integers are
   string-preserved, malformed JSONL records are skipped per line, and imported
@@ -79,7 +83,15 @@ v2; repository objects use the new verified v3 format.
 - The signed catalog was reverified and rotated to a retained release key. It
   adds Gemini 3.5 Flash and GLM-5.2, maps current DeepSeek compatibility aliases
   to V4 Flash, distinguishes Gemini audio/cache dimensions and exact service
-  rates, and updates current Mistral model-card sources.
+  rates, applies xAI's >200K Grok 4.5/4.3 prices, removes an unsafe `qwen-plus`
+  cross-model alias, corrects Together's Llama 3.3 effective date, removes its
+  deprecated Llama 3.1 cross-model alias, uses Mistral's canonical API IDs,
+  splits GPT-4o's historical price transitions, and applies Anthropic's reported
+  US inference geography multiplier. Qwen3.7-Max records its limited promotion,
+  automatic-cache rate, and explicit cache creation/hit rates separately. Kimi
+  Batch and Groq service tiers use exact rates, invalid provider aliases are
+  removed, and tier-scoped Groq shutdown dates are recorded without suppressing
+  enterprise committed-spend billing.
 - Live traces retain cost and latency, causal forks retain causal ancestors, and
   semantic diff includes artifacts and evaluation scores.
 - Production KMS adapters can provide external audit-key derivation and the
@@ -99,11 +111,13 @@ v2; repository objects use the new verified v3 format.
   payloads and redirects refused. Release metadata checks invoke Twine through
   the interpreter consistently in CI and tag-publish workflows.
 - Enabled shell and Python tools drain child pipes continuously while retaining
-  only a bounded prefix, so their output caps also bound resident capture memory.
+  only a bounded prefix, clean up descendant processes after every execution,
+  and use Windows Job Objects when available.
 - Audit append authenticates the current chain tail before a one-step checkpoint
   heal. A cross-process file lock spans the SQLite commit and external anchor
-  update, and verification takes the same lock, preventing forged-row laundering
-  and commit/checkpoint races in shared-SQLite deployments.
+  update. Verification uses stable optimistic snapshots and retries under that
+  lock only across concurrent writes, preventing forged-row laundering and
+  commit/checkpoint races without starving writers.
 - Timed-out shell and Python tools terminate the spawned process tree, retain
   bounded partial diagnostics, and reserve output space for stderr. Run-moving
   refs (`heads`, `experiments`, `promotions`) and attestation targets are
@@ -116,6 +130,30 @@ v2; repository objects use the new verified v3 format.
 - Stable audit verification uses an optimistic database/anchor snapshot and
   takes the exclusive cross-process lock only when a concurrent append requires
   a consistent retry, preventing hot admin verification from starving writers.
+- Source distributions use an explicit allowlist, and CI/publish gates require
+  both source and wheel archives to match their tracked-file inventories exactly,
+  preventing globally ignored local agent/editor state from entering a release.
+- External process harnesses now fail closed under configurable time, output,
+  line-size, and parsed-event ceilings and clean up their owned process group or
+  Job Object on every exit path. Git code capture streams under a 16 MiB ceiling;
+  untracked paths mark the worktree dirty and make capture incompleteness explicit.
+- Dependency floors exclude vulnerable cryptography wheels (`>=48.0.1`),
+  Anthropic SDK releases (`>=0.87`), and MCP SDK releases. The OpenAI-compatible
+  extra starts at `openai>=1.75.0`, the first SDK release that supports both the
+  Responses API and its service-tier field. The MCP extra stays
+  on the supported v1 line (`>=1.28.1,<2`) until OpenTine adopts its breaking v2 API.
+  The development floor also excludes pytest's vulnerable tmpdir handling
+  (`pytest>=9.0.3`).
+- Authenticated repository clients ignore implicit environment proxies so a
+  loopback development bearer token cannot be forwarded through `HTTP_PROXY`.
+  Web-result text extraction is linear on malformed markup, and structured
+  redaction recognizes camel/acronym/plural/scoped credential names plus bare
+  token header pairs while retaining numeric token counters.
+- Qwen streams explicitly request final usage and retain explicit-cache billing
+  tiers. Trace import accounting counts repeated/empty containers incrementally,
+  rejects expansion-prone non-JSON values, and charges skipped oversized JSONL
+  records. Harnesses observe direct-parent exit independently of inherited pipe
+  handles and close an escaped descendant's retained pipe after a short drain.
 
 ### Architecture and compatibility
 

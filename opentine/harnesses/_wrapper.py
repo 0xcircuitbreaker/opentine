@@ -16,6 +16,7 @@ from opentine.harnesses._types import (
     HarnessStep,
     _coerce_kind,
     _jsonable,
+    _meter,
     _short_id,
 )
 
@@ -124,6 +125,8 @@ class OpentineHarness:
             model_info, cost, duration = event.model_info, event.cost, event.duration
         else:
             normalized = _coerce_kind(kind)
+        cost = _meter(cost, "cost")
+        duration = _meter(duration, "duration")
         run = self._require_run()
         original_model = run.model_info
         if model_info:

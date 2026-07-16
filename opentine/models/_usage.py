@@ -38,7 +38,11 @@ def openai_usage(raw: Any) -> Usage:
     if cached_raw is _MISSING:
         cached_raw = value(raw, "prompt_cache_hit_tokens", 0)
     cached = int(cached_raw or 0)
-    write_5m = integer(input_details, "cache_write_tokens")
+    write_5m = integer(
+        input_details,
+        "cache_write_tokens",
+        integer(input_details, "cache_creation_input_tokens"),
+    )
     write_1h = integer(input_details, "cache_write_1h_tokens")
     reasoning = integer(output_details, "reasoning_tokens")
     return Usage(

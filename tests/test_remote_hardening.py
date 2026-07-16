@@ -255,7 +255,74 @@ def test_m6_server_has_conservative_defaults():
     from opentine.remote.server import ThreadingWSGIServer, TimeoutRequestHandler
 
     assert TimeoutRequestHandler.timeout == 30 and ThreadingWSGIServer.max_workers == 16
+    assert ThreadingWSGIServer.request_deadline == 60
     # Single requests are small; resumable uploads retain a separately bounded total.
     default = inspect.signature(RemoteApp.__init__).parameters["max_request_bytes"].default
     upload = inspect.signature(RemoteApp.__init__).parameters["max_upload_bytes"].default
     assert default == 16 * 1024 * 1024 and upload == 256 * 1024 * 1024
+
+
+def test_m6_absolute_request_deadline_interrupts_active_connection():
+    import threading
+    import time
+
+    from opentine.remote.server import ThreadingWSGIServer
+
+    class BlockingServer(ThreadingWSGIServer):
+        request_deadline = 0.05
+
+        def finish_request(self, request, client_address):
+            request.closed.wait(timeout=1)
+
+        def handle_error(self, request, client_address):
+            pass
+
+        def shutdown_request(self, request):
+            request.close()
+
+    class Request:
+        closed = threading.Event()
+
+        def shutdown(self, how):
+            self.closed.set()
+
+        def close(self):
+            self.closed.set()
+
+    server = object.__new__(BlockingServer)
+    server._request_slots = threading.BoundedSemaphore(1)
+    server._request_slots.acquire()
+    accepted = Request()
+    worker = threading.Thread(target=server.process_request_thread, args=(accepted, ("local", 0)))
+    started = time.monotonic()
+    worker.start()
+    try:
+        worker.join(timeout=0.5)
+        assert not worker.is_alive() and time.monotonic() - started < 0.3
+    finally:
+        accepted.close()
+
+
+def test_m6_tls_handshake_is_deferred_to_bounded_worker(monkeypatch):
+    from wsgiref.simple_server import WSGIServer
+
+    from opentine.remote.server import ThreadingWSGIServer
+
+    class Raw:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    class Context:
+        def wrap_socket(self, request, **kwargs):
+            assert kwargs == {"server_side": True, "do_handshake_on_connect": False}
+            return ("wrapped", request)
+
+    raw = Raw()
+    monkeypatch.setattr(WSGIServer, "get_request", lambda self: (raw, ("client", 1)))
+    server = object.__new__(ThreadingWSGIServer)
+    server.ssl_context = Context()
+    request, address = server.get_request()
+    assert request == ("wrapped", raw) and address == ("client", 1)
+    assert raw.closed is False

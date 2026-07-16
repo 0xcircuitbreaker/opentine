@@ -42,7 +42,7 @@ PROVIDERS = {
         "Ministral",
         "opentine.models.compat",
         "Ministral",
-        "ministral-3-14b",
+        "ministral-14b-2512",
         "MISTRAL_API_KEY",
     ),  # noqa: E501
     # Local providers (no API key needed)

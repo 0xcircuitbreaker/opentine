@@ -7,19 +7,25 @@ Opentine is local-first provenance tooling. It records agent activity and can in
 - Filesystem tools are constrained to configured roots, use `Path.relative_to` checks, deny symlinks by default, cap file size, and require explicit write roots.
 - Network tools allow HTTPS by default, block private, loopback, link-local,
   reserved, and multicast hosts unless policy opts in, and stream responses under
-  the configured body-size limit.
+  the configured body-size limit. Visible-text extraction is linear on malformed
+  markup rather than applying unbounded backtracking expressions.
 - Shell execution is disabled unless a `ShellPolicy` enables it. Enabled shell calls are parsed to argv arrays, executable allowlists can be enforced, environment inheritance is off by default, and output is capped.
 - Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output.
-- External CLI harnesses do not inherit the parent environment by default. `--harness-login-env` passes only login/config variables plus explicitly allowed names.
+- External CLI harnesses do not inherit the parent environment by default.
+  `--harness-login-env` passes only login/config variables plus explicitly allowed
+  names. Harness subprocesses have configurable wall-time, total-output, line-size,
+  and parsed-event ceilings and clean up their owned process group or Job Object on
+  completion and errors. This is resource containment, not an OS sandbox.
 
 ## Redaction
 
 Saved v2 files and v3 structured objects use typed/path-aware credential names
-such as `api_key`, `access_token`, `password`, `client_secret`, `authorization`,
-and private keys. A numeric counter such as `input_tokens` or a numeric field
-named `token` is retained. Credential-shaped UTF-8 assignments, bearer values,
-PEM private keys, and common line/pair/HAR header captures are scrubbed from raw
-v3 blobs.
+such as `api_key`, `accessToken`, `passwords`, `client_secret`, scoped
+authorization/cookie fields, and private keys. Acronym/camel/plural forms and
+bare-token line/pair/HAR header captures are normalized. A numeric counter such
+as `input_tokens` or a numeric direct field named `token` is retained.
+Credential-shaped UTF-8 assignments, bearer values, PEM private keys, and common
+header captures are also scrubbed from raw v3 blobs.
 
 V3 redaction happens before canonicalization and hashing, so an object ID always
 identifies the redacted bytes actually stored. V2 keeps its released identity
@@ -62,8 +68,10 @@ checks refs and event cycles. Shallow history is explicit rather than treated as
 verified local content.
 
 The reference remote requires TLS unless an operator explicitly enables local
-insecure development. Bearer tokens are stored as hashes in memory and compared
-in constant time. OIDC ships a `JWTVerifier` (RS256/ES256) that validates the JWS
+insecure development. Authenticated repository clients disable implicit
+environment proxies, preventing loopback bearer credentials from being forwarded
+through ambient proxy variables. Bearer tokens are stored as hashes in memory and
+compared in constant time. OIDC ships a `JWTVerifier` (RS256/ES256) that validates the JWS
 signature against a JWKS plus issuer, audience, authorized party, expiry, and
 not-before claims; unsupported critical headers and weak RSA keys are rejected.
 Discovery is dependency-injected and HTTPS-only. A custom verifier can still be
@@ -71,8 +79,11 @@ injected, in which case the integrator is responsible for equivalent signature
 and claim validation. Authorization combines a tenant namespace with
 reader/writer/admin roles.
 
-Objects are AES-GCM encrypted at rest with a per-tenant key derived from the
-configured local master key and the tenant as associated data. Legacy
+Installed objects are AES-GCM encrypted at rest with a per-tenant key derived
+from the configured local master key and the tenant as associated data. A
+resumable upload is stored as independently authenticated, tenant-bound encrypted
+frames until verification and installation; its directories/files are also
+restricted to mode 0700/0600 on POSIX, and stale uploads are reaped. Legacy
 `TINEAES1` ciphertext remains readable. The reference server requires a key
 provider; production deployments should supply a KMS-backed provider and handle
 rotation outside this minimal server. SQLite audit rows form a serialized
@@ -83,13 +94,15 @@ reference app derives the audit key from its local KMS master. A custom
 the app must receive `audit_key`) and construction fails closed otherwise; it
 never silently writes a production audit key beside SQLite. Direct
 `SQLiteBackend` development use creates a mode-0600 sidecar key and tightens
-looser existing permissions. Pre-HMAC rows are refused unless
+looser existing permissions. Unchained legacy rows are refused unless
 `--migrate-legacy-audit` explicitly trusts the database. The resulting chain is
 reported as `legacy-unverified`, not cryptographically verified. Audit rows
 commit before the external anchor advances; an anchor exactly one committed row
 behind is forward-healed after interruption only when that row's HMAC verifies.
-An OS-level lock spans database commit plus checkpoint update across processes,
-and verification takes the same lock. Any other missing or mismatched anchor
+An OS-level lock spans database commit plus checkpoint update across processes.
+Verification normally compares stable before/after database and authenticated-head
+snapshots, taking the same exclusive lock only when a concurrent append requires a
+consistent retry. Any other missing or mismatched anchor
 requires `--reanchor-audit-head` with the already verified database head; the
 migration flag cannot re-anchor a keyed chain. Chain verification is read-only.
 Database triggers remain defense in depth. Local refs use exclusive lockfiles;
@@ -113,7 +126,8 @@ Deployments requiring atomic compliance logging should provide a transactional
 storage/index/audit adapter or externally anchored audit sink.
 
 The bundled server applies request/upload limits, bounded worker concurrency,
-and socket timeouts, but remains a reference WSGI deployment rather than a
+socket inactivity timeouts, and an absolute request deadline, but remains a reference WSGI
+deployment rather than a
 turnkey high-availability edge service.
 
 ## Known Non-Goals

@@ -9,7 +9,7 @@ import pytest
 
 from opentine import Run, StepKind
 from opentine.models.anthropic import Anthropic
-from opentine.models.compat import Kimi
+from opentine.models.compat import Kimi, Qwen
 from opentine.models.google import Google
 from opentine.models.ollama import Ollama
 from opentine.models.openai import OpenAI
@@ -106,6 +106,33 @@ async def test_anthropic_tool_only_cache_buckets_and_adaptive_sampling(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_anthropic_response_geo_controls_billing(monkeypatch):
+    seen: dict[str, Any] = {}
+
+    class Messages:
+        async def create(self, **kwargs):
+            seen.update(kwargs)
+            return SimpleNamespace(
+                content=[SimpleNamespace(type="text", text="ok")],
+                stop_reason="end_turn",
+                usage=SimpleNamespace(
+                    input_tokens=1_000_000,
+                    output_tokens=1_000_000,
+                    inference_geo="us",
+                ),
+            )
+
+    adapter = Anthropic("claude-fable-5", inference_geo="global")
+    monkeypatch.setattr(adapter, "_get_client", lambda: SimpleNamespace(messages=Messages()))
+    result = await adapter.complete([{"role": "user", "content": "hello"}])
+
+    assert seen["inference_geo"] == "global"
+    assert result["billing"]["calculation"]["service_tier"] == "us"
+    assert result["billing"]["calculation"]["service_modifier"] == "1.1"
+    assert result["billing"]["amount_usd"] == "66.0"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(("output_tokens", "expected_cost"), [(0, 0.0), (5, 0.00025)])
 async def test_anthropic_early_vs_midstream_refusal_billing(
     monkeypatch, output_tokens: int, expected_cost: float
@@ -175,6 +202,80 @@ async def test_kimi_omits_temperature_and_preserves_reasoning_continuation(monke
         None,
     )
     assert continued[0]["reasoning_content"] == "chain-state"
+
+
+@pytest.mark.asyncio
+async def test_qwen_explicit_cache_marker_selects_exact_hit_rate(monkeypatch):
+    class Completions:
+        async def create(self, **kwargs):
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=[]))],
+                usage=SimpleNamespace(
+                    prompt_tokens=2_000_000,
+                    completion_tokens=1_000_000,
+                    prompt_tokens_details=SimpleNamespace(
+                        cached_tokens=1_000_000,
+                        cache_creation_input_tokens=0,
+                    ),
+                ),
+            )
+
+    adapter = Qwen()
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    monkeypatch.setattr(adapter, "_get_client", lambda: client)
+    result = await adapter.complete(
+        [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cached prompt",
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+            }
+        ]
+    )
+    assert result["billing"]["calculation"]["service_tier"] == "explicit_cache"
+    assert result["billing"]["amount_usd"] == "5.125"
+
+
+@pytest.mark.asyncio
+async def test_qwen_stream_requests_usage_and_preserves_explicit_cache_tier(monkeypatch):
+    seen: dict[str, Any] = {}
+
+    async def chunks():
+        yield SimpleNamespace(
+            choices=[],
+            service_tier="default",
+            usage=SimpleNamespace(
+                prompt_tokens=2_000_000,
+                completion_tokens=1_000_000,
+                prompt_tokens_details=SimpleNamespace(cached_tokens=1_000_000),
+            ),
+        )
+
+    class Completions:
+        async def create(self, **kwargs):
+            seen.update(kwargs)
+            return chunks()
+
+    adapter = Qwen()
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    monkeypatch.setattr(adapter, "_get_client", lambda: client)
+    messages = [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "cached", "cache_control": {"type": "ephemeral"}}],
+        }
+    ]
+
+    events = [event async for event in adapter.stream(messages)]
+
+    assert seen["stream_options"] == {"include_usage": True}
+    assert events[0]["billing"]["calculation"]["service_tier"] == "explicit_cache"
+    assert events[0]["billing"]["amount_usd"] == "5.125"
 
 
 def test_google_usage_and_ollama_timing_are_normalized():

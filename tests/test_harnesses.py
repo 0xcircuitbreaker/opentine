@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import os
+import signal
+import sys
 from pathlib import Path
 from typing import Any
+
+import pytest
 
 from opentine.cli import _build_parser
 from opentine.core import Run, RunStatus, StepKind
 from opentine.harnesses import (
+    ClaudeCodeHarness,
     CodexCLIHarness,
+    CursorHarness,
     GenericHarness,
     HarnessStep,
     HermesHarness,
@@ -208,3 +217,106 @@ def test_cli_accepts_harness_flags():
     assert args.command == "run"
     assert args.harness == "codex"
     assert args.prompt == "fix tests"
+    assert args.harness_timeout == 3_600
+    assert args.harness_max_output == 4_000_000
+    assert args.harness_max_events == 10_000
+    assert args.harness_max_line_bytes == 1_000_000
+
+
+def _python_harness(code: str, **limits) -> GenericHarness:
+    return GenericHarness(command=(sys.executable, "-c", code), **limits)
+
+
+def test_process_harness_enforces_output_event_line_and_time_limits():
+    with pytest.raises(RuntimeError, match="output exceeds 20 characters"):
+        asyncio.run(_python_harness("print('x' * 40)", max_output_chars=20).execute("ignored"))
+    with pytest.raises(RuntimeError, match="more than 1 events"):
+        asyncio.run(_python_harness("print('one'); print('two')", max_events=1).execute("ignored"))
+    with pytest.raises(RuntimeError, match="output line exceeds 64 bytes"):
+        asyncio.run(_python_harness("print('x' * 1000)", max_line_bytes=64).execute("ignored"))
+    with pytest.raises(TimeoutError, match="0.05-second timeout"):
+        asyncio.run(
+            _python_harness("import time; time.sleep(60)", timeout_seconds=0.05).execute("ignored")
+        )
+
+
+def test_process_harness_cleans_up_after_callback_failure():
+    harness = _python_harness("import time; print('started', flush=True); time.sleep(60)")
+
+    def fail(step):
+        if step.inputs.get("text") == "started":
+            raise RuntimeError("callback failed")
+        return "recorded"
+
+    with pytest.raises(RuntimeError, match="callback failed"):
+        asyncio.run(harness.execute("ignored", step_callback=fail))
+
+
+def test_process_harness_preserves_bounded_output():
+    result = asyncio.run(_python_harness("print('hello')").execute("ignored"))
+    assert result == {"output": "hello", "returncode": 0}
+
+
+def test_process_harness_does_not_wait_for_descendant_held_stdout():
+    child = "import time; time.sleep(60)"
+    parent = (
+        "import subprocess,sys,time; time.sleep(.1); "
+        f"subprocess.Popen([sys.executable,'-c',{child!r}]); print('done',flush=True)"
+    )
+    result = asyncio.run(_python_harness(parent, timeout_seconds=2).execute("ignored"))
+    assert result == {"output": "done", "returncode": 0}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="setsid is POSIX-specific")
+def test_process_harness_closes_pipe_from_an_escaped_descendant(tmp_path: Path):
+    pidfile = tmp_path / "escaped.pid"
+    child = f"import os,time; open({str(pidfile)!r},'w').write(str(os.getpid())); time.sleep(60)"
+    parent = (
+        "import pathlib,subprocess,sys,time; "
+        f"subprocess.Popen([sys.executable,'-c',{child!r}],start_new_session=True); "
+        f"p=pathlib.Path({str(pidfile)!r}); "
+        "[(time.sleep(.01)) for _ in range(100) if not p.exists()]; print('done',flush=True)"
+    )
+    try:
+        result = asyncio.run(_python_harness(parent, timeout_seconds=2).execute("ignored"))
+        assert result == {"output": "done", "returncode": 0}
+    finally:
+        if pidfile.exists():
+            try:
+                os.kill(int(pidfile.read_text()), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+@pytest.mark.parametrize(
+    ("cost", "duration", "name"),
+    [(float("nan"), 0, "cost"), (-1, 0, "cost"), (0, float("inf"), "duration")],
+)
+def test_harness_rejects_invalid_accounting_metrics(cost, duration, name):
+    class InvalidMetricHarness:
+        name = "invalid"
+        model_info = "invalid"
+
+        def execute(self, task, context=None, step_callback=None):
+            step_callback(HarnessStep(StepKind.think, cost=cost, duration=duration))
+            return {"ok": True}
+
+    wrapped = OpentineHarness(InvalidMetricHarness())
+    with pytest.raises(ValueError, match=rf"harness {name} must be finite and non-negative"):
+        wrapped.run_sync("task")
+    assert wrapped.run is not None and wrapped.run.status == RunStatus.failed
+
+
+@pytest.mark.parametrize("cost", ["nan", -5, 1e309, True])
+def test_external_json_harness_rejects_invalid_cost_before_callback(cost):
+    line = json.dumps({"type": "message", "cost": cost})
+    with pytest.raises(ValueError, match="harness cost must be finite and non-negative"):
+        GenericHarness().parse_line(line)
+
+
+@pytest.mark.parametrize(
+    "harness", [GenericHarness(), CodexCLIHarness(), ClaudeCodeHarness(), CursorHarness()]
+)
+def test_external_json_harness_treats_null_cost_as_missing(harness):
+    step = harness.parse_line('{"type":"message","cost":null,"price":0.25}')
+    assert step is not None and step.cost == 0.25

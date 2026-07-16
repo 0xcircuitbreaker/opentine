@@ -94,6 +94,10 @@ def _harness_from_args(args: argparse.Namespace):
         cwd=args.cwd,
         login_env=args.harness_login_env,
         env_allowlist=args.harness_env or (),
+        timeout_seconds=args.harness_timeout,
+        max_output_chars=args.harness_max_output,
+        max_events=args.harness_max_events,
+        max_line_bytes=args.harness_max_line_bytes,
     )
 
 

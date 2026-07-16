@@ -59,7 +59,7 @@ releases without making an old run depend on today's catalog.
 
 ## Frontier snapshot
 
-The bundled snapshot verified on 2026-07-15 includes these required frontier
+The bundled snapshot generated on 2026-07-16 includes these required frontier
 cards (USD per million tokens):
 
 | Family | Input | Cache read | Output | Other rules |
@@ -67,10 +67,10 @@ cards (USD per million tokens):
 | GPT-5.6 Sol (`gpt-5.6`) | 5.00 | 0.50 | 30.00 | cache writes; >272K input multipliers; batch/flex/priority |
 | GPT-5.6 Terra | 2.50 | 0.25 | 15.00 | same dimensions and threshold rules |
 | GPT-5.6 Luna | 1.00 | 0.10 | 6.00 | same dimensions and threshold rules |
-| Claude Fable 5 | 10.00 | 1.00 | 50.00 | 5m write 12.50; 1h write 20.00 |
-| Claude Opus 4.5–4.8 | 5.00 | 0.50 | 25.00 | 5m write 6.25; 1h write 10.00 |
-| Claude Sonnet 5 | 2.00 | 0.20 | 10.00 | introductory through 2026-08-31 |
-| Claude Sonnet 5 | 3.00 | 0.30 | 15.00 | effective 2026-09-01 |
+| Claude Fable 5 | 10.00 | 1.00 | 50.00 | 5m write 12.50; 1h write 20.00; US inference 1.1x |
+| Claude Opus 4.5–4.8 | 5.00 | 0.50 | 25.00 | exact model IDs; 5m write 6.25; 1h write 10.00; 4.6+ US inference 1.1x |
+| Claude Sonnet 5 | 2.00 | 0.20 | 10.00 | introductory through 2026-08-31; US inference 1.1x |
+| Claude Sonnet 5 | 3.00 | 0.30 | 15.00 | effective 2026-09-01; US inference 1.1x |
 
 The catalog also contains provider-scoped cards for current defaults and
 frontier families from Kimi, DeepSeek, Google Gemini, Grok/xAI, GLM/Z.AI, Qwen,
@@ -83,9 +83,31 @@ The current snapshot includes Gemini 3.5 Flash, GLM-5.2, DeepSeek V4
 Pro/Flash, and the current DeepSeek `deepseek-chat`/`deepseek-reasoner` aliases.
 Gemini audio and cached-audio tokens remain separate dimensions, and exact
 Batch/Flex/Priority rates are pinned where a scalar modifier would be wrong.
+Grok 4.5 and 4.3 apply xAI's higher rate to every token dimension once total
+prompt input exceeds 200K. Alibaba's proprietary `qwen-plus` is intentionally
+not aliased to the distinct `qwen3.6-27b` card; it remains visibly unpriced until
+its region-, context-, and thinking-mode-dependent rates are represented.
+Qwen3.7-Max's pay-as-you-go promotion is effective-dated through 2026-07-23;
+explicit 5-minute cache writes/hits and automatic implicit-cache hits retain
+their distinct provider rates.
 The direct GLM adapter prices the Z.AI global endpoint; a China-region key uses
 provider identity `glm-cn` and remains visibly unpriced unless a regional local
 overlay is supplied.
+
+Anthropic's adapter sends an explicit `inference_geo` when configured and uses
+the geography reported in response usage for billing. US-only inference on
+supported current models applies the documented 1.1x multiplier across input,
+output, cache writes, and cache reads; it composes with the Batch discount.
+GPT-4o's May launch, August price cut, and October prompt-cache discount are
+separate effective records, so historical runs do not receive backdated rates.
+Mistral records use the provider's API IDs (`mistral-large-2512`,
+`mistral-small-2603`, `mistral-medium-3-5`, and `ministral-14b-2512`) while the
+documented `*-latest` names remain aliases.
+Kimi Batch requests use the provider's exact per-dimension rates rather than a
+rounded scalar discount. Groq Flex/on-demand tiers retain their documented
+real-time prices, Llama Batch receives its 50% discount, and public-tier model
+shutdown dates are recorded as lifecycle metadata. Cards remain priceable for
+enterprise committed-spend customers, whom Groq explicitly exempts.
 
 Release maintainers sign snapshots with
 `python -m scripts.sign_pricing_catalog ... --key /secure/private.pem --key-id ...`.

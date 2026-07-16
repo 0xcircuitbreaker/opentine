@@ -122,3 +122,7 @@ def _add_harness_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--harness-arg", action="append", default=[])
     parser.add_argument("--harness-login-env", action="store_true")
     parser.add_argument("--harness-env", action="append", default=[])
+    parser.add_argument("--harness-timeout", type=float, default=3_600.0, metavar="SECONDS")
+    parser.add_argument("--harness-max-output", type=int, default=4_000_000, metavar="CHARS")
+    parser.add_argument("--harness-max-events", type=int, default=10_000, metavar="N")
+    parser.add_argument("--harness-max-line-bytes", type=int, default=1_000_000, metavar="BYTES")

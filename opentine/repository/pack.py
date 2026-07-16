@@ -24,6 +24,13 @@ MAX_PACK_BODY_BYTES = 256 * 1024 * 1024
 MAX_PACK_OBJECTS = 10_000
 
 
+def minimum_upload_chunk(size: int) -> int:
+    """Bound resumable-frame amplification while allowing small test/dev packs."""
+    if type(size) is not int or size < 0:
+        raise ValueError("upload size must be a non-negative integer")
+    return min(64 * 1024, max(1, (size + 15) // 16))
+
+
 def _bounded_decompress(data: bytes, limit: int) -> bytes:
     if type(limit) is not int or limit < 1:
         raise ValueError("pack body limit must be a positive integer")

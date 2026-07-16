@@ -38,6 +38,9 @@ jobs:
       - name: Build package
         run: uv build --sdist --wheel --out-dir dist
 
+      - name: Verify release inventory
+        run: uv run python scripts/check_release_inventory.py dist
+
       - name: Check package metadata
         run: uv run --with twine python -m twine check dist/*
 

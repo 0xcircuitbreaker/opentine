@@ -21,6 +21,7 @@ from opentine.remote import (
     SQLiteBackend,
     StaticTokenIdentityProvider,
 )
+from opentine.remote._upload_crypto import append_frames, read_frames
 from opentine.repository import Repo
 
 
@@ -67,6 +68,10 @@ def test_auth_rbac_namespace_encryption_cas_and_append_only_audit(tmp_path: Path
     with pytest.raises(PermissionError):
         service.list_refs(other, "acme")
     assert not objects.has("other", oid)
+
+    for unsafe in ("Acme", "acme.", "con", "COM1", "nul.objects"):
+        with pytest.raises(ValueError, match="invalid tenant"):
+            objects.has(unsafe, oid) or objects.list(unsafe)
 
     with sqlite3.connect(index.path) as database:
         assert database.execute("SELECT count(*) FROM audit").fetchone()[0] >= 4
@@ -161,13 +166,48 @@ def test_resumable_pack_upload_round_trip(tmp_path: Path):
         upload_offset="0",
     )
     assert status == "200 OK" and json.loads(body)["offset"] == midpoint
+    staged = app.uploads / "acme" / f"{upload_id}.part"
+    assert pack[:midpoint] not in staged.read_bytes()
+    assert b"TINEAES2" in staged.read_bytes()
+    recovered = pack[midpoint : midpoint + 5]
+    append_frames(staged, objects.keys, "acme", midpoint, recovered, len(pack))
+    with staged.open("ab") as handle:
+        handle.write(b"\x00\x01")
+    app = RemoteApp(service, tmp_path / "state")
+    status, body = _wsgi(app, "HEAD", path, b"")
+    resumed = midpoint + len(recovered)
+    assert status == "200 OK" and json.loads(body)["offset"] == resumed
     status, body = _wsgi(
         app,
         "PATCH",
         path,
-        pack[midpoint:],
+        pack[resumed:],
         content_type="application/octet-stream",
-        upload_offset=str(midpoint),
+        upload_offset=str(resumed),
     )
     assert status == "201 Created" and json.loads(body)["objects"] == 1
     assert objects.has("acme", oid)
+
+
+def test_encrypted_upload_rejects_oversized_decrypted_frame(tmp_path: Path):
+    class BrokenKeys:
+        def encrypt(self, tenant, plaintext):
+            return b"ciphertext"
+
+        def decrypt(self, tenant, ciphertext):
+            return b"x" * (1024 * 1024 + 9)
+
+    path = tmp_path / "upload.part"
+    path.touch()
+    append_frames(path, BrokenKeys(), "acme", 0, b"x", 1)
+    with pytest.raises(ValueError, match="frame is invalid"):
+        read_frames(path, BrokenKeys(), "acme", 1, repair_tail=False)
+
+    class ExpandingKeys(BrokenKeys):
+        def encrypt(self, tenant, plaintext):
+            return b"x" * (len(plaintext) + 4097)
+
+    second = tmp_path / "expanded.part"
+    second.touch()
+    with pytest.raises(ValueError, match="invalid ciphertext"):
+        append_frames(second, ExpandingKeys(), "acme", 0, b"x", 1)

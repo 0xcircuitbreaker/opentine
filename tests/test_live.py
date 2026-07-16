@@ -75,11 +75,16 @@ PROVIDERS = {
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "TOGETHER_API_KEY",
     ),
-    "mistral": ("opentine.models.compat", "Mistral", "mistral-large-3", "MISTRAL_API_KEY"),
+    "mistral": (
+        "opentine.models.compat",
+        "Mistral",
+        "mistral-large-2512",
+        "MISTRAL_API_KEY",
+    ),
     "ministral": (
         "opentine.models.compat",
         "Ministral",
-        "ministral-3-14b",
+        "ministral-14b-2512",
         "MISTRAL_API_KEY",
     ),
     "qwen": ("opentine.models.compat", "Qwen", "qwen3.7-max", "QWEN_API_KEY"),

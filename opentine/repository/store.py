@@ -16,7 +16,7 @@ from opentine.kernel import (
     validate_links,
     verify_object,
 )
-from opentine.redaction import redact_blob
+from opentine.redaction import redact_blob, redact_value
 from opentine.repository._config import validate_config
 from opentine.repository._reflog import append_reflog
 from opentine.repository._refs import normalize_ref, validate_ref_target
@@ -117,7 +117,7 @@ class Repo:
         if redact and object_type == "blob":
             stored_payload = redact_blob(payload)
         else:
-            stored_payload = _redact(payload) if redact else payload
+            stored_payload = redact_value(_redact(payload)) if redact else payload
         envelope = ObjectEnvelope.create(object_type, stored_payload, schema)
         validate_links(envelope, self._link_exists)
         path = self._object_path(envelope.oid)

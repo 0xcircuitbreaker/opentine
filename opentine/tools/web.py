@@ -2,31 +2,60 @@
 
 from __future__ import annotations
 
+import asyncio
 import ipaddress
-import os
-import re
 import socket
+import threading
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import httpx
 
 from opentine.policies import NetworkPolicy
+from opentine.tools._html import visible_text
+
+_RESOLVER_SLOTS = threading.BoundedSemaphore(8)
 
 
-def _is_private_host(host: str) -> bool:
+async def _resolve(host: str, port: int):
+    """Resolve without making event-loop shutdown wait for a stuck system resolver."""
+    if not _RESOLVER_SLOTS.acquire(blocking=False):
+        raise RuntimeError("network resolver capacity is exhausted")
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def resolve() -> None:
+        try:
+            result = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+            error = None
+        except BaseException as exc:
+            result, error = None, exc
+        finally:
+            _RESOLVER_SLOTS.release()
+
+        def deliver() -> None:
+            if future.done():
+                return
+            if error is not None:
+                future.set_exception(error)
+            else:
+                future.set_result(result)
+
+        try:
+            loop.call_soon_threadsafe(deliver)
+        except RuntimeError:
+            pass
+
+    worker = threading.Thread(target=resolve, daemon=True)
     try:
-        infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return True
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            return True
-    return False
+        worker.start()
+    except BaseException:
+        _RESOLVER_SLOTS.release()
+        raise
+    return await future
 
 
-def _check_url(url: str, policy: NetworkPolicy) -> None:
+def _check_url(url: str, policy: NetworkPolicy):
     parsed = urlparse(url)
     if parsed.scheme not in policy.allowed_schemes:
         raise PermissionError(f"URL scheme denied by policy: {parsed.scheme}")
@@ -34,28 +63,77 @@ def _check_url(url: str, policy: NetworkPolicy) -> None:
         raise PermissionError("URL host is required")
     if policy.allowed_hosts and parsed.hostname not in policy.allowed_hosts:
         raise PermissionError(f"Host denied by policy: {parsed.hostname}")
-    if not policy.allow_private_hosts and _is_private_host(parsed.hostname):
-        raise PermissionError(
-            f"Private/link-local/loopback host denied by policy: {parsed.hostname}"
-        )
+    if parsed.username is not None or parsed.password is not None:
+        raise PermissionError("URL credentials are not accepted")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise PermissionError("URL port is invalid") from exc
+    try:
+        literal = ipaddress.ip_address(parsed.hostname.split("%", 1)[0])
+    except ValueError:
+        pass
+    else:
+        if not policy.allow_private_hosts and not literal.is_global:
+            raise PermissionError(
+                f"Private/link-local/loopback host denied by policy: {parsed.hostname}"
+            )
+    return parsed
 
 
-async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
-    if policy.max_body_bytes < 1:
-        raise ValueError("max_body_bytes must be positive")
-    proxy = os.environ.get("HTTP_PROXY")
+async def _pin_url(url: str, policy: NetworkPolicy) -> tuple[str, str, str]:
+    parsed = _check_url(url, policy)
+    hostname = parsed.hostname.encode("idna").decode("ascii")
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        infos = await _resolve(hostname, port)
+    except socket.gaierror as exc:
+        raise PermissionError(f"URL host could not be resolved: {hostname}") from exc
+    addresses = []
+    for info in infos:
+        raw = info[4][0].split("%", 1)[0]
+        address = ipaddress.ip_address(raw)
+        if not policy.allow_private_hosts and not address.is_global:
+            raise PermissionError(
+                f"Private/link-local/loopback host denied by policy: {parsed.hostname}"
+            )
+        if address not in addresses:
+            addresses.append(address)
+    if not addresses:
+        raise PermissionError(f"URL host could not be resolved: {hostname}")
+    address = addresses[0]
+    literal = f"[{address.compressed}]" if address.version == 6 else address.compressed
+    explicit_port = parsed.port
+    authority = literal + (f":{explicit_port}" if explicit_port is not None else "")
+    default_port = 443 if parsed.scheme == "https" else 80
+    try:
+        origin = ipaddress.ip_address(hostname)
+        origin_host = f"[{hostname}]" if origin.version == 6 else hostname
+    except ValueError:
+        origin_host = hostname
+    host_header = origin_host + (f":{port}" if port != default_port else "")
+    return parsed._replace(netloc=authority, fragment="").geturl(), host_header, hostname
+
+
+async def _get_within_deadline(url: str, policy: NetworkPolicy) -> httpx.Response:
     async with httpx.AsyncClient(
         timeout=policy.timeout_seconds,
-        proxy=proxy,
+        trust_env=False,
         follow_redirects=False,
+        limits=httpx.Limits(max_keepalive_connections=0),
     ) as client:
         current = url
         for _ in range(10):
-            _check_url(current, policy)
+            pinned, host, sni = await _pin_url(current, policy)
             async with client.stream(
                 "GET",
-                current,
-                headers={"Accept-Encoding": "identity", "User-Agent": "opentine/0.3"},
+                pinned,
+                headers={
+                    "Accept-Encoding": "identity",
+                    "Host": host,
+                    "User-Agent": "opentine/0.3",
+                },
+                extensions={"sni_hostname": sni},
             ) as resp:
                 if resp.is_redirect:
                     location = resp.headers.get("location")
@@ -88,6 +166,13 @@ async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
     raise RuntimeError("Too many redirects")
 
 
+async def _get(url: str, policy: NetworkPolicy) -> httpx.Response:
+    if policy.max_body_bytes < 1 or policy.timeout_seconds <= 0:
+        raise ValueError("network body and timeout limits must be positive")
+    async with asyncio.timeout(policy.timeout_seconds):
+        return await _get_within_deadline(url, policy)
+
+
 async def fetch(url: str, max_chars: int = 8000, policy: NetworkPolicy | None = None) -> str:
     """Fetch a URL and return its text content, stripped of HTML tags."""
     pol = policy or NetworkPolicy(max_body_bytes=max_chars)
@@ -96,12 +181,7 @@ async def fetch(url: str, max_chars: int = 8000, policy: NetworkPolicy | None = 
     body = resp.content
     text = body.decode(resp.encoding or "utf-8", errors="replace")
 
-    # Strip HTML tags for a rough text extraction
-    text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL)
-    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:max_chars]
+    return visible_text(text, max_chars)
 
 
 async def fetch_raw(url: str, policy: NetworkPolicy | None = None) -> dict[str, Any]:

@@ -15,16 +15,15 @@ from opentine.kernel import KernelError, parse_oid
 from opentine.repository._http import (
     client as _client,
 )
-from opentine.repository._http import (
-    read_pack as _read_pack,
-)
+from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import (
     request_json as _request_json,
 )
+from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import (
     require_secure_remote as _require_secure_remote,
 )
-from opentine.repository.pack import create_pack, negotiate
+from opentine.repository.pack import create_pack, minimum_upload_chunk, negotiate
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -87,7 +86,9 @@ def capabilities(
 ) -> dict[str, Any]:
     base = remote.rstrip("/")
     _require_secure_remote(base, allow_insecure)
-    with httpx.Client(base_url=base, timeout=timeout, follow_redirects=False) as client:
+    with httpx.Client(
+        base_url=base, timeout=timeout, follow_redirects=False, trust_env=False
+    ) as client:
         _, data = _request_json(client, "GET", "/v1/capabilities", max_seconds=timeout)
     if data.get("object_format") != "opentine-v3":
         raise ValueError("remote does not support OpenTine v3 objects")
@@ -110,26 +111,26 @@ def fetch(
 ) -> TransferResult:
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
-        _, caps = _request_json(client, "GET", "/v1/capabilities")
+        _, caps = _request_json(client, "GET", "/v1/capabilities", max_seconds=timeout)
         if caps.get("object_format") != "opentine-v3":
             raise ValueError("remote object format is incompatible")
-        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs")
+        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         remote_refs = _refs(refs)
         selected = wants or ([remote_refs[ref]] if ref in remote_refs else [])
         if not selected:
             raise KeyError(f"remote ref not found: {ref}")
-        with client.stream(
+        pack = _request_pack(
+            client,
             "POST",
             _prefix(namespace) + "/fetch",
+            max_seconds=timeout,
             json={
                 "depth": depth,
                 "haves": repo.iter_oids(),
                 "object_types": sorted(object_types or ()),
                 "wants": selected,
             },
-        ) as response:
-            response.raise_for_status()
-            pack = _read_pack(response, max_seconds=timeout)
+        )
     result = repo.import_pack(pack)
     if ref in remote_refs:
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
@@ -143,14 +144,16 @@ def _upload(
     data: bytes,
     *,
     chunk_size: int,
+    timeout: float = 30,
 ) -> dict[str, Any]:
-    if chunk_size < 1:
-        raise ValueError("upload chunk size must be positive")
+    if chunk_size < minimum_upload_chunk(len(data)):
+        raise ValueError("upload chunk size is below the safe resumable minimum")
     _, state = _request_json(
         client,
         "POST",
         endpoint,
         allowed=(200, 201),
+        max_seconds=timeout,
         json={"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)},
     )
     upload_id = state.get("upload_id")
@@ -172,6 +175,7 @@ def _upload(
             "PATCH",
             upload,
             allowed=(200, 201, 409),
+            max_seconds=timeout,
             content=chunk,
             headers={"Upload-Offset": str(offset)},
         )
@@ -202,17 +206,24 @@ def push(
     destination = remote_ref or ref
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
-        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs")
+        _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         old = _refs(refs).get(destination)
         missing = negotiate(repo, [local_oid], [old] if old else [])
         pack = create_pack(repo, missing)
-        uploaded = _upload(client, _prefix(namespace) + "/packs", pack, chunk_size=chunk_size)
+        uploaded = _upload(
+            client,
+            _prefix(namespace) + "/packs",
+            pack,
+            chunk_size=chunk_size,
+            timeout=timeout,
+        )
         objects, pack_id = _upload_result(uploaded)
         status, _ = _request_json(
             client,
             "PUT",
             _prefix(namespace) + "/refs/" + quote(destination, safe=""),
             allowed=(200, 409),
+            max_seconds=timeout,
             json={"expected_old": old, "new": local_oid},
         )
         if status == 409:

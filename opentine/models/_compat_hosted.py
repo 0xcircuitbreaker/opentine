@@ -9,6 +9,22 @@ from opentine.models._chat import ChatCompletions, env_key
 from opentine.models._compat_auth import glm_jwt
 
 
+def _has_cache_control(value: Any) -> bool:
+    stack, seen = [value], set()
+    while stack:
+        item = stack.pop()
+        if id(item) in seen:
+            continue
+        seen.add(id(item))
+        if isinstance(item, dict):
+            if "cache_control" in item:
+                return True
+            stack.extend(item.values())
+        elif isinstance(item, (list, tuple)):
+            stack.extend(item)
+    return False
+
+
 def _base(
     instance: ChatCompletions,
     model: str,
@@ -68,6 +84,14 @@ class Qwen(ChatCompletions):
             ),
             kwargs,
         )
+
+    def _billing_tier(self, messages: list[dict[str, Any]], reported: str | None) -> str | None:
+        tier = reported or self._service_tier
+        if not _has_cache_control(messages):
+            return tier
+        if tier in (None, "", "default", "standard"):
+            return "explicit_cache"
+        return f"{tier}_explicit_cache"
 
 
 class GLM(ChatCompletions):
@@ -141,7 +165,9 @@ class Together(ChatCompletions):
 
 
 class Mistral(ChatCompletions):
-    def __init__(self, model: str = "mistral-large-3", api_key: str | None = None, **kwargs: Any):
+    def __init__(
+        self, model: str = "mistral-large-2512", api_key: str | None = None, **kwargs: Any
+    ):
         _base(
             self,
             model,
@@ -154,7 +180,9 @@ class Mistral(ChatCompletions):
 
 
 class Ministral(Mistral):
-    def __init__(self, model: str = "ministral-3-14b", api_key: str | None = None, **kwargs: Any):
+    def __init__(
+        self, model: str = "ministral-14b-2512", api_key: str | None = None, **kwargs: Any
+    ):
         super().__init__(model=model, api_key=api_key, **kwargs)
 
 

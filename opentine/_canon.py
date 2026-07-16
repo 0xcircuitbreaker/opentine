@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import stat
 import tempfile
 from dataclasses import asdict, is_dataclass
@@ -56,6 +57,24 @@ def _integrity_digest(data: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_bytes(digest_payload)).hexdigest()
 
 
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def _field_name(value: Any) -> str:
+    return _CAMEL_BOUNDARY.sub("_", str(value).strip()).lower().replace("-", "_")
+
+
+def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ...]) -> bool:
+    candidates = (name, name[:-1]) if name.endswith("s") else (name,)
+    compact_suffixes = tuple(suffix.replace("_", "") for suffix in suffixes)
+    return any(
+        item in credential_names
+        or item.endswith(suffixes)
+        or item.replace("_", "").endswith(compact_suffixes)
+        for item in candidates
+    )
+
+
 def _redact(value: Any) -> Any:
     """Redact credential fields without deleting numeric usage dimensions."""
     credential_names = {
@@ -88,35 +107,35 @@ def _redact(value: Any) -> Any:
         "_api_token",
         "_access_key",
         "_access_token",
+        "_authorization",
         "_auth_token",
+        "_bearer_token",
         "_client_secret",
+        "_cookie",
+        "_credential",
         "_credentials",
+        "_id_token",
+        "_passphrase",
         "_password",
         "_passwd",
         "_private_key",
+        "_proxy_authorization",
         "_refresh_token",
         "_secret",
         "_session_token",
+        "_set_cookie",
     )
     if isinstance(value, dict):
         header_name_key = next((key for key in value if str(key).strip().lower() == "name"), None)
         header_value = next((key for key in value if str(key).strip().lower() == "value"), None)
         header_name = value.get(header_name_key) if header_name_key is not None else None
-        header = (
-            str(header_name).strip().lower().replace("-", "_")
-            if isinstance(header_name, str)
-            else ""
-        )
+        header = _field_name(header_name) if isinstance(header_name, str) else ""
         redacted: dict[Any, Any] = {}
         for key, item in value.items():
-            name = str(key).strip().lower().replace("-", "_")
-            is_secret = (
-                name in credential_names
-                or name.endswith(suffixes)
-                or (
-                    key == header_value
-                    and (header in credential_names or header.endswith(suffixes))
-                )
+            name = _field_name(key)
+            is_secret = _secret_field(name, credential_names, suffixes) or (
+                key == header_value
+                and (header == "token" or _secret_field(header, credential_names, suffixes))
             )
             if name == "token" and not isinstance(item, (int, float)):
                 is_secret = True
@@ -126,21 +145,25 @@ def _redact(value: Any) -> Any:
         items = list(value)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         if len(items) == 2 and isinstance(items[0], str):
-            name = items[0].strip().lower().replace("-", "_")
-            if name in headers or name in credential_names or name.endswith(suffixes):
+            name = _field_name(items[0])
+            if (
+                name == "token"
+                or name in headers
+                or _secret_field(name, credential_names, suffixes)
+            ):
                 return [items[0], "[REDACTED]"]
         redacted = []
         for item in items:
             if isinstance(item, str) and ":" in item:
                 name, separator, _ = item.partition(":")
-                if name.strip().lower().replace("-", "_") in headers:
+                if _field_name(name) in headers | {"token"}:
                     redacted.append(name + separator + " [REDACTED]")
                     continue
             redacted.append(_redact(item))
         return redacted
     if isinstance(value, str) and ":" in value:
         label, separator, candidate = value.partition(":")
-        name = label.strip().lower().replace("-", "_")
+        name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()
         questions = {
@@ -162,7 +185,7 @@ def _redact(value: Any) -> Any:
         )
         if name in headers:
             return label + separator + " [REDACTED]"
-        if (name in credential_names or name.endswith(suffixes)) and not prose:
+        if _secret_field(name, credential_names, suffixes) and not prose:
             return label + separator + " [REDACTED]"
     return value
 

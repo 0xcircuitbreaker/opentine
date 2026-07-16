@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -13,6 +15,47 @@ import httpx
 from opentine.repository.pack import MAX_PACK_BYTES
 
 MAX_CONTROL_BYTES = 1024 * 1024
+_REQUEST_SLOTS = threading.BoundedSemaphore(8)
+
+
+def run_request(
+    session: httpx.Client, seconds: float, label: str, operation: Callable[[], Any]
+) -> Any:
+    """Run a synchronous request behind a capped, daemonized wall deadline."""
+    if seconds <= 0:
+        raise ValueError("request deadline must be positive")
+    if not _REQUEST_SLOTS.acquire(blocking=False):
+        raise RuntimeError("remote request worker capacity is exhausted")
+    done = threading.Event()
+    outcome: list[tuple[bool, Any]] = []
+
+    def invoke() -> None:
+        try:
+            outcome.append((True, operation()))
+        except BaseException as exc:
+            outcome.append((False, exc))
+        finally:
+            _REQUEST_SLOTS.release()
+            done.set()
+
+    worker = threading.Thread(target=invoke, daemon=True)
+    try:
+        worker.start()
+    except BaseException:
+        _REQUEST_SLOTS.release()
+        raise
+    try:
+        completed = done.wait(seconds)
+    except BaseException:
+        session.close()
+        raise
+    if not completed:
+        session.close()
+        raise ValueError(f"remote {label} exceeded total request deadline")
+    succeeded, result = outcome[0]
+    if succeeded:
+        return result
+    raise result
 
 
 def require_secure_remote(base: str, allow_insecure: bool) -> None:
@@ -39,6 +82,7 @@ def client(
         headers={"Authorization": f"Bearer {secret}"},
         timeout=timeout,
         follow_redirects=False,
+        trust_env=False,
     )
 
 
@@ -55,7 +99,10 @@ def _read_limited(response: httpx.Response, limit: int, label: str, max_seconds:
         if length < 0 or length > limit:
             raise ValueError(f"remote {label} exceeds maximum transfer size")
     data = bytearray()
-    for chunk in response.iter_bytes():
+    # Eager in-memory transports may arrive consumed; network responses passed
+    # by request_json/read_pack remain streaming and take the raw-byte path.
+    chunks = (response.content,) if response.is_stream_consumed else response.iter_raw()
+    for chunk in chunks:
         if time.monotonic() - started > max_seconds:
             raise ValueError(f"remote {label} exceeded total response deadline")
         data.extend(chunk)
@@ -73,6 +120,9 @@ def read_pack(
 def read_json(
     response: httpx.Response, limit: int = MAX_CONTROL_BYTES, max_seconds: float = 30
 ) -> dict[str, Any]:
+    encoding = response.headers.get("content-encoding", "").strip().lower()
+    if encoding not in {"", "identity"}:
+        raise ValueError("remote control response uses unsupported Content-Encoding")
     raw = _read_limited(response, limit, "control response", max_seconds)
     try:
         value = json.loads(raw)
@@ -92,7 +142,26 @@ def request_json(
     max_seconds: float = 30,
     **kwargs: Any,
 ) -> tuple[int, dict[str, Any]]:
-    with session.stream(method, url, **kwargs) as response:
-        if response.status_code not in allowed:
+    def operation() -> tuple[int, dict[str, Any]]:
+        with session.stream(method, url, **kwargs) as response:
+            if response.status_code not in allowed:
+                response.raise_for_status()
+            return response.status_code, read_json(response, max_seconds=max_seconds)
+
+    return run_request(session, max_seconds, "control request", operation)
+
+
+def request_pack(
+    session: httpx.Client,
+    method: str,
+    url: str,
+    *,
+    max_seconds: float = 120,
+    **kwargs: Any,
+) -> bytes:
+    def operation() -> bytes:
+        with session.stream(method, url, **kwargs) as response:
             response.raise_for_status()
-        return response.status_code, read_json(response, max_seconds=max_seconds)
+            return read_pack(response, max_seconds=max_seconds)
+
+    return run_request(session, max_seconds, "pack request", operation)
