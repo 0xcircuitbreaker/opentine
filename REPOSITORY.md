@@ -111,8 +111,8 @@ IDs that the receiver does not already have. Packs support shallow boundaries
 and filtered fetch without pretending omitted history is present. Compressed
 transfers and decompressed manifests are capped at 256 MiB and trailing zlib
 streams/data are rejected. Client control responses are streamed under a 1 MiB
-cap; resumable offsets must advance, loops are bounded, and abandoned upload
-state is reaped.
+cap; resumable offsets must advance, loops are bounded, transient short reads
+retain partial upload state, and abandoned upload state is reaped.
 
 The HTTP protocol exposes:
 
@@ -141,9 +141,14 @@ Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
 be injected. Validated claims map to reader/writer/admin roles and a tenant.
 
 Authorization is tenant-scoped and enforced on every read and mutating path.
-Audit verification detects interior edits and end truncation. Legacy rows need
-an explicit trust-on-migration flag and retain a warning (triggers remain as
-defense in depth). Retention hooks gate object deletion, and
+Audit verification detects interior edits and end truncation without appending
+another row. Legacy rows need an explicit trust-on-migration flag and report
+`legacy-unverified`; the flag cannot recover a lost anchor. A committed row left
+one step ahead of its anchor is healed automatically, while other recovery needs
+an exact `--reanchor-audit-head` value (triggers remain defense in depth).
+Production KMS adapters must provide external audit-key derivation or an explicit
+audit key; the reference app fails closed instead of writing a fallback key next
+to SQLite. Retention hooks gate object deletion, and
 admission policies can reject pack bytes/object counts or ref updates based on
 rate and budget policy. Resumable uploads invoke admission at declaration and
 again after pack inspection so policies can bound both bytes and object counts.

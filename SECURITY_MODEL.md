@@ -78,12 +78,20 @@ provider; production deployments should supply a KMS-backed provider and handle
 rotation outside this minimal server. SQLite audit rows form a serialized
 HMAC-SHA256 chain. An authenticated head stored outside SQLite detects end
 truncation as well as interior modification, deletion, and reordering. The
-reference app derives the audit key from its local KMS master; custom KMS
-adapters should pass a separately derived `audit_key`. Direct `SQLiteBackend`
-development use creates a mode-0600 sidecar key. Pre-HMAC rows are refused unless
-`--migrate-legacy-audit` explicitly trusts the database, and the resulting chain
-carries a permanent migration warning. Database triggers remain defense in
-depth. Local refs use exclusive lockfiles; remote refs use SQLite
+reference app derives the audit key from its local KMS master. A custom
+`KMSKeyProvider` must supply a stable external audit-key derivation callback (or
+the app must receive `audit_key`) and construction fails closed otherwise; it
+never silently writes a production audit key beside SQLite. Direct
+`SQLiteBackend` development use creates a mode-0600 sidecar key and tightens
+looser existing permissions. Pre-HMAC rows are refused unless
+`--migrate-legacy-audit` explicitly trusts the database. The resulting chain is
+reported as `legacy-unverified`, not cryptographically verified. Audit rows
+commit before the external anchor advances; an anchor exactly one committed row
+behind is forward-healed after interruption. Any other missing or mismatched
+anchor requires `--reanchor-audit-head` with the already verified database head;
+the migration flag cannot re-anchor a keyed chain. Chain verification is a
+read-only operation so it does not change the value it verifies. Database
+triggers remain defense in depth. Local refs use exclusive lockfiles; remote refs use SQLite
 `BEGIN IMMEDIATE` CAS. Admission policies can reject oversized or costly writes.
 
 Client-side redaction enables authorized server-side indexing but is not

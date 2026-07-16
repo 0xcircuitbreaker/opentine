@@ -23,7 +23,7 @@ v2; repository objects use the new verified v3 format.
 - Python and MCP search, inspect, minimal context, semantic diff, fork/resume,
   evaluation, attestation, and promotion operations.
 - Minimal self-hosted HTTP remote with discovery, filtered/shallow fetch,
-  resumable pack transfer, tenant-scoped RBAC, static-token/OIDC seams,
+  bounded pack download, resumable pack upload, tenant-scoped RBAC, static-token/OIDC seams,
   encrypted filesystem objects, SQLite metadata, hash-chained audit records, and
   pluggable storage/index/identity/authz/key/audit/retention/admission policies.
 - CLI commands: `init`, `fsck`, `repo-log`, `object`, `pack`, `migrate-v3`,
@@ -52,7 +52,7 @@ v2; repository objects use the new verified v3 format.
 - Audit rows use a serialized HMAC chain and authenticated external head;
   startup and `verify_audit_chain` detect modification, reordering, and
   truncation. Legacy rows require explicit trust-on-migration and remain marked
-  unverified. Read operations are audited.
+  unverified. Repository read operations are audited; verification itself is read-only.
 - OIDC ships a real `JWTVerifier` with RS256/ES256 algorithm/key binding, JWKS,
   issuer/audience/authorized-party/time validation, critical-header rejection,
   and bounded discovery documents.
@@ -82,6 +82,21 @@ v2; repository objects use the new verified v3 format.
   rates, and updates current Mistral model-card sources.
 - Live traces retain cost and latency, causal forks retain causal ancestors, and
   semantic diff includes artifacts and evaluation scores.
+- Production KMS adapters can provide external audit-key derivation and the
+  reference app fails closed when neither that nor an explicit key exists.
+  Audit rows commit before their authenticated anchor, one-step interrupted
+  anchors heal safely, arbitrary recovery requires an exact dedicated re-anchor
+  value, legacy migrations report `legacy-unverified`, and verification is
+  read-only. Existing local audit-key sidecars are tightened to mode 0600.
+- Scalar service-tier modifiers reject negative and non-finite values. Partial
+  uploads survive transient short reads while terminal checksum/size failures
+  are removed, pending-upload limits run before admission accounting, and push
+  rejects malformed completion metadata. Credential assignment redaction is
+  linear on delimiter-heavy input, truncated private-key captures cannot trigger
+  quadratic scans, and leading-label prose is preserved.
+- Search-provider responses are streamed under a fixed body cap with compressed
+  payloads and redirects refused. Release metadata checks invoke Twine through
+  the interpreter consistently in CI and tag-publish workflows.
 
 ### Architecture and compatibility
 

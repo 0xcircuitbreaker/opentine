@@ -247,10 +247,13 @@ small self-hosted installations, not a turnkey HA service, hosted control plane,
 or payment product.
 
 Audit rows use a serialized HMAC chain and authenticated head outside SQLite;
-legacy rows require explicit trust-on-migration. The reference app derives the
-audit key from its local KMS master. Operators using a custom KMS adapter should
-provide a separately derived audit key and protect both its checkpoint and
-backups.
+legacy rows require explicit trust-on-migration and remain reported as
+`legacy-unverified`. The reference app derives the audit key from its local KMS
+master. A custom KMS adapter must provide stable external audit-key derivation
+(or an explicit audit key); startup fails closed rather than falling back to a
+key beside the database. Interrupted post-commit anchor writes heal one step
+forward; other anchor recovery requires an exact `--reanchor-audit-head` value.
+Protect the audit key, checkpoint, and backups.
 
 ```bash
 tine push https://runs.example --tenant team --repo .
