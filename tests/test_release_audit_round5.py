@@ -16,6 +16,7 @@ from opentine import Repo, cli
 from opentine._canon import _redact
 from opentine.kernel import KernelError
 from opentine.redaction import redact_blob
+from opentine.remote import _audit_backend
 from opentine.remote.backend import SQLiteBackend
 from opentine.remote.interfaces import AuditEvent
 from opentine.tools._process import run_bounded
@@ -80,7 +81,6 @@ def test_l2_audit_commit_and_anchor_are_serialized_across_processes(tmp_path: Pa
         assert time.monotonic() < deadline
         assert backend.verify_audit_chain()
         checks += 1
-        time.sleep(0.001)
     for worker in workers:
         worker.join(30)
         assert worker.exitcode == 0
@@ -89,6 +89,17 @@ def test_l2_audit_commit_and_anchor_are_serialized_across_processes(tmp_path: Pa
     assert checks
     with sqlite3.connect(path) as database:
         assert database.execute("SELECT count(*) FROM audit").fetchone()[0] == 24
+
+
+def test_l2_stable_verification_does_not_take_the_exclusive_lock(monkeypatch, tmp_path: Path):
+    backend = SQLiteBackend(tmp_path / "audit.sqlite3", audit_key=_AUDIT_KEY)
+    backend.append(_event("stable"))
+
+    def forbidden_lock(_path):
+        raise AssertionError("stable verification must not take the exclusive audit lock")
+
+    monkeypatch.setattr(_audit_backend, "audit_file_lock", forbidden_lock)
+    assert backend.verify_audit_chain()
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX process-group assertion")

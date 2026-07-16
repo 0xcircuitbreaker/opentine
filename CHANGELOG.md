@@ -113,6 +113,9 @@ v2; repository objects use the new verified v3 format.
   than tracebacks, search rejects non-string queries explicitly, header redaction
   has no prose-shaped bypass, and a truncated PEM capture preserves later text
   only after a clear paragraph boundary.
+- Stable audit verification uses an optimistic database/anchor snapshot and
+  takes the exclusive cross-process lock only when a concurrent append requires
+  a consistent retry, preventing hot admin verification from starving writers.
 
 ### Architecture and compatibility
 

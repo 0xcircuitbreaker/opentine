@@ -85,8 +85,27 @@ class SQLiteAuditMixin:
         return True, previous
 
     def audit_status(self, *, expected_head: str | None = None) -> str:
+        for _ in range(2):
+            try:
+                before = read_anchor(self._anchor_path, self._audit_key)
+            except RuntimeError:
+                return "invalid"
+            valid, head = self._verified_head()
+            try:
+                after = read_anchor(self._anchor_path, self._audit_key)
+            except RuntimeError:
+                return "invalid"
+            if not valid:
+                return "invalid"
+            if before == after == head:
+                return self._status_for(head, expected_head)
         with self._audit_lock, audit_file_lock(self._audit_lock_path):
             return self._audit_status(expected_head=expected_head)
+
+    def _status_for(self, head: str, expected_head: str | None) -> str:
+        if expected_head is not None and head != expected_head:
+            return "invalid"
+        return "legacy-unverified" if self.audit_warnings() else "verified"
 
     def _audit_status(self, *, expected_head: str | None = None) -> str:
         valid, head = self._verified_head()
@@ -94,9 +113,9 @@ class SQLiteAuditMixin:
             anchored = read_anchor(self._anchor_path, self._audit_key)
         except RuntimeError:
             return "invalid"
-        if not valid or anchored != head or (expected_head is not None and head != expected_head):
+        if not valid or anchored != head:
             return "invalid"
-        return "legacy-unverified" if self.audit_warnings() else "verified"
+        return self._status_for(head, expected_head)
 
     def verify_audit_chain(self, *, expected_head: str | None = None) -> bool:
         return self.audit_status(expected_head=expected_head) == "verified"

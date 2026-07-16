@@ -100,6 +100,10 @@ Client-side redaction enables authorized server-side indexing but is not
 end-to-end encryption: an authorized server decrypts objects. Operators remain
 responsible for TLS certificates, KMS/identity configuration, database backups,
 retention policy, rate limiting, and host hardening.
+For confidentiality, a PEM private-key marker without a matching end marker is
+redacted through the next blank-delimited non-PEM paragraph. Same-line or
+immediately adjacent trailing text can therefore be removed rather than risk
+retaining key material.
 
 The filesystem object write, metadata update, and audit append are not one
 distributed transaction. An audit-sink failure is surfaced to the caller, but a
