@@ -93,12 +93,26 @@ v2; repository objects use the new verified v3 format.
   are removed, pending-upload limits run before admission accounting, and push
   rejects malformed completion metadata. Credential assignment redaction is
   linear on delimiter-heavy input, truncated private-key captures cannot trigger
-  quadratic scans, and leading-label prose is preserved.
+  quadratic scans, and benign credential-label prose is preserved while
+  authentication header labels always fail closed.
 - Search-provider responses are streamed under a fixed body cap with compressed
   payloads and redirects refused. Release metadata checks invoke Twine through
   the interpreter consistently in CI and tag-publish workflows.
 - Enabled shell and Python tools drain child pipes continuously while retaining
   only a bounded prefix, so their output caps also bound resident capture memory.
+- Audit append authenticates the current chain tail before a one-step checkpoint
+  heal. A cross-process file lock spans the SQLite commit and external anchor
+  update, and verification takes the same lock, preventing forged-row laundering
+  and commit/checkpoint races in shared-SQLite deployments.
+- Timed-out shell and Python tools terminate the spawned process tree, retain
+  bounded partial diagnostics, and reserve output space for stderr. Run-moving
+  refs (`heads`, `experiments`, `promotions`) and attestation targets are
+  type-checked as runs; `fsck`, local operations, and the remote enforce the same
+  rule while tags may still identify any immutable object.
+- Repository CLI object-read failures now produce concise stderr messages rather
+  than tracebacks, search rejects non-string queries explicitly, header redaction
+  has no prose-shaped bypass, and a truncated PEM capture preserves later text
+  only after a clear paragraph boundary.
 
 ### Architecture and compatibility
 

@@ -45,6 +45,11 @@ repo.update_ref("tags/example", oid, expected_old=None)
 assert repo.fsck(deep=True).ok
 ```
 
+`heads/*`, `experiments/*`, and `promotions/*` move between `run` objects;
+`tags/*` may label any immutable object. Attestations created by the v3 workflow
+target runs. These type rules are enforced on write, read, pack verification,
+remote ref updates, and by `fsck`.
+
 `fsck` recomputes every ID, validates envelope canonicality, typed links,
 shallow boundaries, refs, and the event DAG. Ref updates are compare-and-swap;
 a stale expected value is rejected instead of silently overwriting another
@@ -52,6 +57,8 @@ writer.
 
 Semantic diff reports common/divergent events, cost, latency, tool path,
 content/blob and artifact changes, usage, billing, and evaluation scores.
+Exact common/only sets use object identity; the `changed` pairs are a
+sequence-position comparison of divergent events, not a causal merge alignment.
 Transcript line merging is not an operation. Agents select, compose, fork,
 resume, evaluate, attest, and promote run graphs instead.
 
@@ -146,6 +153,9 @@ another row. Legacy rows need an explicit trust-on-migration flag and report
 `legacy-unverified`; the flag cannot recover a lost anchor. A committed row left
 one step ahead of its anchor is healed automatically, while other recovery needs
 an exact `--reanchor-audit-head` value (triggers remain defense in depth).
+The row must authenticate before a one-step heal, and a cross-process lock spans
+the database commit and checkpoint update so shared-SQLite writers cannot regress
+the anchor.
 Production KMS adapters must provide external audit-key derivation or an explicit
 audit key; the reference app fails closed instead of writing a fallback key next
 to SQLite. Retention hooks gate object deletion, and

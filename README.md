@@ -252,7 +252,9 @@ legacy rows require explicit trust-on-migration and remain reported as
 master. A custom KMS adapter must provide stable external audit-key derivation
 (or an explicit audit key); startup fails closed rather than falling back to a
 key beside the database. Interrupted post-commit anchor writes heal one step
-forward; other anchor recovery requires an exact `--reanchor-audit-head` value.
+forward only after the committed row authenticates; a cross-process lock spans
+the commit and checkpoint update. Other anchor recovery requires an exact
+`--reanchor-audit-head` value.
 Protect the audit key, checkpoint, and backups.
 
 ```bash
@@ -274,6 +276,8 @@ Filesystem, network, shell, Python, and harness execution use restrictive
 policies. Harnesses do not inherit the parent environment by default. Review
 free-form model/tool output before sharing: credential redaction is typed and
 path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
+Enabled shell/Python timeouts terminate the spawned process tree and return only
+bounded partial output, with space reserved for stderr diagnostics.
 See [SECURITY_MODEL.md](SECURITY_MODEL.md).
 
 ## Validation

@@ -87,12 +87,14 @@ looser existing permissions. Pre-HMAC rows are refused unless
 `--migrate-legacy-audit` explicitly trusts the database. The resulting chain is
 reported as `legacy-unverified`, not cryptographically verified. Audit rows
 commit before the external anchor advances; an anchor exactly one committed row
-behind is forward-healed after interruption. Any other missing or mismatched
-anchor requires `--reanchor-audit-head` with the already verified database head;
-the migration flag cannot re-anchor a keyed chain. Chain verification is a
-read-only operation so it does not change the value it verifies. Database
-triggers remain defense in depth. Local refs use exclusive lockfiles; remote refs use SQLite
-`BEGIN IMMEDIATE` CAS. Admission policies can reject oversized or costly writes.
+behind is forward-healed after interruption only when that row's HMAC verifies.
+An OS-level lock spans database commit plus checkpoint update across processes,
+and verification takes the same lock. Any other missing or mismatched anchor
+requires `--reanchor-audit-head` with the already verified database head; the
+migration flag cannot re-anchor a keyed chain. Chain verification is read-only.
+Database triggers remain defense in depth. Local refs use exclusive lockfiles;
+remote refs use SQLite `BEGIN IMMEDIATE` CAS. Run-moving refs are restricted to
+run objects. Admission policies can reject oversized or costly writes.
 
 Client-side redaction enables authorized server-side indexing but is not
 end-to-end encryption: an authorized server decrypts objects. Operators remain
