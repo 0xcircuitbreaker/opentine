@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from opentine.kernel import parse_oid, validate_links
+from opentine.repository._access import get_object as _get
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -41,7 +42,7 @@ def _resolve(repo: Repo, value: str) -> str:
 
 def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> list[LogEntry]:
     tip = _resolve(repo, ref)
-    envelope = repo.get(tip)
+    envelope = _get(repo, tip)
     if envelope.object_type == "run":
         payload = envelope.payload()
         queue = list(reversed(payload.get("tips") or payload.get("events") or []))
@@ -54,7 +55,7 @@ def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> lis
         if oid in seen:
             continue
         seen.add(oid)
-        current = repo.get(oid)
+        current = _get(repo, oid)
         payload = current.payload()
         entries.append(LogEntry(oid, current.object_type, payload))
         if current.object_type == "event":
@@ -64,7 +65,7 @@ def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> lis
 
 def _run_payload(repo: Repo, value: str) -> tuple[str, dict[str, Any]]:
     oid = _resolve(repo, value)
-    envelope = repo.get(oid)
+    envelope = _get(repo, oid)
     if envelope.object_type != "run":
         raise ValueError(f"expected run object, got {envelope.object_type}")
     return oid, envelope.payload()
@@ -74,7 +75,7 @@ def _metric(repo: Repo, events: list[str], name: str) -> float:
     total = 0.0
     for event in events:
         try:
-            value = float(repo.get(event).payload().get(name) or 0)
+            value = float(_get(repo, event).payload().get(name) or 0)
         except (TypeError, ValueError, OverflowError):
             continue
         if math.isfinite(value):
@@ -87,7 +88,7 @@ def _evaluations(repo: Repo, target: str) -> list[dict[str, Any]]:
     for oid in repo.iter_oids():
         if not oid.startswith("attestation:"):
             continue
-        payload = repo.get(oid).payload()
+        payload = _get(repo, oid).payload()
         claim = payload.get("claim") or {}
         if payload.get("target_id") == target and claim.get("kind") == "evaluation":
             evaluations.append({"attestation": oid, "scores": claim.get("scores") or {}})
@@ -107,8 +108,8 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
         left_event_id, right_event_id = left_events[index], right_events[index]
         if left_event_id == right_event_id:
             continue
-        before = repo.get(left_event_id).payload()
-        after = repo.get(right_event_id).payload()
+        before = _get(repo, left_event_id).payload()
+        after = _get(repo, right_event_id).payload()
         fields = [
             name
             for name in (
@@ -143,16 +144,16 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
             "right": _metric(repo, right_events, "duration"),
         },
         "artifacts": {
-            "left": [repo.get(event).payload().get("artifact_blob") for event in left_events],
-            "right": [repo.get(event).payload().get("artifact_blob") for event in right_events],
+            "left": [_get(repo, event).payload().get("artifact_blob") for event in left_events],
+            "right": [_get(repo, event).payload().get("artifact_blob") for event in right_events],
         },
         "evaluations": {
             "left": _evaluations(repo, left_id),
             "right": _evaluations(repo, right_id),
         },
         "tool_path": {
-            "left": [repo.get(event).payload().get("tool") for event in left_events],
-            "right": [repo.get(event).payload().get("tool") for event in right_events],
+            "left": [_get(repo, event).payload().get("tool") for event in left_events],
+            "right": [_get(repo, event).payload().get("tool") for event in right_events],
         },
     }
     return SemanticDiff(common, only_left, only_right, tuple(changed), summary)
@@ -168,7 +169,7 @@ def context_slice(repo: Repo, event_id: str, *, depth: int = 8) -> list[LogEntry
         if oid in seen or distance > depth:
             continue
         seen.add(oid)
-        envelope = repo.get(oid)
+        envelope = _get(repo, oid)
         payload = envelope.payload()
         found.append(LogEntry(oid, envelope.object_type, payload))
         if envelope.object_type == "event":
@@ -195,7 +196,7 @@ def fork_run(
         if event in keep:
             continue
         keep.add(event)
-        event_payload = repo.get(event).payload()
+        event_payload = _get(repo, event).payload()
         queue.extend(event_payload.get("parent_ids") or [])
         queue.extend(event_payload.get("causal_ids") or [])
     forked = dict(payload)
@@ -241,4 +242,4 @@ def promote(repo: Repo, run_id: str, name: str, *, expected_old: str | None = No
 
 
 def linked_objects(repo: Repo, oid: str) -> tuple[str, ...]:
-    return validate_links(repo.get(oid))
+    return validate_links(_get(repo, oid))

@@ -4,10 +4,23 @@ from __future__ import annotations
 
 import json
 
-from opentine.remote._audit import FIELDS, GENESIS, chain, read_anchor, write_anchor
+from opentine.remote._audit import (
+    FIELDS,
+    GENESIS,
+    audit_file_lock,
+    chain,
+    read_anchor,
+    write_anchor,
+)
 from opentine.remote.interfaces import AuditEvent
 
-_LAST_ROW = "SELECT prev_hash,row_hash FROM audit ORDER BY sequence DESC LIMIT 1"
+_LAST_ROW = (
+    "SELECT " + ",".join(FIELDS) + ",prev_hash,row_hash FROM audit ORDER BY sequence DESC LIMIT 1"
+)
+
+
+def _row(record) -> dict[str, str]:
+    return dict(zip(FIELDS, record[: len(FIELDS)]))
 
 
 class SQLiteAuditMixin:
@@ -21,14 +34,17 @@ class SQLiteAuditMixin:
             "tenant": self.validate_tenant(event.tenant),
             "timestamp": event.timestamp,
         }
-        with self._audit_lock:
+        with self._audit_lock, audit_file_lock(self._audit_lock_path):
             with self._connect() as database:
                 database.execute("BEGIN IMMEDIATE")
                 last = database.execute(_LAST_ROW).fetchone()
-                previous = last[1] if last else GENESIS
+                previous = last[-1] if last else GENESIS
+                if last and chain(last[-2], _row(last), self._audit_key) != previous:
+                    raise RuntimeError("audit chain tail failed authentication")
                 anchored = read_anchor(self._anchor_path, self._audit_key)
                 if anchored != previous:
-                    if last and anchored == last[0]:
+                    verified_heal = last and anchored == last[-2]
+                    if verified_heal:
                         write_anchor(self._anchor_path, previous, self._audit_key)
                     else:
                         raise RuntimeError("audit chain does not match its authenticated anchor")
@@ -46,7 +62,7 @@ class SQLiteAuditMixin:
     def audit_head(self) -> str:
         with self._connect() as database:
             last = database.execute(_LAST_ROW).fetchone()
-        return last[1] if last else GENESIS
+        return last[-1] if last else GENESIS
 
     def audit_warnings(self) -> list[str]:
         with self._connect() as database:
@@ -69,6 +85,10 @@ class SQLiteAuditMixin:
         return True, previous
 
     def audit_status(self, *, expected_head: str | None = None) -> str:
+        with self._audit_lock, audit_file_lock(self._audit_lock_path):
+            return self._audit_status(expected_head=expected_head)
+
+    def _audit_status(self, *, expected_head: str | None = None) -> str:
         valid, head = self._verified_head()
         try:
             anchored = read_anchor(self._anchor_path, self._audit_key)

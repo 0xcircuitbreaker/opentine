@@ -7,6 +7,9 @@ import hmac
 import json
 import os
 import stat
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from opentine._canon import _fsync_dir, atomic_write_text
@@ -17,6 +20,55 @@ GENESIS = "0" * 64
 
 #: Column order used for both writing and verifying a row's committed body.
 FIELDS = ("action", "actor", "details", "event_id", "outcome", "tenant", "timestamp")
+
+
+@contextmanager
+def audit_file_lock(path: Path) -> Iterator[None]:
+    """Serialize the SQLite commit and external anchor across processes."""
+    flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags, 0o600)
+    except OSError as exc:
+        raise RuntimeError("audit checkpoint lock cannot be opened safely") from exc
+    windows = os.name == "nt"
+    locked = False
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise RuntimeError("audit checkpoint lock is not a regular file")
+        if hasattr(os, "fchmod"):
+            os.fchmod(fd, 0o600)
+        if windows:
+            import msvcrt
+
+            if os.fstat(fd).st_size == 0:
+                os.write(fd, b"\0")
+                os.fsync(fd)
+            deadline = time.monotonic() + 30
+            while True:
+                os.lseek(fd, 0, os.SEEK_SET)
+                try:
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                    locked = True
+                    break
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("timed out acquiring audit checkpoint lock") from None
+                    time.sleep(0.05)
+        else:
+            import fcntl
+
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            locked = True
+        yield
+    finally:
+        try:
+            if locked and windows:
+                os.lseek(fd, 0, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            elif locked:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def chain(prev_hash: str, row: dict[str, str], key: bytes) -> str:

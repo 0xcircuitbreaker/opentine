@@ -38,7 +38,10 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
                 cwd=tmp,
             )
             if result.timed_out:
-                return f"Error: execution timed out after {pol.timeout_seconds}s"
+                return result.output(
+                    pol.max_output_chars,
+                    prefix=f"Error: execution timed out after {pol.timeout_seconds}s\n",
+                )
             return result.output(pol.max_output_chars)
     except Exception as e:
         return f"Error: {e}"
@@ -57,7 +60,7 @@ def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
             env=_clean_env(PythonPolicy(enabled=True, inherit_env=True)),
         )
         if result.timed_out:
-            return f"Error: execution timed out after {timeout}s"
+            return result.output(8_000, prefix=f"Error: execution timed out after {timeout}s\n")
         return result.output(8_000)
     except Exception as e:
         return f"Error: {e}"

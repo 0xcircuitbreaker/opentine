@@ -132,7 +132,7 @@ def test_m4_transient_disconnect_preserves_resumable_upload(tmp_path: Path):
     assert status == "200 OK" and json.loads(body)["offset"] == 0
 
 
-def test_m5_assignment_redaction_is_linear_and_preserves_header_prose():
+def test_m5_assignment_redaction_is_linear_and_headers_fail_closed():
     adversarial = (b"a-b_c-d_" * 1500) + b"secretz"
     private_key_prefixes = b"-----BEGIN PRIVATE KEY-----x" * 3000
     started = time.monotonic()
@@ -140,8 +140,8 @@ def test_m5_assignment_redaction_is_linear_and_preserves_header_prose():
     assert redact_blob(private_key_prefixes) == b"[REDACTED PRIVATE KEY]"
     assert time.monotonic() - started < 1.5
     prose = "authorization: this header controls access"
-    assert _redact(prose) == prose
-    assert redact_blob(prose.encode()) == prose.encode()
+    assert _redact(prose).endswith("[REDACTED]")
+    assert redact_blob(prose.encode()).endswith(b"[REDACTED]")
     assert _redact("authorization: Basic dXNlcjpwYXNz").endswith("[REDACTED]")
     assert _redact("authorization: this secret phrase").endswith("[REDACTED]")
     assert redact_blob(b"authorization: this secret phrase").endswith(b"[REDACTED]")

@@ -124,10 +124,8 @@ class ObjectEnvelope:
         return self.body if self.encoding == "raw" else json.loads(self.body, parse_int=_parse_int)
 
     def encode(self) -> bytes:
-        header = canonical_json(
-            {"encoding": self.encoding, "schema": self.schema, "type": self.object_type}
-        )
-        return header + b"\n" + self.body
+        header = {"encoding": self.encoding, "schema": self.schema, "type": self.object_type}
+        return canonical_json(header) + b"\n" + self.body
 
     @classmethod
     def decode(cls, stored: bytes, expected_oid: str | None = None) -> ObjectEnvelope:
@@ -228,6 +226,9 @@ def validate_links(
     if envelope.object_type == "annotation" and payload.get("previous_id"):
         if parse_oid(payload["previous_id"])[0] != "annotation":
             raise KernelError("previous_id must contain an annotation id")
+    if envelope.object_type == "attestation":
+        if parse_oid(payload.get("target_id", ""))[0] != "run":
+            raise KernelError("attestation target_id must contain a run id")
     links = _links(payload, envelope.object_type)
     for link in links:
         parse_oid(link)
@@ -239,8 +240,7 @@ def validate_links(
 
 
 def verify_object(stored: bytes, oid: str, exists: Callable[[str], bool] | None = None) -> bool:
-    envelope = ObjectEnvelope.decode(stored, oid)
-    validate_links(envelope, exists)
+    validate_links(ObjectEnvelope.decode(stored, oid), exists)
     return True
 
 

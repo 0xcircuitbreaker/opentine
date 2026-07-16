@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, parse_oid, verify_object
+from opentine.repository._refs import validate_ref_target
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -70,7 +71,8 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     for name, oid in refs.items():
         try:
             repo._ref_name(name)
-            parse_oid(oid)
+            object_type, _ = parse_oid(oid)
+            validate_ref_target(name, object_type)
         except (KernelError, ValueError) as exc:
             errors.append(f"ref {name}: {exc}")
             continue

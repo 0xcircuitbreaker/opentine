@@ -46,13 +46,16 @@ def test_auth_rbac_namespace_encryption_cas_and_append_only_audit(tmp_path: Path
 
     local = Repo.init(tmp_path / "local")
     oid = local.put("blob", b"remote secret payload", redact=False)
+    run = local.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
     pack_id, count = service.install_pack(writer, "acme", local.pack())
-    assert pack_id.startswith("sha256:") and count == 1
-    assert service.update_ref(writer, "acme", "heads/main", oid, None) is True
-    assert service.update_ref(writer, "acme", "heads/main", oid, None) is False
+    assert pack_id.startswith("sha256:") and count == 2
+    assert service.update_ref(writer, "acme", "heads/main", run, None) is True
+    assert service.update_ref(writer, "acme", "heads/main", run, None) is False
     with pytest.raises(ValueError, match="invalid ref"):
         service.update_ref(writer, "acme", "heads/../escape", oid, None)
-    assert service.list_refs(reader, "acme") == {"heads/main": oid}
+    with pytest.raises(ValueError, match="heads refs require run"):
+        service.update_ref(writer, "acme", "heads/blob", oid, None)
+    assert service.list_refs(reader, "acme") == {"heads/main": run}
 
     encrypted = objects._path("acme", oid).read_bytes()
     assert encrypted.startswith(b"TINEAES2")

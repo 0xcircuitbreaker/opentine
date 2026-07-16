@@ -111,7 +111,7 @@ def test_pack_round_trip_shallow_boundary_and_cas(tmp_path: Path):
     assert first not in shallow.shallow_oids()
     assert shallow.fsck().ok
 
-    replacement = source.put("blob", b"replacement", redact=False)
+    replacement = source.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
     with pytest.raises(ValueError, match="concurrent ref update"):
         source.update_ref("heads/main", replacement, expected_old=None)
 

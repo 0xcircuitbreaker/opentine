@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import ObjectEnvelope, validate_links
+from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
 from opentine.remote._tenant_repo import TenantRepo
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
@@ -19,6 +19,7 @@ from opentine.remote.interfaces import (
     IndexBackend,
     ObjectStore,
 )
+from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository.pack import create_pack, inspect_pack, negotiate
 
 
@@ -91,6 +92,10 @@ class RemoteService:
     def list_refs(self, identity: Identity, tenant: str) -> dict[str, str]:
         self._authorize(identity, "read_ref", tenant)
         refs = self.index.list_refs(tenant)
+        for name, oid in refs.items():
+            validate_ref_target(normalize_ref(name), parse_oid(oid)[0])
+            if not self.objects.has(tenant, oid):
+                raise RuntimeError(f"ref {name} targets a missing object")
         self._audit(identity, tenant, "read_ref", "ok", {"refs": len(refs)})
         return refs
 
@@ -102,10 +107,11 @@ class RemoteService:
         warnings = getattr(self.audit, "audit_warnings", None)
         if not all(callable(item) for item in (verify, head, warnings)):
             raise RuntimeError("configured AuditSink does not expose chain verification")
-        warning_list = warnings()
         if callable(status_method):
             status = status_method()
+            warning_list = warnings() if status == "legacy-unverified" else []
         else:
+            warning_list = warnings()
             valid = verify()
             status = (
                 "verified"
@@ -197,8 +203,11 @@ class RemoteService:
         expected_old: str | None,
     ) -> bool:
         self._authorize(identity, "update_ref", tenant)
+        name = normalize_ref(name)
         if not self.objects.has(tenant, new_oid):
             raise KeyError(new_oid)
+        target = ObjectEnvelope.decode(self.objects.get(tenant, new_oid), new_oid)
+        validate_ref_target(name, target.object_type)
         self.admission.admit(
             identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}
         )

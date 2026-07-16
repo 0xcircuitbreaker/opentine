@@ -59,6 +59,8 @@ def search(
     model: str | None = None,
     limit: int = 20,
 ) -> list[SearchResult]:
+    if not isinstance(query, str):
+        raise TypeError("search query must be a string")
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError("search limit must be between 1 and 1000")
     scores: dict[str, list[float]] = {}

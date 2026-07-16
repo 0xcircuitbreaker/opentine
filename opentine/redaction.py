@@ -46,6 +46,7 @@ _HEADER_LINE = re.compile(
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
 _PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
 _PRIVATE_KEY_END = re.compile(rb"-----END [A-Z ]{0,64}PRIVATE KEY-----")
+_PEM_DATA = re.compile(rb"[A-Za-z0-9+/]{4,}={0,2}")
 # High-confidence secret token shapes, scrubbed regardless of the surrounding field name.
 _TOKEN_SHAPES = re.compile(
     rb"(?i)\b(?:"
@@ -66,8 +67,6 @@ _PROSE_VALUES = {
     b"which",
     b"why",
 }
-_ARTICLES = {b"a", b"an", b"the", b"this"}
-_HEADER_NOUNS = {b"field", b"header", b"label", b"setting", b"value"}
 
 
 def _assignment(match: re.Match[bytes]) -> bytes:
@@ -77,16 +76,27 @@ def _assignment(match: re.Match[bytes]) -> bytes:
     return match.group(1) + separator + b"[REDACTED]"
 
 
-def _header_line(match: re.Match[bytes]) -> bytes:
-    words = match.group(2).strip().split(maxsplit=1)
-    first_word = words[0].lower() if words else b""
-    prose = first_word in _PROSE_VALUES
-    prose |= (
-        len(words) > 1
-        and first_word in _ARTICLES
-        and (words[1].split(maxsplit=1)[0].lower() in _HEADER_NOUNS)
-    )
-    return match.group(0) if prose else match.group(1) + b"[REDACTED]"
+def _trailing_text(value: bytes, offset: int) -> int:
+    line_end = value.find(b"\n", offset)
+    if line_end < 0:
+        return len(value)
+    cursor = line_end + 1
+    separated = False
+    separator_start = cursor
+    while cursor < len(value):
+        line_end = value.find(b"\n", cursor)
+        line_end = len(value) if line_end < 0 else line_end
+        line = value[cursor:line_end].strip()
+        if not line:
+            if not separated:
+                separator_start = cursor
+            separated = True
+        elif separated and not _PEM_DATA.fullmatch(line):
+            return separator_start
+        else:
+            separated = False
+        cursor = line_end + 1
+    return len(value)
 
 
 def _private_keys(value: bytes) -> bytes:
@@ -97,7 +107,10 @@ def _private_keys(value: bytes) -> bytes:
         output.extend(b"[REDACTED PRIVATE KEY]")
         end = _PRIVATE_KEY_END.search(value, begin.end())
         if end is None:
-            return bytes(output)
+            cursor = _trailing_text(value, begin.end())
+            if cursor == len(value):
+                return bytes(output)
+            continue
         cursor = end.end()
     output.extend(value[cursor:])
     return bytes(output)
@@ -122,7 +135,7 @@ def redact_blob(value: bytes) -> bytes:
     value = _QUOTED_ASSIGNMENT.sub(
         lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
     )
-    value = _HEADER_LINE.sub(_header_line, value)
+    value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)

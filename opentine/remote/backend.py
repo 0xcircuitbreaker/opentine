@@ -12,7 +12,7 @@ from typing import Any
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
-from opentine.remote._audit import GENESIS, load_key, read_anchor, write_anchor
+from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._schema import initialize
 from opentine.remote.interfaces import KeyProvider, RetentionHook
@@ -132,6 +132,7 @@ class SQLiteBackend(SQLiteAuditMixin):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._key_path = Path(str(self.path) + ".audit-key")
         self._anchor_path = Path(str(self.path) + ".audit-head")
+        self._audit_lock_path = Path(str(self.path) + ".audit-lock")
         self._audit_key, _ = load_key(self._key_path, audit_key)
         self._audit_lock = threading.Lock()
         if reanchor_audit_head is not None and not re.fullmatch(
@@ -147,6 +148,10 @@ class SQLiteBackend(SQLiteAuditMixin):
         return connection
 
     def _initialize(self, allow_legacy: bool, reanchor: str | None) -> None:
+        with self._audit_lock, audit_file_lock(self._audit_lock_path):
+            self._initialize_locked(allow_legacy, reanchor)
+
+    def _initialize_locked(self, allow_legacy: bool, reanchor: str | None) -> None:
         migrated = initialize(self._connect, self._audit_key, allow_legacy=allow_legacy)
         valid, head = self._verified_head()
         if not valid:

@@ -160,9 +160,10 @@ def _redact(value: Any) -> Any:
             words[0] in questions
             or (len(words) > 1 and words[0] in articles and words[1] in header_nouns)
         )
-        if name in headers or name in credential_names or name.endswith(suffixes):
-            if not prose:
-                return label + separator + " [REDACTED]"
+        if name in headers:
+            return label + separator + " [REDACTED]"
+        if (name in credential_names or name.endswith(suffixes)) and not prose:
+            return label + separator + " [REDACTED]"
     return value
 
 

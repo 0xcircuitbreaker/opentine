@@ -337,7 +337,7 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
     repo = Repo.init(tmp_path)
     old = repo.put("blob", b"old", redact=False)
     new = repo.put("blob", b"new", redact=False)
-    repo.update_ref("heads/main", old)
+    repo.update_ref("tags/main", old)
     real_close = store_module.os.close
     opened: list[int] = []
     closes: list[int] = []
@@ -359,7 +359,7 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
     monkeypatch.setattr(store_module.os, "fdopen", broken_fdopen)
     monkeypatch.setattr(store_module.os, "close", closes.append)
     with pytest.raises(OSError, match="simulated"):
-        repo.update_ref("heads/main", new, expected_old=old)
+        repo.update_ref("tags/main", new, expected_old=old)
     assert closes == []
     real_close(opened[0])
 

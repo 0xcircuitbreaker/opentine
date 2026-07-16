@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -75,6 +76,15 @@ def _remote_args(parser: argparse.ArgumentParser) -> None:
 
 
 def cmd_repo(args: argparse.Namespace, console) -> None:
+    try:
+        _cmd_repo(args, console)
+    except (KeyError, OSError, ValueError) as exc:
+        message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
+        print(f"tine {args.command}: {message}", file=sys.stderr)
+        raise SystemExit(1) from None
+
+
+def _cmd_repo(args: argparse.Namespace, console) -> None:
     command = args.command
     if command == "init":
         repo = Repo.init(args.path, bare=args.bare)

@@ -84,7 +84,10 @@ def run(
             env=_clean_env(pol),
         )
         if result.timed_out:
-            return f"Error: command timed out after {pol.timeout_seconds}s"
+            return result.output(
+                pol.max_output_chars,
+                prefix=f"Error: command timed out after {pol.timeout_seconds}s\n",
+            )
         return result.output(pol.max_output_chars)
     except Exception as e:
         return f"Error: {e}"

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -20,9 +19,9 @@ from opentine.kernel import (
 from opentine.redaction import redact_blob
 from opentine.repository._config import validate_config
 from opentine.repository._reflog import append_reflog
+from opentine.repository._refs import normalize_ref, validate_ref_target
 
 _UNSET = object()
-_REF_RE = re.compile(r"^(?:heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
 
 
 def _atomic_bytes(path: Path, data: bytes) -> None:
@@ -159,25 +158,16 @@ class Repo:
                         found.append(f"{object_type.name}:sha256:{digest}")
         return found
 
-    @staticmethod
-    def _ref_name(name: str) -> str:
-        normalized = name.removeprefix("refs/")
-        parts = normalized.split("/")
-        if (
-            len(normalized) > 512
-            or not _REF_RE.fullmatch(normalized)
-            or any(part in {"", ".", ".."} or part.endswith(".lock") for part in parts)
-        ):
-            raise ValueError(f"invalid ref name: {name!r}")
-        return normalized
+    _ref_name = staticmethod(normalize_ref)
 
     def read_ref(self, name: str) -> str | None:
-        path = self.path / "refs" / self._ref_name(name)
+        normalized = self._ref_name(name)
+        path = self.path / "refs" / normalized
         try:
             value = path.read_text(encoding="ascii").strip()
         except FileNotFoundError:
             return None
-        parse_oid(value)
+        validate_ref_target(normalized, parse_oid(value)[0])
         return value
 
     def update_ref(
@@ -189,6 +179,7 @@ class Repo:
         actor: str = "local",
     ) -> None:
         normalized = self._ref_name(name)
+        validate_ref_target(normalized, parse_oid(new_oid)[0])
         if not self.has(new_oid):
             raise KeyError(f"new ref target is missing: {new_oid}")
         ref_path = self.path / "refs" / normalized

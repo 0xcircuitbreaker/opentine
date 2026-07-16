@@ -161,27 +161,27 @@ def test_m3_ref_cas_mismatch_releases_lock(tmp_path: Path):
     repo = Repo.init(tmp_path)
     a = repo.put("blob", b"a", redact=False)
     b = repo.put("blob", b"b", redact=False)
-    repo.update_ref("heads/main", a)
+    repo.update_ref("tags/main", a)
     with pytest.raises(ValueError, match="concurrent ref update"):
-        repo.update_ref("heads/main", b, expected_old="wrong")
-    assert not (repo.path / "refs" / "heads" / "main.lock").exists()
+        repo.update_ref("tags/main", b, expected_old="wrong")
+    assert not (repo.path / "refs" / "tags" / "main.lock").exists()
     # A correct CAS still succeeds after the mismatch (lock was not left stale).
-    repo.update_ref("heads/main", b, expected_old=a)
-    assert repo.read_ref("heads/main") == b
-    assert set(repo.list_refs()) == {"heads/main"}
+    repo.update_ref("tags/main", b, expected_old=a)
+    assert repo.read_ref("tags/main") == b
+    assert set(repo.list_refs()) == {"tags/main"}
 
 
 def test_m3_ref_cas_allows_exactly_one_concurrent_writer(tmp_path: Path):
     repo = Repo.init(tmp_path)
     old = repo.put("blob", b"old", redact=False)
     candidates = [repo.put("blob", value, redact=False) for value in (b"left", b"right")]
-    repo.update_ref("heads/main", old)
+    repo.update_ref("tags/main", old)
     barrier = threading.Barrier(2)
 
     def update(candidate: str) -> bool:
         barrier.wait()
         try:
-            repo.update_ref("heads/main", candidate, expected_old=old)
+            repo.update_ref("tags/main", candidate, expected_old=old)
         except ValueError:
             return False
         return True
@@ -189,7 +189,7 @@ def test_m3_ref_cas_allows_exactly_one_concurrent_writer(tmp_path: Path):
     with ThreadPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(update, candidates))
     assert sorted(results) == [False, True]
-    assert repo.read_ref("heads/main") in candidates
+    assert repo.read_ref("tags/main") in candidates
 
 
 # --- N1: tiered context pricing replaces rather than compounds --------------------------
