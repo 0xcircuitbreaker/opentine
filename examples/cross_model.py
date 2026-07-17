@@ -27,9 +27,9 @@ if os.environ.get("OPENAI_API_KEY"):
 if os.environ.get("GOOGLE_API_KEY"):
     from opentine.models.google import Google
 
-    models.append(("google", Google("gemini-3-flash-preview")))
+    models.append(("google", Google("gemini-3.5-flash")))
 
-if os.environ.get("OLLAMA_HOST") or True:  # Ollama defaults to localhost
+if os.environ.get("OLLAMA_HOST"):
     try:
         from opentine.models.ollama import Ollama
 
@@ -38,7 +38,7 @@ if os.environ.get("OLLAMA_HOST") or True:  # Ollama defaults to localhost
         pass
 
 if not models:
-    print("Set at least one API key: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY")
+    print("Set a provider API key or OLLAMA_HOST to run this example")
     exit(1)
 
 for name, model in models:

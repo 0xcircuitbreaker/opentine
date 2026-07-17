@@ -1,6 +1,6 @@
-# Opentine Security Model
+# OpenTine Security Model
 
-Opentine is local-first provenance tooling. It records agent activity and can invoke tools or external harnesses, but those execution paths are intentionally gated by explicit policies.
+OpenTine is local-first provenance tooling. It records agent activity and can invoke tools or external harnesses, but those execution paths are intentionally gated by explicit policies.
 
 ## Default Posture
 
@@ -23,6 +23,13 @@ configuration; undeclared model arguments are rejected at runtime. Registering
 `shell.run` or `python.execute` directly therefore remains disabled. To enable
 one, register a small application wrapper that binds an explicit policy instead
 of accepting policy values from a model call.
+
+Configured model/provider endpoints are trusted peers. Native SDKs and the
+OpenAI-compatible transport may buffer or decompress complete responses or
+individual stream events before OpenTine applies its retained-content limits.
+An arbitrary or attacker-controlled `base_url` can therefore exhaust client
+memory. Compatible endpoints disable ambient proxies and redirects, but those
+controls are not a response-size guarantee.
 
 ## Redaction
 
@@ -63,7 +70,7 @@ What a valid signature **does** prove: the signed body + allowlisted metadata ha
 
 What it does **not** prove:
 - HMAC is symmetric — it gives intra-group authenticity, **not** non-repudiation; anyone with the shared key could have produced it.
-- The `signer` label and an embedded Ed25519 key are self-asserted; opentine has no key→identity binding, PKI, or revocation.
+- The `signer` label and an embedded Ed25519 key are self-asserted; OpenTine has no key→identity binding, PKI, or revocation.
 - A *stripped* signature is byte-indistinguishable from a never-signed artifact, so the file alone cannot prove it *should* be signed — establish that expectation out of band.
 - Signing provides no confidentiality (artifacts are not encrypted).
 
@@ -149,9 +156,9 @@ turnkey high-availability edge service.
 
 ## Known Non-Goals
 
-- Opentine does not sandbox arbitrary third-party CLI agents by itself.
-- Opentine does not guarantee that model output is safe to execute.
-- Opentine does not provide key distribution, identity binding, revocation, or multi-signature (`tine-sig/1` is single-signature).
-- Opentine does not currently provide encrypted `.tine` artifacts.
+- OpenTine does not sandbox arbitrary third-party CLI agents by itself.
+- OpenTine does not guarantee that model output is safe to execute.
+- OpenTine does not provide key distribution, identity binding, revocation, or multi-signature (`tine-sig/1` is single-signature).
+- OpenTine does not currently provide encrypted `.tine` artifacts.
 - The reference remote is not a hosted control plane, payment system, or a
   turnkey high-availability deployment.

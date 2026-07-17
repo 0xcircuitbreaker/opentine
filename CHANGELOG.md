@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-16
+## 0.3.0 — 2026-07-17
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -177,6 +177,25 @@ v2; repository objects use the new verified v3 format.
   unresolved partial-trace boundaries are retained explicitly instead of being
   silently rewritten. Ollama response/NDJSON parsing and OTLP `AnyValue`
   traversal now have body, line, depth, and cycle limits.
+- OpenAI now defaults to GPT-5.6, Kimi accepts the official Moonshot credential
+  names, and DeepSeek-compatible streams request final usage. Together's
+  `reasoning` field and Mistral's list-shaped thinking/text blocks are retained,
+  bounded, and replayed without duplicating private reasoning representations.
+- `OpenAICompatible` accepts an exact hosted-gateway base with unknown billing
+  by default; `LocalOpenAICompatible` accepts exact or conventional `/v1`
+  local endpoints with unmetered billing by default. Named LM Studio, vLLM,
+  Unsloth, llama.cpp/llama-cpp-python, LocalAI, Jan, SGLang, TGI, MLX-LM,
+  NVIDIA NIM, TensorRT-LLM, and KoboldCpp presets remain compatible. Explicit
+  local auth, tool suppression, final stream usage, and provider-specific
+  request bodies are configurable without forwarding ambient OpenAI keys,
+  proxies, or redirects.
+- Provider SDK retries are disabled so one recorded invocation represents one
+  attempted provider request, and short-lived SDK clients close deterministically
+  after complete and streamed responses. Missing provider tool-call IDs are
+  normalized once and stored consistently in steps, transcripts, and tool results.
+- The README now uses the official website mark, documents generic local runtime
+  endpoints and their trust boundary, and no longer ships obsolete unreferenced
+  animation assets in the source distribution.
 
 ### Architecture and compatibility
 

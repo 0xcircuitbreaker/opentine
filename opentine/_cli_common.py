@@ -31,8 +31,8 @@ from opentine.index import RunIndex
 if sys.platform == "win32":
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
-BRAND = "#FF6900"
-BRAND_DIM = "#CC5500"
+BRAND = "#d4a574"
+BRAND_DIM = "#a37e55"
 STEP_ICONS = {
     StepKind.think: ("[bold bright_yellow]*[/]", "bright_yellow"),
     StepKind.tool: (f"[bold {BRAND}]>[/]", BRAND),

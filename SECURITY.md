@@ -12,4 +12,4 @@ Do not include secrets or private `.tine` artifacts in public issues.
 
 ## Security Model
 
-Opentine's detailed security posture, default tool policies, redaction behavior, and current non-goals are documented in [SECURITY_MODEL.md](SECURITY_MODEL.md).
+OpenTine's detailed security posture, default tool policies, redaction behavior, and current non-goals are documented in [SECURITY_MODEL.md](SECURITY_MODEL.md).

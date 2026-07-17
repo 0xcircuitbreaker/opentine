@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.3.0/docs/assets/opentine-logo.svg" alt="opentine" width="120" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.3.0/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
 </p>
 
-<h1 align="center">opentine</h1>
+<h1 align="center">OpenTine</h1>
 
 <p align="center">
   <strong>Git for agent runs: record, verify, fork, compare, attest, and synchronize execution history.</strong>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=FF6900" alt="PyPI" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-FF6900" alt="License" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=FF6900" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.3.0%20beta-FF6900" alt="0.3.0 beta" />
+  <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/status-0.3.0%20beta-d4a574" alt="0.3.0 beta" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
@@ -41,7 +41,7 @@ Provider SDKs are optional:
 pip install "opentine[anthropic]"
 pip install "opentine[openai]"
 pip install "opentine[google]"
-pip install "opentine[compat]"  # hosted OpenAI-compatible APIs
+pip install "opentine[compat]"  # hosted and local OpenAI-compatible APIs
 pip install "opentine[mcp]"
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
@@ -108,6 +108,13 @@ overlay rather than pretending it is free. Unknown hosted models remain
 runnable and visibly unpriced. `Budget(strict_cost=True)` stops before the next
 call after billing becomes indeterminate.
 
+Current exact cards include GPT-5.6 Sol/Terra/Luna, Kimi K3 and K2.7 Code,
+GLM-5.2, DeepSeek V4, Gemini 3.5, Grok 4.5, Qwen 3.7, and current
+Mistral/Ministral families. Catalog coverage is intentionally curated rather
+than an allowlist: any model identifier remains runnable, and models without an
+exact effective card are reported as `unknown` instead of receiving a guessed
+price.
+
 See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
@@ -155,6 +162,73 @@ refusals, and final usage. Anthropic handles cache-write buckets, reported
 inference geography, and adaptive sampling restrictions. Kimi omits unsupported temperature fields and preserves
 reasoning continuation. Google extracts usage instead of reporting zero, and
 Ollama retains token counts plus load/evaluation timing.
+
+### Local and generic compatible runtimes
+
+OpenTine has native Ollama support and one exact-base OpenAI-compatible surface
+for the broader local ecosystem. The named presets are conveniences, not
+separate protocol forks:
+
+```python
+from opentine.models.compat import LMStudio, LocalOpenAICompatible, OpenAICompatible, SGLang
+
+LMStudio("loaded-model")
+SGLang("served-model")
+
+# `base_url` is exact; it is never changed or given a second `/v1` suffix.
+local = LocalOpenAICompatible(
+    "served-model",
+    base_url="http://localhost:3000/api",  # for example, Open WebUI
+    api_key="local-secret",
+    supports_tools=False,
+    include_usage=True,
+    extra_body={"chat_template_kwargs": {"enable_thinking": True}},
+)
+
+# Hosted gateways default to unknown billing, not local/unmetered billing.
+gateway = OpenAICompatible(
+    "provider/model",
+    base_url="https://gateway.example/openai",
+    api_key="gateway-secret",
+)
+```
+
+`LocalOpenAICompatible(host=...)` appends `/v1` once; pass `base_url=...` for
+an exact nonstandard prefix. `OpenAICompatible` and custom OpenAI endpoints do
+not inherit ambient proxy settings, do not follow redirects, and never forward
+`OPENAI_API_KEY` implicitly. Use `OPENAI_COMPAT_API_KEY` or an explicit key.
+Configured provider endpoints are trusted infrastructure: SDKs can buffer a
+provider response before OpenTine applies retained-content limits.
+
+Common compatible endpoints are:
+
+| Runtime | Typical exact base | OpenTine surface |
+|---|---|---|
+| LM Studio | `http://localhost:1234/v1` | `LMStudio` |
+| vLLM / Unsloth | `http://localhost:8000/v1` | `VLLM` / `Unsloth` |
+| llama.cpp | `http://localhost:8080/v1` | `LlamaCpp` |
+| LocalAI | `http://localhost:8080/v1` | `LocalAI` |
+| Jan | `http://localhost:1337/v1` | `Jan` |
+| llama-cpp-python | `http://localhost:8000/v1` | `LlamaCppPython` |
+| MLX-LM | `http://localhost:8080/v1` | `MLXLM` |
+| NVIDIA NIM / TensorRT-LLM | `http://localhost:8000/v1` | `NvidiaNIM` / `TensorRTLLM` |
+| SGLang | `http://localhost:30000/v1` | `SGLang` |
+| Hugging Face TGI | `http://localhost:8080/v1` | `TGI` |
+| Open WebUI | `http://localhost:3000/api` | exact `base_url` |
+| LiteLLM Proxy | `http://localhost:4000/v1` | `LiteLLM`; may route paid APIs |
+| llamafile | `http://localhost:8080/v1` | `LocalOpenAICompatible` |
+| GPT4All | `http://localhost:4891/v1` | `LocalOpenAICompatible` |
+| KoboldCpp | `http://localhost:5001/v1` | `KoboldCpp` |
+| text-generation-webui | `http://localhost:5000/v1` | `LocalOpenAICompatible` |
+| MLC-LLM and llama-swap | configured server base, usually `/v1` | `LocalOpenAICompatible` |
+
+Model IDs, tool calling, reasoning fields, multimodal input, and usage reporting
+depend on the loaded model, chat template, runtime version, and server flags.
+Set `supports_tools=False` where needed and request `include_usage=True` only
+when the server implements final stream usage. Local API cost is `unmetered` by
+default; supply `rates=` to account for infrastructure. The `LiteLLM` preset
+and `OpenAICompatible` deliberately default to unknown billing because a
+gateway may route paid hosted APIs.
 
 ## V3 repository
 
@@ -325,6 +399,7 @@ checklist.
 - [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
 - [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/RELEASING.md): trusted publication and release verification.
 - [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SUPPORT.md): supported runtimes and support levels.
+- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TROUBLESHOOTING.md): common install, provider, and verification failures.
 
 ## License
 
