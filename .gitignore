@@ -13,9 +13,6 @@ build/
 venv/
 env/
 
-# uv
-uv.lock
-
 # Environment
 .env
 .env.*

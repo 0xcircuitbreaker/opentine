@@ -1,29 +1,62 @@
-name: GitHub Release Artifacts
+name: Publish Release
 
 on:
   push:
     tags:
       - "v*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release-artifacts:
-    runs-on: ubuntu-latest
+  build:
+    name: Build and validate distributions
+    runs-on: ubuntu-24.04
+    env:
+      UV_PYTHON: "3.14.4"
     permissions:
-      contents: write
-      id-token: write
-      attestations: write
+      actions: read
+      contents: read
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
 
       - name: Set up Python
-        run: uv python install 3.13
+        run: uv python install 3.14.4
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --all-extras
+
+      - name: Verify release source and version
+        shell: bash
+        run: |
+          test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
+          release_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          git merge-base --is-ancestor "$release_commit" origin/main
+          test "v$(uv run python -c 'import opentine; print(opentine.__version__)')" = "$GITHUB_REF_NAME"
+          echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
+          echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct "$release_commit")" >> "$GITHUB_ENV"
+
+      - name: Require successful full CI for this commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          successful_runs="$(
+            gh api \
+              "/repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=completed&head_sha=$RELEASE_COMMIT&per_page=100" \
+              --jq '[.workflow_runs[] | select(.conclusion == "success")] | length'
+          )"
+          test "$successful_runs" -ge 1
 
       - name: Run fast gates
         run: |
@@ -32,40 +65,89 @@ jobs:
           uv run ruff format --check .
           uv run pytest tests -m "not live and not live_harness" -q
 
-      - name: Verify tag matches package version
-        run: test "v$(uv run python -c 'import opentine; print(opentine.__version__)')" = "$GITHUB_REF_NAME"
+      - name: Build source distribution
+        run: uv build --no-build-isolation --sdist --out-dir dist
 
-      - name: Build package
-        run: uv build --sdist --wheel --out-dir dist
+      - name: Build wheel from source distribution
+        shell: bash
+        run: uv build --no-build-isolation --wheel dist/opentine-*.tar.gz --out-dir dist
 
       - name: Verify release inventory
         run: uv run python scripts/check_release_inventory.py dist
 
       - name: Check package metadata
-        run: uv run --with twine python -m twine check dist/*
+        run: uv run python -m twine check dist/*
 
       - name: Wheel smoke test
         run: uv run python scripts/wheel_smoke.py
 
+      - name: Upload validated distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opentine-release-distributions
+          path: |
+            dist/opentine-*.whl
+            dist/opentine-*.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  github-release:
+    name: Attest and create GitHub release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download validated distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: opentine-release-distributions
+          path: dist
+
       - name: Generate SHA256SUMS
-        run: |
-          cd dist
-          sha256sum opentine-* > SHA256SUMS
+        working-directory: dist
+        run: sha256sum opentine-*.whl opentine-*.tar.gz > SHA256SUMS
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
-          subject-path: dist/opentine-*
-
-      - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: opentine-release-artifacts
-          path: |
-            dist/opentine-*
-            dist/SHA256SUMS
+          subject-path: |
+            dist/opentine-*.whl
+            dist/opentine-*.tar.gz
 
       - name: Attach artifacts to GitHub release
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/opentine-* dist/SHA256SUMS --verify-tag --generate-notes
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          dist/opentine-*.whl dist/opentine-*.tar.gz dist/SHA256SUMS
+          --verify-tag --generate-notes
+
+  pypi:
+    name: Publish to PyPI with Trusted Publishing
+    needs: [build, github-release]
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/opentine
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download validated distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: opentine-release-distributions
+          path: dist
+
+      - name: Publish distributions
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        with:
+          packages-dir: dist/
+          attestations: true

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -44,6 +45,41 @@ def _run(cmd: list[str | Path], *, cwd: Path | None = None) -> None:
     subprocess.run([str(part) for part in cmd], cwd=cwd, check=True)
 
 
+def _install_locked_core(python: Path, wheel: Path, work: Path) -> None:
+    uv = shutil.which("uv")
+    if uv is None:
+        raise SystemExit("uv is required for the hash-locked wheel smoke test")
+    requirements = work / "core-requirements.txt"
+    _run(
+        [
+            uv,
+            "export",
+            "--frozen",
+            "--no-dev",
+            "--no-emit-project",
+            "--format",
+            "requirements-txt",
+            "--output-file",
+            requirements,
+        ],
+        cwd=ROOT,
+    )
+    _run(
+        [
+            python,
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "--only-binary=:all:",
+            "--require-hashes",
+            "-r",
+            requirements,
+        ]
+    )
+    _run([python, "-m", "pip", "install", "--no-deps", wheel])
+
+
 def main() -> None:
     wheels = sorted(DIST.glob("opentine-*.whl"))
     if not wheels:
@@ -62,7 +98,7 @@ def main() -> None:
         tine = _console_script(venv_dir, "tine")
         artifact = work / "smoke.tine"
 
-        _run([python, "-m", "pip", "install", "--disable-pip-version-check", wheel])
+        _install_locked_core(python, wheel, work)
         _run([python, "-m", "pip", "check"])
         _run(
             [
