@@ -16,6 +16,7 @@ from opentine.kernel import (
     verify_object,
 )
 from opentine.redaction import redact_blob, redact_value
+from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import validate_config
 from opentine.repository._objects import iter_object_oids
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
@@ -42,7 +43,15 @@ class Repo:
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
         tine.mkdir(parents=True, exist_ok=True)
-        for directory in ("objects", "refs/heads", "refs/tags", "logs", "packs", "indexes"):
+        for directory in (
+            "objects",
+            "refs/annotations",
+            "refs/heads",
+            "refs/tags",
+            "logs",
+            "packs",
+            "indexes",
+        ):
             internal_path(tine, *Path(directory).parts).mkdir(parents=True, exist_ok=True)
         config = internal_path(tine, "config.json")
         if not config.exists():
@@ -119,6 +128,7 @@ class Repo:
             stored_payload = redact_value(_redact(payload)) if redact else payload
         envelope = ObjectEnvelope.create(object_type, stored_payload, schema)
         validate_links(envelope, self._link_exists)
+        validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
         validate_run_graph(self, envelope)
         path = self._object_path(envelope.oid)
@@ -136,6 +146,7 @@ class Repo:
             raise KeyError(oid) from exc
         envelope = ObjectEnvelope.decode(stored, oid)
         validate_links(envelope, self._link_exists)
+        validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
         validate_run_graph(self, envelope)
         return envelope
@@ -158,7 +169,11 @@ class Repo:
             value = path.read_text(encoding="ascii").strip()
         except FileNotFoundError:
             return None
-        validate_ref_target(normalized, parse_oid(value)[0])
+        try:
+            target = self.get(value)
+        except (KernelError, KeyError, OSError) as exc:
+            raise ValueError(f"repository object is unavailable: {value}") from exc
+        validate_ref_target(normalized, target.object_type, target.payload())
         return value
 
     def update_ref(
@@ -171,7 +186,7 @@ class Repo:
     ) -> None:
         normalized = self._ref_name(name)
         target = self.get(new_oid)
-        validate_ref_target(normalized, target.object_type)
+        validate_ref_target(normalized, target.object_type, target.payload())
         ref_path = internal_path(self.path, "refs", *Path(normalized).parts)
         ref_path.parent.mkdir(parents=True, exist_ok=True)
         lock_path = ref_path.with_name(ref_path.name + ".lock")

@@ -12,6 +12,7 @@ from opentine.remote._audit import FIELDS, GENESIS, chain
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS objects (
   tenant TEXT NOT NULL, oid TEXT NOT NULL, size INTEGER NOT NULL,
+  object_type TEXT, target_id TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (tenant, oid));
 CREATE TABLE IF NOT EXISTS refs (
@@ -119,5 +120,10 @@ def initialize(
         columns = {row[1] for row in database.execute("PRAGMA table_info(audit)")}
         migrated = _upgrade_audit(database, columns, key, allow_legacy)
         database.executescript(SCHEMA)
+        columns = {row[1] for row in database.execute("PRAGMA table_info(objects)")}
+        for name in ("object_type", "target_id"):
+            if name not in columns:
+                database.execute(f"ALTER TABLE objects ADD COLUMN {name} TEXT")
+        database.execute("CREATE INDEX IF NOT EXISTS objects_target ON objects(tenant,target_id)")
         database.executescript(TRIGGERS)
     return migrated

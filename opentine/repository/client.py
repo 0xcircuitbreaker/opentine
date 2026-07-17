@@ -23,7 +23,7 @@ from opentine.repository._http import (
     require_secure_remote as _require_secure_remote,
 )
 from opentine.repository._upload_client import upload as _upload
-from opentine.repository.pack import MAX_PACK_OBJECTS, create_pack, negotiate
+from opentine.repository.pack import MAX_PACK_OBJECTS, create_pack, negotiate, reachable
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -34,6 +34,27 @@ class TransferResult:
     objects: int
     pack_id: str
     ref: str | None = None
+
+
+def _annotation_ref(run_id: str) -> str | None:
+    try:
+        object_type, digest = parse_oid(run_id)
+    except KernelError:
+        return None
+    return f"annotations/{digest}" if object_type == "run" else None
+
+
+def _annotation_fast_forward(repo: Repo, old: str | None, new: str) -> bool:
+    current = new
+    for _ in range(MAX_PACK_OBJECTS):
+        if current == old or old is None:
+            return True
+        payload = repo.get(current).payload()
+        previous = payload.get("previous_id")
+        if not isinstance(previous, str):
+            return False
+        current = previous
+    return False
 
 
 def _remote(remote: str, tenant: str | None) -> tuple[str, str]:
@@ -136,6 +157,12 @@ def fetch(
     if ref in remote_refs and repo.has(remote_refs[ref]):
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
         repo.update_ref(tracking, remote_refs[ref], expected_old=repo.read_ref(tracking))
+        annotation = _annotation_ref(remote_refs[ref])
+        remote_annotation = remote_refs.get(annotation or "")
+        if annotation and remote_annotation and repo.has(remote_annotation):
+            local_annotation = repo.read_ref(annotation)
+            if _annotation_fast_forward(repo, local_annotation, remote_annotation):
+                repo.update_ref(annotation, remote_annotation, expected_old=local_annotation)
     return TransferResult(len(result.objects), result.pack_id, ref)
 
 
@@ -159,7 +186,8 @@ def push(
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
         _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         old = _refs(refs).get(destination)
-        missing = negotiate(repo, [local_oid], [old] if old else [])
+        known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
+        missing = negotiate(repo, [local_oid], known)
         pack = create_pack(repo, missing)
         uploaded = _upload(
             client,
@@ -179,6 +207,22 @@ def push(
         )
         if status == 409:
             raise ValueError("remote ref changed concurrently")
+        annotation = _annotation_ref(local_oid)
+        local_annotation = repo.read_ref(annotation) if annotation else None
+        if annotation and local_annotation:
+            annotation_status, _ = _request_json(
+                client,
+                "PUT",
+                _prefix(namespace) + "/refs/" + quote(annotation, safe=""),
+                allowed=(200, 409),
+                max_seconds=timeout,
+                json={
+                    "expected_old": _refs(refs).get(annotation),
+                    "new": local_annotation,
+                },
+            )
+            if annotation_status == 409:
+                raise ValueError("remote annotation ref changed concurrently")
     return TransferResult(objects, pack_id, destination)
 
 

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_oid, validate_links
+from opentine.repository._associations import associated_map
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -67,16 +68,9 @@ def reachable(
         raise KernelError("invalid or excessive pack negotiation request")
     for oid in wants:
         parse_oid(oid)
-    associated: dict[str, list[str]] = {}
-    if include_associated:
-        for oid in repo.iter_oids(limit=MAX_PACK_OBJECTS):
-            if not oid.startswith(("attestation:", "annotation:")):
-                continue
-            target = repo.get(oid).payload().get("target_id")
-            if isinstance(target, str):
-                associated.setdefault(target, []).append(oid)
     queue = deque((oid, 0) for oid in wants)
     seen: set[str] = set()
+    associated_checked: set[str] = set()
     while queue:
         oid, event_depth = queue.popleft()
         if oid in seen or not repo.has(oid):
@@ -85,6 +79,10 @@ def reachable(
             raise KernelError("pack graph exceeds maximum object count")
         seen.add(oid)
         envelope = repo.get(oid)
+        if include_associated and envelope.object_type == "run" and oid not in associated_checked:
+            associated_checked.add(oid)
+            related = associated_map(repo, [oid], MAX_PACK_OBJECTS - len(seen)).get(oid, [])
+            queue.extend((linked, 0) for linked in related)
         links = list(validate_links(envelope))
         if depth is not None and envelope.object_type == "run":
             payload = envelope.payload()
@@ -95,7 +93,6 @@ def reachable(
             next_depth = event_depth + (1 if link.startswith("event:") else 0)
             if depth is None or next_depth <= depth or not link.startswith("event:"):
                 queue.append((link, next_depth))
-        queue.extend((linked, 0) for linked in associated.get(oid, ()))
     return sorted(seen)
 
 
@@ -104,13 +101,12 @@ def negotiate(
 ) -> list[str]:
     if not isinstance(haves, list) or not all(isinstance(oid, str) for oid in haves):
         raise KernelError("pack haves must be a list of object ids")
+    if len(haves) > MAX_PACK_OBJECTS:
+        raise KernelError("pack negotiation has too many haves")
     for oid in haves:
         parse_oid(oid)
     available = set(reachable(repo, wants, depth=depth))
-    if len(haves) > MAX_PACK_OBJECTS:
-        raise KernelError("pack negotiation has too many haves")
-    possessed = set(reachable(repo, haves, include_associated=False))
-    return sorted(available - possessed)
+    return sorted(available - set(haves))
 
 
 def create_pack(repo: Repo, oids: list[str], *, max_body: int = MAX_PACK_BODY_BYTES) -> bytes:

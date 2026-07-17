@@ -1,0 +1,123 @@
+"""Deterministic mutable annotation heads for compatibility runs."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from opentine._canon import _redact
+from opentine._jsonsafe import json_safe
+from opentine.kernel import KernelError, ObjectEnvelope, parse_oid
+from opentine.redaction import redact_value
+
+if TYPE_CHECKING:
+    from opentine.repository.store import Repo
+
+MAX_LEGACY_OBJECTS = 100_000
+_COMPATIBILITY = "run-metadata-v1"
+
+
+def validate_annotation_chain(repo: Repo, envelope: ObjectEnvelope) -> None:
+    if envelope.object_type != "annotation":
+        return
+    payload = envelope.payload()
+    previous_id = payload.get("previous_id")
+    if not previous_id:
+        return
+    try:
+        previous = ObjectEnvelope.decode(repo.raw(previous_id), previous_id)
+    except (KeyError, OSError) as exc:
+        raise KernelError(f"annotation previous object is unavailable: {previous_id}") from exc
+    prior = previous.payload()
+    if previous.object_type != "annotation" or prior.get("target_id") != payload.get("target_id"):
+        raise KernelError("annotation versions must target the same object")
+
+
+def annotation_ref(run_id: str) -> str:
+    object_type, digest = parse_oid(run_id)
+    if object_type != "run":
+        raise ValueError("compatibility annotations require a run id")
+    return f"annotations/{digest}"
+
+
+def _value(payload: Any, run_id: str) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("target_id") != run_id:
+        raise ValueError("run annotation targets the wrong object")
+    value = payload.get("value")
+    if not isinstance(value, dict) or not isinstance(value.get("metadata", {}), dict):
+        raise ValueError("run annotation value is malformed")
+    tags = value.get("tags", [])
+    if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+        raise ValueError("run annotation tags are malformed")
+    return value
+
+
+def _legacy_head(repo: Repo, run_id: str) -> str | None:
+    candidates: dict[str, dict[str, Any]] = {}
+    for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS):
+        if not oid.startswith("annotation:"):
+            continue
+        payload = repo.get(oid).payload()
+        if isinstance(payload, dict) and payload.get("target_id") == run_id:
+            candidates[oid] = payload
+    marked = {
+        oid: payload
+        for oid, payload in candidates.items()
+        if payload.get("compatibility") == _COMPATIBILITY
+    }
+    if marked:
+        candidates = marked
+    if not candidates:
+        return None
+    previous = {
+        payload.get("previous_id")
+        for payload in candidates.values()
+        if payload.get("previous_id") in candidates
+    }
+    tips = sorted(set(candidates) - previous)
+    if len(tips) != 1:
+        raise ValueError("run has ambiguous unheaded legacy annotations")
+    return tips[0]
+
+
+def _resolved_head(repo: Repo, run_id: str) -> tuple[str | None, str | None]:
+    ref = repo.read_ref(annotation_ref(run_id))
+    if ref:
+        return ref, ref
+    return _legacy_head(repo, run_id), None
+
+
+def load_run_annotation(repo: Repo, run_id: str) -> tuple[dict[str, Any], list[str]]:
+    head, _ = _resolved_head(repo, run_id)
+    if not head:
+        return {}, []
+    value = _value(repo.get(head).payload(), run_id)
+    return dict(value.get("metadata") or {}), list(value.get("tags") or [])
+
+
+def write_run_annotation(
+    repo: Repo, run_id: str, metadata: dict[str, Any], tags: list[str]
+) -> str | None:
+    name = annotation_ref(run_id)
+    old, ref_head = _resolved_head(repo, run_id)
+    if old and old != ref_head:
+        repo.update_ref(name, old, expected_old=ref_head)
+        ref_head = old
+    value = redact_value(_redact(json_safe({"metadata": metadata, "tags": tags})))
+    if not isinstance(value, dict):
+        raise ValueError("run annotation value is malformed")
+    if old and _value(repo.get(old).payload(), run_id) == value:
+        return old
+    if old is None and not any(value.values()):
+        return None
+    oid = repo.put(
+        "annotation",
+        {
+            "compatibility": _COMPATIBILITY,
+            "previous_id": old,
+            "target_id": run_id,
+            "value": value,
+        },
+        redact=False,
+    )
+    repo.update_ref(name, oid, expected_old=ref_head)
+    return oid

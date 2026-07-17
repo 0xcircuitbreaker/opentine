@@ -8,6 +8,8 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from opentine.core import (
     Agent,
     FilesystemPolicy,
@@ -20,6 +22,7 @@ from opentine.core import (
     step_id,
     tool_schema,
 )
+from opentine.repository import Repo
 from opentine.tools import fs, python, shell, web
 
 # --- Step -------------------------------------------------------------------
@@ -171,6 +174,23 @@ class TestFork:
             assert "Unknown step ref" in str(exc)
         else:
             raise AssertionError("fork should reject missing refs")
+
+    def test_fork_keeps_trailing_human_turn_before_untranscribed_error(self):
+        run = Run(id="failed")
+        completed = run.add_step(StepKind.done, {"text": "first"})
+        run.transcript = [
+            {"role": "user", "content": "start"},
+            {"step_id": completed.id, "role": "assistant", "content": "first"},
+            {"role": "user", "content": "retry this"},
+        ]
+        failure = run.add_step(StepKind.error, {"text": "failed"})
+
+        forked = run.fork(failure.id)
+        assert [item["content"] for item in forked.transcript] == [
+            "start",
+            "first",
+            "retry this",
+        ]
 
 
 # --- Serialization ----------------------------------------------------------
@@ -330,13 +350,15 @@ class TestToolSchema:
 
 
 class MockModel:
-    def __init__(self, responses: list[dict[str, Any]]):
+    def __init__(self, responses: list[dict[str, Any]], name: str = "mock-model"):
         self._responses = list(responses)
         self._idx = 0
+        self._name = name
+        self.seen_messages: list[list[dict[str, Any]]] = []
 
     @property
     def name(self) -> str:
-        return "mock-model"
+        return self._name
 
     @property
     def supports_tools(self) -> bool:
@@ -347,6 +369,7 @@ class MockModel:
         return False
 
     async def complete(self, messages, tools=None, system=None, temperature=0.0):
+        self.seen_messages.append(json.loads(json.dumps(messages)))
         resp = self._responses[self._idx]
         self._idx = min(self._idx + 1, len(self._responses) - 1)
         return resp
@@ -387,6 +410,12 @@ class TestAgent:
         assert any(s.kind == StepKind.done for s in run.steps)
         assert any(entry["kind"] == "model.complete" for entry in run.cache.values())
         assert any(entry["kind"] == "tool.call" for entry in run.cache.values())
+        model_step = next(step for step in run.steps if step.outputs.get("tool_calls"))
+        call_id = model_step.outputs["tool_calls"][0]["id"]
+        assistant = next(item for item in run.transcript if item["role"] == "assistant")
+        tool_result = next(item for item in run.transcript if item["role"] == "tool")
+        assert call_id and assistant["tool_calls"][0]["id"] == call_id
+        assert tool_result["tool_call_id"] == call_id
 
     def test_cached_replay_marks_provenance(self):
         model = MockModel([{"text": "done", "tool_calls": []}])
@@ -395,6 +424,111 @@ class TestAgent:
         replayed = agent.replay_sync(run, mode="cache")
         assert replayed.metadata["replay"]["mode"] == "cache"
         assert replayed.metadata["replay"]["reused_steps"] == len(run.steps)
+
+    def test_provider_tool_continuation_is_stored_and_forwarded(self):
+        def noop() -> str:
+            """Return a result."""
+            return "ok"
+
+        continuation = [
+            {"type": "thinking", "thinking": "", "signature": "opaque-signature"},
+            {"type": "tool_use", "id": "a1", "name": "noop", "input": {}},
+        ]
+        model = MockModel(
+            [
+                {
+                    "text": "",
+                    "tool_calls": [{"id": "a1", "name": "noop", "arguments": {}}],
+                    "anthropic_content": continuation,
+                },
+                {"text": "done", "tool_calls": []},
+            ]
+        )
+        run = Agent(model=model, tools=[noop]).run_sync("go")
+        model_step = next(step for step in run.steps if step.outputs.get("tool_calls"))
+        assert model_step.outputs["anthropic_content"] == continuation
+        assistant = next(item for item in model.seen_messages[1] if item["role"] == "assistant")
+        assert assistant["anthropic_content"] == continuation
+
+    def test_resume_with_new_model_updates_mixed_run_provenance(self):
+        original_model = MockModel(
+            [{"text": "first", "tool_calls": []}],
+            name="model-a",
+        )
+        original = Agent(model=original_model, system="old system").run_sync("start")
+        resumed_model = MockModel(
+            [{"text": "second", "tool_calls": []}],
+            name="model-b",
+        )
+        resumed = Agent(model=resumed_model, system="new system").resume_sync(
+            original,
+            prompt="continue",
+        )
+        assert [step.model_info for step in resumed.steps] == ["model-a", "model-b"]
+        assert resumed.model_info == "model-b"
+        assert resumed.system_prompt == "new system"
+        assert resumed.manifest["model"] == {"name": "model-b"}
+        assert resumed.manifest["resume_history"][-1] == {
+            "from_model": "model-a",
+            "model": "model-b",
+        }
+        assert resumed_model.seen_messages[0] == [
+            {"role": "user", "content": "start"},
+            {"role": "assistant", "content": "first"},
+            {"role": "user", "content": "continue"},
+        ]
+
+    def test_repo_round_trip_and_repeated_resume_keep_every_human_turn(self, tmp_path: Path):
+        original = Agent(MockModel([{"text": "first", "tool_calls": []}])).run_sync("start")
+        repo = Repo.init(tmp_path)
+        stored = repo.put_run(original)
+        loaded = repo.load_run(stored.run_id)
+
+        second_model = MockModel([{"text": "second", "tool_calls": []}], name="second")
+        second = Agent(second_model).resume_sync(loaded, prompt="continue")
+        third_model = MockModel([{"text": "third", "tool_calls": []}], name="third")
+        Agent(third_model).resume_sync(second, prompt="again")
+
+        assert [item["content"] for item in third_model.seen_messages[0]] == [
+            "start",
+            "first",
+            "continue",
+            "second",
+            "again",
+        ]
+
+    def test_resume_rejects_partial_parallel_tool_batch(self):
+        def first() -> str:
+            """First tool."""
+            return "one"
+
+        def second() -> str:
+            """Second tool."""
+            return "two"
+
+        source = Agent(
+            MockModel(
+                [
+                    {
+                        "text": "",
+                        "tool_calls": [
+                            {"id": "a", "name": "first", "arguments": {}},
+                            {"id": "b", "name": "second", "arguments": {}},
+                        ],
+                    },
+                    {"text": "done", "tool_calls": []},
+                ]
+            ),
+            tools=[first, second],
+        ).run_sync("start")
+        tool_steps = [step for step in source.steps if step.kind == StepKind.tool]
+        resumed_model = MockModel([{"text": "bad", "tool_calls": []}])
+
+        with pytest.raises(RuntimeError, match="tool-call batch"):
+            Agent(resumed_model, tools=[first, second]).resume_sync(
+                source, from_step=tool_steps[0].id
+            )
+        assert resumed_model.seen_messages == []
 
     def test_max_steps_exceeded(self):
         model = MockModel(

@@ -73,14 +73,14 @@ def test_fetch_caps_haves_and_avoids_dangling_filtered_ref(monkeypatch):
 def test_reachable_indexes_chained_annotations_once(tmp_path, monkeypatch):
     repo = Repo.init(tmp_path)
     run = repo.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
-    target = run
+    target = None
     associated = []
     for index in range(20):
         target = repo.put(
             "annotation",
             {
-                "previous_id": target if target.startswith("annotation:") else None,
-                "target_id": target,
+                "previous_id": target,
+                "target_id": run,
                 "value": {"index": index},
             },
         )
@@ -98,7 +98,7 @@ def test_reachable_indexes_chained_annotations_once(tmp_path, monkeypatch):
     monkeypatch.setattr(repo, "iter_oids", counted)
     selected = reachable(repo, [run])
     assert set(associated) <= set(selected)
-    assert calls == 1
+    assert calls == 0
 
 
 def test_reachable_and_default_pack_fail_closed_at_protocol_cap(tmp_path, monkeypatch):
@@ -111,14 +111,10 @@ def test_reachable_and_default_pack_fail_closed_at_protocol_cap(tmp_path, monkey
         raise ValueError("repository object listing exceeds search limit")
 
     monkeypatch.setattr(repo, "iter_oids", excessive)
-    with pytest.raises(ValueError, match="object listing"):
-        reachable(repo, [run])
+    assert reachable(repo, [run]) == [run]
     with pytest.raises(ValueError, match="object listing"):
         repo.pack()
-    assert calls == [
-        (MAX_PACK_OBJECTS, False),
-        (MAX_PACK_OBJECTS, False),
-    ]
+    assert calls == [(MAX_PACK_OBJECTS, False)]
 
 
 def test_explicit_empty_pack_does_not_expand_to_the_repository(tmp_path, monkeypatch):

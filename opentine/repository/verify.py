@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, verify_object
+from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._refs import validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 
@@ -63,6 +64,7 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
         try:
             verify_object(repo.raw(oid), oid, repo._link_exists if deep else None)
             envelope = ObjectEnvelope.decode(repo.raw(oid), oid)
+            validate_annotation_chain(repo, envelope)
             validate_event_metrics(envelope)
             if deep and oid.startswith("run:"):
                 validate_run_graph(repo, envelope)
@@ -76,13 +78,15 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     for name, oid in refs.items():
         try:
             repo._ref_name(name)
-            object_type, _ = parse_oid(oid)
-            validate_ref_target(name, object_type)
+            parse_oid(oid)
+            if not repo.has(oid):
+                errors.append(f"ref {name}: missing {oid}")
+                continue
+            target = repo.get(oid)
+            validate_ref_target(name, target.object_type, target.payload())
         except (KernelError, ValueError) as exc:
             errors.append(f"ref {name}: {exc}")
             continue
-        if not repo.has(oid):
-            errors.append(f"ref {name}: missing {oid}")
     if deep:
         errors.extend(_cycle_errors(repo, oids))
     return FsckResult(not errors, len(oids), len(refs), tuple(errors))

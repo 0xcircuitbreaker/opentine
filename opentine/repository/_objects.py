@@ -81,3 +81,18 @@ def iter_object_oids(
                 if truncate and scanned == limit:
                     return sorted(found)
     return sorted(found)
+
+
+def iter_typed_object_oids(root: Path, object_types: set[str]) -> Iterator[str]:
+    """Stream selected object types without counting unrelated repository objects."""
+    layout = _validate_layout(root)
+    for object_type in sorted(object_types):
+        for prefix in layout.get(object_type, []):
+            directory = internal_path(root, "objects", object_type, prefix)
+            for suffix in _suffixes(directory):
+                if len(suffix) != 62 or any(char not in _HEX for char in suffix):
+                    continue
+                path = internal_path(root, "objects", object_type, prefix, suffix)
+                if not path.is_file():
+                    raise KernelError("repository object path is not a regular file")
+                yield f"{object_type}:sha256:{prefix}{suffix}"

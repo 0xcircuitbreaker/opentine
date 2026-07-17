@@ -12,6 +12,7 @@ from typing import Any
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
+from opentine.remote._association_backend import SQLiteAssociationMixin
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._object_list import list_objects
@@ -22,7 +23,7 @@ _TENANT = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 _WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
     f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
 }
-_REF = re.compile(r"^(?:heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
+_REF = re.compile(r"^(?:annotations|heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
 MAX_CONTROL_RESULTS = 1000
 
 
@@ -109,7 +110,7 @@ class FilesystemObjectStore:
         return list_objects(root, limit=limit, truncate=truncate)
 
 
-class SQLiteBackend(SQLiteAuditMixin):
+class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
     validate_tenant = staticmethod(valid_tenant)
 
     def __init__(
@@ -169,13 +170,6 @@ class SQLiteBackend(SQLiteAuditMixin):
                 write_anchor(self._anchor_path, head, self._audit_key)
             else:
                 raise RuntimeError("audit chain does not match its authenticated anchor")
-
-    def record_object(self, tenant: str, oid: str, size: int) -> None:
-        with self._connect() as database:
-            database.execute(
-                "INSERT OR IGNORE INTO objects(tenant,oid,size) VALUES(?,?,?)",
-                (valid_tenant(tenant), oid, size),
-            )
 
     def list_refs(self, tenant: str) -> dict[str, str]:
         with self._connect() as database:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -10,8 +9,15 @@ from typing import TYPE_CHECKING, Any
 from opentine._artifact_io import parse_artifact_json, read_artifact_bytes
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
-from opentine.kernel import canonical_json
-from opentine.redaction import redact_value
+from opentine.repository._annotations import load_run_annotation, write_run_annotation
+from opentine.repository._run_blobs import (
+    blob_json,
+    json_blob,
+    put_run_manifest,
+    put_transcript,
+    run_origin,
+    transcript_blob,
+)
 from opentine.repository._run_graph import compatibility_float
 
 if TYPE_CHECKING:
@@ -26,11 +32,6 @@ class RunObjectResult:
     annotation_id: str | None = None
 
 
-def _json_blob(repo: Repo, value: Any) -> str:
-    redacted = redact_value(_redact(json_safe(value)))
-    return repo.put("blob", canonical_json(redacted), redact=False)
-
-
 def put_run(
     repo: Repo,
     run: Run,
@@ -39,25 +40,32 @@ def put_run(
     legacy_blob: str | None = None,
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
+    base = run_origin(repo, run)
     event_map: dict[str, str] = {}
     events: list[str] = []
     for step in run.steps:
-        input_blob = _json_blob(repo, step.inputs)
-        output_blob = _json_blob(repo, step.outputs)
-        prior = {}
-        if step.id.startswith("event:") and repo.has(step.id):
+        if step.id.startswith("event:"):
+            if not repo.has(step.id):
+                raise ValueError("cannot reconstruct a foreign v3 event through compatibility Run")
             prior = repo.get(step.id).payload()
+            event_id = repo.put("event", prior)
+            event_map[step.id] = event_id
+            events.append(event_id)
+            continue
+        input_blob = json_blob(repo, step.inputs)
+        output_blob = json_blob(repo, step.outputs)
         raw_kind = step.v3_kind or step.kind.value
         tool = step.tool_info
+        causal = getattr(run, "_v3_causal_ids", {}).get(step.id, [])
         payload = {
             "billing": _redact(step.billing),
-            "causal_ids": [],
+            "causal_ids": [event_map[item] for item in causal],
             "cost": step.cost,
             "duration": step.duration,
             "error": _redact(step.error),
             "input_blob": input_blob,
             "kind": raw_kind,
-            "legacy_step_id": prior.get("legacy_step_id", step.id),
+            "legacy_step_id": step.id,
             "model": step.model_info,
             "output_blob": output_blob,
             "parent_ids": [event_map[parent] for parent in step.parent_ids],
@@ -77,16 +85,23 @@ def put_run(
         for name, target in run.refs.items()
         if target and target in event_map
     }
-    manifests = {
-        "run": _json_blob(repo, run.manifest),
-        "policy": _json_blob(repo, run.policies),
-    }
-    migration_map_blob = _json_blob(repo, event_map) if legacy_blob else None
+    manifests = dict(base.get("manifests") or {})
+    manifests.update(
+        {
+            "cache": json_blob(repo, run.cache),
+            "policy": json_blob(repo, run.policies),
+            "run": put_run_manifest(repo, run.manifest, event_map),
+            "transcript": put_transcript(repo, run.transcript, event_map),
+        }
+    )
+    migration_map_blob = json_blob(repo, event_map) if legacy_blob else None
     payload: dict[str, Any] = {
+        **base,
         "created_at": run.created_at,
         "events": events,
         "legacy_refs": legacy_refs,
         "manifests": manifests,
+        "model": run.model_info,
         "roots": roots,
         "source_run_id": run.id,
         "status": run.status.value,
@@ -105,28 +120,11 @@ def put_run(
             }
         )
     run_id = repo.put("run", json_safe(payload))
-    annotation_id = None
-    mutable = {"metadata": run.metadata, "tags": run.tags}
-    if any(mutable.values()):
-        annotation_id = repo.put(
-            "annotation",
-            {"previous_id": None, "target_id": run_id, "value": json_safe(mutable)},
-        )
+    annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:
         old = repo.read_ref(ref)
         repo.update_ref(ref, run_id, expected_old=old)
     return RunObjectResult(run_id, event_map, annotation_id)
-
-
-def _blob_json(repo: Repo, oid: str) -> dict[str, Any]:
-    body = repo.get(oid).body
-    try:
-        parsed = json.loads(body)
-    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
-        raise ValueError("compatibility JSON blob is malformed") from exc
-    if not isinstance(parsed, dict) or canonical_json(parsed) != body:
-        raise ValueError("compatibility JSON blob must be a canonical object")
-    return parsed
 
 
 def load_run(repo: Repo, oid_or_ref: str) -> Run:
@@ -139,8 +137,10 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
     if not isinstance(payload, dict):
         raise ValueError("run object payload is not a mapping")
     graph = Graph()
+    causal_ids: dict[str, list[str]] = {}
     for event_id in payload.get("events") or []:
         event = repo.get(event_id).payload()
+        causal_ids[event_id] = list(event.get("causal_ids") or [])
         raw_kind = str(event.get("kind", "model"))
         legacy_kind = (
             StepKind(raw_kind) if raw_kind in StepKind._value2member_map_ else StepKind.model
@@ -150,8 +150,8 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 id=event_id,
                 parent_ids=list(event.get("parent_ids") or []),
                 kind=legacy_kind,
-                inputs=_blob_json(repo, event["input_blob"]) if event.get("input_blob") else {},
-                outputs=_blob_json(repo, event["output_blob"]) if event.get("output_blob") else {},
+                inputs=blob_json(repo, event["input_blob"]) if event.get("input_blob") else {},
+                outputs=blob_json(repo, event["output_blob"]) if event.get("output_blob") else {},
                 model_info=event.get("model", ""),
                 tool_info=dict(event.get("tool") or {}),
                 error=dict(event.get("error") or {}),
@@ -165,6 +165,8 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
         )
     manifest_id = (payload.get("manifests") or {}).get("run")
     policy_id = (payload.get("manifests") or {}).get("policy")
+    cache_id = (payload.get("manifests") or {}).get("cache")
+    transcript_id = (payload.get("manifests") or {}).get("transcript")
     refs = dict(payload.get("legacy_refs") or {})
     refs.setdefault("main", (payload.get("tips") or [""])[-1] if payload.get("tips") else "")
     run = Run(
@@ -172,26 +174,23 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
         status=RunStatus(payload.get("status", "running")),
         graph=graph,
         refs=refs,
-        manifest=_blob_json(repo, manifest_id) if manifest_id else {},
-        policies=_blob_json(repo, policy_id) if policy_id else {},
+        transcript=transcript_blob(repo, transcript_id),
+        manifest=blob_json(repo, manifest_id) if manifest_id else {},
+        policies=blob_json(repo, policy_id) if policy_id else {},
+        cache=blob_json(repo, cache_id) if cache_id else {},
         created_at=float(payload.get("created_at") or 0),
     )
     system_blob = payload.get("system_blob")
     prompt_blob = payload.get("prompt_blob")
     run.system_prompt = repo.get(system_blob).body.decode(errors="replace") if system_blob else ""
     run.user_prompt = repo.get(prompt_blob).body.decode(errors="replace") if prompt_blob else ""
-    run.model_info = run.manifest.get("model", {}).get("name", "")
-    annotations = [
-        repo.get(candidate).payload()
-        for candidate in repo.iter_oids()
-        if candidate.startswith("annotation:")
-        and repo.get(candidate).payload().get("target_id") == oid
-    ]
-    for annotation in annotations:
-        value = annotation.get("value") or {}
-        run.metadata.update(value.get("metadata") or {})
-        for tag in value.get("tags") or []:
-            run.add_tag(tag)
+    run.model_info = payload.get("model") or run.manifest.get("model", {}).get("name", "")
+    run.metadata, tags = load_run_annotation(repo, oid)
+    for tag in tags:
+        run.add_tag(tag)
+    run._v3_causal_ids = causal_ids
+    run._v3_payload = dict(payload)
+    run._v3_run_id = oid
     return run
 
 

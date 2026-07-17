@@ -6,7 +6,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import parse_oid, validate_links
+from opentine.kernel import ObjectEnvelope, validate_links
+from opentine.remote._admission import AllowAdmission
 from opentine.remote._tenant_repo import PackedTenantRepo, TenantRepo
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
@@ -21,11 +22,6 @@ from opentine.remote.interfaces import (
 )
 from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository.pack import create_pack, inspect_pack, negotiate
-
-
-class AllowAdmission:
-    def admit(self, identity: Identity, operation: str, facts: dict[str, Any]) -> None:
-        return None
 
 
 class RemoteService:
@@ -99,9 +95,10 @@ class RemoteService:
         self._authorize(identity, "read_ref", tenant)
         refs = self.index.list_refs(tenant)
         for name, oid in refs.items():
-            validate_ref_target(normalize_ref(name), parse_oid(oid)[0])
             if not self.objects.has(tenant, oid):
                 raise RuntimeError(f"ref {name} targets a missing object")
+            target = TenantRepo(tenant, self.objects, self.index).get(oid)
+            validate_ref_target(normalize_ref(name), target.object_type, target.payload())
         self._audit(identity, tenant, "read_ref", "ok", {"refs": len(refs)})
         return refs
 
@@ -114,9 +111,6 @@ class RemoteService:
         if not all(callable(item) for item in (verify, head, warnings)):
             raise RuntimeError("configured AuditSink does not expose chain verification")
         if callable(status_method):
-            # Bind the reported status to the exact head returned to the caller.
-            # An append may otherwise advance the database between these two
-            # reads and make an uncheckpointed head look verified.
             verified_head = head()
             status = status_method(expected_head=verified_head)
             warning_list = warnings() if status == "legacy-unverified" else []
@@ -147,7 +141,7 @@ class RemoteService:
         depth: int | None = None,
     ) -> list[str]:
         self._authorize(identity, "negotiate", tenant)
-        missing = negotiate(TenantRepo(tenant, self.objects), wants, haves, depth=depth)
+        missing = negotiate(TenantRepo(tenant, self.objects, self.index), wants, haves, depth=depth)
         self._audit(identity, tenant, "negotiate", "ok", {"missing": len(missing)})
         return missing
 
@@ -162,7 +156,7 @@ class RemoteService:
         object_types: set[str] | None = None,
     ) -> bytes:
         self._authorize(identity, "fetch", tenant)
-        repo = TenantRepo(tenant, self.objects)
+        repo = TenantRepo(tenant, self.objects, self.index)
         missing = negotiate(repo, wants, haves, depth=depth)
         if object_types:
             selected = {oid for oid in missing if oid.split(":", 1)[0] in object_types}
@@ -196,14 +190,28 @@ class RemoteService:
         )
         packed_ids = {oid for oid, _ in packed}
         view = PackedTenantRepo(tenant, self.objects, dict(packed))
+        external: set[str] = set()
         for oid, raw in packed:
             envelope = view.get(oid)
             for link in validate_links(envelope):
-                if link not in packed_ids and not self.objects.has(tenant, link):
+                if link in packed_ids:
+                    continue
+                external.add(link)
+                if not self.objects.has(tenant, link):
                     raise ValueError(f"pack has unresolved link: {link}")
+        if set(shallow) != external:
+            raise ValueError("pack shallow boundaries do not match its external links")
         for oid, raw in packed:
             self.objects.put(tenant, oid, raw)
-            self.index.record_object(tenant, oid, len(raw))
+            envelope = ObjectEnvelope.decode(raw, oid)
+            payload = envelope.payload()
+            target_id = (
+                payload.get("target_id")
+                if envelope.object_type in {"annotation", "attestation"}
+                and isinstance(payload, dict)
+                else None
+            )
+            self.index.record_object(tenant, oid, len(raw), target_id)
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
         return pack_id, len(packed)
 
@@ -219,8 +227,8 @@ class RemoteService:
         name = normalize_ref(name)
         if not self.objects.has(tenant, new_oid):
             raise KeyError(new_oid)
-        target = TenantRepo(tenant, self.objects).get(new_oid)
-        validate_ref_target(name, target.object_type)
+        target = TenantRepo(tenant, self.objects, self.index).get(new_oid)
+        validate_ref_target(name, target.object_type, target.payload())
         self.admission.admit(
             identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}
         )

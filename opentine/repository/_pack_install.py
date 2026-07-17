@@ -34,14 +34,24 @@ def install_inspected(
     shallow_path = internal_path(repo.path, "shallow")
     with shallow_lock(shallow_path):
         existing = repo.shallow_oids()
-        boundaries = (existing - packed_ids) | incoming_shallow
+        boundaries = {
+            oid
+            for oid in existing | incoming_shallow
+            if oid not in packed_ids and not repo.has(oid)
+        }
         shallow_body = encode_shallow(boundaries)
         view = PackedGraphView(repo, dict(objects))
+        external: set[str] = set()
         for oid, _ in objects:
             envelope = view.get(oid)
             for link in validate_links(envelope):
-                if link not in packed_ids and not repo.has(link) and link not in incoming_shallow:
+                if link in packed_ids:
+                    continue
+                external.add(link)
+                if not repo.has(link) and link not in incoming_shallow:
                     raise KernelError(f"pack has unresolved link: {link}")
+        if incoming_shallow != external:
+            raise KernelError("pack shallow boundaries do not match its external links")
         written = 0
         for oid, raw in objects:
             if install_verified(repo._object_path(oid), raw, "object"):

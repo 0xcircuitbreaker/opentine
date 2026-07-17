@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine.kernel import parse_oid, validate_links
 from opentine.repository._access import get_object as _get
-from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
+from opentine.repository._fork_state import fork_payload
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -192,28 +192,7 @@ def fork_run(
     source_id, payload = _run_payload(repo, run)
     if from_event not in payload.get("events", []):
         raise ValueError("fork event does not belong to source run")
-    keep: set[str] = set()
-    queue = [from_event]
-    while queue:
-        event = queue.pop()
-        if event in keep:
-            continue
-        keep.add(event)
-        event_payload = _get(repo, event).payload()
-        queue.extend(event_payload.get("parent_ids") or [])
-        queue.extend(event_payload.get("causal_ids") or [])
-    forked = dict(payload)
-    forked["legacy_refs"] = filtered_legacy_refs(payload, keep)
-    forked.update(
-        {
-            "events": [event for event in payload["events"] if event in keep],
-            "fork_overrides": overrides or {},
-            "forked_from": source_id,
-            "roots": [event for event in payload.get("roots", []) if event in keep],
-            "status": "running",
-        }
-    )
-    forked["tips"] = graph_tips(repo, forked["events"])
+    forked = fork_payload(repo, source_id, payload, from_event, overrides)
     run_id = repo.put("run", forked)
     if ref:
         repo.update_ref(ref, run_id, expected_old=repo.read_ref(ref))
