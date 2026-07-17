@@ -195,3 +195,8 @@ async def fetch_raw(url: str, policy: NetworkPolicy | None = None) -> dict[str, 
         "body": body.decode(resp.encoding or "utf-8", errors="replace"),
         "untrusted": True,
     }
+
+
+# Models choose the URL; the embedding host owns body/output ceilings and policy.
+fetch.__opentine_hidden_parameters__ = frozenset({"max_chars", "policy"})
+fetch_raw.__opentine_hidden_parameters__ = frozenset({"policy"})

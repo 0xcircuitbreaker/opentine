@@ -70,6 +70,13 @@ class ProcessHarness:
         return False
 
     def build_command(self, task: str, context: dict[str, Any] | None = None) -> list[str]:
+        if not isinstance(task, str):
+            raise TypeError("harness task must be a string")
+        # Prevent an untrusted prompt such as ``--dangerously-enable-x`` from
+        # being parsed as another CLI option. Flag-value harnesses and positional
+        # harnesses do not share a portable end-of-options convention.
+        if task.startswith("-"):
+            raise ValueError("harness task cannot begin with '-' (prefix it with prose)")
         return [*self.command, *self.extra_args, task]
 
     async def execute(

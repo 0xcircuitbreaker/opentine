@@ -23,6 +23,9 @@ class SignatureError(Exception):
     pass
 
 
+MAX_SIGNING_KEY_BYTES = 1024 * 1024
+
+
 def is_hex(value: Any) -> bool:
     if not isinstance(value, str) or not value:
         return False
@@ -41,7 +44,10 @@ def hmac_key_from_env(name: str) -> bytes:
 
 
 def hmac_key_from_file(path: str | Path) -> bytes:
-    raw = Path(path).read_bytes()
+    with Path(path).open("rb") as handle:
+        raw = handle.read(MAX_SIGNING_KEY_BYTES + 1)
+    if len(raw) > MAX_SIGNING_KEY_BYTES:
+        raise SignatureError("signing key file exceeds the 1 MiB limit")
     return raw[:-1] if raw.endswith(b"\n") else raw
 
 

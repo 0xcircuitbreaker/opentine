@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
 from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._stream_content import chat_content
+from opentine.models._streaming import ChatStreamState, chat_chunk_usage
 from opentine.models._usage import metered_response, openai_usage, value
 
 
@@ -64,6 +65,7 @@ class ChatCompletions:
                 "thinking",
                 "gpt-5",
                 "grok-4",
+                "kimi-k3",
                 "kimi-k2",
                 "deepseek-v4",
                 "glm-5",
@@ -131,7 +133,10 @@ class ChatCompletions:
                     item["reasoning_content"] = message["reasoning_content"]
                 converted.append(item)
                 continue
-            converted.append({"role": role, "content": message["content"]})
+            item = {"role": role, "content": message["content"]}
+            if role == "assistant" and message.get("reasoning_content"):
+                item["reasoning_content"] = message["reasoning_content"]
+            converted.append(item)
         return converted
 
     def _kwargs(
@@ -163,11 +168,28 @@ class ChatCompletions:
             rate_override=self._rate_override,
             service_tier=service_tier or self._service_tier,
             unmetered=self._unmetered,
+            usage_reported=raw_usage is not None,
         )
 
     def _billing_tier(self, messages: list[dict[str, Any]], reported: str | None) -> str | None:
         del messages
         return reported or self._service_tier
+
+    async def _complete(
+        self,
+        client: Any,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> dict[str, Any]:
+        kwargs = self._kwargs(messages, tools, system, temperature)
+        response = await client.chat.completions.create(**kwargs)
+        choice = response.choices[0]
+        result = chat_content(choice.message)
+        tier = self._billing_tier(kwargs["messages"], value(response, "service_tier"))
+        result.update(self._meter(value(response, "usage"), tier))
+        return result
 
     async def complete(
         self,
@@ -176,43 +198,40 @@ class ChatCompletions:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
+        return await self._complete(self._get_client(), messages, tools, system, temperature)
+
+    async def _stream(
+        self,
+        client: Any,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> AsyncIterator[dict[str, Any]]:
         kwargs = self._kwargs(messages, tools, system, temperature)
-        response = await self._get_client().chat.completions.create(**kwargs)
-        choice = response.choices[0]
-        message = choice.message
-        calls: list[dict[str, Any]] = []
-        warnings: list[str] = []
-        for call in value(message, "tool_calls", []) or []:
-            function = value(call, "function")
-            raw_arguments = value(function, "arguments", "{}")
-            try:
-                arguments = (
-                    json.loads(raw_arguments) if isinstance(raw_arguments, str) else raw_arguments
-                )
-            except json.JSONDecodeError:
-                arguments = {"_raw": raw_arguments}
-                warnings.append(f"invalid JSON arguments for {value(function, 'name', '')}")
-            calls.append(
-                {
-                    "name": value(function, "name", ""),
-                    "arguments": arguments,
-                    "id": value(call, "id"),
-                }
-            )
-        result: dict[str, Any] = {
-            "text": value(message, "content", "") or "",
-            "tool_calls": calls,
-            "warnings": warnings,
-        }
-        refusal = value(message, "refusal")
-        if refusal:
-            result["refusal"] = refusal
-        reasoning = value(message, "reasoning_content")
-        if reasoning:
-            result["reasoning_content"] = reasoning
-        tier = self._billing_tier(kwargs["messages"], value(response, "service_tier"))
-        result.update(self._meter(value(response, "usage"), tier))
-        return result
+        kwargs["stream"] = True
+        if self._provider in {"openai", "openai-compatible", "qwen", "xai"}:
+            kwargs["stream_options"] = {"include_usage": True}
+        stream = await client.chat.completions.create(**kwargs)
+        state = ChatStreamState()
+        final_usage = None
+        final_tier = self._service_tier
+        async for chunk in stream:
+            choices = value(chunk, "choices", []) or []
+            if choices:
+                for event in state.add(value(choices[0], "delta")):
+                    yield event
+            raw_usage = chat_chunk_usage(chunk, choices)
+            if raw_usage:
+                final_usage = raw_usage
+                final_tier = self._billing_tier(kwargs["messages"], value(chunk, "service_tier"))
+                yield {"type": "usage", **self._meter(raw_usage, final_tier)}
+        if final_usage is None:
+            yield {"type": "usage", **self._meter(None, final_tier)}
+        response = state.result()
+        if response["tool_calls"] or response.get("refusal") or response.get("reasoning_content"):
+            response.update(self._meter(final_usage, final_tier))
+            yield {"type": "response", **response}
 
     async def stream(
         self,
@@ -221,23 +240,5 @@ class ChatCompletions:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
-        kwargs = self._kwargs(messages, tools, system, temperature)
-        kwargs["stream"] = True
-        if self._provider in {"openai", "qwen", "xai"}:
-            kwargs["stream_options"] = {"include_usage": True}
-        stream = await self._get_client().chat.completions.create(**kwargs)
-        async for chunk in stream:
-            choices = value(chunk, "choices", []) or []
-            if choices:
-                delta = value(choices[0], "delta")
-                text = value(delta, "content")
-                if text:
-                    yield {"type": "text_delta", "text": text}
-            raw_usage = value(chunk, "usage")
-            if raw_usage:
-                tier = self._billing_tier(kwargs["messages"], value(chunk, "service_tier"))
-                yield {"type": "usage", **self._meter(raw_usage, tier)}
-
-
-def env_key(name: str) -> str:
-    return os.environ.get(name, "")
+        async for event in self._stream(self._get_client(), messages, tools, system, temperature):
+            yield event

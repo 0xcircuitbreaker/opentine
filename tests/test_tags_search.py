@@ -9,7 +9,7 @@ import pytest
 
 from opentine import Run, StepKind
 from opentine.core import RunStatus
-from opentine.index import QueryError, RunIndex, parse_query
+from opentine.index import IndexEntry, QueryError, RunIndex, parse_query
 
 
 def _run(run_id: str, *, model="m", tags=(), cost=0.0, text="hello", created_at=1_700_000_000.0):
@@ -174,3 +174,31 @@ def test_lookup_by_run_id_prefix(tmp_path: Path):
     index = RunIndex.open(tmp_path).sync()
     entry = index.lookup("abcdef")
     assert entry is not None and entry.file == "custom-name.tine"
+
+
+def test_lookup_rejects_ambiguous_run_id_prefix(tmp_path: Path):
+    _run("abcdef123").save(tmp_path / "first.tine")
+    _run("abcdef456").save(tmp_path / "second.tine")
+    assert RunIndex.open(tmp_path).sync().lookup("abcdef") is None
+
+
+def test_index_rejects_escape_paths_and_non_object_roots(tmp_path: Path):
+    with pytest.raises(ValueError, match="invalid run-index entry"):
+        IndexEntry.from_dict({"file": "../outside.tine"})
+    with pytest.raises(ValueError, match="invalid run-index entry"):
+        IndexEntry.from_dict({"file": "bad\0name.tine"})
+    (tmp_path / "index.json").write_text("[]", encoding="utf-8")
+    index = RunIndex.open(tmp_path)
+    assert index.entries == {} and index._stale is True
+
+
+def test_index_rejects_entry_key_file_mismatch(tmp_path: Path):
+    entry = IndexEntry(file="other.tine").to_dict()
+    cached = {
+        "covered_format_version": 2,
+        "entries": {"expected.tine": entry},
+        "index_version": 1,
+    }
+    (tmp_path / "index.json").write_text(json.dumps(cached), encoding="utf-8")
+    index = RunIndex.open(tmp_path)
+    assert index.entries == {} and index._stale is True

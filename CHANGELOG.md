@@ -77,11 +77,15 @@ v2; repository objects use the new verified v3 format.
   arrays, pairs, and HAR-style `{name, value}` records. Large trace integers are
   string-preserved, malformed JSONL records are skipped per line, and imported
   parents/causal links are ordered before recording.
+- Trace bulk import now writes one final run snapshot in linear graph work and
+  preflights a 3,000-event run ceiling before writing blobs. Repository search
+  and object inspection verify data under explicit object, source-byte, and
+  rendered-output caps so deduplicated references cannot amplify memory use.
 - Kernel errors now wrap oversized integer literals; v2 migration parses the
   verified bytes only; OIDC rejects unsupported critical headers; pack manifests
   require an integer version; repository descriptors are bounded and versioned.
 - The signed catalog was reverified and rotated to a retained release key. It
-  adds Gemini 3.5 Flash and GLM-5.2, maps current DeepSeek compatibility aliases
+  adds Kimi K3, Gemini 3.5 Flash, and GLM-5.2, maps current DeepSeek compatibility aliases
   to V4 Flash, distinguishes Gemini audio/cache dimensions and exact service
   rates, applies xAI's >200K Grok 4.5/4.3 prices, removes an unsafe `qwen-plus`
   cross-model alias, corrects Together's Llama 3.3 effective date, removes its
@@ -89,7 +93,8 @@ v2; repository objects use the new verified v3 format.
   splits GPT-4o's historical price transitions, and applies Anthropic's reported
   US inference geography multiplier. Qwen3.7-Max records its limited promotion,
   automatic-cache rate, and explicit cache creation/hit rates separately. Kimi
-  Batch and Groq service tiers use exact rates, invalid provider aliases are
+  K3 is the current default with its reasoning continuation and official
+  $3/$0.30/$15 rates; Kimi Batch and Groq service tiers use exact rates, invalid provider aliases are
   removed, and tier-scoped Groq shutdown dates are recorded without suppressing
   enterprise committed-spend billing.
 - Live traces retain cost and latency, causal forks retain causal ancestors, and
@@ -133,6 +138,11 @@ v2; repository objects use the new verified v3 format.
 - Source distributions use an explicit allowlist, and CI/publish gates require
   both source and wheel archives to match their tracked-file inventories exactly,
   preventing globally ignored local agent/editor state from entering a release.
+- Release automation now tracks and enforces the hashed dependency lock, pins
+  the build backend, uv, and GitHub Actions by immutable versions/commits, builds
+  the wheel from the validated sdist, and reuses that one artifact pair for an
+  attested GitHub release and OIDC PyPI Trusted Publishing. Only the protected
+  `pypi` environment's publish job receives an identity-token permission.
 - External process harnesses now fail closed under configurable time, output,
   line-size, and parsed-event ceilings and clean up their owned process group or
   Job Object on every exit path. Git code capture streams under a 16 MiB ceiling;
@@ -154,6 +164,19 @@ v2; repository objects use the new verified v3 format.
   rejects expansion-prone non-JSON values, and charges skipped oversized JSONL
   records. Harnesses observe direct-parent exit independently of inherited pipe
   handles and close an escaped descendant's retained pipe after a short drain.
+- Custom `OpenAI` base URLs now default to the provider identity
+  `openai-compatible`, so a proxy or compatible service cannot silently inherit
+  an OpenAI rate card merely by reusing an OpenAI model name. Explicit provider
+  and rate overrides remain authoritative.
+- Shallow-boundary state is validated, cached, and capped across the repository;
+  bounded object enumeration and negotiation no longer sort or parse an
+  unbounded local tree. Pack creation and installation enforce the same global
+  object and shallow-link ceilings before writing.
+- Trace parent and causal resolution is qualified by `(trace_id, span_id)`.
+  Duplicate spans and dependency cycles are rejected before recording, while
+  unresolved partial-trace boundaries are retained explicitly instead of being
+  silently rewritten. Ollama response/NDJSON parsing and OTLP `AnyValue`
+  traversal now have body, line, depth, and cycle limits.
 
 ### Architecture and compatibility
 
@@ -164,7 +187,11 @@ v2; repository objects use the new verified v3 format.
   bundled bounded WSGI server targets development and small self-hosted use,
   not turnkey HA, hosted SaaS, or billing/payment services.
 
-## 0.2.1 — 2026-07-15
+## 0.2.1 — Unpublished; folded into 0.3.0
+
+The provider-neutral billing work was developed under version 0.2.1, but no
+`v0.2.1` tag or PyPI distribution was published. The first public release to
+contain these changes, including the subsequent audit hardening, is 0.3.0.
 
 Provider-neutral usage and cost accounting without changing `.tine` v2.
 

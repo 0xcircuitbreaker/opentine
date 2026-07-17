@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -25,6 +26,39 @@ class RunStatus(StrEnum):
     failed = "failed"
 
 
+_MAX_SAFE_INTEGER = (1 << 53) - 1
+_TOKEN_USAGE = {
+    "input",
+    "output",
+    "cache_read",
+    "cache_write_5m",
+    "cache_write_1h",
+    "reasoning",
+    "total",
+}
+
+
+def _usage_value(name: str, value: Any) -> int | float:
+    error = f"step usage.{name} must be a finite, non-negative safe number"
+    if not isinstance(name, str) or not name:
+        raise ValueError("step usage names must be non-empty strings")
+    if isinstance(value, bool) or type(value) not in {int, float}:
+        raise ValueError(error)
+    if isinstance(value, int):
+        if value < 0 or value > _MAX_SAFE_INTEGER:
+            raise ValueError(error)
+        return value
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(error)
+    if name in _TOKEN_USAGE and not value.is_integer():
+        raise ValueError(f"step usage.{name} must be an integer token count")
+    if value.is_integer() and value <= _MAX_SAFE_INTEGER:
+        return int(value)
+    if name in _TOKEN_USAGE:
+        raise ValueError(error)
+    return value
+
+
 @dataclass(frozen=True)
 class Step:
     id: str
@@ -40,6 +74,26 @@ class Step:
     cost: float = 0.0
     usage: dict[str, int | float] = field(default_factory=dict)
     billing: dict[str, Any] = field(default_factory=dict)
+    v3_kind: str | None = None
+
+    def __post_init__(self) -> None:
+        for name, value in (("cost", self.cost), ("duration", self.duration)):
+            if (
+                isinstance(value, bool)
+                or type(value) not in {int, float}
+                or (isinstance(value, int) and value > _MAX_SAFE_INTEGER)
+            ):
+                raise ValueError(f"step {name} must be finite and non-negative")
+            number = float(value)
+            if not math.isfinite(number) or number < 0:
+                raise ValueError(f"step {name} must be finite and non-negative")
+            object.__setattr__(self, name, number)
+        if not isinstance(self.usage, dict):
+            raise ValueError("step usage must be a mapping")
+        normalized_usage: dict[str, int | float] = {}
+        for name, value in self.usage.items():
+            normalized_usage[name] = _usage_value(name, value)
+        object.__setattr__(self, "usage", normalized_usage)
 
     @property
     def parent_id(self) -> str | None:

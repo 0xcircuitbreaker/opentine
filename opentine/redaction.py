@@ -11,6 +11,7 @@ from typing import Any
 # benign names (public_key, idempotency_key) are never scrubbed.
 _NAME = (
     rb"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-])*"
+    rb"[A-Za-z0-9]*"
     rb"(?:api[_-]?keys?|api[_-]?tokens?|access[_-]?keys?|access[_-]?tokens?|"
     rb"secret[_-]?access[_-]?keys?|secret[_-]?keys?|private[_-]?keys?|"
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"

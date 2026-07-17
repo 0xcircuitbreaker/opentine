@@ -108,7 +108,9 @@ async def test_google_stream_payload_includes_tools(monkeypatch: pytest.MonkeyPa
         )
     ]
 
-    assert chunks == [{"type": "text_delta", "text": "ok"}]
+    assert chunks[0] == {"type": "text_delta", "text": "ok"}
+    assert chunks[1]["type"] == "usage"
+    assert chunks[1]["billing"]["status"] == "unknown"
     assert seen["model"] == "gemini-test"
     assert seen["config"].temperature == 0.2
     assert seen["config"].system_instruction == "Answer briefly."

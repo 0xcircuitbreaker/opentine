@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._canon import _canonical_bytes, atomic_write_text
+from opentine.billing._catalog_json import parse_catalog_json
 from opentine.billing.types import RateCard, as_date
 
 BUNDLED_CATALOG = Path(__file__).parent.parent / "data" / "pricing_catalog.json"
@@ -36,29 +37,42 @@ def catalog_hash(data: dict[str, Any]) -> str:
 
 
 def verify_catalog(data: dict[str, Any], *, require_signature: bool = True) -> str:
+    if not isinstance(data, dict):
+        raise CatalogError("pricing catalog root is not an object")
     if data.get("schema") != "opentine-pricing/1":
         raise CatalogError("unsupported pricing catalog schema")
     actual = catalog_hash(data)
     if data.get("catalog_id") != f"sha256:{actual}":
         raise CatalogError("catalog id/hash mismatch")
     signature = data.get("signature")
-    if not isinstance(signature, dict):
+    if signature is None:
         if require_signature:
             raise CatalogError("catalog is unsigned")
         return actual
+    if not isinstance(signature, dict):
+        raise CatalogError("catalog signature is not an object")
     if signature.get("algorithm") != "ed25519":
         raise CatalogError("unsupported catalog signature algorithm")
     key_id = signature.get("key_id")
-    encoded_key = TRUSTED_KEYS.get(str(key_id))
+    encoded_key = TRUSTED_KEYS.get(key_id) if isinstance(key_id, str) else None
     if not encoded_key:
-        raise CatalogError(f"untrusted catalog signing key: {key_id}")
+        raise CatalogError("untrusted catalog signing key")
     try:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-        public = Ed25519PublicKey.from_public_bytes(base64.b64decode(encoded_key))
-        public.verify(base64.b64decode(signature["value"]), _canonical_bytes(_body(data)))
+        encoded_signature = signature.get("value")
+        if not isinstance(encoded_signature, str):
+            raise CatalogError("catalog signature value is missing")
+        public_bytes = base64.b64decode(encoded_key, validate=True)
+        signature_bytes = base64.b64decode(encoded_signature, validate=True)
+        if len(public_bytes) != 32 or len(signature_bytes) != 64:
+            raise CatalogError("catalog signature has the wrong length")
+        public = Ed25519PublicKey.from_public_bytes(public_bytes)
+        public.verify(signature_bytes, _canonical_bytes(_body(data)))
     except ImportError as exc:
         raise CatalogError("catalog verification requires cryptography") from exc
+    except CatalogError:
+        raise
     except Exception as exc:
         raise CatalogError("catalog signature mismatch") from exc
     return actual
@@ -131,15 +145,24 @@ class PricingCatalog:
         verify: bool = True,
         require_signature: bool = True,
     ) -> PricingCatalog:
+        if not isinstance(data, dict):
+            raise CatalogError("pricing catalog root is not an object")
+        cards = data.get("cards")
+        if not isinstance(cards, list) or not all(isinstance(item, dict) for item in cards):
+            raise CatalogError("pricing catalog cards must be a list of objects")
         digest = (
             verify_catalog(data, require_signature=require_signature)
             if verify
             else catalog_hash(data)
         )
         catalog_id = data.get("catalog_id") or f"sha256:{digest}"
+        try:
+            parsed_cards = tuple(RateCard.from_dict(item) for item in cards)
+        except (ArithmeticError, AttributeError, KeyError, TypeError, ValueError) as exc:
+            raise CatalogError(f"invalid pricing rate card: {exc}") from exc
         return cls(
             catalog_id,
-            tuple(RateCard.from_dict(item) for item in data.get("cards") or ()),
+            parsed_cards,
             digest,
             source,
             isinstance(data.get("signature"), dict),
@@ -163,11 +186,9 @@ class PricingCatalog:
                 data = handle.read(MAX_CATALOG_BYTES + 1)
             if len(data) > MAX_CATALOG_BYTES:
                 raise CatalogError("pricing catalog exceeds maximum size")
-            raw = json.loads(data)
-        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        except OSError as exc:
             raise CatalogError(f"cannot load pricing catalog {p}: {exc}") from exc
-        if not isinstance(raw, dict):
-            raise CatalogError("pricing catalog root is not an object")
+        raw = parse_catalog_json(data, CatalogError)
         return cls.from_dict(raw, source=str(p), verify=verify, require_signature=require_signature)
 
 
@@ -202,10 +223,7 @@ def load_catalogs(
 def install_catalog(data: bytes, path: str | Path) -> PricingCatalog:
     if len(data) > MAX_CATALOG_BYTES:
         raise CatalogError("pricing catalog exceeds maximum size")
-    try:
-        raw = json.loads(data)
-    except json.JSONDecodeError as exc:
-        raise CatalogError(f"invalid catalog JSON: {exc}") from exc
+    raw = parse_catalog_json(data, CatalogError)
     catalog = PricingCatalog.from_dict(raw, source=str(path), verify=True, require_signature=True)
     atomic_write_text(path, json.dumps(raw, indent=2, sort_keys=True) + "\n", fsync=True)
     return catalog

@@ -128,6 +128,8 @@ def calculate(
         components[dimension] = str(amount)
 
     warnings: list[str] = []
+    if not rates:
+        warnings.append("rate card has no applicable rates; price is unknown")
     if missing:
         warnings.append("missing rates for usage dimensions: " + ", ".join(sorted(missing)))
     if card.currency != "USD":
@@ -152,7 +154,9 @@ def calculate(
         }
     )
     positive = any(decimal(value) > 0 for value in usage.dimensions().values())
-    if missing and components:
+    if not rates:
+        status = "unknown"
+    elif missing and components:
         status = "partial"
     elif missing or (positive and not components):
         status = "unknown"

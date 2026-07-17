@@ -149,6 +149,21 @@ def test_otel_importer_accepts_complete_export_and_defensive_anyvalues():
     assert event.attributes["large_id"] == "9223372036854775807"
 
 
+def test_imported_invalid_core_usage_is_discarded_with_warning():
+    events = jsonl_events(
+        [
+            json.dumps(
+                {
+                    "span_id": "bad-usage",
+                    "usage": {"input": 2**63, "output": 1.5, "reasoning": -1},
+                }
+            )
+        ]
+    )
+    assert events[0].usage == {}
+    assert len(events[0].attributes["opentine.import_warnings"]) == 3
+
+
 def test_importers_skip_well_formed_unexpected_records():
     assert jsonl_events(["[]", '"scalar"']) == []
     assert otel_genai_events([{"attributes": [42]}, [], "span"]) == []
@@ -192,3 +207,41 @@ def test_iterable_jsonl_bound_counts_oversized_skipped_records(monkeypatch):
     monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 64)
     with pytest.raises(ValueError, match="aggregate payload limit"):
         jsonl_events(["x" * 17])
+
+
+def test_otel_importer_skips_cyclic_anyvalue_and_keeps_following_span():
+    cyclic: dict = {}
+    cyclic["arrayValue"] = {"values": [cyclic]}
+    spans = [
+        {
+            "traceId": "bad",
+            "spanId": "cycle",
+            "attributes": [{"key": "cycle", "value": cyclic}],
+        },
+        {
+            "traceId": "good",
+            "spanId": "kept",
+            "attributes": [{"key": "name", "value": {"stringValue": "ok"}}],
+        },
+    ]
+    events = otel_genai_events(spans)
+    assert [event.span_id for event in events] == ["kept"]
+    assert events[0].attributes["name"] == "ok"
+
+
+def test_otel_importer_skips_excessively_deep_anyvalue():
+    nested: dict = {"stringValue": "bottom"}
+    for _ in range(120):
+        nested = {"arrayValue": {"values": [nested]}}
+    assert (
+        otel_genai_events(
+            [
+                {
+                    "traceId": "bad",
+                    "spanId": "deep",
+                    "attributes": [{"key": "deep", "value": nested}],
+                }
+            ]
+        )
+        == []
+    )

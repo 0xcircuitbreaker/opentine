@@ -36,6 +36,11 @@ Resolution order is:
 5. the bundled signed snapshot;
 6. an `unknown` result—never another provider's price.
 
+Supplying `base_url=` to `OpenAI`, or setting `OPENAI_BASE_URL`, selects the
+provider identity `openai-compatible` by default. Even if that endpoint exposes
+a model named `gpt-4o`, OpenTine will report unknown pricing unless the caller
+explicitly selects a provider or supplies a `rates=` override.
+
 Later local layers win while effective dates remain deterministic. A local
 catalog must have its own matching `catalog_id` hash; it may be unsigned so an
 enterprise can express negotiated discounts or infrastructure costs without
@@ -79,7 +84,8 @@ list` for the exact effective records rather than copying rates into code.
 Direct Nous/Hermes rates are dynamic in the upstream service, so that card is
 intentionally `unknown` until a local overlay supplies a price.
 
-The current snapshot includes Gemini 3.5 Flash, GLM-5.2, DeepSeek V4
+The current snapshot includes Kimi K3 ($3 input, $0.30 cache hit, and $15
+output per MTok), Gemini 3.5 Flash, GLM-5.2, DeepSeek V4
 Pro/Flash, and the current DeepSeek `deepseek-chat`/`deepseek-reasoner` aliases.
 Gemini audio and cached-audio tokens remain separate dimensions, and exact
 Batch/Flex/Priority rates are pinned where a scalar modifier would be wrong.

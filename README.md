@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/opentine-logo.svg" alt="opentine" width="120" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.3.0/docs/assets/opentine-logo.svg" alt="opentine" width="120" />
 </p>
 
 <h1 align="center">opentine</h1>
@@ -29,6 +29,8 @@ transcripts.
 
 ## Install
 
+OpenTine 0.3.x supports Python 3.11 through 3.14.
+
 ```bash
 pip install opentine
 ```
@@ -41,6 +43,7 @@ pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"  # hosted OpenAI-compatible APIs
 pip install "opentine[mcp]"
+pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
 ## Portable v2 runs
@@ -65,7 +68,7 @@ tine diff result.tine retry.tine
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
-fail-closed `tine verify` options. See [TINE_FORMAT.md](TINE_FORMAT.md).
+fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TINE_FORMAT.md).
 
 ## Universal usage and billing
 
@@ -105,7 +108,7 @@ overlay rather than pretending it is free. Unknown hosted models remain
 runnable and visibly unpriced. `Budget(strict_cost=True)` stops before the next
 call after billing becomes indeterminate.
 
-See [PRICING.md](PRICING.md) for resolution order, provenance, and the catalog
+See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
 ## Model adapters
@@ -133,7 +136,7 @@ from opentine.models.compat import (
     Mistral, OpenRouter, Qwen, Together,
 )
 
-Kimi()                            # kimi-k2.6, api.moonshot.ai
+Kimi()                            # kimi-k3, api.moonshot.ai
 DeepSeek()                        # deepseek-v4-flash
 GLM()                             # glm-5.2 / Z.AI global endpoint
 Grok()                            # grok-4.5
@@ -192,7 +195,7 @@ integrity or a requested signature failure is refused unless
 `--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
 retain source secrets and should be reviewed before synchronization.
 
-See [REPOSITORY.md](REPOSITORY.md) for object semantics and synchronization.
+See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/REPOSITORY.md) for object semantics and synchronization.
 
 ## Live agent recording
 
@@ -208,7 +211,7 @@ repo = Repo.open(".")
 recording = Recorder.start(repo, ref="heads/main")
 recording.append(TraceEvent(
     kind="model", timestamp=0, trace_id="trace", span_id="model-1",
-    model="kimi-k2.6", inputs={"prompt": "hello"}, outputs={"text": "hi"},
+    model="kimi-k3", inputs={"prompt": "hello"}, outputs={"text": "hi"},
 ))
 run_id = recording.finalize()
 evaluation = recording.evaluate({"quality": 0.9}, evaluator="judge")
@@ -233,7 +236,7 @@ The reference backend uses encrypted filesystem object storage and SQLite
 metadata/audit records.
 
 ```bash
-export TINE_REMOTE_TOKEN='development-token'
+export TINE_REMOTE_TOKEN="$(openssl rand -hex 32)"
 export TINE_KMS_KEY="$(openssl rand -base64 32)"
 tine serve --root /srv/opentine --cert cert.pem --key key.pem
 ```
@@ -278,41 +281,51 @@ output ceiling, and 10,000 parsed events. Override them with
 `--harness-max-line-bytes`.
 
 Filesystem, network, shell, Python, and harness execution use restrictive
-policies. Harnesses do not inherit the parent environment by default. Review
+policies. Tool schemas hide host-owned policy/resource parameters and runtime
+dispatch rejects attempts by a model to override them; bind an explicit policy
+in an application wrapper when enabling shell, Python, or filesystem writes.
+Harnesses do not inherit the parent environment by default. Review
 free-form model/tool output before sharing: credential redaction is typed and
 path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
 Enabled shell/Python timeouts terminate the owned process group or Windows Job
 Object and return only bounded partial output, with space reserved for stderr
 diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
-See [SECURITY_MODEL.md](SECURITY_MODEL.md).
+See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY_MODEL.md).
 
 ## Validation
 
 ```bash
-uv sync --all-extras
+uv sync --locked --all-extras
 uv run ruff check .
 uv run ruff format --check .
 uv run python scripts/check_architecture.py
 uv run pytest tests -m "not live and not live_harness" -q
-uv build --sdist --wheel --out-dir dist
+uv build --no-build-isolation --sdist --wheel --out-dir dist
 uv run python scripts/check_release_inventory.py dist
-uv run --with twine python -m twine check dist/*
+uv run python -m twine check dist/*
 uv run python scripts/wheel_smoke.py
 ```
 
-CI runs these gates on Linux, macOS, and Windows with Python 3.11–3.13. Live
+CI runs these gates on Linux, macOS, and Windows with Python 3.11–3.14. Live
 provider and CLI-harness tests remain opt-in because they require credentials or
 installed services.
 
+Tagged releases reuse one validated wheel/sdist pair for GitHub and PyPI. PyPI
+publication uses OIDC Trusted Publishing behind the protected `pypi` GitHub
+environment; no long-lived package-index token is stored. See
+[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/RELEASING.md) for the required one-time configuration and release
+checklist.
+
 ## Documentation
 
-- [CHANGELOG.md](CHANGELOG.md): release-level changes and compatibility.
-- [TINE_FORMAT.md](TINE_FORMAT.md): portable v2 and repository v3 boundaries.
-- [PRICING.md](PRICING.md): signed catalogs and billing semantics.
-- [REPOSITORY.md](REPOSITORY.md): objects, packs, migration, remote, and MCP.
-- [SECURITY_MODEL.md](SECURITY_MODEL.md): trust, redaction, signing, and remote security.
-- [SUPPORT.md](SUPPORT.md): supported runtimes and support levels.
+- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/CHANGELOG.md): release-level changes and compatibility.
+- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
+- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/PRICING.md): signed catalogs and billing semantics.
+- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
+- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/RELEASING.md): trusted publication and release verification.
+- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SUPPORT.md): supported runtimes and support levels.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/LICENSE).

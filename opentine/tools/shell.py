@@ -91,3 +91,8 @@ def run(
         return result.output(pol.max_output_chars)
     except Exception as e:
         return f"Error: {e}"
+
+
+# Registering the built-in directly remains disabled. Callers that intend to
+# enable it bind a ShellPolicy in their own one-argument wrapper.
+run.__opentine_hidden_parameters__ = frozenset({"timeout", "allowlist", "sandbox", "policy"})

@@ -14,6 +14,7 @@ from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
+from opentine.remote._object_list import list_objects
 from opentine.remote._schema import initialize
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 
@@ -23,7 +24,6 @@ _WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
 }
 _REF = re.compile(r"^(?:heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
 MAX_CONTROL_RESULTS = 1000
-MAX_OBJECT_LIST = 100_000
 
 
 def valid_tenant(tenant: str) -> str:
@@ -104,24 +104,9 @@ class FilesystemObjectStore:
         path.unlink()
         _fsync_dir(path.parent)
 
-    def list(self, tenant: str) -> list[str]:
+    def list(self, tenant: str, *, limit: int | None = None, truncate: bool = False) -> list[str]:
         root = self.root / valid_tenant(tenant)
-        found: list[str] = []
-        if not root.exists():
-            return found
-        for object_type in sorted(root.iterdir()):
-            if not object_type.is_dir():
-                continue
-            for prefix in sorted(object_type.iterdir()):
-                for item in sorted(prefix.iterdir() if prefix.is_dir() else []):
-                    digest = prefix.name + item.name
-                    if len(digest) == 64:
-                        found.append(f"{object_type.name}:sha256:{digest}")
-                        if len(found) > MAX_OBJECT_LIST:
-                            raise ValueError(
-                                "tenant object listing exceeds reference backend limit"
-                            )
-        return found
+        return list_objects(root, limit=limit, truncate=truncate)
 
 
 class SQLiteBackend(SQLiteAuditMixin):
@@ -221,6 +206,11 @@ class SQLiteBackend(SQLiteAuditMixin):
             old = row[0] if row else None
             if old != expected_old:
                 return False
+            count = database.execute(
+                "SELECT count(*) FROM refs WHERE tenant=?", (tenant,)
+            ).fetchone()[0]
+            if row is None and count >= MAX_CONTROL_RESULTS:
+                raise ValueError("tenant ref count exceeds control-plane limit")
             database.execute(
                 "INSERT INTO refs(tenant,name,oid) VALUES(?,?,?) "
                 "ON CONFLICT(tenant,name) DO UPDATE SET "

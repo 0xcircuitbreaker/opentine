@@ -6,6 +6,7 @@ HTTP payload shape Opentine sends to Ollama's current /api/chat contract.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -106,6 +107,41 @@ def test_tools_capable_is_optimistic_when_probe_fails(monkeypatch: pytest.Monkey
     assert adapter.supports_tools is True
 
 
+def test_capability_probe_ignores_proxies_and_redirects(monkeypatch: pytest.MonkeyPatch):
+    options: dict[str, Any] = {}
+
+    class Response:
+        def raise_for_status(self): ...
+
+        def iter_raw(self, **kwargs):
+            yield b'{"capabilities":["tools"]}'
+
+    class Stream:
+        def __enter__(self):
+            return Response()
+
+        def __exit__(self, *exc):
+            return None
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return None
+
+        def stream(self, *args, **kwargs):
+            return Stream()
+
+    def factory(**kwargs):
+        options.update(kwargs)
+        return Client()
+
+    monkeypatch.setattr("opentine.models.ollama.httpx.Client", factory)
+    assert Ollama("qwen3").supports_tools is True
+    assert options["trust_env"] is False and options["follow_redirects"] is False
+
+
 @pytest.mark.asyncio
 async def test_complete_drops_tools_and_warns_for_incapable_model(
     monkeypatch: pytest.MonkeyPatch,
@@ -114,12 +150,20 @@ async def test_complete_drops_tools_and_warns_for_incapable_model(
     monkeypatch.setattr(adapter, "_capabilities", {"completion", "vision"})
 
     sent: dict[str, Any] = {}
+    client_options: dict[str, Any] = {}
 
     class FakeResp:
         def raise_for_status(self) -> None: ...
 
-        def json(self) -> dict[str, Any]:
-            return {"message": {"content": "42"}}
+        async def aiter_raw(self, **kwargs):
+            yield json.dumps({"message": {"content": "42"}}).encode()
+
+    class FakeStream:
+        async def __aenter__(self):
+            return FakeResp()
+
+        async def __aexit__(self, *exc):
+            return None
 
     class FakeClient:
         async def __aenter__(self):
@@ -128,11 +172,15 @@ async def test_complete_drops_tools_and_warns_for_incapable_model(
         async def __aexit__(self, *exc):
             return None
 
-        async def post(self, url: str, json: dict[str, Any]):
+        def stream(self, method: str, url: str, json: dict[str, Any], **kwargs):
             sent.update(json)
-            return FakeResp()
+            return FakeStream()
 
-    monkeypatch.setattr("opentine.models.ollama.httpx.AsyncClient", lambda *a, **k: FakeClient())
+    def client_factory(*args, **kwargs):
+        client_options.update(kwargs)
+        return FakeClient()
+
+    monkeypatch.setattr("opentine.models.ollama.httpx.AsyncClient", client_factory)
 
     result = await adapter.complete(
         [{"role": "user", "content": "What is 6 * 7?"}],
@@ -143,4 +191,112 @@ async def test_complete_drops_tools_and_warns_for_incapable_model(
     assert result["text"] == "42"
     assert result["warnings"] == [
         "ollama/gemma3:4b: model does not support tool calling; ran without tools"
+    ]
+    assert client_options["trust_env"] is False
+    assert client_options["follow_redirects"] is False
+
+
+def test_capability_probe_stops_at_response_limit(monkeypatch: pytest.MonkeyPatch):
+    import opentine.models.ollama as module
+
+    consumed = 0
+
+    class Response:
+        def raise_for_status(self): ...
+
+        def iter_raw(self, **kwargs):
+            nonlocal consumed
+            for chunk in (b"12345", b"should-not-be-read"):
+                consumed += 1
+                yield chunk
+
+    class Stream:
+        def __enter__(self):
+            return Response()
+
+        def __exit__(self, *exc): ...
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc): ...
+
+        def stream(self, *args, **kwargs):
+            return Stream()
+
+    monkeypatch.setattr(module._http, "MAX_SHOW_BYTES", 4)
+    monkeypatch.setattr(module.httpx, "Client", lambda **kwargs: Client())
+    assert Ollama("hostile", host="https://ollama.example").supports_tools is True
+    assert consumed == 1
+
+
+@pytest.mark.asyncio
+async def test_complete_stops_at_response_limit(monkeypatch: pytest.MonkeyPatch):
+    import opentine.models.ollama as module
+
+    class Response:
+        def raise_for_status(self): ...
+
+        async def aiter_raw(self, **kwargs):
+            yield b'{"message":{"content":"too large"}}'
+
+    class Stream:
+        async def __aenter__(self):
+            return Response()
+
+        async def __aexit__(self, *exc): ...
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc): ...
+
+        def stream(self, *args, **kwargs):
+            return Stream()
+
+    monkeypatch.setattr(module._http, "MAX_CHAT_BYTES", 8)
+    monkeypatch.setattr(module.httpx, "AsyncClient", lambda **kwargs: Client())
+    with pytest.raises(ValueError, match="response exceeds size limit"):
+        await Ollama("hostile", host="https://ollama.example").complete(
+            [{"role": "user", "content": "hi"}]
+        )
+
+
+@pytest.mark.asyncio
+async def test_stream_bounds_each_line_and_aggregate_body(monkeypatch: pytest.MonkeyPatch):
+    from opentine.models import _ollama_http
+
+    class Response:
+        def __init__(self, chunks):
+            self.chunks = chunks
+
+        async def aiter_raw(self, **kwargs):
+            for chunk in self.chunks:
+                yield chunk
+
+    monkeypatch.setattr(_ollama_http, "MAX_STREAM_LINE_BYTES", 8)
+    monkeypatch.setattr(_ollama_http, "MAX_STREAM_BYTES", 64)
+    with pytest.raises(ValueError, match="line exceeds size limit"):
+        _ = [item async for item in _ollama_http.iter_ndjson(Response([b"x" * 9]))]
+
+    monkeypatch.setattr(_ollama_http, "MAX_STREAM_LINE_BYTES", 32)
+    monkeypatch.setattr(_ollama_http, "MAX_STREAM_BYTES", 8)
+    with pytest.raises(ValueError, match="aggregate size limit"):
+        _ = [item async for item in _ollama_http.iter_ndjson(Response([b"{}\n" * 3, b"{}\n"]))]
+
+
+@pytest.mark.asyncio
+async def test_stream_parser_handles_split_ndjson_without_aiter_lines():
+    from opentine.models._ollama_http import iter_ndjson
+
+    class Response:
+        async def aiter_raw(self, **kwargs):
+            for chunk in (b'{"message":', b'{"content":"ok"}}\n', b'{"done":true}'):
+                yield chunk
+
+    assert [item async for item in iter_ndjson(Response())] == [
+        {"message": {"content": "ok"}},
+        {"done": True},
     ]

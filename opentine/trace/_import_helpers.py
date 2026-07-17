@@ -7,6 +7,17 @@ from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from typing import Any
 
+_MAX_SAFE_INTEGER = (1 << 53) - 1
+_TOKEN_USAGE = {
+    "input",
+    "output",
+    "cache_read",
+    "cache_write_5m",
+    "cache_write_1h",
+    "reasoning",
+    "total",
+}
+
 
 def logical_size(value: Any, limit: int) -> int:
     """Estimate retained JSON-safe size with bounded-depth, incremental traversal."""
@@ -71,6 +82,19 @@ def first(source: dict[str, Any], *names: str, default: Any = None) -> Any:
     return default
 
 
+def optional_string(value: Any) -> str | None:
+    return None if value is None or value == "" else str(value)
+
+
+def event_kind(value: Any) -> str:
+    normalized = str(value or "model").casefold()
+    if normalized in {"model", "tool", "human", "policy", "approval", "subagent", "error"}:
+        return normalized
+    if "tool" in normalized:
+        return "tool"
+    return "error" if "error" in normalized or "exception" in normalized else "model"
+
+
 def integer(value: Any) -> int:
     try:
         return int(value or 0)
@@ -80,6 +104,43 @@ def integer(value: Any) -> int:
 
 def dictionary(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def safe_usage(value: Any) -> tuple[dict[str, int | float], list[str]]:
+    """Keep only graph-safe numeric usage, reporting discarded dimensions."""
+    result: dict[str, int | float] = {}
+    warnings: list[str] = []
+    for name, raw in dictionary(value).items():
+        valid = (type(raw) is int and raw >= 0) or (
+            type(raw) is float and math.isfinite(raw) and raw >= 0
+        )
+        if name in _TOKEN_USAGE:
+            valid = valid and (
+                (type(raw) is int and raw <= _MAX_SAFE_INTEGER)
+                or (type(raw) is float and raw.is_integer() and raw <= _MAX_SAFE_INTEGER)
+            )
+        if isinstance(name, str) and valid:
+            result[name] = int(raw) if name in _TOKEN_USAGE else raw
+        else:
+            warnings.append(f"discarded invalid usage dimension {name!r}")
+    return result, warnings
+
+
+def imported_usage(value: Any, attributes: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    usage, warnings = safe_usage(value)
+    if warnings:
+        attributes["opentine.import_warnings"] = warnings
+    return usage, attributes
+
+
+def otel_usage(attributes: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    return imported_usage(
+        {
+            "input": attributes.get("gen_ai.usage.input_tokens", 0),
+            "output": attributes.get("gen_ai.usage.output_tokens", 0),
+        },
+        attributes,
+    )
 
 
 def mapping(value: Any) -> dict[str, Any]:
@@ -113,52 +174,6 @@ def timestamp(value: Any) -> float:
         except (OverflowError, ValueError):
             return 0.0
     return 0.0
-
-
-def any_value(value: Any) -> Any:
-    """Unwrap a protobuf-JSON OTLP ``AnyValue`` without throwing on odd shapes."""
-    if not isinstance(value, dict):
-        return value
-    for name in ("stringValue", "string_value"):
-        if name in value:
-            return str(value[name])
-    for name in ("intValue", "int_value"):
-        if name in value:
-            number = integer(value[name])
-            return number if abs(number) <= 9_007_199_254_740_991 else str(value[name])
-    for name in ("doubleValue", "double_value"):
-        if name in value:
-            return value[name]
-    for name in ("boolValue", "bool_value"):
-        if name in value:
-            raw = value[name]
-            return raw if isinstance(raw, bool) else str(raw).casefold() == "true"
-    for name in ("bytesValue", "bytes_value"):
-        if name in value:
-            return str(value[name])
-    array = first(value, "arrayValue", "array_value")
-    if isinstance(array, dict):
-        values = array.get("values")
-        return [any_value(item) for item in values] if isinstance(values, list) else []
-    pairs = first(value, "kvlistValue", "kvlist_value")
-    if isinstance(pairs, dict) and isinstance(pairs.get("values"), list):
-        return {
-            str(item["key"]): any_value(item.get("value"))
-            for item in pairs["values"]
-            if isinstance(item, dict) and item.get("key") is not None
-        }
-    return {str(key): any_value(item) for key, item in value.items()}
-
-
-def attributes(span: dict[str, Any]) -> dict[str, Any]:
-    raw = span.get("attributes") or {}
-    if isinstance(raw, list):
-        return {
-            str(item["key"]): any_value(item.get("value"))
-            for item in raw
-            if isinstance(item, dict) and item.get("key") is not None
-        }
-    return {str(key): any_value(value) for key, value in dictionary(raw).items()}
 
 
 def otel_spans(source: Iterable[dict[str, Any]] | dict[str, Any]) -> Iterator[dict[str, Any]]:

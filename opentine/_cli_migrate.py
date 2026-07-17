@@ -8,6 +8,7 @@ from pathlib import Path
 
 from rich.markup import escape
 
+from opentine._artifact_io import read_artifact_json
 from opentine._canon import FORMAT_VERSION, _integrity_digest
 from opentine._cli_common import BRAND, _find_run, console
 from opentine.core import Run
@@ -20,8 +21,8 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {args.run_id}[/]")
         raise SystemExit(1)
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        raw = read_artifact_json(path)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, RecursionError, ValueError) as exc:
         console.print(f"[red]Cannot read {escape(str(path))}: {escape(str(exc))}[/]")
         raise SystemExit(1) from exc
     legacy = is_legacy_linear(raw)

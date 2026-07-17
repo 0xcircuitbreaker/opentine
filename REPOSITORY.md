@@ -99,8 +99,17 @@ until they are added or staged. Importers accept native
 OpenTine records, JSONL, and OpenTelemetry GenAI spans or complete OTLP/JSON
 exports. Malformed JSONL lines are skipped independently, large integers are
 string-preserved, and imported dependencies are ordered before recording.
+Span lookup is qualified by trace identity; duplicates and dependency cycles
+are rejected, while unresolved boundaries in partial traces are retained on the
+stored event as `unresolved_span_refs`.
 Framework importers best-effort normalize common serialized shapes
 from LangChain, LlamaIndex, AutoGen, CrewAI, and OpenAI Agents.
+
+Import parsers can normalize larger input sources, but one stored `Recorder` run
+is limited to 3,000 events. The limit is checked before any event data is written;
+bulk imports preserve dependency order and commit one final run snapshot. This
+keeps even a worst-case graph with unique input and output blobs below the 10,000
+object pack-negotiation ceiling.
 
 Local search retrieves successful runs and evaluation scores. `context_slice`
 walks only parent and causal links needed for an event. Forking can replace
@@ -113,6 +122,12 @@ When an MCP server starts inside a repository, it adds `search_runs`,
 `resume_run_v3`, `evaluate_run`, `attest_run`, and `promote_run`, plus verified
 object resources.
 
+Search and inspection fail closed at explicit implementation ceilings: search
+indexes at most 100,000 objects, 10,000 candidate runs, and 100,000 aggregate
+event references while bounding structured and blob source bytes. Direct blob
+inspection returns a verified 512 KiB prefix; resolved inspection returns at
+most 1 MiB across 64 referenced blobs and marks truncated results explicitly.
+
 ## Packs and synchronization
 
 `TINEPACK3` packs are canonical manifests of verified envelopes, compressed
@@ -120,7 +135,10 @@ with a SHA-256 checksum. Negotiation sends only objects reachable from wanted
 IDs that the receiver does not already have. Packs support shallow boundaries
 and filtered fetch without pretending omitted history is present. Compressed
 transfers and decompressed manifests are capped at 256 MiB and trailing zlib
-streams/data are rejected. Client control responses are streamed under a 1 MiB
+streams/data are rejected. Repository-wide shallow state is validated and
+capped at 10,000 object IDs / 1 MiB, then cached for link verification; local
+object and negotiation listings stop at protocol limits before sorting. Client
+control responses are streamed under a 1 MiB
 raw-byte cap and non-identity HTTP content encodings are rejected; resumable
 offsets must advance, loops are bounded, transient short reads retain partial
 upload state, and abandoned upload state is reaped.

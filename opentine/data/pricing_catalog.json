@@ -210,6 +210,16 @@
       "verified_at": "2026-07-16"
     },
     {
+      "id": "kimi:kimi-k3:2026-07-16",
+      "provider": "kimi",
+      "model": "kimi-k3",
+      "aliases": [],
+      "effective_from": "2026-07-16",
+      "rates": {"input": "3", "cache_read": "0.30", "output": "15", "reasoning": "15"},
+      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k3", "https://platform.kimi.ai/docs/guide/kimi-k3-quickstart", "https://www.kimi.com/blog/kimi-k3"],
+      "verified_at": "2026-07-16"
+    },
+    {
       "id": "kimi:kimi-k2.7-code:2026-06-25",
       "provider": "kimi",
       "model": "kimi-k2.7-code",
@@ -632,7 +642,7 @@
       "id": "nous:hermes-4-70b:dynamic",
       "provider": "nous",
       "model": "Hermes-4-70B",
-      "aliases": ["hermes-4-70b"],
+      "aliases": [],
       "effective_from": "2026-07-14",
       "rates": {},
       "source_urls": ["https://portal.nousresearch.com/api-docs"],
@@ -640,10 +650,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:bb4defcca4a96289dd05e8af539607e22312d8e2d23e0d5096269bb5f41f0e80",
+  "catalog_id": "sha256:26a1d26225d0e3790dafcd83d7bc679b18e2ead658c6e73000bae69fdac9aaca",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r2",
-    "value": "c9PWEbURXjQzFzSNPCRarvxbiwn+EFLP0RmkUEY3aCDGMPLBuWgjEavgyglBM9DtO0KEVOhoAlMiT0JxkpZCCg=="
+    "value": "rdAP1pUNZhdi0ggLb/ts6NCzvQA95s6iQ6ycfYO1XpXoIY6HiazbVECVek4Df2/ZOxaf3pa2KhopdvD9HNODCg=="
   }
 }

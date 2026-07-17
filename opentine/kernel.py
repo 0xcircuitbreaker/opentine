@@ -147,11 +147,11 @@ class ObjectEnvelope:
         if envelope.encoding == "json":
             try:
                 parsed = json.loads(body, parse_int=_parse_int)
-            except (json.JSONDecodeError, RecursionError) as exc:
+            except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
                 raise KernelError("malformed object JSON") from exc
             if canonical_json(parsed) != body:
                 raise KernelError("non-canonical object body")
-        if expected_oid and envelope.oid != expected_oid:
+        if expected_oid is not None and envelope.oid != expected_oid:
             raise KernelError("object id mismatch")
         return envelope
 
@@ -208,13 +208,13 @@ def validate_links(
                 raise KernelError(f"{field} must contain a blob id")
     if envelope.object_type == "run":
         event_values = payload.get("events", [])
-        if not event_ids(event_values):
-            raise KernelError("events must contain event ids")
+        if not event_ids(event_values) or len(set(event_values)) != len(event_values):
+            raise KernelError("events must contain unique event ids")
         events = set(event_values)
         for field in ("roots", "tips"):
             values = payload.get(field, [])
-            if not event_ids(values):
-                raise KernelError(f"{field} must contain event ids")
+            if not event_ids(values) or len(set(values)) != len(values):
+                raise KernelError(f"{field} must contain unique event ids")
             if not set(values) <= events:
                 raise KernelError(f"{field} must be a subset of events")
         manifest_map = payload.get("manifests", {})
@@ -229,10 +229,10 @@ def validate_links(
     if envelope.object_type == "attestation":
         if parse_oid(payload.get("target_id", ""))[0] != "run":
             raise KernelError("attestation target_id must contain a run id")
-    links = _links(payload, envelope.object_type)
+    links, envelope_oid = _links(payload, envelope.object_type), envelope.oid
     for link in links:
         parse_oid(link)
-        if link == envelope.oid:
+        if link == envelope_oid:
             raise KernelError("object cannot link to itself")
         if exists is not None and not exists(link):
             raise KernelError(f"missing linked object: {link}")

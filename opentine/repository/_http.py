@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import threading
@@ -60,9 +61,11 @@ def run_request(
 
 def require_secure_remote(base: str, allow_insecure: bool) -> None:
     parsed = urlparse(base)
-    if parsed.scheme != "https" and not (
-        allow_insecure or parsed.hostname in {"localhost", "127.0.0.1", "::1"}
-    ):
+    try:
+        literal_loopback = ipaddress.ip_address(parsed.hostname or "").is_loopback
+    except ValueError:
+        literal_loopback = False
+    if parsed.scheme != "https" and not (allow_insecure or literal_loopback):
         raise ValueError("remote requires HTTPS; opt into insecure development explicitly")
 
 

@@ -9,6 +9,7 @@ metadata (outside the digest) and is never authoritative.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 _DIMENSIONS = ("max_cost", "max_steps", "max_duration", "max_usage")
@@ -54,8 +55,21 @@ class Budget:
             raise ValueError(f"on_breach must be 'stop' or 'raise', got {self.on_breach!r}")
         for name in _DIMENSIONS:
             value = getattr(self, name)
-            if value is not None and value <= 0:
-                raise ValueError(f"{name} must be > 0, got {value!r}")
+            if value is None:
+                continue
+            integer = name in {"max_steps", "max_usage"}
+            try:
+                number = float(value)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"{name} must be finite and > 0, got {value!r}") from exc
+            if (
+                isinstance(value, bool)
+                or not math.isfinite(number)
+                or number <= 0
+                or (integer and type(value) is not int)
+            ):
+                expected = "a positive integer" if integer else "finite and > 0"
+                raise ValueError(f"{name} must be {expected}, got {value!r}")
 
     def check(self, *, cost: float, usage: int, steps: int, duration: float) -> BudgetBreach | None:
         """Return the first breached dimension, or None if within budget."""

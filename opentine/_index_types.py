@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
+from opentine._canon import _redact
 from opentine.graph import Run
+from opentine.redaction import redact_value
+
+MAX_INDEX_TEXT_CHARS = 8_000
 
 
 @dataclass
@@ -28,20 +34,53 @@ class IndexEntry:
     @classmethod
     def from_dict(cls, data: dict) -> IndexEntry:
         fields = set(cls.__dataclass_fields__)
-        return cls(**{key: value for key, value in data.items() if key in fields})
+        entry = cls(**{key: value for key, value in data.items() if key in fields})
+        strings = (entry.file, entry.run_id, entry.model, entry.status, entry.text)
+        numbers = (entry.cost, entry.created_at, entry.mtime)
+        if (
+            not all(isinstance(value, str) for value in strings)
+            or Path(entry.file).name != entry.file
+            or not entry.file.endswith(".tine")
+            or any(character in entry.file for character in ("/", "\\", "\0"))
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                for value in numbers
+            )
+            or any(
+                type(value) is not int or value < 0 for value in (entry.steps, entry.format_version)
+            )
+            or not isinstance(entry.tags, list)
+            or not all(isinstance(tag, str) for tag in entry.tags)
+            or type(entry.unreadable) is not bool
+        ):
+            raise ValueError("invalid run-index entry")
+        return entry
 
 
 def _searchable_text(run: Run) -> str:
-    data = run.to_dict(redact=True)
-    metadata = data.get("metadata", {})
-    chunks = [run.id, run.model_info, run.status.value, *run.tags]
-    chunks.extend([str(metadata.get("user_prompt", "")), str(metadata.get("system_prompt", ""))])
-    for step in data.get("graph", {}).get("steps", {}).values():
-        inputs, outputs = step.get("inputs", {}), step.get("outputs", {})
+    chunks: list[str] = []
+    retained = 0
+
+    def add(value) -> None:
+        nonlocal retained
+        cleaned = redact_value(_redact(value))
+        if not isinstance(cleaned, str) or retained >= MAX_INDEX_TEXT_CHARS:
+            return
+        kept = cleaned[: MAX_INDEX_TEXT_CHARS - retained]
+        chunks.append(kept)
+        retained += len(kept) + 1
+
+    for value in (run.id, run.model_info, run.status.value, *run.tags):
+        add(value)
+    add(run.user_prompt)
+    add(run.system_prompt)
+    for step in run.steps:
+        inputs, outputs = step.inputs, step.outputs
         for value in (inputs.get("text"), inputs.get("name"), outputs.get("result")):
-            if isinstance(value, str):
-                chunks.append(value)
-    return " ".join(chunk for chunk in chunks if chunk)[:8000].lower()
+            add(value)
+    return " ".join(chunks)[:MAX_INDEX_TEXT_CHARS].lower()
 
 
 def entry_from_run(run: Run, file: str, mtime: float) -> IndexEntry:

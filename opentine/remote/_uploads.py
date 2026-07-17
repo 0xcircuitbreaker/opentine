@@ -56,6 +56,10 @@ class UploadRegistry:
     @staticmethod
     def _private_directory(path: Path) -> None:
         path.mkdir(parents=True, mode=0o700, exist_ok=True)
+        junction = getattr(path, "is_junction", None)
+        unsafe = path.is_symlink() or (callable(junction) and junction())
+        if not stat.S_ISDIR(path.lstat().st_mode) or unsafe:
+            raise ValueError("upload state directory is not a real directory")
         path.chmod(0o700)
 
     @staticmethod
@@ -64,7 +68,7 @@ class UploadRegistry:
             current = path.lstat()
         except FileNotFoundError:
             return
-        if not stat.S_ISREG(current.st_mode):
+        if not stat.S_ISREG(current.st_mode) or current.st_nlink != 1:
             raise ValueError("upload state path is not a regular file")
         path.chmod(0o600)
 

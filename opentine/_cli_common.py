@@ -7,6 +7,7 @@ import json
 import os
 import shlex
 import sys
+from itertools import islice
 from pathlib import Path
 
 from rich.console import Console
@@ -43,6 +44,7 @@ STEP_ICONS = {
 # piped/redirected/captured (and honor NO_COLOR) so machine-readable JSON is not corrupted.
 console = Console()
 RUNS_DIR = Path(".tine_runs")
+MAX_CLI_SCAN_RUNS = 5_000
 HARNESS_FACTORIES = {
     "claude-code": ClaudeCodeHarness,
     "codex": CodexCLIHarness,
@@ -65,12 +67,41 @@ def _find_run(run_id: str) -> Path | None:
     direct = Path(run_id)
     if direct.exists():
         return direct
-    for file in _runs_dir().glob("*.tine"):
-        if file.stem.startswith(run_id):
-            return file
+    root = _runs_dir().resolve()
+
+    def confined(file: Path) -> Path | None:
+        try:
+            resolved = file.resolve(strict=True)
+            resolved.relative_to(root)
+        except (OSError, RuntimeError, ValueError):
+            return None
+        return resolved if resolved.is_file() and resolved.suffix == ".tine" else None
+
+    exact = confined(root / f"{run_id}.tine")
+    if exact:
+        return exact
+    scanned = list(islice(root.glob("*.tine"), MAX_CLI_SCAN_RUNS + 1))
+    if len(scanned) > MAX_CLI_SCAN_RUNS:
+        return None
+    files = [found for file in sorted(scanned) if (found := confined(file))]
+    exact = [file for file in files if file.stem == run_id]
+    if len(exact) == 1:
+        return exact[0]
+    prefixes = [file for file in files if file.stem.startswith(run_id)]
+    if len(prefixes) == 1:
+        return prefixes[0]
+    if len(prefixes) > 1:
+        return None  # Fail closed instead of selecting a nondeterministic signing target.
     entry = RunIndex.open(_runs_dir()).lookup(run_id)
-    if entry and (_runs_dir() / entry.file).exists():
-        return _runs_dir() / entry.file
+    if entry:
+        root = _runs_dir().resolve()
+        try:
+            candidate = (root / entry.file).resolve()
+            candidate.relative_to(root)
+        except (OSError, RuntimeError, ValueError):
+            return None
+        if candidate.is_file() and candidate.suffix == ".tine":
+            return candidate
     return None
 
 

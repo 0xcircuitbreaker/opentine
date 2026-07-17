@@ -6,8 +6,9 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from opentine.kernel import KernelError, parse_oid, verify_object
+from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, verify_object
 from opentine.repository._refs import validate_ref_target
+from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -61,6 +62,10 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     for oid in oids:
         try:
             verify_object(repo.raw(oid), oid, repo._link_exists if deep else None)
+            envelope = ObjectEnvelope.decode(repo.raw(oid), oid)
+            validate_event_metrics(envelope)
+            if deep and oid.startswith("run:"):
+                validate_run_graph(repo, envelope)
         except (KernelError, OSError) as exc:
             errors.append(f"{oid}: {exc}")
     try:

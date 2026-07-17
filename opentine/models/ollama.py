@@ -10,7 +10,12 @@ from typing import Any
 import httpx
 
 from opentine.billing import PricingCatalog
+from opentine.models import _ollama_http as _http
+from opentine.models._stream_content import OllamaStreamState
+from opentine.models._streaming import WarningList, ollama_result
 from opentine.models._usage import metered_response, ollama_usage
+
+_IDENTITY = {"Accept-Encoding": "identity"}
 
 
 class Ollama:
@@ -55,10 +60,13 @@ class Ollama:
         """Cache the model capabilities reported by ``/api/show``."""
         if self._capabilities is None:
             try:
-                with httpx.Client(timeout=5) as client:
-                    resp = client.post(f"{self._host}/api/show", json={"model": self._model})
-                    resp.raise_for_status()
-                    self._capabilities = set(resp.json().get("capabilities") or ["tools"])
+                url = f"{self._host}/api/show"
+                request = {"model": self._model}
+                with httpx.Client(timeout=5, trust_env=False, follow_redirects=False) as client:
+                    with client.stream("POST", url, json=request, headers=_IDENTITY) as resp:
+                        resp.raise_for_status()
+                        data = _http.read_json(resp, max_bytes=_http.MAX_SHOW_BYTES)
+                    self._capabilities = set(data.get("capabilities") or ["tools"])
             except Exception:
                 self._capabilities = {"tools"}
         return "tools" in self._capabilities
@@ -171,6 +179,7 @@ class Ollama:
             catalog=self._catalog,
             rate_override=self._rate_override,
             unmetered=self._rate_override is None,
+            usage_reported=any(name in data for name in ("prompt_eval_count", "eval_count")),
         )
 
     async def complete(
@@ -180,41 +189,21 @@ class Ollama:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
-        warnings: list[str] = []
+        warnings: list[str] = WarningList()
         if tools and not self._tools_capable():
             warnings.append(f"{self.name}: model does not support tool calling; ran without tools")
             tools = None
         payload = self._build_payload(messages, tools, system, temperature, stream=False)
+        url = f"{self._host}/api/chat"
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(f"{self._host}/api/chat", json=payload)
-            resp.raise_for_status()
-            data = resp.json()
+        async with httpx.AsyncClient(
+            timeout=120, trust_env=False, follow_redirects=False
+        ) as client:
+            async with client.stream("POST", url, json=payload, headers=_IDENTITY) as resp:
+                resp.raise_for_status()
+                data = await _http.read_json_async(resp, max_bytes=_http.MAX_CHAT_BYTES)
 
-        message = data.get("message", {})
-        text = message.get("content", "")
-        tool_calls = []
-        for tc in message.get("tool_calls", []):
-            fn = tc.get("function", {})
-            tool_calls.append({"name": fn.get("name", ""), "arguments": fn.get("arguments", {})})
-        result = {
-            "text": text,
-            "thinking": message.get("thinking", ""),
-            "tool_calls": tool_calls,
-            "warnings": warnings,
-            "metrics": {
-                key: data[key]
-                for key in (
-                    "total_duration",
-                    "load_duration",
-                    "prompt_eval_count",
-                    "prompt_eval_duration",
-                    "eval_count",
-                    "eval_duration",
-                )
-                if key in data
-            },
-        }
+        result = ollama_result(data, warnings)
         result.update(self._meter(data))
         return result
 
@@ -225,24 +214,33 @@ class Ollama:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
+        warnings: list[str] = WarningList()
         if tools and not self._tools_capable():
+            warnings.append(f"{self.name}: model does not support tool calling; ran without tools")
             tools = None
         payload = self._build_payload(messages, tools, system, temperature, stream=True)
+        state = OllamaStreamState(warnings)
+        saw_done = False
+        url = f"{self._host}/api/chat"
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            async with client.stream("POST", f"{self._host}/api/chat", json=payload) as resp:
+        async with httpx.AsyncClient(
+            timeout=120, trust_env=False, follow_redirects=False
+        ) as client:
+            async with client.stream("POST", url, json=payload, headers=_IDENTITY) as resp:
                 resp.raise_for_status()
-                import json
-
-                async for line in resp.aiter_lines():
-                    if line.strip():
-                        chunk = json.loads(line)
-                        message = chunk.get("message", {})
-                        thinking = message.get("thinking", "")
-                        if thinking:
-                            yield {"type": "thinking_delta", "text": thinking}
-                        content = message.get("content", "")
-                        if content:
-                            yield {"type": "text_delta", "text": content}
-                        if chunk.get("done"):
-                            yield {"type": "usage", **self._meter(chunk)}
+                async for chunk in _http.iter_ndjson(resp):
+                    message = chunk.get("message", {})
+                    if not isinstance(message, dict):
+                        raise ValueError("Ollama stream message must be a JSON object")
+                    for event in state.add(message):
+                        yield event
+                    if chunk.get("done"):
+                        saw_done = True
+                        metered = self._meter(chunk)
+                        result = ollama_result({**chunk, "message": state.message()}, warnings)
+                        result.update(metered)
+                        yield {"type": "usage", **metered}
+                        if result["tool_calls"] or result.get("refusal") or result.get("thinking"):
+                            yield {"type": "response", **result}
+        if not saw_done:
+            yield {"type": "usage", **self._meter({})}

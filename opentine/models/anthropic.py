@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._stream_content import anthropic_content
 from opentine.models._usage import anthropic_usage, metered_response, value
 
 
@@ -143,15 +144,17 @@ class Anthropic:
         return f"{tier}_us"
 
     def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
+        raw_usage = value(response, "usage")
         payload = metered_response(
             "anthropic",
             self._model,
-            anthropic_usage(value(response, "usage")),
+            anthropic_usage(raw_usage),
             catalog=self._catalog,
             rate_override=self._rate_override,
             service_tier=self._pricing_tier(response),
+            usage_reported=raw_usage is not None,
         )
-        if early_refusal:
+        if early_refusal and "fable-5" in self._model.lower():
             billing = payload["billing"]
             billing["status"] = "complete"
             billing["amount_usd"] = "0"
@@ -160,6 +163,27 @@ class Anthropic:
             billing["calculation"]["refusal_modifier"] = "0"
             payload["cost"] = 0.0
         return payload
+
+    def _result(self, response: Any) -> dict[str, Any]:
+        result = anthropic_content(response)
+        refused = value(response, "stop_reason") == "refusal" or bool(result.get("refusal"))
+        if refused and not result.get("refusal"):
+            result["refusal"] = "refused"
+        raw_usage = value(response, "usage")
+        usage = anthropic_usage(raw_usage)
+        result.update(
+            self._meter(
+                response,
+                early_refusal=(
+                    refused
+                    and not result["text"]
+                    and not result["tool_calls"]
+                    and usage.output == 0
+                    and raw_usage is not None
+                ),
+            )
+        )
+        return result
 
     async def complete(
         self,
@@ -171,32 +195,7 @@ class Anthropic:
         response = await self._get_client().messages.create(
             **self._kwargs(messages, tools, system, temperature)
         )
-        text_parts: list[str] = []
-        calls: list[dict[str, Any]] = []
-        refusals: list[str] = []
-        for block in value(response, "content", []) or []:
-            block_type = value(block, "type")
-            if block_type == "text":
-                text_parts.append(value(block, "text", ""))
-            elif block_type == "tool_use":
-                calls.append(
-                    {
-                        "name": value(block, "name", ""),
-                        "arguments": value(block, "input", {}),
-                        "id": value(block, "id"),
-                    }
-                )
-            elif block_type == "refusal":
-                refusals.append(value(block, "refusal", value(block, "text", "")))
-        text = "".join(text_parts)
-        refused = value(response, "stop_reason") == "refusal" or bool(refusals)
-        result: dict[str, Any] = {"text": text, "tool_calls": calls}
-        if refused:
-            result["refusal"] = "\n".join(refusals) or "refused"
-        usage = anthropic_usage(value(response, "usage"))
-        early_refusal = refused and not text and not calls and usage.output == 0
-        result.update(self._meter(response, early_refusal=early_refusal))
-        return result
+        return self._result(response)
 
     async def stream(
         self,
@@ -215,7 +214,14 @@ class Anthropic:
                     text = value(delta, "text")
                     if text:
                         yield {"type": "text_delta", "text": text}
+                    thinking = value(delta, "thinking")
+                    if thinking:
+                        yield {"type": "thinking_delta", "text": thinking}
             final = getattr(stream, "get_final_message", None)
             if callable(final):
                 response = await final()
-                yield {"type": "usage", **self._meter(response)}
+                result = self._result(response)
+                metered = {key: result[key] for key in ("billing", "cost", "usage")}
+                yield {"type": "usage", **metered}
+                if result["tool_calls"] or result.get("refusal") or result.get("reasoning_content"):
+                    yield {"type": "response", **result}

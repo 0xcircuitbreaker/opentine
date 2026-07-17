@@ -54,7 +54,7 @@ PROVIDERS = {
         "GOOGLE_API_KEY",
     ),
     "ollama": ("opentine.models.ollama", "Ollama", "llama3.1", None),
-    "kimi": ("opentine.models.compat", "Kimi", "kimi-k2.6", "KIMI_API_KEY"),
+    "kimi": ("opentine.models.compat", "Kimi", "kimi-k3", "KIMI_API_KEY"),
     "deepseek": (
         "opentine.models.compat",
         "DeepSeek",

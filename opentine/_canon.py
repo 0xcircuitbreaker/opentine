@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import stat
@@ -36,6 +37,8 @@ def _jsonable(value: Any) -> Any:
         return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
     if isinstance(value, (list, tuple)):
         return [_jsonable(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("canonical JSON forbids NaN and infinity")
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
     return repr(value)
@@ -83,6 +86,7 @@ def _redact(value: Any) -> Any:
         "api_token",
         "access_key",
         "secret_access_key",
+        "secret_key",
         "access_token",
         "refresh_token",
         "auth_token",
@@ -123,6 +127,7 @@ def _redact(value: Any) -> Any:
         "_refresh_token",
         "_secret",
         "_session_token",
+        "_secret_key",
         "_set_cookie",
     )
     if isinstance(value, dict):

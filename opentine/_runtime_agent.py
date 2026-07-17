@@ -29,8 +29,13 @@ class AgentBase:
         autosave_every_seconds: float = 0.0,
     ):
         self.model = model
-        self.tools = {function.__name__: function for function in (tools or [])}
-        self.schemas = [tool_schema(function) for function in (tools or [])]
+        functions = list(tools or [])
+        self.tools = {function.__name__: function for function in functions}
+        self.schemas = [tool_schema(function) for function in functions]
+        self._tool_arguments = {
+            schema["name"]: frozenset(schema["input_schema"]["properties"])
+            for schema in self.schemas
+        }
         self.system = system
         self.max_steps = max_steps
         self.max_output_chars = max_output_chars
@@ -47,6 +52,12 @@ class AgentBase:
         )
 
     async def _call_tool(self, name: str, arguments: dict) -> str:
+        if not isinstance(arguments, dict):
+            raise TypeError("tool arguments must be an object")
+        unexpected = set(arguments) - self._tool_arguments.get(name, frozenset())
+        if unexpected:
+            rendered = ", ".join(sorted(unexpected))
+            raise ValueError(f"tool {name!r} received forbidden argument(s): {rendered}")
         result = self.tools[name](**arguments)
         result = await result if asyncio.iscoroutine(result) else result
         output = str(result)
@@ -85,7 +96,8 @@ class AgentBase:
         try:
             await self._continue(run, messages, autosaver=autosaver)
         finally:
-            await asyncio.to_thread(autosaver.flush, run)
+            if autosaver.path is not None:
+                await asyncio.to_thread(autosaver.flush, run)
         return run
 
     def run_sync(self, prompt: str, run_id: str | None = None) -> Run:

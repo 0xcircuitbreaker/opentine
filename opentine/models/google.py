@@ -7,6 +7,8 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._stream_content import google_content
+from opentine.models._streaming import MAX_STREAM_CALLS, SizeBudget, TextBuffer, WarningList
 from opentine.models._usage import google_usage, metered_response, value
 
 
@@ -130,7 +132,13 @@ class Google:
             catalog=self._catalog,
             rate_override=self._rate_override,
             service_tier=self._service_tier,
+            usage_reported=raw_usage is not None,
         )
+
+    def _result(self, response: Any) -> dict[str, Any]:
+        result = google_content(response)
+        result.update(self._meter(value(response, "usage_metadata")))
+        return result
 
     async def complete(
         self,
@@ -143,26 +151,7 @@ class Google:
         response = await self._get_client().aio.models.generate_content(
             model=self._model, contents=contents, config=config
         )
-        try:
-            text = response.text or ""
-        except (AttributeError, ValueError):
-            text = ""
-        calls: list[dict[str, Any]] = []
-        candidates = value(response, "candidates", []) or []
-        if candidates and value(candidates[0], "content"):
-            for part in value(value(candidates[0], "content"), "parts", []) or []:
-                function = value(part, "function_call")
-                if function:
-                    calls.append(
-                        {
-                            "name": value(function, "name", ""),
-                            "arguments": dict(value(function, "args", {}) or {}),
-                            "id": value(function, "id"),
-                        }
-                    )
-        result: dict[str, Any] = {"text": text, "tool_calls": calls}
-        result.update(self._meter(value(response, "usage_metadata")))
-        return result
+        return self._result(response)
 
     async def stream(
         self,
@@ -175,12 +164,45 @@ class Google:
         stream = await self._get_client().aio.models.generate_content_stream(
             model=self._model, contents=contents, config=config
         )
+        text = TextBuffer("Google aggregate text")
+        reasoning = TextBuffer("Google aggregate reasoning")
+        refusal = TextBuffer("Google refusal", 4096)
+        calls: list[dict[str, Any]] = []
+        warnings: list[str] = WarningList()
+        argument_budget = SizeBudget()
         final_usage = None
         async for chunk in stream:
-            text = value(chunk, "text")
-            if text:
-                yield {"type": "text_delta", "text": text}
+            parsed = google_content(chunk, argument_budget)
+            warnings.extend(parsed["warnings"])
+            if parsed["text"]:
+                text.add(parsed["text"])
+                yield {"type": "text_delta", "text": parsed["text"]}
+            if parsed.get("reasoning_content"):
+                thought = parsed["reasoning_content"]
+                reasoning.add(thought)
+                yield {"type": "thinking_delta", "text": thought}
+            available = max(0, MAX_STREAM_CALLS - len(calls))
+            calls.extend(parsed["tool_calls"][:available])
+            if parsed["tool_calls"][available:]:
+                warnings.append(f"streamed tool calls truncated at {MAX_STREAM_CALLS} entries")
+            refusal.add(parsed.get("refusal"))
             if value(chunk, "usage_metadata"):
                 final_usage = value(chunk, "usage_metadata")
         if final_usage:
             yield {"type": "usage", **self._meter(final_usage)}
+        else:
+            yield {"type": "usage", **self._meter(None)}
+        for buffer in (text, reasoning, refusal):
+            buffer.warn(warnings)
+        result: dict[str, Any] = {
+            "text": text.text,
+            "tool_calls": calls,
+            "warnings": warnings,
+        }
+        if reasoning.text:
+            result["reasoning_content"] = reasoning.text
+        if refusal.text:
+            result["refusal"] = refusal.text
+        if calls or refusal.text or reasoning.text:
+            result.update(self._meter(final_usage))
+            yield {"type": "response", **result}

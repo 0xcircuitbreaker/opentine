@@ -66,3 +66,7 @@ def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
         return f"Error: {e}"
     finally:
         Path(script_path).unlink(missing_ok=True)
+
+
+# Policy and resource ceilings belong to the host, not to model-generated calls.
+execute.__opentine_hidden_parameters__ = frozenset({"timeout", "policy"})

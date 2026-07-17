@@ -25,14 +25,19 @@ class OpenAI(ChatCompletions):
         rates: dict[str, Any] | None = None,
         catalog: PricingCatalog | None = None,
         service_tier: str | None = None,
-        provider: str = "openai",
+        provider: str | None = None,
         omit_temperature: bool = False,
         unmetered: bool = False,
     ):
         resolved_base = base_url or os.environ.get("OPENAI_BASE_URL")
+        resolved_provider = (
+            provider
+            if provider is not None
+            else ("openai-compatible" if resolved_base else "openai")
+        )
         super().__init__(
             model,
-            provider=provider,
+            provider=resolved_provider,
             api_key=api_key or os.environ.get("OPENAI_API_KEY", ""),
             base_url=resolved_base,
             omit_temperature=omit_temperature,
@@ -43,7 +48,7 @@ class OpenAI(ChatCompletions):
             service_tier=service_tier,
             unmetered=unmetered,
         )
-        self._native_responses = provider == "openai" and resolved_base is None
+        self._native_responses = resolved_provider == "openai" and resolved_base is None
         self._responses = ResponsesTransport(
             model=model,
             catalog=catalog,
@@ -68,7 +73,7 @@ class OpenAI(ChatCompletions):
         client = self._get_client()
         if self._native_responses and hasattr(client, "responses"):
             return await self._responses.complete(client, messages, tools, system, temperature)
-        return await super().complete(messages, tools, system, temperature)
+        return await self._complete(client, messages, tools, system, temperature)
 
     async def stream(
         self,
@@ -82,5 +87,5 @@ class OpenAI(ChatCompletions):
             async for event in self._responses.stream(client, messages, tools, system, temperature):
                 yield event
             return
-        async for event in super().stream(messages, tools, system, temperature):
+        async for event in self._stream(client, messages, tools, system, temperature):
             yield event

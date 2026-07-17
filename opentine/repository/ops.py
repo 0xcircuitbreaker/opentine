@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine.kernel import parse_oid, validate_links
 from opentine.repository._access import get_object as _get
+from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -100,9 +101,11 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
     right_id, right_run = _run_payload(repo, right)
     left_events = list(left_run.get("events") or [])
     right_events = list(right_run.get("events") or [])
-    common = tuple(event for event in left_events if event in set(right_events))
-    only_left = tuple(event for event in left_events if event not in set(common))
-    only_right = tuple(event for event in right_events if event not in set(common))
+    right_set = set(right_events)
+    common = tuple(event for event in left_events if event in right_set)
+    common_set = set(common)
+    only_left = tuple(event for event in left_events if event not in common_set)
+    only_right = tuple(event for event in right_events if event not in common_set)
     changed: list[dict[str, Any]] = []
     for index in range(min(len(left_events), len(right_events))):
         left_event_id, right_event_id = left_events[index], right_events[index]
@@ -200,6 +203,7 @@ def fork_run(
         queue.extend(event_payload.get("parent_ids") or [])
         queue.extend(event_payload.get("causal_ids") or [])
     forked = dict(payload)
+    forked["legacy_refs"] = filtered_legacy_refs(payload, keep)
     forked.update(
         {
             "events": [event for event in payload["events"] if event in keep],
@@ -207,9 +211,9 @@ def fork_run(
             "forked_from": source_id,
             "roots": [event for event in payload.get("roots", []) if event in keep],
             "status": "running",
-            "tips": [from_event],
         }
     )
+    forked["tips"] = graph_tips(repo, forked["events"])
     run_id = repo.put("run", forked)
     if ref:
         repo.update_ref(ref, run_id, expected_old=repo.read_ref(ref))

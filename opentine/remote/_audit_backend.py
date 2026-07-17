@@ -41,6 +41,9 @@ class SQLiteAuditMixin:
                 previous = last[-1] if last else GENESIS
                 if last and chain(last[-2], _row(last), self._audit_key) != previous:
                     raise RuntimeError("audit chain tail failed authentication")
+                valid, verified_head = self._verified_head_from(database)
+                if not valid or verified_head != previous:
+                    raise RuntimeError("audit chain continuity failed authentication")
                 anchored = read_anchor(self._anchor_path, self._audit_key)
                 if anchored != previous:
                     verified_heal = last and anchored == last[-2]
@@ -71,18 +74,21 @@ class SQLiteAuditMixin:
             ).fetchone()
         return ["legacy audit rows were migrated without authenticity"] if migrated else []
 
-    def _verified_head(self) -> tuple[bool, str]:
+    def _verified_head_from(self, database) -> tuple[bool, str]:
         previous = GENESIS
-        with self._connect() as database:
-            rows = database.execute(
-                "SELECT " + ",".join(FIELDS) + ",prev_hash,row_hash FROM audit ORDER BY sequence"
-            )
-            for record in rows:
-                row = dict(zip(FIELDS, record))
-                if record[-2] != previous or chain(previous, row, self._audit_key) != record[-1]:
-                    return False, previous
-                previous = record[-1]
+        rows = database.execute(
+            "SELECT " + ",".join(FIELDS) + ",prev_hash,row_hash FROM audit ORDER BY sequence"
+        )
+        for record in rows:
+            row = dict(zip(FIELDS, record))
+            if record[-2] != previous or chain(previous, row, self._audit_key) != record[-1]:
+                return False, previous
+            previous = record[-1]
         return True, previous
+
+    def _verified_head(self) -> tuple[bool, str]:
+        with self._connect() as database:
+            return self._verified_head_from(database)
 
     def audit_status(self, *, expected_head: str | None = None) -> str:
         for _ in range(2):

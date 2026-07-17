@@ -99,6 +99,48 @@ def test_budget_rejects_nonpositive_limits():
         Budget(on_breach="explode")
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -1.0, True])
+def test_budget_and_steps_reject_nonfinite_or_negative_metering(value):
+    with pytest.raises(ValueError):
+        Budget(max_cost=value)
+    with pytest.raises(ValueError):
+        Run(id="bad").add_step(StepKind.model, {}, cost=value)
+    with pytest.raises(ValueError):
+        Run(id="bad").add_step(StepKind.model, {}, usage={"input": value})
+
+
+def test_usage_budget_never_trusts_an_underreported_total():
+    run = Run(id="usage")
+    run.add_step(StepKind.model, {}, usage={"input": 100, "output": 25, "total": 1})
+    assert run.total_tokens == 125
+
+
+def test_usage_preserves_safe_integers_and_rejects_lossy_token_counts():
+    run = Run(id="exact-usage")
+    step = run.add_step(
+        StepKind.model,
+        {},
+        usage={"input": 2**53 - 1, "eval_seconds": 1.5},
+    )
+    assert step.usage == {"input": 2**53 - 1, "eval_seconds": 1.5}
+    with pytest.raises(ValueError, match="safe number"):
+        Run(id="unsafe").add_step(StepKind.model, {}, usage={"input": 10**20 + 1})
+    with pytest.raises(ValueError, match="integer token count"):
+        Run(id="fractional").add_step(StepKind.model, {}, usage={"output": 1.5})
+    with pytest.raises(ValueError, match="step cost"):
+        Run(id="unsafe-cost").add_step(StepKind.model, {}, cost=10**20 + 1)
+    with pytest.raises(ValueError, match="usage names"):
+        Run(id="unsafe-name").add_step(StepKind.model, {}, usage={1: 2})  # type: ignore[dict-item]
+
+
+@pytest.mark.parametrize("field", ["max_steps", "max_usage"])
+def test_count_budgets_require_positive_integers(field):
+    with pytest.raises(ValueError):
+        Budget(**{field: 1.5})
+    with pytest.raises(ValueError):
+        Budget(**{field: True})
+
+
 def test_v1_run_has_no_budget():
     run = Run.load(FIXTURES / "golden_v1.tine")
     assert run.budget() is None

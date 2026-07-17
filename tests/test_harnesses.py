@@ -28,6 +28,7 @@ from opentine.harnesses import (
 )
 from opentine.mcp_server import (
     diff_runs_text,
+    find_run,
     fork_run_file,
     format_run_for_llm,
     list_run_summaries,
@@ -135,6 +136,8 @@ def test_agent_cli_harness_command_defaults():
         "run",
         "task",
     ]
+    with pytest.raises(ValueError, match="cannot begin"):
+        GenericHarness(command=("agent", "run")).build_command("--unsafe")
 
 
 def test_agent_cli_harness_parses_structured_and_text_events():
@@ -197,6 +200,29 @@ def test_mcp_helpers_list_fork_and_diff_runs(tmp_path: Path):
 
     diff = diff_runs_text("original", forked["new_run_id"], runs_dir)
     assert "Diff: original" in diff
+
+
+def test_mcp_run_lookup_cannot_escape_configured_directory(tmp_path: Path):
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+    outside = tmp_path / "outside.tine"
+    run = Run(id="outside")
+    run.add_step(StepKind.done, {"text": "secret outside configured history"})
+    run.save(outside)
+
+    with pytest.raises(FileNotFoundError):
+        find_run(str(outside), runs_dir)
+    with pytest.raises(FileNotFoundError):
+        find_run("../outside.tine", runs_dir)
+
+    linked = runs_dir / "linked.tine"
+    try:
+        linked.symlink_to(outside)
+    except OSError:
+        return
+    with pytest.raises(FileNotFoundError):
+        find_run("linked.tine", runs_dir)
+    assert list_run_summaries(runs_dir) == []
 
 
 def test_cli_accepts_harness_flags():

@@ -22,7 +22,8 @@ def spool_bound(declared_size: int) -> int:
 
 def _open_regular(path: Path, flags: int, mode: str):
     fd = os.open(path, flags | getattr(os, "O_NOFOLLOW", 0))
-    if not stat.S_ISREG(os.fstat(fd).st_mode):
+    info = os.fstat(fd)
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
         os.close(fd)
         raise ValueError("encrypted upload spool is not a regular file")
     return os.fdopen(fd, mode)

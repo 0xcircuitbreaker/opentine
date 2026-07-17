@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import opentine._artifact_shapes as artifact_shapes
+from opentine._artifact_io import artifact_digest, artifact_integrity, read_artifact_json
 from opentine._canon import (
     FORMAT_VERSION,
     SUPPORTED_VERSIONS,
@@ -54,8 +56,8 @@ def step_from_dict(data: dict[str, Any]) -> Step:
         tool_info=dict(data.get("tool_info") or {}),
         error=dict(data.get("error") or {}),
         timestamp=float(data.get("timestamp") or 0),
-        duration=float(data.get("duration") or 0),
-        cost=float(data.get("cost") or 0),
+        duration=0 if data.get("duration") is None else data["duration"],
+        cost=0 if data.get("cost") is None else data["cost"],
         usage=_usage(data.get("usage")),
         billing=dict(data.get("billing") or {}),
     )
@@ -63,9 +65,8 @@ def step_from_dict(data: dict[str, Any]) -> Step:
 
 def graph_from_dict(data: dict[str, Any]) -> Graph:
     graph = Graph()
-    steps = data.get("steps", {})
-    for step_id in data.get("order", list(steps)):
-        graph.add(step_from_dict(steps[step_id]))
+    for record in artifact_shapes.ordered_step_records(data):
+        graph.add(step_from_dict(record))
     return graph
 
 
@@ -102,7 +103,7 @@ def run_from_dict(data: dict[str, Any], run_class):
     run = run_class(
         run_id=data["run_id"],
         status=RunStatus(data.get("status", "running")),
-        graph=graph_from_dict(data.get("graph", {})),
+        graph=graph_from_dict(artifact_shapes.validate_run_record(data).get("graph", {})),
         refs=data.get("refs", {}),
         transcript=data.get("transcript", []),
         manifest=data.get("manifest", {}),
@@ -160,10 +161,7 @@ def save_run(
         }
     else:
         data["metadata"].pop("autosave", None)
-    data["metadata"]["integrity"] = {
-        "algorithm": "sha256",
-        "digest": _integrity_digest(data),
-    }
+    data["metadata"]["integrity"] = {"algorithm": "sha256", "digest": _integrity_digest(data)}
     if sign_key is not None:
         from opentine.signing import sign_artifact
 
@@ -175,7 +173,8 @@ def save_run(
             signer=signer,
             signed_at=signed_at,
         )
-    atomic_write_text(target, json.dumps(data, indent=2, sort_keys=True), fsync=fsync)
+    serialized = json.dumps(data, indent=2, sort_keys=True, allow_nan=False)
+    atomic_write_text(target, serialized, fsync=fsync)
     return target
 
 
@@ -188,7 +187,9 @@ def load_run(path: str | Path, run_class):
         from opentine.repo import Repo
 
         return Repo.open(source).load_run("heads/main")
-    data = json.loads(source.read_text(encoding="utf-8"))
+    data = read_artifact_json(source)
+    if not isinstance(data, dict):
+        raise ValueError(".tine artifact root must be an object")
     try:
         version = detect_version(data)
     except MigrationError:
@@ -205,27 +206,24 @@ def load_run(path: str | Path, run_class):
 
 def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResult:
     try:
-        data = (
-            path_or_data
-            if isinstance(path_or_data, dict)
-            else json.loads(Path(path_or_data).read_text(encoding="utf-8"))
-        )
+        data = path_or_data if isinstance(path_or_data, dict) else read_artifact_json(path_or_data)
     except FileNotFoundError:
         return IntegrityResult(False, None, None, None, "file not found")
     except OSError as exc:
         return IntegrityResult(False, None, None, None, f"read error: {exc}")
-    except json.JSONDecodeError as exc:
-        return IntegrityResult(False, None, None, None, f"invalid json: {exc.msg}")
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError, ValueError) as exc:
+        reason = exc.msg if isinstance(exc, json.JSONDecodeError) else str(exc)
+        return IntegrityResult(False, None, None, None, f"invalid artifact: {reason}")
     if not isinstance(data, dict):
         return IntegrityResult(False, None, None, None, "artifact root is not an object")
     version = data.get("format_version")
-    if version not in SUPPORTED_VERSIONS:
+    if type(version) is not int or version not in SUPPORTED_VERSIONS:
         found = version if version is not None else "missing"
         reason = f"unsupported .tine format_version={found!r}; supported {SUPPORTED_VERSIONS}"
         if isinstance(version, int) and not isinstance(version, bool) and version > FORMAT_VERSION:
             reason = f"unsupported .tine format_version={found}; written by a newer opentine"
         return IntegrityResult(False, None, None, None, reason)
-    integrity = (data.get("metadata") or {}).get("integrity")
+    integrity = artifact_integrity(data)
     if not isinstance(integrity, dict):
         return IntegrityResult(False, None, None, None, "missing integrity digest")
     algorithm, expected = integrity.get("algorithm"), integrity.get("digest")
@@ -239,7 +237,7 @@ def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResu
         valid_digest = False
     if not valid_digest:
         return IntegrityResult(False, "sha256", expected, None, "malformed digest")
-    actual = _integrity_digest(data)
+    actual = artifact_digest(data)
     return IntegrityResult(
         actual == expected,
         "sha256",

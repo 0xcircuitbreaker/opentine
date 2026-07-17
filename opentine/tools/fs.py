@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import os
+from itertools import islice
 from pathlib import Path
 
 from opentine.policies import FilesystemPolicy
+
+MAX_LIST_ENTRIES = 1_000
 
 
 def _within(path: Path, root: Path) -> bool:
@@ -19,7 +23,8 @@ def _within(path: Path, root: Path) -> bool:
 def _policy(sandbox: str | None = None, policy: FilesystemPolicy | None = None) -> FilesystemPolicy:
     if policy:
         return policy
-    return FilesystemPolicy(roots=(sandbox or os.getcwd(),), write_roots=(sandbox or os.getcwd(),))
+    root = sandbox or os.getcwd()
+    return FilesystemPolicy(roots=(root,), write_roots=(root,) if sandbox is not None else ())
 
 
 def _resolve(
@@ -96,9 +101,20 @@ def edit(
 def ls(path: str = ".", sandbox: str | None = None, policy: FilesystemPolicy | None = None) -> str:
     """List directory contents."""
     p = _resolve(path, sandbox, policy)
-    entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name))
+    entries = list(islice(p.iterdir(), MAX_LIST_ENTRIES + 1))
+    truncated = len(entries) > MAX_LIST_ENTRIES
+    entries = sorted(entries[:MAX_LIST_ENTRIES], key=lambda e: (not e.is_dir(), e.name))
     lines = []
     for e in entries:
         prefix = "d " if e.is_dir() else "f "
-        lines.append(f"{prefix}{e.name}")
+        escaped = json.dumps(e.name, ensure_ascii=True)[1:-1]
+        lines.append(f"{prefix}{escaped}")
+    if truncated:
+        lines.append(f"... (truncated after {MAX_LIST_ENTRIES} entries)")
     return "\n".join(lines) if lines else "(empty)"
+
+
+# Security policy objects and compatibility sandbox roots are host configuration,
+# never model-controlled tool arguments. Agent rejects hidden arguments at runtime.
+for _function in (read, write, edit, ls):
+    _function.__opentine_hidden_parameters__ = frozenset({"sandbox", "policy"})

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ import pytest
 from opentine import Run, StepKind
 from opentine.kernel import KernelError, ObjectEnvelope, canonical_json
 from opentine.repository import Repo
-from opentine.repository.pack import create_pack, reachable
+from opentine.repository.pack import MAGIC, create_pack, reachable
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -26,6 +27,8 @@ def test_rfc8785_and_cross_process_object_id_vector():
         canonical_json(9_223_372_036_854_775_807)
     with pytest.raises(KernelError, match="2\\*\\*53"):
         canonical_json(10**400)
+    with pytest.raises(KernelError, match="malformed object JSON"):
+        ObjectEnvelope.decode(b'{"encoding":"json","schema":1,"type":"event"}\n\xff')
     payload = {"b": 1, "a": "x"}
     expected = "annotation:sha256:92adcc2f0178432f0f4d7200df2465f30009cccd94e5c87df6068c55d49ddffc"
     assert ObjectEnvelope.create("annotation", payload).oid == expected
@@ -74,6 +77,76 @@ def test_typed_parent_manifest_and_annotation_links_are_enforced(tmp_path: Path)
         repo.put("annotation", {"previous_id": blob, "target_id": blob, "value": {}})
 
 
+def test_run_graph_structure_rejects_duplicates_external_parents_and_false_tips(
+    tmp_path: Path,
+):
+    repo = Repo.init(tmp_path)
+    first = repo.put("event", {"causal_ids": [], "parent_ids": []})
+    second = repo.put("event", {"causal_ids": [], "parent_ids": [first]})
+    with pytest.raises(KernelError, match="unique event ids"):
+        repo.put(
+            "run",
+            {"events": [first, first], "manifests": {}, "roots": [first], "tips": [first]},
+        )
+    with pytest.raises(KernelError, match="parent outside"):
+        repo.put(
+            "run",
+            {"events": [second], "manifests": {}, "roots": [second], "tips": [second]},
+        )
+    with pytest.raises(KernelError, match="leaves"):
+        repo.put(
+            "run",
+            {
+                "events": [first, second],
+                "manifests": {},
+                "roots": [first],
+                "tips": [first],
+            },
+        )
+    with pytest.raises(KernelError, match="parent-before-child"):
+        repo.put(
+            "run",
+            {
+                "events": [second, first],
+                "manifests": {},
+                "roots": [first],
+                "tips": [second],
+            },
+        )
+    with pytest.raises(KernelError, match="legacy_refs"):
+        repo.put(
+            "run",
+            {
+                "events": [first],
+                "legacy_refs": {"bad": []},
+                "manifests": {},
+                "roots": [first],
+                "tips": [first],
+            },
+        )
+
+
+@pytest.mark.parametrize("field,value", [("cost", -1), ("duration", "NaN"), ("cost", True)])
+def test_event_metrics_are_finite_and_nonnegative(tmp_path: Path, field: str, value):
+    repo = Repo.init(tmp_path)
+    with pytest.raises(KernelError, match=f"event {field}"):
+        repo.put("event", {"causal_ids": [], "parent_ids": [], field: value})
+    with pytest.raises(KernelError, match="event usage.input"):
+        repo.put(
+            "event",
+            {"causal_ids": [], "parent_ids": [], "usage": {"input": value}},
+        )
+
+
+@pytest.mark.parametrize("value", [1.5, float(2**53)])
+def test_event_core_token_usage_requires_safe_integers(tmp_path: Path, value):
+    repo = Repo.init(tmp_path)
+    with pytest.raises(KernelError, match="safe integer token count"):
+        repo.put("event", {"causal_ids": [], "parent_ids": [], "usage": {"input": value}})
+    event = repo.put("event", {"causal_ids": [], "parent_ids": [], "usage": {"eval_seconds": 1.5}})
+    assert repo.get(event).payload()["usage"]["eval_seconds"] == 1.5
+
+
 def _chain(repo: Repo) -> tuple[str, str, str]:
     blob = repo.put("blob", b"payload", redact=False)
     first = repo.put(
@@ -116,6 +189,28 @@ def test_pack_round_trip_shallow_boundary_and_cas(tmp_path: Path):
         source.update_ref("heads/main", replacement, expected_old=None)
 
 
+def test_valid_pack_reimport_rejects_corrupt_existing_object_and_pack(tmp_path: Path):
+    source = Repo.init(tmp_path / "source-reimport")
+    oid = source.put("blob", b"verified", redact=False)
+    packed = source.pack()
+    destination = Repo.init(tmp_path / "destination-reimport")
+    object_path = destination._object_path(oid)
+    object_path.parent.mkdir(parents=True, exist_ok=True)
+    object_path.write_bytes(b"corrupt")
+    with pytest.raises(KernelError, match="existing object"):
+        destination.import_pack(packed)
+
+    object_path.write_bytes(source.raw(oid))
+    result = destination.import_pack(packed)
+    pack_path = destination.path / "packs" / f"{result.pack_id[7:]}.pack"
+    body = zlib.decompress(packed[len(MAGIC) + 32 :])
+    alternate = packed[: len(MAGIC) + 32] + zlib.compress(body, 1)
+    assert destination.import_pack(alternate).pack_id == result.pack_id
+    pack_path.write_bytes(b"corrupt")
+    with pytest.raises(KernelError, match="existing pack"):
+        destination.import_pack(packed)
+
+
 def test_deep_fsck_detects_corruption(tmp_path: Path):
     repo = Repo.init(tmp_path)
     blob = repo.put("blob", b"uncorrupted", redact=False)
@@ -126,6 +221,8 @@ def test_deep_fsck_detects_corruption(tmp_path: Path):
     assert any("object id mismatch" in error for error in result.errors)
     with pytest.raises(KernelError, match="object id mismatch"):
         repo.get(blob)
+    with pytest.raises(KernelError, match="object id mismatch"):
+        repo.update_ref("tags/corrupt", blob, expected_old=None)
 
     event_repo = Repo.init(tmp_path / "events")
     first, _, _ = _chain(event_repo)
@@ -173,3 +270,27 @@ def test_run_save_load_compatibility_wrapper_accepts_worktree(tmp_path: Path):
     assert loaded.steps[0].inputs == {"text": "stored"}
     assert loaded.tags == ["accepted"] and loaded.metadata["note"] == "round trip"
     assert Repo.open(tmp_path).fsck().ok
+
+
+def test_compatibility_wrapper_preserves_branches_and_v3_identity(tmp_path: Path):
+    repo = Repo.init(tmp_path)
+    source = Run(id="branched")
+    root = source.add_step(StepKind.model, {"text": "root"}, tool_info={"v3_kind": "user-owned"})
+    left = source.add_step(StepKind.done, {"text": "left"}, parent_id=root.id, ref="left")
+    right = source.add_step(StepKind.done, {"text": "right"}, parent_id=root.id, ref="right")
+
+    stored = repo.put_run(source, ref="heads/main")
+    payload = repo.get(stored.run_id).payload()
+    assert set(payload["tips"]) == {stored.event_map[left.id], stored.event_map[right.id]}
+    assert payload["legacy_refs"]["main"] == stored.event_map[root.id]
+
+    loaded = repo.load_run(stored.run_id)
+    assert loaded.refs == payload["legacy_refs"]
+    assert loaded.steps[0].tool_info["v3_kind"] == "user-owned"
+    assert loaded.steps[0].v3_kind == StepKind.model.value
+    restored = repo.put_run(loaded)
+    assert restored.run_id == stored.run_id
+    forked = repo.fork(stored.run_id, stored.event_map[left.id])
+    fork_payload = repo.get(forked).payload()
+    assert set(fork_payload["legacy_refs"].values()) <= set(fork_payload["events"])
+    assert repo.fsck().ok

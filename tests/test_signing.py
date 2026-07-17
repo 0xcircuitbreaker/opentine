@@ -10,6 +10,7 @@ import pytest
 import opentine.signing as signing
 from opentine import Run, StepKind
 from opentine._canon import _integrity_digest
+from opentine._signing_keys import MAX_SIGNING_KEY_BYTES, hmac_key_from_file
 from opentine.core import RunStatus
 from opentine.signing import SignatureError, generate_ed25519
 
@@ -109,6 +110,13 @@ def test_weak_hmac_key_rejected(tmp_path: Path):
         _terminal_run().save(tmp_path / "a.tine", sign_key=b"short")
 
 
+def test_signing_key_file_read_is_bounded(tmp_path: Path):
+    key = tmp_path / "oversized.key"
+    key.write_bytes(b"x" * (MAX_SIGNING_KEY_BYTES + 1))
+    with pytest.raises(SignatureError, match="exceeds the 1 MiB limit"):
+        hmac_key_from_file(key)
+
+
 def test_signature_stripped_on_plain_resave(tmp_path: Path):
     p = _terminal_run().save(tmp_path / "a.tine", sign_key=KEY)
     loaded = Run.load(p)
@@ -150,6 +158,19 @@ def test_ed25519_missing_crypto_reports_error(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(signing, "HAS_ED25519", False)
     res = Run.verify_signature(p, trust_embedded=True)
     assert res.state == "error" and "cryptography" in res.reason
+
+
+def test_malformed_embedded_ed25519_key_is_a_fail_closed_result(tmp_path: Path):
+    seed, _ = generate_ed25519()
+    path = _terminal_run().save(tmp_path / "bad-key.tine", sign_key=seed, sign_algorithm="ed25519")
+    data = json.loads(path.read_text())
+    data["metadata"]["integrity"]["signature"]["public_key"] = "00"
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    result = Run.verify_signature(path, trust_embedded=True)
+
+    assert not result.ok and result.state == "error"
+    assert result.reason == "malformed ed25519 public key"
 
 
 def test_golden_signed_fixture_verifies():

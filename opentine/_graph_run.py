@@ -13,16 +13,13 @@ from opentine._graph_types import (
     StepKind,
     _normalize_tag,
     _normalize_tags,
+    _usage_value,
     step_id,
 )
 
 
 def _usage(values: dict[str, int | float] | None) -> dict[str, int | float]:
-    normalized: dict[str, int | float] = {}
-    for key, value in (values or {}).items():
-        number = float(value)
-        normalized[key] = int(number) if number.is_integer() else number
-    return normalized
+    return {key: _usage_value(key, value) for key, value in (values or {}).items()}
 
 
 class RunBase:
@@ -177,7 +174,9 @@ class RunBase:
             "reasoning",
         )
         return sum(
-            int(step.usage.get("total", 0))
-            or sum(int(step.usage.get(name, 0)) for name in dimensions)
+            max(
+                int(step.usage.get("total", 0)),
+                sum(int(step.usage.get(name, 0)) for name in dimensions),
+            )
             for step in self.steps
         )

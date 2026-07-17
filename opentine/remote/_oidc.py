@@ -130,7 +130,14 @@ class JWTVerifier:
         supported = {"RS256", "ES256"}
         if not algorithms or not set(algorithms) <= supported:
             raise OIDCError("JWT algorithms must be a subset of RS256/ES256")
-        if not issuer or not audience or leeway < 0:
+        if (
+            not issuer
+            or not audience
+            or isinstance(leeway, bool)
+            or not isinstance(leeway, (int, float))
+            or not math.isfinite(leeway)
+            or leeway < 0
+        ):
             raise OIDCError("issuer, audience, and non-negative leeway are required")
         self.issuer = issuer
         self.audience = audience

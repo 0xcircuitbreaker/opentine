@@ -40,8 +40,10 @@ def _git(cwd: Path, *arguments: str) -> tuple[str, str | None]:
 def code_manifest(path: str | Path = ".") -> dict[str, Any]:
     root = Path(path).resolve()
     commit_raw, commit_error = _git(root, "rev-parse", "HEAD")
-    patch, patch_error = _git(root, "diff", "--binary", "--no-ext-diff")
-    staged, staged_error = _git(root, "diff", "--binary", "--cached", "--no-ext-diff")
+    patch, patch_error = _git(root, "diff", "--binary", "--no-ext-diff", "--no-textconv")
+    staged, staged_error = _git(
+        root, "diff", "--binary", "--cached", "--no-ext-diff", "--no-textconv"
+    )
     status, status_error = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
     records = status.split("\0", MAX_STATUS_ENTRIES + 1)
     if records and not records[-1]:

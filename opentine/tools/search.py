@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 from typing import Any
@@ -15,30 +16,31 @@ async def _request(
     client: httpx.AsyncClient, method: str, url: str, **kwargs: Any
 ) -> httpx.Response:
     headers = {**kwargs.pop("headers", {}), "Accept-Encoding": "identity"}
-    async with client.stream(method, url, headers=headers, **kwargs) as response:
-        response.raise_for_status()
-        encoding = response.headers.get("content-encoding", "identity").casefold()
-        if encoding not in {"", "identity"}:
-            raise ValueError("compressed search responses are not accepted")
-        declared = response.headers.get("content-length")
-        if declared is not None:
-            try:
-                length = int(declared)
-            except ValueError as exc:
-                raise ValueError("search response has invalid Content-Length") from exc
-            if length < 0 or length > MAX_SEARCH_RESPONSE_BYTES:
-                raise ValueError("search response exceeds maximum size")
-        body = bytearray()
-        async for chunk in response.aiter_raw():
-            body.extend(chunk)
-            if len(body) > MAX_SEARCH_RESPONSE_BYTES:
-                raise ValueError("search response exceeds maximum size")
-        return httpx.Response(
-            response.status_code,
-            content=bytes(body),
-            headers=response.headers,
-            request=response.request,
-        )
+    async with asyncio.timeout(15):
+        async with client.stream(method, url, headers=headers, **kwargs) as response:
+            response.raise_for_status()
+            encoding = response.headers.get("content-encoding", "identity").casefold()
+            if encoding not in {"", "identity"}:
+                raise ValueError("compressed search responses are not accepted")
+            declared = response.headers.get("content-length")
+            if declared is not None:
+                try:
+                    length = int(declared)
+                except ValueError as exc:
+                    raise ValueError("search response has invalid Content-Length") from exc
+                if length < 0 or length > MAX_SEARCH_RESPONSE_BYTES:
+                    raise ValueError("search response exceeds maximum size")
+            body = bytearray()
+            async for chunk in response.aiter_raw():
+                body.extend(chunk)
+                if len(body) > MAX_SEARCH_RESPONSE_BYTES:
+                    raise ValueError("search response exceeds maximum size")
+            return httpx.Response(
+                response.status_code,
+                content=bytes(body),
+                headers=response.headers,
+                request=response.request,
+            )
 
 
 async def search(query: str, max_results: int = 5) -> str:
@@ -53,7 +55,7 @@ async def search(query: str, max_results: int = 5) -> str:
 
 
 async def _tavily(query: str, max_results: int) -> str:
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=15, trust_env=False) as client:
         resp = await _request(
             client,
             "POST",
@@ -69,7 +71,7 @@ async def _tavily(query: str, max_results: int) -> str:
 
 
 async def _exa(query: str, max_results: int) -> str:
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=15, trust_env=False) as client:
         resp = await _request(
             client,
             "POST",
@@ -86,7 +88,7 @@ async def _exa(query: str, max_results: int) -> str:
 
 
 async def _brave(query: str, max_results: int) -> str:
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=15, trust_env=False) as client:
         resp = await _request(
             client,
             "GET",
@@ -105,7 +107,7 @@ async def _brave(query: str, max_results: int) -> str:
 
 async def _duckduckgo(query: str, max_results: int) -> str:
     """Fallback: scrape DuckDuckGo HTML lite."""
-    async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+    async with httpx.AsyncClient(timeout=15, follow_redirects=False, trust_env=False) as client:
         resp = await _request(
             client,
             "GET",
@@ -124,3 +126,7 @@ async def _duckduckgo(query: str, max_results: int) -> str:
         snippet = re.sub(r"<[^>]+>", "", snippets[i]).strip() if i < len(snippets) else ""
         results.append(f"[{title}]({url})\n{snippet[:200]}")
     return "\n\n".join(results) if results else f"No results found for: {query}"
+
+
+# Search breadth is a host-controlled cost/resource ceiling.
+search.__opentine_hidden_parameters__ = frozenset({"max_results"})

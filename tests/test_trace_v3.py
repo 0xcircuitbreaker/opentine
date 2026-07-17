@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 from wsgiref.simple_server import make_server
 
+import pytest
+
 from opentine import Agent, Run
 from opentine.remote import (
     FilesystemObjectStore,
@@ -22,6 +24,22 @@ from opentine.repository.pack import reachable
 from opentine.trace import Recorder, TraceEvent
 
 
+@pytest.mark.parametrize(
+    "kwargs,match",
+    [
+        ({"timestamp": float("nan")}, "timestamp must be finite"),
+        ({"usage": {"input": -1}}, "usage.input must be finite and non-negative"),
+        ({"usage": {"input": "1"}}, "usage.input must be finite and non-negative"),
+        ({"usage": {"input": 1e20}}, "usage.input must be finite and non-negative"),
+    ],
+)
+def test_trace_event_rejects_invalid_metrics_before_recording(kwargs, match):
+    values = {"kind": "model", "timestamp": 0, "trace_id": "t", "span_id": "s"}
+    values.update(kwargs)
+    with pytest.raises(ValueError, match=match):
+        TraceEvent(**values)
+
+
 def _event(span: str, *, parent: str | None = None, output: str = "ok") -> TraceEvent:
     return TraceEvent(
         "model",
@@ -35,6 +53,25 @@ def _event(span: str, *, parent: str | None = None, output: str = "ok") -> Trace
         usage={"input": 5, "output": 2},
         billing={"status": "complete", "known_subtotal_usd": "0.00001"},
     )
+
+
+def test_compatibility_load_converts_verified_decimal_string_metrics(tmp_path):
+    repo = Repo.init(tmp_path)
+    recorder = Recorder.start(repo, capture=False)
+    recorder.append(
+        TraceEvent(
+            "model",
+            1.0,
+            "trace-decimal",
+            "span-decimal",
+            cost="0.125",
+            duration="0.25",  # type: ignore[arg-type]
+        )
+    )
+    run_id = recorder.finalize()
+
+    step = repo.load_run(run_id).steps[0]
+    assert step.cost == 0.125 and step.duration == 0.25
 
 
 def test_multi_agent_repository_workflow(tmp_path):

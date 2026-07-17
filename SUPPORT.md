@@ -2,7 +2,7 @@
 
 ## Supported Python Versions
 
-OpenTine 0.3.x supports Python 3.11, 3.12, and 3.13. CI runs on
+OpenTine 0.3.x supports Python 3.11, 3.12, 3.13, and 3.14. CI runs on
 Linux, macOS, and Windows for those versions.
 
 ## Package Stage

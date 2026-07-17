@@ -2,7 +2,11 @@
 
 ## Reporting a Vulnerability
 
-Please report suspected security issues privately to the project maintainers before public disclosure. Include a minimal reproduction, the affected Opentine version or commit, operating system, Python version, and whether an external harness or model provider was involved.
+Please report suspected security issues through GitHub's
+[private vulnerability report](https://github.com/0xcircuitbreaker/opentine/security/advisories/new)
+before public disclosure. Include a minimal reproduction, the affected OpenTine
+version or commit, operating system, Python version, and whether an external
+harness or model provider was involved.
 
 Do not include secrets or private `.tine` artifacts in public issues.
 

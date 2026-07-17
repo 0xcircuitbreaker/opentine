@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine._artifact_io import read_artifact_json
 from opentine._graph_types import RunStatus
 
 
@@ -27,13 +28,17 @@ class RunPersistenceMixin:
 
         try:
             data = (
-                path_or_data
-                if isinstance(path_or_data, dict)
-                else json.loads(Path(path_or_data).read_text(encoding="utf-8"))
+                path_or_data if isinstance(path_or_data, dict) else read_artifact_json(path_or_data)
             )
         except FileNotFoundError:
             return SignatureResult(False, "error", None, None, None, None, "file not found")
-        except (OSError, json.JSONDecodeError) as exc:
+        except (
+            OSError,
+            json.JSONDecodeError,
+            UnicodeDecodeError,
+            RecursionError,
+            ValueError,
+        ) as exc:
             return SignatureResult(False, "error", None, None, None, None, f"unreadable: {exc}")
         if not isinstance(data, dict):
             return SignatureResult(False, "error", None, None, None, None, "root is not an object")

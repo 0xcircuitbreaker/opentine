@@ -17,6 +17,13 @@ Opentine is local-first provenance tooling. It records agent activity and can in
   and parsed-event ceilings and clean up their owned process group or Job Object on
   completion and errors. This is resource containment, not an OS sandbox.
 
+Built-in tool schemas expose only task inputs. Filesystem roots, network and
+execution policies, timeouts, allowlists, and output ceilings are host-owned
+configuration; undeclared model arguments are rejected at runtime. Registering
+`shell.run` or `python.execute` directly therefore remains disabled. To enable
+one, register a small application wrapper that binds an explicit policy instead
+of accepting policy values from a model call.
+
 ## Redaction
 
 Saved v2 files and v3 structured objects use typed/path-aware credential names
@@ -107,7 +114,17 @@ requires `--reanchor-audit-head` with the already verified database head; the
 migration flag cannot re-anchor a keyed chain. Chain verification is read-only.
 Database triggers remain defense in depth. Local refs use exclusive lockfiles;
 remote refs use SQLite `BEGIN IMMEDIATE` CAS. Run-moving refs are restricted to
-run objects. Admission policies can reject oversized or costly writes.
+run objects. The reference SQLite sink authenticates full chain continuity
+before every append; this integrity-first check is O(n) in retained audit rows.
+Large deployments should enforce request-rate limits and retention/rotation, or
+provide a scalable externally anchored audit backend. Admission policies can
+reject oversized or costly writes.
+
+The local authenticated-head file detects database-only rollback, but a host
+administrator who restores both SQLite and that file to an earlier valid pair
+can also restore a valid historical chain state. Deployments that must detect
+coordinated full-host rollback need a monotonic off-host checkpoint or a custom
+externally anchored audit sink.
 
 Client-side redaction enables authorized server-side indexing but is not
 end-to-end encryption: an authorized server decrypts objects. Operators remain

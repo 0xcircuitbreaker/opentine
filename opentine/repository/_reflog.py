@@ -8,10 +8,11 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import canonical_json
+from opentine.repository._paths import internal_path
 
 
 def append_reflog(base: Path, normalized: str, old: str | None, new_oid: str, actor: str) -> None:
-    log_path = base / "logs" / normalized
+    log_path = internal_path(base, "logs", *Path(normalized).parts)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     entry = canonical_json(
         {

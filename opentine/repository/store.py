@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -18,46 +17,34 @@ from opentine.kernel import (
 )
 from opentine.redaction import redact_blob, redact_value
 from opentine.repository._config import validate_config
+from opentine.repository._objects import iter_object_oids
+from opentine.repository._paths import atomic_bytes as _atomic_bytes
+from opentine.repository._paths import internal_files, internal_path, linklike
 from opentine.repository._reflog import append_reflog
 from opentine.repository._refs import normalize_ref, validate_ref_target
+from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
+from opentine.repository._shallow import read_shallow, shallow_fingerprint
 
 _UNSET = object()
 
 
-def _atomic_bytes(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
-    try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        _fsync_dir(path.parent)
-    finally:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
-
-
-def _repo_path(path: str | Path) -> Path:
-    candidate = Path(path).expanduser().resolve()
-    return candidate if candidate.name == ".tine" else candidate / ".tine"
-
-
 class Repo:
     def __init__(self, tine_dir: str | Path):
-        self.path = Path(tine_dir).resolve()
-        validate_config(self.path / "config.json")
+        source = Path(tine_dir).expanduser()
+        if linklike(source):
+            raise KernelError("repository root cannot be a symlink")
+        self.path = source.resolve()
+        validate_config(internal_path(self.path, "config.json"))
+        self._shallow_cache = None
 
     @classmethod
     def init(cls, path: str | Path = ".", *, bare: bool = False) -> Repo:
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
+        tine.mkdir(parents=True, exist_ok=True)
         for directory in ("objects", "refs/heads", "refs/tags", "logs", "packs", "indexes"):
-            (tine / directory).mkdir(parents=True, exist_ok=True)
-        config = tine / "config.json"
+            internal_path(tine, *Path(directory).parts).mkdir(parents=True, exist_ok=True)
+        config = internal_path(tine, "config.json")
         if not config.exists():
             _atomic_bytes(
                 config,
@@ -75,7 +62,10 @@ class Repo:
 
     @classmethod
     def open(cls, path: str | Path = ".") -> Repo:
-        candidate = Path(path).expanduser().resolve()
+        source = Path(path).expanduser()
+        if source.name == ".tine" and linklike(source):
+            raise KernelError("repository root cannot be a symlink")
+        candidate = source.resolve()
         if candidate.is_file():
             candidate = candidate.parent
         if candidate.name == ".tine" and (candidate / "config.json").exists():
@@ -91,7 +81,7 @@ class Repo:
 
     def _object_path(self, oid: str) -> Path:
         object_type, digest = parse_oid(oid)
-        return self.path / "objects" / object_type / digest[:2] / digest[2:]
+        return internal_path(self.path, "objects", object_type, digest[:2], digest[2:])
 
     def has(self, oid: str) -> bool:
         try:
@@ -99,12 +89,21 @@ class Repo:
         except KernelError:
             return False
 
+    def _shallow_set(self) -> frozenset[str]:
+        path = internal_path(self.path, "shallow")
+        fingerprint = shallow_fingerprint(path)
+        if self._shallow_cache is None or self._shallow_cache[0] != fingerprint:
+            self._shallow_cache = read_shallow(path)
+        return self._shallow_cache[1]
+
+    def _invalidate_shallow(self) -> None:
+        self._shallow_cache = None
+
     def shallow_oids(self) -> set[str]:
-        path = self.path / "shallow"
-        return set(path.read_text(encoding="ascii").splitlines()) if path.exists() else set()
+        return set(self._shallow_set())
 
     def _link_exists(self, oid: str) -> bool:
-        return self.has(oid) or oid in self.shallow_oids()
+        return self.has(oid) or oid in self._shallow_set()
 
     def put(
         self,
@@ -120,6 +119,8 @@ class Repo:
             stored_payload = redact_value(_redact(payload)) if redact else payload
         envelope = ObjectEnvelope.create(object_type, stored_payload, schema)
         validate_links(envelope, self._link_exists)
+        validate_event_metrics(envelope)
+        validate_run_graph(self, envelope)
         path = self._object_path(envelope.oid)
         if not path.exists():
             _atomic_bytes(path, envelope.encode())
@@ -135,6 +136,8 @@ class Repo:
             raise KeyError(oid) from exc
         envelope = ObjectEnvelope.decode(stored, oid)
         validate_links(envelope, self._link_exists)
+        validate_event_metrics(envelope)
+        validate_run_graph(self, envelope)
         return envelope
 
     def raw(self, oid: str) -> bytes:
@@ -143,26 +146,14 @@ class Repo:
         except FileNotFoundError as exc:
             raise KeyError(oid) from exc
 
-    def iter_oids(self) -> list[str]:
-        found: list[str] = []
-        objects = self.path / "objects"
-        for object_type in sorted(objects.iterdir() if objects.exists() else []):
-            if not object_type.is_dir():
-                continue
-            for prefix in sorted(object_type.iterdir()):
-                if not prefix.is_dir():
-                    continue
-                for item in sorted(prefix.iterdir()):
-                    digest = prefix.name + item.name
-                    if len(digest) == 64:
-                        found.append(f"{object_type.name}:sha256:{digest}")
-        return found
+    def iter_oids(self, *, limit: int | None = None, truncate: bool = False) -> list[str]:
+        return iter_object_oids(self.path, limit=limit, truncate=truncate)
 
     _ref_name = staticmethod(normalize_ref)
 
     def read_ref(self, name: str) -> str | None:
         normalized = self._ref_name(name)
-        path = self.path / "refs" / normalized
+        path = internal_path(self.path, "refs", *Path(normalized).parts)
         try:
             value = path.read_text(encoding="ascii").strip()
         except FileNotFoundError:
@@ -179,10 +170,9 @@ class Repo:
         actor: str = "local",
     ) -> None:
         normalized = self._ref_name(name)
-        validate_ref_target(normalized, parse_oid(new_oid)[0])
-        if not self.has(new_oid):
-            raise KeyError(f"new ref target is missing: {new_oid}")
-        ref_path = self.path / "refs" / normalized
+        target = self.get(new_oid)
+        validate_ref_target(normalized, target.object_type)
+        ref_path = internal_path(self.path, "refs", *Path(normalized).parts)
         ref_path.parent.mkdir(parents=True, exist_ok=True)
         lock_path = ref_path.with_name(ref_path.name + ".lock")
         try:
@@ -211,9 +201,9 @@ class Repo:
 
     def list_refs(self) -> dict[str, str]:
         refs: dict[str, str] = {}
-        root = self.path / "refs"
-        for path in sorted(root.rglob("*")):
-            if path.is_file() and path.suffix != ".lock":
+        root = internal_path(self.path, "refs")
+        for path in sorted(internal_files(self.path, "refs")):
+            if path.suffix != ".lock":
                 name = path.relative_to(root).as_posix()
                 refs[name] = path.read_text(encoding="ascii").strip()
         return refs
@@ -236,6 +226,7 @@ class Repo:
         return semantic_diff(self, left, right)
 
     def pack(self, oids: list[str] | None = None) -> bytes:
-        from opentine.repository.pack import create_pack
+        from opentine.repository.pack import MAX_PACK_OBJECTS, create_pack
 
-        return create_pack(self, oids or self.iter_oids())
+        selected = self.iter_oids(limit=MAX_PACK_OBJECTS) if oids is None else oids
+        return create_pack(self, selected)

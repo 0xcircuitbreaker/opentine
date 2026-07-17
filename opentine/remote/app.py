@@ -11,12 +11,16 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES
 from opentine.remote._uploads import TerminalUploadError, UploadRegistry
+from opentine.remote._wsgi import json_response, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
 from opentine.repository.pack import MAX_PACK_BYTES
 
 
 class RemoteApp:
+    _json_response = staticmethod(json_response)
+    _response = staticmethod(response)
+
     def __init__(
         self,
         service: RemoteService,
@@ -72,22 +76,6 @@ class RemoteApp:
         if not isinstance(data, dict):
             raise ValueError("request JSON must be an object")
         return data
-
-    @staticmethod
-    def _response(start_response, status: str, body: bytes, content_type: str):
-        start_response(
-            status,
-            [
-                ("Content-Length", str(len(body))),
-                ("Content-Type", content_type),
-                ("Cache-Control", "no-store"),
-            ],
-        )
-        return [body]
-
-    def _json_response(self, start_response, status: str, value: Any):
-        body = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-        return self._response(start_response, status, body, "application/json")
 
     def __call__(self, environ: dict[str, Any], start_response):
         try:
@@ -191,7 +179,7 @@ class RemoteApp:
         self.service._authorize(identity, "upload", tenant)
         size = request.get("size")
         digest = str(request["sha256"])
-        valid_size = type(size) is int and 0 <= size <= self.max_upload_bytes
+        valid_size = type(size) is int and 0 < size <= self.max_upload_bytes
         if not valid_size or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError("invalid resumable upload declaration")
         upload_id = uuid.uuid4().hex
@@ -230,7 +218,8 @@ class RemoteApp:
             raise KeyError("upload not found") from exc
         offset = metadata["offset"]
         if method == "HEAD":
-            return self._json_response(start_response, "200 OK", {"offset": offset}), False
+            headers = (("Upload-Offset", str(offset)),)
+            return self._json_response(start_response, "200 OK", {"offset": offset}, headers), False
         expected_offset = int(self._headers(environ).get("upload-offset", "-1"))
         if expected_offset != offset:
             return self._json_response(start_response, "409 Conflict", {"offset": offset}), False
@@ -245,6 +234,12 @@ class RemoteApp:
             data = self._uploads.materialize(tenant, paths, metadata)
             if hashlib.sha256(data).hexdigest() != metadata["sha256"]:
                 raise TerminalUploadError("resumable upload checksum mismatch")
-            pack_id, count = self.service.install_pack(identity, tenant, data)
+            try:
+                pack_id, count = self.service.install_pack(identity, tenant, data)
+            except ValueError as exc:
+                # A complete, checksum-matching payload cannot be repaired by
+                # appending more bytes. Do not retain attacker-controlled invalid
+                # packs until the upload TTL expires.
+                raise TerminalUploadError("completed upload is not a valid pack") from exc
         result = {"objects": count, "offset": offset, "pack_id": pack_id}
         return self._json_response(start_response, "201 Created", result), True

@@ -21,6 +21,19 @@ crypto = pytest.importorskip("cryptography")
 # --- M4: HMAC-chained audit log with an authenticated external head -------------------
 
 
+@pytest.mark.parametrize("leeway", [True, float("nan"), float("inf")])
+def test_oidc_rejects_nonfinite_or_boolean_leeway(leeway):
+    from opentine.remote._oidc import JWTVerifier, OIDCError
+
+    with pytest.raises(OIDCError):
+        JWTVerifier(
+            {"keys": [{"kid": "key"}]},
+            issuer="https://idp",
+            audience="opentine",
+            leeway=leeway,
+        )
+
+
 def _seed_audit(tmp_path: Path) -> SQLiteBackend:
     db = SQLiteBackend(tmp_path / "meta.sqlite3")
     for i in range(4):

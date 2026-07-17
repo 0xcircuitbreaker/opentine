@@ -6,8 +6,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
-from opentine.remote._tenant_repo import TenantRepo
+from opentine.kernel import parse_oid, validate_links
+from opentine.remote._tenant_repo import PackedTenantRepo, TenantRepo
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -66,7 +66,13 @@ class RemoteService:
     def _authorize(self, identity: Identity, action: str, tenant: str) -> None:
         valid_tenant(tenant)
         if not self.authorization.authorize(identity, action, tenant):
-            self._audit(identity, tenant, action, "denied", {})
+            self._audit(
+                identity,
+                identity.tenant,
+                action,
+                "denied",
+                {"requested_tenant": tenant},
+            )
             raise PermissionError(f"not authorized for {action} in {tenant}")
 
     def _audit(
@@ -108,18 +114,24 @@ class RemoteService:
         if not all(callable(item) for item in (verify, head, warnings)):
             raise RuntimeError("configured AuditSink does not expose chain verification")
         if callable(status_method):
-            status = status_method()
+            # Bind the reported status to the exact head returned to the caller.
+            # An append may otherwise advance the database between these two
+            # reads and make an uncheckpointed head look verified.
+            verified_head = head()
+            status = status_method(expected_head=verified_head)
             warning_list = warnings() if status == "legacy-unverified" else []
         else:
             warning_list = warnings()
+            verified_head = head()
             valid = verify()
+            valid = valid and head() == verified_head
             status = (
                 "verified"
                 if valid and not warning_list
                 else ("legacy-unverified" if valid else "invalid")
             )
         return {
-            "head": head(),
+            "head": verified_head,
             "ok": status == "verified",
             "status": status,
             "warnings": warning_list,
@@ -183,8 +195,9 @@ class RemoteService:
             },
         )
         packed_ids = {oid for oid, _ in packed}
+        view = PackedTenantRepo(tenant, self.objects, dict(packed))
         for oid, raw in packed:
-            envelope = ObjectEnvelope.decode(raw, oid)
+            envelope = view.get(oid)
             for link in validate_links(envelope):
                 if link not in packed_ids and not self.objects.has(tenant, link):
                     raise ValueError(f"pack has unresolved link: {link}")
@@ -206,7 +219,7 @@ class RemoteService:
         name = normalize_ref(name)
         if not self.objects.has(tenant, new_oid):
             raise KeyError(new_oid)
-        target = ObjectEnvelope.decode(self.objects.get(tenant, new_oid), new_oid)
+        target = TenantRepo(tenant, self.objects).get(new_oid)
         validate_ref_target(name, target.object_type)
         self.admission.admit(
             identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}

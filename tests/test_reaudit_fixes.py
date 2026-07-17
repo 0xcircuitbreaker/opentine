@@ -375,7 +375,8 @@ def test_m5_m6_trace_imports_stringify_bigints_and_skip_bad_jsonl(tmp_path: Path
     )
     assert len(events) == 2
     assert events[0].attributes["snowflake"] == str(large)
-    assert events[1].usage["input"] == str(large)
+    assert "input" not in events[1].usage
+    assert events[1].attributes["opentine.import_warnings"]
 
     framework = framework_events([{"metadata": {"discord_message_id": large}}], "langchain")
     otel = otel_genai_events(
@@ -394,7 +395,8 @@ def test_m5_m6_trace_imports_stringify_bigints_and_skip_bad_jsonl(tmp_path: Path
         ]
     )
     assert framework[0].attributes["discord_message_id"] == str(large)
-    assert otel[0].usage["input"] == str(large)
+    assert "input" not in otel[0].usage
+    assert otel[0].attributes["opentine.import_warnings"]
 
     overflow = otel_genai_events(
         [{"traceId": "t", "spanId": "overflow", "endTimeUnixNano": "1" * 1000}]
@@ -434,7 +436,7 @@ def test_l2_v2_migration_uses_the_verified_read(monkeypatch, tmp_path: Path):
     original = (FIXTURES / "golden_v2.tine").read_bytes()
     source.write_bytes(original)
     expected_created = json.loads(original)["created_at"]
-    real_read = runs_module._read_v2
+    real_read = runs_module.read_artifact_bytes
     swapped = False
 
     def read_and_swap(path: Path) -> bytes:
@@ -447,7 +449,7 @@ def test_l2_v2_migration_uses_the_verified_read(monkeypatch, tmp_path: Path):
             path.write_text(json.dumps(changed), encoding="utf-8")
         return raw
 
-    monkeypatch.setattr(runs_module, "_read_v2", read_and_swap)
+    monkeypatch.setattr(runs_module, "read_artifact_bytes", read_and_swap)
     repo = Repo.init(tmp_path / "repo")
     result = repo.migrate_v2(source)
     payload = repo.get(result.run_id).payload()

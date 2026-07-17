@@ -49,7 +49,8 @@ steps with identical content but different cost share an ID (and surface as a
 | `metadata.migration` | append-only migration chain | recorded on migration |
 | `metadata.integrity.signature` | `tine-sig/1` signature block | absent |
 
-OpenTine 0.2.1 extends v2 without changing `format_version`: normalized usage
+The unpublished 0.2.1 development line (folded into 0.3.0) extends v2 without
+changing `format_version`: normalized usage
 may include input, output, cache-read, 5-minute/1-hour cache-write, reasoning,
 provider total, and typed extra dimensions. `manifest.pricing` pins catalog
 ID/hash/signature provenance, rate-card IDs, effective dates, and calculation
@@ -86,7 +87,7 @@ See `SECURITY_MODEL.md` for what a signature does and does not prove.
 
 ## Compatibility
 
-A 0.2.1 or 0.3.x reader loads and migrates v1, and also **best-effort imports the legacy
+A 0.3.x reader loads and migrates v1, and also **best-effort imports the legacy
 0.1.0 "linear" format** (no `format_version`, flat `steps`, short ids) on load —
 recomputing full content-addressed step ids (so they change). A 0.1.x reader
 **cannot** read v2, and once a v1 file is re-saved it becomes v2 (one-way).

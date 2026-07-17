@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from typing import Any
 
 from opentine.billing import PricingCatalog, Usage, bill, known_cost
 
 _MISSING = object()
+_MAX_SAFE_INTEGER = (1 << 53) - 1
 
 
 def value(obj: Any, name: str, default: Any = None) -> Any:
@@ -20,7 +22,18 @@ def value(obj: Any, name: str, default: Any = None) -> Any:
 
 def integer(obj: Any, name: str, default: int = 0) -> int:
     raw = value(obj, name, default)
-    return int(raw or 0)
+    if raw is None:
+        return 0
+    if type(raw) is int and 0 <= raw <= _MAX_SAFE_INTEGER:
+        return raw
+    if (
+        type(raw) is float
+        and math.isfinite(raw)
+        and raw.is_integer()
+        and 0 <= raw <= _MAX_SAFE_INTEGER
+    ):
+        return int(raw)
+    raise ValueError(f"provider usage.{name} must be a non-negative safe integer")
 
 
 def openai_usage(raw: Any) -> Usage:
@@ -37,7 +50,7 @@ def openai_usage(raw: Any) -> Usage:
         cached_raw = value(raw, "cached_tokens", _MISSING)
     if cached_raw is _MISSING:
         cached_raw = value(raw, "prompt_cache_hit_tokens", 0)
-    cached = int(cached_raw or 0)
+    cached = integer({"cached_tokens": cached_raw}, "cached_tokens")
     write_5m = integer(
         input_details,
         "cache_write_tokens",
@@ -45,9 +58,13 @@ def openai_usage(raw: Any) -> Usage:
     )
     write_1h = integer(input_details, "cache_write_1h_tokens")
     reasoning = integer(output_details, "reasoning_tokens")
+    if cached + write_5m + write_1h > input_total:
+        raise ValueError("provider usage input sub-buckets exceed total input tokens")
+    if reasoning > output_total:
+        raise ValueError("provider usage reasoning tokens exceed total output tokens")
     return Usage(
-        input=max(0, input_total - cached - write_5m - write_1h),
-        output=max(0, output_total - reasoning),
+        input=input_total - cached - write_5m - write_1h,
+        output=output_total - reasoning,
         cache_read=cached,
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
@@ -97,8 +114,11 @@ def google_usage(raw: Any) -> Usage:
     total = total or prompt + output + reasoning
     prompt_modalities = _google_modalities(raw, "prompt_tokens_details", "promptTokensDetails")
     cache_modalities = _google_modalities(raw, "cache_tokens_details", "cacheTokensDetails")
-    audio_input = max(0, prompt_modalities.get("audio", 0) - cache_modalities.get("audio", 0))
-    audio_cache = min(cached, cache_modalities.get("audio", 0))
+    prompt_audio = prompt_modalities.get("audio", 0)
+    audio_cache = cache_modalities.get("audio", 0)
+    if cached > prompt or prompt_audio > prompt or audio_cache > min(cached, prompt_audio):
+        raise ValueError("provider usage cache/audio sub-buckets exceed prompt token totals")
+    audio_input = prompt_audio - audio_cache
     extra = {
         name: count
         for name, count in {
@@ -108,9 +128,9 @@ def google_usage(raw: Any) -> Usage:
         if count
     }
     return Usage(
-        input=max(0, prompt - cached - audio_input),
+        input=prompt - cached - audio_input,
         output=output,
-        cache_read=max(0, cached - audio_cache),
+        cache_read=cached - audio_cache,
         reasoning=reasoning,
         total=total,
         extra=extra,
@@ -128,11 +148,10 @@ def ollama_usage(raw: Mapping[str, Any]) -> Usage:
         )
         if raw.get(key) is not None
     }
+    input_count = integer(raw, "prompt_eval_count")
+    output_count = integer(raw, "eval_count")
     return Usage(
-        input=int(raw.get("prompt_eval_count") or 0),
-        output=int(raw.get("eval_count") or 0),
-        total=(int(raw.get("prompt_eval_count") or 0) + int(raw.get("eval_count") or 0)),
-        extra=extra,
+        input=input_count, output=output_count, total=input_count + output_count, extra=extra
     )
 
 
@@ -146,6 +165,7 @@ def metered_response(
     service_tier: str | None = None,
     unmetered: bool = False,
     effective_at: str | None = None,
+    usage_reported: bool = True,
 ) -> dict[str, Any]:
     result = bill(
         provider,
@@ -157,8 +177,15 @@ def metered_response(
         unmetered=unmetered,
         effective_at=effective_at,
     )
+    billing = result.to_dict()
+    if not usage_reported:
+        billing["status"] = "unknown"
+        billing["amount_usd"] = None
+        billing["known_subtotal_usd"] = "0"
+        billing["warnings"].append("provider did not report usage; cost is unknown")
+        billing["calculation"]["usage_reported"] = False
     return {
         "usage": usage.to_dict(),
-        "billing": result.to_dict(),
-        "cost": known_cost(result),
+        "billing": billing,
+        "cost": 0.0 if not usage_reported else known_cost(result),
     }

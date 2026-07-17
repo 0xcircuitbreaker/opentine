@@ -9,12 +9,13 @@ from typing import Any
 
 from opentine._jsonsafe import json_safe as _safe
 from opentine.trace._import_helpers import (
-    attributes as _attributes,
-)
-from opentine.trace._import_helpers import (
     dictionary,
+    event_kind,
+    imported_usage,
     logical_size,
+    optional_string,
     otel_spans,
+    otel_usage,
 )
 from opentine.trace._import_helpers import (
     first as _first,
@@ -28,6 +29,7 @@ from opentine.trace._import_helpers import (
 from opentine.trace._import_helpers import (
     timestamp as _timestamp,
 )
+from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
 
 MAX_TRACE_EVENTS = 100_000
@@ -59,21 +61,6 @@ def _file_lines(path: str | Path):
                     break
             if not oversized:
                 yield line
-
-
-def _optional_string(value: Any) -> str | None:
-    return None if value is None or value == "" else str(value)
-
-
-def _kind(value: Any) -> str:
-    normalized = str(value or "model").casefold()
-    if normalized in {"model", "tool", "human", "policy", "approval", "subagent", "error"}:
-        return normalized
-    if "tool" in normalized:
-        return "tool"
-    if "error" in normalized or "exception" in normalized:
-        return "error"
-    return "model"
 
 
 def native_events(run) -> list[TraceEvent]:
@@ -128,13 +115,16 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
         causal = item.get("causal_span_ids") or ()
+        usage, event_attributes = imported_usage(
+            item.get("usage"), _safe(dictionary(item.get("attributes")))
+        )
         events.append(
             TraceEvent(
-                kind=_kind(item.get("kind", item.get("type", "model"))),
+                kind=event_kind(item.get("kind", item.get("type", "model"))),
                 timestamp=_timestamp(_first(item, "timestamp", "time", "ts", default=0)),
                 trace_id=str(_first(item, "trace_id", "run_id", default="imported")),
                 span_id=str(_first(item, "span_id", "id", default=len(events))),
-                parent_span_id=_optional_string(_first(item, "parent_span_id", "parent_id")),
+                parent_span_id=optional_string(_first(item, "parent_span_id", "parent_id")),
                 causal_span_ids=tuple(str(value) for value in causal)
                 if isinstance(causal, (list, tuple))
                 else (),
@@ -144,9 +134,9 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
                 duration=max(0, _timestamp(item.get("duration", item.get("latency", 0)))),
                 inputs=_safe(_mapping(_first(item, "inputs", "input"))),
                 outputs=_safe(_mapping(_first(item, "outputs", "output"))),
-                usage=_safe(dictionary(item.get("usage"))),
+                usage=usage,
                 billing=_safe(dictionary(item.get("billing"))),
-                attributes=_safe(dictionary(item.get("attributes"))),
+                attributes=event_attributes,
             )
         )
     return events
@@ -161,23 +151,21 @@ def otel_genai_events(
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
         total = _consume(total, span)
-        attributes = _attributes(span)
+        try:
+            attributes = _attributes(span)
+        except (RecursionError, ValueError):
+            continue
         operation = str(attributes.get("gen_ai.operation.name", span.get("name", "")))
-        usage = _safe(
-            {
-                "input": _int(attributes.get("gen_ai.usage.input_tokens")),
-                "output": _int(attributes.get("gen_ai.usage.output_tokens")),
-            }
-        )
+        usage, attributes = otel_usage(attributes)
         nanos = _int(_first(span, "startTimeUnixNano", "start_time_unix_nano", default=0))
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         events.append(
             TraceEvent(
-                kind=_kind(operation),
+                kind=event_kind(operation),
                 timestamp=_timestamp(nanos) / 1_000_000_000,
                 trace_id=str(_first(span, "traceId", "trace_id", default="")),
                 span_id=str(_first(span, "spanId", "span_id", default=len(events))),
-                parent_span_id=_optional_string(_first(span, "parentSpanId", "parent_span_id")),
+                parent_span_id=optional_string(_first(span, "parentSpanId", "parent_span_id")),
                 causal_span_ids=tuple(
                     str(identifier)
                     for link in span.get("links") or []
@@ -223,7 +211,11 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
             continue
         total = _consume(total, record)
         event_type = str(_first(record, "type", "event", actor_field, default="model")).lower()
-        kind = _kind(event_type)
+        kind = event_kind(event_type)
+        usage, event_attributes = imported_usage(
+            record.get("usage"),
+            _safe({"framework": framework, **dictionary(record.get("metadata"))}),
+        )
         events.append(
             TraceEvent(
                 kind=kind,
@@ -232,7 +224,7 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
                 ),
                 trace_id=str(_first(record, "trace_id", "run_id", default=framework)),
                 span_id=str(_first(record, id_field, "span_id", "id", "run_id", default=index)),
-                parent_span_id=_optional_string(
+                parent_span_id=optional_string(
                     _first(record, parent_field, "parent_span_id", "parent_id")
                 ),
                 actor=str(_first(record, actor_field, "actor", "name", default="")),
@@ -243,8 +235,8 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
                     _mapping(_first(record, "inputs", "input", "args", "prompt", "messages"))
                 ),
                 outputs=_safe(_mapping(_first(record, "outputs", "output", "response", "result"))),
-                usage=_safe(dictionary(record.get("usage"))),
-                attributes=_safe({"framework": framework, **dictionary(record.get("metadata"))}),
+                usage=usage,
+                attributes=event_attributes,
             )
         )
     return events

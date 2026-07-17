@@ -7,6 +7,8 @@ from collections.abc import AsyncIterator, Mapping
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._stream_content import MAX_STREAM_BLOCKS
+from opentine.models._streaming import MAX_STREAM_CALLS, SizeBudget, TextBuffer, WarningList
 from opentine.models._usage import metered_response, openai_usage, value
 
 
@@ -73,46 +75,63 @@ def response_input(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def parse_response(response: Any) -> dict[str, Any]:
-    text_parts: list[str] = []
-    refusals: list[str] = []
+    text = TextBuffer("Responses text")
+    refusal = TextBuffer("Responses refusal")
     calls: list[dict[str, Any]] = []
     continuation: list[dict[str, Any]] = []
-    warnings: list[str] = []
-    for raw_item in value(response, "output", []) or []:
+    warnings: list[str] = WarningList()
+    structured = SizeBudget()
+    output = value(response, "output", []) or []
+    for raw_item in output[:MAX_STREAM_BLOCKS]:
         item = _plain(raw_item)
         item_type = item.get("type")
         if item_type in {"reasoning", "function_call"}:
-            continuation.append(item)
+            kept = structured.keep(item, warnings, "Responses continuation")
+            continuation.append(
+                kept if isinstance(kept, dict) else {"type": item_type, "_truncated": True}
+            )
         if item_type == "function_call":
+            if len(calls) >= MAX_STREAM_CALLS:
+                warnings.append(f"streamed tool calls truncated at {MAX_STREAM_CALLS} entries")
+                continue
             arguments = item.get("arguments") or "{}"
-            try:
-                parsed = json.loads(arguments) if isinstance(arguments, str) else arguments
-            except json.JSONDecodeError:
-                parsed = {"_raw": arguments}
-                warnings.append(f"invalid JSON arguments for {item.get('name', '')}")
+            parsed = structured.keep(arguments, warnings, "Responses tool arguments")
+            if isinstance(parsed, str):
+                try:
+                    parsed = json.loads(parsed)
+                except json.JSONDecodeError:
+                    parsed = {"_raw": parsed}
+                    warnings.append(f"invalid JSON arguments for {item.get('name', '')}")
             calls.append(
                 {
-                    "name": item.get("name", ""),
+                    "name": str(item.get("name", ""))[:4096],
                     "arguments": parsed,
-                    "id": item.get("call_id") or item.get("id"),
+                    "id": str(item.get("call_id") or item.get("id") or "")[:4096] or None,
                 }
             )
         if item_type == "message":
-            for content in item.get("content") or []:
+            for content in (item.get("content") or [])[:MAX_STREAM_BLOCKS]:
                 part = _plain(content)
                 if part.get("type") == "output_text" and part.get("text"):
-                    text_parts.append(part["text"])
+                    text.add(part["text"])
                 elif part.get("type") == "refusal" and part.get("refusal"):
-                    refusals.append(part["refusal"])
-    output_text = value(response, "output_text", "") or ""
+                    refusal.add(part["refusal"])
+            if len(item.get("content") or []) > MAX_STREAM_BLOCKS:
+                warnings.append(f"streamed content truncated at {MAX_STREAM_BLOCKS} blocks")
+    if len(output) > MAX_STREAM_BLOCKS:
+        warnings.append(f"streamed output truncated at {MAX_STREAM_BLOCKS} blocks")
+    if not text.text:
+        text.add(value(response, "output_text", "") or "")
+    text.warn(warnings)
+    refusal.warn(warnings)
     result: dict[str, Any] = {
-        "text": "".join(text_parts) or output_text,
+        "text": text.text,
         "tool_calls": calls,
         "response_items": continuation,
         "warnings": warnings,
     }
-    if refusals:
-        result["refusal"] = "\n".join(refusals)
+    if refusal.text:
+        result["refusal"] = refusal.text
     return result
 
 
@@ -151,13 +170,15 @@ class ResponsesTransport:
         return kwargs
 
     def meter(self, response: Any) -> dict[str, Any]:
+        raw_usage = value(response, "usage")
         return metered_response(
             "openai",
             self.model,
-            openai_usage(value(response, "usage")),
+            openai_usage(raw_usage),
             catalog=self.catalog,
             rate_override=self.rate_override,
             service_tier=value(response, "service_tier", self.service_tier),
+            usage_reported=raw_usage is not None,
         )
 
     async def complete(

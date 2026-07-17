@@ -158,6 +158,17 @@ async def test_anthropic_early_vs_midstream_refusal_billing(
         assert "non-billable" in " ".join(result["billing"]["warnings"])
 
 
+def test_only_fable_early_empty_refusal_is_nonbillable():
+    response = SimpleNamespace(
+        content=[SimpleNamespace(type="refusal", refusal="cannot comply")],
+        stop_reason="refusal",
+        usage=SimpleNamespace(input_tokens=1_000, output_tokens=0),
+    )
+    result = Anthropic("claude-sonnet-5")._result(response)
+    assert result["billing"]["amount_usd"] != "0"
+    assert "refusal_modifier" not in result["billing"]["calculation"]
+
+
 @pytest.mark.asyncio
 async def test_kimi_omits_temperature_and_preserves_reasoning_continuation(monkeypatch):
     seen: dict[str, Any] = {}
@@ -189,7 +200,7 @@ async def test_kimi_omits_temperature_and_preserves_reasoning_continuation(monke
     result = await adapter.complete([{"role": "user", "content": "lookup"}], temperature=0.9)
     assert "temperature" not in seen
     assert result["reasoning_content"] == "chain-state"
-    assert result["cost"] == pytest.approx(4.95)
+    assert result["cost"] == pytest.approx(18.0)
     continued = adapter._build_messages(
         [
             {

@@ -307,7 +307,9 @@ class TestToolSchema:
         assert schema["name"] == "greet"
         assert schema["description"] == "Say hello to someone."
         assert "name" in schema["input_schema"]["properties"]
+        assert schema["input_schema"]["properties"]["loud"]["type"] == "boolean"
         assert schema["input_schema"]["required"] == ["name"]
+        assert schema["input_schema"]["additionalProperties"] is False
 
     def test_no_docstring(self):
         def bare(x: int):
@@ -315,6 +317,13 @@ class TestToolSchema:
 
         schema = tool_schema(bare)
         assert schema["description"] == ""
+
+    def test_security_policy_parameters_are_not_model_controlled(self):
+        assert set(tool_schema(fs.read)["input_schema"]["properties"]) == {"path"}
+        assert set(tool_schema(fs.write)["input_schema"]["properties"]) == {"path", "content"}
+        assert set(tool_schema(shell.run)["input_schema"]["properties"]) == {"command"}
+        assert set(tool_schema(python.execute)["input_schema"]["properties"]) == {"code"}
+        assert set(tool_schema(web.fetch)["input_schema"]["properties"]) == {"url"}
 
 
 # --- Agent with mock model --------------------------------------------------
@@ -419,6 +428,26 @@ class TestAgent:
         assert run.status == RunStatus.completed
         assert any(s.kind == StepKind.error for s in run.steps)
 
+    def test_model_cannot_override_hidden_tool_policy(self):
+        model = MockModel(
+            [
+                {
+                    "text": "",
+                    "tool_calls": [
+                        {
+                            "name": "run",
+                            "arguments": {"command": "not-run", "sandbox": ""},
+                        }
+                    ],
+                },
+                {"text": "done", "tool_calls": []},
+            ]
+        )
+        run = Agent(model=model, tools=[shell.run]).run_sync("Do not widen host policy")
+        errors = [step for step in run.steps if step.kind == StepKind.error]
+        assert errors
+        assert "forbidden argument" in errors[0].error["message"]
+
 
 class TestSecurity:
     def test_path_prefix_bypass_rejected(self, tmp_path: Path):
@@ -457,6 +486,16 @@ class TestSecurity:
 
     def test_shell_disabled_by_default(self):
         assert "disabled by policy" in shell.run("python3 -c 'print(1)'")
+
+    def test_filesystem_writes_require_an_explicit_root(self, tmp_path: Path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        try:
+            fs.write("unexpected.txt", "no")
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("filesystem writes must require explicit write roots")
+        assert not (tmp_path / "unexpected.txt").exists()
 
     def test_shell_allowlist_and_output_cap(self):
         out = shell.run(

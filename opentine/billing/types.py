@@ -4,11 +4,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
+
+from opentine.billing._rate_validation import validate_rate_card, validate_rate_card_data
 
 BillingStatus = Literal["complete", "partial", "unknown", "unmetered"]
 Number = int | float | Decimal
+_USAGE_FIELDS = (
+    "input",
+    "output",
+    "cache_read",
+    "cache_write_5m",
+    "cache_write_1h",
+    "reasoning",
+)
 
 
 def decimal(value: Any, default: str = "0") -> Decimal:
@@ -41,20 +51,18 @@ class Usage:
     extra: dict[str, Number] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        for name in (
-            "input",
-            "output",
-            "cache_read",
-            "cache_write_5m",
-            "cache_write_1h",
-            "reasoning",
-        ):
+        for name in _USAGE_FIELDS:
             if type(getattr(self, name)) is not int or getattr(self, name) < 0:
                 raise ValueError(f"usage.{name} must be a non-negative integer")
         if self.total is not None and (type(self.total) is not int or self.total < 0):
             raise ValueError("usage.total must be a non-negative integer")
         for name, value in self.extra.items():
-            number = decimal(value)
+            if not isinstance(name, str) or not name or name in {*_USAGE_FIELDS, "total", "extra"}:
+                raise ValueError(f"invalid or reserved usage.extra dimension: {name!r}")
+            try:
+                number = decimal(value)
+            except (InvalidOperation, ValueError) as exc:
+                raise ValueError(f"usage.extra.{name} must be finite and non-negative") from exc
             if not number.is_finite() or number < 0:
                 raise ValueError(f"usage.extra.{name} must be finite and non-negative")
 
@@ -96,21 +104,11 @@ class Usage:
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> Usage:
         raw = dict(data or {})
-        known = {
-            name: int(raw.pop(name, 0) or 0)
-            for name in (
-                "input",
-                "output",
-                "cache_read",
-                "cache_write_5m",
-                "cache_write_1h",
-                "reasoning",
-            )
-        }
+        known = {name: raw.pop(name, 0) for name in _USAGE_FIELDS}
         total = raw.pop("total", None)
         nested = raw.pop("extra", {})
         extra = {**(nested if isinstance(nested, dict) else {}), **raw}
-        return cls(**known, total=int(total) if total is not None else None, extra=extra)
+        return cls(**known, total=total, extra=extra)
 
 
 @dataclass(frozen=True)
@@ -133,6 +131,7 @@ class RateCard:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        validate_rate_card(self)
         groups = [self.rates, *self.service_rates.values()]
         scalars = [self.currency_to_usd]
         for modifier in self.service_modifiers.values():
@@ -187,6 +186,7 @@ class RateCard:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RateCard:
+        validate_rate_card_data(data)
         return cls(
             id=data["id"],
             provider=data["provider"],

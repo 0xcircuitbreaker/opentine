@@ -9,6 +9,9 @@ from typing import Any, Literal
 
 TraceKind = Literal["model", "tool", "human", "policy", "approval", "subagent", "error"]
 TRACE_KINDS = frozenset({"model", "tool", "human", "policy", "approval", "subagent", "error"})
+TOKEN_USAGE = frozenset(
+    {"input", "output", "cache_read", "cache_write_5m", "cache_write_1h", "reasoning", "total"}
+)
 
 
 @dataclass(frozen=True)
@@ -33,6 +36,12 @@ class TraceEvent:
         if self.kind not in TRACE_KINDS:
             raise ValueError(f"invalid trace event kind: {self.kind!r}")
         try:
+            timestamp = float(self.timestamp)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("trace timestamp must be finite") from exc
+        if isinstance(self.timestamp, bool) or not math.isfinite(timestamp):
+            raise ValueError("trace timestamp must be finite")
+        try:
             if isinstance(self.duration, str) and len(self.duration) > 128:
                 raise ValueError
             duration = float(self.duration)
@@ -53,6 +62,15 @@ class TraceEvent:
                 raise ValueError("trace cost must be finite and non-negative") from exc
             if isinstance(value, bool) or not amount.is_finite() or amount < 0:
                 raise ValueError("trace cost must be finite and non-negative")
+        if not isinstance(self.usage, dict):
+            raise ValueError("trace usage must be a mapping")
+        for name, value in self.usage.items():
+            valid = isinstance(name, str) and type(value) in {int, float}
+            number = float(value) if valid else float("nan")
+            if name in TOKEN_USAGE:
+                valid = valid and number.is_integer() and number <= (1 << 53) - 1
+            if not valid or not math.isfinite(number) or number < 0:
+                raise ValueError(f"trace usage.{name} must be finite and non-negative")
 
     def to_dict(self) -> dict[str, Any]:
         return {

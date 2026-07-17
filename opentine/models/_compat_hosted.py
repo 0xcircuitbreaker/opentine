@@ -5,8 +5,12 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from opentine.models._chat import ChatCompletions, env_key
+from opentine.models._chat import ChatCompletions
 from opentine.models._compat_auth import glm_jwt
+
+
+def env_key(name: str) -> str:
+    return os.environ.get(name, "")
 
 
 def _has_cache_control(value: Any) -> bool:
@@ -45,7 +49,7 @@ def _base(
 
 
 class Kimi(ChatCompletions):
-    def __init__(self, model: str = "kimi-k2.6", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "kimi-k3", api_key: str | None = None, **kwargs: Any):
         kwargs.setdefault("omit_temperature", True)
         _base(
             self,

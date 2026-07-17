@@ -35,6 +35,17 @@ def test_bundled_catalog_is_signed_and_exact_cache_arithmetic(catalog: PricingCa
     assert result.catalog_provenance[0]["signature"]["algorithm"] == "ed25519"
 
 
+@pytest.mark.parametrize("value", [True, 1.5, -1, "10"])
+def test_usage_dict_rejects_noninteger_token_counts(value):
+    with pytest.raises(ValueError, match="usage.input"):
+        bill("openai", "gpt-5", {"input": value}, effective_at="2026-07-16")
+
+
+def test_usage_extra_dimensions_cannot_override_core_tokens():
+    with pytest.raises(ValueError, match="reserved"):
+        Usage(input=1, extra={"input": 1_000_000})
+
+
 def test_gpt_56_long_context_and_service_modifier(catalog: PricingCatalog):
     short = bill(
         "openai",
@@ -286,6 +297,19 @@ def test_kimi_batch_uses_provider_exact_rates(catalog: PricingCatalog):
     assert result.calculation["service_rates_per_million"]["cache_read"] == "0.10"
 
 
+def test_kimi_k3_current_default_rates(catalog: PricingCatalog):
+    result = bill(
+        "kimi",
+        "kimi-k3",
+        Usage(input=1_000_000, cache_read=1_000_000, output=1_000_000),
+        catalog=catalog,
+        effective_at="2026-07-16",
+    )
+    assert result.status == "complete"
+    assert result.amount_usd == Decimal("18.30")
+    assert result.rate_card_id == "kimi:kimi-k3:2026-07-16"
+
+
 def test_groq_service_tiers_and_scoped_public_lifecycle(catalog: PricingCatalog):
     usage = Usage(input=1_000_000, output=1_000_000)
     flex = bill(
@@ -494,6 +518,7 @@ def test_scalar_service_modifiers_are_finite_and_non_negative(value: Decimal):
 def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCatalog):
     unknown = bill("openai", "kimi-k2.6", Usage(input=10), catalog=catalog)
     dynamic = bill("nous", "Hermes-4-70B", Usage(input=10), catalog=catalog)
+    dynamic_zero = bill("nous", "Hermes-4-70B", Usage(), catalog=catalog)
     local = bill("ollama", "qwen3", Usage(input=10), catalog=catalog, unmetered=True)
     partial = calculate(
         Usage(input=1_000_000, output=1_000_000),
@@ -501,6 +526,7 @@ def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCata
     )
     assert unknown.status == "unknown" and unknown.amount_usd is None
     assert dynamic.status == "unknown" and dynamic.amount_usd is None
+    assert dynamic_zero.status == "unknown" and dynamic_zero.amount_usd is None
     assert local.status == "unmetered" and local.amount_usd == 0
     assert partial.status == "partial" and partial.known_subtotal_usd == 2
     with pytest.raises(ValueError, match="finite and non-negative"):

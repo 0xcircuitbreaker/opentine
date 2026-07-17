@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,7 +22,8 @@ from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import (
     require_secure_remote as _require_secure_remote,
 )
-from opentine.repository.pack import create_pack, minimum_upload_chunk, negotiate
+from opentine.repository._upload_client import upload as _upload
+from opentine.repository.pack import MAX_PACK_OBJECTS, create_pack, negotiate
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -63,13 +63,6 @@ def _refs(value: dict[str, Any]) -> dict[str, str]:
     except KernelError as exc:
         raise ValueError("remote returned an invalid ref target") from exc
     return refs
-
-
-def _offset(state: dict[str, Any], default: int = -1) -> int:
-    raw = state.get("offset", default)
-    if type(raw) is not int:
-        raise ValueError("remote returned an invalid upload offset")
-    return raw
 
 
 def _upload_result(state: dict[str, Any]) -> tuple[int, str]:
@@ -126,66 +119,24 @@ def fetch(
             max_seconds=timeout,
             json={
                 "depth": depth,
-                "haves": repo.iter_oids(),
+                # The wire protocol deliberately bounds negotiation sets. A
+                # truncated have-list can only cause a redundant transfer;
+                # sending more would make otherwise healthy large repositories
+                # impossible to fetch into.
+                "haves": repo.iter_oids(limit=MAX_PACK_OBJECTS, truncate=True),
                 "object_types": sorted(object_types or ()),
                 "wants": selected,
             },
         )
     result = repo.import_pack(pack)
-    if ref in remote_refs:
+    # A filtered or shallow fetch may intentionally omit the advertised root.
+    # Only materialize a tracking ref when its target is actually present and
+    # verified locally; otherwise the fetched objects remain inspectable
+    # without creating a dangling ref.
+    if ref in remote_refs and repo.has(remote_refs[ref]):
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
         repo.update_ref(tracking, remote_refs[ref], expected_old=repo.read_ref(tracking))
     return TransferResult(len(result.objects), result.pack_id, ref)
-
-
-def _upload(
-    client: httpx.Client,
-    endpoint: str,
-    data: bytes,
-    *,
-    chunk_size: int,
-    timeout: float = 30,
-) -> dict[str, Any]:
-    if chunk_size < minimum_upload_chunk(len(data)):
-        raise ValueError("upload chunk size is below the safe resumable minimum")
-    _, state = _request_json(
-        client,
-        "POST",
-        endpoint,
-        allowed=(200, 201),
-        max_seconds=timeout,
-        json={"sha256": hashlib.sha256(data).hexdigest(), "size": len(data)},
-    )
-    upload_id = state.get("upload_id")
-    if not isinstance(upload_id, str) or not re.fullmatch(r"[0-9a-f]{32}", upload_id):
-        raise ValueError("remote returned an invalid upload id")
-    upload = endpoint + "/" + upload_id
-    offset = _offset(state, 0)
-    if not 0 <= offset <= len(data):
-        raise ValueError("remote returned an invalid upload offset")
-    max_iterations = (len(data) + chunk_size - 1) // chunk_size + 4
-    iterations = 0
-    while offset < len(data):
-        iterations += 1
-        if iterations > max_iterations:
-            raise ValueError("remote upload did not converge")
-        chunk = data[offset : offset + chunk_size]
-        status, state = _request_json(
-            client,
-            "PATCH",
-            upload,
-            allowed=(200, 201, 409),
-            max_seconds=timeout,
-            content=chunk,
-            headers={"Upload-Offset": str(offset)},
-        )
-        next_offset = _offset(state)
-        if not offset < next_offset <= len(data):
-            raise ValueError("remote upload offset did not advance")
-        if status != 409 and next_offset != offset + len(chunk):
-            raise ValueError("remote acknowledged an invalid upload length")
-        offset = next_offset
-    return state
 
 
 def push(

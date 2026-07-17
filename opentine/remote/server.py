@@ -157,6 +157,8 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
     token = os.environ.get(args.token_env)
     if not token:
         raise SystemExit(f"{args.token_env} must contain the development bearer token")
+    if len(token.encode("utf-8")) < 16:
+        raise SystemExit(f"{args.token_env} must contain at least 16 bytes of token material")
     if not args.insecure_dev and not (args.cert and args.key):
         raise SystemExit("TLS --cert and --key are required unless --insecure-dev is explicit")
     if (
