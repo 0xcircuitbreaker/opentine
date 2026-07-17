@@ -8,7 +8,8 @@ import pytest
 
 from opentine.billing import PricingCatalog, RateCard, Usage, bill, calculate, load_catalogs
 from opentine.billing.catalog import BUNDLED_CATALOG
-from opentine.models._usage import google_usage, metered_response, openai_usage
+from opentine.models._metered import metered_response
+from opentine.models._usage import google_usage, openai_usage
 from opentine.models.google import Google
 from opentine.runtime import Agent
 
@@ -477,7 +478,7 @@ def test_google_service_rates_and_audio_dimensions_are_exact(catalog: PricingCat
 
 def test_google_generate_content_rejects_unimplemented_service_transport():
     assert Google().name == "gemini-3.5-flash"
-    with pytest.raises(ValueError, match="GenerateContent uses standard pricing"):
+    with pytest.raises(ValueError, match="standard, flex, or priority"):
         Google(service_tier="batch")
 
 
@@ -531,7 +532,7 @@ def test_unknown_partial_dynamic_and_unmetered_are_distinct(catalog: PricingCata
     assert partial.status == "partial" and partial.known_subtotal_usd == 2
     with pytest.raises(ValueError, match="finite and non-negative"):
         Usage(extra={"compute_seconds": Decimal("NaN")})
-    with pytest.raises(ValueError, match="non-negative integer"):
+    with pytest.raises(ValueError, match="non-negative safe integer"):
         Usage(input=1.5)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="finite and non-negative"):
         RateCard("invalid", "vendor", "model", {"input": Decimal("NaN")})
@@ -566,5 +567,7 @@ def test_run_manifest_pins_catalog_signature_and_calculation():
     run = Agent(MeteredModel()).run_sync("go")
     pricing = run.manifest["pricing"]
     assert pricing["catalog_provenance"][0]["signature"]["algorithm"] == "ed25519"
+    assert pricing["catalogs"][0]["catalog_id"] == pricing["catalog_id"]
+    assert pricing["invocations"][0]["catalog_hash"] == pricing["catalog_hash"]
     assert pricing["rate_cards"]
     assert pricing["invocations"][0]["calculation"]["usage"]["input"] == 10

@@ -7,11 +7,24 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._anthropic_request import build_tools, convert_messages
+from opentine.models._anthropic_rules import model_rules, pricing_tier, validate_service_tier
+from opentine.models._client import closing_client
+from opentine.models._metered import metered_response
+from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._stream_content import anthropic_content
-from opentine.models._usage import anthropic_usage, metered_response, value
+from opentine.models._terminal import reject_refused_tool_calls
+from opentine.models._usage import (
+    anthropic_usage,
+    missing_usage_dimensions,
+    value,
+)
 
 
 class Anthropic:
+    _build_tools = staticmethod(build_tools)
+    _convert_messages = staticmethod(convert_messages)
+
     def __init__(
         self,
         model: str = "claude-sonnet-5",
@@ -22,9 +35,10 @@ class Anthropic:
         service_tier: str | None = None,
         inference_geo: str | None = None,
     ):
+        validate_service_tier(service_tier)
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self._rate_override = rates
+        self._rate_override = validated_rates("anthropic", model, rates)
         self._catalog = catalog
         self._service_tier = service_tier
         self._inference_geo = inference_geo
@@ -39,74 +53,18 @@ class Anthropic:
 
     @property
     def supports_thinking(self) -> bool:
-        lowered = self._model.lower()
-        return any(name in lowered for name in ("opus", "sonnet", "fable"))
+        return model_rules(self._model)[0]
 
     @property
     def _adaptive(self) -> bool:
-        lowered = self._model.lower()
-        return (
-            "fable-5" in lowered
-            or "sonnet-5" in lowered
-            or any(f"opus-4-{minor}" in lowered for minor in range(6, 10))
-        )
+        return model_rules(self._model)[1]
 
     def _get_client(self):
         try:
             import anthropic
         except ImportError:
             raise ImportError("pip install opentine[anthropic]") from None
-        return anthropic.AsyncAnthropic(api_key=self._api_key)
-
-    @staticmethod
-    def _build_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
-        if not tools:
-            return None
-        return [
-            {
-                "name": tool["name"],
-                "description": tool["description"],
-                "input_schema": tool["input_schema"],
-            }
-            for tool in tools
-        ]
-
-    @staticmethod
-    def _convert_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        converted: list[dict[str, Any]] = []
-        for message in messages:
-            role = message["role"]
-            if role == "tool":
-                converted.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": message.get("tool_call_id", message.get("name", "")),
-                                "content": message["content"],
-                            }
-                        ],
-                    }
-                )
-                continue
-            if role == "assistant" and message.get("tool_calls"):
-                content: list[dict[str, Any]] = []
-                if message.get("content"):
-                    content.append({"type": "text", "text": message["content"]})
-                for call in message["tool_calls"]:
-                    content.append(
-                        {
-                            "type": "tool_use",
-                            "id": call.get("id", call["name"]),
-                            "name": call["name"],
-                            "input": call.get("arguments", {}),
-                        }
-                    )
-                converted.append({"role": "assistant", "content": content})
-                continue
-            converted.append({"role": role, "content": message["content"]})
-        return converted
+        return anthropic.AsyncAnthropic(api_key=self._api_key, max_retries=0)
 
     def _kwargs(
         self,
@@ -118,43 +76,42 @@ class Anthropic:
         kwargs: dict[str, Any] = {
             "model": self._model,
             "max_tokens": 4096,
-            "messages": self._convert_messages(messages),
+            "messages": convert_messages(messages),
         }
         if not self._adaptive:
             kwargs["temperature"] = temperature
         if system:
             kwargs["system"] = system
-        api_tools = self._build_tools(tools)
+        api_tools = build_tools(tools)
         if api_tools:
             kwargs["tools"] = api_tools
         if self._service_tier:
             kwargs["service_tier"] = self._service_tier
+        if model_rules(self._model)[2]:
+            kwargs["thinking"] = {"type": "adaptive"}
         if self._inference_geo:
             kwargs["inference_geo"] = self._inference_geo
         return kwargs
 
-    def _pricing_tier(self, response: Any) -> str | None:
-        usage = value(response, "usage")
-        tier = value(response, "service_tier", self._service_tier)
-        geo = value(usage, "inference_geo", self._inference_geo)
-        if geo != "us":
-            return tier
-        if tier in (None, "", "default", "standard", "standard_only"):
-            return "us"
-        return f"{tier}_us"
-
     def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
         raw_usage = value(response, "usage")
+        raw_model = value(response, "model")
+        reported_model = model_name(raw_model)
         payload = metered_response(
             "anthropic",
             self._model,
             anthropic_usage(raw_usage),
             catalog=self._catalog,
             rate_override=self._rate_override,
-            service_tier=self._pricing_tier(response),
+            service_tier=pricing_tier(response, self._service_tier, self._inference_geo),
             usage_reported=raw_usage is not None,
+            missing_usage=missing_usage_dimensions(
+                raw_usage, {"input": ("input_tokens",), "output": ("output_tokens",)}
+            ),
+            reported_model=raw_model,
         )
-        if early_refusal and "fable-5" in self._model.lower():
+        refusal_model = self._model if raw_model is None else reported_model or ""
+        if early_refusal and "fable-5" in refusal_model.lower():
             billing = payload["billing"]
             billing["status"] = "complete"
             billing["amount_usd"] = "0"
@@ -166,23 +123,41 @@ class Anthropic:
 
     def _result(self, response: Any) -> dict[str, Any]:
         result = anthropic_content(response)
-        refused = value(response, "stop_reason") == "refusal" or bool(result.get("refusal"))
+        stop_reason = value(response, "stop_reason")
+        refused = stop_reason == "refusal" or bool(result.get("refusal"))
+        successful = stop_reason in {"end_turn", "tool_use", "stop_sequence"}
+        incomplete = not refused and not successful
+        had_content = bool(
+            result["text"]
+            or result["tool_calls"]
+            or result.get("reasoning_content")
+            or result.get("anthropic_content")
+        )
         if refused and not result.get("refusal"):
             result["refusal"] = "refused"
+        if incomplete:
+            reason = stop_reason or "missing stop reason"
+            result["refusal"] = f"incomplete response: {reason}"
+            result["warnings"].append(result["refusal"])
+        if refused and had_content:
+            result["text"] = ""
+            result["tool_calls"] = []
+            for field in ("anthropic_content", "reasoning_content"):
+                result.pop(field, None)
+            result["warnings"].append("discarded partial output from refused response")
         raw_usage = value(response, "usage")
         usage = anthropic_usage(raw_usage)
         result.update(
             self._meter(
                 response,
                 early_refusal=(
-                    refused
-                    and not result["text"]
-                    and not result["tool_calls"]
-                    and usage.output == 0
-                    and raw_usage is not None
+                    refused and not had_content and usage.output == 0 and raw_usage is not None
                 ),
             )
         )
+        if reported_model := model_name(value(response, "model")):
+            result["model"] = reported_model
+        reject_refused_tool_calls(result)
         return result
 
     async def complete(
@@ -192,10 +167,11 @@ class Anthropic:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
-        response = await self._get_client().messages.create(
-            **self._kwargs(messages, tools, system, temperature)
-        )
-        return self._result(response)
+        async with closing_client(self._get_client()) as client:
+            response = await client.messages.create(
+                **self._kwargs(messages, tools, system, temperature)
+            )
+            return self._result(response)
 
     async def stream(
         self,
@@ -204,24 +180,39 @@ class Anthropic:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
-        manager = self._get_client().messages.stream(
-            **self._kwargs(messages, tools, system, temperature)
-        )
-        async with manager as stream:
-            async for event in stream:
-                if value(event, "type") == "content_block_delta":
-                    delta = value(event, "delta")
-                    text = value(delta, "text")
-                    if text:
-                        yield {"type": "text_delta", "text": text}
-                    thinking = value(delta, "thinking")
-                    if thinking:
-                        yield {"type": "thinking_delta", "text": thinking}
-            final = getattr(stream, "get_final_message", None)
-            if callable(final):
-                response = await final()
-                result = self._result(response)
-                metered = {key: result[key] for key in ("billing", "cost", "usage")}
-                yield {"type": "usage", **metered}
-                if result["tool_calls"] or result.get("refusal") or result.get("reasoning_content"):
-                    yield {"type": "response", **result}
+        async with closing_client(self._get_client()) as client:
+            manager = client.messages.stream(**self._kwargs(messages, tools, system, temperature))
+            async with manager as stream:
+                async for event in stream:
+                    if value(event, "type") == "content_block_delta":
+                        delta = value(event, "delta")
+                        text = value(delta, "text")
+                        if text:
+                            yield {"type": "text_delta", "text": text}
+                        thinking = value(delta, "thinking")
+                        if thinking:
+                            yield {"type": "thinking_delta", "text": thinking}
+                final = getattr(stream, "get_final_message", None)
+                if callable(final):
+                    response = await final()
+                    result = self._result(response)
+                    metered = {key: result[key] for key in ("billing", "cost", "usage")}
+                    yield {"type": "usage", **metered}
+                    if (
+                        result["tool_calls"]
+                        or result.get("refusal")
+                        or result.get("reasoning_content")
+                        or result.get("anthropic_content")
+                    ):
+                        yield {"type": "response", **result}
+                else:
+                    metered = self._meter(None)
+                    yield {"type": "usage", **metered}
+                    yield {
+                        "type": "response",
+                        "text": "",
+                        "tool_calls": [],
+                        "refusal": "incomplete response: stream ended without a final message",
+                        "warnings": ["Anthropic stream omitted its final message"],
+                        **metered,
+                    }

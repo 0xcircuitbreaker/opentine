@@ -28,6 +28,7 @@ class RuntimeLoopMixin:
                 outputs={"partial": partial.get("text", "")},
                 duration=time.time() - started,
                 cost=partial.get("cost", 0),
+                model_info=self.model.name,
                 usage=partial.get("usage"),
                 billing=partial.get("billing"),
                 error={"message": str(exc), "type": type(exc).__name__},
@@ -52,7 +53,10 @@ class RuntimeLoopMixin:
     ) -> tuple[dict[str, Any], list[dict[str, Any]], bool]:
         self._warnings(run, response)
         text = response.get("text", "")
-        tool_calls = response.get("tool_calls", [])
+        tool_calls = [
+            {**call, "id": call.get("id") or f"opentine-{len(run.steps)}-{index}"}
+            for index, call in enumerate(response.get("tool_calls", []))
+        ]
         refusal = response.get("refusal")
         kind = (
             StepKind.error
@@ -65,9 +69,19 @@ class RuntimeLoopMixin:
         )
         outputs = {
             key: response[key]
-            for key in ("tool_calls", "refusal", "thinking", "reasoning_content")
+            for key in (
+                "refusal",
+                "thinking",
+                "reasoning_content",
+                "content_blocks",
+                "anthropic_content",
+                "google_content",
+                "response_items",
+            )
             if response.get(key)
         }
+        if tool_calls:
+            outputs["tool_calls"] = tool_calls
         billing = response.get("billing") or {}
         step = run.add_step(
             kind,
@@ -75,6 +89,7 @@ class RuntimeLoopMixin:
             outputs=outputs,
             cost=response.get("cost", 0),
             duration=duration,
+            model_info=response.get("model") or self.model.name,
             usage=response.get("usage"),
             billing=billing,
             error={"message": str(refusal), "type": "ModelRefusal"} if refusal else None,
@@ -83,8 +98,18 @@ class RuntimeLoopMixin:
         assistant = {"step_id": step.id, "role": "assistant", "content": text}
         if tool_calls:
             assistant["tool_calls"] = tool_calls
-        for key in ("response_items", "reasoning_content", "refusal"):
-            if response.get(key):
+        for key in (
+            "response_items",
+            "reasoning_content",
+            "content_blocks",
+            "anthropic_content",
+            "google_content",
+            "refusal",
+        ):
+            # Incomplete provider-native call/reasoning items are valuable audit
+            # evidence but are not a valid continuation point. Replaying them on
+            # resume can recreate an unterminated tool-call batch.
+            if response.get(key) and (not refusal or key == "refusal"):
                 assistant[key] = response[key]
         run.transcript.append(dict(assistant))
         message = {key: value for key, value in assistant.items() if key != "step_id"}
@@ -98,7 +123,7 @@ class RuntimeLoopMixin:
     ) -> None:
         for call in tool_calls:
             name, arguments = call["name"], call.get("arguments", {})
-            call_id = call.get("id", name)
+            call_id = call.get("id") or name
             cache_key = semantic_key("tool.call", {"arguments": arguments, "name": name})
             try:
                 result = await self._call_tool(name, arguments)

@@ -52,11 +52,21 @@ class AccountingMixin:
             pricing.setdefault("catalog_hash", billing["catalog_hash"])
         if billing.get("catalog_provenance"):
             pricing.setdefault("catalog_provenance", billing["catalog_provenance"])
+        snapshot = {
+            "catalog_id": billing.get("catalog_id"),
+            "catalog_hash": billing.get("catalog_hash"),
+            "catalog_provenance": billing.get("catalog_provenance") or [],
+        }
+        catalogs = pricing.setdefault("catalogs", [])
+        if (snapshot["catalog_id"] or snapshot["catalog_hash"]) and snapshot not in catalogs:
+            catalogs.append(snapshot)
         if billing.get("rate_card_id"):
             pricing.setdefault("rate_cards", {})[step_id] = billing["rate_card_id"]
         pricing.setdefault("invocations", []).append(
             {
                 "calculation": billing.get("calculation", {}),
+                "catalog_hash": billing.get("catalog_hash"),
+                "catalog_id": billing.get("catalog_id"),
                 "effective_at": billing.get("effective_at"),
                 "rate_card_id": billing.get("rate_card_id"),
                 "status": billing.get("status", "unknown"),

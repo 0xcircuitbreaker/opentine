@@ -2,79 +2,23 @@
 
 from __future__ import annotations
 
-import json
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.kernel import KernelError, canonical_json
+from opentine.models._metered import metered_response
+from opentine.models._provider_meta import model_name, validated_rates
+from opentine.models._responses_request import plain as _plain
+from opentine.models._responses_request import response_input, response_tools
 from opentine.models._stream_content import MAX_STREAM_BLOCKS
 from opentine.models._streaming import MAX_STREAM_CALLS, SizeBudget, TextBuffer, WarningList
-from opentine.models._usage import metered_response, openai_usage, value
+from opentine.models._terminal import reject_unsafe_tool_calls, response_terminal
+from opentine.models._tool_args import bounded_tool_arguments
+from opentine.models._usage import missing_usage_dimensions, openai_usage, value
 
 
-def _plain(item: Any) -> dict[str, Any]:
-    if isinstance(item, Mapping):
-        return dict(item)
-    dump = getattr(item, "model_dump", None)
-    if callable(dump):
-        return dump(exclude_none=True)
-    return {
-        name: raw
-        for name, raw in vars(item).items()
-        if not name.startswith("_") and raw is not None
-    }
-
-
-def response_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
-    if not tools:
-        return None
-    return [
-        {
-            "type": "function",
-            "name": tool["name"],
-            "description": tool["description"],
-            "parameters": tool["input_schema"],
-            "strict": bool(tool.get("strict", False)),
-        }
-        for tool in tools
-    ]
-
-
-def response_input(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    items: list[dict[str, Any]] = []
-    for message in messages:
-        preserved = message.get("response_items")
-        if preserved:
-            items.extend(_plain(item) for item in preserved)
-            continue
-        role = message["role"]
-        if role == "tool":
-            items.append(
-                {
-                    "type": "function_call_output",
-                    "call_id": message.get("tool_call_id", message.get("name", "")),
-                    "output": message["content"],
-                }
-            )
-            continue
-        if role == "assistant" and message.get("tool_calls"):
-            if message.get("content"):
-                items.append({"role": "assistant", "content": message["content"]})
-            for call in message["tool_calls"]:
-                items.append(
-                    {
-                        "type": "function_call",
-                        "call_id": call.get("id", call["name"]),
-                        "name": call["name"],
-                        "arguments": json.dumps(call.get("arguments", {})),
-                    }
-                )
-            continue
-        items.append({"role": role, "content": message["content"]})
-    return items
-
-
-def parse_response(response: Any) -> dict[str, Any]:
+def parse_response(response: Any, forced_status: str | None = None) -> dict[str, Any]:
     text = TextBuffer("Responses text")
     refusal = TextBuffer("Responses refusal")
     calls: list[dict[str, Any]] = []
@@ -85,23 +29,25 @@ def parse_response(response: Any) -> dict[str, Any]:
     for raw_item in output[:MAX_STREAM_BLOCKS]:
         item = _plain(raw_item)
         item_type = item.get("type")
-        if item_type in {"reasoning", "function_call"}:
+        if item_type in {"message", "reasoning", "function_call"}:
             kept = structured.keep(item, warnings, "Responses continuation")
-            continuation.append(
-                kept if isinstance(kept, dict) else {"type": item_type, "_truncated": True}
-            )
+            if isinstance(kept, dict) and not kept.get("_truncated"):
+                try:
+                    canonical_json(kept)
+                except (KernelError, RecursionError):
+                    warnings.append(
+                        "Responses continuation contained non-canonical data and was discarded"
+                    )
+                else:
+                    continuation.append(kept)
         if item_type == "function_call":
             if len(calls) >= MAX_STREAM_CALLS:
                 warnings.append(f"streamed tool calls truncated at {MAX_STREAM_CALLS} entries")
                 continue
             arguments = item.get("arguments") or "{}"
-            parsed = structured.keep(arguments, warnings, "Responses tool arguments")
-            if isinstance(parsed, str):
-                try:
-                    parsed = json.loads(parsed)
-                except json.JSONDecodeError:
-                    parsed = {"_raw": parsed}
-                    warnings.append(f"invalid JSON arguments for {item.get('name', '')}")
+            parsed = bounded_tool_arguments(
+                arguments, structured, warnings, "Responses", item.get("name", "")
+            )
             calls.append(
                 {
                     "name": str(item.get("name", ""))[:4096],
@@ -132,6 +78,8 @@ def parse_response(response: Any) -> dict[str, Any]:
     }
     if refusal.text:
         result["refusal"] = refusal.text
+    reject_unsafe_tool_calls(result)
+    response_terminal(result, response, forced_status)
     return result
 
 
@@ -146,7 +94,7 @@ class ResponsesTransport:
     ):
         self.model = model
         self.catalog = catalog
-        self.rate_override = rate_override
+        self.rate_override = validated_rates("openai", model, rate_override)
         self.service_tier = service_tier
 
     def kwargs(
@@ -171,14 +119,20 @@ class ResponsesTransport:
 
     def meter(self, response: Any) -> dict[str, Any]:
         raw_usage = value(response, "usage")
+        reported_model = value(response, "model")
         return metered_response(
             "openai",
             self.model,
             openai_usage(raw_usage),
             catalog=self.catalog,
             rate_override=self.rate_override,
-            service_tier=value(response, "service_tier", self.service_tier),
+            service_tier=value(response, "service_tier") or self.service_tier,
             usage_reported=raw_usage is not None,
+            missing_usage=missing_usage_dimensions(
+                raw_usage,
+                {"input": ("input_tokens",), "output": ("output_tokens",)},
+            ),
+            reported_model=reported_model,
         )
 
     async def complete(
@@ -195,6 +149,8 @@ class ResponsesTransport:
         result = parse_response(response)
         result.update(self.meter(response))
         result["response_id"] = value(response, "id")
+        if reported_model := model_name(value(response, "model")):
+            result["model"] = reported_model
         return result
 
     async def stream(
@@ -208,14 +164,40 @@ class ResponsesTransport:
         kwargs = self.kwargs(messages, tools, system, temperature)
         kwargs["stream"] = True
         events = await client.responses.create(**kwargs)
+        terminal = False
         async for event in events:
             event_type = value(event, "type", "")
             if event_type == "response.output_text.delta":
                 yield {"type": "text_delta", "text": value(event, "delta", "")}
             elif event_type == "response.refusal.delta":
                 yield {"type": "refusal_delta", "text": value(event, "delta", "")}
-            elif event_type == "response.completed":
-                response = value(event, "response")
+            elif event_type in {"response.completed", "response.failed", "response.incomplete"}:
+                terminal = True
+                response = value(event, "response") or event
+                parsed = parse_response(response, event_type.removeprefix("response."))
+                parsed.update(self.meter(response))
+                if reported_model := model_name(value(response, "model")):
+                    parsed["model"] = reported_model
+                yield {"type": "response", **parsed}
+            elif event_type in {"error", "response.error"}:
+                terminal = True
+                response = {
+                    "error": value(event, "error") or event,
+                    "model": value(event, "model"),
+                    "status": "failed",
+                    "usage": value(event, "usage"),
+                }
                 parsed = parse_response(response)
                 parsed.update(self.meter(response))
                 yield {"type": "response", **parsed}
+        if not terminal:
+            metered = self.meter(None)
+            yield {"type": "usage", **metered}
+            parsed = {"text": "", "tool_calls": [], "warnings": []}
+            response_terminal(
+                parsed,
+                {"incomplete_details": {"reason": "stream ended before terminal event"}},
+                "incomplete",
+            )
+            parsed.update(metered)
+            yield {"type": "response", **parsed}

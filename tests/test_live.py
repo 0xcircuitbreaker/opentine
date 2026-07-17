@@ -104,12 +104,22 @@ PROVIDERS = {
 }
 
 LOCAL_OPENAI_COMPAT = {
-    "lmstudio": ("LMSTUDIO_HOST", "LMSTUDIO_MODEL", "http://localhost:1234"),
-    "unsloth": ("UNSLOTH_HOST", "UNSLOTH_MODEL", "http://localhost:8000"),
-    "vllm": ("VLLM_HOST", "VLLM_MODEL", "http://localhost:8000"),
-    "llamacpp": ("LLAMACPP_HOST", "LLAMACPP_MODEL", "http://localhost:8080"),
-    "localai": ("LOCALAI_HOST", "LOCALAI_MODEL", "http://localhost:8080"),
-    "jan": ("JAN_HOST", "JAN_MODEL", "http://localhost:1337"),
+    "lmstudio": (
+        "LMSTUDIO_HOST",
+        "LMSTUDIO_MODEL",
+        "LMSTUDIO_API_KEY",
+        "http://localhost:1234",
+    ),
+    "unsloth": ("UNSLOTH_HOST", "UNSLOTH_MODEL", "UNSLOTH_API_KEY", "http://localhost:8000"),
+    "vllm": ("VLLM_HOST", "VLLM_MODEL", "VLLM_API_KEY", "http://localhost:8000"),
+    "llamacpp": (
+        "LLAMACPP_HOST",
+        "LLAMACPP_MODEL",
+        "LLAMACPP_API_KEY",
+        "http://localhost:8080",
+    ),
+    "localai": ("LOCALAI_HOST", "LOCALAI_MODEL", "LOCALAI_API_KEY", "http://localhost:8080"),
+    "jan": ("JAN_HOST", "JAN_MODEL", "JAN_API_KEY", "http://localhost:1337"),
 }
 
 
@@ -128,11 +138,13 @@ def model(provider):
         pytest.skip(f"Set {env_key} env var to run live tests with {provider}")
     if provider == "ollama":
         _require_ollama_model(default_model)
+    local_key = None
     if provider in LOCAL_OPENAI_COMPAT:
-        host_env, model_env, default_host = LOCAL_OPENAI_COMPAT[provider]
+        host_env, model_env, key_env, default_host = LOCAL_OPENAI_COMPAT[provider]
         host = os.environ.get(host_env, default_host).rstrip("/")
-        _require_openai_compatible(provider, host)
-        default_model = os.environ.get(model_env, default_model)
+        local_key = os.environ.get(key_env)
+        available = _require_openai_compatible(provider, host, local_key)
+        default_model = os.environ.get(model_env) or available[0]
     import importlib
 
     mod = importlib.import_module(module_path)
@@ -140,7 +152,7 @@ def model(provider):
     if provider == "ollama":
         return adapter_cls(default_model, host=_ollama_host())
     if provider in LOCAL_OPENAI_COMPAT:
-        return adapter_cls(default_model, host=host)
+        return adapter_cls(default_model, host=host, api_key=local_key)
     return adapter_cls(default_model)
 
 
@@ -172,12 +184,19 @@ def _require_ollama_model(model_name: str) -> None:
         pytest.skip(f"Install Ollama model first: ollama pull {model_name}")
 
 
-def _require_openai_compatible(provider: str, host: str) -> None:
+def _require_openai_compatible(provider: str, host: str, api_key: str | None) -> list[str]:
+    base = host if host.rstrip("/").endswith("/v1") else f"{host.rstrip('/')}/v1"
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     try:
-        with httpx.Client(timeout=5) as client:
-            client.get(f"{host}/v1/models").raise_for_status()
+        with httpx.Client(timeout=5, trust_env=False, follow_redirects=False) as client:
+            response = client.get(f"{base}/models", headers=headers)
+            response.raise_for_status()
     except httpx.HTTPError as exc:
         pytest.skip(f"{provider} is not reachable at {host}: {exc}")
+    models = [item.get("id") for item in response.json().get("data", []) if item.get("id")]
+    if not models:
+        pytest.skip(f"{provider} returned no model IDs from {base}/models")
+    return models
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +255,7 @@ class TestLiveSaveLoad:
         run.save(path)
 
         data = json.loads(path.read_text(encoding="utf-8"))
-        assert data["format_version"] == 1
+        assert data["format_version"] == 2
         assert data["run_id"] == run.id
         assert len(data["graph"]["steps"]) == len(run.steps)
 

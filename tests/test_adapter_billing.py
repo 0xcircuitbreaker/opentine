@@ -25,6 +25,7 @@ async def test_openai_responses_tool_only_retains_cache_reasoning_and_cost(monke
             seen.update(kwargs)
             return SimpleNamespace(
                 id="resp_1",
+                status="completed",
                 output=[
                     SimpleNamespace(type="reasoning", id="rs_1", summary=[], status="completed"),
                     SimpleNamespace(
@@ -156,6 +157,21 @@ async def test_anthropic_early_vs_midstream_refusal_billing(
         assert "non-billable" not in " ".join(result["billing"]["warnings"])
     else:
         assert "non-billable" in " ".join(result["billing"]["warnings"])
+
+
+def test_anthropic_refusal_discards_partial_text_but_retains_billable_usage():
+    response = SimpleNamespace(
+        content=[
+            SimpleNamespace(type="text", text="unsafe partial"),
+            SimpleNamespace(type="refusal", refusal="cannot comply"),
+        ],
+        stop_reason="refusal",
+        usage=SimpleNamespace(input_tokens=10, output_tokens=5, service_tier="standard"),
+    )
+    result = Anthropic("claude-fable-5")._result(response)
+    assert result["text"] == "" and result["refusal"] == "cannot comply"
+    assert result["usage"]["output"] == 5 and result["cost"] > 0
+    assert "discarded partial output" in " ".join(result["warnings"])
 
 
 def test_only_fable_early_empty_refusal_is_nonbillable():
@@ -321,7 +337,7 @@ def test_google_usage_and_ollama_timing_are_normalized():
     assert ollama["usage"]["input"] == 10
     assert ollama["usage"]["output"] == 4
     assert ollama["usage"]["total_seconds"] == 3
-    assert ollama["usage"]["eval_seconds"] == 1.5
+    assert ollama["usage"]["eval_seconds"] == "1.5"
     assert ollama["billing"]["status"] == "unmetered"
     assert ollama["cost"] == 0
 

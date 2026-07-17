@@ -26,7 +26,7 @@ dependencies = [
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.87"]
 openai = ["openai>=1.75.0"]
-google = ["google-genai>=1.0"]
+google = ["google-genai>=2.8.0"]
 # Kimi, DeepSeek, Qwen, GLM, Grok, Groq, Together, Mistral/Ministral,
 # OpenRouter, and Hermes use the OpenAI SDK transport.
 compat = ["openai>=1.75.0"]
@@ -38,7 +38,7 @@ crypto = ["cryptography>=48.0.1"]
 all = [
     "anthropic>=0.87",
     "openai>=1.75.0",
-    "google-genai>=1.0",
+    "google-genai>=2.8.0",
     "cryptography>=48.0.1",
 ]
 
@@ -56,7 +56,7 @@ dev = [
 tine = "opentine.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/0xcircuitbreaker/opentine"
+Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
 Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/README.md"
 Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/CHANGELOG.md"

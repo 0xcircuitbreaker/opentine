@@ -14,7 +14,26 @@ from opentine.models._compat_hosted import (
     Qwen,
     Together,
 )
-from opentine.models._compat_local import VLLM, Jan, LlamaCpp, LMStudio, LocalAI, Unsloth
+from opentine.models._compat_local import (
+    VLLM,
+    Jan,
+    LlamaCpp,
+    LMStudio,
+    LocalAI,
+    LocalOpenAICompatible,
+    OpenAICompatible,
+    Unsloth,
+)
+from opentine.models._compat_local_presets import (
+    MLXLM,
+    TGI,
+    KoboldCpp,
+    LiteLLM,
+    LlamaCppPython,
+    NvidiaNIM,
+    SGLang,
+    TensorRTLLM,
+)
 
 __all__ = [
     "DeepSeek",
@@ -24,13 +43,23 @@ __all__ = [
     "Hermes",
     "Jan",
     "Kimi",
+    "KoboldCpp",
     "LlamaCpp",
+    "LlamaCppPython",
+    "LiteLLM",
     "LMStudio",
     "LocalAI",
+    "LocalOpenAICompatible",
+    "MLXLM",
     "Ministral",
     "Mistral",
+    "NvidiaNIM",
     "OpenRouter",
+    "OpenAICompatible",
     "Qwen",
+    "SGLang",
+    "TGI",
+    "TensorRTLLM",
     "Together",
     "Unsloth",
     "VLLM",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -39,24 +40,24 @@ def validate_rate_card(card: Any) -> None:
     if card.effective_until is not None and card.effective_until < card.effective_from:
         raise ValueError("rate-card effective date range is inverted")
     mappings = (card.rates, card.service_modifiers, card.service_rates, card.metadata)
-    if any(not isinstance(value, dict) for value in mappings):
+    if any(not isinstance(value, Mapping) for value in mappings):
         raise ValueError("rate-card rate, modifier, and metadata fields must be objects")
     if any(not isinstance(name, str) or not name for name in card.rates):
         raise ValueError("rate-card dimensions must be non-empty strings")
     if not isinstance(card.context_thresholds, (tuple, list)):
         raise ValueError("rate-card context thresholds must be a list")
     for rule in card.context_thresholds:
-        threshold = rule.get("input_tokens") if isinstance(rule, dict) else None
-        multipliers = rule.get("multipliers", {}) if isinstance(rule, dict) else None
-        if type(threshold) is not int or threshold < 0 or not isinstance(multipliers, dict):
+        threshold = rule.get("input_tokens") if isinstance(rule, Mapping) else None
+        multipliers = rule.get("multipliers", {}) if isinstance(rule, Mapping) else None
+        if type(threshold) is not int or threshold < 0 or not isinstance(multipliers, Mapping):
             raise ValueError("rate-card context threshold is malformed")
     for group in card.service_rates.values():
-        if not isinstance(group, dict) or any(
+        if not isinstance(group, Mapping) or any(
             not isinstance(name, str) or not name for name in group
         ):
             raise ValueError("rate-card service rates must contain objects")
     for modifier in card.service_modifiers.values():
-        if not isinstance(modifier, (dict, int, float, Decimal)) or isinstance(modifier, bool):
+        if not isinstance(modifier, (Mapping, int, float, Decimal)) or isinstance(modifier, bool):
             raise ValueError("rate-card service modifier is malformed")
     if not isinstance(card.source_urls, (tuple, list)) or not all(
         isinstance(value, str) for value in card.source_urls

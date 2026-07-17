@@ -3,14 +3,24 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
 from typing import Any
 
+from opentine.models._chat_blocks import MAX_BLOCKS, count_chat_blocks, parse_chat_blocks
+from opentine.models._stream_limits import MAX_STREAM_CHARS
+from opentine.models._stream_limits import SizeBudget as _SizeBudget
+from opentine.models._terminal import reject_refused_tool_calls, reject_unsafe_tool_calls
+from opentine.models._tool_args import bounded_tool_arguments, strict_tool_arguments
 from opentine.models._usage import value
 
-MAX_STREAM_CHARS = 1024 * 1024
 MAX_STREAM_CALLS = 256
 MAX_STREAM_WARNINGS = 64
+
+
+class SizeBudget(_SizeBudget):
+    """Compatibility wrapper whose default follows this module's stream limit."""
+
+    def __init__(self, limit: int | None = None) -> None:
+        super().__init__(MAX_STREAM_CHARS if limit is None else limit)
 
 
 class WarningList(list[str]):
@@ -23,21 +33,6 @@ class WarningList(list[str]):
     def extend(self, values) -> None:
         for item in values:
             self.append(item)
-
-
-class SizeBudget:
-    """Bound the aggregate retained size of structured provider values."""
-
-    def __init__(self, limit: int | None = None) -> None:
-        self.remaining = MAX_STREAM_CHARS if limit is None else limit
-
-    def keep(self, value: Any, warnings: list[str], label: str) -> Any:
-        remaining = _fits(value, self.remaining)
-        if remaining >= 0:
-            self.remaining = remaining
-            return value
-        warnings.append(f"streamed {label} exceeded its aggregate safe size and was discarded")
-        return {"_truncated": True}
 
 
 def chat_chunk_usage(chunk: Any, choices: list[Any]) -> Any:
@@ -78,33 +73,6 @@ class TextBuffer:
                 warnings.append(warning)
 
 
-def _fits(value: Any, remaining: int, depth: int = 0) -> int:
-    if remaining < 0 or depth > 32:
-        return -1
-    if value is None or isinstance(value, (bool, int, float)):
-        return remaining - 32
-    if isinstance(value, (str, bytes, bytearray)):
-        return remaining - len(value)
-    if isinstance(value, Mapping):
-        if len(value) > 4096:
-            return -1
-        for key, item in value.items():
-            remaining = _fits(key, remaining, depth + 1)
-            remaining = _fits(item, remaining, depth + 1)
-            if remaining < 0:
-                return -1
-        return remaining
-    if isinstance(value, Sequence):
-        if len(value) > 4096:
-            return -1
-        for item in value:
-            remaining = _fits(item, remaining, depth + 1)
-            if remaining < 0:
-                return -1
-        return remaining
-    return -1
-
-
 class ChatStreamState:
     """Reassemble Chat Completions deltas without losing non-text output."""
 
@@ -113,20 +81,36 @@ class ChatStreamState:
         self.reasoning = TextBuffer("reasoning")
         self.refusals = TextBuffer("refusal")
         self.calls: dict[int, dict[str, Any]] = {}
+        self.content_blocks: list[dict[str, Any]] = []
+        self.content_block_count = 0
         self.warnings: list[str] = WarningList()
         self.argument_budget = SizeBudget()
+        self.content_budget = SizeBudget()
 
     def add(self, delta: Any) -> list[dict[str, str]]:
         events: list[dict[str, str]] = []
-        text = self.text.add(value(delta, "content"))
+        text, thought, blocks, block_warnings = parse_chat_blocks(value(delta, "content"))
+        self.warnings.extend(block_warnings)
+        text = self.text.add(text)
         if text:
             events.append({"type": "text_delta", "text": text})
         refusal = self.refusals.add(value(delta, "refusal"))
         if refusal:
             events.append({"type": "refusal_delta", "text": refusal})
-        reasoning = self.reasoning.add(value(delta, "reasoning_content"))
+        reasoning = self.reasoning.add(
+            value(delta, "reasoning_content") or value(delta, "reasoning") or thought
+        )
         if reasoning:
             events.append({"type": "reasoning_delta", "text": reasoning})
+        for block in blocks or []:
+            count = count_chat_blocks([block])
+            if self.content_block_count + count > MAX_BLOCKS:
+                self.warnings.append(f"Chat content blocks truncated at {MAX_BLOCKS} blocks")
+                break
+            kept = self.content_budget.keep(block, self.warnings, "Chat content blocks")
+            if isinstance(kept, dict) and not kept.get("_truncated"):
+                self.content_blocks.append(kept)
+                self.content_block_count += count
         for position, call in enumerate(value(delta, "tool_calls", []) or []):
             raw_index = value(call, "index", position)
             index = raw_index if type(raw_index) is int and raw_index >= 0 else position
@@ -158,7 +142,13 @@ class ChatStreamState:
                 else:
                     current["arguments"].truncated = True
             elif arguments is not None:
-                safe = self.argument_budget.keep(arguments, self.warnings, "Chat tool arguments")
+                safe = bounded_tool_arguments(
+                    arguments,
+                    self.argument_budget,
+                    self.warnings,
+                    "Chat",
+                    current["name"].text,
+                )
                 current["arguments"].add(json.dumps(safe, separators=(",", ":")))
         return events
 
@@ -176,9 +166,9 @@ class ChatStreamState:
                 parsed = {"_truncated": True}
             else:
                 try:
-                    parsed = json.loads(arguments.text or "{}")
-                except json.JSONDecodeError:
-                    parsed = {"_raw": arguments.text}
+                    parsed = strict_tool_arguments(arguments.text or "{}")
+                except ValueError:
+                    parsed = {"_truncated": True}
                     warnings.append(f"invalid JSON arguments for {name.text}")
             calls.append({"name": name.text, "arguments": parsed, "id": call["id"]})
         result: dict[str, Any] = {
@@ -190,6 +180,9 @@ class ChatStreamState:
             result["refusal"] = self.refusals.text
         if self.reasoning.text:
             result["reasoning_content"] = self.reasoning.text
+        if self.content_blocks:
+            result["content_blocks"] = self.content_blocks
+        reject_unsafe_tool_calls(result)
         return result
 
 
@@ -203,8 +196,12 @@ def ollama_result(data: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
         calls.append(
             {
                 "name": function.get("name", ""),
-                "arguments": arguments.keep(
-                    function.get("arguments", {}), warnings, "Ollama tool arguments"
+                "arguments": bounded_tool_arguments(
+                    function.get("arguments", {}),
+                    arguments,
+                    warnings,
+                    "Ollama",
+                    function.get("name", ""),
                 ),
                 "id": call.get("id"),
             }
@@ -237,4 +234,11 @@ def ollama_result(data: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
     }
     if refusal.text:
         result["refusal"] = refusal.text
+    done_reason = str(data.get("done_reason") or "").lower()
+    if done_reason not in {"", "stop", "tool_calls"}:
+        label = f"incomplete response: {done_reason}"
+        result["refusal"] = result.get("refusal") or label
+        warnings.append(label)
+    reject_unsafe_tool_calls(result)
+    reject_refused_tool_calls(result)
     return result

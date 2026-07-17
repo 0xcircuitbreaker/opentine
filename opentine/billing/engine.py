@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
@@ -9,6 +10,14 @@ from typing import Any
 from opentine.billing.types import BillingResult, RateCard, Usage, as_date, decimal
 
 _MILLION = Decimal(1_000_000)
+
+
+def _calculation_usage(usage: Usage) -> dict[str, Any]:
+    values = usage.to_dict(compact=False)
+    for name, value in usage.extra.items():
+        if isinstance(value, Decimal):
+            values[name] = str(value)
+    return values
 
 
 def _threshold_rates(
@@ -45,7 +54,7 @@ def calculate(
     when = as_date(effective_at)
     iso_when = when.isoformat()
     calculation: dict[str, Any] = {
-        "usage": usage.to_dict(compact=False),
+        "usage": _calculation_usage(usage),
         "service_tier": service_tier or "standard",
     }
     if card is None:
@@ -105,7 +114,7 @@ def calculate(
     rates.update(service_rates)
     rates, threshold_rules = _threshold_rates(card, usage, rates)
     raw_modifier = card.service_modifiers.get(requested_tier, Decimal("1"))
-    dimensional_modifier = isinstance(raw_modifier, dict)
+    dimensional_modifier = isinstance(raw_modifier, Mapping)
     dimension_modifiers = raw_modifier if dimensional_modifier else {}
     known = Decimal("0")
     missing: list[str] = []

@@ -51,19 +51,25 @@ def _base(
 class Kimi(ChatCompletions):
     def __init__(self, model: str = "kimi-k3", api_key: str | None = None, **kwargs: Any):
         kwargs.setdefault("omit_temperature", True)
+        kwargs.setdefault("include_usage", True)
+        key = api_key or env_key("KIMI_API_KEY") or env_key("MOONSHOT_API_KEY")
         _base(
             self,
             model,
             "kimi",
-            api_key or "",
+            key,
             "KIMI_API_KEY",
-            os.environ.get("KIMI_BASE_URL", "https://api.moonshot.ai/v1"),
+            os.environ.get(
+                "KIMI_BASE_URL",
+                os.environ.get("MOONSHOT_BASE_URL", "https://api.moonshot.ai/v1"),
+            ),
             kwargs,
         )
 
 
 class DeepSeek(ChatCompletions):
     def __init__(self, model: str = "deepseek-v4-flash", api_key: str | None = None, **kwargs: Any):
+        kwargs.setdefault("include_usage", True)
         _base(
             self,
             model,
@@ -100,18 +106,21 @@ class Qwen(ChatCompletions):
 
 class GLM(ChatCompletions):
     def __init__(self, model: str = "glm-5.2", api_key: str | None = None, **kwargs: Any):
+        kwargs.setdefault("omit_temperature", True)
         raw_key = api_key or env_key("GLM_API_KEY")
         configured_region = os.environ.get("GLM_REGION")
         china = (configured_region or "").lower() == "china" or (
             configured_region is None and "." in raw_key
         )
-        if china and "." in raw_key:
-            raw_key = glm_jwt(raw_key)
+        self._glm_jwt_key = raw_key if china and "." in raw_key else None
         default_url = (
             "https://open.bigmodel.cn/api/paas/v4" if china else "https://api.z.ai/api/paas/v4"
         )
         url = os.environ.get("GLM_BASE_URL", default_url)
         _base(self, model, "glm-cn" if china else "glm", raw_key, "GLM_API_KEY", url, kwargs)
+
+    def _client_api_key(self) -> str:
+        return glm_jwt(self._glm_jwt_key) if self._glm_jwt_key else self._api_key
 
     _make_jwt = staticmethod(glm_jwt)
 
@@ -170,8 +179,16 @@ class Together(ChatCompletions):
 
 class Mistral(ChatCompletions):
     def __init__(
-        self, model: str = "mistral-large-2512", api_key: str | None = None, **kwargs: Any
+        self,
+        model: str = "mistral-large-2512",
+        api_key: str | None = None,
+        reasoning_effort: str | None = None,
+        **kwargs: Any,
     ):
+        allowed = {None, "none", "minimal", "low", "medium", "high", "xhigh"}
+        if reasoning_effort not in allowed:
+            raise ValueError("unsupported Mistral reasoning_effort")
+        self._reasoning_effort = reasoning_effort
         _base(
             self,
             model,
@@ -181,6 +198,12 @@ class Mistral(ChatCompletions):
             "https://api.mistral.ai/v1",
             kwargs,
         )
+
+    def _kwargs(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        request = super()._kwargs(*args, **kwargs)
+        if self._reasoning_effort is not None:
+            request["reasoning_effort"] = self._reasoning_effort
+        return request
 
 
 class Ministral(Mistral):

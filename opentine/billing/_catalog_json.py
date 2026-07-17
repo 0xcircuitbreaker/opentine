@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 
@@ -18,9 +19,27 @@ def parse_catalog_json(raw: bytes, error_type: type[ValueError]) -> Any:
     def constant(value: str) -> None:
         raise error_type(f"non-finite JSON number in pricing catalog: {value}")
 
+    def integer(value: str) -> int:
+        try:
+            return int(value)
+        except ValueError as exc:
+            raise error_type("pricing catalog integer literal is too large") from exc
+
+    def floating(value: str) -> float:
+        number = float(value)
+        if not math.isfinite(number):
+            raise error_type("non-finite JSON number in pricing catalog")
+        return number
+
     try:
-        return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
+        return json.loads(
+            raw,
+            object_pairs_hook=pairs,
+            parse_constant=constant,
+            parse_float=floating,
+            parse_int=integer,
+        )
     except error_type:
         raise
-    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError, ValueError) as exc:
         raise error_type(f"invalid catalog JSON: {exc}") from exc

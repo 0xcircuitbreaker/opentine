@@ -4,22 +4,28 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncIterator
-from decimal import Decimal
 from typing import Any
 
 import httpx
 
 from opentine.billing import PricingCatalog
 from opentine.models import _ollama_http as _http
+from opentine.models._ollama_billing import ollama_meter
+from opentine.models._ollama_rates import rate_override
+from opentine.models._ollama_request import build_messages, build_tools
+from opentine.models._provider_meta import model_name
 from opentine.models._stream_content import OllamaStreamState
 from opentine.models._streaming import WarningList, ollama_result
-from opentine.models._usage import metered_response, ollama_usage
+from opentine.models._terminal import reject_refused_tool_calls
 
 _IDENTITY = {"Accept-Encoding": "identity"}
 
 
 class Ollama:
     """Adapter for Ollama local models."""
+
+    _build_messages = staticmethod(build_messages)
+    _build_tools = staticmethod(build_tools)
 
     def __init__(
         self,
@@ -37,20 +43,10 @@ class Ollama:
         self._think = think
         self._capabilities: set[str] | None = None
         self._catalog = catalog
-        self._rate_override: dict[str, Any] | None = None
-        if any(
-            value is not None
-            for value in (input_cost_per_mtok, output_cost_per_mtok, compute_cost_per_second)
-        ):
-            per_second = Decimal(str(compute_cost_per_second or 0)) * 1_000_000
-            self._rate_override = {
-                "input": input_cost_per_mtok or 0,
-                "output": output_cost_per_mtok or 0,
-                "prompt_eval_seconds": per_second,
-                "eval_seconds": per_second,
-                "total_seconds": 0,
-                "load_seconds": 0,
-            }
+        self._compute_rate = compute_cost_per_second is not None
+        self._rate_override = rate_override(
+            input_cost_per_mtok, output_cost_per_mtok, compute_cost_per_second
+        )
 
     @property
     def name(self) -> str:
@@ -85,59 +81,6 @@ class Ollama:
             or model.startswith("gpt-oss")
         )
 
-    def _build_tools(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
-        if not tools:
-            return None
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t["description"],
-                    "parameters": t["input_schema"],
-                },
-            }
-            for t in tools
-        ]
-
-    def _build_messages(
-        self, messages: list[dict[str, Any]], system: str | None
-    ) -> list[dict[str, Any]]:
-        msgs = []
-        if system:
-            msgs.append({"role": "system", "content": system})
-        for m in messages:
-            if m["role"] == "assistant" and m.get("tool_calls"):
-                msgs.append(
-                    {
-                        "role": "assistant",
-                        "content": m.get("content", ""),
-                        "tool_calls": [
-                            {
-                                "type": "function",
-                                "function": {
-                                    "name": tc["name"],
-                                    "arguments": tc.get("arguments", {}),
-                                },
-                            }
-                            for tc in m["tool_calls"]
-                        ],
-                    }
-                )
-            elif m["role"] == "tool":
-                msgs.append(
-                    {
-                        "role": "tool",
-                        "content": m["content"],
-                        "tool_name": m.get("tool_name")
-                        or m.get("name")
-                        or m.get("tool_call_id", ""),
-                    }
-                )
-            else:
-                msgs.append({"role": m["role"], "content": m["content"]})
-        return msgs
-
     def _build_payload(
         self,
         messages: list[dict[str, Any]],
@@ -161,25 +104,8 @@ class Ollama:
         return payload
 
     def _meter(self, data: dict[str, Any]) -> dict[str, Any]:
-        normalized = dict(data)
-        for source, target in (
-            ("total_duration", "total_seconds"),
-            ("load_duration", "load_seconds"),
-            ("prompt_eval_duration", "prompt_eval_seconds"),
-            ("eval_duration", "eval_seconds"),
-        ):
-            if source in normalized:
-                normalized[target] = Decimal(normalized[source]) / Decimal(1_000_000_000)
-                normalized.pop(source)
-        usage = ollama_usage(normalized)
-        return metered_response(
-            "ollama",
-            self._model,
-            usage,
-            catalog=self._catalog,
-            rate_override=self._rate_override,
-            unmetered=self._rate_override is None,
-            usage_reported=any(name in data for name in ("prompt_eval_count", "eval_count")),
+        return ollama_meter(
+            self._model, data, self._catalog, self._rate_override, self._compute_rate
         )
 
     async def complete(
@@ -204,7 +130,16 @@ class Ollama:
                 data = await _http.read_json_async(resp, max_bytes=_http.MAX_CHAT_BYTES)
 
         result = ollama_result(data, warnings)
+        if data.get("error"):
+            result["refusal"] = f"Ollama error: {str(data['error'])[:4096]}"
+            warnings.append(result["refusal"])
+        elif data.get("done") is not True:
+            result["refusal"] = "incomplete response: response did not complete"
+            warnings.append(result["refusal"])
+        reject_refused_tool_calls(result)
         result.update(self._meter(data))
+        if reported_model := model_name(data.get("model")):
+            result["model"] = reported_model
         return result
 
     async def stream(
@@ -229,18 +164,38 @@ class Ollama:
             async with client.stream("POST", url, json=payload, headers=_IDENTITY) as resp:
                 resp.raise_for_status()
                 async for chunk in _http.iter_ndjson(resp):
+                    if chunk.get("error"):
+                        saw_done = True
+                        metered = self._meter(chunk)
+                        result = ollama_result({**chunk, "message": state.message()}, warnings)
+                        result["refusal"] = f"Ollama error: {str(chunk['error'])[:4096]}"
+                        warnings.append(result["refusal"])
+                        reject_refused_tool_calls(result)
+                        result.update(metered)
+                        yield {"type": "usage", **metered}
+                        yield {"type": "response", **result}
+                        break
                     message = chunk.get("message", {})
                     if not isinstance(message, dict):
                         raise ValueError("Ollama stream message must be a JSON object")
                     for event in state.add(message):
                         yield event
-                    if chunk.get("done"):
+                    if chunk.get("done") is True:
                         saw_done = True
                         metered = self._meter(chunk)
                         result = ollama_result({**chunk, "message": state.message()}, warnings)
                         result.update(metered)
+                        if reported_model := model_name(chunk.get("model")):
+                            result["model"] = reported_model
                         yield {"type": "usage", **metered}
                         if result["tool_calls"] or result.get("refusal") or result.get("thinking"):
                             yield {"type": "response", **result}
         if not saw_done:
-            yield {"type": "usage", **self._meter({})}
+            metered = self._meter({})
+            yield {"type": "usage", **metered}
+            result = ollama_result({"message": state.message()}, warnings)
+            result["refusal"] = "incomplete response: stream ended before done marker"
+            warnings.append(result["refusal"])
+            reject_refused_tool_calls(result)
+            result.update(metered)
+            yield {"type": "response", **result}

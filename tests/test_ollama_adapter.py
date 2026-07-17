@@ -1,12 +1,13 @@
 """Ollama adapter contract tests.
 
 These are provider-shape tests, not live model validation. They verify the
-HTTP payload shape Opentine sends to Ollama's current /api/chat contract.
+HTTP payload shape OpenTine sends to Ollama's current /api/chat contract.
 """
 
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -156,7 +157,7 @@ async def test_complete_drops_tools_and_warns_for_incapable_model(
         def raise_for_status(self) -> None: ...
 
         async def aiter_raw(self, **kwargs):
-            yield json.dumps({"message": {"content": "42"}}).encode()
+            yield json.dumps({"message": {"content": "42"}, "done": True}).encode()
 
     class FakeStream:
         async def __aenter__(self):
@@ -229,6 +230,26 @@ def test_capability_probe_stops_at_response_limit(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(module.httpx, "Client", lambda **kwargs: Client())
     assert Ollama("hostile", host="https://ollama.example").supports_tools is True
     assert consumed == 1
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "known", "missing"),
+    [
+        ({"input_cost_per_mtok": 2}, "0.0002", "output"),
+        ({"output_cost_per_mtok": 4}, "0.0008", "input"),
+    ],
+)
+def test_partial_local_rate_override_never_prices_omitted_dimensions_as_free(
+    kwargs: dict[str, float], known: str, missing: str
+):
+    adapter = Ollama("local", **kwargs)
+    metered = adapter._meter({"prompt_eval_count": 100, "eval_count": 200})
+
+    assert metered["billing"]["status"] == "partial"
+    assert metered["billing"]["amount_usd"] is None
+    assert metered["billing"]["known_subtotal_usd"] == known
+    assert f"missing rates for usage dimensions: {missing}" in metered["billing"]["warnings"]
+    assert Decimal(str(metered["cost"])) == Decimal(known)
 
 
 @pytest.mark.asyncio

@@ -2,18 +2,27 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
+from opentine.models._chat_blocks import parse_chat_blocks
+from opentine.models._continuation import anthropic_blocks, google_blocks
 from opentine.models._streaming import (
     MAX_STREAM_CALLS,
     SizeBudget,
     TextBuffer,
     WarningList,
 )
+from opentine.models._terminal import reject_unsafe_tool_calls
+from opentine.models._tool_args import bounded_tool_arguments
 from opentine.models._usage import value
 
 MAX_STREAM_BLOCKS = 1024
+
+
+def _identifier(raw: Any) -> str | None:
+    if raw is None:
+        return None
+    return str(raw)[:4096] or None
 
 
 def chat_content(message: Any) -> dict[str, Any]:
@@ -24,25 +33,23 @@ def chat_content(message: Any) -> dict[str, Any]:
     reasoning = TextBuffer("Chat reasoning")
     arguments = SizeBudget()
     calls: list[dict[str, Any]] = []
-    text.add(value(message, "content", "") or "")
+    body, thought, content_blocks, block_warnings = parse_chat_blocks(
+        value(message, "content", "") or ""
+    )
+    warnings.extend(block_warnings)
+    text.add(body)
     refusal.add(value(message, "refusal", "") or "")
-    reasoning.add(value(message, "reasoning_content", "") or "")
+    reasoning.add(value(message, "reasoning_content") or value(message, "reasoning") or thought)
     raw_calls = value(message, "tool_calls", []) or []
     for call in raw_calls[:MAX_STREAM_CALLS]:
         function = value(call, "function")
         raw = value(function, "arguments", {})
-        kept = arguments.keep(raw, warnings, "Chat tool arguments")
-        if isinstance(kept, str):
-            try:
-                kept = json.loads(kept)
-            except json.JSONDecodeError:
-                warnings.append(f"invalid JSON arguments for {value(function, 'name', '')}")
-                kept = {"_raw": kept}
+        kept = bounded_tool_arguments(raw, arguments, warnings, "Chat", value(function, "name", ""))
         calls.append(
             {
                 "name": str(value(function, "name", ""))[:4096],
                 "arguments": kept,
-                "id": str(value(call, "id", ""))[:4096] or None,
+                "id": _identifier(value(call, "id")),
             }
         )
     if len(raw_calls) > MAX_STREAM_CALLS:
@@ -54,6 +61,9 @@ def chat_content(message: Any) -> dict[str, Any]:
         result["refusal"] = refusal.text
     if reasoning.text:
         result["reasoning_content"] = reasoning.text
+    if content_blocks is not None:
+        result["content_blocks"] = content_blocks
+    reject_unsafe_tool_calls(result)
     return result
 
 
@@ -73,7 +83,8 @@ def anthropic_content(response: Any) -> dict[str, Any]:
     refusal = TextBuffer("Anthropic refusal")
     calls: list[dict[str, Any]] = []
     arguments = SizeBudget()
-    for block in _blocks(value(response, "content"), warnings, "Anthropic content"):
+    raw_content = value(response, "content")
+    for block in _blocks(raw_content, warnings, "Anthropic content"):
         block_type = value(block, "type")
         if block_type == "text":
             text.add(value(block, "text"))
@@ -88,10 +99,14 @@ def anthropic_content(response: Any) -> dict[str, Any]:
             calls.append(
                 {
                     "name": str(value(block, "name", ""))[:4096],
-                    "arguments": arguments.keep(
-                        value(block, "input", {}), warnings, "Anthropic tool arguments"
+                    "arguments": bounded_tool_arguments(
+                        value(block, "input", {}),
+                        arguments,
+                        warnings,
+                        "Anthropic",
+                        value(block, "name", ""),
                     ),
-                    "id": str(value(block, "id", ""))[:4096] or None,
+                    "id": _identifier(value(block, "id")),
                 }
             )
     for buffer in (text, reasoning, refusal):
@@ -105,6 +120,10 @@ def anthropic_content(response: Any) -> dict[str, Any]:
         result["reasoning_content"] = reasoning.text
     if refusal.text:
         result["refusal"] = refusal.text
+    continuation = anthropic_blocks(raw_content, warnings)
+    if continuation:
+        result["anthropic_content"] = continuation
+    reject_unsafe_tool_calls(result)
     return result
 
 
@@ -117,19 +136,24 @@ def google_content(response: Any, argument_budget: SizeBudget | None = None) -> 
     candidates = value(response, "candidates", []) or []
     candidate = candidates[0] if candidates else None
     content = value(candidate, "content")
-    for part in _blocks(value(content, "parts"), warnings, "Google content"):
+    raw_parts = value(content, "parts")
+    for part in _blocks(raw_parts, warnings, "Google content"):
         part_text = value(part, "text", "") or ""
         (reasoning if value(part, "thought", False) else text).add(part_text)
         function = value(part, "function_call")
         if function and len(calls) < MAX_STREAM_CALLS:
-            arguments = argument_budget.keep(
-                value(function, "args", {}), warnings, "Google tool arguments"
+            arguments = bounded_tool_arguments(
+                value(function, "args", {}),
+                argument_budget,
+                warnings,
+                "Google",
+                value(function, "name", ""),
             )
             calls.append(
                 {
                     "name": str(value(function, "name", ""))[:4096],
-                    "arguments": dict(arguments or {}),
-                    "id": str(value(function, "id", ""))[:4096] or None,
+                    "arguments": arguments,
+                    "id": _identifier(value(function, "id")),
                 }
             )
         elif function:
@@ -144,7 +168,7 @@ def google_content(response: Any, argument_budget: SizeBudget | None = None) -> 
     blocked = value(value(response, "prompt_feedback"), "block_reason")
     if not blocked and candidate:
         finish = value(candidate, "finish_reason")
-        if finish and str(finish).split(".")[-1] not in {"STOP", "MAX_TOKENS"}:
+        if finish and str(finish).split(".")[-1] != "STOP":
             blocked = finish
     for buffer in (text, reasoning):
         buffer.warn(warnings)
@@ -157,6 +181,10 @@ def google_content(response: Any, argument_budget: SizeBudget | None = None) -> 
         result["reasoning_content"] = reasoning.text
     if blocked:
         result["refusal"] = str(blocked)[:4096]
+    continuation = google_blocks(raw_parts, warnings)
+    if continuation:
+        result["google_content"] = continuation
+    reject_unsafe_tool_calls(result)
     return result
 
 
@@ -184,8 +212,12 @@ class OllamaStreamState:
                 self.warnings.append(f"streamed tool calls truncated at {MAX_STREAM_CALLS} entries")
                 break
             function = dict(call.get("function", {}))
-            function["arguments"] = self.arguments.keep(
-                function.get("arguments", {}), self.warnings, "Ollama tool arguments"
+            function["arguments"] = bounded_tool_arguments(
+                function.get("arguments", {}),
+                self.arguments,
+                self.warnings,
+                "Ollama",
+                function.get("name", ""),
             )
             self.calls.append({**call, "function": function})
         return events

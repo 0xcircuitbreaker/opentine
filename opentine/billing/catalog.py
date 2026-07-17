@@ -14,6 +14,7 @@ from typing import Any
 
 from opentine._canon import _canonical_bytes, atomic_write_text
 from opentine.billing._catalog_json import parse_catalog_json
+from opentine.billing._immutable import freeze
 from opentine.billing.types import RateCard, as_date
 
 BUNDLED_CATALOG = Path(__file__).parent.parent / "data" / "pricing_catalog.json"
@@ -33,7 +34,10 @@ def _body(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def catalog_hash(data: dict[str, Any]) -> str:
-    return hashlib.sha256(_canonical_bytes(_body(data))).hexdigest()
+    try:
+        return hashlib.sha256(_canonical_bytes(_body(data))).hexdigest()
+    except (OverflowError, RecursionError, TypeError, ValueError) as exc:
+        raise CatalogError(f"catalog is not canonical JSON: {exc}") from exc
 
 
 def verify_catalog(data: dict[str, Any], *, require_signature: bool = True) -> str:
@@ -87,6 +91,11 @@ class PricingCatalog:
     signed: bool = False
     priorities: tuple[int, ...] = ()
     provenance: tuple[dict[str, Any], ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "cards", tuple(self.cards))
+        object.__setattr__(self, "priorities", tuple(self.priorities))
+        object.__setattr__(self, "provenance", tuple(freeze(self.provenance)))
 
     def lookup(
         self,

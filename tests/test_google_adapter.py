@@ -28,8 +28,9 @@ def _install_fake_google_genai(monkeypatch: pytest.MonkeyPatch) -> None:
     genai_module = ModuleType("google.genai")
 
     class GenerateContentConfig:
-        def __init__(self, temperature: float):
+        def __init__(self, temperature: float, service_tier: str | None = None):
             self.temperature = temperature
+            self.service_tier = service_tier
 
     class FunctionDeclaration:
         def __init__(self, name: str, description: str, parameters: dict[str, Any]):
@@ -41,10 +42,37 @@ def _install_fake_google_genai(monkeypatch: pytest.MonkeyPatch) -> None:
         def __init__(self, function_declarations: list[FunctionDeclaration]):
             self.function_declarations = function_declarations
 
+    class FunctionCall:
+        def __init__(self, id=None, name=None, args=None):
+            self.id = id
+            self.name = name
+            self.args = args
+
+    class FunctionResponse:
+        def __init__(self, id=None, name=None, response=None):
+            self.id = id
+            self.name = name
+            self.response = response
+
     class Part:
+        def __init__(
+            self,
+            *,
+            text=None,
+            thought=None,
+            thought_signature=None,
+            function_call=None,
+            function_response=None,
+        ):
+            self.text = text
+            self.thought = thought
+            self.thought_signature = thought_signature
+            self.function_call = function_call
+            self.function_response = function_response
+
         @staticmethod
-        def from_text(text: str) -> dict[str, Any]:
-            return {"text": text}
+        def from_text(text: str):
+            return Part(text=text)
 
         @staticmethod
         def from_function_response(name: str, response: dict[str, Any]) -> dict[str, Any]:
@@ -63,6 +91,8 @@ def _install_fake_google_genai(monkeypatch: pytest.MonkeyPatch) -> None:
         GenerateContentConfig=GenerateContentConfig,
         FunctionDeclaration=FunctionDeclaration,
         Tool=Tool,
+        FunctionCall=FunctionCall,
+        FunctionResponse=FunctionResponse,
         Part=Part,
         Content=Content,
     )
@@ -115,3 +145,62 @@ async def test_google_stream_payload_includes_tools(monkeypatch: pytest.MonkeyPa
     assert seen["config"].temperature == 0.2
     assert seen["config"].system_instruction == "Answer briefly."
     assert seen["config"].tools[0].function_declarations[0].name == "get_weather"
+
+
+def test_google_replays_thought_signatures_and_parallel_call_ids(monkeypatch: pytest.MonkeyPatch):
+    _install_fake_google_genai(monkeypatch)
+    adapter = Google("gemini-3.5-flash")
+    contents, _ = adapter._request(
+        [
+            {"role": "user", "content": "weather"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"id": "g1", "name": "weather", "arguments": {"city": "Paris"}},
+                    {"id": "g2", "name": "weather", "arguments": {"city": "Rome"}},
+                ],
+                "google_content": [
+                    {
+                        "thought": True,
+                        "thought_signature": "b3BhcXVlLXNpZw==",
+                        "text": "considered",
+                    },
+                    {
+                        "function_call": {
+                            "id": "g1",
+                            "name": "weather",
+                            "args": {"city": "Paris"},
+                        }
+                    },
+                    {
+                        "function_call": {
+                            "id": "g2",
+                            "name": "weather",
+                            "args": {"city": "Rome"},
+                        }
+                    },
+                ],
+            },
+            {
+                "role": "tool",
+                "name": "weather",
+                "tool_call_id": "g1",
+                "content": "rain",
+            },
+            {
+                "role": "tool",
+                "name": "weather",
+                "tool_call_id": "g2",
+                "content": "sun",
+            },
+        ],
+        [_weather_schema()],
+        None,
+        0.0,
+    )
+    model_parts = contents[1].parts
+    assert model_parts[0].thought_signature == b"opaque-sig"
+    assert [part.function_call.id for part in model_parts[1:]] == ["g1", "g2"]
+    assert contents[2].parts[0].function_response.id == "g1"
+    assert contents[3].parts[0].function_response.id == "g2"

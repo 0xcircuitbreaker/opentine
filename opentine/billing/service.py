@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import date, datetime
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -62,4 +61,4 @@ def bill(
 
 
 def known_cost(result: BillingResult) -> float:
-    return float(result.known_subtotal_usd.quantize(Decimal("0.000000000001")))
+    return float(result.known_subtotal_usd)

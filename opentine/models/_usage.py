@@ -6,10 +6,15 @@ import math
 from collections.abc import Mapping
 from typing import Any
 
-from opentine.billing import PricingCatalog, Usage, bill, known_cost
+from opentine.billing import Usage
 
 _MISSING = object()
 _MAX_SAFE_INTEGER = (1 << 53) - 1
+
+
+def _safe_total(*counts: int) -> int | None:
+    total = sum(counts)
+    return total if total <= _MAX_SAFE_INTEGER else None
 
 
 def value(obj: Any, name: str, default: Any = None) -> Any:
@@ -18,6 +23,15 @@ def value(obj: Any, name: str, default: Any = None) -> Any:
     if isinstance(obj, Mapping):
         return obj.get(name, default)
     return getattr(obj, name, default)
+
+
+def missing_usage_dimensions(raw: Any, fields: Mapping[str, tuple[str, ...]]) -> tuple[str, ...]:
+    def present(name: str) -> bool:
+        if isinstance(raw, Mapping):
+            return name in raw and raw[name] is not None
+        return raw is not None and hasattr(raw, name) and getattr(raw, name) is not None
+
+    return tuple(dimension for dimension, names in fields.items() if not any(map(present, names)))
 
 
 def integer(obj: Any, name: str, default: int = 0) -> int:
@@ -69,7 +83,7 @@ def openai_usage(raw: Any) -> Usage:
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
         reasoning=reasoning,
-        total=integer(raw, "total_tokens") or input_total + output_total,
+        total=integer(raw, "total_tokens") or _safe_total(input_total, output_total),
     )
 
 
@@ -88,7 +102,7 @@ def anthropic_usage(raw: Any) -> Usage:
         cache_read=cache_read,
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
-        total=input_count + output_count + cache_read + write_5m + write_1h,
+        total=_safe_total(input_count, output_count, cache_read, write_5m, write_1h),
     )
 
 
@@ -107,11 +121,12 @@ def _google_modalities(raw: Any, name: str, wire_name: str) -> dict[str, int]:
 
 def google_usage(raw: Any) -> Usage:
     prompt = integer(raw, "prompt_token_count", integer(raw, "promptTokenCount"))
+    tool_use = integer(raw, "tool_use_prompt_token_count", integer(raw, "toolUsePromptTokenCount"))
     cached = integer(raw, "cached_content_token_count", integer(raw, "cachedContentTokenCount"))
     output = integer(raw, "candidates_token_count", integer(raw, "candidatesTokenCount"))
     reasoning = integer(raw, "thoughts_token_count", integer(raw, "thoughtsTokenCount"))
     total = integer(raw, "total_token_count", integer(raw, "totalTokenCount"))
-    total = total or prompt + output + reasoning
+    total = total or _safe_total(prompt, output, reasoning, tool_use)
     prompt_modalities = _google_modalities(raw, "prompt_tokens_details", "promptTokensDetails")
     cache_modalities = _google_modalities(raw, "cache_tokens_details", "cacheTokensDetails")
     prompt_audio = prompt_modalities.get("audio", 0)
@@ -127,8 +142,13 @@ def google_usage(raw: Any) -> Usage:
         }.items()
         if count
     }
+    fresh_input = prompt - cached - audio_input
+    if fresh_input + tool_use > _MAX_SAFE_INTEGER:
+        extra["input_tool_use"] = tool_use
+    else:
+        fresh_input += tool_use
     return Usage(
-        input=prompt - cached - audio_input,
+        input=fresh_input,
         output=output,
         cache_read=cached - audio_cache,
         reasoning=reasoning,
@@ -151,41 +171,8 @@ def ollama_usage(raw: Mapping[str, Any]) -> Usage:
     input_count = integer(raw, "prompt_eval_count")
     output_count = integer(raw, "eval_count")
     return Usage(
-        input=input_count, output=output_count, total=input_count + output_count, extra=extra
+        input=input_count,
+        output=output_count,
+        total=_safe_total(input_count, output_count),
+        extra=extra,
     )
-
-
-def metered_response(
-    provider: str,
-    model: str,
-    usage: Usage,
-    *,
-    catalog: PricingCatalog | None = None,
-    rate_override: dict[str, Any] | None = None,
-    service_tier: str | None = None,
-    unmetered: bool = False,
-    effective_at: str | None = None,
-    usage_reported: bool = True,
-) -> dict[str, Any]:
-    result = bill(
-        provider,
-        model,
-        usage,
-        catalog=catalog,
-        rate_override=rate_override,
-        service_tier=service_tier,
-        unmetered=unmetered,
-        effective_at=effective_at,
-    )
-    billing = result.to_dict()
-    if not usage_reported:
-        billing["status"] = "unknown"
-        billing["amount_usd"] = None
-        billing["known_subtotal_usd"] = "0"
-        billing["warnings"].append("provider did not report usage; cost is unknown")
-        billing["calculation"]["usage_reported"] = False
-    return {
-        "usage": usage.to_dict(),
-        "billing": billing,
-        "cost": 0.0 if not usage_reported else known_cost(result),
-    }

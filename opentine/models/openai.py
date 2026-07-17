@@ -8,6 +8,7 @@ from typing import Any
 
 from opentine.billing import PricingCatalog
 from opentine.models._chat import ChatCompletions
+from opentine.models._client import closing_client
 from opentine.models._responses import ResponsesTransport
 
 
@@ -16,7 +17,7 @@ class OpenAI(ChatCompletions):
 
     def __init__(
         self,
-        model: str = "gpt-4o",
+        model: str = "gpt-5.6",
         api_key: str | None = None,
         base_url: str | None = None,
         *,
@@ -35,10 +36,18 @@ class OpenAI(ChatCompletions):
             if provider is not None
             else ("openai-compatible" if resolved_base else "openai")
         )
+        resolved_key = (
+            api_key
+            if api_key is not None
+            else os.environ.get(
+                "OPENAI_COMPAT_API_KEY" if resolved_base else "OPENAI_API_KEY",
+                "",
+            )
+        )
         super().__init__(
             model,
             provider=resolved_provider,
-            api_key=api_key or os.environ.get("OPENAI_API_KEY", ""),
+            api_key=resolved_key,
             base_url=resolved_base,
             omit_temperature=omit_temperature,
             input_cost_per_mtok=input_cost_per_mtok,
@@ -61,7 +70,16 @@ class OpenAI(ChatCompletions):
             import openai
         except ImportError:
             raise ImportError("pip install opentine[openai]") from None
-        return openai.AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
+        return openai.AsyncOpenAI(
+            api_key=self._api_key or "local",
+            base_url=self._base_url,
+            max_retries=0,
+            http_client=(
+                openai.DefaultAsyncHttpxClient(trust_env=False, follow_redirects=False)
+                if self._base_url is not None
+                else None
+            ),
+        )
 
     async def complete(
         self,
@@ -70,10 +88,10 @@ class OpenAI(ChatCompletions):
         system: str | None = None,
         temperature: float = 0.0,
     ) -> dict[str, Any]:
-        client = self._get_client()
-        if self._native_responses and hasattr(client, "responses"):
-            return await self._responses.complete(client, messages, tools, system, temperature)
-        return await self._complete(client, messages, tools, system, temperature)
+        async with closing_client(self._get_client()) as client:
+            if self._native_responses and hasattr(client, "responses"):
+                return await self._responses.complete(client, messages, tools, system, temperature)
+            return await self._complete(client, messages, tools, system, temperature)
 
     async def stream(
         self,
@@ -82,10 +100,12 @@ class OpenAI(ChatCompletions):
         system: str | None = None,
         temperature: float = 0.0,
     ) -> AsyncIterator[dict[str, Any]]:
-        client = self._get_client()
-        if self._native_responses and hasattr(client, "responses"):
-            async for event in self._responses.stream(client, messages, tools, system, temperature):
+        async with closing_client(self._get_client()) as client:
+            if self._native_responses and hasattr(client, "responses"):
+                async for event in self._responses.stream(
+                    client, messages, tools, system, temperature
+                ):
+                    yield event
+                return
+            async for event in self._stream(client, messages, tools, system, temperature):
                 yield event
-            return
-        async for event in self._stream(client, messages, tools, system, temperature):
-            yield event

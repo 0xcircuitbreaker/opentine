@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from opentine.models import _streaming
-from opentine.models._responses import ResponsesTransport, parse_response
+from opentine.models._responses import ResponsesTransport, parse_response, response_input
 from opentine.models._stream_content import (
     OllamaStreamState,
     anthropic_content,
@@ -80,9 +80,7 @@ async def test_chat_stream_retains_tool_reasoning_refusal_and_usage(monkeypatch)
     assert adapter._provider == "openai-compatible"
     final = events[-1]
     assert final["type"] == "response" and final["text"] == ""
-    assert final["tool_calls"] == [
-        {"name": "weather", "arguments": {"city": "Paris"}, "id": "call_1"}
-    ]
+    assert final["tool_calls"] == []
     assert final["reasoning_content"] == "checking"
     assert final["refusal"] == "policy refusal"
     assert final["usage"]["total"] == 14 and "billing" in final
@@ -137,13 +135,18 @@ async def test_missing_wire_usage_is_explicitly_unknown_for_complete_and_stream(
     complete = await adapter.complete([{"role": "user", "content": "go"}])
     events = [event async for event in adapter.stream([{"role": "user", "content": "go"}])]
     assert complete["billing"]["status"] == "unknown"
-    assert events[-1]["type"] == "usage" and events[-1]["billing"]["status"] == "unknown"
+    usage = next(event for event in events if event["type"] == "usage")
+    assert usage["billing"]["status"] == "unknown"
+    assert events[-1]["type"] == "response"
+    assert "terminal" in events[-1]["refusal"]
     assert ResponsesTransport(model="gpt-5.6").meter(SimpleNamespace())["billing"]["status"] == (
         "unknown"
     )
     assert Google("gemini-test")._meter(None)["billing"]["status"] == "unknown"
     assert Anthropic("claude-test")._meter(SimpleNamespace())["billing"]["status"] == "unknown"
-    assert Ollama("qwen3")._meter({})["billing"]["status"] == "unknown"
+    local = Ollama("qwen3")._meter({})["billing"]
+    assert local["status"] == "unmetered"
+    assert any("did not report usage" in warning for warning in local["warnings"])
 
 
 @pytest.mark.asyncio
@@ -186,8 +189,8 @@ async def test_anthropic_stream_uses_final_tool_thinking_and_refusal_billing(mon
     events = [event async for event in adapter.stream([{"role": "user", "content": "go"}])]
     final = events[-1]
     assert final["type"] == "response"
-    assert final["tool_calls"][0]["id"] == "t1"
-    assert final["reasoning_content"] == "considered"
+    assert final["tool_calls"] == []
+    assert "reasoning_content" not in final
     assert final["refusal"] == "declined"
     assert final["usage"]["total"] == 13 and "billing" in final
 
@@ -201,7 +204,10 @@ async def test_google_stream_retains_function_call_thought_refusal_and_usage(mon
                 content=SimpleNamespace(
                     parts=[
                         SimpleNamespace(text="considered", thought=True),
-                        SimpleNamespace(function_call=function),
+                        SimpleNamespace(
+                            function_call=function,
+                            thought_signature=b"opaque-stream-signature",
+                        ),
                     ]
                 ),
                 finish_reason="SAFETY",
@@ -227,7 +233,8 @@ async def test_google_stream_retains_function_call_thought_refusal_and_usage(mon
     events = [event async for event in adapter.stream([{"role": "user", "content": "go"}])]
     final = events[-1]
     assert final["type"] == "response" and final["text"] == ""
-    assert final["tool_calls"] == [{"name": "weather", "arguments": {"city": "Paris"}, "id": "g1"}]
+    assert final["tool_calls"] == []
+    assert final["google_content"][1]["thought_signature"] == ("b3BhcXVlLXN0cmVhbS1zaWduYXR1cmU=")
     assert final["reasoning_content"] == "considered"
     assert final["refusal"] == "SAFETY"
     assert final["usage"]["total"] == 12 and "billing" in final
@@ -290,7 +297,7 @@ async def test_ollama_stream_retains_tool_thinking_refusal_and_final_metrics(mon
     events = [event async for event in Ollama("qwen3").stream([{"role": "user", "content": "go"}])]
     final = events[-1]
     assert final["type"] == "response" and final["thinking"] == "considered"
-    assert final["refusal"] == "declined" and final["tool_calls"][0]["id"] == "o1"
+    assert final["refusal"] == "declined" and final["tool_calls"] == []
     assert final["usage"]["total"] == 12 and final["metrics"]["total_duration"] == 1_000_000_000
 
 
@@ -310,7 +317,8 @@ def test_stream_accumulators_bound_untrusted_provider_output(monkeypatch):
     )
     chat_result = chat.result()
     assert chat_result["text"] == "x" * 8
-    assert chat_result["tool_calls"][0]["arguments"] == {"_truncated": True}
+    assert chat_result["tool_calls"] == []
+    assert "non-executable" in chat_result["refusal"]
     assert any("truncated" in warning for warning in chat_result["warnings"])
 
     anthropic = anthropic_content(
@@ -342,7 +350,8 @@ def test_stream_accumulators_bound_untrusted_provider_output(monkeypatch):
 
     google_content(function_chunk({"a": "1234"}), google_budget)
     bounded_google = google_content(function_chunk({"b": "4567"}), google_budget)
-    assert bounded_google["tool_calls"][0]["arguments"] == {"_truncated": True}
+    assert bounded_google["tool_calls"] == []
+    assert "non-executable" in bounded_google["refusal"]
 
     complete_chat = chat_content(SimpleNamespace(content="c" * 32, tool_calls=[], refusal="r" * 32))
     assert complete_chat["text"] == "c" * 8 and complete_chat["refusal"] == "r" * 8
@@ -367,6 +376,56 @@ def test_stream_accumulators_bound_untrusted_provider_output(monkeypatch):
     for _ in range(1000):
         noisy_chat.add(noisy_delta)
     assert noisy_chat.warnings == ["streamed tool call id truncated at 4096 characters"]
+
+
+def test_structured_budget_charges_empty_container_nodes():
+    warnings: list[str] = []
+    tiny = SizeBudget(64)
+    assert tiny.keep([], warnings, "value") == []
+    assert tiny.remaining == 0
+    assert tiny.keep([[]], warnings, "value") == {"_truncated": True}
+
+    wide = [[{} for _ in range(4096)] for _ in range(4)]
+    bounded = SizeBudget(1024)
+    assert bounded.keep(wide, warnings, "value") == {"_truncated": True}
+    assert bounded.remaining == 1024
+    assert any("aggregate safe size" in warning for warning in warnings)
+
+
+def test_responses_continuation_preserves_mixed_output_items_in_order():
+    output = [
+        {"type": "reasoning", "id": "r1", "summary": []},
+        {
+            "type": "message",
+            "id": "m1",
+            "role": "assistant",
+            "content": [{"type": "output_text", "text": "I will check"}],
+        },
+        {"type": "function_call", "call_id": "c1", "name": "one", "arguments": "{}"},
+        {"type": "function_call", "call_id": "c2", "name": "two", "arguments": "{}"},
+    ]
+    parsed = parse_response(SimpleNamespace(output=output, output_text="I will check"))
+    assistant = {
+        "role": "assistant",
+        "content": parsed["text"],
+        "tool_calls": parsed["tool_calls"],
+        "response_items": parsed["response_items"],
+    }
+
+    assert parsed["response_items"] == output
+    assert response_input([assistant]) == output
+
+
+def test_responses_legacy_continuation_does_not_drop_assistant_text():
+    legacy = {
+        "role": "assistant",
+        "content": "I will check",
+        "response_items": [{"type": "reasoning", "id": "r1", "summary": []}],
+    }
+    assert response_input([legacy]) == [
+        {"role": "assistant", "content": "I will check"},
+        {"type": "reasoning", "id": "r1", "summary": []},
+    ]
 
 
 @pytest.mark.parametrize("value", [True, 1.5, -1, 10**20 + 1, "10"])

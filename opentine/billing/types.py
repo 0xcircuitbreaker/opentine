@@ -2,41 +2,24 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Any, Literal
+from typing import Any
 
+from opentine.billing._billing_result import BillingResult as BillingResult
+from opentine.billing._billing_result import BillingStatus as BillingStatus
+from opentine.billing._immutable import freeze, thaw
+from opentine.billing._rate_normalize import normalize_rate_card
 from opentine.billing._rate_validation import validate_rate_card, validate_rate_card_data
+from opentine.billing._values import as_date as as_date
+from opentine.billing._values import decimal as decimal
 
-BillingStatus = Literal["complete", "partial", "unknown", "unmetered"]
 Number = int | float | Decimal
-_USAGE_FIELDS = (
-    "input",
-    "output",
-    "cache_read",
-    "cache_write_5m",
-    "cache_write_1h",
-    "reasoning",
-)
-
-
-def decimal(value: Any, default: str = "0") -> Decimal:
-    if value is None:
-        return Decimal(default)
-    if isinstance(value, Decimal):
-        return value
-    return Decimal(str(value))
-
-
-def as_date(value: date | datetime | str | None) -> date:
-    if value is None:
-        return datetime.now(UTC).date()
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    return date.fromisoformat(value[:10])
+_USAGE_FIELDS = tuple("input output cache_read cache_write_5m cache_write_1h reasoning".split())
+_MAX_SAFE_INTEGER = (1 << 53) - 1
+_MAX_MAGNITUDE = Decimal("1e50")
 
 
 @dataclass(frozen=True)
@@ -48,14 +31,20 @@ class Usage:
     cache_write_1h: int = 0
     reasoning: int = 0
     total: int | None = None
-    extra: dict[str, Number] = field(default_factory=dict)
+    extra: Mapping[str, Number] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for name in _USAGE_FIELDS:
-            if type(getattr(self, name)) is not int or getattr(self, name) < 0:
-                raise ValueError(f"usage.{name} must be a non-negative integer")
-        if self.total is not None and (type(self.total) is not int or self.total < 0):
-            raise ValueError("usage.total must be a non-negative integer")
+            if (
+                type(getattr(self, name)) is not int
+                or not 0 <= getattr(self, name) <= _MAX_SAFE_INTEGER
+            ):
+                raise ValueError(f"usage.{name} must be a non-negative safe integer")
+        if self.total is not None and (
+            type(self.total) is not int or not 0 <= self.total <= _MAX_SAFE_INTEGER
+        ):
+            raise ValueError("usage.total must be a non-negative safe integer")
+        normalized: dict[str, Decimal] = {}
         for name, value in self.extra.items():
             if not isinstance(name, str) or not name or name in {*_USAGE_FIELDS, "total", "extra"}:
                 raise ValueError(f"invalid or reserved usage.extra dimension: {name!r}")
@@ -63,8 +52,10 @@ class Usage:
                 number = decimal(value)
             except (InvalidOperation, ValueError) as exc:
                 raise ValueError(f"usage.extra.{name} must be finite and non-negative") from exc
-            if not number.is_finite() or number < 0:
+            if not number.is_finite() or number < 0 or number > _MAX_MAGNITUDE:
                 raise ValueError(f"usage.extra.{name} must be finite and non-negative")
+            normalized[name] = number
+        object.__setattr__(self, "extra", freeze(normalized))
 
     @property
     def input_total(self) -> Number:
@@ -95,7 +86,13 @@ class Usage:
         for name, value in self.dimensions().items():
             if value or not compact:
                 if isinstance(value, Decimal):
-                    value = int(value) if value == value.to_integral_value() else float(value)
+                    if value == value.to_integral_value():
+                        integer = int(value)
+                        value = integer if abs(integer) <= _MAX_SAFE_INTEGER else str(value)
+                    else:
+                        value = str(value)
+                elif type(value) is int and abs(value) > _MAX_SAFE_INTEGER:
+                    value = str(value)
                 data[name] = value
         if self.total is not None:
             data["total"] = self.total
@@ -116,30 +113,31 @@ class RateCard:
     id: str
     provider: str
     model: str
-    rates: dict[str, Decimal]
+    rates: Mapping[str, Decimal]
     aliases: tuple[str, ...] = ()
     effective_from: date = date.min
     effective_until: date | None = None
-    context_thresholds: tuple[dict[str, Any], ...] = ()
-    service_modifiers: dict[str, Decimal | dict[str, Decimal]] = field(default_factory=dict)
-    service_rates: dict[str, dict[str, Decimal]] = field(default_factory=dict)
+    context_thresholds: tuple[Mapping[str, Any], ...] = ()
+    service_modifiers: Mapping[str, Decimal | Mapping[str, Decimal]] = field(default_factory=dict)
+    service_rates: Mapping[str, Mapping[str, Decimal]] = field(default_factory=dict)
     currency: str = "USD"
     currency_to_usd: Decimal = Decimal("1")
     source_urls: tuple[str, ...] = ()
     verified_at: date | None = None
     unmetered: bool = False
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        normalize_rate_card(self)
         validate_rate_card(self)
         groups = [self.rates, *self.service_rates.values()]
         scalars = [self.currency_to_usd]
         for modifier in self.service_modifiers.values():
-            groups.append(modifier) if isinstance(modifier, dict) else scalars.append(modifier)
+            groups.append(modifier) if isinstance(modifier, Mapping) else scalars.append(modifier)
         groups.extend((rule.get("multipliers") or {}) for rule in self.context_thresholds)
         rates = [decimal(value) for group in groups for value in group.values()]
         rates.extend(decimal(value) for value in scalars)
-        if any(not value.is_finite() or value < 0 for value in rates):
+        if any(not value.is_finite() or value < 0 or value > _MAX_MAGNITUDE for value in rates):
             raise ValueError("rate-card values must be finite and non-negative")
         conversion = decimal(self.currency_to_usd)
         if not conversion.is_finite() or conversion <= 0:
@@ -165,10 +163,18 @@ class RateCard:
             "effective_from": self.effective_from.isoformat(),
             "effective_until": self.effective_until.isoformat() if self.effective_until else None,
             "rates": {key: str(value) for key, value in sorted(self.rates.items())},
-            "context_thresholds": list(self.context_thresholds),
+            "context_thresholds": [
+                {
+                    **thaw(rule),
+                    "multipliers": {
+                        key: str(value) for key, value in (rule.get("multipliers") or {}).items()
+                    },
+                }
+                for rule in self.context_thresholds
+            ],
             "service_modifiers": {
                 key: {name: str(rate) for name, rate in sorted(value.items())}
-                if isinstance(value, dict)
+                if isinstance(value, Mapping)
                 else str(value)
                 for key, value in sorted(self.service_modifiers.items())
             },
@@ -181,7 +187,7 @@ class RateCard:
             "source_urls": list(self.source_urls),
             "verified_at": self.verified_at.isoformat() if self.verified_at else None,
             "unmetered": self.unmetered,
-            "metadata": self.metadata,
+            "metadata": thaw(self.metadata),
         }
 
     @classmethod
@@ -200,7 +206,7 @@ class RateCard:
             context_thresholds=tuple(data.get("context_thresholds") or ()),
             service_modifiers={
                 key: {name: decimal(rate) for name, rate in value.items()}
-                if isinstance(value, dict)
+                if isinstance(value, Mapping)
                 else decimal(value)
                 for key, value in (data.get("service_modifiers") or {}).items()
             },
@@ -215,35 +221,3 @@ class RateCard:
             unmetered=bool(data.get("unmetered", False)),
             metadata=dict(data.get("metadata") or {}),
         )
-
-
-@dataclass(frozen=True)
-class BillingResult:
-    status: BillingStatus
-    amount_usd: Decimal | None
-    known_subtotal_usd: Decimal
-    catalog_id: str | None = None
-    catalog_hash: str | None = None
-    rate_card_id: str | None = None
-    effective_at: str | None = None
-    warnings: tuple[str, ...] = ()
-    calculation: dict[str, Any] = field(default_factory=dict)
-    catalog_provenance: tuple[dict[str, Any], ...] = ()
-
-    @property
-    def complete(self) -> bool:
-        return self.status in ("complete", "unmetered")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "status": self.status,
-            "amount_usd": str(self.amount_usd) if self.amount_usd is not None else None,
-            "known_subtotal_usd": str(self.known_subtotal_usd),
-            "catalog_id": self.catalog_id,
-            "catalog_hash": self.catalog_hash,
-            "rate_card_id": self.rate_card_id,
-            "effective_at": self.effective_at,
-            "warnings": list(self.warnings),
-            "calculation": self.calculation,
-            "catalog_provenance": list(self.catalog_provenance),
-        }
