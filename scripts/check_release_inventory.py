@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import stat
 import subprocess
 import tarfile
 import tomllib
 import zipfile
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,6 +35,28 @@ def _tracked() -> set[str]:
     return {item.decode("utf-8") for item in output.split(b"\0") if item}
 
 
+def _digest(stream: BinaryIO) -> bytes:
+    value = hashlib.sha256()
+    while chunk := stream.read(1024 * 1024):
+        value.update(chunk)
+    return value.digest()
+
+
+def _source_hashes(tracked: set[str]) -> dict[str, bytes]:
+    hashes: dict[str, bytes] = {}
+    for name in sorted(tracked):
+        try:
+            body = subprocess.run(
+                ["git", "-C", str(ROOT), "show", f"HEAD:{name}"],
+                check=True,
+                capture_output=True,
+            ).stdout
+        except subprocess.CalledProcessError as exc:
+            raise InventoryError(f"cannot read tracked source from HEAD: {name}") from exc
+        hashes[name] = hashlib.sha256(body).digest()
+    return hashes
+
+
 def _parts(name: str) -> tuple[str, ...]:
     if not name or "\\" in name:
         raise InventoryError(f"unsafe archive path: {name!r}")
@@ -53,9 +78,17 @@ def _difference(actual: set[str], expected: set[str]) -> None:
         raise InventoryError("; ".join(details))
 
 
-def check_sdist(path: Path, tracked: set[str], project: str, version: str) -> None:
+def check_sdist(
+    path: Path,
+    tracked: set[str],
+    project: str,
+    version: str,
+    *,
+    source_hashes: Mapping[str, bytes] | None = None,
+) -> dict[str, bytes]:
     expected_root = f"{project}-{version}"
     names: list[str] = []
+    hashes: dict[str, bytes] = {}
     with tarfile.open(path, "r:gz") as archive:
         for member in archive.getmembers():
             parts = _parts(member.name)
@@ -67,13 +100,30 @@ def check_sdist(path: Path, tracked: set[str], project: str, version: str) -> No
                 raise InventoryError(f"sdist member is not a regular file: {member.name}")
             if len(parts) < 2:
                 raise InventoryError(f"sdist file is outside its root: {member.name}")
-            names.append("/".join(parts[1:]))
+            name = "/".join(parts[1:])
+            stream = archive.extractfile(member)
+            if stream is None:
+                raise InventoryError(f"cannot read sdist member: {member.name}")
+            names.append(name)
+            hashes[name] = _digest(stream)
     if len(names) != len(set(names)):
         raise InventoryError("sdist contains duplicate paths")
     _difference(set(names), tracked | {"PKG-INFO"})
+    if source_hashes is not None:
+        mismatched = sorted(name for name in tracked if hashes[name] != source_hashes[name])
+        if mismatched:
+            raise InventoryError("sdist content differs from source: " + ", ".join(mismatched))
+    return hashes
 
 
-def check_wheel(path: Path, tracked: set[str], project: str, version: str) -> None:
+def check_wheel(
+    path: Path,
+    tracked: set[str],
+    project: str,
+    version: str,
+    *,
+    sdist_hashes: Mapping[str, bytes] | None = None,
+) -> None:
     dist_info = f"{project.replace('-', '_')}-{version}.dist-info"
     generated = {
         f"{dist_info}/METADATA",
@@ -84,6 +134,7 @@ def check_wheel(path: Path, tracked: set[str], project: str, version: str) -> No
     }
     expected = {name for name in tracked if name.startswith("opentine/")} | generated
     names: list[str] = []
+    hashes: dict[str, bytes] = {}
     with zipfile.ZipFile(path) as archive:
         for member in archive.infolist():
             _parts(member.filename)
@@ -93,9 +144,16 @@ def check_wheel(path: Path, tracked: set[str], project: str, version: str) -> No
             if kind and not stat.S_ISREG(kind):
                 raise InventoryError(f"wheel member is not a regular file: {member.filename}")
             names.append(member.filename)
+            with archive.open(member) as stream:
+                hashes[member.filename] = _digest(stream)
     if len(names) != len(set(names)):
         raise InventoryError("wheel contains duplicate paths")
     _difference(set(names), expected)
+    if sdist_hashes is not None:
+        package = sorted(name for name in expected if name.startswith("opentine/"))
+        mismatched = [name for name in package if hashes[name] != sdist_hashes[name]]
+        if mismatched:
+            raise InventoryError("wheel content differs from sdist: " + ", ".join(mismatched))
 
 
 def release_artifacts(paths: list[Path]) -> list[Path]:
@@ -124,11 +182,25 @@ def main(argv: list[str] | None = None) -> int:
     tracked = _tracked()
     try:
         artifacts = release_artifacts(args.artifacts)
+        source_hashes = _source_hashes(tracked)
+        sdist_hashes: dict[str, bytes] | None = None
         for artifact in artifacts:
             if artifact.name.endswith(".tar.gz"):
-                check_sdist(artifact, tracked, project, version)
+                sdist_hashes = check_sdist(
+                    artifact,
+                    tracked,
+                    project,
+                    version,
+                    source_hashes=source_hashes,
+                )
             elif artifact.suffix == ".whl":
-                check_wheel(artifact, tracked, project, version)
+                check_wheel(
+                    artifact,
+                    tracked,
+                    project,
+                    version,
+                    sdist_hashes=sdist_hashes,
+                )
             else:
                 raise InventoryError(f"unsupported release artifact: {artifact}")
             print(f"release inventory passed: {artifact}")
