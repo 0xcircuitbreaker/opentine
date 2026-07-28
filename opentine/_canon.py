@@ -64,7 +64,9 @@ _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
 def _field_name(value: Any) -> str:
-    return _CAMEL_BOUNDARY.sub("_", str(value).strip()).lower().replace("-", "_")
+    # Quotes stripped so a JSON fragment in free text ('"api_key": "sk-…"') names
+    # the same field as the bare form; v3 handles it, v2 stored the secret.
+    return _CAMEL_BOUNDARY.sub("_", str(value).strip().strip("\"'")).lower().replace("-", "_")
 
 
 def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ...]) -> bool:
@@ -81,9 +83,8 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
 def _split_assignment(text: str) -> tuple[str, str, str]:
     """Split on whichever of ``:``/``=`` comes *first*, not on whichever exists.
 
-    A value may contain the other separator (``api_key=sk-proj:abc``); splitting on
-    the later one buries the credential name in the label, hiding it from the name
-    check below and leaving the secret in cleartext.
+    A value may contain the other (``api_key=sk-proj:abc``); splitting on the later
+    one buries the credential name in the label and leaks the secret.
     """
     at = min((i for i in (text.find(":"), text.find("=")) if i >= 0), default=-1)
     if at < 0:
@@ -171,24 +172,16 @@ def _redact(value: Any) -> Any:
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()
-        questions = {
-            "can",
-            "could",
-            "how",
-            "should",
-            "what",
-            "when",
-            "where",
-            "which",
-            "why",
-        }
+        questions = {"can", "could", "how", "should", "what", "when", "where", "which", "why"}
         articles = {"a", "an", "the", "this"}
         header_nouns = {"field", "header", "label", "setting", "value"}
         prose = bool(words) and (
             words[0] in questions
             or (len(words) > 1 and words[0] in articles and words[1] in header_nouns)
         )
-        if name in headers:
+        # Bare "token" is not a credential name (counters must survive), but a
+        # *quoted* value is no counter — same rule the dict branch applies.
+        if name in headers or (name == "token" and candidate.strip()[:1] in {'"', "'"}):
             return label + separator + " [REDACTED]"
         if _secret_field(name, credential_names, suffixes) and not prose:
             return label + separator + " [REDACTED]"
