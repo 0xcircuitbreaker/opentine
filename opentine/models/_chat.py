@@ -21,20 +21,22 @@ class ChatCompletions(ChatStreamMixin):
 
     #: Providers whose streams get ``stream_options={"include_usage": True}`` unless the
     #: caller overrides ``include_usage``. Without it an OpenAI-compatible endpoint sends
-    #: no usage chunk, so a streamed call yields no token counts and prices as "unknown" —
-    #: silently reporting $0.00 for real spend. Every entry here speaks the OpenAI Chat
-    #: Completions wire format, which defines this field; pass ``include_usage=False`` to
-    #: opt a deployment out. GLM appears twice because it picks its provider string at
-    #: runtime from whether the China endpoint is in use.
+    #: no usage chunk, so a streamed call yields no token counts and prices as "unknown".
+    #:
+    #: Membership requires POSITIVE evidence that the provider accepts the field. The
+    #: failure modes are not symmetric: a missing entry loses usage and honestly reports
+    #: "unknown", while a wrong entry makes every streamed call fail outright — Mistral
+    #: answers ``stream_options.include_usage`` with HTTP 422 ``extra_forbidden``, so
+    #: assuming OpenAI-compatibility implies support breaks that provider completely.
+    #: A deployment whose endpoint does support it can opt in with ``include_usage=True``.
+    #: GLM appears twice because it picks its provider string at runtime from whether the
+    #: China endpoint is in use.
     _stream_usage_providers = {
         "glm",
         "glm-cn",
-        "mistral",
-        "nous",
         "openai",
         "openai-compatible",
         "qwen",
-        "together",
         "xai",
     }
 
