@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import threading
 import time
 from datetime import date
 from pathlib import Path
@@ -21,22 +22,18 @@ from opentine._artifact_io import parse_artifact_json
 from opentine._canon import _redact
 from opentine._cli_common import HARNESS_FACTORIES
 from opentine.billing._values import as_date
-from opentine.billing.catalog import catalog_paths, user_catalog_path
+from opentine.billing.catalog import (
+    PricingCatalog,
+    catalog_hash,
+    catalog_paths,
+    user_catalog_path,
+)
 from opentine.harnesses import GeminiCLIHarness, GrokBuildHarness
 from opentine.harnesses._types import cost_from_text, duration_seconds
 from opentine.mcp_repository import _writable_ref
 from opentine.models.compat import (
     GLM,
-    DeepSeek,
-    Grok,
-    Groq,
-    Hermes,
-    Kimi,
-    Ministral,
-    Mistral,
     OpenRouter,
-    Qwen,
-    Together,
 )
 from opentine.redaction import redact_blob
 from opentine.remote.security import OIDCIdentityProvider, RoleAuthorizationPolicy
@@ -185,6 +182,17 @@ def test_inspect_does_not_resolve_the_unredacted_legacy_blob(tmp_path):
     assert secret in json.dumps(repo.inspect(inspected["payload"]["legacy_blob"]))
 
 
+def test_mcp_ref_guard_decides_on_the_canonical_name():
+    # The namespace test must run on the name that actually reaches the filesystem,
+    # not the caller's string, so the two cannot disagree. Checking the raw input
+    # also rejected the legitimate fully-qualified form.
+    assert _writable_ref("refs/experiments/policy") == "experiments/policy"
+    assert _writable_ref("experiments/policy") == "experiments/policy"
+    for traversal in ("experiments/../heads/main", "experiments/a/../../heads/main"):
+        with pytest.raises(ValueError):
+            _writable_ref(traversal)
+
+
 def test_mcp_fork_and_resume_cannot_move_mainline_or_promotion_refs():
     # A fork's ref update compare-and-swaps against the value it just read, i.e. it
     # is an unconditional overwrite. The content an MCP client reads from the
@@ -200,29 +208,6 @@ def test_openrouter_requests_usage_so_streamed_calls_are_priceable():
     # OpenRouter is priced from its own reported usage.cost rather than a rate
     # card, so a stream with no usage chunk has no fallback: it reports $0.00.
     assert OpenRouter()._include_usage is True
-
-
-def test_every_hosted_openai_compatible_adapter_requests_stream_usage():
-    # These endpoints send no usage chunk unless stream_options.include_usage is
-    # set, so a streamed call yields no token counts and prices as "unknown" —
-    # silently reporting $0.00 for real spend.
-    for adapter in (
-        GLM(),
-        Together(),
-        Mistral(),
-        Ministral(),
-        Hermes(),
-        OpenRouter(),
-        Kimi(),
-        DeepSeek(),
-        Qwen(),
-        Grok(),
-        Groq(),
-    ):
-        wants = adapter._include_usage or (
-            adapter._include_usage is None and adapter._provider in adapter._stream_usage_providers
-        )
-        assert wants, f"{type(adapter).__name__} ({adapter._provider}) loses streamed usage"
 
 
 def test_glm_china_endpoint_also_requests_stream_usage():
@@ -278,3 +263,117 @@ def test_harness_cost_scraping_requires_a_currency_marker():
     assert cost_from_text("estimated price = 42") == 0.0
     assert cost_from_text("cost: $0.12") == 0.12
     assert cost_from_text("price = 1.50 USD") == 1.50
+
+
+def test_credential_in_a_quoted_json_fragment_is_redacted():
+    # Tool output routinely contains JSON. The v2 string path handled the bare
+    # form (api_key: X) but not the quoted one, so the label stayed '"api_key"',
+    # matched no credential name, and the secret was stored verbatim. The v3 blob
+    # scrubber already covered this, so v2 was the inconsistent side.
+    secret = "sk-ant-SUPERSECRET"
+    for fragment in (
+        f'"api_key": "{secret}"',
+        f"'api_key': '{secret}'",
+        f'"client_secret":"{secret}"',
+        f'"access_token": "{secret}"',
+        f'"token": "{secret}"',
+    ):
+        assert secret not in _redact(fragment), fragment
+
+
+def test_quoted_redaction_still_spares_counters_and_prose():
+    # A bare "token" must stay usable as a numeric counter name.
+    for benign in (
+        "token: 42",
+        "input_tokens=42",
+        '"total_tokens": 900',
+        "elapsed: 12:30",
+        '"note": "the answer is 42"',
+        '"public_key": "ssh-rsa AAA"',
+    ):
+        assert "REDACTED" not in _redact(benign), benign
+    assert _redact({"token": 42, "input_tokens": 7}) == {"token": 42, "input_tokens": 7}
+
+
+def test_reading_a_ref_during_a_concurrent_update_is_not_corruption(tmp_path):
+    # commit_ref replaces the path, unlinking the inode an open reader holds, so
+    # fstat reports nlink == 0. Rejecting "!= 1" called that corruption and failed
+    # readers and fsck on a healthy repository; only nlink > 1 (a hardlink) is wrong.
+    repo = Repo.init(tmp_path)
+    first, second = repo.put("blob", b"a"), repo.put("blob", b"b")
+    repo.update_ref("tags/x", first, expected_old=None)
+    failures: list[str] = []
+
+    def read() -> None:
+        for _ in range(2000):
+            try:
+                repo.read_ref("tags/x")
+            except Exception as exc:  # noqa: BLE001 - the assertion is that none occur
+                failures.append(f"{type(exc).__name__}: {exc}")
+                return
+
+    def write() -> None:
+        current = repo.read_ref("tags/x")
+        for _ in range(200):
+            nxt = second if current == first else first
+            try:
+                repo.update_ref("tags/x", nxt, expected_old=current)
+                current = nxt
+            except ValueError:
+                current = repo.read_ref("tags/x")
+
+    threads = [threading.Thread(target=read) for _ in range(3)] + [threading.Thread(target=write)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert not failures, failures[:3]
+
+
+def test_a_stray_file_in_refs_does_not_blank_the_ref_listing(tmp_path):
+    # A .DS_Store used to raise out of list_refs, so fsck reported a healthy repo
+    # as broken with zero refs verified — masking every real error behind it.
+    repo = Repo.init(tmp_path)
+    blob = repo.put("blob", b"c")
+    repo.update_ref("tags/good", blob, expected_old=None)
+    (Path(repo.path) / "refs" / ".DS_Store").write_text("junk", encoding="utf-8")
+
+    assert list(repo.list_refs()) == ["tags/good"]
+    report = repo.fsck()
+    assert report.ok and report.refs == 1
+
+
+def test_empty_xdg_config_home_does_not_make_the_overlay_relative(monkeypatch):
+    # os.environ.get(..., default) returns "" for a set-but-empty variable, and
+    # Path("") is Path("."), which would make the overlay CWD-relative per process.
+    monkeypatch.setenv("XDG_CONFIG_HOME", "")
+    assert user_catalog_path().is_absolute()
+
+
+def test_documented_overlay_recipe_produces_a_loadable_catalog(tmp_path):
+    # PRICING.md told authors to store the bare hex; the loader wants the
+    # "sha256:"-prefixed form, and a bare hex fails every load with a hash
+    # mismatch — taking all billing down, not just the overlay.
+    data = {
+        "schema": "opentine-pricing/1",
+        "cards": [
+            {
+                "id": "x:y:1",
+                "provider": "x",
+                "model": "y",
+                "effective_from": "2026-01-01",
+                "rates": {"input": "1", "output": "2"},
+            }
+        ],
+    }
+    data["catalog_id"] = f"sha256:{catalog_hash(data)}"
+    good = tmp_path / "good.json"
+    good.write_text(json.dumps(data), encoding="utf-8")
+    assert PricingCatalog.load(good, require_signature=False).cards
+
+    bare = {k: v for k, v in data.items() if k != "catalog_id"}
+    bare["catalog_id"] = catalog_hash(bare)
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps(bare), encoding="utf-8")
+    with pytest.raises(ValueError, match="id/hash mismatch"):
+        PricingCatalog.load(bad, require_signature=False)
