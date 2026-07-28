@@ -23,8 +23,14 @@ _NAME = (
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
     rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?)"
 )
+# `[ \t]*(?:[+>-][ \t]*)?` rather than `[ \t]*[+>-]?[ \t]*`: two adjacent runs of
+# optional whitespace give O(n) ways to split n leading spaces, so a failing match
+# backtracks through every split and the scan turns quadratic in indentation. Ordinary
+# indented JSON blew past the 1.5s linearity budget at a few hundred KB. Nesting the
+# whitespace inside the marker alternative makes the split unique without changing
+# which strings match.
 _LINE_ASSIGNMENT = re.compile(
-    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:(?:export|set)[ \t]+)?(?:\$env[ \t]*:[ \t]*)?"
+    rb"(?im)^([ \t]*(?:[+>-][ \t]*)?(?:(?:export|set)[ \t]+)?(?:\$env[ \t]*:[ \t]*)?"
     + _NAME
     + rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
@@ -62,7 +68,7 @@ _REVERSED_NAMED_HEADER = re.compile(
     rb"[\"'](?:" + _NAME + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"'])"
 )
 _HEADER_LINE = re.compile(
-    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:authorization|proxy[-_]authorization|cookie|set[-_]cookie)"
+    rb"(?im)^([ \t]*(?:[+>-][ \t]*)?(?:authorization|proxy[-_]authorization|cookie|set[-_]cookie)"
     rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
@@ -118,16 +124,39 @@ def _quoted_fields(value: bytes) -> bytes:
     return bytes(output)
 
 
+#: Shortest leading base64 run treated as key material rather than prose. A PEM
+#: body line is 64 characters and a real key is far longer, while an English word
+#: that happens to be base64-shaped ("note", "parser") is short — so this is what
+#: separates "-----BEGIN … MIIEvQIB…" from "-----BEGIN … note: parser saw a marker".
+_PEM_RUN_MINIMUM = 40
+
+
+def _pem_run(value: bytes, offset: int, limit: int) -> int:
+    """End of the key-material run starting at ``offset``, or ``offset`` if none.
+
+    Requiring the *whole* remainder to be PEM data (``fullmatch``) meant a single
+    trailing byte defeated it: for ``{"k": "-----BEGIN PRIVATE KEY-----MIIE…"}``
+    the closing quote and brace made the match fail, so the scanner gave up and
+    the key was emitted verbatim immediately after "[REDACTED PRIVATE KEY]" —
+    output that reads as redacted while leaking every byte. Consuming the leading
+    run instead removes exactly the key and keeps the surrounding diagnostics.
+    """
+    span = value[offset:limit]
+    match = _PEM_DATA.match(value, offset + len(span) - len(span.lstrip()), limit)
+    if match is None or match.end() - match.start() < _PEM_RUN_MINIMUM:
+        return offset
+    return match.end()
+
+
 def _trailing_text(value: bytes, offset: int) -> int:
     line_end = value.find(b"\n", offset)
     if line_end < 0:
-        tail = value[offset:].strip()
-        return (
-            len(value) if _PRIVATE_KEY_BEGIN.search(tail) or _PEM_DATA.fullmatch(tail) else offset
-        )
+        if _PRIVATE_KEY_BEGIN.search(value, offset):
+            return len(value)
+        return _pem_run(value, offset, len(value))
     same_line = value[offset:line_end].strip()
     if same_line and not (_PRIVATE_KEY_BEGIN.search(same_line) or _PEM_DATA.fullmatch(same_line)):
-        return offset
+        return _pem_run(value, offset, line_end)
     cursor = line_end + 1
     while cursor < len(value):
         line_end = value.find(b"\n", cursor)
