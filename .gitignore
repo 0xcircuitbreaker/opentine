@@ -26,6 +26,20 @@ env/
 *.swo
 *~
 
+# Local AI/agent tooling and session handoffs — developer-machine state, never
+# part of the package. Anchored to the repo root so they cannot shadow shipped
+# code: opentine/harnesses/claude_code.py and codex.py are product files.
+/.cursor/
+/.windsurf/
+/.codex/
+/.gemini/
+/.aider*
+/.mcp.json
+/AGENTS.md
+/CLAUDE.md
+/HANDOFF*.md
+/*-handoff.md
+
 # Ruff
 .ruff_cache/
 
