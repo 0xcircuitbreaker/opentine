@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 from typing import Any
 
 import httpx
+
+from opentine.tools._html import duckduckgo_results
 
 MAX_SEARCH_RESPONSE_BYTES = 4 * 1024 * 1024
 
@@ -115,15 +116,8 @@ async def _duckduckgo(query: str, max_results: int) -> str:
             params={"q": query},
             headers={"User-Agent": "opentine/0.3"},
         )
-    # Extract result snippets from HTML
-    links = re.findall(r'class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)</a>', resp.text)
-    snippets = re.findall(
-        r'class="result__snippet"[^>]*>(.*?)</(?:td|div|span)>', resp.text, re.DOTALL
-    )
     results = []
-    for i, (url, title) in enumerate(links[:max_results]):
-        title = re.sub(r"<[^>]+>", "", title).strip()
-        snippet = re.sub(r"<[^>]+>", "", snippets[i]).strip() if i < len(snippets) else ""
+    for url, title, snippet in duckduckgo_results(resp.text, max_results):
         results.append(f"[{title}]({url})\n{snippet[:200]}")
     return "\n\n".join(results) if results else f"No results found for: {query}"
 

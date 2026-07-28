@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from pathlib import Path
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from opentine._artifact_io import parse_artifact_json, read_artifact_bytes
+from opentine._artifact_io import read_artifact_bytes as read_artifact_bytes
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
+from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
     blob_json,
     json_blob,
@@ -32,7 +32,7 @@ class RunObjectResult:
     annotation_id: str | None = None
 
 
-def put_run(
+def _put_run(
     repo: Repo,
     run: Run,
     *,
@@ -41,10 +41,18 @@ def put_run(
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
     base = run_origin(repo, run)
+    provenance = getattr(run, "_v3_source_payload", None)
+    if provenance is None:
+        provenance = getattr(run, "_v3_payload", None)
+    reusable_events = (
+        set(provenance.get("events") or ())
+        if legacy_blob is None and isinstance(provenance, dict)
+        else set()
+    )
     event_map: dict[str, str] = {}
     events: list[str] = []
     for step in run.steps:
-        if step.id.startswith("event:"):
+        if step.id in reusable_events:
             if not repo.has(step.id):
                 raise ValueError("cannot reconstruct a foreign v3 event through compatibility Run")
             prior = repo.get(step.id).payload()
@@ -127,6 +135,30 @@ def put_run(
     return RunObjectResult(run_id, event_map, annotation_id)
 
 
+def put_run(
+    repo: Repo,
+    run: Run,
+    *,
+    ref: str | None = None,
+    legacy_blob: str | None = None,
+    legacy_verification: dict[str, Any] | None = None,
+) -> RunObjectResult:
+    preflight_run(
+        repo,
+        run,
+        ref=ref,
+        legacy_blob=legacy_blob,
+        legacy_verification=legacy_verification,
+    )
+    return _put_run(
+        repo,
+        run,
+        ref=ref,
+        legacy_blob=legacy_blob,
+        legacy_verification=legacy_verification,
+    )
+
+
 def load_run(repo: Repo, oid_or_ref: str) -> Run:
     from opentine.graph import Graph, Run, RunStatus, Step, StepKind
 
@@ -192,57 +224,3 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
     run._v3_payload = dict(payload)
     run._v3_run_id = oid
     return run
-
-
-def migrate_v2(
-    repo: Repo,
-    path: str | Path,
-    *,
-    ref: str | None = None,
-    hmac_key: bytes | None = None,
-    public_key: Any | None = None,
-    trust_embedded: bool = False,
-    strict: bool = True,
-) -> RunObjectResult:
-    from opentine.graph import Run, _run_from_dict
-
-    raw = read_artifact_bytes(path)
-    data = parse_artifact_json(raw)
-    if not isinstance(data, dict):
-        raise ValueError("v3 repository migration requires a .tine object")
-    if type(data.get("format_version")) is not int or data["format_version"] != 2:
-        raise ValueError("v3 repository migration requires a .tine v2 source")
-    integrity = Run.verify_integrity(data)
-    signature = Run.verify_signature(
-        data,
-        hmac_key=hmac_key,
-        public_key=public_key,
-        trust_embedded=trust_embedded,
-    )
-    if strict:
-        from opentine.signing import SignatureError
-
-        if not integrity.ok:
-            raise SignatureError(f"refusing to migrate a tampered v2 artifact: {integrity.reason}")
-        verification_requested = hmac_key is not None or public_key is not None or trust_embedded
-        if verification_requested and signature.state not in (
-            "verified",
-            "verified-tofu",
-        ):
-            raise SignatureError(
-                f"refusing to migrate: signature not verified (state={signature.state})"
-            )
-    verification = {
-        "integrity": asdict(integrity),
-        "signature": asdict(signature),
-        "scope": "original-v2-artifact",
-    }
-    legacy_blob = repo.put("blob", raw, redact=False)
-    run = _run_from_dict(data)
-    return put_run(
-        repo,
-        run,
-        ref=ref,
-        legacy_blob=legacy_blob,
-        legacy_verification=verification,
-    )

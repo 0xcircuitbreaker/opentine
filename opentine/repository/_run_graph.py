@@ -18,6 +18,7 @@ _TOKEN_USAGE = {
     "reasoning",
     "total",
 }
+_RUN_STATUSES = {"running", "paused", "completed", "failed"}
 
 
 def _meter(value: Any, label: str, *, nonnegative: bool = True) -> None:
@@ -84,6 +85,8 @@ def validate_run_graph(repo: Any, envelope: ObjectEnvelope) -> None:
     if envelope.object_type != "run":
         return
     payload = envelope.payload()
+    if payload.get("status", "running") not in _RUN_STATUSES:
+        raise KernelError("run status is invalid")
     events = list(payload.get("events") or [])
     event_set = set(events)
     legacy_refs = payload.get("legacy_refs", {})
@@ -95,14 +98,19 @@ def validate_run_graph(repo: Any, envelope: ObjectEnvelope) -> None:
     complete = all(repo.has(event_id) for event_id in events)
     parents: dict[str, list[str]] = {}
     positions = {event_id: index for index, event_id in enumerate(events)}
+    graph_record = getattr(repo, "event_graph_record", None)
     for event_id in events:
         if not repo.has(event_id):
             continue
-        event = repo.get(event_id)
-        if event.object_type != "event":
-            raise KernelError("run events must resolve to event objects")
-        values = list(event.payload().get("parent_ids") or [])
-        causal = list(event.payload().get("causal_ids") or [])
+        if callable(graph_record):
+            _, values, causal = graph_record(event_id)
+            values, causal = list(values), list(causal)
+        else:
+            event = repo.get(event_id)
+            if event.object_type != "event":
+                raise KernelError("run events must resolve to event objects")
+            values = list(event.payload().get("parent_ids") or [])
+            causal = list(event.payload().get("causal_ids") or [])
         if any(parent not in event_set for parent in values):
             raise KernelError(f"run event has a parent outside its event graph: {event_id}")
         if any(link not in event_set for link in causal):
@@ -118,30 +126,3 @@ def validate_run_graph(repo: Any, envelope: ObjectEnvelope) -> None:
         raise KernelError("run roots do not match parentless events")
     if set(payload.get("tips") or []) != expected_tips:
         raise KernelError("run tips do not match event-graph leaves")
-
-
-class PackedGraphView:
-    """Read-through object view for validating a pack before installation."""
-
-    def __init__(self, base: Any, packed: dict[str, bytes]):
-        self.base = base
-        self.packed = packed
-
-    def has(self, oid: str) -> bool:
-        return oid in self.packed or self.base.has(oid)
-
-    def raw(self, oid: str) -> bytes:
-        return self.packed.get(oid) or self.base.raw(oid)
-
-    def get(self, oid: str) -> ObjectEnvelope:
-        raw = self.packed.get(oid)
-        envelope = ObjectEnvelope.decode(raw if raw is not None else self.base.raw(oid), oid)
-        from opentine.kernel import validate_links
-
-        validate_links(envelope)
-        from opentine.repository._annotations import validate_annotation_chain
-
-        validate_annotation_chain(self, envelope)
-        validate_event_metrics(envelope)
-        validate_run_graph(self, envelope)
-        return envelope

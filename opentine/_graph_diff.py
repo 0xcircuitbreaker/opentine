@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from opentine._graph_types import FieldDelta, RunDiff, Step, StepChange
@@ -14,12 +15,19 @@ def _position_keys(run) -> dict[str, str]:
         primary = step.parent_ids[0] if step.parent_ids else None
         children.setdefault(primary, []).append(step_id)
     keys: dict[str, str] = {}
-    stack = [(root, str(index)) for index, root in enumerate(sorted(children.get(None, [])))]
+
+    def position(parent: str, index: int) -> str:
+        body = f"opentine.graph-position.v1\0{parent}\0{index}".encode()
+        return hashlib.sha256(body).hexdigest()
+
+    stack = [
+        (root, position("root", index)) for index, root in enumerate(sorted(children.get(None, [])))
+    ]
     while stack:
         step_id, key = stack.pop()
         keys[step_id] = key
         for index, child in enumerate(sorted(children.get(step_id, []))):
-            stack.append((child, f"{key}.{index}"))
+            stack.append((child, position(key, index)))
     return keys
 
 

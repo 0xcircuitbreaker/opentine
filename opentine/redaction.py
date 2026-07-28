@@ -9,16 +9,34 @@ from typing import Any
 # followed by an unambiguous credential compound. Bare "token"/"key" are intentionally
 # excluded so numeric usage counters (input_tokens, cached_tokens, reasoning_tokens) and
 # benign names (public_key, idempotency_key) are never scrubbed.
+# "--api-key=SECRET" (captured argv) and "-API_KEY=SECRET" (a diff removal line for
+# a .env file) are routine ways a credential reaches a trace, so a leading dash run
+# is consumed explicitly. It must be consumed *after* the boundary check rather
+# than by widening the lookbehind to allow a preceding "-": that would make every
+# hyphen in the input a candidate start position and turn matching quadratic on
+# input like "a-b_c-d_"*1500 (see the linearity assertion in test_release_audit_round4).
 _NAME = (
-    rb"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-])*"
+    rb"(?<![A-Za-z0-9_-])(?:-{1,2})?(?:[A-Za-z0-9]+[_-])*"
     rb"[A-Za-z0-9]*"
     rb"(?:api[_-]?keys?|api[_-]?tokens?|access[_-]?keys?|access[_-]?tokens?|"
     rb"secret[_-]?access[_-]?keys?|secret[_-]?keys?|private[_-]?keys?|"
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
     rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?)"
 )
-_ASSIGNMENT = re.compile(rb"(?i)\b(" + _NAME + rb")(\s*[:=]\s*)([^\s,;\"']+)")
-_QUOTED_ASSIGNMENT = re.compile(rb"(?i)([\"']" + _NAME + rb"[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
+_LINE_ASSIGNMENT = re.compile(
+    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:(?:export|set)[ \t]+)?(?:\$env[ \t]*:[ \t]*)?"
+    + _NAME
+    + rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
+)
+# No leading \b: it fails between a space and the "-" of a mid-line "--api-key=…"
+# flag, and _NAME's own lookbehind is already the stricter start-boundary gate.
+_ASSIGNMENT = re.compile(rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)([^\r\n,;]+)")
+_QUOTED_FIELD = re.compile(
+    rb"(?i)([\"'](?:"
+    + _NAME
+    + rb"|token|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)"
+    rb"[\"']\s*:\s*)([\"'])"
+)
 _BEARER = re.compile(rb"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=-]{8,}")
 _QUOTED_HEADER = re.compile(
     rb"(?i)([\"'](?:authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"']\s*:\s*[\"'])([^\"']*)([\"'])"
@@ -30,7 +48,8 @@ _HEADER_PAIR = re.compile(
     + rb"[\"']\s*,\s*[\"'])([^\"']*)([\"'])"
 )
 _QUOTED_HEADER_LINE = re.compile(
-    rb"(?i)([\"'](?:authorization|proxy-authorization|cookie|set-cookie)\s*:\s*)([^\"'\r\n]*)([\"'])"
+    rb"(?i)([\"'](?:authorization|proxy[-_]authorization|cookie|set[-_]cookie)\s*[:=]\s*)"
+    rb"([^\"'\r\n]*)([\"'])"
 )
 _NAMED_HEADER = re.compile(
     rb"(?i)([\"']name[\"']\s*:\s*[\"'](?:"
@@ -43,8 +62,8 @@ _REVERSED_NAMED_HEADER = re.compile(
     rb"[\"'](?:" + _NAME + rb"|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"'])"
 )
 _HEADER_LINE = re.compile(
-    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)"
-    rb"[ \t]*:[ \t]*)([^\r\n]*)"
+    rb"(?im)^([ \t]*[+>-]?[ \t]*(?:authorization|proxy[-_]authorization|cookie|set[-_]cookie)"
+    rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
 _PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
@@ -79,25 +98,45 @@ def _assignment(match: re.Match[bytes]) -> bytes:
     return match.group(1) + separator + b"[REDACTED]"
 
 
+def _quoted_fields(value: bytes) -> bytes:
+    output = bytearray()
+    cursor = 0
+    while match := _QUOTED_FIELD.search(value, cursor):
+        output.extend(value[cursor : match.end()])
+        quote = match.group(2)[0]
+        end = match.end()
+        while end < len(value) and value[end] not in (10, 13):
+            if value[end] == quote:
+                output.extend(b"[REDACTED]" + bytes((quote,)))
+                cursor = end + 1
+                break
+            end += 2 if value[end] == 92 and end + 1 < len(value) else 1
+        else:
+            output.extend(b"[REDACTED]")
+            cursor = end
+    output.extend(value[cursor:])
+    return bytes(output)
+
+
 def _trailing_text(value: bytes, offset: int) -> int:
     line_end = value.find(b"\n", offset)
     if line_end < 0:
-        return len(value)
+        tail = value[offset:].strip()
+        return (
+            len(value) if _PRIVATE_KEY_BEGIN.search(tail) or _PEM_DATA.fullmatch(tail) else offset
+        )
+    same_line = value[offset:line_end].strip()
+    if same_line and not (_PRIVATE_KEY_BEGIN.search(same_line) or _PEM_DATA.fullmatch(same_line)):
+        return offset
     cursor = line_end + 1
-    separated = False
-    separator_start = cursor
     while cursor < len(value):
         line_end = value.find(b"\n", cursor)
         line_end = len(value) if line_end < 0 else line_end
         line = value[cursor:line_end].strip()
         if not line:
-            if not separated:
-                separator_start = cursor
-            separated = True
-        elif separated and not _PEM_DATA.fullmatch(line):
-            return separator_start
-        else:
-            separated = False
+            return cursor
+        if not _PEM_DATA.fullmatch(line):
+            return cursor
         cursor = line_end + 1
     return len(value)
 
@@ -125,6 +164,7 @@ def redact_blob(value: bytes) -> bytes:
         value.decode("utf-8")
     except UnicodeDecodeError:
         return value
+    value = _quoted_fields(value)
     value = _NAMED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
     value = _REVERSED_NAMED_HEADER.sub(
         lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
@@ -135,9 +175,7 @@ def redact_blob(value: bytes) -> bytes:
     )
     value = _QUOTED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
     value = _QUOTED_TOKEN.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = _QUOTED_ASSIGNMENT.sub(
-        lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
-    )
+    value = _LINE_ASSIGNMENT.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)

@@ -48,6 +48,7 @@ def _build_parser() -> argparse.ArgumentParser:
     keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair")
     keygen.add_argument("--out")
     keygen.add_argument("--pub")
+    keygen.add_argument("--force", action="store_true", help="Overwrite an existing key file")
 
     migrate = sub.add_parser("migrate", help="Upgrade a legacy .tine file")
     migrate.add_argument("run_id")
@@ -88,6 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--inspect", action="store_true")
     replay.add_argument("--dry-run", action="store_true")
     replay.add_argument("--save")
+    replay.add_argument("--force", action="store_true")
     replay.add_argument("--compare", action="store_true")
     _add_harness_args(replay)
 

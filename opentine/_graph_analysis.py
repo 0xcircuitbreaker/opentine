@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import copy
+from decimal import Decimal
 
+from opentine._graph_run import _step_cost_decimal
 from opentine._graph_types import Graph, RunStatus, StepKind, step_id
+from opentine.billing._context import billing_context
 from opentine.budget import Budget, CostBreakdown
 
 
@@ -85,17 +88,25 @@ def _slice_pricing(manifest: dict, retained: set[str]) -> None:
 
 class RunAnalysisMixin:
     def cost_breakdown(self) -> CostBreakdown:
-        by_model: dict[str, float] = {}
-        by_kind: dict[str, float] = {}
+        by_model_decimal: dict[str, Decimal] = {}
+        by_kind_decimal: dict[str, Decimal] = {}
         input_tokens = output_tokens = 0
-        for step in self.steps:
-            by_model[step.model_info] = by_model.get(step.model_info, 0.0) + step.cost
-            by_kind[step.kind.value] = by_kind.get(step.kind.value, 0.0) + step.cost
-            input_tokens += sum(
-                int(step.usage.get(name, 0))
-                for name in ("input", "cache_read", "cache_write_5m", "cache_write_1h")
-            )
-            output_tokens += int(step.usage.get("output", 0)) + int(step.usage.get("reasoning", 0))
+        with billing_context():
+            for step in self.steps:
+                cost = _step_cost_decimal(step)
+                by_model_decimal[step.model_info] = (
+                    by_model_decimal.get(step.model_info, Decimal("0")) + cost
+                )
+                by_kind_decimal[step.kind.value] = (
+                    by_kind_decimal.get(step.kind.value, Decimal("0")) + cost
+                )
+                input_tokens += sum(
+                    int(step.usage.get(name, 0))
+                    for name in ("input", "cache_read", "cache_write_5m", "cache_write_1h")
+                )
+                output_tokens += int(step.usage.get("output", 0)) + int(
+                    step.usage.get("reasoning", 0)
+                )
         by_ref: dict[str, float] = {}
         for ref, tip in self.refs.items():
             if not tip:
@@ -104,14 +115,17 @@ class RunAnalysisMixin:
                 ancestors = self.ancestors(tip)
             except (KeyError, ValueError):
                 continue
-            by_ref[ref] = sum(step.cost for step in ancestors)
+            with billing_context():
+                by_ref[ref] = float(
+                    sum((_step_cost_decimal(step) for step in ancestors), Decimal("0"))
+                )
         return CostBreakdown(
             total_cost=self.total_cost,
             total_tokens=input_tokens + output_tokens,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
-            by_model=by_model,
-            by_kind=by_kind,
+            by_model={key: float(value) for key, value in by_model_decimal.items()},
+            by_kind={key: float(value) for key, value in by_kind_decimal.items()},
             by_ref=by_ref,
         )
 

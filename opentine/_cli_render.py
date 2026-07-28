@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
@@ -13,6 +12,7 @@ from opentine._cli_common import (
     _cost_str,
     _display_value,
     _step_label,
+    _terminal,
     console,
 )
 from opentine.core import Run, short_id
@@ -40,30 +40,35 @@ def _budget_str(budget) -> str:
 def _print_run_tree(run: Run) -> None:
     color = STATUS_COLORS.get(run.status.value, "white")
     header = (
-        f"[bold {BRAND}]#[/] [bold]{short_id(run.id)}[/]  model=[dim]{run.model_info}[/]  "
+        f"[bold {BRAND}]#[/] [bold]{_terminal(short_id(run.id))}[/]  "
+        f"model=[dim]{_terminal(run.model_info)}[/]  "
         f"steps=[dim]{len(run.steps)}[/]  cost=[dim]{_cost_str(run.total_cost)}[/]  "
         f"[{color}]{run.status.value}[/]"
     )
     tree = Tree(Text.from_markup(header))
     for step in run.steps:
-        cost = f"  [dim]{_cost_str(step.cost)}[/]" if step.cost > 0 else ""
-        duration = f"  [dim]{step.duration:.1f}s[/]" if step.duration > 0 else ""
-        tree.add(Text.from_markup(str(_step_label(step)) + cost + duration))
+        label = _step_label(step)
+        if step.cost > 0:
+            label.append(f"  {_cost_str(step.cost)}", style="dim")
+        if step.duration > 0:
+            label.append(f"  {step.duration:.1f}s", style="dim")
+        tree.add(label)
     console.print()
     console.print(tree)
     console.print()
     if run.metadata.get("forked_from"):
         console.print(
-            f"  [{BRAND_DIM}]Forked from:[/] {run.metadata['forked_from']} "
-            f"at step {run.metadata.get('fork_point', '?')}"
+            f"  [{BRAND_DIM}]Forked from:[/] {_terminal(run.metadata['forked_from'])} "
+            f"at step {_terminal(run.metadata.get('fork_point', '?'))}",
+            markup=True,
         )
     if run.budget():
         console.print(f"  [{BRAND_DIM}]budget:[/] {_budget_str(run.budget())}")
     state = run.metadata.get("budget_state")
     if isinstance(state, dict) and state.get("breached"):
         console.print(
-            f"  [red]over budget:[/] {escape(str(state.get('dimension')))} "
-            f"{state.get('incurred')} > {state.get('limit')}",
+            f"  [red]over budget:[/] {_terminal(state.get('dimension'))} "
+            f"{_terminal(state.get('incurred'))} > {_terminal(state.get('limit'))}",
             highlight=False,
         )
 
@@ -94,7 +99,7 @@ def _query_from_ls_args(args) -> Query:
 
 
 def _entries_table(title: str, entries: list[IndexEntry], *, show_unreadable: bool) -> Table:
-    table = Table(title=f"[{BRAND}]{title}[/]", border_style=BRAND_DIM)
+    table = Table(title=f"[{BRAND}]{_terminal(title)}[/]", border_style=BRAND_DIM)
     for label, style, justify in (
         ("ID", "bold", "left"),
         ("Status", "", "left"),
@@ -108,49 +113,50 @@ def _entries_table(title: str, entries: list[IndexEntry], *, show_unreadable: bo
     for entry in entries:
         if entry.unreadable:
             if show_unreadable:
-                table.add_row("?", "[red]corrupt[/]", "", "", "", "", escape(entry.file))
+                table.add_row("?", "[red]corrupt[/]", "", "", "", "", _terminal(entry.file))
             continue
-        status = f"[{STATUS_COLORS.get(entry.status, 'white')}]{escape(entry.status)}[/]"
+        status = f"[{STATUS_COLORS.get(entry.status, 'white')}]{_terminal(entry.status)}[/]"
         table.add_row(
-            short_id(entry.run_id),
+            _terminal(short_id(entry.run_id)),
             status,
-            escape(entry.model),
+            _terminal(entry.model),
             str(entry.steps),
             _cost_str(entry.cost),
-            escape(", ".join(entry.tags)),
-            escape(entry.file),
+            _terminal(", ".join(entry.tags)),
+            _terminal(entry.file),
         )
     return table
 
 
 def _print_diff_table(left: Run, right: Run) -> None:
     table = Table(
-        title=f"[{BRAND}]Diff: {short_id(left.id)} vs {short_id(right.id)}[/]",
+        title=f"[{BRAND}]Diff: {_terminal(short_id(left.id))} "
+        f"vs {_terminal(short_id(right.id))}[/]",
         border_style=BRAND_DIM,
     )
-    for column in ("#", short_id(left.id), short_id(right.id), "Match"):
+    for column in ("#", _terminal(short_id(left.id)), _terminal(short_id(right.id)), "Match"):
         table.add_column(column)
     diff = left.diff(right)
-    common = short_id(diff.common_ancestor) if diff.common_ancestor else "-"
+    common = _terminal(short_id(diff.common_ancestor)) if diff.common_ancestor else "-"
     table.add_row("base", common, common, "[green]=[/]" if diff.common_ancestor else "!")
     for step in diff.only_a:
-        table.add_row("", str(_step_label(step)), "---", "only A")
+        table.add_row("", _step_label(step), "---", "only A")
     for step in diff.only_b:
-        table.add_row("", "---", str(_step_label(step)), "only B")
+        table.add_row("", "---", _step_label(step), "only B")
     for change in diff.changed:
         table.add_row(
             "",
-            str(_step_label(change.step_a)),
-            str(_step_label(change.step_b)),
+            _step_label(change.step_a),
+            _step_label(change.step_b),
             "changed",
         )
         for delta in change.fields:
             keys = f" [{', '.join(delta.changed_keys)}]" if delta.changed_keys else ""
-            label = escape(delta.name + keys)
+            label = _terminal(delta.name + keys)
             table.add_row(
                 "",
-                f"[red]- {label}: {escape(_display_value(delta.before))[:48]}[/]",
-                f"[green]+ {label}: {escape(_display_value(delta.after))[:48]}[/]",
+                f"[red]- {label}: {_terminal(_display_value(delta.before))[:48]}[/]",
+                f"[green]+ {label}: {_terminal(_display_value(delta.after))[:48]}[/]",
                 "",
             )
     console.print(table)

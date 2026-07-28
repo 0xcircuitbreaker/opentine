@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
+_MAX_INPUT_RECORDS = 100_000
 _TOKEN_USAGE = {
     "input",
     "output",
@@ -178,21 +179,28 @@ def timestamp(value: Any) -> float:
 
 def otel_spans(source: Iterable[dict[str, Any]] | dict[str, Any]) -> Iterator[dict[str, Any]]:
     """Yield spans from either an extracted span list or a complete OTLP/JSON document."""
+
+    def dictionaries(values: Iterable[Any]) -> Iterator[dict[str, Any]]:
+        for index, value in enumerate(values):
+            if index >= _MAX_INPUT_RECORDS:
+                raise ValueError("trace import exceeds maximum input-record count")
+            if isinstance(value, dict):
+                yield value
+
     if isinstance(source, dict):
         resources = first(source, "resourceSpans", "resource_spans")
         if isinstance(resources, list):
-            for resource in resources:
+            for resource in dictionaries(resources):
                 scopes = first(dictionary(resource), "scopeSpans", "scope_spans", default=[])
-                for scope in scopes if isinstance(scopes, list) else []:
+                for scope in dictionaries(scopes if isinstance(scopes, list) else []):
                     spans = dictionary(scope).get("spans") or []
-                    yield from (span for span in spans if isinstance(span, dict))
+                    yield from dictionaries(spans if isinstance(spans, list) else [])
             return
         spans = source.get("spans")
         if isinstance(spans, list):
-            yield from (span for span in spans if isinstance(span, dict))
+            yield from dictionaries(spans)
         elif any(name in source for name in ("traceId", "trace_id", "spanId", "span_id")):
             yield source
         return
-    for item in source:
-        if isinstance(item, dict):
-            yield from otel_spans(item)
+    for item in dictionaries(source):
+        yield from otel_spans(item)

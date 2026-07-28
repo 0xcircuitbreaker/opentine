@@ -8,6 +8,10 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
+import httpx
+
+from opentine._cli_common import _terminal
+from opentine._signing_keys import SignatureError
 from opentine.repo import Repo
 from opentine.repository.client import clone
 from opentine.repository.store import _atomic_bytes
@@ -78,9 +82,12 @@ def _remote_args(parser: argparse.ArgumentParser) -> None:
 def cmd_repo(args: argparse.Namespace, console) -> None:
     try:
         _cmd_repo(args, console)
-    except (KeyError, OSError, ValueError) as exc:
+    # SignatureError is the one opentine error not rooted in ValueError/OSError, and
+    # migrate-v3 raises it on its fail-closed path — the expected refusal must read
+    # as a refusal, not as an interpreter traceback.
+    except (KeyError, OSError, ValueError, SignatureError, httpx.HTTPError) as exc:
         message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
-        print(f"tine {args.command}: {message}", file=sys.stderr)
+        print(f"tine {_terminal(args.command)}: {_terminal(message)}", file=sys.stderr)
         raise SystemExit(1) from None
 
 
@@ -88,7 +95,7 @@ def _cmd_repo(args: argparse.Namespace, console) -> None:
     command = args.command
     if command == "init":
         repo = Repo.init(args.path, bare=args.bare)
-        console.print(f"Initialized OpenTine repository in {repo.path}")
+        console.print(f"Initialized OpenTine repository in {_terminal(repo.path)}")
         return
     if command == "clone":
         repo = clone(
@@ -100,7 +107,7 @@ def _cmd_repo(args: argparse.Namespace, console) -> None:
             depth=args.depth,
             allow_insecure=args.allow_insecure,
         )
-        console.print(f"Cloned into {repo.path}")
+        console.print(f"Cloned into {_terminal(repo.path)}")
         return
     repo = Repo.open(args.repo)
     if command == "fsck":
@@ -110,14 +117,19 @@ def _cmd_repo(args: argparse.Namespace, console) -> None:
             raise SystemExit(1)
     elif command == "repo-log":
         for entry in repo.log(args.ref, limit=args.limit):
-            console.print(f"{entry.oid} {entry.payload.get('kind', entry.object_type)}")
+            kind = (
+                entry.payload.get("kind", entry.object_type)
+                if isinstance(entry.payload, dict)
+                else entry.object_type
+            )
+            console.print(f"{_terminal(entry.oid)} {_terminal(kind)}")
     elif command == "object":
         inspected = repo.inspect(args.object_id, resolve_blobs=args.resolve_blobs)
         print(json.dumps(inspected, indent=2))
     elif command == "pack":
         data = repo.pack(args.object_ids or None)
         _atomic_bytes(Path(args.output), data)
-        console.print(f"Wrote {len(data)} bytes to {args.output}")
+        console.print(f"Wrote {len(data)} bytes to {_terminal(args.output)}")
     elif command == "migrate-v3":
         result = repo.migrate_v2(args.source, ref=args.ref, strict=not args.allow_unverified)
         print(json.dumps(asdict(result), indent=2))

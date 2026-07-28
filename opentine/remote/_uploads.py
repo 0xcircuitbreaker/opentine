@@ -16,10 +16,12 @@ from typing import Any
 
 from opentine._canon import _fsync_dir
 from opentine.remote._upload_crypto import append_frames, read_frames, spool_bound
+from opentine.remote._upload_files import create_upload_files
 from opentine.remote.interfaces import KeyProvider
 from opentine.repository.pack import MAX_PACK_BYTES, minimum_upload_chunk
 
 _UPLOAD_ID = re.compile(r"^[0-9a-f]{32}$")
+_DEFAULT_TENANT_PENDING = 64
 
 
 class TerminalUploadError(ValueError):
@@ -34,6 +36,7 @@ class UploadRegistry:
         *,
         ttl_seconds: float,
         max_pending: int,
+        max_pending_per_tenant: int | None = None,
         max_bytes: int = MAX_PACK_BYTES,
     ):
         if ttl_seconds <= 0 or max_pending < 1 or not 0 < max_bytes <= MAX_PACK_BYTES:
@@ -47,6 +50,12 @@ class UploadRegistry:
         self._private_directory(root)
         self.ttl_seconds = ttl_seconds
         self.max_pending = max_pending
+        maximum_tenant = max_pending if max_pending == 1 else max_pending - 1
+        tenant_limit = min(_DEFAULT_TENANT_PENDING, maximum_tenant)
+        limit = tenant_limit if max_pending_per_tenant is None else max_pending_per_tenant
+        self.max_pending_per_tenant = limit
+        if type(limit) is not int or not 1 <= limit <= maximum_tenant:
+            raise ValueError("per-tenant pending limit must preserve global upload capacity")
         self.max_bytes = max_bytes
         self._guard = threading.Lock()
         self._reap_guard = threading.Lock()
@@ -114,10 +123,6 @@ class UploadRegistry:
                 if entry[1] == 0:
                     self._entries.pop(key, None)
 
-    def _active(self) -> set[str]:
-        with self._guard:
-            return set(self._entries)
-
     def reap(self, *, force: bool = False) -> int:
         now = time.time()
         if not force and now - self._last_reap < min(60.0, self.ttl_seconds):
@@ -126,7 +131,6 @@ class UploadRegistry:
             return 0
         removed = 0
         try:
-            active = self._active()
             seen: set[str] = set()
             for candidate in self.root.glob("*/*"):
                 if candidate.suffix not in {".json", ".part"}:
@@ -144,10 +148,15 @@ class UploadRegistry:
                     stale = now - modified >= self.ttl_seconds
                 except (FileNotFoundError, ValueError):
                     continue
-                if stale and key not in active:
-                    metadata.unlink(missing_ok=True)
-                    part.unlink(missing_ok=True)
-                    removed += 1
+                if stale:
+                    # A lock can become active after the directory scan. Recheck
+                    # while holding the registry guard before deleting its state.
+                    with self._guard:
+                        if key in self._entries:
+                            continue
+                        metadata.unlink(missing_ok=True)
+                        part.unlink(missing_ok=True)
+                        removed += 1
             self._last_reap = now
             return removed
         finally:
@@ -155,23 +164,14 @@ class UploadRegistry:
 
     def create(self, tenant: str, upload_id: str, metadata: dict[str, Any]) -> tuple[Path, Path]:
         self.reap(force=True)
-        if sum(1 for _ in self.root.glob("*/*.json")) >= self.max_pending:
-            raise ValueError("too many pending uploads")
         part, metadata_path = self.paths(tenant, upload_id)
-        part_fd = os.open(part, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        os.close(part_fd)
-        part.chmod(0o600)
-        try:
-            metadata.update({"offset": 0, "spool_size": 0})
-            metadata_fd = os.open(metadata_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(metadata_fd, "w", encoding="utf-8") as handle:
-                json.dump(metadata, handle, sort_keys=True, separators=(",", ":"))
-            metadata_path.chmod(0o600)
-        except Exception:
-            part.unlink(missing_ok=True)
-            metadata_path.unlink(missing_ok=True)
-            raise
-        return part, metadata_path
+        with self._guard:
+            if sum(1 for _ in self.root.glob("*/*.json")) >= self.max_pending:
+                raise ValueError("too many pending uploads")
+            tenant_count = sum(1 for _ in metadata_path.parent.glob("*.json"))
+            if tenant_count >= self.max_pending_per_tenant:
+                raise ValueError("tenant has too many pending uploads")
+            return create_upload_files(part, metadata_path, metadata)
 
     @staticmethod
     def _write_metadata(path: Path, metadata: dict[str, Any]) -> None:

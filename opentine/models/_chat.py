@@ -8,18 +8,35 @@ from typing import Any
 from opentine.billing import PricingCatalog
 from opentine.models._chat_billing import chat_meter
 from opentine.models._chat_request import build_messages, build_tools
+from opentine.models._chat_stream import ChatStreamMixin
 from opentine.models._client import closing_client
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._stream_content import chat_content
-from opentine.models._streaming import ChatStreamState, chat_chunk_usage
 from opentine.models._terminal import chat_terminal
 from opentine.models._usage import value
 
 
-class ChatCompletions:
+class ChatCompletions(ChatStreamMixin):
     """Chat Completions transport with provider-scoped catalog billing."""
 
-    _stream_usage_providers = {"openai", "openai-compatible", "qwen", "xai"}
+    #: Providers whose streams get ``stream_options={"include_usage": True}`` unless the
+    #: caller overrides ``include_usage``. Without it an OpenAI-compatible endpoint sends
+    #: no usage chunk, so a streamed call yields no token counts and prices as "unknown" —
+    #: silently reporting $0.00 for real spend. Every entry here speaks the OpenAI Chat
+    #: Completions wire format, which defines this field; pass ``include_usage=False`` to
+    #: opt a deployment out. GLM appears twice because it picks its provider string at
+    #: runtime from whether the China endpoint is in use.
+    _stream_usage_providers = {
+        "glm",
+        "glm-cn",
+        "mistral",
+        "nous",
+        "openai",
+        "openai-compatible",
+        "qwen",
+        "together",
+        "xai",
+    }
 
     def __init__(
         self,
@@ -128,6 +145,7 @@ class ChatCompletions:
         raw_usage: Any,
         service_tier: str | None = None,
         reported_model: str | None = None,
+        service_tier_observed: bool | None = None,
     ) -> dict[str, Any]:
         return chat_meter(
             self._provider,
@@ -138,6 +156,8 @@ class ChatCompletions:
             service_tier or self._service_tier,
             self._unmetered,
             reported_model,
+            service_tier is not None if service_tier_observed is None else service_tier_observed,
+            self._service_tier,
         )
 
     def _billing_tier(self, messages: list[dict[str, Any]], reported: str | None) -> str | None:
@@ -158,9 +178,17 @@ class ChatCompletions:
         choice = choices[0] if choices else None
         result = chat_content(value(choice, "message"))
         chat_terminal(result, value(choice, "finish_reason") if choice else "empty_choices")
-        tier = self._billing_tier(kwargs["messages"], value(response, "service_tier"))
+        observed_tier = value(response, "service_tier")
+        tier = self._billing_tier(kwargs["messages"], observed_tier)
         reported_model = value(response, "model")
-        result.update(self._meter(value(response, "usage"), tier, reported_model))
+        result.update(
+            self._meter(
+                value(response, "usage"),
+                tier,
+                reported_model,
+                observed_tier not in (None, ""),
+            )
+        )
         if normalized_model := model_name(reported_model):
             result["model"] = normalized_model
         return result
@@ -174,63 +202,6 @@ class ChatCompletions:
     ) -> dict[str, Any]:
         async with closing_client(self._get_client()) as client:
             return await self._complete(client, messages, tools, system, temperature)
-
-    async def _stream(
-        self,
-        client: Any,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None = None,
-        system: str | None = None,
-        temperature: float = 0.0,
-    ) -> AsyncIterator[dict[str, Any]]:
-        kwargs = self._kwargs(messages, tools, system, temperature)
-        kwargs["stream"] = True
-        if self._include_usage or (
-            self._include_usage is None and self._provider in self._stream_usage_providers
-        ):
-            kwargs["stream_options"] = {"include_usage": True}
-        stream = await client.chat.completions.create(**kwargs)
-        state = ChatStreamState()
-        final_usage = None
-        final_tier = self._service_tier
-        final_model = None
-        final_reason = None
-        saw_choice = False
-        async for chunk in stream:
-            choices = value(chunk, "choices", []) or []
-            if choices:
-                saw_choice = True
-                final_reason = value(choices[0], "finish_reason") or final_reason
-                for event in state.add(value(choices[0], "delta")):
-                    yield event
-            raw_usage = chat_chunk_usage(chunk, choices)
-            reported_model = value(chunk, "model")
-            if reported_model is not None:
-                final_model = reported_model
-            if raw_usage:
-                final_usage = raw_usage
-                final_tier = self._billing_tier(kwargs["messages"], value(chunk, "service_tier"))
-                yield {
-                    "type": "usage",
-                    **self._meter(raw_usage, final_tier, final_model),
-                }
-        if final_usage is None:
-            yield {"type": "usage", **self._meter(None, final_tier, final_model)}
-        response = state.result()
-        terminal_reason = final_reason if saw_choice else "empty_choices"
-        if saw_choice and not terminal_reason:
-            terminal_reason = "stream_ended_without_terminal_reason"
-        chat_terminal(response, terminal_reason)
-        if normalized_model := model_name(final_model):
-            response["model"] = normalized_model
-        if (
-            response["tool_calls"]
-            or response.get("refusal")
-            or response.get("reasoning_content")
-            or response.get("content_blocks")
-        ):
-            response.update(self._meter(final_usage, final_tier, final_model))
-            yield {"type": "response", **response}
 
     async def stream(
         self,

@@ -1,5 +1,6 @@
 """Adapters that let opentine track external agent harnesses."""
 
+from opentine.harnesses._presets import GeminiCLIHarness, GrokBuildHarness
 from opentine.harnesses.agent_cli import (
     GenericHarness,
     HermesHarness,
@@ -18,7 +19,9 @@ __all__ = [
     "ClaudeCodeHarness",
     "CodexCLIHarness",
     "CursorHarness",
+    "GeminiCLIHarness",
     "GenericHarness",
+    "GrokBuildHarness",
     "HarnessAdapter",
     "HermesHarness",
     "HarnessStep",

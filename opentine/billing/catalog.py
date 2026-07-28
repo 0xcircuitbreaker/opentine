@@ -20,8 +20,7 @@ from opentine.billing.types import RateCard, as_date
 BUNDLED_CATALOG = Path(__file__).parent.parent / "data" / "pricing_catalog.json"
 MAX_CATALOG_BYTES = 16 * 1024 * 1024
 TRUSTED_KEYS = {
-    "opentine-release-2026-07": "7dcohQb6JY+k202f3eeEy1t003t30ez4UG36muaUBYk=",
-    "opentine-release-2026-07-r2": "iYgA1zHDiavTjKeMko9jOZMlzxq+ZVDwnG9LlQR2W78=",
+    "opentine-release-2026-07-r3": "VuhZjI3+QIPzZEA0y0Emw+o11f69o1J4kETghGGCwgc=",
 }
 
 
@@ -201,12 +200,23 @@ class PricingCatalog:
         return cls.from_dict(raw, source=str(p), verify=verify, require_signature=require_signature)
 
 
+def user_catalog_path() -> Path:
+    """The per-user overlay path, honouring ``XDG_CONFIG_HOME``.
+
+    Writers must resolve the location the same way the loader does. Hard-coding
+    ``~/.config`` here made ``tine pricing update`` install to a file that
+    ``load_catalogs`` never reads whenever ``XDG_CONFIG_HOME`` pointed elsewhere,
+    so the update reported success and changed no prices.
+    """
+    home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return home / "opentine" / "pricing.json"
+
+
 def catalog_paths(workspace: str | Path | None = None) -> list[Path]:
     root = Path(workspace or Path.cwd())
     paths = [BUNDLED_CATALOG]
     user = os.environ.get("TINE_PRICING_CATALOG")
-    home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    paths.extend([home / "opentine" / "pricing.json", root / ".tine" / "pricing.json"])
+    paths.extend([user_catalog_path(), root / ".tine" / "pricing.json"])
     if user:
         paths.append(Path(user))
     return paths

@@ -156,14 +156,32 @@ class Google:
         reported_model: str | None = None,
         response_tier: str | None = None,
     ) -> dict[str, Any]:
-        return google_meter(
+        observed_tier = google_service_tier(raw_usage, None, response_tier)
+        result = google_meter(
             self._model,
             raw_usage,
             self._catalog,
             self._rate_override,
-            google_service_tier(raw_usage, self._service_tier, response_tier),
+            observed_tier or self._service_tier,
             reported_model,
         )
+        if (
+            self._service_tier == "priority"
+            and observed_tier is None
+            and self._rate_override is None
+        ):
+            billing = result["billing"]
+            billing.update(status="unknown", amount_usd=None, known_subtotal_usd="0")
+            billing["warnings"].append(
+                "Google Priority may fall back to Standard; response tier was not observed"
+            )
+            calculation = billing["calculation"]
+            calculation["candidate_components_usd"] = calculation.get("components_usd", {})
+            calculation["components_usd"] = {}
+            calculation["requested_service_tier"] = "priority"
+            calculation["service_tier_observed"] = False
+            result["cost"] = 0.0
+        return result
 
     def _result(self, response: Any) -> dict[str, Any]:
         result = google_content(response)

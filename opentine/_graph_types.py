@@ -142,29 +142,34 @@ class Graph:
     def ancestors(self, step_ref: str) -> list[Step]:
         seen: set[str] = set()
         ordered: list[Step] = []
-
-        def visit(step_id: str) -> None:
+        stack = [(self.resolve(step_ref), False)]
+        while stack:
+            step_id, expanded = stack.pop()
             if step_id in seen:
-                return
+                continue
             step = self.steps[step_id]
-            for parent in step.parent_ids:
-                visit(parent)
-            seen.add(step_id)
-            ordered.append(step)
-
-        visit(self.resolve(step_ref))
+            if expanded:
+                seen.add(step_id)
+                ordered.append(step)
+                continue
+            stack.append((step_id, True))
+            stack.extend((parent, False) for parent in reversed(step.parent_ids))
         return ordered
 
     def descendant_closure(self, step_ref: str) -> set[str]:
         root = self.resolve(step_ref)
-        found = {root}
-        changed = True
-        while changed:
-            changed = False
-            for step in self.ordered():
-                if step.id not in found and any(parent in found for parent in step.parent_ids):
-                    found.add(step.id)
-                    changed = True
+        children: dict[str, list[str]] = {}
+        for step in self.ordered():
+            for parent in step.parent_ids:
+                children.setdefault(parent, []).append(step.id)
+        found: set[str] = set()
+        pending = [root]
+        while pending:
+            step_id = pending.pop()
+            if step_id in found:
+                continue
+            found.add(step_id)
+            pending.extend(children.get(step_id, ()))
         return found
 
 

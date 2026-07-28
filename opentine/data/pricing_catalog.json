@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/1",
-  "generated_at": "2026-07-16T00:00:00Z",
-  "verified_at": "2026-07-16",
+  "generated_at": "2026-07-20T00:00:00Z",
+  "verified_at": "2026-07-20",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -284,10 +284,10 @@
       "model": "deepseek-chat",
       "aliases": ["deepseek-reasoner"],
       "effective_from": "2025-09-05",
-      "effective_until": "2026-07-13",
+      "effective_until": "2026-04-23",
       "rates": {"input": "0.28", "cache_read": "0.028", "output": "0.42", "reasoning": "0.42"},
-      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-16",
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260424/"],
+      "verified_at": "2026-07-20",
       "metadata": {"superseded_by": "deepseek-v4-flash"}
     },
     {
@@ -356,11 +356,11 @@
       "model": "grok-4.5",
       "aliases": ["grok-4.5-latest", "grok-build-latest"],
       "effective_from": "2026-07-08",
-      "rates": {"input": "2", "cache_read": "0.50", "output": "6", "reasoning": "6"},
+      "rates": {"input": "2", "cache_read": "0.30", "output": "6", "reasoning": "6"},
       "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"priority": "2"},
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.5"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-07-20"
     },
     {
       "id": "xai:grok-4.3:2026-05-15",
@@ -590,10 +590,10 @@
       "model": "mistral-medium-3-5",
       "aliases": ["mistral-medium-3", "mistral-medium-latest"],
       "effective_from": "2026-04-28",
-      "rates": {"input": "1.50", "cache_read": "0.15", "output": "7.50"},
+      "rates": {"input": "1.50", "cache_read": "0.15", "output": "7.50", "reasoning": "7.50"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-medium-3-5-26-04"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-medium-3-5-26-04", "https://docs.mistral.ai/api/"],
+      "verified_at": "2026-07-20"
     },
     {
       "id": "mistral:mistral-large-2512:2025-12-02",
@@ -601,10 +601,10 @@
       "model": "mistral-large-2512",
       "aliases": ["mistral-large-latest"],
       "effective_from": "2025-12-02",
-      "rates": {"input": "0.50", "cache_read": "0.05", "output": "1.50"},
+      "rates": {"input": "0.50", "cache_read": "0.05", "output": "1.50", "reasoning": "1.50"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-large-3-25-12"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-large-3-25-12", "https://docs.mistral.ai/api/"],
+      "verified_at": "2026-07-20"
     },
     {
       "id": "mistral:mistral-small-2603:2026-03-16",
@@ -612,10 +612,10 @@
       "model": "mistral-small-2603",
       "aliases": ["mistral-small-latest"],
       "effective_from": "2026-03-16",
-      "rates": {"input": "0.15", "cache_read": "0.015", "output": "0.60"},
+      "rates": {"input": "0.15", "cache_read": "0.015", "output": "0.60", "reasoning": "0.60"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/mistral-small-4-0-26-03", "https://docs.mistral.ai/api/"],
+      "verified_at": "2026-07-20"
     },
     {
       "id": "mistral:ministral-14b-2512:2025-12-02",
@@ -623,10 +623,10 @@
       "model": "ministral-14b-2512",
       "aliases": ["ministral-14b-latest"],
       "effective_from": "2025-12-02",
-      "rates": {"input": "0.20", "cache_read": "0.02", "output": "0.20"},
+      "rates": {"input": "0.20", "cache_read": "0.02", "output": "0.20", "reasoning": "0.20"},
       "service_modifiers": {"batch": "0.5"},
-      "source_urls": ["https://docs.mistral.ai/models/model-cards/ministral-3-14b-25-12"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/ministral-3-14b-25-12", "https://docs.mistral.ai/api/"],
+      "verified_at": "2026-07-20"
     },
     {
       "id": "openrouter:hermes-4-70b:2026-07",
@@ -650,10 +650,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:26a1d26225d0e3790dafcd83d7bc679b18e2ead658c6e73000bae69fdac9aaca",
+  "catalog_id": "sha256:1222214bfcb217e2581fab9b57a45761c8c5036c55ff64c9f3524dd029db2b0f",
   "signature": {
     "algorithm": "ed25519",
-    "key_id": "opentine-release-2026-07-r2",
-    "value": "rdAP1pUNZhdi0ggLb/ts6NCzvQA95s6iQ6ycfYO1XpXoIY6HiazbVECVek4Df2/ZOxaf3pa2KhopdvD9HNODCg=="
+    "key_id": "opentine-release-2026-07-r3",
+    "value": "UB5KRggdfkzvPjFUUUVG4yaKGoqrTTaB2uMJLI3Qt8ZhamblbDA8MY4oewTSTGUaiWXPyRYFA5ulFXZ8qFCIBQ=="
   }
 }

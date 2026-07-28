@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
-from opentine.harnesses._types import meter_value
+from opentine.harnesses._types import duration_seconds, meter_value
 from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
 
 
@@ -40,7 +40,7 @@ class JSONOrTextHarness(ProcessHarness):
                 },
                 outputs={"result": data.get("result") or data.get("output") or data.get("content")},
                 cost=cost,
-                duration=meter_value(data, "duration", "duration_ms"),
+                duration=duration_seconds(data),
                 model_info=self.model_info,
             )
         if "error" in lower or data.get("error"):

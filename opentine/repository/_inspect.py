@@ -6,7 +6,7 @@ import base64
 import json
 from typing import TYPE_CHECKING, Any
 
-from opentine.kernel import parse_oid
+from opentine.kernel import parse_oid, validate_json_shape
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 
 if TYPE_CHECKING:
@@ -38,6 +38,15 @@ def _direct_blob(repo: Repo, oid: str) -> dict[str, Any]:
     return {"id": oid, "payload": payload, "schema": schema, "type": "blob"}
 
 
+#: Never auto-resolved. V2 migration stores this one with ``redact=False`` to keep
+#: the legacy bytes verifiable, so it is the only blob in the store that may still
+#: hold credentials — SECURITY_MODEL.md requires it be reviewed before it leaves a
+#: trusted boundary. Bulk resolution is not review: ``inspect_object`` defaults to
+#: ``resolve_blobs=True`` and hands its result straight to an MCP model client.
+#: Fetching it by its own object id still works and is an explicit act.
+_UNREDACTED_BLOB_FIELDS = frozenset({"legacy_blob"})
+
+
 def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool]:
     blobs: dict[str, Any] = {}
     cache: dict[str, tuple[bytes, int]] = {}
@@ -48,6 +57,7 @@ def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool
     for field, value in payload.items():
         if not (
             field.endswith("_blob")
+            and field not in _UNREDACTED_BLOB_FIELDS
             and isinstance(value, str)
             and parse_oid(value)[0] == "blob"
             and repo.has(value)
@@ -82,8 +92,9 @@ def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool
             truncated = True
             continue
         try:
+            validate_json_shape(raw, max_tokens=100_000)
             blobs[field] = json.loads(raw)
-        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
+        except (UnicodeDecodeError, ValueError, RecursionError):
             blobs[field] = raw.decode(errors="replace")
     return blobs, truncated
 

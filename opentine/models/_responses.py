@@ -15,7 +15,7 @@ from opentine.models._stream_content import MAX_STREAM_BLOCKS
 from opentine.models._streaming import MAX_STREAM_CALLS, SizeBudget, TextBuffer, WarningList
 from opentine.models._terminal import reject_unsafe_tool_calls, response_terminal
 from opentine.models._tool_args import bounded_tool_arguments
-from opentine.models._usage import missing_usage_dimensions, openai_usage, value
+from opentine.models._usage import openai_missing_usage, openai_usage, value
 
 
 def parse_response(response: Any, forced_status: str | None = None) -> dict[str, Any]:
@@ -91,11 +91,13 @@ class ResponsesTransport:
         catalog: PricingCatalog | None = None,
         rate_override: dict[str, Any] | None = None,
         service_tier: str | None = None,
+        unmetered: bool = False,
     ):
         self.model = model
         self.catalog = catalog
         self.rate_override = validated_rates("openai", model, rate_override)
         self.service_tier = service_tier
+        self.unmetered = unmetered
 
     def kwargs(
         self,
@@ -120,19 +122,27 @@ class ResponsesTransport:
     def meter(self, response: Any) -> dict[str, Any]:
         raw_usage = value(response, "usage")
         reported_model = value(response, "model")
+        normalized_model = model_name(reported_model)
+        actual_model = normalized_model or self.model
+        observed_tier = value(response, "service_tier")
+        missing = openai_missing_usage(
+            raw_usage,
+            require_cache_write=actual_model.casefold().startswith("gpt-5.6"),
+        )
         return metered_response(
             "openai",
             self.model,
             openai_usage(raw_usage),
             catalog=self.catalog,
             rate_override=self.rate_override,
-            service_tier=value(response, "service_tier") or self.service_tier,
+            service_tier=observed_tier or self.service_tier,
+            unmetered=self.unmetered,
             usage_reported=raw_usage is not None,
-            missing_usage=missing_usage_dimensions(
-                raw_usage,
-                {"input": ("input_tokens",), "output": ("output_tokens",)},
-            ),
+            missing_usage=missing,
+            partitioned_usage_incomplete="cache_write_5m" in missing,
             reported_model=reported_model,
+            requested_service_tier=self.service_tier,
+            service_tier_observed=observed_tier not in (None, ""),
         )
 
     async def complete(

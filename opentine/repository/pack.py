@@ -6,12 +6,20 @@ import base64
 import hashlib
 import json
 import zlib
-from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_oid, validate_links
+from opentine.kernel import (
+    KernelError,
+    ObjectEnvelope,
+    canonical_json,
+    parse_oid,
+    validate_json_shape,
+    validate_links,
+)
 from opentine.repository._associations import associated_map
+from opentine.repository._semantic_view import semantic_view
+from opentine.repository._traversal import MAX_TRAVERSAL_OBJECTS, TraversalQueue
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -21,7 +29,8 @@ MAGIC = b"TINEPACK3\0"
 #: object bytes as base64, so 256 MiB still permits roughly 190 MiB of raw objects.
 MAX_PACK_BYTES = 256 * 1024 * 1024
 MAX_PACK_BODY_BYTES = 256 * 1024 * 1024
-MAX_PACK_OBJECTS = 10_000
+MAX_PACK_OBJECTS = MAX_TRAVERSAL_OBJECTS
+_DECOMPRESS_CHUNK = 64 * 1024
 
 
 def minimum_upload_chunk(size: int) -> int:
@@ -35,15 +44,23 @@ def _bounded_decompress(data: bytes, limit: int) -> bytes:
     if type(limit) is not int or limit < 1:
         raise ValueError("pack body limit must be a positive integer")
     decompressor = zlib.decompressobj()
-    body = decompressor.decompress(data, limit + 1)
-    if len(body) > limit or decompressor.unconsumed_tail:
-        raise KernelError("pack exceeds maximum decompressed size")
-    body += decompressor.flush(limit + 1 - len(body))
+    body = bytearray()
+    pending = data
+    while pending:
+        remaining = limit + 1 - len(body)
+        if remaining <= 0:
+            raise KernelError("pack exceeds maximum decompressed size")
+        body.extend(decompressor.decompress(pending, min(_DECOMPRESS_CHUNK, remaining)))
+        pending = decompressor.unconsumed_tail
+        if len(body) > limit:
+            raise KernelError("pack exceeds maximum decompressed size")
+    remaining = limit + 1 - len(body)
+    body.extend(decompressor.flush(min(_DECOMPRESS_CHUNK, remaining)))
     if len(body) > limit:
         raise KernelError("pack exceeds maximum decompressed size")
     if not decompressor.eof or decompressor.unused_data:
         raise KernelError("pack has truncated or trailing compressed data")
-    return body
+    return bytes(body)
 
 
 @dataclass(frozen=True)
@@ -68,21 +85,23 @@ def reachable(
         raise KernelError("invalid or excessive pack negotiation request")
     for oid in wants:
         parse_oid(oid)
-    queue = deque((oid, 0) for oid in wants)
+    repo = semantic_view(repo, max_source_bytes=MAX_PACK_BODY_BYTES)
+    queue = TraversalQueue((oid, 0) for oid in wants)
     seen: set[str] = set()
     associated_checked: set[str] = set()
-    while queue:
-        oid, event_depth = queue.popleft()
-        if oid in seen or not repo.has(oid):
+    for oid, event_depth in queue:
+        if not repo.has(oid):
             continue
-        if len(seen) >= MAX_PACK_OBJECTS:
-            raise KernelError("pack graph exceeds maximum object count")
-        seen.add(oid)
+        if oid not in seen:
+            if len(seen) >= MAX_PACK_OBJECTS:
+                raise KernelError("pack graph exceeds maximum object count")
+            seen.add(oid)
         envelope = repo.get(oid)
         if include_associated and envelope.object_type == "run" and oid not in associated_checked:
             associated_checked.add(oid)
             related = associated_map(repo, [oid], MAX_PACK_OBJECTS - len(seen)).get(oid, [])
-            queue.extend((linked, 0) for linked in related)
+            for linked in related:
+                queue.add(linked, 0, front=True)
         links = list(validate_links(envelope))
         if depth is not None and envelope.object_type == "run":
             payload = envelope.payload()
@@ -92,7 +111,7 @@ def reachable(
         for link in links:
             next_depth = event_depth + (1 if link.startswith("event:") else 0)
             if depth is None or next_depth <= depth or not link.startswith("event:"):
-                queue.append((link, next_depth))
+                queue.add(link, next_depth, front=not link.startswith("event:"))
     return sorted(seen)
 
 
@@ -114,6 +133,7 @@ def create_pack(repo: Repo, oids: list[str], *, max_body: int = MAX_PACK_BODY_BY
         raise KernelError("pack objects must be a list of object ids")
     if type(max_body) is not int or max_body < 1 or len(oids) > MAX_PACK_OBJECTS:
         raise KernelError("invalid or excessive pack creation request")
+    repo = semantic_view(repo, max_source_bytes=max_body)
     unique = sorted(set(oids))
     selected = set(unique)
     shallow_set: set[str] = set()
@@ -161,6 +181,7 @@ def inspect_pack(
     actual = hashlib.sha256(body).digest()
     if actual != expected:
         raise KernelError("pack checksum mismatch")
+    validate_json_shape(body)
     try:
         payload = json.loads(body)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:

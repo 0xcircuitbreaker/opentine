@@ -19,7 +19,14 @@ def as_date(value: date | datetime | str | None) -> date:
     if value is None:
         return datetime.now(UTC).date()
     if isinstance(value, datetime):
-        return value.date()
+        return value.astimezone(UTC).date() if value.tzinfo is not None else value.date()
     if isinstance(value, date):
         return value
-    return date.fromisoformat(value[:10])
+    # Truncating to value[:10] drops any offset, so "2026-07-25T23:00-08:00" was
+    # read as the 25th when in UTC it is already the 26th — a rate-card boundary
+    # can fall between the two. Parse the full timestamp when there is one so the
+    # string path agrees with the datetime path above.
+    try:
+        return as_date(datetime.fromisoformat(value))
+    except ValueError:
+        return date.fromisoformat(value[:10])

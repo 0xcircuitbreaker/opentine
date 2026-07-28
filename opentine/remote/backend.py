@@ -15,15 +15,16 @@ from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
 from opentine.remote._association_backend import SQLiteAssociationMixin
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
+from opentine.remote._object_file import object_file_size, read_object_file
 from opentine.remote._object_list import list_objects
 from opentine.remote._schema import initialize
 from opentine.remote.interfaces import KeyProvider, RetentionHook
+from opentine.repository._refs import normalize_ref
 
 _TENANT = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 _WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
     f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
 }
-_REF = re.compile(r"^(?:annotations|heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
 MAX_CONTROL_RESULTS = 1000
 
 
@@ -38,15 +39,7 @@ def valid_tenant(tenant: str) -> str:
 
 
 def valid_ref(name: str) -> str:
-    normalized = name.removeprefix("refs/")
-    parts = normalized.split("/")
-    if (
-        len(normalized) > 512
-        or not _REF.fullmatch(normalized)
-        or any(part in {"", ".", ".."} or part.endswith(".lock") for part in parts)
-    ):
-        raise ValueError("invalid ref name")
-    return normalized
+    return normalize_ref(name)
 
 
 class FilesystemObjectStore:
@@ -62,13 +55,20 @@ class FilesystemObjectStore:
 
     def has(self, tenant: str, oid: str) -> bool:
         try:
-            return self._path(tenant, oid).is_file()
-        except ValueError:
+            object_file_size(self._path(tenant, oid))
+        except (FileNotFoundError, ValueError):
             return False
+        return True
+
+    def size(self, tenant: str, oid: str) -> int:
+        try:
+            return object_file_size(self._path(tenant, oid))
+        except FileNotFoundError as exc:
+            raise KeyError(oid) from exc
 
     def get(self, tenant: str, oid: str) -> bytes:
         try:
-            encrypted = self._path(tenant, oid).read_bytes()
+            encrypted = read_object_file(self._path(tenant, oid))
         except FileNotFoundError as exc:
             raise KeyError(oid) from exc
         raw = self.keys.decrypt(tenant, encrypted)
@@ -78,8 +78,12 @@ class FilesystemObjectStore:
     def put(self, tenant: str, oid: str, data: bytes) -> None:
         ObjectEnvelope.decode(data, oid)
         path = self._path(tenant, oid)
-        if path.exists():
-            if self.get(tenant, oid) != data:
+        try:
+            existing = self.get(tenant, oid)
+        except KeyError:
+            existing = None
+        if existing is not None:
+            if existing != data:
                 raise ValueError("object id collision")
             return
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,6 +142,15 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=30)
         connection.execute("PRAGMA journal_mode=WAL")
+        # sqlite3 creates the database (and its WAL/shm siblings) with the process
+        # umask, typically world-readable — while every other file this server
+        # writes is 0600. The metadata database holds tenant run inventory and the
+        # audit chain, so it gets the same treatment as its siblings.
+        for path in (self.path, f"{self.path}-wal", f"{self.path}-shm"):
+            try:
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
         return connection
 
     def _initialize(self, allow_legacy: bool, reanchor: str | None) -> None:

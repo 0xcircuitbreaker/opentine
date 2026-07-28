@@ -2,27 +2,19 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
-from opentine._canon import _fsync_dir, _redact
-from opentine.kernel import (
-    KernelError,
-    ObjectEnvelope,
-    canonical_json,
-    parse_oid,
-    validate_links,
-    verify_object,
-)
+from opentine._canon import _redact
+from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_oid, validate_links
 from opentine.redaction import redact_blob, redact_value
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import validate_config
-from opentine.repository._objects import iter_object_oids
+from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
-from opentine.repository._paths import internal_files, internal_path, linklike
-from opentine.repository._reflog import append_reflog
-from opentine.repository._refs import normalize_ref, validate_ref_target
+from opentine.repository._paths import durable_directory, internal_files, internal_path, linklike
+from opentine.repository._ref_store import commit_ref, read_ref_oid
+from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._shallow import read_shallow, shallow_fingerprint
 
@@ -42,7 +34,7 @@ class Repo:
     def init(cls, path: str | Path = ".", *, bare: bool = False) -> Repo:
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
-        tine.mkdir(parents=True, exist_ok=True)
+        durable_directory(tine)
         for directory in (
             "objects",
             "refs/annotations",
@@ -52,7 +44,7 @@ class Repo:
             "packs",
             "indexes",
         ):
-            internal_path(tine, *Path(directory).parts).mkdir(parents=True, exist_ok=True)
+            durable_directory(internal_path(tine, *Path(directory).parts))
         config = internal_path(tine, "config.json")
         if not config.exists():
             _atomic_bytes(
@@ -131,12 +123,10 @@ class Repo:
         validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
         validate_run_graph(self, envelope)
-        path = self._object_path(envelope.oid)
-        if not path.exists():
-            _atomic_bytes(path, envelope.encode())
-        else:
-            verify_object(path.read_bytes(), envelope.oid, self._link_exists)
-        return envelope.oid
+        return self._store_envelope(envelope)
+
+    def _store_envelope(self, envelope: ObjectEnvelope) -> str:
+        return store_envelope(self, envelope)
 
     def get(self, oid: str) -> ObjectEnvelope:
         path = self._object_path(oid)
@@ -157,17 +147,23 @@ class Repo:
         except FileNotFoundError as exc:
             raise KeyError(oid) from exc
 
+    def raw_size(self, oid: str) -> int:
+        from opentine.repository._blob_io import stored_object_size
+
+        return stored_object_size(self, oid)
+
     def iter_oids(self, *, limit: int | None = None, truncate: bool = False) -> list[str]:
         return iter_object_oids(self.path, limit=limit, truncate=truncate)
 
     _ref_name = staticmethod(normalize_ref)
 
+    def _read_ref_oid(self, name: str) -> str | None:
+        return read_ref_oid(self.path, self._ref_name(name))
+
     def read_ref(self, name: str) -> str | None:
         normalized = self._ref_name(name)
-        path = internal_path(self.path, "refs", *Path(normalized).parts)
-        try:
-            value = path.read_text(encoding="ascii").strip()
-        except FileNotFoundError:
+        value = read_ref_oid(self.path, normalized)
+        if value is None:
             return None
         try:
             target = self.get(value)
@@ -185,42 +181,48 @@ class Repo:
         actor: str = "local",
     ) -> None:
         normalized = self._ref_name(name)
+        validate_ref_oid(normalized, new_oid)
         target = self.get(new_oid)
+        self._update_ref_validated(
+            normalized,
+            new_oid,
+            target,
+            expected_old=expected_old,
+            actor=actor,
+        )
+
+    def _update_ref_validated(
+        self,
+        name: str,
+        new_oid: str,
+        target: ObjectEnvelope,
+        expected_old: str | None | object = _UNSET,
+        *,
+        actor: str = "local",
+    ) -> None:
+        normalized = self._ref_name(name)
+        validate_ref_oid(normalized, new_oid)
+        if target.oid != new_oid:
+            raise KernelError("validated ref target does not match its object id")
         validate_ref_target(normalized, target.object_type, target.payload())
-        ref_path = internal_path(self.path, "refs", *Path(normalized).parts)
-        ref_path.parent.mkdir(parents=True, exist_ok=True)
-        lock_path = ref_path.with_name(ref_path.name + ".lock")
-        try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-        except FileExistsError as exc:
-            raise ValueError(f"ref {normalized!r} is locked by a concurrent write") from exc
-        committed = False
-        try:
-            old = self.read_ref(normalized)
-            if expected_old is not _UNSET and old != expected_old:
-                raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
-            with os.fdopen(fd, "wb") as handle:
-                fd = -1
-                handle.write((new_oid + "\n").encode())
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(lock_path, ref_path)
-            committed = True
-        finally:
-            if not committed:
-                if fd >= 0:
-                    os.close(fd)
-                lock_path.unlink(missing_ok=True)
-        _fsync_dir(ref_path.parent)
-        append_reflog(self.path, normalized, old, new_oid, actor)
+        commit_ref(
+            self.path,
+            normalized,
+            new_oid,
+            None if expected_old is _UNSET else expected_old,
+            expected_old is not _UNSET,
+            actor,
+        )
 
     def list_refs(self) -> dict[str, str]:
         refs: dict[str, str] = {}
         root = internal_path(self.path, "refs")
         for path in sorted(internal_files(self.path, "refs")):
-            if path.suffix != ".lock":
-                name = path.relative_to(root).as_posix()
-                refs[name] = path.read_text(encoding="ascii").strip()
+            if not path.name.casefold().endswith(".lock"):
+                name = self._ref_name(path.relative_to(root).as_posix())
+                value = read_ref_oid(self.path, name)
+                if value is not None:
+                    refs[name] = value
         return refs
 
     def fsck(self, *, deep: bool = True):

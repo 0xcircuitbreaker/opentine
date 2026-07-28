@@ -15,6 +15,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from opentine.kernel import validate_json_shape
+
 
 class OIDCError(PermissionError):
     pass
@@ -85,8 +87,10 @@ def _verify_signature(alg: str, jwk: dict[str, Any], message: bytes, signature: 
 
 def _json_object(segment: str, label: str) -> dict[str, Any]:
     try:
-        value = json.loads(_b64url(segment))
-    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
+        raw = _b64url(segment)
+        validate_json_shape(raw, max_tokens=50_000)
+        value = json.loads(raw)
+    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise OIDCError(f"malformed JWT {label}") from exc
     if not isinstance(value, dict):
         raise OIDCError(f"JWT {label} must be an object")
@@ -97,8 +101,9 @@ def _document(raw: bytes | str, label: str) -> dict[str, Any]:
     if not isinstance(raw, (bytes, str)) or len(raw) > 4 * 1024 * 1024:
         raise OIDCError(f"OIDC {label} exceeds the document limit")
     try:
+        validate_json_shape(raw, max_tokens=100_000)
         value = json.loads(raw)
-    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
+    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise OIDCError(f"malformed OIDC {label}") from exc
     if not isinstance(value, dict):
         raise OIDCError(f"OIDC {label} must be an object")
@@ -171,9 +176,14 @@ class JWTVerifier:
         if "crit" in header or "b64" in header:
             raise OIDCError("unsupported JWT critical header")
         alg = header.get("alg")
+        if not isinstance(alg, str) or not alg:
+            raise OIDCError("JWT algorithm must be a non-empty string")
         if alg not in self.algorithms:
             raise OIDCError(f"disallowed JWT algorithm: {alg}")
-        jwk = self.keys.get(header.get("kid"))
+        kid = header.get("kid")
+        if not isinstance(kid, str) or not kid:
+            raise OIDCError("JWT key id must be a non-empty string")
+        jwk = self.keys.get(kid)
         if jwk is None:
             raise OIDCError("no JWKS key matches the token 'kid'")
         _verify_signature(alg, jwk, f"{header_b64}.{payload_b64}".encode(), _b64url(sig_b64))

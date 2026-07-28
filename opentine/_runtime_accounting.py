@@ -9,8 +9,15 @@ from opentine.graph import Run, RunStatus, StepKind
 
 
 class AccountingMixin:
-    def _enforce_budget(self, run: Run, budget: Budget) -> bool:
+    def _enforce_budget(
+        self,
+        run: Run,
+        budget: Budget,
+        *,
+        elapsed_duration: float | None = None,
+    ) -> bool:
         pricing = run.manifest.get("pricing") or {}
+        duration = max(run.total_duration, elapsed_duration or 0)
         breach = None
         if budget.strict_cost and pricing.get("complete") is False:
             breach = BudgetBreach("cost_completeness", 1, 0)
@@ -19,7 +26,7 @@ class AccountingMixin:
                 cost=run.total_cost,
                 usage=run.total_tokens,
                 steps=len(run.steps),
-                duration=run.total_duration,
+                duration=duration,
             )
         if breach is None:
             return False
@@ -27,7 +34,7 @@ class AccountingMixin:
             "breached": True,
             **breach.to_dict(),
             "cost": run.total_cost,
-            "duration": run.total_duration,
+            "duration": duration,
             "steps": len(run.steps),
             "usage": run.total_tokens,
         }

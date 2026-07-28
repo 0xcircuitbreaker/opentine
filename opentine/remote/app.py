@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from opentine.kernel import OBJECT_TYPES
+from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._uploads import TerminalUploadError, UploadRegistry
 from opentine.remote._wsgi import json_response, response
 from opentine.remote.interfaces import KeyProvider
@@ -71,9 +71,14 @@ class RemoteApp:
             raise ValueError("request body ended before Content-Length")
         return body
 
-    def _json(self, environ: dict[str, Any]) -> dict[str, Any]:
-        data = json.loads(self._body(environ) or b"{}")
-        if not isinstance(data, dict):
+    def _json(self, environ: dict[str, Any], *allowed: str) -> dict[str, Any]:
+        raw = self._body(environ) or b"{}"
+        try:
+            validate_json_shape(raw, max_tokens=100_000)
+            data = json.loads(raw)
+        except (ValueError, RecursionError, UnicodeDecodeError) as exc:
+            raise ValueError("invalid request JSON") from exc
+        if not isinstance(data, dict) or set(data) - set(allowed):
             raise ValueError("request JSON must be an object")
         return data
 
@@ -119,14 +124,14 @@ class RemoteApp:
             )
         if resource.startswith("refs/") and method == "PUT":
             name = unquote(resource[5:])
-            request = self._json(environ)
+            request = self._json(environ, "expected_old", "new")
             changed = self.service.update_ref(
                 identity, tenant, name, request["new"], request.get("expected_old")
             )
             status = "200 OK" if changed else "409 Conflict"
             return self._json_response(start_response, status, {"updated": changed})
         if resource == "negotiate" and method == "POST":
-            request = self._json(environ)
+            request = self._json(environ, "depth", "haves", "wants")
             missing = self.service.negotiate(
                 identity,
                 tenant,
@@ -136,7 +141,7 @@ class RemoteApp:
             )
             return self._json_response(start_response, "200 OK", {"missing": missing})
         if resource == "fetch" and method == "POST":
-            request = self._json(environ)
+            request = self._json(environ, "depth", "haves", "object_types", "wants")
             raw_types = request.get("object_types") or []
             if not isinstance(raw_types, list) or not all(
                 isinstance(item, str) and item in OBJECT_TYPES for item in raw_types
@@ -163,12 +168,14 @@ class RemoteApp:
                 return self._json_response(
                     start_response, "201 Created", {"objects": count, "pack_id": pack_id}
                 )
-            return self._start_upload(identity, tenant, self._json(environ), start_response)
+            return self._start_upload(
+                identity, tenant, self._json(environ, "sha256", "size"), start_response
+            )
         if resource.startswith("packs/") and method in {"HEAD", "PATCH"}:
             upload_id = resource[6:]
             return self._upload(identity, tenant, upload_id, method, environ, start_response)
         if resource == "search" and method == "POST":
-            results = self.service.search(identity, tenant, self._json(environ))
+            results = self.service.search(identity, tenant, self._json(environ, "type"))
             return self._json_response(start_response, "200 OK", {"objects": results})
         if resource == "audit/verify" and method == "GET":
             result = self.service.verify_audit_chain(identity, tenant)
@@ -237,9 +244,7 @@ class RemoteApp:
             try:
                 pack_id, count = self.service.install_pack(identity, tenant, data)
             except ValueError as exc:
-                # A complete, checksum-matching payload cannot be repaired by
-                # appending more bytes. Do not retain attacker-controlled invalid
-                # packs until the upload TTL expires.
+                # A complete invalid pack cannot be repaired by appending bytes.
                 raise TerminalUploadError("completed upload is not a valid pack") from exc
         result = {"objects": count, "offset": offset, "pack_id": pack_id}
         return self._json_response(start_response, "201 Created", result), True

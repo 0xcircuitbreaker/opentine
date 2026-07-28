@@ -19,7 +19,9 @@ from opentine.harnesses import (
     ClaudeCodeHarness,
     CodexCLIHarness,
     CursorHarness,
+    GeminiCLIHarness,
     GenericHarness,
+    GrokBuildHarness,
     HermesHarness,
     KimiCodeHarness,
     OpenClawHarness,
@@ -45,11 +47,16 @@ STEP_ICONS = {
 console = Console()
 RUNS_DIR = Path(".tine_runs")
 MAX_CLI_SCAN_RUNS = 5_000
+_BIDI_FORMATTING = frozenset(
+    {0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)}
+)
 HARNESS_FACTORIES = {
     "claude-code": ClaudeCodeHarness,
     "codex": CodexCLIHarness,
     "cursor": CursorHarness,
+    "gemini": GeminiCLIHarness,
     "generic": GenericHarness,
+    "grok": GrokBuildHarness,
     "hermes": HermesHarness,
     "kimi-code": KimiCodeHarness,
     "openclaw": OpenClawHarness,
@@ -175,6 +182,21 @@ def _display_value(value) -> str:
         return repr(value)
 
 
+def _terminal(value, *, multiline: bool = False) -> str:
+    """Escape Rich markup and remove terminal control bytes from untrusted text."""
+    raw = str(value).encode("utf-8", "replace").decode("utf-8")
+    cleaned: list[str] = []
+    for character in raw:
+        codepoint = ord(character)
+        if character == "\n" and multiline:
+            cleaned.append(character)
+        elif character in {"\n", "\t"}:
+            cleaned.append(" ")
+        elif codepoint >= 32 and not 127 <= codepoint <= 159 and codepoint not in _BIDI_FORMATTING:
+            cleaned.append(character)
+    return escape("".join(cleaned))
+
+
 def _step_label(step) -> Text:
     icon, _ = STEP_ICONS.get(step.kind, ("o", "white"))
     text, name, arguments = (
@@ -185,20 +207,23 @@ def _step_label(step) -> Text:
     if step.kind == StepKind.tool:
         if isinstance(arguments, dict):
             rendered = ", ".join(
-                f"{escape(str(key))}={escape(_display_value(value))}"
+                f"{_terminal(key)}={_terminal(_display_value(value))}"
                 for key, value in arguments.items()
             )
         else:
-            rendered = escape(_display_value(arguments))
+            rendered = _terminal(_display_value(arguments))
         label = (
-            f"{icon} [dim]{step.short_id}[/] [bold]tool[/]  "
-            f"{escape(_display_value(name))}({rendered})"
+            f"{icon} [dim]{_terminal(step.short_id)}[/] [bold]tool[/]  "
+            f"{_terminal(_display_value(name))}({rendered})"
         )
     elif text:
         preview = _display_value(text)[:80].replace("\n", " ")
-        label = f'{icon} [dim]{step.short_id}[/] [bold]{step.kind.value}[/]  "{escape(preview)}"'
+        label = (
+            f"{icon} [dim]{_terminal(step.short_id)}[/] "
+            f'[bold]{step.kind.value}[/]  "{_terminal(preview)}"'
+        )
     else:
-        label = f"{icon} [dim]{step.short_id}[/] [bold]{step.kind.value}[/]"
+        label = f"{icon} [dim]{_terminal(step.short_id)}[/] [bold]{step.kind.value}[/]"
     return Text.from_markup(label)
 
 

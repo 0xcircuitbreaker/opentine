@@ -9,7 +9,7 @@ from typing import Any
 
 from opentine.billing.catalog import PricingCatalog, load_catalogs
 from opentine.billing.engine import calculate
-from opentine.billing.types import BillingResult, RateCard, Usage, decimal
+from opentine.billing.types import BillingResult, RateCard, Usage, as_date, decimal
 
 
 def override_card(
@@ -44,17 +44,18 @@ def bill(
 ) -> BillingResult:
     normalized = usage if isinstance(usage, Usage) else Usage.from_dict(usage)
     selected = catalog or load_catalogs(catalog_paths)
+    when = as_date(effective_at)
     card = (
         override_card(provider, model, rate_override or {}, unmetered=unmetered)
         if rate_override is not None or unmetered
-        else selected.lookup(provider, model, effective_at=effective_at, service_tier=service_tier)
+        else selected.lookup(provider, model, effective_at=when, service_tier=service_tier)
     )
     return calculate(
         normalized,
         card,
         catalog_id=selected.id,
         catalog_hash=selected.hash,
-        effective_at=effective_at,
+        effective_at=when,
         service_tier=service_tier,
         catalog_provenance=selected.provenance,
     )

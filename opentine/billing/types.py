@@ -10,6 +10,7 @@ from typing import Any
 
 from opentine.billing._billing_result import BillingResult as BillingResult
 from opentine.billing._billing_result import BillingStatus as BillingStatus
+from opentine.billing._context import billing_context
 from opentine.billing._immutable import freeze, thaw
 from opentine.billing._rate_normalize import normalize_rate_card
 from opentine.billing._rate_validation import validate_rate_card, validate_rate_card_data
@@ -59,15 +60,22 @@ class Usage:
 
     @property
     def input_total(self) -> Number:
-        extra = sum(
-            (
-                decimal(value)
-                for name, value in self.extra.items()
-                if name.startswith(("input_", "cache_read_", "cache_write_"))
-            ),
-            Decimal("0"),
-        )
-        return self.input + self.cache_read + self.cache_write_5m + self.cache_write_1h + extra
+        with billing_context():
+            extra = sum(
+                (
+                    decimal(value)
+                    for name, value in self.extra.items()
+                    if name.startswith(("input_", "cache_read_", "cache_write_"))
+                ),
+                Decimal("0"),
+            )
+            return (
+                Decimal(self.input)
+                + self.cache_read
+                + self.cache_write_5m
+                + self.cache_write_1h
+                + extra
+            )
 
     def dimensions(self) -> dict[str, Number]:
         values: dict[str, Number] = {

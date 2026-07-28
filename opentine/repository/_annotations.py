@@ -24,11 +24,36 @@ def validate_annotation_chain(repo: Repo, envelope: ObjectEnvelope) -> None:
     if not previous_id:
         return
     try:
-        previous = ObjectEnvelope.decode(repo.raw(previous_id), previous_id)
+        record = getattr(repo, "annotation_record", None)
+        if callable(record):
+            recorded = record(previous_id)
+            if not isinstance(recorded, tuple) or len(recorded) != 2:
+                raise KernelError("annotation previous object is malformed")
+            object_type, target_id = recorded
+            if object_type != "annotation":
+                raise KernelError("annotation previous object must be an annotation")
+            if target_id != payload.get("target_id"):
+                raise KernelError("annotation versions must target the same object")
+            return
+        lookup = getattr(repo, "cached_envelope", None)
+        previous = (
+            lookup(previous_id)
+            if callable(lookup)
+            else ObjectEnvelope.decode(repo.raw(previous_id), previous_id)
+        )
     except (KeyError, OSError) as exc:
         raise KernelError(f"annotation previous object is unavailable: {previous_id}") from exc
-    prior = previous.payload()
-    if previous.object_type != "annotation" or prior.get("target_id") != payload.get("target_id"):
+    try:
+        prior = previous.payload()
+    except KernelError:
+        raise
+    except (RecursionError, TypeError, UnicodeError, ValueError) as exc:
+        raise KernelError("annotation previous object is malformed") from exc
+    if (
+        previous.object_type != "annotation"
+        or not isinstance(prior, dict)
+        or prior.get("target_id") != payload.get("target_id")
+    ):
         raise KernelError("annotation versions must target the same object")
 
 
@@ -51,12 +76,39 @@ def _value(payload: Any, run_id: str) -> dict[str, Any]:
     return value
 
 
+def _bounded_legacy_oids(oids):
+    try:
+        yield from oids
+    except ValueError as exc:
+        if "typed object scan exceeds" in str(exc):
+            raise ValueError("legacy annotation scan exceeds its object limit") from exc
+        raise
+
+
 def _legacy_head(repo: Repo, run_id: str) -> str | None:
+    from opentine.repository._objects import iter_typed_object_oids
+    from opentine.repository._semantic_view import semantic_view
+
     candidates: dict[str, dict[str, Any]] = {}
-    for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS):
-        if not oid.startswith("annotation:"):
-            continue
-        payload = repo.get(oid).payload()
+    typed = getattr(repo, "iter_typed_oids", None)
+    path = getattr(repo, "path", None)
+    if callable(typed):
+        oids = typed({"annotation"}, limit=MAX_LEGACY_OBJECTS)
+    elif path is not None:
+        oids = iter_typed_object_oids(
+            path,
+            {"annotation"},
+            limit=MAX_LEGACY_OBJECTS,
+        )
+    else:
+        oids = (
+            oid for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS) if oid.startswith("annotation:")
+        )
+    view = semantic_view(repo)
+    for index, oid in enumerate(_bounded_legacy_oids(oids), 1):
+        if index > MAX_LEGACY_OBJECTS:
+            raise ValueError("legacy annotation scan exceeds its object limit")
+        payload = view.get(oid).payload()
         if isinstance(payload, dict) and payload.get("target_id") == run_id:
             candidates[oid] = payload
     marked = {

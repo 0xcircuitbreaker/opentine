@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from rich.text import Text
+
 from opentine._cli_common import (
     BRAND,
     _find_run,
@@ -13,6 +15,7 @@ from opentine._cli_common import (
     _run_context,
     _runs_dir,
     _step_label,
+    _terminal,
     console,
 )
 from opentine._cli_render import _print_diff_table, _print_run_tree
@@ -20,24 +23,32 @@ from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
 
+def _require_output_slot(output: Path, force: bool) -> None:
+    if output.exists() and not force:
+        console.print(
+            f"[red]Refusing to overwrite existing file: {_terminal(output)}. Pass --force.[/]"
+        )
+        raise SystemExit(1)
+
+
 def cmd_fork(args: argparse.Namespace) -> None:
     path = _find_run(args.run_id)
     if not path:
-        console.print(f"[red]Run not found: {args.run_id}[/]")
+        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
     try:
         step_id = _resolve_step_ref(run, args.from_step)
     except (KeyError, ValueError) as exc:
-        console.print(f"[red]{exc}[/]")
+        console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc
     step = run.get_step(step_id)
-    assert step is not None
+    if step is None:
+        console.print(f"[red]Step not found: {_terminal(step_id)}[/]")
+        raise SystemExit(1)
     forked = run.fork(step.id)
     output = Path(args.save or (_runs_dir() / f"{forked.id}.tine"))
-    if output.exists() and not args.force:
-        console.print(f"[red]Refusing to overwrite existing file: {output}. Pass --force.[/]")
-        raise SystemExit(1)
+    _require_output_slot(output, args.force)
     if args.harness:
         forked.metadata["next_harness"] = args.harness
         if args.prompt:
@@ -54,11 +65,12 @@ def cmd_fork(args: argparse.Namespace) -> None:
                 )
             except Exception as exc:
                 forked.save(output)
-                console.print(f"[red]Harness failed after fork:[/] {exc}")
+                console.print(f"[red]Harness failed after fork:[/] {_terminal(exc)}")
                 raise SystemExit(1) from exc
     forked.save(output)
     console.print(
-        f"[{BRAND}]# Forked[/] {short_id(run.id)} -> {short_id(forked.id)} from {short_id(step.id)}"
+        f"[{BRAND}]# Forked[/] {_terminal(short_id(run.id))} -> "
+        f"{_terminal(short_id(forked.id))} from {_terminal(short_id(step.id))}"
     )
     _print_run_tree(forked)
 
@@ -71,7 +83,7 @@ def _inspect_replay(run: Run, from_step: str | None) -> None:
         selected = [step for step in run.steps if step.id in keep]
     console.print(f"[{BRAND}]Inspecting recorded steps...[/]\n")
     for step in selected:
-        console.print(f"  {_step_label(step)}")
+        console.print(Text("  ") + _step_label(step))
 
 
 def _harness_replay(args: argparse.Namespace, run: Run) -> None:
@@ -82,18 +94,26 @@ def _harness_replay(args: argparse.Namespace, run: Run) -> None:
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
     wrapper = OpentineHarness(_harness_from_args(args))
     output = Path(args.save) if args.save else None
+    force = getattr(args, "force", False)
+    if output is not None:
+        _require_output_slot(output, force)
     try:
         replayed = wrapper.run_sync(task, context=_run_context(run, start), save_path=output)
     except Exception as exc:
         replayed = wrapper.run
         if replayed is not None:
-            output = output or (_runs_dir() / f"{replayed.id}.tine")
-            replayed.save(output)
-        console.print(f"[red]Harness replay failed:[/] {exc}")
+            if output is None:
+                output = _runs_dir() / f"{replayed.id}.tine"
+                _require_output_slot(output, force)
+            if not output.exists():
+                replayed.save(output)
+        console.print(f"[red]Harness replay failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    output = output or (_runs_dir() / f"{replayed.id}.tine")
-    replayed.save(output)
-    console.print(f"[{BRAND}]# Replayed[/] {run.id} with {args.harness}")
+    if output is None:
+        output = _runs_dir() / f"{replayed.id}.tine"
+        _require_output_slot(output, force)
+        replayed.save(output)
+    console.print(f"[{BRAND}]# Replayed[/] {_terminal(run.id)} with {_terminal(args.harness)}")
     _print_run_tree(replayed)
     if args.compare:
         _print_diff_table(run, replayed)
@@ -102,7 +122,7 @@ def _harness_replay(args: argparse.Namespace, run: Run) -> None:
 def cmd_replay(args: argparse.Namespace) -> None:
     path = _find_run(args.run_id)
     if not path:
-        console.print(f"[red]Run not found: {args.run_id}[/]")
+        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
     try:
@@ -117,9 +137,9 @@ def cmd_replay(args: argparse.Namespace) -> None:
                 "[red]Rerun replay requires an explicit --harness or opentine-native Agent API.[/]"
             )
             raise SystemExit(1)
-        replayed = run.fork(_resolve_step_ref(run, args.from_step), new_run_id=f"{run.id}-replay")
+        replayed = run.fork(_resolve_step_ref(run, args.from_step))
     except (KeyError, ValueError) as exc:
-        console.print(f"[red]{exc}[/]")
+        console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc
     replayed.metadata["replay"] = {
         "mode": "cache",
@@ -128,6 +148,7 @@ def cmd_replay(args: argparse.Namespace) -> None:
     }
     replayed.status = run.status
     output = Path(args.save) if args.save else _runs_dir() / f"{replayed.id}.tine"
+    _require_output_slot(output, getattr(args, "force", False))
     replayed.save(output)
     console.print(f"[{BRAND}]# Cached replay[/] reused {len(replayed.steps)} recorded steps")
 
@@ -136,7 +157,7 @@ def cmd_diff(args: argparse.Namespace) -> None:
     left, right = _find_run(args.run_a), _find_run(args.run_b)
     if not left or not right:
         missing = args.run_a if not left else args.run_b
-        console.print(f"[red]Run not found: {missing}[/]")
+        console.print(f"[red]Run not found: {_terminal(missing)}[/]")
         raise SystemExit(1)
     _print_diff_table(Run.load(left), Run.load(right))
 
@@ -144,16 +165,17 @@ def cmd_diff(args: argparse.Namespace) -> None:
 def cmd_resume(args: argparse.Namespace) -> None:
     path = _find_run(args.run_id)
     if not path:
-        console.print(f"[red]Run not found: {args.run_id}[/]")
+        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
     if not run.manifest.get("resume", False):
         kind = run.manifest.get("kind", "unknown")
-        console.print(f"[red]Run is not resumable: manifest kind={kind!r}.[/]")
+        console.print(f"[red]Run is not resumable: manifest kind={_terminal(repr(kind))}.[/]")
         raise SystemExit(1)
     resumed = Run.resume(path)
     console.print(
-        f"[{BRAND}]# Loaded resumable run[/] {short_id(resumed.id)} ({len(resumed.steps)} steps)"
+        f"[{BRAND}]# Loaded resumable run[/] {_terminal(short_id(resumed.id))} "
+        f"({len(resumed.steps)} steps)"
     )
     _print_run_tree(resumed)
     resumed.save(path)

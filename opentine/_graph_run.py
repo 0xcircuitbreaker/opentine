@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from opentine._canon import FORMAT_VERSION, _jsonable
@@ -16,10 +17,22 @@ from opentine._graph_types import (
     _usage_value,
     step_id,
 )
+from opentine.billing._context import billing_context
 
 
 def _usage(values: dict[str, int | float] | None) -> dict[str, int | float]:
     return {key: _usage_value(key, value) for key, value in (values or {}).items()}
+
+
+def _step_cost_decimal(step: Step) -> Decimal:
+    raw = step.billing.get("known_subtotal_usd", step.cost)
+    try:
+        amount = Decimal(str(raw))
+        if not amount.is_finite() or amount < 0:
+            raise ValueError("invalid known subtotal")
+        return amount
+    except (InvalidOperation, ValueError):
+        return Decimal(str(step.cost))
 
 
 class RunBase:
@@ -157,7 +170,9 @@ class RunBase:
 
     @property
     def total_cost(self) -> float:
-        return sum(step.cost for step in self.steps)
+        with billing_context():
+            total = sum((_step_cost_decimal(step) for step in self.steps), Decimal("0"))
+        return float(total)
 
     @property
     def total_duration(self) -> float:

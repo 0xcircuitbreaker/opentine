@@ -5,7 +5,23 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
+from opentine.kernel import parse_oid
 from opentine.repo import Repo
+
+#: The only namespace an MCP client may move. A fork's ref update is an
+#: unconditional overwrite (it compare-and-swaps against the value it just read),
+#: so any writable ref here is a ref a model can destroy — and the content a model
+#: reads from this repository is itself untrusted, which makes "fork onto
+#: heads/main" a one-step prompt-injection payload. Mainline (``heads/``), release
+#: gates (``promotions/``), labels (``tags/``) and remote-tracking refs stay
+#: operator-only; ``experiments/`` is where forked work belongs.
+_MCP_WRITABLE_REF_NAMESPACE = "experiments/"
+
+
+def _writable_ref(ref: str) -> str:
+    if not isinstance(ref, str) or not ref.startswith(_MCP_WRITABLE_REF_NAMESPACE):
+        raise ValueError(f"MCP fork/resume may only write {_MCP_WRITABLE_REF_NAMESPACE}* refs")
+    return ref
 
 
 def register_repository_tools(mcp, repo_path: str = ".") -> None:
@@ -53,24 +69,27 @@ def register_repository_tools(mcp, repo_path: str = ".") -> None:
         ref: str,
         model: str | None = None,
         prompt: str | None = None,
+        policy: dict[str, Any] | None = None,
     ) -> dict[str, str]:
-        """Fork from the last good event with optional model/prompt overrides."""
+        """Fork from the last good event with optional model, prompt, and policy overrides."""
         forked = repo.fork(
             run_id,
             from_event,
-            overrides={"model": model, "prompt": prompt},
-            ref=ref,
+            overrides={"model": model, "policy": policy, "prompt": prompt},
+            ref=_writable_ref(ref),
         )
         return {"ref": ref, "run_id": forked}
 
     @mcp.tool()
     def resume_run_v3(run_id: str, ref: str) -> dict[str, str]:
         """Resume at a run's last verified tip by creating a running fork."""
+        if parse_oid(run_id)[0] != "run":
+            raise ValueError("resume requires a run id")
         payload = repo.get(run_id).payload()
         tips = payload.get("tips") or []
         if not tips:
             raise ValueError("cannot resume a run without an event tip")
-        resumed = repo.fork(run_id, tips[-1], overrides={"resume": True}, ref=ref)
+        resumed = repo.fork(run_id, tips[-1], overrides={"resume": True}, ref=_writable_ref(ref))
         return {"ref": ref, "run_id": resumed}
 
     @mcp.tool()

@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import os
+import re
+import stat
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, verify_object
 from opentine.repository._annotations import validate_annotation_chain
+from opentine.repository._paths import internal_path
 from opentine.repository._refs import validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
+from opentine.repository._semantic_view import SemanticView
+from opentine.repository.pack import MAX_PACK_BYTES, inspect_pack
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
+
+_PACK_NAME = re.compile(r"^([0-9a-f]{64})\.pack$")
+_MAX_FSCK_PACKS = 1_000
+_MAX_FSCK_PACK_BYTES = 1024 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -52,8 +62,54 @@ def _cycle_errors(repo: Repo, oids: list[str]) -> list[str]:
     return [f"event graph cycle reachable from {oid}" for oid in cycles]
 
 
+def _pack_errors(repo: Repo) -> list[str]:
+    errors: list[str] = []
+    directory = internal_path(repo.path, "packs")
+    total = 0
+    try:
+        with os.scandir(directory) as stream:
+            names = []
+            for entry in stream:
+                names.append(entry.name)
+                if len(names) > _MAX_FSCK_PACKS:
+                    raise KernelError("pack count exceeds the fsck verification limit")
+    except (KernelError, OSError) as exc:
+        return [f"packs: {exc}"]
+    for name in sorted(names):
+        match = _PACK_NAME.fullmatch(name)
+        if not match:
+            errors.append(f"pack {name}: invalid pack filename")
+            continue
+        try:
+            path = internal_path(repo.path, "packs", name)
+            fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                info = os.fstat(fd)
+                if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                    raise KernelError("stored pack is not a private regular file")
+                total += info.st_size
+                if info.st_size > MAX_PACK_BYTES or total > _MAX_FSCK_PACK_BYTES:
+                    raise KernelError("stored packs exceed the fsck verification byte limit")
+                with os.fdopen(fd, "rb") as handle:
+                    fd = -1
+                    data = handle.read(MAX_PACK_BYTES + 1)
+            finally:
+                if fd >= 0:
+                    os.close(fd)
+            pack_id, objects, _ = inspect_pack(data)
+            if pack_id != f"sha256:{match.group(1)}":
+                raise KernelError("pack filename does not match its verified id")
+            for oid, raw in objects:
+                if repo.raw(oid) != raw:
+                    raise KernelError(f"packed object does not match loose object: {oid}")
+        except (KeyError, KernelError, OSError) as exc:
+            errors.append(f"pack {name}: {exc}")
+    return errors
+
+
 def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     errors: list[str] = []
+    view = SemanticView(repo)
     oids = repo.iter_oids()
     try:
         for oid in repo.shallow_oids():
@@ -64,10 +120,10 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
         try:
             verify_object(repo.raw(oid), oid, repo._link_exists if deep else None)
             envelope = ObjectEnvelope.decode(repo.raw(oid), oid)
-            validate_annotation_chain(repo, envelope)
+            validate_annotation_chain(view, envelope)
             validate_event_metrics(envelope)
             if deep and oid.startswith("run:"):
-                validate_run_graph(repo, envelope)
+                validate_run_graph(view, envelope)
         except (KernelError, OSError) as exc:
             errors.append(f"{oid}: {exc}")
     try:
@@ -82,11 +138,12 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
             if not repo.has(oid):
                 errors.append(f"ref {name}: missing {oid}")
                 continue
-            target = repo.get(oid)
+            target = view.get(oid)
             validate_ref_target(name, target.object_type, target.payload())
         except (KernelError, ValueError) as exc:
             errors.append(f"ref {name}: {exc}")
             continue
     if deep:
-        errors.extend(_cycle_errors(repo, oids))
+        errors.extend(_pack_errors(repo))
+        errors.extend(_cycle_errors(view, oids))
     return FsckResult(not errors, len(oids), len(refs), tuple(errors))

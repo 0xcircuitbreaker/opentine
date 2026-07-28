@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine.billing import PricingCatalog, Usage, bill, known_cost
-from opentine.models._provider_meta import model_name
+from opentine.billing import PricingCatalog, Usage, bill, known_cost, load_catalogs
+from opentine.billing.types import as_date
+from opentine.models._provider_meta import equivalent_model, model_name
 
 
 def metered_response(
@@ -20,7 +21,10 @@ def metered_response(
     effective_at: str | None = None,
     usage_reported: bool = True,
     missing_usage: tuple[str, ...] = (),
+    partitioned_usage_incomplete: bool = False,
     reported_model: Any = None,
+    requested_service_tier: str | None = None,
+    service_tier_observed: bool = True,
 ) -> dict[str, Any]:
     raw_reported_model = reported_model
     reported_model = model_name(reported_model)
@@ -28,20 +32,31 @@ def metered_response(
     priced_model = (
         "__invalid_reported_model__" if invalid_reported_model else reported_model or model
     )
+    selected = catalog or load_catalogs()
+    when = as_date(effective_at)
+    same_model = not invalid_reported_model and equivalent_model(
+        selected, provider, model, reported_model, when
+    )
     result = bill(
         provider,
         priced_model,
         usage,
-        catalog=catalog,
-        rate_override=rate_override if not invalid_reported_model or unmetered else None,
+        catalog=selected,
+        rate_override=(rate_override if unmetered or same_model else None),
         service_tier=service_tier,
         unmetered=unmetered,
-        effective_at=effective_at,
+        effective_at=when,
     )
     billing = result.to_dict()
+    compatibility_cost = known_cost(result)
     billing["calculation"].update(
         {"provider": provider, "requested_model": model, "reported_model": reported_model}
     )
+    if requested_service_tier not in (None, ""):
+        billing["calculation"].update(
+            requested_service_tier=requested_service_tier,
+            service_tier_observed=service_tier_observed,
+        )
     if invalid_reported_model:
         billing["warnings"].append(
             "provider reported an invalid model identifier; price is unknown"
@@ -53,6 +68,8 @@ def metered_response(
         billing["warnings"].append(
             f"provider reported model {reported_model!r} for requested model {model!r}"
         )
+        if rate_override is not None and not unmetered and not same_model:
+            billing["warnings"].append("explicit rates were ignored for the different model")
     if not usage_reported:
         if billing["status"] != "unmetered":
             billing.update(status="unknown", amount_usd=None, known_subtotal_usd="0")
@@ -65,17 +82,49 @@ def metered_response(
         billing["calculation"]["usage_reported"] = False
     elif missing_usage:
         if billing["status"] != "unmetered":
-            components = billing["calculation"].get("components_usd") or {}
-            billing["status"] = "partial" if components else "unknown"
-            billing["amount_usd"] = None
+            calculation = billing["calculation"]
+            components = calculation.get("components_usd") or {}
+            if partitioned_usage_incomplete:
+                calculation["candidate_components_usd"] = components
+                calculation["candidate_known_subtotal_usd"] = billing["known_subtotal_usd"]
+                calculation["components_usd"] = {}
+                billing.update(status="unknown", amount_usd=None, known_subtotal_usd="0")
+                compatibility_cost = 0.0
+            else:
+                billing["status"] = "partial" if components else "unknown"
+                billing["amount_usd"] = None
         billing["warnings"].append(
             "provider usage omitted required dimensions: " + ", ".join(missing_usage)
         )
         billing["calculation"]["missing_usage_dimensions"] = list(missing_usage)
+        if partitioned_usage_incomplete and billing["status"] != "unmetered":
+            billing["warnings"].append(
+                "missing usage makes token partitions indeterminate; "
+                "candidate charges are not a known subtotal"
+            )
+    uncertain_priority = (
+        provider in {"openai", "xai"}
+        and str(requested_service_tier).casefold() == "priority"
+        and not service_tier_observed
+        and rate_override is None
+        and not unmetered
+    )
+    if uncertain_priority:
+        calculation = billing["calculation"]
+        calculation.setdefault("candidate_components_usd", calculation.get("components_usd", {}))
+        calculation.setdefault("candidate_known_subtotal_usd", billing["known_subtotal_usd"])
+        calculation["components_usd"] = {}
+        calculation["requested_service_tier"] = "priority"
+        calculation["service_tier_observed"] = False
+        billing.update(status="unknown", amount_usd=None, known_subtotal_usd="0")
+        billing["warnings"].append(
+            f"{provider} Priority may fall back; response tier was not observed"
+        )
+        compatibility_cost = 0.0
     return {
         "usage": usage.to_dict(),
         "billing": billing,
         "cost": 0.0
         if not usage_reported or (invalid_reported_model and billing["status"] != "unmetered")
-        else known_cost(result),
+        else compatibility_cost,
     }

@@ -63,6 +63,7 @@ class OpenAI(ChatCompletions):
             catalog=catalog,
             rate_override=self._rate_override,
             service_tier=service_tier,
+            unmetered=unmetered,
         )
 
     def _get_client(self):

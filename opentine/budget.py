@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 _DIMENSIONS = ("max_cost", "max_steps", "max_duration", "max_usage")
 
@@ -73,7 +74,7 @@ class Budget:
 
     def check(self, *, cost: float, usage: int, steps: int, duration: float) -> BudgetBreach | None:
         """Return the first breached dimension, or None if within budget."""
-        if self.max_cost is not None and cost > self.max_cost:
+        if self.max_cost is not None and Decimal(str(cost)) > Decimal(str(self.max_cost)):
             return BudgetBreach("cost", self.max_cost, cost)
         if self.max_usage is not None and usage > self.max_usage:
             return BudgetBreach("usage", self.max_usage, usage)

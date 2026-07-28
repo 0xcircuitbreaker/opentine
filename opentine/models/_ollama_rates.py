@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
+from opentine.billing._context import billing_context
 from opentine.models._provider_meta import validated_rates
 
 
@@ -36,7 +37,8 @@ def rate_override(
             }
         )
     if compute_per_second is not None:
-        per_second = Decimal(str(compute_per_second)) * 1_000_000
+        with billing_context():
+            per_second = Decimal(str(compute_per_second)) * 1_000_000
         rates.update(
             {
                 "input": 0,

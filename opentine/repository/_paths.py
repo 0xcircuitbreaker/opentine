@@ -75,9 +75,21 @@ def internal_files(root: Path, branch: str) -> Iterator[Path]:
             yield path
 
 
+def durable_directory(path: Path) -> None:
+    """Create missing parents and fsync each directory that gains a child."""
+    missing: list[Path] = []
+    current = path
+    while not current.exists():
+        missing.append(current)
+        current = current.parent
+    for directory in reversed(missing):
+        directory.mkdir(exist_ok=True)
+        _fsync_dir(directory.parent)
+
+
 def atomic_bytes(path: Path, data: bytes) -> None:
     """Atomically write bytes after the caller has confined ``path``."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+    durable_directory(path.parent)
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
     try:
         with os.fdopen(fd, "wb") as handle:

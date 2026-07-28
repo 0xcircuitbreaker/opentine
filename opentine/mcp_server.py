@@ -165,6 +165,8 @@ def fork_run_file(
 
     out = Path(save) if save else Path(runs_dir) / f"{forked.id}.tine"
     out.parent.mkdir(parents=True, exist_ok=True)
+    if out.exists():
+        raise FileExistsError(f"refusing to overwrite existing run artifact: {out}")
     forked.save(out)
     return {
         "new_run_id": forked.id,

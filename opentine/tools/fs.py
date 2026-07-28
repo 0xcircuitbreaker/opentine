@@ -52,10 +52,16 @@ def _resolve(
     return resolved
 
 
+def _require_regular(path: Path) -> None:
+    if not path.is_file():
+        raise ValueError(f"Path is not a regular file: {path}")
+
+
 def read(path: str, sandbox: str | None = None, policy: FilesystemPolicy | None = None) -> str:
     """Read a file and return its contents."""
     pol = _policy(sandbox, policy)
     p = _resolve(path, sandbox, pol)
+    _require_regular(p)
     if p.stat().st_size > pol.max_file_bytes:
         raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
     return p.read_text(encoding="utf-8")
@@ -73,6 +79,8 @@ def write(
         raise ValueError(f"Content exceeds max_file_bytes={pol.max_file_bytes}")
     p = _resolve(path, sandbox, pol, write=True)
     p.parent.mkdir(parents=True, exist_ok=True)
+    if p.exists():
+        _require_regular(p)
     p.write_text(content, encoding="utf-8")
     return f"Wrote {len(content)} chars to {path}"
 
@@ -87,6 +95,7 @@ def edit(
     """Replace the first occurrence of `old` with `new` in a file."""
     pol = _policy(sandbox, policy)
     p = _resolve(path, sandbox, pol, write=True)
+    _require_regular(p)
     if p.stat().st_size > pol.max_file_bytes:
         raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
     text = p.read_text(encoding="utf-8")

@@ -12,6 +12,7 @@ from opentine._canon import FORMAT_VERSION, atomic_write_text
 from opentine._index_query import Query, QueryError, _parse_date, match_entry, parse_query
 from opentine._index_types import IndexEntry, entry_from_run
 from opentine.graph import Run
+from opentine.kernel import validate_json_shape
 
 INDEX_VERSION = 1
 INDEX_FILENAME = "index.json"
@@ -41,6 +42,7 @@ class RunIndex:
                 raw = handle.read(MAX_INDEX_BYTES + 1)
             if len(raw) > MAX_INDEX_BYTES:
                 raise ValueError("index exceeds its rebuildable size limit")
+            validate_json_shape(raw, max_tokens=100_000)
             data = json.loads(raw)
             if not isinstance(data, dict) or not isinstance(data.get("entries", {}), dict):
                 raise ValueError("index root and entries must be objects")

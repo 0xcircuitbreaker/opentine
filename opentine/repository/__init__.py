@@ -27,7 +27,7 @@ class Repo(ObjectDatabase):
         return load_run(self, oid_or_ref)
 
     def migrate_v2(self, path: str | Path, **kwargs: Any):
-        from opentine.repository.runs import migrate_v2
+        from opentine.repository._migration import migrate_v2
 
         return migrate_v2(self, path, **kwargs)
 

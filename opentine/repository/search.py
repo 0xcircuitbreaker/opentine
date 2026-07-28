@@ -10,6 +10,7 @@ from opentine.kernel import KernelError, ObjectEnvelope, validate_links
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 from opentine.repository._inspect import inspect as inspect
 from opentine.repository._run_graph import validate_event_metrics
+from opentine.repository._semantic_view import CachedEnvelope
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -41,7 +42,7 @@ def _get_search_object(
     if size > remaining[0]:
         raise ValueError("repository search exceeds its aggregate structured-source limit")
     remaining[0] -= size
-    envelope = ObjectEnvelope.decode(repo.raw(oid), oid)
+    envelope = CachedEnvelope(ObjectEnvelope.decode(repo.raw(oid), oid))
     validate_links(envelope)
     validate_event_metrics(envelope)
     cache[oid] = envelope

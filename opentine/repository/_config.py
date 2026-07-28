@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from opentine.kernel import validate_json_shape
+
 MAX_CONFIG_BYTES = 64 * 1024
 
 
@@ -17,8 +19,9 @@ def validate_config(path: Path) -> None:
     if len(raw) > MAX_CONFIG_BYTES:
         raise ValueError("repository config exceeds maximum size")
     try:
+        validate_json_shape(raw, max_tokens=10_000)
         value = json.loads(raw)
-    except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
+    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("repository config is malformed") from exc
     required = {
         "format": 3,

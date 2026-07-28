@@ -45,10 +45,16 @@ class OIDCIdentityProvider:
         *,
         tenant_claim: str = "tenant",
         roles_claim: str = "roles",
+        default_roles: tuple[str, ...] = (),
     ):
         self.verifier = verifier
         self.tenant_claim = tenant_claim
         self.roles_claim = roles_claim
+        #: Roles granted when the token carries no roles claim at all. Empty by
+        #: default so a misconfigured issuer — or one that simply stopped emitting
+        #: the claim — grants nothing instead of silently conferring read access to
+        #: every run in the tenant. Set it explicitly to opt into a standing role.
+        self.default_roles = tuple(default_roles)
 
     @classmethod
     def from_jwks(
@@ -56,7 +62,11 @@ class OIDCIdentityProvider:
     ) -> OIDCIdentityProvider:
         from opentine.remote._oidc import JWTVerifier
 
-        claims = {key: kwargs.pop(key) for key in ("tenant_claim", "roles_claim") if key in kwargs}
+        claims = {
+            key: kwargs.pop(key)
+            for key in ("tenant_claim", "roles_claim", "default_roles")
+            if key in kwargs
+        }
         verifier = JWTVerifier(jwks, issuer=issuer, audience=audience, **kwargs)
         return cls(verifier, **claims)
 
@@ -71,7 +81,11 @@ class OIDCIdentityProvider:
     ) -> OIDCIdentityProvider:
         from opentine.remote._oidc import JWTVerifier
 
-        claims = {key: kwargs.pop(key) for key in ("tenant_claim", "roles_claim") if key in kwargs}
+        claims = {
+            key: kwargs.pop(key)
+            for key in ("tenant_claim", "roles_claim", "default_roles")
+            if key in kwargs
+        }
         verifier = JWTVerifier.from_discovery(issuer, audience, fetch, **kwargs)
         return cls(verifier, **claims)
 
@@ -84,12 +98,15 @@ class OIDCIdentityProvider:
         tenant = claims.get(self.tenant_claim)
         if not isinstance(subject, str) or not subject or not isinstance(tenant, str) or not tenant:
             raise AuthenticationError("OIDC token lacks subject or tenant")
-        roles = claims[self.roles_claim] if self.roles_claim in claims else ["reader"]
+        roles = claims[self.roles_claim] if self.roles_claim in claims else self.default_roles
         if isinstance(roles, str):
             roles = roles.split()
         if not isinstance(roles, (list, tuple)) or not all(isinstance(role, str) for role in roles):
             raise AuthenticationError("OIDC roles claim must be a string or list of strings")
-        return Identity(subject, tenant, tuple(dict.fromkeys(roles)), claims)
+        try:
+            return Identity(subject, tenant, tuple(dict.fromkeys(roles)), claims)
+        except ValueError as exc:
+            raise AuthenticationError("OIDC identity contains invalid text") from exc
 
 
 class RoleAuthorizationPolicy:

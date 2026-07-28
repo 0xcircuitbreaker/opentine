@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from opentine.kernel import validate_json_shape
 from opentine.repository.pack import MAX_PACK_BYTES
 
 MAX_CONTROL_BYTES = 1024 * 1024
@@ -128,8 +129,9 @@ def read_json(
         raise ValueError("remote control response uses unsupported Content-Encoding")
     raw = _read_limited(response, limit, "control response", max_seconds)
     try:
+        validate_json_shape(raw, max_tokens=100_000)
         value = json.loads(raw)
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("remote returned malformed JSON") from exc
     if not isinstance(value, dict):
         raise ValueError("remote control response must be a JSON object")

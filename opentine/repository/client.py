@@ -11,19 +11,13 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository._http import (
-    client as _client,
-)
+from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
-from opentine.repository._http import (
-    request_json as _request_json,
-)
+from opentine.repository._http import request_json as _request_json
 from opentine.repository._http import request_pack as _request_pack
-from opentine.repository._http import (
-    require_secure_remote as _require_secure_remote,
-)
+from opentine.repository._http import require_secure_remote as _require_secure_remote
 from opentine.repository._upload_client import upload as _upload
-from opentine.repository.pack import MAX_PACK_OBJECTS, create_pack, negotiate, reachable
+from opentine.repository.pack import MAGIC, MAX_PACK_OBJECTS, create_pack, negotiate, reachable
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -86,12 +80,19 @@ def _refs(value: dict[str, Any]) -> dict[str, str]:
     return refs
 
 
-def _upload_result(state: dict[str, Any]) -> tuple[int, str]:
+def _upload_result(
+    state: dict[str, Any], *, expected_objects: int | None = None, expected_pack: str | None = None
+) -> tuple[int, str]:
     objects, pack_id = state.get("objects"), state.get("pack_id")
     if type(objects) is not int or objects < 0:
         raise ValueError("remote returned an invalid uploaded-object count")
     if not isinstance(pack_id, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", pack_id):
         raise ValueError("remote returned an invalid pack id")
+    mismatch = (expected_objects is not None and objects != expected_objects) or (
+        expected_pack is not None and pack_id != expected_pack
+    )
+    if mismatch:
+        raise ValueError("remote upload receipt does not match the submitted pack")
     return objects, pack_id
 
 
@@ -196,7 +197,10 @@ def push(
             chunk_size=chunk_size,
             timeout=timeout,
         )
-        objects, pack_id = _upload_result(uploaded)
+        expected_pack = "sha256:" + pack[len(MAGIC) : len(MAGIC) + 32].hex()
+        objects, pack_id = _upload_result(
+            uploaded, expected_objects=len(missing), expected_pack=expected_pack
+        )
         status, _ = _request_json(
             client,
             "PUT",

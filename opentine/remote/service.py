@@ -6,9 +6,9 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import ObjectEnvelope, validate_links
+from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
 from opentine.remote._admission import AllowAdmission
-from opentine.remote._tenant_repo import PackedTenantRepo, TenantRepo
+from opentine.remote._tenant_repo import PackedTenantRepo, TenantRepo, validate_ref_listing
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -21,7 +21,8 @@ from opentine.remote.interfaces import (
     ObjectStore,
 )
 from opentine.repository._refs import normalize_ref, validate_ref_target
-from opentine.repository.pack import create_pack, inspect_pack, negotiate
+from opentine.repository._semantic_view import SemanticView
+from opentine.repository.pack import MAX_PACK_BODY_BYTES, create_pack, inspect_pack, negotiate
 
 
 class RemoteService:
@@ -94,11 +95,7 @@ class RemoteService:
     def list_refs(self, identity: Identity, tenant: str) -> dict[str, str]:
         self._authorize(identity, "read_ref", tenant)
         refs = self.index.list_refs(tenant)
-        for name, oid in refs.items():
-            if not self.objects.has(tenant, oid):
-                raise RuntimeError(f"ref {name} targets a missing object")
-            target = TenantRepo(tenant, self.objects, self.index).get(oid)
-            validate_ref_target(normalize_ref(name), target.object_type, target.payload())
+        validate_ref_listing(tenant, self.objects, self.index, refs)
         self._audit(identity, tenant, "read_ref", "ok", {"refs": len(refs)})
         return refs
 
@@ -156,11 +153,12 @@ class RemoteService:
         object_types: set[str] | None = None,
     ) -> bytes:
         self._authorize(identity, "fetch", tenant)
-        repo = TenantRepo(tenant, self.objects, self.index)
+        repo = SemanticView(
+            TenantRepo(tenant, self.objects, self.index), max_source_bytes=MAX_PACK_BODY_BYTES
+        )
         missing = negotiate(repo, wants, haves, depth=depth)
         if object_types:
             selected = {oid for oid in missing if oid.split(":", 1)[0] in object_types}
-            # Dependencies are retained even when the requested roots are filtered.
             selected.update(
                 link
                 for oid in tuple(selected)
@@ -225,6 +223,9 @@ class RemoteService:
     ) -> bool:
         self._authorize(identity, "update_ref", tenant)
         name = normalize_ref(name)
+        parse_oid(new_oid)
+        if expected_old is not None:
+            parse_oid(expected_old)
         if not self.objects.has(tenant, new_oid):
             raise KeyError(new_oid)
         target = TenantRepo(tenant, self.objects, self.index).get(new_oid)

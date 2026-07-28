@@ -6,6 +6,8 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
+from opentine.kernel import validate_json_shape
+
 MAX_SHOW_BYTES = 8 * 1024 * 1024
 MAX_CHAT_BYTES = 64 * 1024 * 1024
 MAX_STREAM_BYTES = 256 * 1024 * 1024
@@ -33,8 +35,9 @@ def _prepare(response: Any, max_bytes: int) -> None:
 
 def _loads(body: bytes | bytearray) -> dict[str, Any]:
     try:
+        validate_json_shape(body, max_tokens=100_000)
         item = json.loads(body)
-    except (RecursionError, UnicodeError) as exc:
+    except (ValueError, RecursionError, UnicodeError) as exc:
         raise ValueError("invalid Ollama JSON response") from exc
     if not isinstance(item, dict):
         raise ValueError("Ollama response must be a JSON object")

@@ -148,6 +148,7 @@ class Groq(ChatCompletions):
         api_key: str | None = None,
         **kwargs: Any,
     ):
+        kwargs.setdefault("include_usage", True)
         _base(
             self,
             model,
@@ -220,6 +221,10 @@ class OpenRouter(ChatCompletions):
         api_key: str | None = None,
         **kwargs: Any,
     ):
+        # OpenRouter is priced from its own reported `usage.cost` rather than from a
+        # rate card (see _openrouter_total), so a stream without a usage chunk has no
+        # fallback at all: every streamed call reports status "unknown" and $0.00.
+        kwargs.setdefault("include_usage", True)
         _base(
             self,
             model,

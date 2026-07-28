@@ -35,6 +35,11 @@ class TraceEvent:
     def __post_init__(self) -> None:
         if self.kind not in TRACE_KINDS:
             raise ValueError(f"invalid trace event kind: {self.kind!r}")
+        for name in ("inputs", "outputs", "usage", "billing", "attributes"):
+            value = getattr(self, name)
+            if not isinstance(value, dict):
+                raise ValueError(f"trace {name} must be a mapping")
+            object.__setattr__(self, name, dict(value))
         try:
             timestamp = float(self.timestamp)
         except (TypeError, ValueError, OverflowError) as exc:
@@ -51,7 +56,7 @@ class TraceEvent:
             raise ValueError("trace duration must be finite and non-negative")
         if duration < 0:
             raise ValueError("trace duration must be finite and non-negative")
-        billed = self.billing.get("known_subtotal_usd") if isinstance(self.billing, dict) else None
+        billed = self.billing.get("known_subtotal_usd")
         values = [self.cost, billed]
         for value in (item for item in values if item is not None):
             try:
@@ -62,14 +67,14 @@ class TraceEvent:
                 raise ValueError("trace cost must be finite and non-negative") from exc
             if isinstance(value, bool) or not amount.is_finite() or amount < 0:
                 raise ValueError("trace cost must be finite and non-negative")
-        if not isinstance(self.usage, dict):
-            raise ValueError("trace usage must be a mapping")
         for name, value in self.usage.items():
-            valid = isinstance(name, str) and type(value) in {int, float}
-            number = float(value) if valid else float("nan")
+            integer = type(value) is int
+            floating = type(value) is float
+            valid = isinstance(name, str) and (integer or floating)
+            valid = valid and value >= 0 and (integer or math.isfinite(value))
             if name in TOKEN_USAGE:
-                valid = valid and number.is_integer() and number <= (1 << 53) - 1
-            if not valid or not math.isfinite(number) or number < 0:
+                valid = valid and (integer or value.is_integer()) and value <= (1 << 53) - 1
+            if not valid:
                 raise ValueError(f"trace usage.{name} must be finite and non-negative")
 
     def to_dict(self) -> dict[str, Any]:

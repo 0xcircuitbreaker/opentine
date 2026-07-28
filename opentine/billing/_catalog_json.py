@@ -6,6 +6,8 @@ import json
 import math
 from typing import Any
 
+from opentine.kernel import validate_json_shape
+
 
 def parse_catalog_json(raw: bytes, error_type: type[ValueError]) -> Any:
     def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -32,6 +34,7 @@ def parse_catalog_json(raw: bytes, error_type: type[ValueError]) -> Any:
         return number
 
     try:
+        validate_json_shape(raw, max_tokens=100_000)
         return json.loads(
             raw,
             object_pairs_hook=pairs,

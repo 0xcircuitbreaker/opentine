@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
-from opentine.kernel import canonical_json
+from opentine.kernel import canonical_json, validate_json_shape
 from opentine.redaction import redact_value
 
 if TYPE_CHECKING:
@@ -22,6 +22,7 @@ def json_blob(repo: Repo, value: Any) -> str:
 def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
     body = repo.get(oid).body
     try:
+        validate_json_shape(body)
         parsed = json.loads(body)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("compatibility JSON blob is malformed") from exc

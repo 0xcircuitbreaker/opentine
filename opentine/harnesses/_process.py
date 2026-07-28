@@ -117,13 +117,16 @@ class ProcessHarness:
         output_buffer = StringIO()
         output_chars = events = 0
         saw_line = False
-        assert process.stdout is not None
+        output = process.stdout
+        if output is None:
+            _cleanup_owned(process, job)
+            raise RuntimeError(f"{self.name} subprocess output pipe is unavailable")
 
         async def read_output() -> None:
             nonlocal output_chars, events, saw_line
             while True:
                 try:
-                    raw = await process.stdout.readline()
+                    raw = await output.readline()
                 except ValueError as exc:
                     raise RuntimeError(
                         f"{self.name} output line exceeds {self.max_line_bytes} bytes"

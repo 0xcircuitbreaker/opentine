@@ -4,7 +4,6 @@ import hashlib
 import json
 import math
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Protocol
@@ -15,6 +14,29 @@ OID_RE = re.compile(r"^(blob|event|run|attestation|annotation):sha256:([0-9a-f]{
 
 class KernelError(ValueError):
     pass
+
+
+def validate_json_shape(raw: bytes | str, *, max_tokens: int = 200_000) -> None:
+    depth = tokens = 0
+    in_string = escaped = False
+    for token in raw if isinstance(raw, bytes | bytearray) else map(ord, raw):
+        if in_string:
+            if escaped:
+                escaped = False
+            else:
+                escaped = token == 0x5C
+                in_string = token != 0x22
+            continue
+        if token == 0x22:
+            in_string = True
+        elif token in (0x5B, 0x7B):
+            depth += 1
+            tokens += 1
+        elif token in (0x2C, 0x3A, 0x5D, 0x7D):
+            tokens += 1
+            depth -= token in (0x5D, 0x7D)
+        if depth > 512 or tokens > max_tokens:
+            raise KernelError("JSON structure exceeds semantic parser limits")
 
 
 def _number(value: int | float) -> str:
@@ -50,20 +72,14 @@ def _parse_int(value: str) -> int | float:
 
 
 def _string(value: str) -> str:
-    try:
-        value.encode("utf-8")
-    except UnicodeEncodeError as exc:
-        raise KernelError("canonical JSON forbids lone Unicode surrogates") from exc
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
 def _encode(value: Any) -> str:
     if value is None:
         return "null"
-    if value is True:
-        return "true"
-    if value is False:
-        return "false"
+    if isinstance(value, bool):
+        return "true" if value else "false"
     if isinstance(value, (int, float)):
         return _number(value)
     if isinstance(value, str):
@@ -108,13 +124,15 @@ class ObjectEnvelope:
 
     @classmethod
     def create(cls, object_type: str, payload: Any, schema: int = 1) -> ObjectEnvelope:
+        if object_type not in OBJECT_TYPES:
+            raise KernelError(f"unknown object type: {object_type}")
         if object_type == "blob":
             if not isinstance(payload, bytes):
                 raise KernelError("blob payload must be bytes")
             return cls(object_type, schema, payload, "raw")
-        if object_type not in OBJECT_TYPES:
-            raise KernelError(f"unknown object type: {object_type}")
-        return cls(object_type, schema, canonical_json(payload), "json")
+        body = canonical_json(payload)
+        validate_json_shape(body)
+        return cls(object_type, schema, body, "json")
 
     @property
     def oid(self) -> str:
@@ -131,6 +149,8 @@ class ObjectEnvelope:
     def decode(cls, stored: bytes, expected_oid: str | None = None) -> ObjectEnvelope:
         try:
             raw_header, body = stored.split(b"\n", 1)
+            if len(raw_header) > 256:
+                raise ValueError("object header exceeds its size limit")
             header = json.loads(raw_header)
         except (ValueError, RecursionError) as exc:
             raise KernelError("malformed object envelope") from exc
@@ -140,12 +160,12 @@ class ObjectEnvelope:
         if type(schema) is not int or not 1 <= schema < 2**53:
             raise KernelError("invalid object schema")
         envelope = cls(str(header.get("type")), schema, body, str(header.get("encoding")))
-        if envelope.object_type not in OBJECT_TYPES:
-            raise KernelError("unknown object type")
-        if envelope.encoding != ("raw" if envelope.object_type == "blob" else "json"):
-            raise KernelError("object encoding/type mismatch")
+        expected_encoding = "raw" if envelope.object_type == "blob" else "json"
+        if envelope.object_type not in OBJECT_TYPES or envelope.encoding != expected_encoding:
+            raise KernelError("unknown object type or encoding/type mismatch")
         if envelope.encoding == "json":
             try:
+                validate_json_shape(body)
                 parsed = json.loads(body, parse_int=_parse_int)
             except (json.JSONDecodeError, RecursionError, UnicodeDecodeError) as exc:
                 raise KernelError("malformed object JSON") from exc
@@ -156,36 +176,7 @@ class ObjectEnvelope:
         return envelope
 
 
-def _links(payload: dict[str, Any], object_type: str) -> list[str]:
-    if object_type == "event":
-        values = [*(payload.get("parent_ids") or []), *(payload.get("causal_ids") or [])]
-        for key in ("input_blob", "output_blob", "artifact_blob"):
-            if payload.get(key):
-                values.append(payload[key])
-        return values
-    if object_type == "run":
-        values = [
-            *(payload.get("roots") or []),
-            *(payload.get("tips") or []),
-            *(payload.get("events") or []),
-            *(payload.get("manifests") or {}).values(),
-        ]
-        values.extend(value for key, value in payload.items() if key.endswith("_blob") and value)
-        return values
-    if object_type in {"attestation", "annotation"}:
-        values = [payload["target_id"]] if payload.get("target_id") else []
-        if object_type == "annotation" and payload.get("previous_id"):
-            values.append(payload["previous_id"])
-        evidence = payload.get("evidence_ids", [])
-        values.extend(evidence if isinstance(evidence, list) else [None])
-        return values
-    return []
-
-
-def validate_links(
-    envelope: ObjectEnvelope,
-    exists: Callable[[str], bool] | None = None,
-) -> tuple[str, ...]:
+def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
     def event_ids(ids: Any) -> bool:
         return isinstance(ids, list) and all(parse_oid(oid)[0] == "event" for oid in ids)
 
@@ -194,42 +185,52 @@ def validate_links(
     payload = envelope.payload()
     if not isinstance(payload, dict):
         raise KernelError(f"{envelope.object_type} payload must be an object")
-    if envelope.object_type == "run" and not isinstance(payload.get("manifests", {}), dict):
-        raise KernelError("manifests must be an object")
+    links: list[str] = []
     if envelope.object_type == "event":
         for field in ("parent_ids", "causal_ids"):
             values = payload.get(field, [])
-            if not event_ids(values):
-                raise KernelError(f"{field} must contain event ids")
-            if len(set(values)) != len(values):
-                raise KernelError(f"duplicate {field} link")
+            if not event_ids(values) or len(set(values)) != len(values):
+                raise KernelError(f"{field} must contain event ids; unique event ids are required")
+            links.extend(values)
         for field in ("input_blob", "output_blob", "artifact_blob"):
             if payload.get(field) and parse_oid(payload[field])[0] != "blob":
                 raise KernelError(f"{field} must contain a blob id")
+            if payload.get(field):
+                links.append(payload[field])
     if envelope.object_type == "run":
+        if not isinstance(payload.get("manifests", {}), dict):
+            raise KernelError("manifests must be an object")
         event_values = payload.get("events", [])
         if not event_ids(event_values) or len(set(event_values)) != len(event_values):
             raise KernelError("events must contain unique event ids")
         events = set(event_values)
+        field_values: list[str] = []
         for field in ("roots", "tips"):
             values = payload.get(field, [])
             if not event_ids(values) or len(set(values)) != len(values):
-                raise KernelError(f"{field} must contain unique event ids")
+                raise KernelError(f"{field} must contain unique events from the run")
             if not set(values) <= events:
                 raise KernelError(f"{field} must be a subset of events")
-        manifest_map = payload.get("manifests", {})
-        if any(parse_oid(value)[0] != "blob" for value in manifest_map.values()):
-            raise KernelError("manifests must contain blob ids")
-        blob_values = [value for key, value in payload.items() if key.endswith("_blob") and value]
-        if any(parse_oid(value)[0] != "blob" for value in blob_values):
+            field_values.extend(values)
+        blobs = [
+            *payload.get("manifests", {}).values(),
+            *(value for key, value in payload.items() if key.endswith("_blob") and value),
+        ]
+        if any(parse_oid(value)[0] != "blob" for value in blobs):
             raise KernelError("run blob fields must contain blob ids")
-    if envelope.object_type == "annotation" and payload.get("previous_id"):
-        if parse_oid(payload["previous_id"])[0] != "annotation":
-            raise KernelError("previous_id must contain an annotation id")
-    if envelope.object_type == "attestation":
-        if parse_oid(payload.get("target_id", ""))[0] != "run":
-            raise KernelError("attestation target_id must contain a run id")
-    links, envelope_oid = _links(payload, envelope.object_type), envelope.oid
+        links = [*field_values, *event_values, *blobs]
+    if envelope.object_type in {"annotation", "attestation"}:
+        links = [payload["target_id"]] if payload.get("target_id") else []
+        if envelope.object_type == "annotation" and payload.get("previous_id"):
+            if parse_oid(payload["previous_id"])[0] != "annotation":
+                raise KernelError("previous_id must contain an annotation id")
+            links.append(payload["previous_id"])
+        evidence = payload.get("evidence_ids", [])
+        links.extend(evidence if isinstance(evidence, list) else [None])
+        if envelope.object_type == "attestation":
+            if parse_oid(payload.get("target_id", ""))[0] != "run":
+                raise KernelError("attestation target_id must contain a run id")
+    envelope_oid = envelope.oid
     for link in links:
         parse_oid(link)
         if link == envelope_oid:
@@ -239,9 +240,8 @@ def validate_links(
     return tuple(links)
 
 
-def verify_object(stored: bytes, oid: str, exists: Callable[[str], bool] | None = None) -> bool:
-    validate_links(ObjectEnvelope.decode(stored, oid), exists)
-    return True
+def verify_object(stored: bytes, oid: str, exists=None) -> bool:
+    return validate_links(ObjectEnvelope.decode(stored, oid), exists) is not None
 
 
 class RepoProtocol(Protocol):

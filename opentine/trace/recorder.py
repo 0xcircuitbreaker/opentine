@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import copy
 import time
 import uuid
 from collections import defaultdict, deque
 from typing import Any
 
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
+from opentine.trace._run_state import advance_run
 from opentine.trace.capture import code_manifest, environment_manifest
 from opentine.trace.schema import TraceEvent
 
@@ -20,6 +22,18 @@ class Recorder:
         self.run_id = run_id
         self.ref = ref
         self.span_map = dict(span_map or {})
+        envelope = repo.get(run_id)
+        decoded = envelope.payload()
+        if envelope.object_type != "run" or not isinstance(decoded, dict):
+            raise ValueError("recorder target is not a run")
+        self._payload = dict(decoded)
+        events = set(self._payload.get("events") or [])
+        for key, event_id in self.span_map.items():
+            if event_id not in events:
+                raise ValueError("recorder span map contains an event outside the run")
+            event = repo.get(event_id).payload()
+            if key != span_key(event.get("trace_id", ""), event.get("span_id")):
+                raise ValueError("recorder span map key does not match its event")
 
     @classmethod
     def start(
@@ -73,8 +87,9 @@ class Recorder:
         except ValueError:
             resolved_ref = None
         run_id = resolved_ref or run_or_ref
-        payload = repo.get(run_id).payload()
-        if repo.get(run_id).object_type != "run":
+        envelope = repo.get(run_id)
+        payload = envelope.payload()
+        if envelope.object_type != "run" or not isinstance(payload, dict):
             raise ValueError("recorder resume target is not a run")
         selected_ref = ref or (run_or_ref if resolved_ref else "heads/main")
         span_map: SpanMap = {}
@@ -91,7 +106,12 @@ class Recorder:
 
     @property
     def payload(self) -> dict[str, Any]:
-        return self.repo.get(self.run_id).payload()
+        return copy.deepcopy(self._payload)
+
+    def _advance(self, payload: dict[str, Any]) -> str:
+        self.run_id = advance_run(self.repo, self.ref, self.run_id, self._payload, payload)
+        self._payload = payload
+        return self.run_id
 
     @staticmethod
     def _capacity(run: dict[str, Any], incoming: int) -> None:
@@ -99,7 +119,7 @@ class Recorder:
             raise ValueError(f"Recorder runs are limited to {MAX_RECORDED_EVENTS} events")
 
     def append(self, event: TraceEvent, *, chain_if_parentless: bool = True) -> str:
-        run = self.payload
+        run = self._payload
         self._capacity(run, 1)
         key = span_key(event.trace_id, event.span_id)
         if key in self.span_map:
@@ -116,14 +136,12 @@ class Recorder:
         updated["roots"] = roots if parents else [*roots, event_id]
         old_tips = [tip for tip in run.get("tips") or [] if tip not in parents]
         updated["tips"] = [*old_tips, event_id]
-        next_run = self.repo.put("run", updated)
-        self.repo.update_ref(self.ref, next_run, expected_old=self.run_id)
-        self.run_id = next_run
+        self._advance(updated)
         self.span_map[key] = event_id
         return event_id
 
     def import_events(self, events: list[TraceEvent]) -> list[str]:
-        run = self.payload
+        run = self._payload
         self._capacity(run, len(events))
         by_span: dict[tuple[str, str], int] = {}
         for index, event in enumerate(events):
@@ -175,20 +193,17 @@ class Recorder:
         updated["roots"] = [*(run.get("roots") or []), *new_roots]
         tips = [*(run.get("tips") or []), *ordered_ids]
         updated["tips"] = [event_id for event_id in tips if event_id not in parented]
-        next_run = self.repo.put("run", updated)
-        self.repo.update_ref(self.ref, next_run, expected_old=self.run_id)
-        self.run_id = next_run
+        self._advance(updated)
         self.span_map = working_map
         return result
 
     def finalize(self, status: str = "completed") -> str:
-        payload = dict(self.payload)
+        if status not in {"running", "paused", "completed", "failed"}:
+            raise ValueError(f"invalid run status: {status!r}")
+        payload = dict(self._payload)
         payload["status"] = status
         payload["finished_at"] = time.time()
-        next_run = self.repo.put("run", payload)
-        self.repo.update_ref(self.ref, next_run, expected_old=self.run_id)
-        self.run_id = next_run
-        return next_run
+        return self._advance(payload)
 
     def fork(
         self,

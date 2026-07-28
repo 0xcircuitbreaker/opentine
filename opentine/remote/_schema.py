@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from sqlite3 import Connection
 
@@ -34,12 +34,12 @@ CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit
 """
 
 
-def _rows(database: Connection) -> list[tuple]:
+def _rows(database: Connection) -> Iterable[tuple]:
     selected = "sequence," + ",".join(FIELDS) + ",prev_hash,row_hash"
-    return database.execute(f"SELECT {selected} FROM audit ORDER BY sequence").fetchall()
+    return database.execute(f"SELECT {selected} FROM audit ORDER BY sequence")
 
 
-def _valid_keyed(rows: list[tuple], key: bytes) -> bool:
+def _valid_keyed(rows: Iterable[tuple], key: bytes) -> bool:
     previous = GENESIS
     for record in rows:
         row = dict(zip(FIELDS, record[1:-2]))
@@ -79,7 +79,7 @@ def _upgrade_audit(database: Connection, columns: set[str], key: bytes, allow_le
     if "row_hash" not in columns:
         database.execute("ALTER TABLE audit ADD COLUMN row_hash TEXT")
     selected = "sequence," + ",".join(FIELDS)
-    rows = database.execute(f"SELECT {selected} FROM audit ORDER BY sequence").fetchall()
+    rows = database.execute(f"SELECT {selected} FROM audit ORDER BY sequence")
     previous = GENESIS
     for record in rows:
         row = dict(zip(FIELDS, record[1:]))
@@ -89,12 +89,12 @@ def _upgrade_audit(database: Connection, columns: set[str], key: bytes, allow_le
             (previous, current, record[0]),
         )
         previous = current
-    if rows:
+    if count:
         marker = {
             "action": "audit_migration",
             "actor": "opentine",
             "details": json.dumps(
-                {"legacy_rows": len(rows), "verification": "unverified"},
+                {"legacy_rows": count, "verification": "unverified"},
                 sort_keys=True,
                 separators=(",", ":"),
             ),
@@ -110,7 +110,7 @@ def _upgrade_audit(database: Connection, columns: set[str], key: bytes, allow_le
             f"INSERT INTO audit({columns_sql},prev_hash,row_hash) VALUES({placeholders})",
             [marker[field] for field in FIELDS] + [previous, current],
         )
-    return bool(rows)
+    return bool(count)
 
 
 def initialize(

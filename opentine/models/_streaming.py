@@ -36,8 +36,10 @@ class WarningList(list[str]):
 
 
 def chat_chunk_usage(chunk: Any, choices: list[Any]) -> Any:
-    """Accept top-level usage and Kimi's final per-choice stream usage."""
+    """Accept top-level, Groq extension, and Kimi per-choice stream usage."""
     raw = value(chunk, "usage")
+    if raw is None:
+        raw = value(value(chunk, "x_groq"), "usage")
     return value(choices[0], "usage") if raw is None and choices else raw
 
 

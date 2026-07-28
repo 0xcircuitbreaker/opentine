@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, validate_links
 from opentine.repository._paths import atomic_bytes, install_verified, internal_path
-from opentine.repository._run_graph import PackedGraphView
+from opentine.repository._semantic_view import SemanticView
 from opentine.repository._shallow import encode_shallow, shallow_lock
 
 if TYPE_CHECKING:
@@ -40,7 +40,12 @@ def install_inspected(
             if oid not in packed_ids and not repo.has(oid)
         }
         shallow_body = encode_shallow(boundaries)
-        view = PackedGraphView(repo, dict(objects))
+        view = SemanticView(
+            repo,
+            dict(objects),
+            check_link_existence=False,
+            max_source_bytes=max_body,
+        )
         external: set[str] = set()
         for oid, _ in objects:
             envelope = view.get(oid)

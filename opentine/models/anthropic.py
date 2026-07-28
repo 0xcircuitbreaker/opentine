@@ -111,8 +111,12 @@ class Anthropic:
             reported_model=raw_model,
         )
         refusal_model = self._model if raw_model is None else reported_model or ""
-        if early_refusal and "fable-5" in refusal_model.lower():
-            billing = payload["billing"]
+        billing = payload["billing"]
+        if (
+            early_refusal
+            and refusal_model.casefold() == "claude-fable-5"
+            and billing["rate_card_id"] is not None
+        ):
             billing["status"] = "complete"
             billing["amount_usd"] = "0"
             billing["known_subtotal_usd"] = "0"
@@ -151,7 +155,11 @@ class Anthropic:
             self._meter(
                 response,
                 early_refusal=(
-                    refused and not had_content and usage.output == 0 and raw_usage is not None
+                    refused
+                    and not had_content
+                    and usage.output == 0
+                    and usage.reasoning == 0
+                    and raw_usage is not None
                 ),
             )
         )

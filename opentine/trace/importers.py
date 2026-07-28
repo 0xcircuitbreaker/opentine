@@ -100,7 +100,9 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
     lines = _file_lines(source) if isinstance(source, (str, Path)) else source
     events: list[TraceEvent] = []
     total = 0
-    for line in lines:
+    for record_index, line in enumerate(lines):
+        if record_index >= MAX_TRACE_EVENTS:
+            raise ValueError("trace import exceeds maximum input-record count")
         total = _consume(total, line)
         if not isinstance(line, (str, bytes)) or len(line) > MAX_JSONL_LINE_BYTES:
             continue
@@ -205,6 +207,8 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
     events: list[TraceEvent] = []
     total = 0
     for index, record in enumerate(records):
+        if index >= MAX_TRACE_EVENTS:
+            raise ValueError("trace import exceeds maximum input-record count")
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
         if not isinstance(record, dict):
@@ -214,7 +218,7 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
         kind = event_kind(event_type)
         usage, event_attributes = imported_usage(
             record.get("usage"),
-            _safe({"framework": framework, **dictionary(record.get("metadata"))}),
+            _safe({**dictionary(record.get("metadata")), "framework": framework}),
         )
         events.append(
             TraceEvent(

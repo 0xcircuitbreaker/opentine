@@ -31,6 +31,23 @@ def meter_value(data: Mapping[str, Any], *names: str) -> Any:
     return 0.0
 
 
+def duration_seconds(data: Mapping[str, Any]) -> Any:
+    """Read a harness-reported duration as seconds, converting ``*_ms`` fields.
+
+    ``Step.duration`` is seconds — it is rendered as ``…s`` and compared against
+    ``Budget.max_duration``. Storing a millisecond field verbatim inflates every
+    reported duration 1000x and can abort a run on a duration budget it never
+    actually exceeded.
+    """
+    value = meter_value(data, "duration", "duration_s", "duration_seconds")
+    if value:
+        return value
+    millis = meter_value(data, "duration_ms", "duration_millis", "latency_ms")
+    if isinstance(millis, bool) or not isinstance(millis, (int, float)):
+        return millis or 0.0
+    return millis / 1000.0
+
+
 def _jsonable(value: Any) -> Any:
     if value is None or isinstance(value, str | int | float | bool):
         return value
@@ -112,5 +129,17 @@ def parse_json_event(line: str) -> dict[str, Any] | None:
 
 
 def cost_from_text(text: str) -> float:
-    match = re.search(r"(?:cost|price)\s*[=:]\s*\$?([0-9]+(?:\.[0-9]+)?)", text, re.I)
-    return float(match.group(1)) if match else 0.0
+    """Scrape a charge out of a harness's free-text output.
+
+    A currency marker is required. Without one this matched ordinary prose — an
+    agent writing "cost: 500" about an approach it was weighing booked $500 to the
+    run. Structured harness output goes through ``meter_value`` instead and needs
+    no marker; this heuristic only ever sees unstructured lines.
+    """
+    match = re.search(
+        r"(?:cost|price)\s*[=:]\s*(?:\$\s*([0-9]+(?:\.[0-9]+)?)"
+        r"|([0-9]+(?:\.[0-9]+)?)\s*(?:usd|dollars?)\b)",
+        text,
+        re.I,
+    )
+    return float(match.group(1) or match.group(2)) if match else 0.0

@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.billing._context import billing_context
 from opentine.models._metered import metered_response
 from opentine.models._usage import missing_usage_dimensions, ollama_usage
 
@@ -18,15 +19,16 @@ def ollama_meter(
     compute_rate: bool,
 ) -> dict[str, Any]:
     normalized = dict(data)
-    for source, target in (
-        ("total_duration", "total_seconds"),
-        ("load_duration", "load_seconds"),
-        ("prompt_eval_duration", "prompt_eval_seconds"),
-        ("eval_duration", "eval_seconds"),
-    ):
-        if source in normalized:
-            normalized[target] = Decimal(normalized[source]) / Decimal(1_000_000_000)
-            normalized.pop(source)
+    with billing_context():
+        for source, target in (
+            ("total_duration", "total_seconds"),
+            ("load_duration", "load_seconds"),
+            ("prompt_eval_duration", "prompt_eval_seconds"),
+            ("eval_duration", "eval_seconds"),
+        ):
+            if source in normalized:
+                normalized[target] = Decimal(normalized[source]) / Decimal(1_000_000_000)
+                normalized.pop(source)
     required = (
         {
             "prompt_eval_seconds": ("prompt_eval_duration",),

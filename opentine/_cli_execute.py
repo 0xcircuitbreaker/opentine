@@ -7,7 +7,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-from rich.markup import escape
 from rich.table import Table
 
 from opentine._cli_common import (
@@ -17,6 +16,7 @@ from opentine._cli_common import (
     _find_run,
     _harness_from_args,
     _runs_dir,
+    _terminal,
     console,
 )
 from opentine._cli_render import _budget_str, _print_run_tree
@@ -33,9 +33,9 @@ def cmd_run(args: argparse.Namespace) -> None:
         raise SystemExit(1)
     script = Path(args.script)
     if not script.exists():
-        console.print(f"[red]File not found: {script}[/]")
+        console.print(f"[red]File not found: {_terminal(script)}[/]")
         raise SystemExit(1)
-    console.print(f"[{BRAND}]# Running {script.name}...[/]\n")
+    console.print(f"[{BRAND}]# Running {_terminal(script.name)}...[/]\n")
     spec = importlib.util.spec_from_file_location("__tine_script__", str(script))
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load {script}")
@@ -51,7 +51,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         raise SystemExit(1)
     output = _runs_dir() / f"{run.id}.tine"
     run.save(output)
-    console.print(f"\n[{BRAND}]Saved:[/] {output}")
+    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
     _print_run_tree(run)
 
 
@@ -80,18 +80,18 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
             output = output or (_runs_dir() / f"{run.id}.tine")
             run.save(output)
             _print_run_tree(run)
-        console.print(f"[red]Harness failed:[/] {exc}")
+        console.print(f"[red]Harness failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
     output = output or (_runs_dir() / f"{run.id}.tine")
     run.save(output)
-    console.print(f"\n[{BRAND}]Saved:[/] {output}")
+    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
     _print_run_tree(run)
 
 
 def cmd_show(args: argparse.Namespace) -> None:
     path = _find_run(args.run_id)
     if not path:
-        console.print(f"[red]Run not found: {args.run_id}[/]")
+        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     _print_run_tree(Run.load(path))
 
@@ -99,12 +99,13 @@ def cmd_show(args: argparse.Namespace) -> None:
 def cmd_cost(args: argparse.Namespace) -> None:
     path = _find_run(args.run_id)
     if not path:
-        console.print(f"[red]Run not found: {args.run_id}[/]")
+        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
     breakdown = run.cost_breakdown()
     console.print(
-        f"[{BRAND}]# Cost[/] {short_id(run.id)} total={_cost_str(breakdown.total_cost)} "
+        f"[{BRAND}]# Cost[/] {_terminal(short_id(run.id))} "
+        f"total={_cost_str(breakdown.total_cost)} "
         f"tokens={breakdown.total_tokens} "
         f"(in {breakdown.input_tokens} / out {breakdown.output_tokens})"
     )
@@ -115,14 +116,14 @@ def cmd_cost(args: argparse.Namespace) -> None:
         table.add_column(title.removeprefix("By ").title())
         table.add_column("Cost", justify="right")
         for name, cost in sorted(values.items(), key=lambda item: item[1], reverse=True):
-            table.add_row(escape(name or "-"), _cost_str(cost))
+            table.add_row(_terminal(name or "-"), _cost_str(cost))
         console.print(table)
     if run.budget():
         console.print(f"[{BRAND_DIM}]Budget:[/] {_budget_str(run.budget())}")
     state = run.metadata.get("budget_state")
     if isinstance(state, dict) and state.get("breached"):
         console.print(
-            f"[red]Over budget:[/] {escape(str(state.get('dimension')))} "
-            f"{state.get('incurred')} > {state.get('limit')}"
+            f"[red]Over budget:[/] {_terminal(state.get('dimension'))} "
+            f"{_terminal(state.get('incurred'))} > {_terminal(state.get('limit'))}"
         )
         raise SystemExit(1)

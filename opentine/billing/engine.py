@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
+from opentine.billing._context import billing_context
 from opentine.billing.types import BillingResult, RateCard, Usage, as_date, decimal
 
 _MILLION = Decimal(1_000_000)
@@ -41,7 +42,7 @@ def _threshold_rates(
     return rates, [str(rule.get("id") or f"input>{threshold}")]
 
 
-def calculate(
+def _calculate(
     usage: Usage,
     card: RateCard | None,
     *,
@@ -184,6 +185,29 @@ def calculate(
         calculation,
         catalog_provenance,
     )
+
+
+def calculate(
+    usage: Usage,
+    card: RateCard | None,
+    *,
+    catalog_id: str | None = None,
+    catalog_hash: str | None = None,
+    effective_at: date | datetime | str | None = None,
+    service_tier: str | None = None,
+    catalog_provenance: tuple[dict[str, Any], ...] = (),
+) -> BillingResult:
+    """Calculate under a fixed context, independent of caller precision or traps."""
+    with billing_context():
+        return _calculate(
+            usage,
+            card,
+            catalog_id=catalog_id,
+            catalog_hash=catalog_hash,
+            effective_at=effective_at,
+            service_tier=service_tier,
+            catalog_provenance=catalog_provenance,
+        )
 
 
 def now_utc() -> datetime:

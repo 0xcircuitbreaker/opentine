@@ -10,19 +10,43 @@ TYPED_REF_NAMESPACES = {
     "heads": "run",
     "promotions": "run",
 }
-_REF = re.compile(r"^(?:annotations|heads|tags|experiments|promotions|remotes)/[A-Za-z0-9._/-]+$")
+_REF = re.compile(r"^(?:annotations|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$")
+_WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
+    f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
+}
+MAX_REF_COMPONENT_BYTES = 240
 
 
 def normalize_ref(name: str) -> str:
+    if not isinstance(name, str):
+        raise ValueError(f"invalid ref name: {name!r}")
     normalized = name.removeprefix("refs/")
     parts = normalized.split("/")
     if (
-        len(normalized) > 512
-        or not _REF.fullmatch(normalized)
-        or any(part in {"", ".", ".."} or part.endswith(".lock") for part in parts)
+        not _REF.fullmatch(normalized)
+        or len(normalized.encode("utf-8")) > 512
+        or normalized != normalized.casefold()
+        or any(
+            part in {"", ".", ".."}
+            or ".." in part
+            or part.casefold().endswith(".lock")
+            or part.endswith((".", " "))
+            or part.split(".", 1)[0].casefold() in _WINDOWS_NAMES
+            or len(part.encode("utf-8")) > MAX_REF_COMPONENT_BYTES
+            for part in parts
+        )
     ):
         raise ValueError(f"invalid ref name: {name!r}")
     return normalized
+
+
+def validate_ref_oid(name: str, oid: str) -> None:
+    """Reject an impossible typed ref target before touching object storage."""
+    object_type, _ = parse_oid(oid)
+    namespace = name.removeprefix("refs/").partition("/")[0]
+    expected = TYPED_REF_NAMESPACES.get(namespace)
+    if expected and object_type != expected:
+        raise ValueError(f"{namespace} refs require {expected} objects, got {object_type}")
 
 
 def validate_ref_target(name: str, object_type: str, payload: object | None = None) -> None:

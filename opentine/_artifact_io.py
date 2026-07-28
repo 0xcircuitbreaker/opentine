@@ -8,38 +8,32 @@ import stat
 from pathlib import Path
 from typing import Any
 
+from opentine.kernel import KernelError, validate_json_shape
+
 MAX_TINE_ARTIFACT_BYTES = 256 * 1024 * 1024
-MAX_TINE_JSON_DEPTH = 512
 MAX_TINE_INTEGER_DIGITS = 4096
 
+#: Structural tokens permitted per byte of artifact. A container costs ~2 bytes on
+#: disk but ~64 bytes once materialized, so a dense all-``{}`` payload amplifies
+#: roughly 32x; capping density is what makes that attack unprofitable. Real runs
+#: sit at ~0.06 tokens/byte regardless of length, so this leaves ~4x headroom.
+_MAX_TOKEN_DENSITY = 4
 
-def _reject_excessive_nesting(raw: bytes | str) -> None:
-    """Bound JSON container depth before version-dependent decoders run."""
-    if isinstance(raw, bytes):
-        if b"\0" in raw:
-            raise ValueError(".tine artifacts must use UTF-8 JSON")
-        quote, slash, opening, closing = 0x22, 0x5C, (0x5B, 0x7B), (0x5D, 0x7D)
-    else:
-        quote, slash, opening, closing = '"', "\\", ("[", "{"), ("]", "}")
-    depth = 0
-    in_string = False
-    escaped = False
-    for token in raw:
-        if in_string:
-            if escaped:
-                escaped = False
-            elif token == slash:
-                escaped = True
-            elif token == quote:
-                in_string = False
-        elif token == quote:
-            in_string = True
-        elif token in opening:
-            depth += 1
-            if depth > MAX_TINE_JSON_DEPTH:
-                raise ValueError(".tine artifact nesting exceeds the parser limit")
-        elif token in closing:
-            depth -= 1
+#: Floor for small artifacts, and absolute ceiling so that even a maximally dense
+#: 256 MiB artifact cannot be materialized without bound.
+_MIN_STRUCTURAL_TOKENS = 200_000
+_MAX_STRUCTURAL_TOKENS = 16_000_000
+
+
+def _structural_token_budget(length: int) -> int:
+    """Bound structure relative to size, so writable runs stay readable.
+
+    A single fixed cap cannot do both jobs: set low enough to stop amplification
+    it also rejects long-but-ordinary runs, which is worse than the attack it
+    prevents — ``Run.save()`` would persist a ~20k-step artifact that no longer
+    loads, silently destroying the run.
+    """
+    return min(_MAX_STRUCTURAL_TOKENS, max(_MIN_STRUCTURAL_TOKENS, length // _MAX_TOKEN_DENSITY))
 
 
 def artifact_integrity(data: dict[str, Any]) -> dict[str, Any] | None:
@@ -79,7 +73,14 @@ def read_artifact_bytes(path: str | Path) -> bytes:
 def parse_artifact_json(raw: bytes | str) -> Any:
     """Decode portable JSON while refusing parser-differential constructs."""
 
-    _reject_excessive_nesting(raw)
+    if isinstance(raw, bytes) and b"\0" in raw:
+        raise ValueError(".tine artifacts must use UTF-8 JSON")
+    try:
+        validate_json_shape(raw, max_tokens=_structural_token_budget(len(raw)))
+    except KernelError as exc:
+        raise ValueError(
+            ".tine artifact nesting exceeds the parser limit or structure is excessive"
+        ) from exc
 
     def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}

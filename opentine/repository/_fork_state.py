@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from opentine._graph_analysis import _causal_transcript, _slice_pricing
 from opentine.repository._run_blobs import blob_json, json_blob, put_transcript, transcript_blob
 from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
+from opentine.repository._traversal import TraversalQueue
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -26,15 +27,15 @@ _FORK_MANIFESTS = {
 
 def _closure(repo: Repo, from_event: str) -> set[str]:
     keep: set[str] = set()
-    queue = [from_event]
-    while queue:
-        event = queue.pop()
-        if event in keep:
-            continue
+    queue = TraversalQueue(((from_event, 0),))
+    for event, _ in queue:
         keep.add(event)
         payload = repo.get(event).payload()
-        queue.extend(payload.get("parent_ids") or [])
-        queue.extend(payload.get("causal_ids") or [])
+        for dependency in [
+            *(payload.get("parent_ids") or []),
+            *(payload.get("causal_ids") or []),
+        ]:
+            queue.add(dependency)
     return keep
 
 

@@ -78,34 +78,29 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
     )
 
 
+def _split_assignment(text: str) -> tuple[str, str, str]:
+    """Split on whichever of ``:``/``=`` comes *first*, not on whichever exists.
+
+    A value may contain the other separator (``api_key=sk-proj:abc``); splitting on
+    the later one buries the credential name in the label, hiding it from the name
+    check below and leaving the secret in cleartext.
+    """
+    at = min((i for i in (text.find(":"), text.find("=")) if i >= 0), default=-1)
+    if at < 0:
+        return text, "", ""
+    return text[:at], text[at], text[at + 1 :]
+
+
 def _redact(value: Any) -> Any:
     """Redact credential fields without deleting numeric usage dimensions."""
-    credential_names = {
-        "api_key",
-        "apikey",
-        "api_token",
-        "access_key",
-        "secret_access_key",
-        "secret_key",
-        "access_token",
-        "refresh_token",
-        "auth_token",
-        "bearer_token",
-        "id_token",
-        "session_token",
-        "password",
-        "passwd",
-        "passphrase",
-        "secret",
-        "client_secret",
-        "private_key",
-        "credential",
-        "credentials",
-        "authorization",
-        "proxy_authorization",
-        "cookie",
-        "set_cookie",
-    }
+    credential_names = set(
+        (
+            "api_key apikey api_token access_key secret_access_key secret_key access_token "
+            "refresh_token auth_token bearer_token id_token session_token password passwd "
+            "passphrase secret client_secret private_key credential credentials authorization "
+            "proxy_authorization cookie set_cookie"
+        ).split()
+    )
     suffixes = (
         "_api_key",
         "_api_token",
@@ -131,16 +126,21 @@ def _redact(value: Any) -> Any:
         "_set_cookie",
     )
     if isinstance(value, dict):
-        header_name_key = next((key for key in value if str(key).strip().lower() == "name"), None)
-        header_value = next((key for key in value if str(key).strip().lower() == "value"), None)
-        header_name = value.get(header_name_key) if header_name_key is not None else None
-        header = _field_name(header_name) if isinstance(header_name, str) else ""
+        header_names = [item for key, item in value.items() if _field_name(key) == "name"]
+        header_values = {key for key in value if _field_name(key) == "value"}
+        secret_header = any(
+            isinstance(item, str)
+            and (
+                _field_name(item) == "token"
+                or _secret_field(_field_name(item), credential_names, suffixes)
+            )
+            for item in header_names
+        )
         redacted: dict[Any, Any] = {}
         for key, item in value.items():
             name = _field_name(key)
             is_secret = _secret_field(name, credential_names, suffixes) or (
-                key == header_value
-                and (header == "token" or _secret_field(header, credential_names, suffixes))
+                key in header_values and secret_header
             )
             if name == "token" and not isinstance(item, (int, float)):
                 is_secret = True
@@ -159,15 +159,15 @@ def _redact(value: Any) -> Any:
                 return [items[0], "[REDACTED]"]
         redacted = []
         for item in items:
-            if isinstance(item, str) and ":" in item:
-                name, separator, _ = item.partition(":")
+            if isinstance(item, str) and (":" in item or "=" in item):
+                name, separator, _ = _split_assignment(item)
                 if _field_name(name) in headers | {"token"}:
                     redacted.append(name + separator + " [REDACTED]")
                     continue
             redacted.append(_redact(item))
         return redacted
-    if isinstance(value, str) and ":" in value:
-        label, separator, candidate = value.partition(":")
+    if isinstance(value, str) and (":" in value or "=" in value):
+        label, separator, candidate = _split_assignment(value)
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()
@@ -195,7 +195,9 @@ def _redact(value: Any) -> Any:
     return value
 
 
-def atomic_write_text(path: str | Path, text: str, *, fsync: bool = False) -> Path:
+def atomic_write_text(
+    path: str | Path, text: str, *, fsync: bool = False, mode: int | None = None
+) -> Path:
     """Write ``text`` to ``path`` atomically.
 
     A temp file is written in the target's own directory and ``os.replace``-d
@@ -216,11 +218,13 @@ def atomic_write_text(path: str | Path, text: str, *, fsync: bool = False) -> Pa
             if fsync:
                 handle.flush()
                 os.fsync(handle.fileno())
-        try:
-            existing_mode = stat.S_IMODE(os.stat(p).st_mode)
-            os.chmod(tmp, existing_mode)
-        except FileNotFoundError:
-            pass
+        if mode is not None:
+            os.chmod(tmp, mode)
+        else:
+            try:
+                os.chmod(tmp, stat.S_IMODE(os.stat(p).st_mode))
+            except FileNotFoundError:
+                pass
         os.replace(tmp, p)
         if fsync:
             _fsync_dir(p.parent)

@@ -12,7 +12,7 @@ from opentine.graph import Run, RunStatus, StepKind
 
 class RuntimeLoopMixin:
     async def _invoke(self, run: Run, messages: list[dict[str, Any]], request: dict[str, Any]):
-        started = time.time()
+        started = time.monotonic()
         try:
             response = await self.model.complete(
                 messages,
@@ -26,7 +26,7 @@ class RuntimeLoopMixin:
                 StepKind.error,
                 {"text": "Model invocation failed"},
                 outputs={"partial": partial.get("text", "")},
-                duration=time.time() - started,
+                duration=time.monotonic() - started,
                 cost=partial.get("cost", 0),
                 model_info=self.model.name,
                 usage=partial.get("usage"),
@@ -35,7 +35,7 @@ class RuntimeLoopMixin:
             )
             self._pin_billing(run, step.id, partial.get("billing") or {})
             raise
-        duration = time.time() - started
+        duration = time.monotonic() - started
         cache_key = semantic_key("model.complete", request)
         run.cache[cache_key] = CacheEntry(
             cache_key,
@@ -125,6 +125,7 @@ class RuntimeLoopMixin:
             name, arguments = call["name"], call.get("arguments", {})
             call_id = call.get("id") or name
             cache_key = semantic_key("tool.call", {"arguments": arguments, "name": name})
+            started = time.monotonic()
             try:
                 result = await self._call_tool(name, arguments)
                 run.cache[cache_key] = CacheEntry(
@@ -141,11 +142,13 @@ class RuntimeLoopMixin:
                     outputs={"result": result},
                     error={"message": str(exc), "type": type(exc).__name__},
                 )
+            duration = time.monotonic() - started
             step = run.add_step(
                 StepKind.tool,
                 {"arguments": arguments, "name": name},
                 outputs={"result": result},
                 tool_info={"name": name},
+                duration=duration,
             )
             message = {
                 "step_id": step.id,
@@ -164,8 +167,16 @@ class RuntimeLoopMixin:
         autosaver: Autosaver | None = None,
     ) -> Run:
         budget = run.budget()
+        prior_duration = run.total_duration
+        continued_at = time.monotonic()
+
+        def elapsed_duration() -> float:
+            return prior_duration + time.monotonic() - continued_at
+
         for _ in range(self.max_steps):
-            if budget is not None and self._enforce_budget(run, budget):
+            if budget is not None and self._enforce_budget(
+                run, budget, elapsed_duration=elapsed_duration()
+            ):
                 return run
             request = {
                 "messages": messages,
@@ -177,6 +188,10 @@ class RuntimeLoopMixin:
             response, duration = await self._invoke(run, messages, request)
             assistant, tool_calls, refused = self._record_model(run, response, duration)
             messages.append(assistant)
+            if budget is not None and self._enforce_budget(
+                run, budget, elapsed_duration=elapsed_duration()
+            ):
+                return run
             if refused:
                 run.status = RunStatus.failed
                 break
@@ -184,6 +199,10 @@ class RuntimeLoopMixin:
                 run.status = RunStatus.completed
                 break
             await self._execute_tools(run, messages, tool_calls)
+            if budget is not None and self._enforce_budget(
+                run, budget, elapsed_duration=elapsed_duration()
+            ):
+                return run
             if autosaver is not None:
                 autosaver.maybe_save(run)
         else:

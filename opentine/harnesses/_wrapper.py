@@ -57,17 +57,29 @@ class OpentineHarness:
             StepKind.model,
             inputs={"context": context or {}, "harness": self.harness.name, "task": task},
         )
-        started = time.time()
+        started = time.monotonic()
         try:
             result = self.harness.execute(task, context=context, step_callback=self.record_step)
             if inspect.isawaitable(result):
-                result = await result
+                budget = run.budget()
+                timeout = (
+                    max(
+                        0,
+                        budget.max_duration - run.total_duration - (time.monotonic() - started),
+                    )
+                    if budget is not None and budget.max_duration is not None
+                    else None
+                )
+                if timeout is not None:
+                    result = await asyncio.wait_for(result, timeout)
+                else:
+                    result = await result
             self.record_step(
                 StepKind.done,
                 inputs={"result": _jsonable(result)},
                 outputs={"result": _jsonable(result)},
                 parent_id=self._last_step_id or root,
-                duration=time.time() - started,
+                duration=time.monotonic() - started,
             )
             run.status = RunStatus.completed
         except BudgetExceeded as exc:
@@ -76,7 +88,7 @@ class OpentineHarness:
                 inputs={"error": f"BudgetExceeded: {exc.breach.dimension}"},
                 outputs={"error": str(exc)},
                 parent_id=self._last_step_id or root,
-                duration=time.time() - started,
+                duration=time.monotonic() - started,
             )
             run.status = RunStatus.failed
             self._save_if_requested(save_path)
@@ -85,13 +97,21 @@ class OpentineHarness:
                 raise
             return run
         except Exception as exc:
-            self.record_step(
-                StepKind.error,
-                inputs={"error": f"{type(exc).__name__}: {exc}"},
-                outputs={"error": str(exc)},
-                parent_id=self._last_step_id or root,
-                duration=time.time() - started,
-            )
+            try:
+                self.record_step(
+                    StepKind.error,
+                    inputs={"error": f"{type(exc).__name__}: {exc}"},
+                    outputs={"error": str(exc)},
+                    parent_id=self._last_step_id or root,
+                    duration=time.monotonic() - started,
+                )
+            except BudgetExceeded as budget_exc:
+                run.status = RunStatus.failed
+                self._save_if_requested(save_path)
+                budget = run.budget()
+                if budget is not None and budget.on_breach == "raise":
+                    raise budget_exc
+                return run
             run.status = RunStatus.failed
             self._save_if_requested(save_path)
             raise

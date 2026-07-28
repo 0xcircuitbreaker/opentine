@@ -20,7 +20,7 @@ _LAST_ROW = (
 
 
 def _row(record) -> dict[str, str]:
-    return dict(zip(FIELDS, record[: len(FIELDS)]))
+    return dict(zip(FIELDS, record))
 
 
 class SQLiteAuditMixin:
@@ -41,12 +41,13 @@ class SQLiteAuditMixin:
                 previous = last[-1] if last else GENESIS
                 if last and chain(last[-2], _row(last), self._audit_key) != previous:
                     raise RuntimeError("audit chain tail failed authentication")
-                valid, verified_head = self._verified_head_from(database)
-                if not valid or verified_head != previous:
-                    raise RuntimeError("audit chain continuity failed authentication")
                 anchored = read_anchor(self._anchor_path, self._audit_key)
                 if anchored != previous:
-                    verified_heal = last and anchored == last[-2]
+                    verified_heal = (
+                        last
+                        and anchored == last[-2]
+                        and chain(anchored, _row(last), self._audit_key) == previous
+                    )
                     if verified_heal:
                         write_anchor(self._anchor_path, previous, self._audit_key)
                     else:

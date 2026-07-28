@@ -50,7 +50,50 @@ def integer(obj: Any, name: str, default: int = 0) -> int:
     raise ValueError(f"provider usage.{name} must be a non-negative safe integer")
 
 
-def openai_usage(raw: Any) -> Usage:
+def _first_value(*candidates: tuple[Any, str], default: Any = 0) -> Any:
+    for source, name in candidates:
+        raw = value(source, name, _MISSING)
+        if raw is not _MISSING and raw is not None:
+            return raw
+    return default
+
+
+def usage_field_present(raw: Any, *paths: tuple[str, ...]) -> bool:
+    """Return whether any nested provider field is present and non-null."""
+    for path in paths:
+        current = raw
+        for name in path:
+            current = value(current, name, _MISSING)
+            if current is _MISSING or current is None:
+                break
+        else:
+            return True
+    return False
+
+
+def openai_missing_usage(raw: Any, *, require_cache_write: bool = False) -> tuple[str, ...]:
+    missing = list(
+        missing_usage_dimensions(
+            raw,
+            {
+                "input": ("input_tokens", "prompt_tokens"),
+                "output": ("output_tokens", "completion_tokens"),
+            },
+        )
+    )
+    cache_write_paths = (
+        ("input_tokens_details", "cache_write_tokens"),
+        ("prompt_tokens_details", "cache_write_tokens"),
+        ("input_tokens_details", "cache_creation_input_tokens"),
+        ("prompt_tokens_details", "cache_creation_input_tokens"),
+        ("cache_write_tokens",),
+    )
+    if require_cache_write and not usage_field_present(raw, *cache_write_paths):
+        missing.append("cache_write_5m")
+    return tuple(missing)
+
+
+def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
     """Normalize Responses or Chat Completions usage into exclusive buckets."""
     input_total = integer(raw, "input_tokens", integer(raw, "prompt_tokens"))
     output_total = integer(raw, "output_tokens", integer(raw, "completion_tokens"))
@@ -59,31 +102,42 @@ def openai_usage(raw: Any) -> Usage:
     # Nested details take precedence; fall back to top-level fields used by
     # OpenAI-compatible providers (e.g. DeepSeek's prompt_cache_hit_tokens) so cache
     # reads are billed at the cache rate, not as fresh input.
-    cached_raw = value(input_details, "cached_tokens", _MISSING)
-    if cached_raw is _MISSING:
-        cached_raw = value(raw, "cached_tokens", _MISSING)
-    if cached_raw is _MISSING:
-        cached_raw = value(raw, "prompt_cache_hit_tokens", 0)
+    cached_raw = _first_value(
+        (input_details, "cached_tokens"),
+        (raw, "cached_tokens"),
+        (raw, "prompt_cache_hit_tokens"),
+        (raw, "num_cached_tokens"),
+    )
     cached = integer({"cached_tokens": cached_raw}, "cached_tokens")
     write_5m = integer(
-        input_details,
-        "cache_write_tokens",
-        integer(input_details, "cache_creation_input_tokens"),
+        {
+            "value": _first_value(
+                (input_details, "cache_write_tokens"),
+                (input_details, "cache_creation_input_tokens"),
+                (raw, "cache_write_tokens"),
+            )
+        },
+        "value",
     )
     write_1h = integer(input_details, "cache_write_1h_tokens")
-    reasoning = integer(output_details, "reasoning_tokens")
+    reasoning = integer(
+        {"value": _first_value((output_details, "reasoning_tokens"), (raw, "reasoning_tokens"))},
+        "value",
+    )
     if cached + write_5m + write_1h > input_total:
         raise ValueError("provider usage input sub-buckets exceed total input tokens")
-    if reasoning > output_total:
+    if not additive_reasoning and reasoning > output_total:
         raise ValueError("provider usage reasoning tokens exceed total output tokens")
+    normalized_output = output_total if additive_reasoning else output_total - reasoning
+    computed_total = _safe_total(input_total, output_total, reasoning if additive_reasoning else 0)
     return Usage(
         input=input_total - cached - write_5m - write_1h,
-        output=output_total - reasoning,
+        output=normalized_output,
         cache_read=cached,
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
         reasoning=reasoning,
-        total=integer(raw, "total_tokens") or _safe_total(input_total, output_total),
+        total=integer(raw, "total_tokens") or computed_total,
     )
 
 
@@ -95,13 +149,18 @@ def anthropic_usage(raw: Any) -> Usage:
         write_5m = integer(raw, "cache_creation_input_tokens")
     input_count = integer(raw, "input_tokens")
     output_count = integer(raw, "output_tokens")
+    output_details = value(raw, "output_tokens_details")
+    reasoning = integer(output_details, "thinking_tokens")
+    if reasoning > output_count:
+        raise ValueError("provider usage reasoning tokens exceed total output tokens")
     cache_read = integer(raw, "cache_read_input_tokens")
     return Usage(
         input=input_count,
-        output=output_count,
+        output=output_count - reasoning,
         cache_read=cache_read,
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
+        reasoning=reasoning,
         total=_safe_total(input_count, output_count, cache_read, write_5m, write_1h),
     )
 

@@ -13,6 +13,24 @@ class Identity:
     roles: tuple[str, ...] = ("reader",)
     claims: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        fields = {"subject": self.subject, "tenant": self.tenant}
+        if not isinstance(self.roles, tuple):
+            raise ValueError("identity roles must be a tuple of strings")
+        if len(self.roles) > 64:
+            raise ValueError("identity cannot contain more than 64 roles")
+        fields.update({f"role[{index}]": role for index, role in enumerate(self.roles)})
+        if any(not isinstance(value, str) or not value for value in fields.values()):
+            raise ValueError("identity fields must be non-empty strings")
+        try:
+            encoded = {name: value.encode("utf-8") for name, value in fields.items()}
+        except UnicodeEncodeError as exc:
+            raise ValueError("identity fields must be valid UTF-8 text") from exc
+        if len(encoded["subject"]) > 4_096 or len(encoded["tenant"]) > 128:
+            raise ValueError("identity subject or tenant exceeds its size limit")
+        if any(len(value) > 128 for name, value in encoded.items() if name.startswith("role[")):
+            raise ValueError("identity role exceeds its size limit")
+
 
 @dataclass(frozen=True)
 class AuditEvent:

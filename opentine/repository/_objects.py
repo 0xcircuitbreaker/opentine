@@ -6,10 +6,21 @@ import os
 from collections.abc import Iterator
 from pathlib import Path
 
-from opentine.kernel import OBJECT_TYPES, KernelError
-from opentine.repository._paths import internal_path
+from opentine.kernel import OBJECT_TYPES, KernelError, ObjectEnvelope, verify_object
+from opentine.repository._paths import atomic_bytes, internal_path
 
 _HEX = frozenset("0123456789abcdef")
+MAX_TYPED_OBJECT_SCAN = 100_000
+
+
+def store_envelope(repo, envelope: ObjectEnvelope) -> str:
+    """Persist a caller-validated immutable envelope without rewalking its graph."""
+    path = repo._object_path(envelope.oid)
+    if not path.exists():
+        atomic_bytes(path, envelope.encode())
+    else:
+        verify_object(path.read_bytes(), envelope.oid, repo._link_exists)
+    return envelope.oid
 
 
 def _entries(directory: Path) -> Iterator[str]:
@@ -83,13 +94,24 @@ def iter_object_oids(
     return sorted(found)
 
 
-def iter_typed_object_oids(root: Path, object_types: set[str]) -> Iterator[str]:
-    """Stream selected object types without counting unrelated repository objects."""
+def iter_typed_object_oids(
+    root: Path,
+    object_types: set[str],
+    *,
+    limit: int = MAX_TYPED_OBJECT_SCAN,
+) -> Iterator[str]:
+    """Stream selected object types under a hard directory-entry scan limit."""
+    if type(limit) is not int or limit < 1:
+        raise ValueError("typed object scan limit must be a positive integer")
     layout = _validate_layout(root)
+    scanned = 0
     for object_type in sorted(object_types):
         for prefix in layout.get(object_type, []):
             directory = internal_path(root, "objects", object_type, prefix)
             for suffix in _suffixes(directory):
+                scanned += 1
+                if scanned > limit:
+                    raise ValueError("typed object scan exceeds its object limit")
                 if len(suffix) != 62 or any(char not in _HEX for char in suffix):
                     continue
                 path = internal_path(root, "objects", object_type, prefix, suffix)
