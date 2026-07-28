@@ -7,6 +7,7 @@ from typing import Any
 
 from opentine.kernel import parse_oid
 from opentine.repo import Repo
+from opentine.repository._refs import normalize_ref
 
 #: The only namespace an MCP client may move. A fork's ref update is an
 #: unconditional overwrite (it compare-and-swaps against the value it just read),
@@ -19,9 +20,17 @@ _MCP_WRITABLE_REF_NAMESPACE = "experiments/"
 
 
 def _writable_ref(ref: str) -> str:
-    if not isinstance(ref, str) or not ref.startswith(_MCP_WRITABLE_REF_NAMESPACE):
+    """Confine an MCP-supplied ref to the experiments namespace.
+
+    The namespace test runs on the *canonical* name, not the caller's string, so
+    the decision cannot disagree with the name that later reaches the filesystem.
+    Testing the raw input also rejected the legitimate fully-qualified
+    ``refs/experiments/…`` form, which normalization accepts.
+    """
+    normalized = normalize_ref(ref)
+    if not normalized.startswith(_MCP_WRITABLE_REF_NAMESPACE):
         raise ValueError(f"MCP fork/resume may only write {_MCP_WRITABLE_REF_NAMESPACE}* refs")
-    return ref
+    return normalized
 
 
 def register_repository_tools(mcp, repo_path: str = ".") -> None:
