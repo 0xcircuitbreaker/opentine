@@ -36,14 +36,9 @@ class Repo:
         tine = root if bare or root.name == ".tine" else root / ".tine"
         durable_directory(tine)
         for directory in (
-            "objects",
-            "refs/annotations",
-            "refs/heads",
-            "refs/tags",
-            "logs",
-            "packs",
-            "indexes",
-        ):
+            "objects", "refs/annotations", "refs/heads", "refs/tags",
+            "logs", "packs", "indexes",
+        ):  # fmt: skip
             durable_directory(internal_path(tine, *Path(directory).parts))
         config = internal_path(tine, "config.json")
         if not config.exists():
@@ -218,11 +213,14 @@ class Repo:
         refs: dict[str, str] = {}
         root = internal_path(self.path, "refs")
         for path in sorted(internal_files(self.path, "refs")):
-            if not path.name.casefold().endswith(".lock"):
+            if path.name.casefold().endswith(".lock"):
+                continue
+            try:  # a name that is not a legal ref is not a ref: one stray .DS_Store
                 name = self._ref_name(path.relative_to(root).as_posix())
-                value = read_ref_oid(self.path, name)
-                if value is not None:
-                    refs[name] = value
+            except ValueError:  # used to raise here, so fsck saw a healthy repo as
+                continue  # broken with zero refs, masking every real error behind it
+            if (value := read_ref_oid(self.path, name)) is not None:
+                refs[name] = value
         return refs
 
     def fsck(self, *, deep: bool = True):

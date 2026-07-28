@@ -22,7 +22,13 @@ def read_ref_oid(base: Path, normalized: str) -> str | None:
         return None
     try:
         info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        # Reject a *hardlinked* ref (nlink > 1), not an unlinked one. A concurrent
+        # commit_ref replaces this path, which unlinks the inode we already hold
+        # open, so fstat legitimately reports nlink == 0 — and "!= 1" called that
+        # corruption, failing readers and fsck on a perfectly healthy repository.
+        # The bytes behind an unlinked descriptor are still a valid past ref value,
+        # and the compare-and-swap catches staleness on write.
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink > 1:
             raise KernelError("repository ref is not a private regular file")
         with os.fdopen(fd, "rb") as handle:
             fd = -1
