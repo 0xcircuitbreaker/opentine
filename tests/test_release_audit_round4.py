@@ -205,6 +205,10 @@ def test_info_invalid_upload_results_are_rejected():
     ):
         with pytest.raises(ValueError, match="invalid"):
             _upload_result(bad)
+    with pytest.raises(ValueError, match="does not match"):
+        _upload_result(good, expected_objects=3, expected_pack=good["pack_id"])
+    with pytest.raises(ValueError, match="does not match"):
+        _upload_result(good, expected_objects=2, expected_pack="sha256:" + "b" * 64)
 
 
 def test_info_pending_limit_precedes_admission(tmp_path: Path):
@@ -241,3 +245,22 @@ async def test_independent_search_responses_are_streamed_and_bounded(monkeypatch
     monkeypatch.setattr(search_tool, "MAX_SEARCH_RESPONSE_BYTES", 64)
     with pytest.raises(ValueError, match="maximum size"):
         await search_tool._duckduckgo("bounded", 1)
+
+
+def test_duckduckgo_html_parser_is_single_pass_and_output_bounded():
+    from opentine.tools._html import duckduckgo_results
+
+    adversarial = 'class="result__snippet">' * 8_000
+    assert duckduckgo_results(adversarial, 5) == []
+    html = (
+        '<a data-extra="1" href="https://example.test" class="other result__a">'
+        "A <b>useful</b> &amp; safe title</a>"
+        '<div class="result__snippet">A <em>short</em> snippet</div>'
+    )
+    assert duckduckgo_results(html, 5) == [
+        ("https://example.test", "A useful & safe title", "A short snippet")
+    ]
+    huge = '<a class="result__a" href="/' + "u" * 10_000 + '">' + "x" * 10_000 + "</a>"
+    [(url, title, _)] = duckduckgo_results(huge, 1)
+    assert len(url) == 4_096
+    assert len(title) == 2_048

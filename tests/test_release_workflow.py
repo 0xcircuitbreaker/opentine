@@ -35,6 +35,7 @@ def test_publish_reuses_one_validated_distribution_pair():
 
 def test_pypi_trusted_publishing_is_environment_gated_and_tokenless():
     workflow = _workflow("publish.yml")
+    assert "\npermissions: {}\n" in workflow
     pypi = workflow.split("\n  pypi:\n", 1)[1]
     assert "name: pypi" in pypi
     assert "id-token: write" in pypi
@@ -43,6 +44,12 @@ def test_pypi_trusted_publishing_is_environment_gated_and_tokenless():
     assert "api-token" not in workflow
     build = workflow.split("\n  build:\n", 1)[1].split("\n  github-release:\n", 1)[0]
     assert "id-token: write" not in build
+
+
+def test_release_build_disables_mutable_dependency_caches():
+    workflow = _workflow("publish.yml")
+    build = workflow.split("\n  build:\n", 1)[1].split("\n  github-release:\n", 1)[0]
+    assert "enable-cache: false" in build
 
 
 def test_tag_release_requires_successful_main_ci_for_exact_commit():

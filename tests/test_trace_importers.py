@@ -65,6 +65,14 @@ def test_framework_importers(framework):
     assert event.attributes["framework"] == framework
 
 
+def test_framework_identity_cannot_be_spoofed_by_imported_metadata():
+    event = framework_events(
+        [{"id": "1", "metadata": {"framework": "spoofed", "kept": True}}],
+        "langchain",
+    )[0]
+    assert event.attributes == {"framework": "langchain", "kept": True}
+
+
 def test_otel_importer_parses_real_otlp_json():
     # Real OTLP/JSON: camelCase keys and typed AnyValue attribute values.
     spans = [
@@ -207,6 +215,21 @@ def test_iterable_jsonl_bound_counts_oversized_skipped_records(monkeypatch):
     monkeypatch.setattr(module, "MAX_TRACE_IMPORT_BYTES", 64)
     with pytest.raises(ValueError, match="aggregate payload limit"):
         jsonl_events(["x" * 17])
+
+
+def test_malformed_iterables_are_bounded_even_when_no_events_are_emitted(monkeypatch):
+    import opentine.trace._import_helpers as helpers
+    import opentine.trace.importers as module
+
+    monkeypatch.setattr(module, "MAX_TRACE_EVENTS", 3)
+    with pytest.raises(ValueError, match="input-record count"):
+        jsonl_events(["", "", "", ""])
+    with pytest.raises(ValueError, match="input-record count"):
+        framework_events([None, None, None, None], "langchain")
+
+    monkeypatch.setattr(helpers, "_MAX_INPUT_RECORDS", 3)
+    with pytest.raises(ValueError, match="input-record count"):
+        otel_genai_events([None, None, None, None])
 
 
 def test_otel_importer_skips_cyclic_anyvalue_and_keeps_following_span():

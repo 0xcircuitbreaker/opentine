@@ -2,18 +2,37 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from opentine import Run, StepKind
+from opentine.billing import load_catalogs
 from opentine.models.anthropic import Anthropic
 from opentine.models.compat import Kimi, Qwen
 from opentine.models.google import Google
 from opentine.models.ollama import Ollama
 from opentine.models.openai import OpenAI
 from opentine.runtime import Agent
+
+
+def _qwen_explicit_cache_amount() -> str:
+    """Expected charge for 1 MTok each of fresh input, cached input, and output.
+
+    Adapters bill at wall-clock now, so this must be derived from whichever rate
+    card is in force rather than frozen: a hardcoded figure silently became wrong
+    the day the qwen3.7-max promotional card expired (2026-07-23), turning a
+    behavioural assertion into a scheduled failure.
+    """
+    card = load_catalogs().lookup("qwen", "qwen3.7-max")
+    assert card is not None, "qwen3.7-max must have an effective rate card"
+    explicit = Decimal(card.service_rates["explicit_cache"]["cache_read"])
+    # The tier is only meaningful if it actually undercuts the standard rate.
+    assert explicit < Decimal(card.rates["cache_read"])
+    total = Decimal(card.rates["input"]) + explicit + Decimal(card.rates["output"])
+    return str(total)
 
 
 @pytest.mark.asyncio
@@ -41,7 +60,7 @@ async def test_openai_responses_tool_only_retains_cache_reasoning_and_cost(monke
                     input_tokens=100,
                     output_tokens=30,
                     total_tokens=130,
-                    input_tokens_details=SimpleNamespace(cached_tokens=40),
+                    input_tokens_details=SimpleNamespace(cached_tokens=40, cache_write_tokens=0),
                     output_tokens_details=SimpleNamespace(reasoning_tokens=20),
                 ),
             )
@@ -265,7 +284,7 @@ async def test_qwen_explicit_cache_marker_selects_exact_hit_rate(monkeypatch):
         ]
     )
     assert result["billing"]["calculation"]["service_tier"] == "explicit_cache"
-    assert result["billing"]["amount_usd"] == "5.125"
+    assert result["billing"]["amount_usd"] == _qwen_explicit_cache_amount()
 
 
 @pytest.mark.asyncio
@@ -302,7 +321,7 @@ async def test_qwen_stream_requests_usage_and_preserves_explicit_cache_tier(monk
 
     assert seen["stream_options"] == {"include_usage": True}
     assert events[0]["billing"]["calculation"]["service_tier"] == "explicit_cache"
-    assert events[0]["billing"]["amount_usd"] == "5.125"
+    assert events[0]["billing"]["amount_usd"] == _qwen_explicit_cache_amount()
 
 
 def test_google_usage_and_ollama_timing_are_normalized():

@@ -361,7 +361,7 @@ def test_m4_redaction_handles_header_arrays_pairs_and_preserves_prose():
         {"name": "Authorization", "value": "[REDACTED]"},
         {"Name": "X-Api-Key", "Value": "[REDACTED]"},
     ]
-    assert redact_blob(b"api_key: how do I rotate it") == b"api_key: how do I rotate it"
+    assert redact_blob(b"api_key: how do I rotate it").endswith(b"[REDACTED]")
 
 
 def test_m5_m6_trace_imports_stringify_bigints_and_skip_bad_jsonl(tmp_path: Path):
@@ -458,13 +458,14 @@ def test_l2_v2_migration_uses_the_verified_read(monkeypatch, tmp_path: Path):
 
 
 def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tmp_path: Path):
-    import opentine.repository.store as store_module
+    import opentine.repository._ref_store as store_module
 
     repo = Repo.init(tmp_path)
     old = repo.put("blob", b"old", redact=False)
     new = repo.put("blob", b"new", redact=False)
     repo.update_ref("tags/main", old)
     real_close = store_module.os.close
+    real_fdopen = store_module.os.fdopen
     opened: list[int] = []
     closes: list[int] = []
 
@@ -479,6 +480,8 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
             raise OSError("simulated write failure")
 
     def broken_fdopen(fd, *args, **kwargs):
+        if args and args[0] == "rb":
+            return real_fdopen(fd, *args, **kwargs)
         opened.append(fd)
         return BrokenFile()
 

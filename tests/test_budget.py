@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -11,6 +12,7 @@ import pytest
 
 from opentine import Budget, BudgetExceeded, Run, StepKind
 from opentine.core import RunStatus, step_id
+from opentine.harnesses import OpentineHarness
 from opentine.runtime import Agent
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -272,6 +274,60 @@ def test_strict_cost_budget_stops_before_call_after_unknown_price():
     assert run.metadata["budget_state"]["dimension"] == "cost_completeness"
 
 
+def test_duration_budget_includes_tool_latency_before_next_model_call():
+    model = LoopingModel(cost=0)
+    model.calls = 0
+
+    async def complete(messages, tools=None, system=None, temperature=0.0):
+        model.calls += 1
+        if model.calls == 1:
+            return {
+                "text": "",
+                "tool_calls": [{"name": "slow", "arguments": {}}],
+                "cost": 0,
+            }
+        return {"text": "should not run", "tool_calls": [], "cost": 0}
+
+    async def slow() -> str:
+        """Wait long enough to exceed the wall-duration budget."""
+        await asyncio.sleep(0.03)
+        return "ok"
+
+    model.complete = complete
+    run = Agent(
+        model=model,
+        tools=[slow],
+        max_steps=3,
+        budget=Budget(max_duration=0.01),
+    ).run_sync("go")
+
+    assert model.calls == 1
+    assert run.status == RunStatus.failed
+    assert run.metadata["budget_state"]["dimension"] == "duration"
+    assert next(step for step in run.steps if step.kind == StepKind.tool).duration >= 0.01
+
+
+@pytest.mark.parametrize(
+    "budget,response,dimension",
+    [
+        (Budget(max_cost=0.01), {"cost": 10, "usage": {}}, "cost"),
+        (Budget(max_usage=1), {"cost": 0, "usage": {"input": 200}}, "usage"),
+    ],
+)
+def test_terminal_model_response_cannot_escape_budget_enforcement(budget, response, dimension):
+    model = LoopingModel(cost=0)
+
+    async def complete(messages, tools=None, system=None, temperature=0.0):
+        return {"text": "done", "tool_calls": [], **response}
+
+    model.complete = complete
+    run = Agent(model=model, budget=budget).run_sync("go")
+
+    assert run.status == RunStatus.failed
+    assert run.metadata["budget_state"]["dimension"] == dimension
+    assert sum(step.kind == StepKind.error for step in run.steps) == 1
+
+
 # --- harness budget enforcement ---------------------------------------------
 
 
@@ -310,3 +366,23 @@ def test_harness_budget_raise_propagates():
     wrapped = _harness_with_budget("raise")
     with pytest.raises(BudgetExceeded):
         wrapped.run_sync("go")
+
+
+def test_async_harness_duration_budget_cancels_before_adapter_timeout():
+    class SlowHarness:
+        name = "slow"
+        model_info = "slow"
+        supports_resume = False
+
+        async def execute(self, task, context=None, step_callback=None):
+            await asyncio.sleep(0.2)
+            return {"late": True}
+
+    run = Run(id="duration-harness")
+    run.set_budget(max_duration=0.02)
+    started = __import__("time").monotonic()
+    result = OpentineHarness(SlowHarness(), run=run).run_sync("go")
+
+    assert __import__("time").monotonic() - started < 0.15
+    assert result.status == RunStatus.failed
+    assert result.metadata["budget_state"]["dimension"] == "duration"

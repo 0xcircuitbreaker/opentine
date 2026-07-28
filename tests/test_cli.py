@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import stat
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -120,6 +123,24 @@ def test_cli_fork_refuses_overwrite_without_force(monkeypatch, tmp_path, capsys)
     assert "Refusing to overwrite" in capsys.readouterr().out
 
 
+def test_cli_replay_refuses_overwrite_without_force(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / ".tine_runs")
+    source_path = tmp_path / "source.tine"
+    out_path = tmp_path / "existing.tine"
+    _write_run(source_path)
+    out_path.write_text("already here", encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exc:
+        _invoke(monkeypatch, "replay", str(source_path), "--save", str(out_path))
+
+    assert exc.value.code == 1
+    assert out_path.read_text(encoding="utf-8") == "already here"
+    assert "Refusing to overwrite" in capsys.readouterr().out
+
+    _invoke(monkeypatch, "replay", str(source_path), "--save", str(out_path), "--force")
+    assert Run.load(out_path).metadata["replay"]["mode"] == "cache"
+
+
 def test_cli_replay_rerun_requires_harness(monkeypatch, tmp_path, capsys):
     runs_dir = tmp_path / ".tine_runs"
     monkeypatch.setattr(cli, "RUNS_DIR", runs_dir)
@@ -142,3 +163,67 @@ def test_cli_ls_marks_corrupt_runs(monkeypatch, tmp_path, capsys):
     _invoke(monkeypatch, "ls")
 
     assert "corrupt" in capsys.readouterr().out
+
+
+def test_cli_show_sanitizes_markup_and_terminal_control_sequences(monkeypatch, tmp_path, capsys):
+    source = tmp_path / "hostile.tine"
+    run = Run(id="[/bold]\x1b]52", model_info="[/bold]\x1b]52;c;clip\u202eboard\x1b\\")
+    original = run.add_step(StepKind.done, {"text": "visible\x9b31m\x00 pay\u2066load\u2069"})
+    hostile_id = "[/dim]\x1b]52;c;step\x1b\\"
+    hostile = replace(original, id=hostile_id)
+    run.graph.steps = {hostile_id: hostile}
+    run.graph.order = [hostile_id]
+    run.refs["main"] = hostile_id
+    run.status = RunStatus.completed
+    run.save(source)
+
+    _invoke(monkeypatch, "show", str(source))
+
+    output = capsys.readouterr().out
+    assert "[/bold]" in output and "visible31m payload" in output
+    assert not {"\x1b", "\x9b", "\x00", "\u202e", "\u2066", "\u2069"} & set(output)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
+def test_cli_keygen_refuses_to_clobber_an_existing_key_without_force(monkeypatch, tmp_path):
+    # Silently overwriting a private key destroys the only copy of a signing
+    # identity and makes every artifact it signed unverifiable.
+    private = tmp_path / "release.key"
+    private.write_text("existing signing key", encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exit_info:
+        _invoke(monkeypatch, "keygen", "--out", str(private))
+
+    assert exit_info.value.code == 1
+    assert private.read_text(encoding="utf-8") == "existing signing key"
+
+
+def test_cli_keygen_atomically_restricts_existing_output_mode(monkeypatch, tmp_path):
+    private = tmp_path / "release.key"
+    private.write_text("public placeholder", encoding="utf-8")
+    private.chmod(0o644)
+
+    _invoke(monkeypatch, "keygen", "--out", str(private), "--force")
+
+    assert stat.S_IMODE(private.stat().st_mode) == 0o600
+
+
+def test_cached_replay_never_derives_an_output_path_from_untrusted_run_id(monkeypatch, tmp_path):
+    runs_dir = tmp_path / "runs"
+    monkeypatch.setattr(cli, "RUNS_DIR", runs_dir)
+    source = tmp_path / "hostile-id.tine"
+    run = Run(id="../owned")
+    run.add_step(StepKind.done, {"text": "done"})
+    run.status = RunStatus.completed
+    run.save(source)
+
+    _invoke(monkeypatch, "replay", str(source), "--mode", "cache")
+
+    assert not (tmp_path / "owned-replay.tine").exists()
+    outputs = list(runs_dir.glob("*.tine"))
+    assert len(outputs) == 1
+    assert outputs[0].resolve().is_relative_to(runs_dir.resolve())
+    original = outputs[0].read_bytes()
+    with pytest.raises(SystemExit):
+        _invoke(monkeypatch, "replay", str(source), "--mode", "cache")
+    assert outputs[0].read_bytes() == original

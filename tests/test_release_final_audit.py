@@ -37,6 +37,7 @@ from opentine.models.compat import (
 )
 from opentine.models.google import Google
 from opentine.models.ollama import Ollama
+from opentine.models.openai import OpenAI
 from opentine.repo import Repo
 from opentine.trace import Recorder, TraceEvent
 
@@ -66,6 +67,28 @@ def test_reported_model_controls_pricing_and_invalid_identity_is_ignored():
     assert invalid["billing"]["status"] == "unknown"
     assert invalid["billing"]["known_subtotal_usd"] == "0"
     assert any("invalid model identifier" in item for item in invalid["billing"]["warnings"])
+    mismatch = metered_response(
+        "openai",
+        "gpt-5.6",
+        Usage(input=1_000_000),
+        rate_override={"input": "99"},
+        reported_model="gpt-4o",
+    )
+    assert mismatch["billing"]["rate_card_id"].startswith("openai:gpt-4o")
+    assert Decimal(mismatch["billing"]["amount_usd"]) == Decimal("2.5")
+    assert any("explicit rates were ignored" in item for item in mismatch["billing"]["warnings"])
+
+
+def test_native_responses_honors_explicit_unmetered_mode():
+    adapter = OpenAI("gpt-5.6", unmetered=True)
+    response = SimpleNamespace(
+        model="gpt-5.6",
+        usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=1_000_000),
+    )
+    result = adapter._responses.meter(response)
+    assert result["billing"]["status"] == "unmetered"
+    assert result["billing"]["amount_usd"] == "0"
+    assert result["cost"] == 0.0
 
 
 def test_unknown_billing_pins_provider_identity():
@@ -207,7 +230,11 @@ async def test_chat_empty_choices_and_responses_stream_errors_retain_billing():
     chat_response = SimpleNamespace(
         choices=[],
         model="gpt-5.6",
-        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=2),
+        usage=SimpleNamespace(
+            prompt_tokens=10,
+            completion_tokens=2,
+            prompt_tokens_details=SimpleNamespace(cache_write_tokens=0),
+        ),
     )
     client = SimpleNamespace(
         chat=SimpleNamespace(

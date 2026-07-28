@@ -48,6 +48,10 @@ def test_repository_mcp_search_context_fork_resume_evaluate_and_promote(tmp_path
     }
     assert expected <= set(mcp.tools)
     assert mcp.tools["context_slice"](event)[0]["oid"] == event
+    forked = mcp.tools["fork_run_v3"](run, event, "experiments/policy", policy={"tools": ["safe"]})
+    fork_payload = repo.get(forked["run_id"]).payload()
+    policy_blob = fork_payload["manifests"]["policy"]
+    assert b'"safe"' in repo.get(policy_blob).body
     evaluation = mcp.tools["evaluate_run"](run, {"quality": 1.0}, "judge")
     assert repo.has(evaluation["attestation_id"])
     resumed = mcp.tools["resume_run_v3"](run, "experiments/resumed")

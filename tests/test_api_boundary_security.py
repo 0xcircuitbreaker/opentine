@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -102,6 +103,18 @@ def test_legacy_mcp_prefixes_are_unambiguous_and_exact_ids_win(tmp_path: Path):
         legacy_mcp.find_run("abc", tmp_path)
 
 
+def test_legacy_mcp_fork_refuses_to_overwrite_deterministic_output(tmp_path: Path):
+    _saved_run(tmp_path / "source.tine", "source")
+    first = legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path)
+    output = Path(first["path"])
+    original = output.read_bytes()
+
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path)
+
+    assert output.read_bytes() == original
+
+
 def test_legacy_mcp_scan_summary_and_rendering_are_bounded(tmp_path: Path, monkeypatch):
     for index in range(3):
         _saved_run(tmp_path / f"run-{index}.tine", f"run-{index}", steps=4)
@@ -145,6 +158,23 @@ def test_filesystem_listing_bounds_entries_and_escapes_line_breaks(tmp_path: Pat
     listing = fs.ls(policy=fs.FilesystemPolicy(roots=(str(tmp_path),)))
     assert "line\\nbreak" in listing
     assert "line\nbreak" not in listing
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="FIFO files are POSIX-only")
+def test_filesystem_content_tools_reject_special_files(tmp_path: Path):
+    fifo = tmp_path / "pipe"
+    os.mkfifo(fifo)
+    policy = fs.FilesystemPolicy(
+        roots=(str(tmp_path),),
+        write_roots=(str(tmp_path),),
+    )
+    for operation in (
+        lambda: fs.read(str(fifo), policy=policy),
+        lambda: fs.edit(str(fifo), "old", "new", policy=policy),
+        lambda: fs.write(str(fifo), "new", policy=policy),
+    ):
+        with pytest.raises(ValueError, match="not a regular file"):
+            operation()
 
 
 def test_legacy_cli_and_index_bound_implicit_artifact_scans(tmp_path: Path, monkeypatch):

@@ -9,13 +9,16 @@ import os
 
 import pytest
 
+from opentine.kernel import ObjectEnvelope
 from opentine.remote import backend as backend_module
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
 from opentine.remote.interfaces import Identity
 from opentine.remote.security import (
+    AuthenticationError,
     LocalKeyProvider,
+    OIDCIdentityProvider,
     RoleAuthorizationPolicy,
     StaticTokenIdentityProvider,
 )
@@ -56,6 +59,114 @@ def test_audit_verification_status_is_bound_to_the_returned_head():
         "status": "invalid",
         "warnings": [],
     }
+
+
+def test_oidc_rejects_non_utf8_actor_before_authorization():
+    provider = OIDCIdentityProvider(
+        lambda _: {"sub": "actor\ud800", "tenant": "acme", "roles": ["writer"]}
+    )
+    with pytest.raises(AuthenticationError, match="invalid text"):
+        provider.authenticate({"authorization": "Bearer signed-token"})
+    with pytest.raises(ValueError, match="valid UTF-8"):
+        Identity("actor\ud800", "acme", ("writer",))
+    with pytest.raises(AuthenticationError, match="invalid text"):
+        OIDCIdentityProvider(
+            lambda _: {"sub": "x" * 4_097, "tenant": "acme", "roles": ["writer"]}
+        ).authenticate({"authorization": "Bearer signed-token"})
+
+
+def test_ref_listing_uses_typed_ids_without_walking_run_graphs():
+    envelope = ObjectEnvelope.create(
+        "run", {"events": [], "manifests": {}, "roots": [], "tips": []}
+    )
+
+    class Store:
+        reads = 0
+
+        def has(self, tenant, oid):
+            return tenant == "acme" and oid == envelope.oid
+
+        def get(self, tenant, oid):
+            self.reads += 1
+            return envelope.encode()
+
+    class Index:
+        def list_refs(self, tenant):
+            return {f"tags/repeated-{index}": envelope.oid for index in range(1_000)}
+
+        def append(self, event):
+            pass
+
+    store = Store()
+    service = RemoteService(store, Index(), object(), RoleAuthorizationPolicy())
+    refs = service.list_refs(Identity("reader", "acme"), "acme")
+    assert len(refs) == 1_000
+    assert store.reads == 0
+
+
+def test_ref_listing_cost_is_linear_for_distinct_runs_with_shared_events():
+    event = ObjectEnvelope.create("event", {"causal_ids": [], "parent_ids": []})
+    runs = [
+        ObjectEnvelope.create(
+            "run",
+            {"events": [event.oid], "manifests": {}, "roots": [event.oid], "tips": [event.oid]},
+        )
+        for _ in range(50)
+    ]
+    # Make the content addresses distinct without expanding the shared event graph.
+    runs = [
+        ObjectEnvelope.create("run", {**run.payload(), "created_at": index})
+        for index, run in enumerate(runs)
+    ]
+
+    class Store:
+        reads = 0
+
+        def has(self, tenant, oid):
+            return tenant == "acme" and (oid == event.oid or any(run.oid == oid for run in runs))
+
+        def get(self, tenant, oid):
+            self.reads += 1
+            return next(run.encode() for run in runs if run.oid == oid)
+
+    class Index:
+        def list_refs(self, tenant):
+            return {f"heads/run-{index}": run.oid for index, run in enumerate(runs)}
+
+        def append(self, event):
+            pass
+
+    store = Store()
+    service = RemoteService(store, Index(), object(), RoleAuthorizationPolicy())
+    assert len(service.list_refs(Identity("reader", "acme"), "acme")) == 50
+    assert store.reads == 0
+
+
+def test_ref_cas_rejects_unbounded_expected_oid_before_audit_mutation():
+    envelope = ObjectEnvelope.create(
+        "run", {"events": [], "manifests": {}, "roots": [], "tips": []}
+    )
+
+    class Store:
+        def has(self, tenant, oid):
+            return oid == envelope.oid
+
+        def get(self, tenant, oid):
+            return envelope.encode()
+
+    class Index:
+        events = []
+
+        def append(self, event):
+            self.events.append(event)
+
+    index = Index()
+    service = RemoteService(Store(), index, object(), RoleAuthorizationPolicy())
+    identity = Identity("writer", "acme", ("writer",))
+
+    with pytest.raises(ValueError, match="invalid typed object id"):
+        service.update_ref(identity, "acme", "heads/main", envelope.oid, "x" * 1_000_000)
+    assert index.events == []
 
 
 def _request(app, method, path, body=b"", **headers):

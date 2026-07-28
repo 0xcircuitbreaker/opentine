@@ -167,6 +167,21 @@ def test_fable_refusal_modifier_uses_reported_model():
     assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("5")
 
 
+@pytest.mark.parametrize("reported_model", ["not-fable-5-custom", None])
+def test_fable_refusal_modifier_requires_exact_priced_model(reported_model):
+    response = SimpleNamespace(
+        content=[],
+        model=reported_model,
+        stop_reason="refusal",
+        usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=0),
+    )
+    result = Anthropic("not-fable-5-custom")._result(response)
+    assert result["billing"]["rate_card_id"] is None
+    assert result["billing"]["status"] == "unknown"
+    assert result["billing"]["amount_usd"] is None
+    assert result["billing"]["known_subtotal_usd"] == "0"
+
+
 def test_google_tool_use_usage_and_actual_service_tier():
     usage = google_usage(
         {"promptTokenCount": 10, "toolUsePromptTokenCount": 5, "candidatesTokenCount": 2}
@@ -186,6 +201,23 @@ def test_google_tool_use_usage_and_actual_service_tier():
     )
     assert result["billing"]["calculation"]["service_tier"] == "standard"
     assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("1.5")
+
+    usage = {"promptTokenCount": 1_000_000, "candidatesTokenCount": 0}
+    adapter = Google(service_tier="priority")
+    unobserved = adapter._meter(usage)
+    assert unobserved["billing"]["status"] == "unknown"
+    assert unobserved["billing"]["known_subtotal_usd"] == "0"
+    calculation = unobserved["billing"]["calculation"]
+    assert calculation["components_usd"] == {}
+    assert calculation["candidate_components_usd"] == {"input": "2.70"}
+    assert calculation["requested_service_tier"] == "priority"
+    assert unobserved["cost"] == 0.0
+    observed = adapter._meter(usage, response_tier="priority")
+    assert observed["billing"]["status"] == "complete"
+    assert Decimal(observed["billing"]["known_subtotal_usd"]) == Decimal("2.70")
+    overridden = Google(service_tier="priority", rates={"input": "7", "output": "8"})._meter(usage)
+    assert overridden["billing"]["status"] == "complete"
+    assert Decimal(overridden["billing"]["known_subtotal_usd"]) == Decimal("7")
 
 
 def test_kimi_requests_stream_usage_and_all_replay_paths_are_bounded(monkeypatch):
@@ -319,11 +351,12 @@ def test_incremental_push_uses_exact_old_closure_not_local_associations(tmp_path
     monkeypatch.setattr(repository_client, "_client", lambda *a, **k: nullcontext(object()))
     monkeypatch.setattr(repository_client, "_request_json", request_json)
     monkeypatch.setattr(repository_client, "negotiate", capture_negotiate)
-    monkeypatch.setattr(repository_client, "create_pack", lambda *_a, **_k: b"pack")
+    synthetic_pack = repository_client.MAGIC + b"\x11" * 32
+    monkeypatch.setattr(repository_client, "create_pack", lambda *_a, **_k: synthetic_pack)
     monkeypatch.setattr(
         repository_client,
         "_upload",
-        lambda *_a, **_k: {"objects": 0, "pack_id": "sha256:" + "1" * 64},
+        lambda *_a, **_k: {"objects": 0, "pack_id": "sha256:" + "11" * 32},
     )
     repository_client.push(repo, "https://remote.example", tenant="acme")
     assert captured["wants"] == [new]

@@ -10,9 +10,11 @@ from pathlib import Path
 
 import pytest
 
-from opentine import Run, StepKind
+from opentine import Run, Step, StepKind
 from opentine.kernel import KernelError, ObjectEnvelope, canonical_json
 from opentine.repository import Repo
+from opentine.repository._semantic_view import SemanticView
+from opentine.repository._traversal import TraversalQueue
 from opentine.repository.pack import MAGIC, create_pack, reachable
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -189,6 +191,130 @@ def test_pack_round_trip_shallow_boundary_and_cas(tmp_path: Path):
         source.update_ref("heads/main", replacement, expected_old=None)
 
 
+def test_shared_graph_links_are_deduplicated_before_enqueue():
+    parents = [f"run-{index}" for index in range(500)]
+    shared = [f"event-{index}" for index in range(500)]
+    queue = TraversalQueue((parent, 0) for parent in parents)
+    visited = []
+
+    for oid, _ in queue:
+        visited.append(oid)
+        if oid.startswith("run-"):
+            for event in shared:
+                queue.add(event, 1)
+
+    assert len(visited) == 1_000
+    assert queue.peak_pending <= 1_000
+    with pytest.raises(KernelError, match="maximum object count"):
+        bounded = TraversalQueue((("first", 0),), limit=1)
+        bounded.add("second")
+
+
+def test_shared_large_event_payload_is_decoded_once_per_repository_operation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    source = Repo.init(tmp_path / "source-cache")
+    event = source.put(
+        "event",
+        {
+            "causal_ids": [],
+            "kind": "model",
+            "parent_ids": [],
+            "shared": "x" * (64 * 1024),
+        },
+    )
+    runs = [
+        source.put(
+            "run",
+            {
+                "events": [event],
+                "label": index,
+                "manifests": {},
+                "roots": [event],
+                "status": "completed",
+                "tips": [event],
+            },
+        )
+        for index in range(100)
+    ]
+    original = ObjectEnvelope.payload
+    calls = 0
+
+    def counted(envelope):
+        nonlocal calls
+        if envelope.oid == event:
+            calls += 1
+        return original(envelope)
+
+    monkeypatch.setattr(ObjectEnvelope, "payload", counted)
+    packed = create_pack(source, [event, *runs])
+    assert calls <= 1
+
+    calls = 0
+    destination = Repo.init(tmp_path / "destination-cache")
+    destination.import_pack(packed)
+    assert calls <= 1
+
+    calls = 0
+    assert destination.fsck().ok
+    assert calls <= 4
+
+    calls = 0
+    assert len(destination.search(limit=100)) == 100
+    assert calls <= 1
+
+
+def test_semantic_view_bounds_payload_retention_and_source_work(tmp_path: Path):
+    repo = Repo.init(tmp_path / "bounded-semantic-cache")
+    events = [
+        repo.put(
+            "event",
+            {"causal_ids": [], "padding": str(index) * 700, "parent_ids": []},
+        )
+        for index in range(3)
+    ]
+    view = SemanticView(repo, max_cache_bytes=1_000)
+    for oid in events:
+        view.get(oid)
+        assert view._cache_bytes <= 1_000
+
+    first_size = len(repo.raw(events[0]))
+    limited = SemanticView(repo, max_source_bytes=first_size + 1)
+    limited.get(events[0])
+    for _ in range(2):
+        with pytest.raises(KernelError, match="semantic source limit"):
+            limited.get(events[1])
+
+
+def test_shared_annotation_predecessor_is_decoded_once_per_operation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = Repo.init(tmp_path / "annotation-cache")
+    run = repo.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
+    previous = repo.put("annotation", {"target_id": run, "value": {"version": 0}})
+    children = [
+        repo.put(
+            "annotation",
+            {"previous_id": previous, "target_id": run, "value": {"version": index}},
+        )
+        for index in range(100)
+    ]
+    original = ObjectEnvelope.payload
+    calls = 0
+
+    def counted(envelope):
+        nonlocal calls
+        if envelope.oid == previous:
+            calls += 1
+        return original(envelope)
+
+    monkeypatch.setattr(ObjectEnvelope, "payload", counted)
+    view = SemanticView(repo)
+    for oid in children:
+        view.get(oid)
+    assert calls <= 1
+
+
 def test_valid_pack_reimport_rejects_corrupt_existing_object_and_pack(tmp_path: Path):
     source = Repo.init(tmp_path / "source-reimport")
     oid = source.put("blob", b"verified", redact=False)
@@ -209,6 +335,9 @@ def test_valid_pack_reimport_rejects_corrupt_existing_object_and_pack(tmp_path: 
     pack_path.write_bytes(b"corrupt")
     with pytest.raises(KernelError, match="existing pack"):
         destination.import_pack(packed)
+    result = destination.fsck()
+    assert not result.ok
+    assert any("pack" in error for error in result.errors)
 
 
 def test_deep_fsck_detects_corruption(tmp_path: Path):
@@ -257,6 +386,37 @@ def test_v2_migration_preserves_legacy_scope_and_deterministic_map(tmp_path: Pat
     assert mapping == migrated.event_map
     assert repo.read_ref("heads/migrated") == migrated.run_id
     assert repo.fsck().ok
+
+
+def test_v2_migration_never_rebinds_event_shaped_step_ids(tmp_path: Path):
+    repo = Repo.init(tmp_path / "repo")
+    external_input = repo.put("blob", canonical_json({"value": "external"}), redact=False)
+    external_output = repo.put("blob", canonical_json({}), redact=False)
+    external = repo.put(
+        "event",
+        {
+            "causal_ids": [],
+            "input_blob": external_input,
+            "output_blob": external_output,
+            "parent_ids": [],
+        },
+    )
+    source = Run(id="legacy-event-shaped-id")
+    source.graph.add(
+        Step(
+            id=external,
+            parent_ids=[],
+            kind=StepKind.done,
+            inputs={"value": "verified legacy content"},
+        )
+    )
+    source.refs["main"] = external
+    artifact = source.save(tmp_path / "source.tine")
+    assert Run.verify_integrity(artifact).ok
+
+    migrated = repo.migrate_v2(artifact)
+    assert migrated.event_map[external] != external
+    assert repo.load_run(migrated.run_id).steps[0].inputs == {"value": "verified legacy content"}
 
 
 def test_run_save_load_compatibility_wrapper_accepts_worktree(tmp_path: Path):
@@ -458,4 +618,9 @@ def test_compatibility_roundtrip_preserves_authenticated_event_extensions(tmp_pa
     restored = repo.put_run(repo.load_run(extended_run))
     assert restored.event_map[extended] == extended
     assert repo.get(extended).payload()["artifact_blob"] == artifact
+    assert repo.get(extended).payload()["attributes"] == {"framework": "real"}
+
+    compatibility_fork = repo.load_run(extended_run).fork(extended)
+    stored_fork = repo.put_run(compatibility_fork)
+    assert stored_fork.event_map[extended] == extended
     assert repo.get(extended).payload()["attributes"] == {"framework": "real"}

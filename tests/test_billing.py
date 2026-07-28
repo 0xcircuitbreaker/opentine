@@ -195,7 +195,7 @@ def test_unsupported_provider_aliases_remain_unpriced(
 @pytest.mark.parametrize(
     ("model", "short_total", "long_total"),
     [
-        ("grok-4.5", Decimal("6.85"), Decimal("13.700004")),
+        ("grok-4.5", Decimal("6.83"), Decimal("13.660004")),
         ("grok-4.3", Decimal("2.895"), Decimal("5.79000250")),
         ("grok-4.20", Decimal("2.895"), Decimal("5.79000250")),
     ],
@@ -389,10 +389,12 @@ def test_requested_hosted_families_have_provider_scoped_prices(
 
 def test_current_deepseek_aliases_resolve_to_v4_flash(catalog: PricingCatalog):
     usage = Usage(input=1_000_000, output=1_000_000)
-    legacy = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-07-13")
+    legacy = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-04-23")
+    gap = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-04-24")
     current = bill("deepseek", "deepseek-chat", usage, catalog=catalog, effective_at="2026-07-15")
     assert legacy.rate_card_id == "deepseek:deepseek-chat:legacy-2026-07"
     assert legacy.amount_usd == Decimal("0.70")
+    assert gap.status == "unknown" and gap.rate_card_id is None
     assert current.rate_card_id == "deepseek:deepseek-v4-flash:2026-07-14"
     assert current.amount_usd == Decimal("0.42")
 

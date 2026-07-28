@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import sys
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
@@ -16,6 +17,7 @@ from opentine.models.anthropic import Anthropic
 from opentine.models.compat import (
     GLM,
     DeepSeek,
+    Groq,
     Kimi,
     LlamaCpp,
     LMStudio,
@@ -359,6 +361,36 @@ async def test_deepseek_stream_requests_final_usage(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(adapter, "_get_client", lambda: client)
     list([event async for event in adapter.stream([{"role": "user", "content": "hi"}])])
     assert seen["stream_options"] == {"include_usage": True}
+
+
+@pytest.mark.asyncio
+async def test_groq_stream_requests_and_reads_extension_usage(monkeypatch: pytest.MonkeyPatch):
+    seen: dict[str, Any] = {}
+
+    class FakeCompletions:
+        async def create(self, **kwargs: Any):
+            seen.update(kwargs)
+
+            async def chunks():
+                yield SimpleNamespace(
+                    choices=[],
+                    x_groq=SimpleNamespace(
+                        usage=SimpleNamespace(prompt_tokens=1_000_000, completion_tokens=0)
+                    ),
+                )
+
+            return chunks()
+
+    adapter = Groq(api_key="key")
+    client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setattr(adapter, "_get_client", lambda: client)
+    events = [event async for event in adapter.stream([{"role": "user", "content": "hi"}])]
+
+    assert seen["stream_options"] == {"include_usage": True}
+    assert events[0]["type"] == "usage"
+    assert events[0]["usage"]["input"] == 1_000_000
+    assert events[0]["billing"]["status"] == "complete"
+    assert Decimal(events[0]["billing"]["known_subtotal_usd"]) > 0
 
 
 def test_together_reasoning_field_is_normalized_for_complete_and_stream():

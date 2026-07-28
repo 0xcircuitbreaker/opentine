@@ -13,7 +13,8 @@ import opentine.signing as signing
 from opentine import Run, StepKind
 from opentine._canon import _integrity_digest
 from opentine.kernel import KernelError, ObjectEnvelope, verify_object
-from opentine.repository import Repo
+from opentine.repository import Repo, _annotations, _migration_preflight
+from opentine.repository._migration_preflight import _MemoryRepo
 from opentine.repository.pack import MAGIC, inspect_pack
 
 
@@ -103,6 +104,104 @@ def test_artifact_refs_cannot_silently_disappear_during_v3_migration(tmp_path: P
         Run.load(path)
     with pytest.raises(ValueError, match="refs must point to stored graph steps"):
         Repo.init(tmp_path / "repo").migrate_v2(path)
+
+
+@pytest.mark.parametrize("failure", ["status", "pricing-reference"])
+def test_failed_v3_migration_never_persists_unredacted_legacy_bytes(tmp_path: Path, failure: str):
+    path = tmp_path / "failed-migration.tine"
+    data = _artifact(path)
+    data["metadata"]["migration_secret"] = "TOPSECRET"
+    if failure == "status":
+        data["status"] = "invalid-status"
+    else:
+        data["manifest"]["pricing"] = {"rate_cards": {"missing-step": {}}}
+    _write_valid_digest(path, data)
+    repo = Repo.init(tmp_path / "repo")
+
+    with pytest.raises((ValueError, KeyError)):
+        repo.migrate_v2(path)
+    assert repo.iter_oids() == []
+
+
+def test_migration_preflight_does_not_copy_the_legacy_body():
+    raw = b"legacy" * 1_000
+    repo = _MemoryRepo()
+    oid = repo.put("blob", raw, redact=False)
+    assert repo.objects[oid].body is raw
+
+
+def test_migration_preflight_matches_object_limit_and_ref_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    path = tmp_path / "preflight.tine"
+    data = _artifact(path)
+    data["metadata"]["note"] = "force annotation discovery"
+    _write_valid_digest(path, data)
+
+    limited = Repo.init(tmp_path / "limited")
+    existing = limited.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
+    limited.put("annotation", {"target_id": existing, "value": {"index": 1}})
+    limited.put("annotation", {"target_id": existing, "value": {"index": 2}})
+    before = limited.iter_oids()
+    original_limit = _annotations.MAX_LEGACY_OBJECTS
+    monkeypatch.setattr(_annotations, "MAX_LEGACY_OBJECTS", 1)
+    with pytest.raises(ValueError, match="legacy annotation scan exceeds its object limit"):
+        limited.migrate_v2(path)
+    assert limited.iter_oids() == before
+
+    monkeypatch.setattr(_annotations, "MAX_LEGACY_OBJECTS", original_limit)
+    invalid_ref = Repo.init(tmp_path / "invalid-ref")
+    with pytest.raises(ValueError, match="invalid ref name"):
+        invalid_ref.migrate_v2(path, ref="../escape")
+    assert invalid_ref.iter_oids() == []
+
+
+def test_migration_preflight_enforces_the_pack_object_ceiling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    path = tmp_path / "oversized.tine"
+    _artifact(path)
+    repo = Repo.init(tmp_path / "repo")
+    monkeypatch.setattr(_migration_preflight, "MAX_PACK_OBJECTS", 2)
+    with pytest.raises(ValueError, match="pack synchronization object limit"):
+        repo.migrate_v2(path)
+    assert repo.iter_oids() == []
+
+
+def test_compatibility_put_run_rejects_unsynchronizable_closure_before_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    run = Run(id="too-many-compatibility-steps")
+    run.add_step(StepKind.think, {"index": 1})
+    run.add_step(StepKind.think, {"index": 2})
+    repo = Repo.init(tmp_path / "repo")
+    monkeypatch.setattr(_migration_preflight, "MAX_PACK_OBJECTS", 2)
+    with pytest.raises(ValueError, match="pack synchronization object limit"):
+        repo.put_run(run)
+    assert repo.iter_oids() == []
+
+
+def test_compatibility_put_run_rejects_unsynchronizable_bytes_before_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    run = Run(id="oversized-compatibility-bytes", user_prompt="x" * 1_000)
+    repo = Repo.init(tmp_path / "repo")
+    monkeypatch.setattr(_migration_preflight, "MAX_PACK_BODY_BYTES", 256)
+    with pytest.raises(ValueError, match="pack synchronization byte limit"):
+        repo.put_run(run)
+    assert repo.iter_oids() == []
+
+
+def test_compatibility_preflight_can_replace_an_existing_ref(tmp_path: Path):
+    repo = Repo.init(tmp_path / "repo")
+    first = Run(id="first")
+    first.add_step(StepKind.done, {"value": 1})
+    first_id = repo.put_run(first, ref="heads/main").run_id
+    second = Run(id="second")
+    second.add_step(StepKind.done, {"value": 2})
+    second_id = repo.put_run(second, ref="heads/main").run_id
+    assert first_id != second_id
+    assert repo.read_ref("heads/main") == second_id
 
 
 def test_artifact_rejects_nonfinite_timestamp_strings_and_metadata(tmp_path: Path):

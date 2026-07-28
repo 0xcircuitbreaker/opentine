@@ -36,7 +36,7 @@ def test_local_repository_rejects_symlinked_internal_write_directory(tmp_path: P
     assert not (outside / "main").exists()
 
 
-def test_audit_append_refuses_an_interior_chain_deletion(tmp_path: Path):
+def test_audit_append_never_launders_an_interior_chain_deletion(tmp_path: Path):
     backend = SQLiteBackend(tmp_path / "audit.sqlite3", audit_key=b"a" * 32)
     for index in range(3):
         backend.append(AuditEvent(str(index), str(index), "acme", "alice", "fetch", "ok", {}))
@@ -44,10 +44,15 @@ def test_audit_append_refuses_an_interior_chain_deletion(tmp_path: Path):
         database.execute("DROP TRIGGER audit_no_delete")
         database.execute("DELETE FROM audit WHERE event_id='1'")
 
-    with pytest.raises(RuntimeError, match="continuity failed authentication"):
-        backend.append(AuditEvent("next", "4", "acme", "alice", "fetch", "ok", {}))
+    # Appends authenticate the tail and external head in O(1); the explicit
+    # full-chain check and startup remain the historical integrity backstops.
+    backend.append(AuditEvent("next", "4", "acme", "alice", "fetch", "ok", {}))
+    assert backend.verify_audit_chain() is False
+    assert backend.audit_status() == "invalid"
+    with pytest.raises(RuntimeError, match="audit chain verification failed"):
+        SQLiteBackend(backend.path, audit_key=b"a" * 32)
     with sqlite3.connect(backend.path) as database:
-        assert database.execute("SELECT count(*) FROM audit").fetchone()[0] == 2
+        assert database.execute("SELECT count(*) FROM audit").fetchone()[0] == 3
 
 
 def test_cross_tenant_denial_is_attributed_to_the_callers_tenant():

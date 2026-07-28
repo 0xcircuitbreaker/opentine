@@ -391,7 +391,65 @@ def test_l3_headers_cannot_use_prose_to_bypass_redaction():
     for sample in samples:
         assert redact_blob(sample.encode()).endswith(b"[REDACTED]")
         assert _redact(sample).endswith("[REDACTED]")
-    assert redact_blob(b"api_key: how do I rotate it") == b"api_key: how do I rotate it"
+    assert redact_blob(b"api_key: how do I rotate it").endswith(b"[REDACTED]")
+
+
+def test_header_redaction_covers_equals_and_underscore_spellings():
+    samples = (
+        "Authorization=Basic dXNlcjpwYXNz",
+        "Proxy-Authorization=Basic dXNlcjpwYXNz",
+        "proxy_authorization: Basic dXNlcjpwYXNz",
+        "set_cookie: session=secret",
+    )
+    for sample in samples:
+        assert redact_blob(sample.encode()).endswith(b"[REDACTED]")
+        assert _redact(sample).endswith("[REDACTED]")
+
+
+def test_quoted_shell_and_dotenv_credentials_are_redacted():
+    samples = (
+        b"OPENAI_API_KEY='not-a-shaped-secret-value'",
+        b'GOOGLE_API_KEY = "AIza-not-shape-dependent"',
+        b"export AWS_SECRET_ACCESS_KEY='secret with spaces' # captured environment",
+        b'api_key: "plain-generic-value"',
+        b"password: 'correct horse battery staple'",
+        b'$env:OPENAI_API_KEY = "powershell-secret"',
+        b'password: "abc\\"escaped-quote-secret"',
+        b"API_KEY = generic secret with spaces",
+    )
+    for sample in samples:
+        redacted = redact_blob(sample)
+        assert b"[REDACTED]" in redacted
+        assert not any(
+            value in redacted
+            for value in (
+                b"not-a-shaped-secret-value",
+                b"AIza-not-shape-dependent",
+                b"with spaces",
+                b"plain-generic-value",
+                b"correct horse battery staple",
+                b"powershell-secret",
+                b"escaped-quote-secret",
+                b"generic secret with spaces",
+            )
+        )
+
+    raw_json = b'{"password":"abc\\"SUPERSECRET","safe":1}'
+    redacted_json = redact_blob(raw_json)
+    assert b"SUPERSECRET" not in redacted_json
+    assert b'"safe":1' in redacted_json
+
+
+def test_structured_header_case_collisions_cannot_hide_values():
+    value = {
+        "name": "Authorization",
+        "Name": "ordinary",
+        "value": "safe",
+        "Value": "Basic dXNlcjpwYXNz",
+    }
+    redacted = _redact(value)
+    assert redacted["value"] == "[REDACTED]"
+    assert redacted["Value"] == "[REDACTED]"
 
 
 def test_l6_truncated_private_key_preserves_separated_trailing_text():
@@ -403,6 +461,25 @@ def test_l6_truncated_private_key_preserves_separated_trailing_text():
     redacted = redact_blob(captured)
     assert b"QUJDREV" not in redacted
     assert b"trailing diagnostics remain" in redacted
+    assert b"still-secret" not in redacted
+
+
+def test_truncated_private_key_preserves_immediate_non_pem_diagnostics():
+    captured = (
+        b"-----BEGIN PRIVATE KEY----- note: parser saw a marker\n"
+        b"diagnostic output continues\napi_key=still-secret"
+    )
+    redacted = redact_blob(captured)
+    assert redacted.startswith(b"[REDACTED PRIVATE KEY] note: parser saw a marker")
+    assert b"diagnostic output continues" in redacted
+
+
+def test_truncated_private_key_scrubs_same_line_base64():
+    redacted = redact_blob(
+        b"-----BEGIN PRIVATE KEY----- c2Vuc2l0aXZlLWtleS1tYXRlcmlhbA==\ncertificate lookup failed\n"
+    )
+    assert b"c2Vuc2l0aXZlLWtleS1tYXRlcmlhbA==" not in redacted
+    assert b"certificate lookup failed" in redacted
     assert b"still-secret" not in redacted
 
 
