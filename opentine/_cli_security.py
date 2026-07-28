@@ -97,11 +97,11 @@ def cmd_sign(args: argparse.Namespace) -> None:
             raise SignatureError("provide --key-env or --key-file for HMAC signing")
         run = Run.load(path)
         output = Path(args.save) if args.save else path
-        # --save names an arbitrary destination; every sibling command refuses to
-        # clobber one silently, and a signed artifact is not something to lose to a
-        # mistyped path.
-        if args.save and output.exists() and not args.force:
-            raise SignatureError(f"{output} already exists; pass --force to overwrite")
+        # Guarded by --overwrite, never --force: --force waives the integrity
+        # refusal above, so reusing it here would let "yes, replace that file"
+        # silently also mean "yes, sign this tampered artifact".
+        if args.save and output.exists() and not args.overwrite:
+            raise SignatureError(f"{output} already exists; pass --overwrite to replace it")
         run.save(
             output,
             sign_key=key,

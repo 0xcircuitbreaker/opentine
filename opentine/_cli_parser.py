@@ -43,6 +43,11 @@ def _build_parser() -> argparse.ArgumentParser:
     sign.add_argument("--key-id")
     sign.add_argument("--signer")
     sign.add_argument("--save")
+    # Distinct from --force, which means "sign despite a failed integrity check".
+    # One flag cannot mean both, or overwriting a file silently waives tamper detection.
+    sign.add_argument(
+        "--overwrite", action="store_true", help="Replace an existing --save destination"
+    )
     sign.add_argument("--force", action="store_true")
 
     keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair")
