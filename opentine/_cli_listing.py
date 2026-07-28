@@ -22,10 +22,14 @@ def _index(rebuild: bool = False) -> RunIndex:
     try:
         return opened.reindex() if rebuild else opened.sync()
     except ValueError as exc:
+        # Report the limit that actually fired. The index enforces several
+        # (artifact count, aggregate source bytes, serialized size), and naming
+        # the count cap unconditionally sent users to archive files when the real
+        # cause was a single oversized run.
         console.print(
-            f"[red]Cannot index runs:[/] {_terminal(exc)} "
-            f"(limit {MAX_INDEX_RUNS}). Archive or move older .tine files out of "
-            f"{_terminal(_runs_dir())}."
+            f"[red]Cannot index runs:[/] {_terminal(exc)}. "
+            f"Move the offending .tine files out of {_terminal(_runs_dir())} "
+            f"(the artifact-count cap is {MAX_INDEX_RUNS})."
         )
         raise SystemExit(1) from exc
 
