@@ -61,9 +61,18 @@ cp docs/pricing-overlay-claude-5.json "${XDG_CONFIG_HOME:-$HOME/.config}/opentin
 tine pricing show anthropic claude-opus-5
 ```
 
-An overlay carries its own `catalog_id` hash, so recompute it after any edit —
-`catalog_hash()` in `opentine.billing.catalog` returns the value to store. Note
-that a merged catalog reports `signed=false` once any layer is unsigned; the
+An overlay carries its own `catalog_id`, so recompute it after any edit. The
+stored value is the **`sha256:`-prefixed** digest, not the bare hex that
+`catalog_hash()` returns — storing the bare hex fails every load with `catalog
+id/hash mismatch`, which takes all billing down rather than just the overlay:
+
+```python
+from opentine.billing.catalog import catalog_hash
+data.pop("catalog_id", None)
+data["catalog_id"] = f"sha256:{catalog_hash(data)}"   # note the prefix
+```
+
+Note that a merged catalog reports `signed=false` once any layer is unsigned; the
 bundled layer's own signature is still verified and enforced on load.
 
 Prices are never downloaded during inference. Catalog updates are explicit and

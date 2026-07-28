@@ -203,13 +203,13 @@ class PricingCatalog:
 def user_catalog_path() -> Path:
     """The per-user overlay path, honouring ``XDG_CONFIG_HOME``.
 
-    Writers must resolve the location the same way the loader does. Hard-coding
-    ``~/.config`` here made ``tine pricing update`` install to a file that
-    ``load_catalogs`` never reads whenever ``XDG_CONFIG_HOME`` pointed elsewhere,
-    so the update reported success and changed no prices.
+    Writers must resolve this the same way the loader does, or an install lands
+    where nothing reads it. ``or`` rather than a ``get()`` default because the
+    variable set to "" is present but meaningless, and ``Path("")`` is ``Path(".")``
+    — which would make the overlay CWD-relative, and different per process.
     """
-    home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return home / "opentine" / "pricing.json"
+    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
+    return Path(home, "opentine", "pricing.json")
 
 
 def catalog_paths(workspace: str | Path | None = None) -> list[Path]:
