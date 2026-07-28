@@ -377,3 +377,45 @@ def test_documented_overlay_recipe_produces_a_loadable_catalog(tmp_path):
     bad.write_text(json.dumps(bare), encoding="utf-8")
     with pytest.raises(ValueError, match="id/hash mismatch"):
         PricingCatalog.load(bad, require_signature=False)
+
+
+def test_unterminated_private_key_never_leaks_key_bytes():
+    # Requiring the whole remainder to be PEM data meant one trailing byte — the
+    # closing quote of a JSON string — defeated the match, so the key was emitted
+    # verbatim right after the marker: output that reads as redacted while leaking
+    # every byte, which is worse than a plain miss because it survives review.
+    key = b"MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj"
+    for blob in (
+        b'{"k": "-----BEGIN PRIVATE KEY-----' + key + b'"}',
+        b"-----BEGIN PRIVATE KEY----- " + key,
+        b"-----BEGIN RSA PRIVATE KEY-----" + key,
+        b"key='-----BEGIN EC PRIVATE KEY-----" + key + b"'",
+    ):
+        out = redact_blob(blob)
+        assert b"[REDACTED PRIVATE KEY]" in out
+        assert key[:24] not in out, out
+
+    # Surrounding content is preserved rather than swallowed.
+    framed = b'{"note": "hello", "k": "-----BEGIN PRIVATE KEY-----' + key + b'", "after": "kept"}'
+    assert b'"after": "kept"' in redact_blob(framed)
+
+
+def test_redaction_stays_linear_in_line_indentation():
+    # `[ \t]*[+>-]?[ \t]*` gives O(n) ways to split n leading spaces, so a failing
+    # match backtracks through every split and the scan turns quadratic. Ordinary
+    # indented JSON — exactly what a captured trace looks like — passed the budget.
+    blob = b"\n".join(b" " * 24 + b'"field": "value",' for _ in range(8000))
+    started = time.monotonic()
+    redact_blob(blob)
+    assert time.monotonic() - started < 1.5
+
+
+def test_indented_and_diff_marked_credentials_still_redact():
+    for line in (
+        b"  - api_key=sk-secret",
+        b"+ANTHROPIC_API_KEY=sk-secret",
+        b"    export API_KEY=sk-secret",
+        b"> authorization: Bearer sk-secret",
+        b"      Cookie: a=b",
+    ):
+        assert b"REDACTED" in redact_blob(line), line
