@@ -171,6 +171,9 @@ Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
 be injected. Validated claims map to reader/writer/admin roles and a tenant.
 
 Authorization is tenant-scoped and enforced on every read and mutating path.
+Reference listings are capped at 1,000 entries. Annotation targets needed to
+validate those listings are additionally capped at 1 MiB per encoded object and
+8 MiB in aggregate; stores exposing a size probe are rejected before the read.
 Audit verification detects interior edits and end truncation without appending
 another row. Legacy rows need an explicit trust-on-migration flag and report
 `legacy-unverified`; the flag cannot recover a lost anchor. A committed row left
@@ -188,7 +191,9 @@ again after pack inspection so policies can bound both bytes and object counts.
 Installed objects and resumable `.part` staging are encrypted through the configured
 tenant-aware key provider. Staging uses independently authenticated frames so a
 restart can resume without writing plaintext packs; its directories and files are
-also tightened to mode 0700/0600 on POSIX and TTL-reaped.
+also tightened to mode 0700/0600 on POSIX and TTL-reaped. The reference
+filesystem object store refuses symlinked, hard-linked, non-regular, and
+oversized encrypted object leaves before decryption.
 
 The 0.3.0 scope is an enterprise repository foundation. The bundled bounded
 WSGI server targets development and small self-hosted deployments, not turnkey

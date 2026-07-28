@@ -46,6 +46,26 @@ catalog must have its own matching `catalog_id` hash; it may be unsigned so an
 enterprise can express negotiated discounts or infrastructure costs without
 altering the signed upstream snapshot.
 
+### Models newer than the bundled snapshot
+
+The bundled snapshot is signed, so it can only gain cards when the release key
+re-signs it — editing the file in place fails verification with `catalog id/hash
+mismatch` and takes billing down with it. Until the next signed release, price a
+newly launched model with an unsigned overlay. `docs/pricing-overlay-claude-5.json`
+is a ready-made one covering `claude-opus-5`, `claude-mythos-5` (Project
+Glasswing), and `claude-haiku-4-5`:
+
+```bash
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/opentine"
+cp docs/pricing-overlay-claude-5.json "${XDG_CONFIG_HOME:-$HOME/.config}/opentine/pricing.json"
+tine pricing show anthropic claude-opus-5
+```
+
+An overlay carries its own `catalog_id` hash, so recompute it after any edit —
+`catalog_hash()` in `opentine.billing.catalog` returns the value to store. Note
+that a merged catalog reports `signed=false` once any layer is unsigned; the
+bundled layer's own signature is still verified and enforced on load.
+
 Prices are never downloaded during inference. Catalog updates are explicit and
 must verify their Ed25519 signature before installation:
 
@@ -64,7 +84,7 @@ releases without making an old run depend on today's catalog.
 
 ## Frontier snapshot
 
-The bundled snapshot generated on 2026-07-16 includes these required frontier
+The bundled snapshot generated on 2026-07-20 includes these required frontier
 cards (USD per million tokens):
 
 | Family | Input | Cache read | Output | Other rules |
@@ -118,7 +138,10 @@ enterprise committed-spend customers, whom Groq explicitly exempts.
 Release maintainers sign snapshots with
 `python -m scripts.sign_pricing_catalog ... --key /secure/private.pem --key-id ...`.
 Private release keys must remain outside the source tree; old public keys stay
-trusted so previously signed snapshots continue to verify.
+trusted after a public release unless they are explicitly revoked. The `r3` key
+is the first public OpenTine catalog trust anchor; unpublished pre-release keys
+were retired before v0.3.0 because durable private-key custody could not be
+demonstrated.
 
 Primary rate sources are linked on every card, including the
 [OpenAI model catalog](https://developers.openai.com/api/docs/models),

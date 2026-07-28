@@ -31,7 +31,13 @@ a PyPI publishing credential.
 ## Release checklist
 
 1. Confirm the working tree is clean and the version in `pyproject.toml` and
-   `opentine/_version.py` is the intended release.
+   `opentine/_version.py` is the intended release. Verify the bundled pricing
+   catalog and confirm its private signing key is backed up in controlled storage
+   outside both the checkout and CI:
+
+   ```bash
+   tine pricing check opentine/data/pricing_catalog.json
+   ```
 2. Push the release commit and require the complete Linux/macOS/Windows CI
    matrix to pass on that exact commit. The tag workflow independently checks
    the Actions API for that successful exact-SHA `main` run and fails closed.

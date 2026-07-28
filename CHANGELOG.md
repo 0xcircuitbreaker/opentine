@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-17
+## 0.3.0 — 2026-07-20
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -29,7 +29,95 @@ v2; repository objects use the new verified v3 format.
 - CLI commands: `init`, `fsck`, `repo-log`, `object`, `pack`, `migrate-v3`,
   `fetch`, `push`, `clone`, and `serve`.
 
+### Added (provider and harness coverage)
+
+- Every hosted OpenAI-compatible adapter now requests usage accounting on
+  streams. GLM (both the international and China endpoints), Together, Mistral,
+  Ministral and Hermes previously sent no `stream_options.include_usage`, so a
+  streamed call returned no token counts and priced as `unknown` — reporting
+  $0.00 for real spend.
+- `tine pricing update` installs to the path the loader actually reads. It
+  hard-coded `~/.config` while `load_catalogs` honours `XDG_CONFIG_HOME`, so
+  under a non-default config home the update reported success and changed no
+  prices.
+- Harness presets are table-driven (`opentine/harnesses/_presets.py`), so
+  supporting another terminal agent costs one row rather than a subclass. Adds
+  `grok` (xAI Grok Build, `grok exec`) and `gemini` (Gemini CLI, `gemini -p`).
+- `docs/pricing-overlay-claude-5.json` prices `claude-opus-5`,
+  `claude-mythos-5`, and `claude-haiku-4-5` ahead of the next signed catalog
+  release; see PRICING.md.
+
+### Fixed (final pre-release audit)
+
+- An OIDC token carrying no roles claim now grants no roles instead of silently
+  defaulting to `reader`. A misconfigured issuer, or one that stops emitting the
+  claim, previously conferred read access to every run in the tenant. Operators
+  who relied on the old behaviour can pass `default_roles=("reader",)`.
+- The remote's SQLite metadata database and its WAL/shm siblings are created
+  `0600`. sqlite3 applied the process umask — typically world-readable — while
+  every other file the server writes was already hardened.
+- `tine keygen --out` and `tine sign --save` refuse to overwrite an existing file
+  without `--force`. Clobbering a private key destroys the only copy of a signing
+  identity and makes every artifact it signed unverifiable.
+- `tine ls`, `tine search`, and `tine reindex` report an over-cap runs directory
+  as an error naming the limit and the directory, rather than an interpreter
+  traceback.
+- An effective-date string honours its UTC offset. Truncating to the first ten
+  characters dropped it, so a timestamp already into the next day in UTC resolved
+  to the previous day's rate card.
+- Free-text cost scraping requires a currency marker, so an agent writing
+  "cost: 500" about an approach it was weighing no longer books $500 to the run.
+- Credential redaction no longer leaks on two common shapes. A v2 assignment
+  whose value contains a colon (`api_key=sk-proj:abc`) was split on the colon,
+  which buried the credential name in the label and stored the secret in
+  cleartext; the separator is now chosen by position. In v3 blobs, a credential
+  preceded by a dash — a `git diff` removal line for a `.env` file, or a captured
+  `--api-key=…` argv — was never matched. Name matching stays linear.
+- A run long enough to save is again long enough to load. The reader enforced a
+  fixed structural-token cap that the writer did not, so runs of roughly 20k
+  steps were persisted and then permanently unreadable. The bound now scales with
+  artifact size, keeping the container-amplification guard intact.
+- Updating a ref no longer stages through a filename that is another ref's guard
+  lock (`x` staged as `x.new.lock`, which is ref `x.new`'s lock). The old name
+  made a sibling update fail, then deleted the lock a live writer still held,
+  defeating the compare-and-swap.
+- `tine migrate-v3` reports its fail-closed refusal on a tampered artifact as an
+  error instead of an unhandled traceback.
+- `inspect(resolve_blobs=True)` no longer auto-resolves `legacy_blob`, the one
+  deliberately unredacted blob, which the MCP `inspect_object` tool returned to a
+  model by default. It remains reachable by its own object id.
+- MCP `fork_run_v3`/`resume_run_v3` may only write `experiments/*`. Their ref
+  update is an unconditional overwrite, so mainline, promotion, tag and
+  remote-tracking refs are no longer reachable from untrusted run content.
+- Harness-reported `duration_ms` is converted to seconds rather than stored
+  verbatim, which inflated durations 1000x and could trip a duration budget.
+- `tine tag` warns when re-saving removes a signature; `SECURITY_MODEL.md` no
+  longer implies the signature survives an ordinary edit.
+- The OpenRouter adapter requests usage accounting; because it is priced from
+  provider-reported cost with no rate-card fallback, streamed calls previously
+  always reported `unknown` and $0.00.
+- Adapter billing tests derive the expected charge from the effective rate card
+  instead of freezing a promotional rate that expired on 2026-07-23.
+
 ### Fixed (post-audit hardening)
+
+- Billing arithmetic now runs in a fixed Decimal context, independent of caller
+  precision, rounding, or traps. Compatibility totals accumulate exact pinned
+  subtotals, terminal model calls cannot escape budget enforcement, and tool
+  latency contributes to wall-duration budgets.
+- Provider accounting now handles xAI's exclusive reasoning tokens, cumulative
+  stream usage, exact charged-cost ticks, and observed Priority tier; OpenRouter
+  reported account/upstream costs; Groq final stream usage; Anthropic thinking
+  tokens; OpenAI cache writes and observed Priority tier; canonical model aliases;
+  and top-level/nullable cache counters without silently claiming completeness.
+- The first public catalog trust anchor is the retained `r3` key; unpublished
+  pre-release `r1`/`r2` keys with no durable custody were retired. The snapshot
+  ends stale DeepSeek alias pricing when V4 launched and prices Mistral reasoning
+  at its documented output rate.
+- Deep graphs use iterative ancestry and fixed-size structural diff keys. CLI
+  rendering strips terminal control sequences, cached replay cannot derive paths
+  from artifact IDs, filesystem tools reject special files, trace payload types
+  fail before storage, and DuckDuckGo HTML parsing is linear and bounded.
 
 - Canonical JSON now rejects integers beyond the exactly representable range
   (±(2**53−1)) instead of silently coercing them to a float, which could collide
@@ -196,6 +284,16 @@ v2; repository objects use the new verified v3 format.
 - The README now uses the official website mark, documents generic local runtime
   endpoints and their trust boundary, and no longer ships obsolete unreferenced
   animation assets in the source distribution.
+- Compatibility imports no longer treat event-shaped legacy step IDs as trusted
+  v3 identities; only provenance recovered from a verified v3 wrapper can reuse
+  an event map. Repository association/evaluation/annotation scans, semantic
+  source reads, and reflog-ordered ref updates now have explicit hard bounds and
+  stable write guards.
+- Remote ref discovery bounds annotation decoding, filesystem object reads reject
+  linked or oversized leaves before decryption, resumable-upload reaping cannot
+  race an active transfer, and push clients bind completion receipts to the exact
+  pack ID and object count submitted. The signed catalog also corrects Grok 4.5
+  cached input to the official $0.30/MTok rate.
 
 ### Architecture and compatibility
 

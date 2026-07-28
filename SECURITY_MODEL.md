@@ -60,7 +60,9 @@ The digest covers the redacted artifact body outside the `metadata` object. It d
 
 ## Signing (`tine-sig/1`)
 
-`tine sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. The signed boundary (see `TINE_FORMAT.md`) covers the whole body plus an allowlist of authenticity-relevant metadata, and deliberately excludes mutable/derived fields (`tags`, `budget_state`, `autosave`) so ordinary edits don't break a valid signature.
+`tine sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. The signed boundary (see `TINE_FORMAT.md`) covers the whole body plus an allowlist of authenticity-relevant metadata, and deliberately excludes mutable/derived fields (`tags`, `budget_state`, `autosave`) so that changing one of them cannot turn a valid signature into a *mismatch*.
+
+That exclusion is about verification, not persistence. Signing is always an explicit act: any plain re-save — including `tine tag`, which rewrites the artifact — **removes** the signature block rather than re-attaching a signature the current writer did not produce. `tine tag` says so when it does this. Re-run `tine sign` afterwards, and treat "no signature" as a state to check for, not merely "mismatch".
 
 - **HMAC-SHA256** (stdlib, no extra dependency): shared-secret authenticity. Keys shorter than 16 bytes are refused. Keys come from `--key-env` or `--key-file`; they are never written into the artifact.
 - **Ed25519**: public-key signatures. Verifying against the artifact's own embedded key is reported as `verified-tofu` (trust-on-first-use) — the key is self-asserted, not authenticated.
@@ -121,11 +123,18 @@ requires `--reanchor-audit-head` with the already verified database head; the
 migration flag cannot re-anchor a keyed chain. Chain verification is read-only.
 Database triggers remain defense in depth. Local refs use exclusive lockfiles;
 remote refs use SQLite `BEGIN IMMEDIATE` CAS. Run-moving refs are restricted to
-run objects. The reference SQLite sink authenticates full chain continuity
-before every append; this integrity-first check is O(n) in retained audit rows.
-Large deployments should enforce request-rate limits and retention/rotation, or
-provide a scalable externally anchored audit backend. Admission policies can
+run objects. Each audit append authenticates the current tail row and external
+head in O(1); startup and explicit administrator verification stream and
+authenticate the complete chain. Historical interior tampering therefore cannot
+be laundered into a valid chain and is detected at startup or explicit verify,
+though an append alone is not a full historical scan. Admission policies can
 reject oversized or costly writes.
+
+Control-plane ref discovery is capped at 1,000 refs. Annotation envelopes that
+must be decoded to bind an annotation ref to its run are capped at 1 MiB each
+and 8 MiB in aggregate, with a pre-read size check when the object-store adapter
+supports it. Reference filesystem reads reject linked, non-regular, or
+oversized encrypted object leaves before decryption.
 
 The local authenticated-head file detects database-only rollback, but a host
 administrator who restores both SQLite and that file to an earlier valid pair

@@ -1,0 +1,95 @@
+{
+  "cards": [
+    {
+      "effective_from": "2026-06-24",
+      "id": "anthropic:claude-opus-5:2026-06-24",
+      "metadata": {
+        "context_window": "1000000",
+        "fast_mode": "claude-api-only",
+        "priority_tier": "unsupported"
+      },
+      "model": "claude-opus-5",
+      "provider": "anthropic",
+      "rates": {
+        "cache_read": "0.50",
+        "cache_write_1h": "10",
+        "cache_write_5m": "6.25",
+        "input": "5",
+        "output": "25",
+        "reasoning": "25"
+      },
+      "service_modifiers": {
+        "batch": "0.5",
+        "batch_us": "0.55",
+        "fast": "2",
+        "us": "1.1"
+      },
+      "source_urls": [
+        "https://platform.claude.com/docs/en/about-claude/pricing",
+        "https://platform.claude.com/docs/en/about-claude/models/overview"
+      ],
+      "verified_at": "2026-07-25"
+    },
+    {
+      "effective_from": "2026-06-24",
+      "id": "anthropic:claude-mythos-5:2026-06-24",
+      "metadata": {
+        "availability": "project-glasswing",
+        "context_window": "1000000",
+        "shares_pricing_with": "claude-fable-5"
+      },
+      "model": "claude-mythos-5",
+      "provider": "anthropic",
+      "rates": {
+        "cache_read": "1",
+        "cache_write_1h": "20",
+        "cache_write_5m": "12.50",
+        "input": "10",
+        "output": "50",
+        "reasoning": "50"
+      },
+      "service_modifiers": {
+        "batch": "0.5",
+        "batch_us": "0.55",
+        "us": "1.1"
+      },
+      "source_urls": [
+        "https://platform.claude.com/docs/en/about-claude/pricing",
+        "https://platform.claude.com/docs/en/about-claude/models/overview"
+      ],
+      "verified_at": "2026-07-25"
+    },
+    {
+      "aliases": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "effective_from": "2025-10-01",
+      "id": "anthropic:claude-haiku-4.5:2025-10-01",
+      "metadata": {
+        "context_window": "200000"
+      },
+      "model": "claude-haiku-4-5",
+      "provider": "anthropic",
+      "rates": {
+        "cache_read": "0.10",
+        "cache_write_1h": "2",
+        "cache_write_5m": "1.25",
+        "input": "1",
+        "output": "5",
+        "reasoning": "5"
+      },
+      "service_modifiers": {
+        "batch": "0.5"
+      },
+      "source_urls": [
+        "https://platform.claude.com/docs/en/about-claude/pricing",
+        "https://platform.claude.com/docs/en/about-claude/models/overview"
+      ],
+      "verified_at": "2026-07-25"
+    }
+  ],
+  "catalog_id": "sha256:17a536ba31426d2cbb19e8721a57647cc1b6573ab87fef860d5573557fc5b8a6",
+  "generated_at": "2026-07-25T00:00:00Z",
+  "schema": "opentine-pricing/1",
+  "verified_at": "2026-07-25"
+}
