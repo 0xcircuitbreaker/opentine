@@ -46,7 +46,12 @@ def internal_path(root: Path, *parts: str) -> Path:
             raise KernelError(f"repository path contains a symlink: {relative}")
         if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)):
             raise KernelError(f"repository path contains a special file: {relative}")
-        if stat.S_ISREG(info.st_mode) and info.st_nlink != 1:
+        # `> 1`, not `!= 1`. A concurrent ref commit renames a staged file over this
+        # path, and during rename() the kernel briefly has both names pointing at one
+        # inode, so a reader can observe nlink == 2 — and an unlinked-but-open target
+        # reads as 0. Either tripped "!= 1" and made an ordinary concurrent update
+        # look like a hard-link attack on a healthy repository.
+        if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
             raise KernelError(f"repository path contains a hard-linked file: {relative}")
         if index < len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
             raise KernelError(f"repository path has a non-directory parent: {relative}")

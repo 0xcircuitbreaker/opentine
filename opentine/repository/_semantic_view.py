@@ -114,6 +114,13 @@ class SemanticView:
                 self._cache_bytes += len(envelope.body)
         else:
             self._cache.move_to_end(oid)
+            # The summary map evicts at a fixed count while the envelope cache is
+            # byte-bounded, so the two drift apart on a large repository. A cached
+            # envelope whose summary had been evicted then produced no summary at
+            # all, and fsck reported "run events must resolve to event objects" on
+            # a repository where every object hashes and every link resolves.
+            if oid not in self._summaries:
+                self._remember_summary(oid, envelope)
         return envelope
 
     def _remember_summary(self, oid: str, envelope: CachedEnvelope) -> None:
@@ -138,7 +145,13 @@ class SemanticView:
     def event_graph_record(self, oid: str) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
         summary = self._summaries.get(oid)
         if summary is None or summary[0] != "event":
-            envelope = self.get(oid)
+            # cached_envelope, not get: get() re-enters full link validation, which
+            # walks back to this same helper for the previous link, so a chain of a
+            # few hundred annotations exhausted the interpreter stack and fsck, pack
+            # and push died with RecursionError. Decoding still verifies the object
+            # id, so integrity is unchanged — only the recursive re-validation goes.
+            envelope = self.cached_envelope(oid)
+            self._remember_summary(oid, envelope)
             summary = self._summaries.get(oid)
             if envelope.object_type != "event" or summary is None:
                 raise KernelError("run events must resolve to event objects")
@@ -148,7 +161,13 @@ class SemanticView:
     def annotation_record(self, oid: str) -> tuple[str, Any]:
         summary = self._summaries.get(oid)
         if summary is None or summary[0] != "annotation":
-            envelope = self.get(oid)
+            # cached_envelope, not get: get() re-enters full link validation, which
+            # walks back to this same helper for the previous link, so a chain of a
+            # few hundred annotations exhausted the interpreter stack and fsck, pack
+            # and push died with RecursionError. Decoding still verifies the object
+            # id, so integrity is unchanged — only the recursive re-validation goes.
+            envelope = self.cached_envelope(oid)
+            self._remember_summary(oid, envelope)
             summary = self._summaries.get(oid)
             if envelope.object_type != "annotation" or summary is None:
                 raise KernelError("annotation previous object must be an annotation")
