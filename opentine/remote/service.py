@@ -8,7 +8,8 @@ from typing import Any
 
 from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
 from opentine.remote._admission import AllowAdmission
-from opentine.remote._tenant_repo import PackedTenantRepo, TenantRepo, validate_ref_listing
+from opentine.remote._pack_ingest import verified_write_order
+from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -186,20 +187,9 @@ class RemoteService:
                 "tenant": tenant,
             },
         )
-        packed_ids = {oid for oid, _ in packed}
-        view = PackedTenantRepo(tenant, self.objects, dict(packed))
-        external: set[str] = set()
-        for oid, raw in packed:
-            envelope = view.get(oid)
-            for link in validate_links(envelope):
-                if link in packed_ids:
-                    continue
-                external.add(link)
-                if not self.objects.has(tenant, link):
-                    raise ValueError(f"pack has unresolved link: {link}")
-        if set(shallow) != external:
-            raise ValueError("pack shallow boundaries do not match its external links")
-        for oid, raw in packed:
+        # Dependency order, not manifest order: any interrupted write prefix
+        # must stay link-closed so already-durable objects remain readable.
+        for oid, raw in verified_write_order(tenant, self.objects, packed, shallow):
             self.objects.put(tenant, oid, raw)
             envelope = ObjectEnvelope.decode(raw, oid)
             payload = envelope.payload()
