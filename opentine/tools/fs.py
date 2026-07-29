@@ -64,7 +64,11 @@ def read(path: str, sandbox: str | None = None, policy: FilesystemPolicy | None 
     _require_regular(p)
     if p.stat().st_size > pol.max_file_bytes:
         raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
-    return p.read_text(encoding="utf-8")
+    # newline="" to match edit(): universal-newline translation showed agents
+    # "\n" for a CRLF file, so a multi-line `old` copied from read() output
+    # could never match the raw content edit() compares against.
+    with p.open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
 
 
 def write(
