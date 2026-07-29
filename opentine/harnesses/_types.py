@@ -31,6 +31,17 @@ def meter_value(data: Mapping[str, Any], *names: str) -> Any:
     return 0.0
 
 
+def _numeric(value: Any) -> float:
+    """Coerce a harness-reported metric to a number, or 0.0 if it is not one."""
+    if isinstance(value, bool):
+        return 0.0
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return number if math.isfinite(number) and number >= 0 else 0.0
+
+
 def duration_seconds(data: Mapping[str, Any]) -> Any:
     """Read a harness-reported duration as seconds, converting ``*_ms`` fields.
 
@@ -39,13 +50,15 @@ def duration_seconds(data: Mapping[str, Any]) -> Any:
     reported duration 1000x and can abort a run on a duration budget it never
     actually exceeded.
     """
-    value = meter_value(data, "duration", "duration_s", "duration_seconds")
-    if value:
-        return value
-    millis = meter_value(data, "duration_ms", "duration_millis", "latency_ms")
-    if isinstance(millis, bool) or not isinstance(millis, (int, float)):
-        return millis or 0.0
-    return millis / 1000.0
+    seconds = _numeric(meter_value(data, "duration", "duration_s", "duration_seconds"))
+    if seconds:
+        return seconds
+    millis = _numeric(meter_value(data, "duration_ms", "duration_millis", "latency_ms"))
+    # Coerce before deciding, not after. Harnesses emit JSON numbers as strings
+    # ({"duration_ms": "1500"}), and a type check that ran first passed those
+    # through unconverted — keeping the whole 1000x inflation the conversion
+    # exists to remove, which can abort a run on a duration budget it never hit.
+    return millis / 1000.0 if millis else 0.0
 
 
 def _jsonable(value: Any) -> Any:

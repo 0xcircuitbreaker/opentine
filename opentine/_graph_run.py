@@ -27,11 +27,17 @@ def _usage(values: dict[str, int | float] | None) -> dict[str, int | float]:
 def _step_cost_decimal(step: Step) -> Decimal:
     raw = step.billing.get("known_subtotal_usd", step.cost)
     try:
-        amount = Decimal(str(raw))
-        if not amount.is_finite() or amount < 0:
-            raise ValueError("invalid known subtotal")
-        return amount
-    except (InvalidOperation, ValueError):
+        # Validate inside the billing context so the value must be representable
+        # there. is_finite() alone accepts Decimal("1e999999999"), which only
+        # fails later during aggregation — so one crafted artifact in the runs
+        # directory took down ls, search, show and cost with an unhandled
+        # decimal.Overflow, including for every healthy run beside it.
+        with billing_context():
+            amount = +Decimal(str(raw))
+            if not amount.is_finite() or amount < 0:
+                raise ValueError("invalid known subtotal")
+            return amount
+    except (ArithmeticError, InvalidOperation, ValueError):
         return Decimal(str(step.cost))
 
 
