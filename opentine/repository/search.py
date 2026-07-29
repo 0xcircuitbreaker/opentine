@@ -80,11 +80,8 @@ def _blob_text(
     if maximum < 1:
         raise ValueError("repository search exceeds its aggregate source-byte limit")
     raw, total, _ = read_verified_blob_prefix(
-        repo,
-        oid,
-        prefix_limit=maximum,
-        source_limit=maximum,
-    )
+        repo, oid, prefix_limit=maximum, source_limit=maximum,
+    )  # fmt: skip
     remaining_source[0] -= total
     text = raw.decode("utf-8", errors="replace")
     cache[oid] = (text, total)
@@ -168,10 +165,7 @@ def search(
             scores.setdefault(target, []).append(average)
 
     try:
-        # Only run objects are searchable. Taking every ref target charged a
-        # tags/* ref on a large blob against the structured-source budget, and the
-        # resulting ValueError went uncaught — so one tagged artifact permanently
-        # broke search for the whole repository.
+        # Runs only: a tags/* ref on a big blob otherwise spent the budget and raised.
         candidates = {oid for oid in repo.list_refs().values() if oid.startswith("run:")}
     except (KernelError, OSError, UnicodeError, ValueError):
         candidates = set()
@@ -192,7 +186,7 @@ def search(
     remaining_source = [MAX_SEARCH_SOURCE_BYTES]
     remaining_text = [MAX_SEARCH_TEXT_TOTAL]
     remaining_events = MAX_SEARCH_EVENT_REFERENCES
-    for run_id in candidates:
+    for run_id in sorted(candidates):
         try:
             envelope = _get_search_object(repo, run_id, object_cache, structured_remaining)
         except (KernelError, KeyError, OSError, ValueError):
@@ -243,8 +237,14 @@ def search(
                 matched_text,
             )
         )
+    # run_id tiebreak: a candidate set iterates in hash order, so equally ranked
+    # runs gave a different top-N per process for an unchanged repository.
     results.sort(
-        key=lambda item: (item.score is not None, item.score or 0, -item.cost),
-        reverse=True,
+        key=lambda item: (
+            0 if item.score is not None else 1,
+            -(item.score or 0),
+            item.cost,
+            item.run_id,
+        )
     )
     return results[:limit]
