@@ -98,12 +98,17 @@ def edit(
     _require_regular(p)
     if p.stat().st_size > pol.max_file_bytes:
         raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
-    text = p.read_text(encoding="utf-8")
+    # newline="" on both sides: the default translates every line ending on read
+    # and again on write, so editing one line silently rewrote every other line in
+    # the file and turned a one-line change into a whole-file diff.
+    with p.open("r", encoding="utf-8", newline="") as handle:
+        text = handle.read()
     if old not in text:
         raise ValueError(f"String not found in {path}")
     if len(text.replace(old, new, 1).encode("utf-8")) > pol.max_file_bytes:
         raise ValueError(f"Edited content exceeds max_file_bytes={pol.max_file_bytes}")
-    p.write_text(text.replace(old, new, 1), encoding="utf-8")
+    with p.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(text.replace(old, new, 1))
     return f"Edited {path}"
 
 
