@@ -34,7 +34,7 @@ def test_repository_mcp_search_context_fork_resume_evaluate_and_promote(tmp_path
     run = recorder.finalize()
 
     mcp = FakeMCP()
-    register_repository_tools(mcp, str(tmp_path))
+    register_repository_tools(mcp, str(tmp_path), allow_promotion=True)
     expected = {
         "attest_run",
         "context_slice",

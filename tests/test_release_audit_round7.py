@@ -9,9 +9,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import tempfile
 import threading
 import time
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,8 @@ from opentine import Run, StepKind
 from opentine._artifact_io import parse_artifact_json
 from opentine._canon import _redact
 from opentine._cli_common import HARNESS_FACTORIES
+from opentine._graph_run import _step_cost_decimal
+from opentine._graph_types import Step
 from opentine.billing._values import as_date
 from opentine.billing.catalog import (
     PricingCatalog,
@@ -30,7 +34,7 @@ from opentine.billing.catalog import (
 )
 from opentine.harnesses import GeminiCLIHarness, GrokBuildHarness
 from opentine.harnesses._types import cost_from_text, duration_seconds
-from opentine.mcp_repository import _writable_ref
+from opentine.mcp_repository import _writable_ref, register_repository_tools
 from opentine.models.compat import (
     GLM,
     OpenRouter,
@@ -40,6 +44,7 @@ from opentine.remote.security import OIDCIdentityProvider, RoleAuthorizationPoli
 from opentine.repo_cli import cmd_repo
 from opentine.repository import Repo
 from opentine.repository._paths import internal_path
+from opentine.tools import fs
 
 
 def test_secret_with_a_colon_in_its_value_is_not_written_in_cleartext():
@@ -419,3 +424,73 @@ def test_indented_and_diff_marked_credentials_still_redact():
         b"      Cookie: a=b",
     ):
         assert b"REDACTED" in redact_blob(line), line
+
+
+def test_mcp_promotion_is_opt_in():
+    # A promotion ref is a release gate, and the run content an MCP client reads is
+    # untrusted, so text recorded inside a run can ask the model to promote a run of
+    # the attacker's choosing. Creating one is an operator decision.
+    class FakeMCP:
+        def __init__(self):
+            self.tools: dict[str, object] = {}
+
+        def tool(self):
+            def register(fn):
+                self.tools[fn.__name__] = fn
+                return fn
+
+            return register
+
+        def resource(self, _template):
+            return lambda fn: fn
+
+    with tempfile.TemporaryDirectory() as directory:
+        Repo.init(directory)
+        default = FakeMCP()
+        register_repository_tools(default, directory)
+        assert "promote_run" not in default.tools
+        assert "search_runs" in default.tools
+
+        opted_in = FakeMCP()
+        register_repository_tools(opted_in, directory, allow_promotion=True)
+        assert "promote_run" in opted_in.tools
+
+
+def test_harness_duration_accepts_numeric_strings():
+    # Harnesses emit JSON numbers as strings. A type check that ran before coercion
+    # passed "1500" through unconverted, keeping the whole 1000x inflation the
+    # conversion exists to remove.
+    assert duration_seconds({"duration_ms": "1500"}) == 1.5
+    assert duration_seconds({"latency_ms": "250"}) == 0.25
+    assert duration_seconds({"duration": "1.5"}) == 1.5
+    for junk in ({"duration_ms": "abc"}, {"duration_ms": True}, {"duration_ms": "-5"}, {}):
+        assert duration_seconds(junk) == 0.0
+
+
+def test_hostile_billing_subtotal_cannot_crash_cost_aggregation():
+    # is_finite() accepts Decimal("1e999999999"); it only fails later during
+    # aggregation, so one crafted artifact in the runs directory took down ls,
+    # search, show and cost for every healthy run beside it.
+    hostile = Step(
+        id="s1",
+        parent_ids=[],
+        kind=StepKind.model,
+        inputs={},
+        outputs={},
+        cost=0.5,
+        billing={"known_subtotal_usd": "1e999999999"},
+    )
+    assert _step_cost_decimal(hostile) == Decimal("0.5")
+    run = Run(id="r")
+    run.graph.add(hostile)
+    assert run.total_cost == 0.5
+
+
+def test_fs_edit_preserves_existing_line_endings(tmp_path):
+    # The default text mode translates line endings on read and again on write, so
+    # editing one line silently rewrote every other line in the file.
+    for name, data in (("crlf.txt", b"a\r\nb\r\nc\r\n"), ("lf.txt", b"a\nb\nc\n")):
+        path = tmp_path / name
+        path.write_bytes(data)
+        fs.edit(str(path), "b", "B", sandbox=str(tmp_path))
+        assert path.read_bytes() == data.replace(b"b", b"B")
