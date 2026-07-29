@@ -7,14 +7,19 @@ from pathlib import Path
 from typing import Any
 
 import opentine._artifact_shapes as artifact_shapes
-from opentine._artifact_io import artifact_digest, artifact_integrity, read_artifact_json
+from opentine._artifact_io import (  # fmt: skip  # fmt: skip
+    artifact_digest,
+    artifact_integrity,
+    assert_loadable,
+    read_artifact_json,
+)
 from opentine._canon import (
     FORMAT_VERSION,
     SUPPORTED_VERSIONS,
     _integrity_digest,
     _redact,
     atomic_write_text,
-)
+)  # fmt: skip
 from opentine._graph_run import _usage
 from opentine._graph_types import Graph, IntegrityResult, RunStatus, Step, StepKind
 from opentine.migrations import LEGACY_VERSION, MigrationError, detect_version, migrate_dict
@@ -120,17 +125,10 @@ def run_from_dict(data: dict[str, Any], run_class):
 
 
 def save_run(
-    run,
-    path: str | Path,
-    *,
-    draft: bool = False,
-    fsync: bool = False,
-    sign_key: Any | None = None,
-    sign_algorithm: str = "hmac-sha256",
-    key_id: str | None = None,
-    signer: str | None = None,
-    signed_at: str | None = None,
-) -> Path:
+    run, path: str | Path, *, draft: bool = False, fsync: bool = False,
+    sign_key: Any | None = None, sign_algorithm: str = "hmac-sha256",
+    key_id: str | None = None, signer: str | None = None, signed_at: str | None = None,
+) -> Path:  # fmt: skip
     target = Path(path)
     is_repo = target.is_dir() and (
         (target / "config.json").is_file() or (target / ".tine" / "config.json").is_file()
@@ -174,6 +172,7 @@ def save_run(
             signed_at=signed_at,
         )
     serialized = json.dumps(data, indent=2, sort_keys=True, allow_nan=False)
+    assert_loadable(serialized)  # never persist what this build could not read back
     atomic_write_text(target, serialized, fsync=fsync)
     return target
 

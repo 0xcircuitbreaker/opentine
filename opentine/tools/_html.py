@@ -10,19 +10,32 @@ _MAX_SEARCH_URL = 4_096
 
 
 class _VisibleText(HTMLParser):
-    def __init__(self, limit: int):
+    def __init__(self, limit: int, max_raw: int):
         super().__init__(convert_charrefs=True)
         self.limit = limit
+        # Separate budget for retained source. The output budget must not be spent
+        # on markup, but retention still needs a ceiling; this one is proportional
+        # to the input the caller already accepted.
+        self.max_raw = max_raw
         self.hidden = 0
         self.parts: list[str] = []
         self.length = 0
+        self.raw = 0
 
     def _append(self, value: str) -> None:
-        if self.hidden or self.length >= self.limit:
+        if self.hidden or self.length >= self.limit or self.raw >= self.max_raw:
             return
-        value = value[: self.limit - self.length]
+        # Charge only collapsed, meaningful characters. Counting raw length made the
+        # separator emitted for every tag — and the source indentation between them —
+        # consume the output budget, so a page whose article follows a long nav list
+        # returned nav link text and none of the article, with no truncation marker.
+        collapsed = len(" ".join(value.split()))
+        self.raw += len(value)
+        if not collapsed:
+            self.parts.append(" ")
+            return
         self.parts.append(value)
-        self.length += len(value)
+        self.length += collapsed + 1
 
     def handle_starttag(self, tag: str, attrs) -> None:
         del attrs
@@ -49,7 +62,7 @@ def visible_text(value: str, limit: int) -> str:
     """Extract visible text in linear time, retaining at most ``limit`` characters."""
     if limit < 1:
         raise ValueError("text output limit must be positive")
-    parser = _VisibleText(limit)
+    parser = _VisibleText(limit, max_raw=len(value) + 1)
     parser.feed(value)
     parser.close()
     return " ".join("".join(parser.parts).split())[:limit]

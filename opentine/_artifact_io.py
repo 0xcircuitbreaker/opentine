@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import stat
 from pathlib import Path
 from typing import Any
@@ -68,6 +69,32 @@ def read_artifact_bytes(path: str | Path) -> bytes:
     if len(raw) > MAX_TINE_ARTIFACT_BYTES:
         raise ValueError(".tine artifact exceeds the 256 MiB size limit")
     return raw
+
+
+_OVERSIZED_INTEGER = re.compile(rb"(?<![\w.])-?\d{%d,}" % (MAX_TINE_INTEGER_DIGITS + 1))
+
+
+def assert_loadable(serialized: str) -> None:
+    """Refuse to persist an artifact this build could never read back.
+
+    The reader bounds nesting depth and integer width and the writer did not, so a
+    deeply nested tool result or a large integer produced a file that saved
+    cleanly and then failed every later load, verify and migrate — destroying the
+    run it was written to preserve. Failing at save leaves the run in memory,
+    where the caller can still do something about it.
+    """
+    encoded = serialized.encode()
+    try:
+        validate_json_shape(encoded, max_tokens=_structural_token_budget(len(encoded)))
+    except KernelError as exc:
+        raise ValueError(
+            "run nesting or structure exceeds what a .tine artifact can hold; "
+            "flatten the offending step input before saving"
+        ) from exc
+    if _OVERSIZED_INTEGER.search(encoded):
+        raise ValueError(
+            f"integer exceeds the {MAX_TINE_INTEGER_DIGITS}-digit .tine limit; store it as a string"
+        )
 
 
 def parse_artifact_json(raw: bytes | str) -> Any:
