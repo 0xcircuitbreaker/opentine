@@ -34,6 +34,7 @@ from opentine.billing.catalog import (
 )
 from opentine.harnesses import GeminiCLIHarness, GrokBuildHarness
 from opentine.harnesses._types import cost_from_text, duration_seconds
+from opentine.kernel import KernelError
 from opentine.mcp_repository import _writable_ref, register_repository_tools
 from opentine.models.compat import (
     GLM,
@@ -43,8 +44,10 @@ from opentine.redaction import redact_blob
 from opentine.remote.security import OIDCIdentityProvider, RoleAuthorizationPolicy
 from opentine.repo_cli import cmd_repo
 from opentine.repository import Repo
+from opentine.repository._pack_install import _dependency_order
 from opentine.repository._paths import internal_path
 from opentine.tools import fs
+from opentine.tools._html import visible_text
 
 
 def test_secret_with_a_colon_in_its_value_is_not_written_in_cleartext():
@@ -494,3 +497,88 @@ def test_fs_edit_preserves_existing_line_endings(tmp_path):
         path.write_bytes(data)
         fs.edit(str(path), "b", "B", sandbox=str(tmp_path))
         assert path.read_bytes() == data.replace(b"b", b"B")
+
+
+def test_redaction_leaves_valid_json_parseable():
+    # The value class ran past a JSON string's closing quote, producing
+    # '{"note": "the api_key: [REDACTED], "user": "bob"}' — no longer parseable, so
+    # every downstream reader fell back to treating the blob as opaque text.
+    for blob in (
+        b'{"note": "the api_key: is stored in vault", "user": "bob"}',
+        b'{"api_key": "sk-secret", "user": "bob"}',
+        b'{"cfg": {"password": "hunter2"}, "ok": true}',
+    ):
+        redacted = redact_blob(blob)
+        json.loads(redacted)  # must not raise
+        assert b"hunter2" not in redacted and b"sk-secret" not in redacted
+
+
+def test_inspect_skips_a_blob_field_holding_a_non_object_id(tmp_path):
+    # The kernel never validates arbitrary *_blob keys, so a peer's pack can carry
+    # one holding any string. parse_oid raised on it and inspect then failed
+    # permanently for that object, on a repository fsck called healthy.
+    repo = Repo.init(tmp_path)
+    oid = repo.put("event", {"parent_ids": [], "causal_ids": [], "sidecar_blob": "not-an-oid"})
+    inspected = repo.inspect(oid, resolve_blobs=True)
+    assert inspected["payload"]["sidecar_blob"] == "not-an-oid"
+    assert inspected["resolved_blobs"] == {}
+
+
+def test_event_cost_rejected_at_read_is_also_rejected_at_write(tmp_path):
+    # Decimal("1e999999999") is finite, so it passed the write check and was hashed
+    # into the store, then failed every later read — bricking a run fsck called
+    # healthy. Write must be as strict as read.
+    repo = Repo.init(tmp_path)
+    with pytest.raises(KernelError):
+        repo.put("event", {"parent_ids": [], "causal_ids": [], "cost": "1e999999999"})
+
+
+def test_packed_objects_install_after_the_objects_they_link_to():
+    # Installing in object-id order let an interrupted install leave an annotation
+    # or run whose targets were never written, so the destination permanently
+    # failed fsck with "missing linked object".
+    objects = [("annotation:a", b"A"), ("event:e", b"E"), ("run:r", b"R")]
+    links = {"annotation:a": {"run:r"}, "run:r": {"event:e"}, "event:e": set()}
+    order = [oid for oid, _ in _dependency_order(objects, links)]
+
+    assert sorted(order) == sorted(oid for oid, _ in objects)
+    for cut in range(len(order) + 1):
+        written = set(order[:cut])
+        for oid in written:
+            assert links[oid] <= written, f"prefix of {cut} is not link-closed"
+
+
+def test_visible_text_budget_is_not_spent_on_markup():
+    # Charging raw length meant the separator emitted for every tag, and the source
+    # indentation between them, consumed the output budget — so a page whose
+    # article follows a long nav list returned nav links and none of the article.
+    nav = "".join(f'\n    <li><a href="/p{i}">Nav {i}</a></li>' for i in range(300))
+    page = f"<html><body><nav><ul>{nav}\n</ul></nav>\n<article><h1>Real Article</h1>"
+    page += f"<p>{'body text ' * 200}</p></article></body></html>"
+    extracted = visible_text(page, 4000)
+    assert "Real Article" in extracted
+    assert "body text" in extracted
+    assert len(extracted) <= 4000
+
+
+def test_save_refuses_an_artifact_that_could_never_be_loaded(tmp_path):
+    # The reader bounds integer width and nesting depth and the writer did not, so
+    # these saved cleanly and then failed every later load, verify and migrate.
+    oversized = Run(id="bigint")
+    oversized.add_step(StepKind.tool, {"q": "factor"}, {"modulus": 10**4200})
+    with pytest.raises(ValueError, match="4096-digit"):
+        oversized.save(tmp_path / "a.tine")
+    assert not (tmp_path / "a.tine").exists()
+
+    nested: dict[str, object] = {"v": 1}
+    for _ in range(600):
+        nested = {"n": nested}
+    deep = Run(id="deep")
+    deep.add_step(StepKind.tool, {"api_response": nested}, {"ok": True})
+    with pytest.raises(ValueError, match="nesting or structure"):
+        deep.save(tmp_path / "b.tine")
+    assert not (tmp_path / "b.tine").exists()
+
+    ordinary = Run(id="ok")
+    ordinary.add_step(StepKind.think, {"p": "x"}, {"o": "y", "n": 10**100})
+    assert len(Run.load(ordinary.save(tmp_path / "c.tine")).steps) == 1
