@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-20
+## 0.3.0 — 2026-07-29
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -47,7 +47,7 @@ v2; repository objects use the new verified v3 format.
   `claude-mythos-5`, and `claude-haiku-4-5` ahead of the next signed catalog
   release; see PRICING.md.
 
-### Fixed (final pre-release audit)
+### Fixed (first release audit)
 
 - An OIDC token carrying no roles claim now grants no roles instead of silently
   defaulting to `reader`. A misconfigured issuer, or one that stops emitting the
@@ -294,6 +294,133 @@ v2; repository objects use the new verified v3 format.
   race an active transfer, and push clients bind completion receipts to the exact
   pack ID and object count submitted. The signed catalog also corrects Grok 4.5
   cached input to the official $0.30/MTok rate.
+
+### Fixed (second release audit)
+
+Security fixes:
+
+- Credential redaction covers quoted JSON field names. The v2 string path
+  compared labels with their quotes attached, so `"api_key": "sk-…"` inside
+  captured tool output was stored in cleartext. Quotes are stripped before
+  matching; a quoted `"token"` value is treated as a credential (matching the
+  mapping path) while numeric counters such as `input_tokens` still survive.
+- An unterminated private-key marker no longer leaks the key bytes that follow
+  it. Redaction required the entire remainder to be PEM data, so one trailing
+  byte — the closing quote of a JSON string — made it emit the key verbatim
+  directly after `[REDACTED PRIVATE KEY]`, output that reads as redacted. The
+  scanner now consumes the base64 key material itself while keeping trailing
+  prose, and a prefix rewrite removes a scan quadratic in indentation depth.
+- Overwriting `tine sign --save`'s destination is its own flag, `--overwrite`.
+  It shared `--force`, which also means "sign despite a failed integrity
+  check", so replacing a file silently waived tamper detection. Neither flag
+  implies the other.
+- The remote's metadata database is created with private permissions before
+  sqlite3 opens it. It was created under the process umask and tightened
+  afterwards — a window in which a local process could open the file and keep
+  a descriptor the later chmod does not revoke.
+- MCP promotion is opt-in (`register_repository_tools(allow_promotion=False)`).
+  A promotion ref is a release gate and run content read over MCP is
+  untrusted, so text recorded inside a run could ask the model to promote an
+  attacker-chosen run.
+- The MCP experiments-only ref guard decides on the canonical ref name, so the
+  guard and the filesystem layer can never disagree, and the legitimate
+  fully-qualified `refs/experiments/…` form is accepted.
+- `tine keygen` refuses `--out` and `--pub` naming the same file, which wrote
+  the public key over the just-written seed and exited 0 with the private key
+  destroyed.
+
+Reliability fixes:
+
+- Five false corruption reports on healthy repositories are gone: a ref inode
+  observed during a concurrent update or mid-rename no longer trips the
+  hard-link guard (only a link count above one is refused); a stray file such
+  as `.DS_Store` in the refs directory no longer blanks the whole listing and
+  masks every real error behind it; cache-eviction drift past ten thousand
+  events no longer reports resolvable events as missing; and a few hundred
+  annotations on one run no longer kill `fsck`, pack, and push with
+  `RecursionError`.
+- Search filters candidates to run objects, so one tag pointing at a large
+  blob no longer permanently breaks search for the whole repository, and a run
+  load memoises blob decoding, so events sharing a blob no longer decode
+  hundreds of MiB from an 800 KiB repository.
+- Search results are deterministic — equally ranked runs tiebreak on run id
+  and candidates iterate in sorted order — and packed objects install in
+  dependency order, so an interrupted install can no longer leave objects
+  whose link targets were never written.
+- A step subtotal such as `Decimal("1e999999999")` is rejected when recorded
+  instead of crashing `ls`, `search`, `show`, and `cost` for every
+  neighbouring run at aggregation time, and a harness duration arriving as a
+  string (`"duration_ms": "1500"`) is coerced instead of keeping the
+  thousandfold inflation the conversion exists to remove.
+- Redacting a credential mention inside a JSON string no longer runs past the
+  closing quote and breaks parsing for every downstream reader; an unvalidated
+  `*_blob` field no longer makes `inspect` fail permanently for its object;
+  and event metrics are validated at write exactly as strictly as at read, so
+  a run can no longer be hashed into the store and then refused on every later
+  read.
+- Saving refuses an artifact this build could never load: the reader's
+  integer-width and nesting-depth bounds now apply at write, leaving the run
+  in memory instead of persisting it unreadably. HTML text extraction budgets
+  collapsed text rather than raw markup, so a page's article is no longer
+  silently replaced by its navigation links.
+- Streamed usage accounting requires positive evidence that a provider
+  supports `stream_options.include_usage`; Mistral rejects the field with HTTP
+  422, so the blanket opt-in broke its streaming outright. GLM keeps the
+  opt-in; Mistral, Ministral, Together, and Hermes opt in per deployment with
+  `include_usage=True`.
+- The per-user pricing overlay path honours an empty `XDG_CONFIG_HOME` instead
+  of silently becoming CWD-relative, and PRICING.md's overlay recipe now
+  produces a `catalog_id` the loader accepts (a `sha256:`-prefixed digest).
+- The file-editing tool reads and writes with line endings preserved, so
+  editing one line no longer rewrites every line ending in the file;
+  `tine pricing show` escapes rate-card content instead of losing
+  context-threshold surcharge lines to markup parsing; and an over-limit run
+  index names the limit that actually fired (artifact count, source bytes, or
+  serialized size) instead of always blaming the count cap.
+
+### Fixed (third release audit)
+
+- Depth-limited (shallow) clones no longer crash every graph read API at the
+  fetch boundary: `repo-log`, semantic diff, and context slices stop at the
+  boundary the way `git log` does, diff summaries aggregate only the events
+  actually present, and loading a run whose events lie beyond the boundary is
+  refused with an error that says to deepen the fetch.
+- Two more writer/reader asymmetries that bricked runs while `fsck` stayed
+  green: annotation writes reject the metadata/tags shapes the reader refuses
+  (and a poisoned annotation head can be superseded through the API instead of
+  blocking repair), and v3 compatibility blobs are written under the same
+  structural guard the reader enforces, so a run that saves is a run that
+  loads.
+- One stray file under `objects/` no longer takes down `fsck`, object
+  enumeration, search, pack, and fetch — the policy the refs directory already
+  had — and object enumeration is sorted, so identical repositories enumerate,
+  and therefore diff and pack, identically everywhere instead of in
+  per-filesystem readdir order.
+- The remote server also installs pack objects in dependency order, so an
+  interrupted server-side install cannot leave durable objects whose link
+  targets were never written.
+- `tine tag` on a repository run applies the tag instead of crashing on the
+  signature check meant for artifact files; `tine ls --since`/`--until` with
+  an invalid date prints an error instead of a traceback; and the save-time
+  loadability check bounds integer literals with the reader's own parser, so a
+  long digit run inside a JSON string no longer makes a valid run unsavable
+  (which aborted live runs through autosave).
+- `run.fork()` tolerates non-dict transcript items and a malformed
+  `manifest.pricing.catalogs` shape — both of which `load` already accepted —
+  instead of raising `AttributeError`; the same paths are reached through
+  cached replay and MCP `fork_run`.
+- OpenAI usage parsing reads each cache and reasoning detail from whichever
+  details spelling carries it — the same either-object rule the missing-usage
+  probe applies — instead of only the first truthy details object.
+- `TraceEvent` validation runs the event store's own metric gate on the stored
+  form of timestamps, durations, costs, and usage, so an event that constructs
+  can always be appended instead of crashing recorder appends and trace
+  imports from inside the store.
+- The filesystem `read()` tool returns raw line endings to match `edit()`, so
+  a multi-line `old` string copied from read output matches CRLF files instead
+  of always failing.
+- Importing a legacy run keeps the extra parents of a merge step as causal
+  edges instead of silently dropping all but one parent edge.
 
 ### Architecture and compatibility
 
