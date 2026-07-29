@@ -64,12 +64,8 @@ class RemoteService:
         valid_tenant(tenant)
         if not self.authorization.authorize(identity, action, tenant):
             self._audit(
-                identity,
-                identity.tenant,
-                action,
-                "denied",
-                {"requested_tenant": tenant},
-            )
+                identity, identity.tenant, action, "denied", {"requested_tenant": tenant},
+            )  # fmt: skip
             raise PermissionError(f"not authorized for {action} in {tenant}")
 
     def _audit(
@@ -89,7 +85,7 @@ class RemoteService:
                 action,
                 outcome,
                 details,
-            )
+            )  # fmt: skip
         )
 
     def list_refs(self, identity: Identity, tenant: str) -> dict[str, str]:
@@ -108,6 +104,10 @@ class RemoteService:
         if not all(callable(item) for item in (verify, head, warnings)):
             raise RuntimeError("configured AuditSink does not expose chain verification")
         if callable(status_method):
+            # Head read first and passed in on purpose: the status is bound to the
+            # head reported, so a caller never gets "verified" for a head that was
+            # never verified. A concurrent append yields "invalid" rather than a
+            # stale assurance — a false alarm, the safe direction here.
             verified_head = head()
             status = status_method(expected_head=verified_head)
             warning_list = warnings() if status == "legacy-unverified" else []

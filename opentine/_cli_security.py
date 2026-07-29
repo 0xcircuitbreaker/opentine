@@ -125,6 +125,11 @@ def cmd_keygen(args: argparse.Namespace) -> None:
         console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc
     target_pub = args.pub or (args.out + ".pub" if args.out else None)
+    if args.out and target_pub and Path(args.out) == Path(target_pub):
+        # Writing the seed and then the public key to one path leaves only the
+        # public key: the private half is destroyed and the command still exits 0.
+        console.print("[red]--out and --pub must name different files.[/]")
+        raise SystemExit(1)
     # Silently overwriting a private key destroys the only copy of a signing
     # identity, and every artifact it signed becomes unverifiable.
     for existing in (args.out, target_pub):

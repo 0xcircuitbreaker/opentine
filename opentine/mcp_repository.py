@@ -33,7 +33,15 @@ def _writable_ref(ref: str) -> str:
     return normalized
 
 
-def register_repository_tools(mcp, repo_path: str = ".") -> None:
+def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: bool = False) -> None:
+    """Register the v3 repository tools on an MCP server.
+
+    ``allow_promotion`` is off by default. A promotion ref is a release gate, and
+    the run content an MCP client reads is untrusted, so text recorded inside a
+    run can ask the model to promote a run of the attacker's choosing. The
+    compare-and-swap stops an existing promotion being clobbered, but creating a
+    new one is still an operator decision rather than a model's.
+    """
     repo = Repo.open(repo_path)
 
     @mcp.tool()
@@ -124,15 +132,17 @@ def register_repository_tools(mcp, repo_path: str = ".") -> None:
         """Attach an approval or provenance claim to a run."""
         return {"attestation_id": repo.attest(run_id, claim, signer=signer)}
 
-    @mcp.tool()
-    def promote_run(
-        run_id: str,
-        name: str,
-        expected_old: str | None = None,
-    ) -> dict[str, str]:
-        """CAS-update a promotion ref after evaluation or approval."""
-        repo.promote(run_id, name, expected_old=expected_old)
-        return {"ref": f"promotions/{name}", "run_id": run_id}
+    if allow_promotion:
+
+        @mcp.tool()
+        def promote_run(
+            run_id: str,
+            name: str,
+            expected_old: str | None = None,
+        ) -> dict[str, str]:
+            """CAS-update a promotion ref after evaluation or approval."""
+            repo.promote(run_id, name, expected_old=expected_old)
+            return {"ref": f"promotions/{name}", "run_id": run_id}
 
     @mcp.resource("tine-object://{object_id}")
     def object_resource(object_id: str) -> dict[str, Any]:

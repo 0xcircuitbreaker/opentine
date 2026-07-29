@@ -114,6 +114,9 @@ class FilesystemObjectStore:
         return list_objects(root, limit=limit, truncate=truncate)
 
 
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+
+
 class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
     validate_tenant = staticmethod(valid_tenant)
 
@@ -127,6 +130,12 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
     ):
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        # Create the database privately before sqlite3 can: chmod-after-connect
+        # left a window to open the file and keep a descriptor chmod cannot revoke.
+        try:
+            os.close(os.open(self.path, os.O_CREAT | os.O_RDWR | _NOFOLLOW, 0o600))
+        except OSError:
+            pass
         self._key_path = Path(str(self.path) + ".audit-key")
         self._anchor_path = Path(str(self.path) + ".audit-head")
         self._audit_lock_path = Path(str(self.path) + ".audit-lock")
