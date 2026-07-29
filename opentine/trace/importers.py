@@ -82,6 +82,9 @@ def native_events(run) -> list[TraceEvent]:
                 trace_id=run.id,
                 span_id=step.id,
                 parent_span_id=step.parent_id,
+                # parent_id is parent_ids[-1]; keep the other merge parents as
+                # causal edges so multi-parent DAG structure survives import.
+                causal_span_ids=tuple(step.parent_ids[:-1]),
                 actor=step.tool_info.get("name", "model"),
                 model=step.model_info,
                 cost=step.cost,

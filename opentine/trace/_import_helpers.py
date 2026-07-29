@@ -112,14 +112,14 @@ def safe_usage(value: Any) -> tuple[dict[str, int | float], list[str]]:
     result: dict[str, int | float] = {}
     warnings: list[str] = []
     for name, raw in dictionary(value).items():
-        valid = (type(raw) is int and raw >= 0) or (
+        # json_safe stringifies ints above 2**53-1 and the event store then
+        # rejects the stored string as non-numeric, so every dimension is
+        # bounded — not just token counts.
+        valid = (type(raw) is int and 0 <= raw <= _MAX_SAFE_INTEGER) or (
             type(raw) is float and math.isfinite(raw) and raw >= 0
         )
         if name in _TOKEN_USAGE:
-            valid = valid and (
-                (type(raw) is int and raw <= _MAX_SAFE_INTEGER)
-                or (type(raw) is float and raw.is_integer() and raw <= _MAX_SAFE_INTEGER)
-            )
+            valid = valid and (type(raw) is int or (raw.is_integer() and raw <= _MAX_SAFE_INTEGER))
         if isinstance(name, str) and valid:
             result[name] = int(raw) if name in _TOKEN_USAGE else raw
         else:
