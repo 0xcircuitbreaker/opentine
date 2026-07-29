@@ -33,7 +33,9 @@ def _entries(directory: Path) -> Iterator[str]:
 
 
 def _suffixes(directory: Path) -> Iterator[str]:
-    yield from _entries(directory)
+    # readdir order is a per-filesystem hash order; identical repositories must
+    # enumerate — and therefore diff and pack — identically everywhere.
+    yield from sorted(_entries(directory))
 
 
 def _validate_layout(root: Path) -> dict[str, list[str]]:
@@ -41,7 +43,9 @@ def _validate_layout(root: Path) -> dict[str, list[str]]:
     object_types: list[str] = []
     for object_type in _entries(objects):
         if object_type not in OBJECT_TYPES:
-            raise KernelError("repository contains an invalid object-type path")
+            # A name that is not an object type holds no objects: one stray
+            # .DS_Store must not take down fsck, search, and pack (refs/ policy).
+            continue
         if not internal_path(root, "objects", object_type).is_dir():
             raise KernelError("repository object-type path is not a directory")
         object_types.append(object_type)
@@ -51,7 +55,7 @@ def _validate_layout(root: Path) -> dict[str, list[str]]:
         prefixes: list[str] = []
         for prefix in _entries(directory):
             if len(prefix) != 2 or any(char not in _HEX for char in prefix):
-                raise KernelError("repository contains an invalid object-prefix path")
+                continue  # not a legal object prefix, so not part of the store
             if not internal_path(root, "objects", object_type, prefix).is_dir():
                 raise KernelError("repository object prefix is not a directory")
             prefixes.append(prefix)

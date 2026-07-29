@@ -19,6 +19,7 @@ from opentine.repository._run_blobs import (
     transcript_blob,
 )
 from opentine.repository._run_graph import compatibility_float
+from opentine.repository._shallow_read import require_deep
 
 if TYPE_CHECKING:
     from opentine.graph import Run
@@ -184,6 +185,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
     payload = repo.get(oid).payload()
     if not isinstance(payload, dict):
         raise ValueError("run object payload is not a mapping")
+    require_deep(repo, payload.get("events") or [], f"loading run {oid}")
     graph = Graph()
     blobs: dict[str, dict[str, Any]] = {}
     causal_ids: dict[str, list[str]] = {}

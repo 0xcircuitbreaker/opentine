@@ -12,6 +12,7 @@ from opentine.repository._associations import evaluations as _evaluations
 from opentine.repository._context import ContextBudget
 from opentine.repository._diff_budget import DiffBudget
 from opentine.repository._fork_state import fork_payload
+from opentine.repository._shallow_read import ShallowBoundary
 from opentine.repository._traversal import TraversalQueue
 
 if TYPE_CHECKING:
@@ -47,6 +48,9 @@ def _resolve(repo: Repo, value: str) -> str:
 
 def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> list[LogEntry]:
     tip = _resolve(repo, ref)
+    boundary = ShallowBoundary(repo)
+    if boundary.cuts(tip):
+        return []
     envelope = _get(repo, tip)
     if envelope.object_type == "run":
         payload = envelope.payload()
@@ -59,6 +63,8 @@ def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> lis
     for oid, _ in queue:
         if limit is not None and len(entries) >= limit:
             break
+        if boundary.cuts(oid):  # stop at the shallow-fetch boundary, like git log
+            continue
         current = _get(repo, oid)
         payload = current.payload()
         entries.append(LogEntry(oid, current.object_type, payload))
@@ -93,10 +99,13 @@ def _metric(get, events: list[str], name: str) -> float:
 def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
     budget = DiffBudget(repo)
     get = budget.get
+    boundary = ShallowBoundary(repo)
     left_id, left_run = _run_payload(repo, left, get)
     right_id, right_run = _run_payload(repo, right, get)
     left_events = list(left_run.get("events") or [])
     right_events = list(right_run.get("events") or [])
+    left_present = boundary.present(left_events)
+    right_present = boundary.present(right_events)
     right_set = set(right_events)
     common = tuple(event for event in left_events if event in right_set)
     common_set = set(common)
@@ -107,6 +116,8 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
         left_event_id, right_event_id = left_events[index], right_events[index]
         if left_event_id == right_event_id:
             continue
+        if boundary.cuts(left_event_id) or boundary.cuts(right_event_id):
+            continue  # a cut event's fields are unknowable; only_left/right keep the ids
         before = get(left_event_id).payload()
         after = get(right_event_id).payload()
         fields = [
@@ -135,24 +146,24 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
         )
     summary = {
         "cost": {
-            "left": _metric(get, left_events, "cost"),
-            "right": _metric(get, right_events, "cost"),
+            "left": _metric(get, left_present, "cost"),
+            "right": _metric(get, right_present, "cost"),
         },
         "latency": {
-            "left": _metric(get, left_events, "duration"),
-            "right": _metric(get, right_events, "duration"),
+            "left": _metric(get, left_present, "duration"),
+            "right": _metric(get, right_present, "duration"),
         },
         "artifacts": {
-            "left": [get(event).payload().get("artifact_blob") for event in left_events],
-            "right": [get(event).payload().get("artifact_blob") for event in right_events],
+            "left": [get(event).payload().get("artifact_blob") for event in left_present],
+            "right": [get(event).payload().get("artifact_blob") for event in right_present],
         },
         "evaluations": {
             "left": _evaluations(repo, left_id, get),
             "right": _evaluations(repo, right_id, get),
         },
         "tool_path": {
-            "left": [get(event).payload().get("tool") for event in left_events],
-            "right": [get(event).payload().get("tool") for event in right_events],
+            "left": [get(event).payload().get("tool") for event in left_present],
+            "right": [get(event).payload().get("tool") for event in right_present],
         },
     }
     result = SemanticDiff(common, only_left, only_right, tuple(changed), summary)
@@ -167,8 +178,11 @@ def context_slice(repo: Repo, event_id: str, *, depth: int = 8) -> list[LogEntry
         raise ValueError("context depth must be a non-negative integer")
     queue = TraversalQueue(((event_id, 0),))
     budget = ContextBudget()
+    boundary = ShallowBoundary(repo)
     found: list[LogEntry] = []
     for oid, distance in queue:
+        if boundary.cuts(oid):  # stop at the shallow-fetch boundary, like git log
+            continue
         envelope, payload = budget.event(repo, oid)
         found.append(LogEntry(oid, envelope.object_type, payload))
         if envelope.object_type == "event":
