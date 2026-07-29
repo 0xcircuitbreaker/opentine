@@ -18,7 +18,8 @@ def _causal_transcript(transcript: list[dict], retained: set[str], fork_point: s
     scoped = False
     last_retained = False
     for item in transcript:
-        step = item.get("step_id")
+        # Loading tolerates non-dict items, so fork treats them as unscoped turns.
+        step = item.get("step_id") if isinstance(item, dict) else None
         if not isinstance(step, str):
             pending.append(item)
             continue
@@ -61,6 +62,9 @@ def _slice_pricing(manifest: dict, retained: set[str]) -> None:
             and (item.get("catalog_id"), item.get("catalog_hash")) in referenced
         ]
         pricing["catalogs"] = catalogs
+    else:
+        # Loading tolerates a malformed catalogs shape; fork finds no snapshot in it.
+        catalogs = []
     pricing["complete"] = all(
         item.get("status") in {"complete", "unmetered"} for item in invocations
     )
