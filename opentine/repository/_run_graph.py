@@ -30,6 +30,11 @@ def _meter(value: Any, label: str, *, nonnegative: bool = True) -> None:
         raise KernelError(f"{label} must be finite and non-negative") from exc
     if isinstance(value, bool) or not number.is_finite() or (nonnegative and number < 0):
         raise KernelError(f"{label} must be finite and non-negative")
+    # Also require a finite compatibility float. Decimal("1e999999999") is finite,
+    # so it passed here and was hashed into the store, then failed every later read
+    # in compatibility_float — permanently bricking a run that fsck called healthy.
+    if not math.isfinite(float(number)):
+        raise KernelError(f"{label} must be finite and non-negative")
 
 
 def compatibility_float(value: Any, label: str) -> float:

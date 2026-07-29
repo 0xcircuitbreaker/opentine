@@ -36,7 +36,11 @@ _LINE_ASSIGNMENT = re.compile(
 )
 # No leading \b: it fails between a space and the "-" of a mid-line "--api-key=…"
 # flag, and _NAME's own lookbehind is already the stricter start-boundary gate.
-_ASSIGNMENT = re.compile(rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)([^\r\n,;]+)")
+# Quotes excluded from the value class so a JSON string value ends at its closing
+# quote. Consuming it produced '{"note": "the api_key: [REDACTED], "user": "bob"}'
+# — no longer parseable, so every downstream reader fell back to treating the whole
+# blob as opaque text.
+_ASSIGNMENT = re.compile(rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)([^\r\n,;\"']+)")
 _QUOTED_FIELD = re.compile(
     rb"(?i)([\"'](?:"
     + _NAME
@@ -99,7 +103,8 @@ _PROSE_VALUES = {
 
 def _assignment(match: re.Match[bytes]) -> bytes:
     separator, candidate = match.group(2), match.group(3)
-    if b":" in separator and candidate.lower() in _PROSE_VALUES:
+    first = candidate.split()[0].lower() if candidate.split() else candidate.lower()
+    if b":" in separator and first in _PROSE_VALUES:
         return match.group(0)
     return match.group(1) + separator + b"[REDACTED]"
 

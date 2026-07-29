@@ -59,6 +59,11 @@ def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool
             field.endswith("_blob")
             and field not in _UNREDACTED_BLOB_FIELDS
             and isinstance(value, str)
+            # Prefix test before parse_oid: the kernel never validates arbitrary
+            # *_blob keys, so a peer's pack can carry one holding any string.
+            # parse_oid raised on it, and inspect then failed permanently for that
+            # object even though fsck called the repository healthy.
+            and value.startswith("blob:")
             and parse_oid(value)[0] == "blob"
             and repo.has(value)
         ):
