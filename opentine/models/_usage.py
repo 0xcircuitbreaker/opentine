@@ -97,33 +97,31 @@ def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
     """Normalize Responses or Chat Completions usage into exclusive buckets."""
     input_total = integer(raw, "input_tokens", integer(raw, "prompt_tokens"))
     output_total = integer(raw, "output_tokens", integer(raw, "completion_tokens"))
-    input_details = value(raw, "input_tokens_details") or value(raw, "prompt_tokens_details")
-    output_details = value(raw, "output_tokens_details") or value(raw, "completion_tokens_details")
-    # Nested details take precedence; fall back to top-level fields used by
-    # OpenAI-compatible providers (e.g. DeepSeek's prompt_cache_hit_tokens) so cache
-    # reads are billed at the cache rate, not as fresh input.
-    cached_raw = _first_value(
-        (input_details, "cached_tokens"),
-        (raw, "cached_tokens"),
-        (raw, "prompt_cache_hit_tokens"),
-        (raw, "num_cached_tokens"),
+    input_details = (value(raw, "input_tokens_details"), value(raw, "prompt_tokens_details"))
+    output_details = (value(raw, "output_tokens_details"), value(raw, "completion_tokens_details"))
+
+    # Each field is read from whichever details spelling carries it — the same
+    # either-object presence rule openai_missing_usage applies — then falls back
+    # to top-level fields used by OpenAI-compatible providers (e.g. DeepSeek's
+    # prompt_cache_hit_tokens) so cache reads bill at the cache rate, not as input.
+    def detail(details: tuple[Any, Any], *names: str, fallbacks: tuple[str, ...] = ()) -> int:
+        candidates = [(source, name) for name in names for source in details]
+        raw_value = _first_value(*candidates, *((raw, name) for name in fallbacks))
+        return integer({"value": raw_value}, "value")
+
+    cached = detail(
+        input_details,
+        "cached_tokens",
+        fallbacks=("cached_tokens", "prompt_cache_hit_tokens", "num_cached_tokens"),
     )
-    cached = integer({"cached_tokens": cached_raw}, "cached_tokens")
-    write_5m = integer(
-        {
-            "value": _first_value(
-                (input_details, "cache_write_tokens"),
-                (input_details, "cache_creation_input_tokens"),
-                (raw, "cache_write_tokens"),
-            )
-        },
-        "value",
+    write_5m = detail(
+        input_details,
+        "cache_write_tokens",
+        "cache_creation_input_tokens",
+        fallbacks=("cache_write_tokens",),
     )
-    write_1h = integer(input_details, "cache_write_1h_tokens")
-    reasoning = integer(
-        {"value": _first_value((output_details, "reasoning_tokens"), (raw, "reasoning_tokens"))},
-        "value",
-    )
+    write_1h = detail(input_details, "cache_write_1h_tokens")
+    reasoning = detail(output_details, "reasoning_tokens", fallbacks=("reasoning_tokens",))
     if cached + write_5m + write_1h > input_total:
         raise ValueError("provider usage input sub-buckets exceed total input tokens")
     if not additive_reasoning and reasoning > output_total:
