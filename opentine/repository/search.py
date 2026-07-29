@@ -168,7 +168,11 @@ def search(
             scores.setdefault(target, []).append(average)
 
     try:
-        candidates = set(repo.list_refs().values())
+        # Only run objects are searchable. Taking every ref target charged a
+        # tags/* ref on a large blob against the structured-source budget, and the
+        # resulting ValueError went uncaught — so one tagged artifact permanently
+        # broke search for the whole repository.
+        candidates = {oid for oid in repo.list_refs().values() if oid.startswith("run:")}
     except (KernelError, OSError, UnicodeError, ValueError):
         candidates = set()
     for oid in oids:
@@ -191,7 +195,8 @@ def search(
     for run_id in candidates:
         try:
             envelope = _get_search_object(repo, run_id, object_cache, structured_remaining)
-        except (KernelError, KeyError, OSError):
+        except (KernelError, KeyError, OSError, ValueError):
+            # One unusable object must not end the search for every other run.
             continue
         if envelope.object_type != "run":
             continue

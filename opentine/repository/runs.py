@@ -159,6 +159,22 @@ def put_run(
     )
 
 
+def _blob(repo: Repo, cache: dict[str, dict[str, Any]], oid: Any) -> dict[str, Any]:
+    """Decode a content blob once per load, not once per event that references it.
+
+    Events routinely share a blob — the same prompt or tool output referenced as
+    both input and output across a run. Decoding per reference made an 800 KiB
+    repository take minutes and read hundreds of MiB, with no bound that would
+    ever stop it. Content addressing makes the result identical, so it is cached;
+    a copy is returned because Step mutates what it is given.
+    """
+    if not isinstance(oid, str) or not oid:
+        return {}
+    if oid not in cache:
+        cache[oid] = blob_json(repo, oid)
+    return dict(cache[oid])
+
+
 def load_run(repo: Repo, oid_or_ref: str) -> Run:
     from opentine.graph import Graph, Run, RunStatus, Step, StepKind
 
@@ -169,6 +185,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
     if not isinstance(payload, dict):
         raise ValueError("run object payload is not a mapping")
     graph = Graph()
+    blobs: dict[str, dict[str, Any]] = {}
     causal_ids: dict[str, list[str]] = {}
     for event_id in payload.get("events") or []:
         event = repo.get(event_id).payload()
@@ -182,8 +199,8 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 id=event_id,
                 parent_ids=list(event.get("parent_ids") or []),
                 kind=legacy_kind,
-                inputs=blob_json(repo, event["input_blob"]) if event.get("input_blob") else {},
-                outputs=blob_json(repo, event["output_blob"]) if event.get("output_blob") else {},
+                inputs=_blob(repo, blobs, event.get("input_blob")),
+                outputs=_blob(repo, blobs, event.get("output_blob")),
                 model_info=event.get("model", ""),
                 tool_info=dict(event.get("tool") or {}),
                 error=dict(event.get("error") or {}),
