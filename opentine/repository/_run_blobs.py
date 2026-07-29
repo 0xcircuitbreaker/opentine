@@ -5,24 +5,22 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from opentine._canon import _redact
+from opentine._blob_guard import MAX_BLOB_STRUCTURAL_TOKENS, guarded_blob_body
 from opentine._jsonsafe import json_safe
 from opentine.kernel import canonical_json, validate_json_shape
-from opentine.redaction import redact_value
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
 
 
 def json_blob(repo: Repo, value: Any) -> str:
-    redacted = redact_value(_redact(json_safe(value)))
-    return repo.put("blob", canonical_json(redacted), redact=False)
+    return repo.put("blob", guarded_blob_body(value), redact=False)
 
 
 def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
     body = repo.get(oid).body
     try:
-        validate_json_shape(body)
+        validate_json_shape(body, max_tokens=MAX_BLOB_STRUCTURAL_TOKENS)
         parsed = json.loads(body)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("compatibility JSON blob is malformed") from exc

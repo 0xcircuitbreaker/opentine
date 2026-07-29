@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._blob_guard import guarded_blob_body
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
-from opentine.kernel import canonical_json
-from opentine.redaction import redact_value
 from opentine.trace.schema import TraceEvent
 
 SpanKey = tuple[str, str]
@@ -19,8 +18,7 @@ def span_key(trace_id: object, span_id: object) -> SpanKey:
 
 
 def json_blob(repo: Any, value: Any) -> str:
-    redacted = redact_value(_redact(json_safe(value)))
-    return repo.put("blob", canonical_json(redacted), redact=False)
+    return repo.put("blob", guarded_blob_body(value), redact=False)
 
 
 def put_trace_event(

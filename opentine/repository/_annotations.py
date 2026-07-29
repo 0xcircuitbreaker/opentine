@@ -146,6 +146,32 @@ def load_run_annotation(repo: Repo, run_id: str) -> tuple[dict[str, Any], list[s
     return dict(value.get("metadata") or {}), list(value.get("tags") or [])
 
 
+def _assert_writable(value: Any) -> None:
+    """Reject at write the annotation shapes ``_value`` rejects at read.
+
+    ``put_run`` accepted a run whose tags held a non-string or whose metadata was
+    not a mapping, then every later ``load_run`` raised — with fsck green. Write
+    must be as strict as read.
+    """
+    if not isinstance(value, dict) or not isinstance(value.get("metadata", {}), dict):
+        raise ValueError("run metadata must be a JSON object; fix run.metadata before saving")
+    tags = value.get("tags", [])
+    if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+        raise ValueError("run tags must all be strings; fix run.tags before saving")
+
+
+def _head_value(repo: Repo, head: str, run_id: str) -> dict[str, Any] | None:
+    """Read the existing head for deduplication, tolerating a poisoned one.
+
+    A malformed head must compare as not-a-duplicate so a corrected annotation
+    can supersede it; raising here made repair through the API impossible.
+    """
+    try:
+        return _value(repo.get(head).payload(), run_id)
+    except ValueError:
+        return None
+
+
 def write_run_annotation(
     repo: Repo, run_id: str, metadata: dict[str, Any], tags: list[str]
 ) -> str | None:
@@ -155,9 +181,8 @@ def write_run_annotation(
         repo.update_ref(name, old, expected_old=ref_head)
         ref_head = old
     value = redact_value(_redact(json_safe({"metadata": metadata, "tags": tags})))
-    if not isinstance(value, dict):
-        raise ValueError("run annotation value is malformed")
-    if old and _value(repo.get(old).payload(), run_id) == value:
+    _assert_writable(value)
+    if old and _head_value(repo, old, run_id) == value:
         return old
     if old is None and not any(value.values()):
         return None
