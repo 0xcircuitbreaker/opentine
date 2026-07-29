@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 import stat
 from pathlib import Path
 from typing import Any
@@ -71,7 +70,10 @@ def read_artifact_bytes(path: str | Path) -> bytes:
     return raw
 
 
-_OVERSIZED_INTEGER = re.compile(rb"(?<![\w.])-?\d{%d,}" % (MAX_TINE_INTEGER_DIGITS + 1))
+def _bounded_int(value: str) -> int:
+    if len(value.removeprefix("-")) > MAX_TINE_INTEGER_DIGITS:
+        raise ValueError("integer in .tine artifact exceeds the parser limit")
+    return int(value)
 
 
 def assert_loadable(serialized: str) -> None:
@@ -91,10 +93,16 @@ def assert_loadable(serialized: str) -> None:
             "run nesting or structure exceeds what a .tine artifact can hold; "
             "flatten the offending step input before saving"
         ) from exc
-    if _OVERSIZED_INTEGER.search(encoded):
+    # Bound integers with the reader's own parse hook, which only sees number
+    # *literals*: a long digit run inside a JSON string — json_safe's own big-int
+    # representation — must save, and a byte-level regex cannot tell the two
+    # apart, so it rejected runs this build reads back verbatim.
+    try:
+        json.loads(serialized, parse_int=_bounded_int)
+    except ValueError as exc:
         raise ValueError(
             f"integer exceeds the {MAX_TINE_INTEGER_DIGITS}-digit .tine limit; store it as a string"
-        )
+        ) from exc
 
 
 def parse_artifact_json(raw: bytes | str) -> Any:
@@ -126,18 +134,13 @@ def parse_artifact_json(raw: bytes | str) -> Any:
             constant(value)
         return number
 
-    def bounded_int(value: str) -> int:
-        if len(value.removeprefix("-")) > MAX_TINE_INTEGER_DIGITS:
-            raise ValueError("integer in .tine artifact exceeds the parser limit")
-        return int(value)
-
     try:
         return json.loads(
             raw,
             object_pairs_hook=pairs,
             parse_constant=constant,
             parse_float=finite_float,
-            parse_int=bounded_int,
+            parse_int=_bounded_int,
         )
     except RecursionError as exc:
         raise ValueError(".tine artifact nesting exceeds the parser limit") from exc

@@ -39,7 +39,11 @@ def cmd_ls(args: argparse.Namespace) -> None:
     if not index.entries:
         console.print("[dim]No runs found. Use tine run <script.py> to create one.[/]")
         return
-    query = _query_from_ls_args(args)
+    try:
+        query = _query_from_ls_args(args)
+    except QueryError as exc:
+        console.print(f"[red]Bad filter:[/] {_terminal(exc)}")
+        raise SystemExit(1) from exc
     filtering = _has_filters(query)
     readable = [
         entry
@@ -97,7 +101,11 @@ def cmd_tag(args: argparse.Namespace) -> None:
         # A plain re-save deliberately strips any signature (re-signing must be an
         # explicit act), but tagging is an ordinary edit a user does not expect to
         # de-authenticate the artifact. Say so rather than let it happen silently.
-        signed = bool((artifact_integrity(read_artifact_json(path)) or {}).get("signature"))
+        # Repository directories are not signed artifacts, so only regular files
+        # get the check — reading a repo dir as an artifact would raise.
+        signed = path.is_file() and bool(
+            (artifact_integrity(read_artifact_json(path)) or {}).get("signature")
+        )
         run.save(path)
         _index_update(path)
         if signed:
