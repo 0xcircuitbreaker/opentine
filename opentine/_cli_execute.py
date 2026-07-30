@@ -19,6 +19,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
+from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_render import _budget_str, _print_run_tree
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -31,6 +32,15 @@ def cmd_run(args: argparse.Namespace) -> None:
     if not args.script:
         console.print("[red]Provide a Python script or use --harness with --prompt.[/]")
         raise SystemExit(1)
+    refuse_unhonoured(
+        args,
+        (*AUTOSAVE_FLAGS, "prompt", *HARNESS_CONFIG_FLAGS),
+        mode="without --harness",
+        hint=(
+            "A script builds its own Run, which tine sees only once the script has "
+            "finished; use --save PATH to choose where that run is written."
+        ),
+    )
     script = Path(args.script)
     if not script.exists():
         console.print(f"[red]File not found: {_terminal(script)}[/]")
@@ -49,7 +59,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     if run is None:
         console.print("[red]No Run object found in script.[/]")
         raise SystemExit(1)
-    output = _runs_dir() / f"{run.id}.tine"
+    output = Path(args.save) if args.save else _runs_dir() / f"{run.id}.tine"
     run.save(output)
     console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
     _print_run_tree(run)
@@ -61,6 +71,15 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         console.print("[red]--prompt is required when running a harness.[/]")
         raise SystemExit(1)
     autosave_path = getattr(args, "autosave", None)
+    if not autosave_path:
+        # Autosaver.enabled is False without a path, so a throttle on its own
+        # checkpoints nothing at all: refuse it instead of dropping it.
+        refuse_unhonoured(
+            args,
+            ("autosave_interval", "autosave_seconds"),
+            mode="without --autosave",
+            hint="A checkpoint throttle needs a destination; pass --autosave PATH.",
+        )
     interval = getattr(args, "autosave_interval", 0) or 0
     seconds = getattr(args, "autosave_seconds", 0.0) or 0.0
     if autosave_path and not interval and not seconds:

@@ -9,11 +9,31 @@ from pathlib import Path
 from opentine._artifact_io import read_artifact_json
 from opentine._canon import FORMAT_VERSION, _integrity_digest
 from opentine._cli_common import BRAND, _find_run, _terminal, console
+from opentine._cli_flags import refuse_conflict, refuse_unhonoured
 from opentine.core import Run
 from opentine.migrations import is_legacy_linear
 
 
+def _refuse_ignored_migrate_flags(args: argparse.Namespace) -> None:
+    """Refuse destination flags the preview would print over and drop."""
+    if args.dry_run:
+        # The preview returns before any write, so --save/--in-place were accepted
+        # and then discarded: the command exited 0 having written nothing.
+        refuse_unhonoured(
+            args,
+            ("in_place", "save"),
+            mode="with --dry-run",
+            hint="A dry run only reports what a migration would change; drop --dry-run to write.",
+        )
+    refuse_conflict(
+        args,
+        ("in_place", "save"),
+        hint="--in-place rewrites the source; --save writes a new file.",
+    )
+
+
 def cmd_migrate(args: argparse.Namespace) -> None:
+    _refuse_ignored_migrate_flags(args)
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
@@ -43,6 +63,11 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         raise SystemExit(1) from exc
     if source_version == run.format_version:
         console.print(f"[dim]{_terminal(path.name)} is already at format v{run.format_version}.[/]")
+        # --in-place is satisfied (the source already is at this version), but a
+        # --save destination is not: exiting 0 would tell a script that path exists.
+        if args.save:
+            console.print(f"[red]Nothing to migrate; {_terminal(args.save)} was not written.[/]")
+            raise SystemExit(1)
         return
     preview = run.to_dict(redact=True)
     preview["metadata"]["integrity"] = {

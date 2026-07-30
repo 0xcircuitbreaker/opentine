@@ -18,6 +18,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
+from opentine._cli_flags import HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -31,7 +32,25 @@ def _require_output_slot(output: Path, force: bool) -> None:
         raise SystemExit(1)
 
 
+def _refuse_ignored_fork_flags(args: argparse.Namespace) -> None:
+    if not args.harness:
+        refuse_unhonoured(
+            args,
+            ("prompt", *HARNESS_CONFIG_FLAGS),
+            mode="without --harness",
+            hint="A plain fork only copies recorded steps; add --harness with --prompt.",
+        )
+    elif not args.prompt:
+        refuse_unhonoured(
+            args,
+            HARNESS_CONFIG_FLAGS,
+            mode="without --prompt",
+            hint="--harness alone only records the harness to continue with later.",
+        )
+
+
 def cmd_fork(args: argparse.Namespace) -> None:
+    _refuse_ignored_fork_flags(args)
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
@@ -119,7 +138,25 @@ def _harness_replay(args: argparse.Namespace, run: Run) -> None:
         _print_diff_table(run, replayed)
 
 
+def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
+    if args.inspect or args.dry_run:
+        refuse_unhonoured(
+            args,
+            ("compare", "force", "harness", "mode", "prompt", "save", *HARNESS_CONFIG_FLAGS),
+            mode="with --inspect/--dry-run",
+            hint="Inspection only lists the recorded steps; drop it to replay for real.",
+        )
+    elif not args.harness:
+        refuse_unhonoured(
+            args,
+            ("compare", "prompt", *HARNESS_CONFIG_FLAGS),
+            mode="for a cached replay",
+            hint="Pass --harness to re-execute the run instead of reusing its steps.",
+        )
+
+
 def cmd_replay(args: argparse.Namespace) -> None:
+    _refuse_ignored_replay_flags(args)
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
+from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
 from opentine.core import Run, short_id
 from opentine.signing import (
     SignatureError,
@@ -19,6 +20,14 @@ from opentine.signing import (
 
 
 def cmd_verify(args: argparse.Namespace) -> None:
+    refuse_conflict(
+        args, ("key_env", "key_file"), hint="Both name an HMAC key; pass the one you mean."
+    )
+    refuse_conflict(
+        args,
+        KEY_MATERIAL_FLAGS,
+        hint="One signature is checked against one key, and the artifact would pick which.",
+    )
     path = _find_run(args.run_id)
     if not path:
         result = Run.verify_integrity(args.run_id)
@@ -42,7 +51,18 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
     key_env = getattr(args, "key_env", None)
     key_file = getattr(args, "key_file", None)
     public_path = getattr(args, "pubkey", None)
-    required = bool(key_env or key_file or public_path or getattr(args, "require_signature", False))
+    trust_embedded = getattr(args, "trust_embedded_key", False)
+    # --trust-embedded-key is itself a request to check authenticity (TOFU), so it
+    # arms the check like any key would; leaving it out of this test made
+    # `tine verify RUN --trust-embedded-key` exit 0 without verifying anything.
+    # repository/_migration.py already treats trust_embedded as a verification request.
+    required = bool(
+        key_env
+        or key_file
+        or public_path
+        or trust_embedded
+        or getattr(args, "require_signature", False)
+    )
     if not required:
         return
     try:
@@ -50,14 +70,14 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
         if key_file:
             hmac_key = hmac_key_from_file(key_file)
         public = ed25519_public_from_file(public_path) if public_path else None
-    except SignatureError as exc:
-        console.print(f"[red]SIGNATURE FAILED[/] {_terminal(exc)}")
+    # OSError as well as SignatureError: a --key-file/--pubkey path that is missing,
+    # a directory, or unreadable came out as an interpreter traceback, which is the
+    # single most likely way to mistype one of these options.
+    except (OSError, SignatureError) as exc:
+        console.print(f"[red]SIGNATURE FAILED[/] cannot read the key: {_terminal(exc)}")
         raise SystemExit(1) from exc
     signature = Run.verify_signature(
-        path,
-        hmac_key=hmac_key,
-        public_key=public,
-        trust_embedded=getattr(args, "trust_embedded_key", False),
+        path, hmac_key=hmac_key, public_key=public, trust_embedded=trust_embedded
     )
     if not signature.ok:
         console.print(
@@ -75,7 +95,38 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
     )
 
 
+def _refuse_ignored_sign_flags(args: argparse.Namespace) -> None:
+    """Refuse key and destination flags the chosen signing mode cannot honour."""
+    if not args.save:
+        # Signing in place rewrites args.run_id itself, so there is no separate
+        # destination to guard: --overwrite would be accepted and never consulted.
+        refuse_unhonoured(
+            args,
+            ("overwrite",),
+            mode="without --save",
+            hint="Signing in place always rewrites the source artifact.",
+        )
+    if args.algorithm == "ed25519":
+        refuse_unhonoured(
+            args,
+            ("key_env", "key_file"),
+            mode="with --algorithm ed25519",
+            hint="Ed25519 signing reads only --ed25519-key-file.",
+        )
+        return
+    refuse_unhonoured(
+        args,
+        ("ed25519_key_file",),
+        mode=f"with --algorithm {args.algorithm}",
+        hint="Pass --algorithm ed25519 to sign with that key.",
+    )
+    refuse_conflict(
+        args, ("key_env", "key_file"), hint="Both name an HMAC key; pass the one you mean."
+    )
+
+
 def cmd_sign(args: argparse.Namespace) -> None:
+    _refuse_ignored_sign_flags(args)
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
@@ -109,7 +160,10 @@ def cmd_sign(args: argparse.Namespace) -> None:
             key_id=args.key_id,
             signer=args.signer,
         )
-    except SignatureError as exc:
+    # OSError/ValueError/RecursionError too: an unreadable key file, and an artifact
+    # --force waved past the integrity refusal, both reach here, and both used to end
+    # in a traceback.  `tine migrate` already reports the same failures as messages.
+    except (OSError, RecursionError, SignatureError, ValueError) as exc:
         console.print(f"[red]Signing failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
     console.print(
@@ -119,6 +173,16 @@ def cmd_sign(args: argparse.Namespace) -> None:
 
 
 def cmd_keygen(args: argparse.Namespace) -> None:
+    if not args.out and not args.pub:
+        # Both halves go to stdout, so there is no file for --force to replace: the
+        # flag was accepted and never consulted.  Same shape as `sign --overwrite`
+        # without --save.
+        refuse_unhonoured(
+            args,
+            ("force",),
+            mode="without --out or --pub",
+            hint="Keys printed to stdout replace no file; pass --out PATH to write one.",
+        )
     try:
         seed, public = generate_ed25519()
     except SignatureError as exc:

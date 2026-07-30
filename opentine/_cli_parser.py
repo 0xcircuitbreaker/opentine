@@ -18,10 +18,26 @@ def _build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Execute a script or harness")
     run.add_argument("script", nargs="?")
     _add_harness_args(run)
-    run.add_argument("--save")
-    run.add_argument("--autosave")
-    run.add_argument("--autosave-interval", type=int, default=0, metavar="N")
-    run.add_argument("--autosave-seconds", type=float, default=0.0, metavar="T")
+    # --save works in both modes; the autosave trio checkpoints a run in flight
+    # and so needs --harness. Script mode refuses them rather than ignoring them.
+    run.add_argument(
+        "--save", metavar="PATH", help="Write the run here instead of .tine_runs/<id>.tine"
+    )
+    run.add_argument("--autosave", metavar="PATH", help="Checkpoint path (--harness runs only)")
+    run.add_argument(
+        "--autosave-interval",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Checkpoint every N steps (--harness runs only)",
+    )
+    run.add_argument(
+        "--autosave-seconds",
+        type=float,
+        default=0.0,
+        metavar="T",
+        help="Checkpoint every T seconds (--harness runs only)",
+    )
 
     show = sub.add_parser("show", help="Pretty-print a run tree")
     show.add_argument("run_id")
