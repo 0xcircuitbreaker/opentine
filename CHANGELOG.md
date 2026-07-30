@@ -31,11 +31,17 @@ v2; repository objects use the new verified v3 format.
 
 ### Added (provider and harness coverage)
 
-- Every hosted OpenAI-compatible adapter now requests usage accounting on
-  streams. GLM (both the international and China endpoints), Together, Mistral,
-  Ministral and Hermes previously sent no `stream_options.include_usage`, so a
-  streamed call returned no token counts and priced as `unknown` — reporting
-  $0.00 for real spend.
+- GLM (both the international and China endpoints) now requests usage
+  accounting on streams. It previously sent no `stream_options.include_usage`,
+  so a streamed call returned no token counts and priced as `unknown` —
+  reporting $0.00 for real spend. The provider-level default set is exactly
+  `glm`, `glm-cn`, `openai`, `openai-compatible`, `qwen`, and `xai`;
+  membership requires positive evidence that the endpoint accepts the field,
+  because Mistral rejects it with HTTP 422 and a wrong entry breaks streaming
+  outright. Groq, Kimi, DeepSeek and OpenRouter opt in at the adapter level.
+  Together, Mistral, Ministral and Hermes do not send the field: their
+  streamed calls still price as `unknown` unless the provider reports usage
+  anyway or the deployment passes `include_usage=True`.
 - `tine pricing update` installs to the path the loader actually reads. It
   hard-coded `~/.config` while `load_catalogs` honours `XDG_CONFIG_HOME`, so
   under a non-default config home the update reported success and changed no
@@ -56,9 +62,11 @@ v2; repository objects use the new verified v3 format.
 - The remote's SQLite metadata database and its WAL/shm siblings are created
   `0600`. sqlite3 applied the process umask — typically world-readable — while
   every other file the server writes was already hardened.
-- `tine keygen --out` and `tine sign --save` refuse to overwrite an existing file
-  without `--force`. Clobbering a private key destroys the only copy of a signing
-  identity and makes every artifact it signed unverifiable.
+- `tine keygen --out` refuses to overwrite an existing key file without
+  `--force`, and `tine sign --save` refuses to overwrite its destination
+  without `--overwrite` (`sign` keeps `--force` for "sign despite a failed
+  integrity check"). Clobbering a private key destroys the only copy of a
+  signing identity and makes every artifact it signed unverifiable.
 - `tine ls`, `tine search`, and `tine reindex` report an over-cap runs directory
   as an error naming the limit and the directory, rather than an interpreter
   traceback.
