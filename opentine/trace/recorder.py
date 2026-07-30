@@ -10,6 +10,7 @@ from typing import Any
 
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
+from opentine.trace._span_state import resumed_span_map, validated_span_map
 from opentine.trace.capture import code_manifest, environment_manifest
 from opentine.trace.schema import TraceEvent
 
@@ -21,19 +22,13 @@ class Recorder:
         self.repo = repo
         self.run_id = run_id
         self.ref = ref
-        self.span_map = dict(span_map or {})
         envelope = repo.get(run_id)
         decoded = envelope.payload()
         if envelope.object_type != "run" or not isinstance(decoded, dict):
             raise ValueError("recorder target is not a run")
         self._payload = dict(decoded)
         events = set(self._payload.get("events") or [])
-        for key, event_id in self.span_map.items():
-            if event_id not in events:
-                raise ValueError("recorder span map contains an event outside the run")
-            event = repo.get(event_id).payload()
-            if key != span_key(event.get("trace_id", ""), event.get("span_id")):
-                raise ValueError("recorder span map key does not match its event")
+        self.span_map = validated_span_map(repo, run_id, events, dict(span_map or {}))
 
     @classmethod
     def start(
@@ -92,16 +87,7 @@ class Recorder:
         if envelope.object_type != "run" or not isinstance(payload, dict):
             raise ValueError("recorder resume target is not a run")
         selected_ref = ref or (run_or_ref if resolved_ref else "heads/main")
-        span_map: SpanMap = {}
-        for event in payload.get("events") or []:
-            event_payload = repo.get(event).payload()
-            span_id = event_payload.get("span_id")
-            if span_id is None:
-                continue
-            key = span_key(event_payload.get("trace_id", ""), span_id)
-            if key in span_map:
-                raise ValueError(f"duplicate span ID within trace: {key[1]!r}")
-            span_map[key] = event
+        span_map = resumed_span_map(repo, run_id, list(payload.get("events") or []))
         return cls(repo, run_id, selected_ref, span_map)
 
     @property

@@ -28,13 +28,18 @@ class ShallowBoundary:
         return [oid for oid in oids if not self.cuts(oid)]
 
 
+def shallow_cut_error(operation: str, oid: str) -> KernelError:
+    """The one typed refusal every boundary-crossing materialization raises."""
+    return KernelError(
+        f"{operation} requires {oid}, which is beyond this repository's "
+        "shallow fetch boundary; deepen the fetch (fetch/clone with a "
+        "higher or no --depth) to retrieve it"
+    )
+
+
 def require_deep(repo: Any, oids: Iterable[str], operation: str) -> None:
     """Refuse a full materialization that a shallow fetch cannot satisfy."""
     boundary = ShallowBoundary(repo)
     for oid in oids:
         if boundary.cuts(oid):
-            raise KernelError(
-                f"{operation} requires {oid}, which is beyond this repository's "
-                "shallow fetch boundary; deepen the fetch (fetch/clone with a "
-                "higher or no --depth) to retrieve it"
-            )
+            raise shallow_cut_error(operation, oid)

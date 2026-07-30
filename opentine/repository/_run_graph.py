@@ -68,13 +68,21 @@ def validate_event_metrics(envelope: ObjectEnvelope) -> None:
 
 
 def graph_tips(repo: Any, events: list[str]) -> list[str]:
-    """Return parent-graph leaves in the supplied stable event order."""
+    """Return parent-graph leaves in the supplied stable event order.
+
+    Stops at the shallow-fetch boundary like git log: a cut event's payload
+    is unreadable, so it contributes neither parents nor a tip candidate.
+    """
+    from opentine.repository._shallow_read import ShallowBoundary
+
+    boundary = ShallowBoundary(repo)
+    present = [event_id for event_id in events if not boundary.cuts(event_id)]
     parents = {
         parent
-        for event_id in events
+        for event_id in present
         for parent in (repo.get(event_id).payload().get("parent_ids") or [])
     }
-    return [event_id for event_id in events if event_id not in parents]
+    return [event_id for event_id in present if event_id not in parents]
 
 
 def filtered_legacy_refs(payload: dict[str, Any], keep: set[str]) -> dict[str, str]:

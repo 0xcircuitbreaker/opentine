@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from opentine._graph_analysis import _causal_transcript, _slice_pricing
 from opentine.repository._run_blobs import blob_json, json_blob, put_transcript, transcript_blob
 from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
+from opentine.repository._shallow_read import ShallowBoundary, shallow_cut_error
 from opentine.repository._traversal import TraversalQueue
 
 if TYPE_CHECKING:
@@ -25,10 +26,15 @@ _FORK_MANIFESTS = {
 }
 
 
-def _closure(repo: Repo, from_event: str) -> set[str]:
+def _closure(repo: Repo, from_event: str, operation: str) -> set[str]:
     keep: set[str] = set()
+    boundary = ShallowBoundary(repo)
     queue = TraversalQueue(((from_event, 0),))
     for event, _ in queue:
+        if boundary.cuts(event):
+            # A fork rewrites events/roots/tips from this closure, so stopping
+            # here would silently drop real ancestry; refuse like load_run does.
+            raise shallow_cut_error(operation, event)
         keep.add(event)
         payload = repo.get(event).payload()
         for dependency in [
@@ -105,7 +111,7 @@ def fork_payload(
     overrides: dict[str, Any] | None,
 ) -> dict[str, Any]:
     applied = _overrides(overrides)
-    keep = _closure(repo, from_event)
+    keep = _closure(repo, from_event, f"forking run {source_id}")
     events = [event for event in payload["events"] if event in keep]
     forked = {name: payload[name] for name in _FORK_FIELDS if name in payload}
     forked["events"] = events
