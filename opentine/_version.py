@@ -4,4 +4,4 @@ Kept dependency-free so any module (including migration tooling that must avoid
 importing the package root) can read the version without risking import cycles.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

@@ -5,9 +5,10 @@ from __future__ import annotations
 import copy
 from decimal import Decimal
 
+from opentine._fork_identity import fork_id, fork_record
 from opentine._graph_pricing import _slice_pricing
 from opentine._graph_run import _step_cost_decimal
-from opentine._graph_types import Graph, RunStatus, StepKind, step_id
+from opentine._graph_types import Graph, RunStatus
 from opentine.billing._context import billing_context
 from opentine.budget import Budget, CostBreakdown
 
@@ -113,6 +114,9 @@ class RunAnalysisMixin:
         from_step_id: str,
         new_run_id: str | None = None,
         branch: str = "main",
+        *,
+        intent: dict | None = None,
+        nonce: str | None = None,
     ):
         fork_point = self.graph.resolve(from_step_id)
         causal = getattr(self, "_v3_causal_ids", {})
@@ -130,15 +134,33 @@ class RunAnalysisMixin:
         for step in self.steps:
             if step.id in retained:
                 graph.add(copy.deepcopy(step))
-        run_id = new_run_id or step_id(StepKind.model, {"fork": self.id, "from": fork_point})
+        # The id is a pure function of things that exist at fork time (source id,
+        # fork point, retained slice, branch, declared intent) plus a recorded local
+        # nonce. Every attacker-influenceable input is hashed, so run_id is always a
+        # 64-hex digest and cannot steer runs_dir / f"{id}.tine" out of runs_dir.
+        record = fork_record(
+            source_id=self.id,
+            fork_point=fork_point,
+            retained_ids=retained,
+            branch=branch,
+            intent=intent,
+            nonce=nonce,
+            source_metadata=self.metadata,
+        )
+        run_id = new_run_id or fork_id(record)
         metadata = copy.deepcopy(
             {
                 key: value
                 for key, value in self.metadata.items()
-                if key not in {"budget_state", "tags", "warnings"}
+                # "fork" and "integrity" describe the SOURCE; inherited, the child would
+                # claim an identity and a digest of bytes it was never part of.
+                if key not in {"budget_state", "fork", "integrity", "tags", "warnings"}
             }
         )
         metadata.update({"forked_from": self.id, "fork_point": fork_point})
+        # An explicitly named fork is not a derived act, so it records no basis.
+        if new_run_id is None:
+            metadata["fork"] = record
         manifest = copy.deepcopy(self.manifest)
         manifest.pop("resume_history", None)
         _slice_pricing(manifest, retained)

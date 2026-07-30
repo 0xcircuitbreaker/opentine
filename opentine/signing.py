@@ -42,6 +42,8 @@ _SIGNED_METADATA_KEYS = (
     "context",
     "next_harness",
     "migration",
+    "fork",
+    "fork_reason",
 )
 
 

@@ -97,7 +97,14 @@ class HistoryMixin:
             tip = run.refs.get("main") or (run.steps[-1].id if run.steps else "")
             if not tip:
                 raise RuntimeError("cannot cache-replay a run with no recorded steps; use rerun")
-            replayed = run.fork(tip, new_run_id=f"{run.id}-replay")
+            # Never `new_run_id=f"{run.id}-replay"`: run.id arrives inside an
+            # untrusted artifact, and concatenating it puts attacker text into a
+            # run id — the exact shape the cached-replay path-security test in
+            # tests/test_cli.py forbids. A derived fork id is always a 64-hex
+            # digest; the source id survives in metadata["replay"]["source_run"].
+            # Cache replay reuses recorded steps and produces nothing new, so
+            # nonce="" makes it an idempotent, reproducible act.
+            replayed = run.fork(tip, intent={"replay": "cache"}, nonce="")
             replayed.metadata["replay"] = {
                 "mode": "cache",
                 "reused_steps": len(replayed.steps),
@@ -105,7 +112,10 @@ class HistoryMixin:
             }
             replayed.status = RunStatus.completed
             return replayed
-        return await self.run(run.user_prompt or "", run_id=f"{run.id}-rerun")
+        # A rerun re-executes from scratch; `self.run` mints a fresh digest id.
+        # Never `run_id=f"{run.id}-rerun"`: that splices untrusted artifact text
+        # into a run id and collides on repeat reruns.
+        return await self.run(run.user_prompt or "")
 
     async def resume(
         self,
@@ -116,7 +126,11 @@ class HistoryMixin:
         if run.manifest and not run.manifest.get("resume", False):
             raise RuntimeError("Run manifest declares that resume is unsupported")
         base = from_step or run.refs.get("main") or (run.steps[-1].id if run.steps else None)
-        resumed = run.fork(base, new_run_id=f"{run.id}-resume") if base else run
+        # Resume diverges (a new model continues the run), so it is a real fork act
+        # with a fresh nonce. Never `new_run_id=f"{run.id}-resume"`: that concatenated
+        # untrusted artifact text into a run id and collided on repeat resumes.
+        intent = {"resume": self.model.name, "prompt": prompt}
+        resumed = run.fork(base, intent=intent) if base else run
         source_model = resumed.model_info
         resumed.model_info = self.model.name
         resumed.system_prompt = self.system
