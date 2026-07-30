@@ -1,0 +1,21 @@
+# Pin every text file to LF in the working tree on every platform.
+#
+# The release inventory gate (scripts/check_release_inventory.py) hashes each
+# tracked source out of the git object database (`git show HEAD:<name>`, which
+# is always the raw LF blob) and compares those digests against the sdist,
+# which hatchling builds from the *working tree*.  On checkouts where git
+# materializes CRLF (Git for Windows ships with core.autocrlf=true, and
+# actions/checkout does not override it) every text file would mismatch and
+# the gate would fail.  Working-tree bytes must therefore equal blob bytes,
+# which `eol=lf` guarantees regardless of core.autocrlf/core.eol settings.
+#
+# `text=auto` keeps git's binary detection for any future binary assets
+# (images, archives, ...) so they are never EOL-converted.  As of this rule the
+# repository tracks no binary files and no intentionally-CRLF files (no
+# .bat/.cmd/.ps1, no CR byte in any tracked blob) — verified by
+# tests/test_release_audit_round9_inventory.py.  If a file that genuinely
+# needs CRLF is ever added (e.g. a Windows .bat script), mark it `-text` here
+# (so its CRLF bytes are stored and checked out verbatim — `eol=crlf` would
+# store LF and reintroduce the worktree/object-db skew) and teach the
+# inventory test about the exception.
+* text=auto eol=lf

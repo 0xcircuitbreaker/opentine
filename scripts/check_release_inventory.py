@@ -35,11 +35,38 @@ def _tracked() -> set[str]:
     return {item.decode("utf-8") for item in output.split(b"\0") if item}
 
 
+_CHUNK = 1024 * 1024
+
+
 def _digest(stream: BinaryIO) -> bytes:
     value = hashlib.sha256()
-    while chunk := stream.read(1024 * 1024):
+    while chunk := stream.read(_CHUNK):
         value.update(chunk)
     return value.digest()
+
+
+def _digest_pair(stream: BinaryIO, chunk_size: int = _CHUNK) -> tuple[bytes, bytes]:
+    """Return (raw sha256, sha256 of the bytes with CRLF normalized to LF).
+
+    The normalized digest is diagnostic only — the gate passes or fails on the
+    raw digest, because content fidelity is the point of the check.  It lets
+    the error message say when a mismatch is pure line-ending skew (a CRLF
+    working tree vs the LF object database) instead of real content drift.
+    """
+    raw = hashlib.sha256()
+    normalized = hashlib.sha256()
+    pending_cr = False
+    while chunk := stream.read(chunk_size):
+        raw.update(chunk)
+        if pending_cr:
+            chunk = b"\r" + chunk
+        pending_cr = chunk.endswith(b"\r")
+        if pending_cr:
+            chunk = chunk[:-1]
+        normalized.update(chunk.replace(b"\r\n", b"\n"))
+    if pending_cr:
+        normalized.update(b"\r")
+    return raw.digest(), normalized.digest()
 
 
 def _source_hashes(tracked: set[str]) -> dict[str, bytes]:
@@ -66,6 +93,22 @@ def _parts(name: str) -> tuple[str, ...]:
     return path.parts
 
 
+def _content_mismatch(
+    mismatched: list[str],
+    normalized: Mapping[str, bytes],
+    source_hashes: Mapping[str, bytes],
+) -> str:
+    message = "sdist content differs from source: " + ", ".join(mismatched)
+    eol_only = [name for name in mismatched if normalized[name] == source_hashes[name]]
+    if eol_only:
+        message += (
+            f" [{len(eol_only)} of {len(mismatched)} differ only in CRLF vs LF line endings:"
+            " the working tree was materialized with CRLF (e.g. core.autocrlf=true) while git"
+            " stores LF; make sure .gitattributes pins 'eol=lf' and re-checkout before building]"
+        )
+    return message
+
+
 def _difference(actual: set[str], expected: set[str]) -> None:
     extra = sorted(actual - expected)
     missing = sorted(expected - actual)
@@ -89,6 +132,7 @@ def check_sdist(
     expected_root = f"{project}-{version}"
     names: list[str] = []
     hashes: dict[str, bytes] = {}
+    normalized: dict[str, bytes] = {}
     with tarfile.open(path, "r:gz") as archive:
         for member in archive.getmembers():
             parts = _parts(member.name)
@@ -105,14 +149,14 @@ def check_sdist(
             if stream is None:
                 raise InventoryError(f"cannot read sdist member: {member.name}")
             names.append(name)
-            hashes[name] = _digest(stream)
+            hashes[name], normalized[name] = _digest_pair(stream)
     if len(names) != len(set(names)):
         raise InventoryError("sdist contains duplicate paths")
     _difference(set(names), tracked | {"PKG-INFO"})
     if source_hashes is not None:
         mismatched = sorted(name for name in tracked if hashes[name] != source_hashes[name])
         if mismatched:
-            raise InventoryError("sdist content differs from source: " + ", ".join(mismatched))
+            raise InventoryError(_content_mismatch(mismatched, normalized, source_hashes))
     return hashes
 
 

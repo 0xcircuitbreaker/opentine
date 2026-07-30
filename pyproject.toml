@@ -73,6 +73,7 @@ build-backend = "hatchling.build"
 # gate below additionally requires the archive to match Git's tracked files.
 include = [
     "/.env.example",
+    "/.gitattributes",
     "/.github/workflows",
     "/.gitignore",
     "/CHANGELOG.md",
