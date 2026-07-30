@@ -75,7 +75,10 @@ def workspace(monkeypatch, tmp_path: Path) -> Path:
     monkeypatch.chdir(tmp_path)
     run = _source(tmp_path / "source.tine")
     run.save(tmp_path / "signed.tine", sign_key=HMAC_KEY.encode(), sign_algorithm="hmac-sha256")
-    (tmp_path / "hmac.key").write_text(HMAC_KEY + "\n", encoding="utf-8")
+    # Write the key as bytes, not text: Path.write_text translates "\n" to "\r\n"
+    # on Windows, and hmac_key_from_file strips only a trailing "\n", so a text-mode
+    # write would leave a stray "\r" on the key and make verify report a mismatch.
+    (tmp_path / "hmac.key").write_bytes(HMAC_KEY.encode() + b"\n")
     (tmp_path / "adir").mkdir()
     shutil.copy(LEGACY, tmp_path / "legacy.tine")
     if HAS_ED25519:
@@ -305,7 +308,10 @@ def test_verify_still_honours_each_ed25519_flag_on_its_own(
 def test_an_unreadable_key_file_is_reported_not_raised(workspace, monkeypatch, capsys, argv):
     code, out = _invoke(monkeypatch, capsys, *argv)
     assert code == 1
-    assert "No such file" in out or "Is a directory" in out
+    # "Permission denied": opening a directory as a file raises IsADirectoryError
+    # ("Is a directory") on POSIX but PermissionError ("[Errno 13] Permission
+    # denied") on Windows. Either way the OSError is reported, not raised.
+    assert "No such file" in out or "Is a directory" in out or "Permission denied" in out
     assert "FAILED" in out or "Signing failed" in out
 
 

@@ -92,7 +92,11 @@ def _forkable(tmp_path: Path, name: str) -> tuple[Repo, str, str]:
 def test_public_fork_refuses_every_override_it_cannot_encode(tmp_path, overrides, path, text):
     # Repo.fork, not Recorder.fork: the guard round 11 wrote covered the caller
     # only, and this is the entry point MCP fork_run_v3 uses.
-    repo, run_id, event = _forkable(tmp_path, f"{path}{text!r}")
+    # The repo dir has a fixed, safe name (tmp_path is already unique per param); the
+    # hostile surrogate is the *subject*, so it flows only into `applied` below --
+    # naming the dir after it wrote a lone surrogate / backslash into a path that the
+    # Windows filesystem rejects before the tested fork ever runs.
+    repo, run_id, event = _forkable(tmp_path, "fork")
     applied = json.loads(json.dumps(overrides).replace("null", json.dumps(text)))
     before_oids, before_refs = repo.iter_oids(), repo.list_refs()
     with pytest.raises(
@@ -179,7 +183,10 @@ def test_a_policy_deeper_than_json_safe_keeps_is_still_forkable(tmp_path):
 def test_a_fork_without_text_overrides_is_untouched(tmp_path, overrides):
     # The guard walks the override mapping unconditionally; an empty or non-text one
     # must cost nothing and refuse nothing. `resume` is a bool the walk skips.
-    repo, run_id, event = _forkable(tmp_path, f"plain{overrides!r}"[:16])
+    # Fixed, safe dir name: the override mapping's repr (e.g. "{'resume': True}") holds
+    # a colon, illegal in a Windows path; the overrides are the subject and reach the
+    # code only through the `overrides=` argument below.
+    repo, run_id, event = _forkable(tmp_path, "plain")
     forked = repo.fork(run_id, event, overrides=overrides, ref="heads/alt")
     payload = repo.get(forked).payload()
     assert payload["status"] == "running" and payload["events"] == [event]

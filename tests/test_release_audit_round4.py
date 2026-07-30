@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import sqlite3
 import stat
 import time
@@ -189,9 +190,16 @@ def test_info_existing_audit_key_permissions_are_restricted(tmp_path: Path):
     path = tmp_path / "audit.sqlite3"
     SQLiteBackend(path)
     key_path = Path(str(path) + ".audit-key")
+    original = key_path.read_bytes()
     key_path.chmod(0o644)
     SQLiteBackend(path)
-    assert stat.S_IMODE(key_path.stat().st_mode) == 0o600
+    # Re-opening reuses the stored key rather than regenerating it; this stays
+    # verifiable on every platform.
+    assert key_path.read_bytes() == original
+    if os.name != "nt":
+        # POSIX-only: Windows reports 0o666 for files, has no os.fchmod, and the
+        # shipped tightening is a documented no-op there — there is no 0o600 to check.
+        assert stat.S_IMODE(key_path.stat().st_mode) == 0o600
 
 
 def test_info_invalid_upload_results_are_rejected():

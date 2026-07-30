@@ -235,7 +235,10 @@ def test_an_unreadable_tool_call_record_still_loads_and_forks(shape, tmp_path):
 def test_a_falsy_tool_calls_value_is_still_not_a_batch(value, tmp_path):
     """Unchanged behaviour: only a *truthy* value was ever read as a batch."""
     entry = {"role": "assistant", "content": "x", "tool_calls": value}
-    path = _saved(tmp_path, f"tcf-{json.dumps(value)}", steps=0, transcript=[entry])
+    # Fixed, safe file name: json.dumps("") is '""', and the double-quote is illegal in
+    # a Windows path. The falsy value is the subject and reaches the code through the
+    # transcript entry; the name only has to be unique, which tmp_path already is.
+    path = _saved(tmp_path, "tcf", steps=0, transcript=[entry])
     assert _resume(path).status is RunStatus.completed
 
 

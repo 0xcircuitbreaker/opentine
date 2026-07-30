@@ -205,7 +205,15 @@ def test_cli_keygen_atomically_restricts_existing_output_mode(monkeypatch, tmp_p
 
     _invoke(monkeypatch, "keygen", "--out", str(private), "--force")
 
-    assert stat.S_IMODE(private.stat().st_mode) == 0o600
+    # The atomic overwrite replaced the placeholder with a fresh 64-char hex seed;
+    # this proves the write landed on every platform.
+    written = private.read_text(encoding="utf-8").strip()
+    assert written != "public placeholder"
+    assert len(written) == 64 and all(char in "0123456789abcdef" for char in written)
+    if os.name != "nt":
+        # POSIX-only: Windows files report 0o666 and os.chmod is a near-noop, so
+        # there is no 0o600 mode to assert even though keygen still requests it.
+        assert stat.S_IMODE(private.stat().st_mode) == 0o600
 
 
 def test_cached_replay_never_derives_an_output_path_from_untrusted_run_id(monkeypatch, tmp_path):
