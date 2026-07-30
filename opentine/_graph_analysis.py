@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from decimal import Decimal
 
+from opentine._graph_pricing import _slice_pricing
 from opentine._graph_run import _step_cost_decimal
 from opentine._graph_types import Graph, RunStatus, StepKind, step_id
 from opentine.billing._context import billing_context
@@ -37,57 +38,6 @@ def _causal_transcript(transcript: list[dict], retained: set[str], fork_point: s
     if pending and last_retained:
         result.extend(pending)
     return result
-
-
-def _slice_pricing(manifest: dict, retained: set[str]) -> None:
-    pricing = manifest.get("pricing")
-    if not isinstance(pricing, dict) or "invocations" not in pricing:
-        return
-    invocations = [
-        item
-        for item in pricing.get("invocations") or []
-        if isinstance(item, dict) and item.get("step_id") in retained
-    ]
-    pricing["invocations"] = invocations
-    cards = pricing.get("rate_cards")
-    if isinstance(cards, dict):
-        pricing["rate_cards"] = {key: value for key, value in cards.items() if key in retained}
-    referenced = {(item.get("catalog_id"), item.get("catalog_hash")) for item in invocations}
-    catalogs = pricing.get("catalogs")
-    if isinstance(catalogs, list):
-        catalogs = [
-            item
-            for item in catalogs
-            if isinstance(item, dict)
-            and (item.get("catalog_id"), item.get("catalog_hash")) in referenced
-        ]
-        pricing["catalogs"] = catalogs
-    else:
-        # Loading tolerates a malformed catalogs shape; fork finds no snapshot in it.
-        catalogs = []
-    pricing["complete"] = all(
-        item.get("status") in {"complete", "unmetered"} for item in invocations
-    )
-    first = invocations[0] if invocations else {}
-    catalog_id, catalog_hash = first.get("catalog_id"), first.get("catalog_hash")
-    for name, value in (("catalog_id", catalog_id), ("catalog_hash", catalog_hash)):
-        if value:
-            pricing[name] = value
-        else:
-            pricing.pop(name, None)
-    snapshot = next(
-        (
-            item
-            for item in catalogs or []
-            if item.get("catalog_id") == catalog_id and item.get("catalog_hash") == catalog_hash
-        ),
-        None,
-    )
-    provenance = (snapshot or {}).get("catalog_provenance")
-    if provenance:
-        pricing["catalog_provenance"] = provenance
-    else:
-        pricing.pop("catalog_provenance", None)
 
 
 class RunAnalysisMixin:
