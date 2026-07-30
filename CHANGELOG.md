@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — 2026-07-29
+## 0.3.0 — 2026-07-30
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
 v2; repository objects use the new verified v3 format.
@@ -237,8 +237,10 @@ v2; repository objects use the new verified v3 format.
 - Release automation now tracks and enforces the hashed dependency lock, pins
   the build backend, uv, and GitHub Actions by immutable versions/commits, builds
   the wheel from the validated sdist, and reuses that one artifact pair for an
-  attested GitHub release and OIDC PyPI Trusted Publishing. Only the protected
-  `pypi` environment's publish job receives an identity-token permission.
+  attested GitHub release and OIDC PyPI Trusted Publishing. The identity-token
+  permission is held only by the attestation and publish jobs, never by the job
+  that builds and tests, and only the publish job declares the protected `pypi`
+  environment that PyPI's trusted-publisher binding requires.
 - External process harnesses now fail closed under configurable time, output,
   line-size, and parsed-event ceilings and clean up their owned process group or
   Job Object on every exit path. Git code capture streams under a 16 MiB ceiling;

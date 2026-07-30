@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
   <img src="https://img.shields.io/badge/status-0.3.0%20beta-d4a574" alt="0.3.0 beta" />
 </p>
@@ -43,10 +43,36 @@ pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"  # hosted and local OpenAI-compatible APIs
 pip install "opentine[mcp]"
+pip install "opentine[crypto]" # compatibility alias only; see below
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
-## Portable v2 runs
+`all` installs the Anthropic, OpenAI, and Google SDKs; it does not include
+`mcp`. Ollama needs no extra because it uses the core `httpx` dependency.
+`crypto` is retained for older installation instructions and installs nothing
+new: `cryptography` is already a required core dependency, so Ed25519 signing,
+signed pricing catalogs, and the encrypted reference remote work from a plain
+`pip install opentine`.
+
+Provider credentials come from the environment. `.env.example` shows the
+provider API keys plus the search-tool, pricing, and self-hosted-remote settings
+OpenTine reads; adapters additionally honour provider-specific `*_BASE_URL`
+overrides and `GLM_REGION`.
+
+## Quickstart
+
+This example calls Anthropic, so it needs the `anthropic` extra and a key:
+
+```bash
+pip install "opentine[anthropic]"
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Without the extra the first model call raises
+`ImportError: pip install opentine[anthropic]`; without the key the provider
+rejects the request. Swap in `opentine.models.openai`, `opentine.models.google`,
+or `opentine.models.ollama` and the matching variable from `.env.example` to run
+against something else.
 
 ```python
 from opentine import Agent
@@ -68,7 +94,7 @@ tine diff result.tine retry.tine
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
-fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TINE_FORMAT.md).
+fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/TINE_FORMAT.md).
 
 ## Universal usage and billing
 
@@ -115,7 +141,7 @@ than an allowlist: any model identifier remains runnable, and models without an
 exact effective card are reported as `unknown` instead of receiving a guessed
 price.
 
-See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/PRICING.md) for resolution order, provenance, and the catalog
+See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
 ## Model adapters
@@ -258,8 +284,15 @@ bytes. Client-side redaction happens before canonicalization and hashing.
 Refs update with compare-and-swap semantics.
 
 The dependency-free trusted semantic kernel is kept at no more than 250
-physical lines. CI also rejects every production Python module over 250 lines
-and rejects upward imports into the kernel.
+physical lines. `scripts/check_architecture.py` runs in CI and enforces three
+gates: no production Python module may exceed 250 physical lines, `kernel.py`
+may import nothing outside the standard library (the gate constrains what the
+kernel depends on, not what depends on the kernel), and each of the `billing`,
+`models`, `remote`, `repository`, and `trace` layers declares the layers it may
+not import. `billing` may import none of `models`, `remote`, `repository`, or
+`runtime`; `models` may import neither `remote` nor `repository`; `repository`
+and `trace` may import neither `models` nor `remote`; and `remote` may not
+import `models`.
 
 The v2→v3 migrator preserves the exact original artifact as a legacy blob,
 records its original integrity/signature result, rebuilds redacted v3 objects,
@@ -269,14 +302,16 @@ integrity or a requested signature failure is refused unless
 `--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
 retain source secrets and should be reviewed before synchronization.
 
-See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/REPOSITORY.md) for object semantics and synchronization.
+See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/REPOSITORY.md) for object semantics and synchronization.
 
 ## Live agent recording
 
 `Recorder` records code, dirty patch, environment, policy, budget, and pricing
-manifests, then appends immutable model/tool/human/policy/approval/subagent
-events. Code-capture failures are recorded explicitly rather than appearing as
-a clean repository:
+manifests, then appends immutable events of seven kinds: `model`, `tool`,
+`human`, `policy`, `approval`, `subagent`, and `error`. Record a failed step as
+an `error` event rather than dropping it, so a partial run stays inspectable.
+Code-capture failures are recorded explicitly rather than appearing as a clean
+repository:
 
 ```python
 from opentine import Recorder, Repo, TraceEvent
@@ -298,7 +333,15 @@ attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
 AutoGen, CrewAI, and OpenAI Agents logs.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,
-attestation, and promotion are also available as MCP tools.
+and attestation are also available as MCP tools. Promotion is not exposed by
+default: `promote_run` is registered only when the host passes
+`allow_promotion=True`, and the shipped `opentine.mcp_server` never passes it.
+Run content an MCP client reads is untrusted input, so text recorded inside a
+run can ask a model to promote a run of an attacker's choosing; creating a
+release gate stays an operator action. For the same reason MCP fork/resume may
+only write `experiments/*` refs. Mainline `heads/*`, `promotions/*`, `tags/*`,
+and remote-tracking refs are operator-only, so an MCP call that names
+`heads/main` is refused.
 Evaluation/approval attestations are content-addressed but their `signer` label
 is self-asserted unless the caller attaches and independently verifies a signature.
 
@@ -364,7 +407,88 @@ path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
 Enabled shell/Python timeouts terminate the owned process group or Windows Job
 Object and return only bounded partial output, with space reserved for stderr
 diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
-See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY_MODEL.md).
+See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/SECURITY_MODEL.md).
+
+## CLI Reference
+
+`tine` ships 26 subcommands. Each one prints its own `--help`, which is
+authoritative when this page has drifted.
+
+Portable `.tine` artifacts:
+
+```text
+tine run <script.py>                  Execute a Python script and save the Run it builds
+tine run --harness codex --prompt P   Record an external CLI agent as a run
+tine show <run>                       Pretty-print a run tree
+tine cost <run>                       Show cost, tokens, and budget state
+tine verify <run>                     Verify integrity, and authenticity when a key is given
+tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
+tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
+tine fork <run> --from-step 3         Branch from a step and continue there
+tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
+tine diff <run_a> <run_b>             Compare two runs step by step
+tine resume <run>                     Continue a run whose manifest declares resume support
+tine migrate <run> --in-place         Upgrade a legacy artifact to format v2
+tine ls --tag prod --limit 20         List indexed runs from .tine_runs
+tine search "tag:prod model:kimi"     Query that index
+tine tag <run> --add prod             Add, remove, or list tags
+tine reindex                          Rebuild .tine_runs/index.json
+```
+
+Signed pricing catalogs:
+
+```text
+tine pricing list [--provider P] [--model M] [--at YYYY-MM-DD]
+tine pricing show <provider> <model> [--at YYYY-MM-DD] [--json]
+tine pricing check
+tine pricing update <file-or-https-url> [--dest PATH]
+```
+
+V3 repository:
+
+```text
+tine init [path] [--bare]
+tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified]
+tine fsck --repo . [--shallow]
+tine repo-log [ref] --repo . [--limit N]
+tine object <object-id> --repo . [--resolve-blobs]
+tine pack --repo . --output run.pack [object-id ...]
+```
+
+Self-hosted remote:
+
+```text
+tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev]
+tine fetch <remote> --repo . [--tenant T] [--ref R] [--depth N]
+tine push <remote> --repo . [--tenant T] [--ref R] [--remote-ref R]
+tine clone <remote> <path> [--tenant T] [--ref R] [--depth N]
+```
+
+Flag details that are easy to get wrong:
+
+- `--from-step` accepts a decimal step index, a full step id, or a unique
+  step-id prefix.
+- `--save PATH` chooses the output file. `run`, `fork`, and `replay` otherwise
+  write `.tine_runs/<run-id>.tine`; `fork` and `replay` refuse to overwrite an
+  existing `--save` destination unless `--force` is passed, and `keygen --force`
+  overwrites an existing key file.
+- `tine migrate` only previews unless `--in-place` or `--save` is given, and it
+  drops any existing signature, so re-sign after migrating. Its single `--force`
+  does two jobs: it overwrites an existing `--save` destination, and it waives
+  the refusal to migrate a source whose integrity digest already failed.
+- `tine sign` spells the destination guard `--overwrite`, not `--force`. Its
+  separate `--force` waives the pre-sign integrity refusal, so it can produce a
+  valid signature over a body that already failed verification.
+- `tine verify` fails closed as soon as any of `--key-env`, `--key-file`,
+  `--pubkey`, `--require-signature`, or `--trust-embedded-key` is present.
+  With none of them it checks the integrity digest only.
+- `tine search` understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
+  `before:` predicates plus free text. `model:` matches a substring of the model
+  id, `status:` is exact, and `cost:` accepts `>`, `>=`, `<`, `<=`, and
+  `min..max`. `tine ls` exposes the same filters as flags, with `--since` and
+  `--until` for the date bounds.
+- `tine ls`, `tine search`, `tine tag`, and `tine reindex` read the legacy file
+  index under `.tine_runs`, not a v3 repository.
 
 ## Validation
 
@@ -387,19 +511,80 @@ installed services.
 Tagged releases reuse one validated wheel/sdist pair for GitHub and PyPI. PyPI
 publication uses OIDC Trusted Publishing behind the protected `pypi` GitHub
 environment; no long-lived package-index token is stored. See
-[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/RELEASING.md) for the required one-time configuration and release
+[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/RELEASING.md) for the required one-time configuration and release
 checklist.
 
 ## Documentation
 
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/CHANGELOG.md): release-level changes and compatibility.
-- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
-- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/PRICING.md): signed catalogs and billing semantics.
-- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/REPOSITORY.md): objects, packs, migration, remote, and MCP.
-- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
-- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/RELEASING.md): trusted publication and release verification.
+- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
+- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/PRICING.md): signed catalogs and billing semantics.
+- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
+- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/RELEASING.md): trusted publication and release verification.
 - [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SUPPORT.md): supported runtimes and support levels.
-- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/TROUBLESHOOTING.md): common install, provider, and verification failures.
+- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
+
+## Comparison
+
+Git stores content-addressed source history. OpenTine stores content-addressed
+agent execution provenance: objects are hashed, refs move under compare-and-swap,
+and `fsck` recomputes every id. The analogy stops at merge: OpenTine compares
+two runs semantically and reports the common ancestor and the divergent steps,
+and it never line-merges transcripts.
+
+LangGraph is the closest technical comparison for checkpoint replay and time
+travel, but its checkpoints live inside the framework and its checkpointer
+rather than in a standalone artifact another tool can read. An OpenTine run is a
+portable `.tine` file or a `.tine/` repository with a documented format.
+
+LangSmith is a stronger observability and evaluation product than anything here,
+and CrewAI is an agent framework rather than a provenance store; OpenTine tries
+to replace neither. It imports from that side of the fence instead:
+`opentine.trace.importers` best-effort normalizes serialized LangChain,
+LlamaIndex, AutoGen, CrewAI, and OpenAI Agents records, as well as OpenTelemetry
+GenAI spans and OTLP/JSON exports, into the same event model. What OpenTine adds
+is the verification and branching layer underneath —
+signed artifacts, fail-closed verification, forks, cache replay, semantic diff,
+and pinned-catalog cost accounting — with an optional self-hosted remote rather
+than a mandatory hosted backend.
+
+## The Name
+
+A **tine** is a prong of a fork. The `.tine` extension stores serialized run
+graphs, and `tine` is the CLI command.
+
+## Contributing
+
+There is no separate contributor guide yet; this section is it.
+
+```bash
+git clone https://github.com/0xcircuitbreaker/opentine.git
+cd opentine
+uv sync --locked --all-extras
+uv run pytest tests -m "not live and not live_harness"
+uv run ruff check .
+uv run ruff format --check .
+uv run python scripts/check_architecture.py
+```
+
+That `pytest` marker selection is the one CI uses: `live` and `live_harness`
+tests are deselected because they need provider credentials or an installed
+agent CLI. Run the full local gate list from the Validation section above before
+opening a pull request.
+
+When Docker is available, `uv run python scripts/ci_docker.py` rehearses the
+Ubuntu lane — lint, format check, the same deselected `pytest` run, `uv build`,
+and the wheel smoke test — in one container per Python version, defaulting to
+3.11, 3.12, and 3.13. `--python VERSION` is repeatable and replaces that default
+set, so `--python 3.14` covers the remaining CI version. The preflight does not
+run the architecture, release-inventory, or `twine` gates, and GitHub Actions
+remains authoritative for macOS and Windows.
+
+Report bugs on the
+[issue tracker](https://github.com/0xcircuitbreaker/opentine/issues). Report
+vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/SECURITY.md),
+not a public issue.
 
 ## License
 

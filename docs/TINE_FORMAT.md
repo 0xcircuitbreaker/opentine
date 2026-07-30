@@ -7,13 +7,20 @@ There are two distinct current formats:
 - A `.tine/` repository uses the verified v3 object model described below.
 
 The v3 repository does not change the bytes or identity rules of existing v2
-files. `Run.save(path.tine)` remains v2; `Run.save(repository_directory)` is a
-compatibility wrapper that writes v3 repository objects.
+files. `Run.save(path.tine)` remains v2; `Run.save(directory)` is a compatibility
+wrapper that writes v3 repository objects, but only when the directory is an
+**initialized repository** — one holding `config.json` or `.tine/config.json`.
+Against any other directory the call falls through to the v2 file writer and
+fails with a bare `IsADirectoryError`. The repository path also refuses
+`sign_key` and `draft`: a repository target is attested, not signed as an
+artifact, which matters for the signing section below.
 
 `Run.load()` reads v1 and v2 artifacts. A v1 file is **migrated to v2 in memory**
-on load (the file on disk is never rewritten); re-saving it upgrades it to v2. A
-missing, older-unsupported, or future `format_version` is rejected with an
-explicit error. `tine migrate` upgrades a file in place or to a new path.
+on load (the file on disk is never rewritten); re-saving it upgrades it to v2. An
+older-unsupported or future `format_version` is rejected with an explicit error.
+A file with **no** `format_version` is also rejected, unless it matches the
+legacy 0.1.0 "linear" shape, which is best-effort imported instead (see
+Compatibility). `tine migrate` upgrades a file in place or to a new path.
 
 ## Text validity (both formats)
 
@@ -108,7 +115,8 @@ still fails verification.
 
 Use `Run.verify_integrity(...)` / `tine verify` before trusting an artifact, and
 `Run.verify_signature(...)` / `tine verify --key-*` / `--pubkey` for authenticity.
-See `SECURITY_MODEL.md` for what a signature does and does not prove.
+See [SECURITY_MODEL.md](SECURITY_MODEL.md) for what a signature does and does
+not prove.
 
 ## Compatibility
 
@@ -120,15 +128,32 @@ recomputing full content-addressed step ids (so they change). A 0.1.x reader
 newer (e.g. v3) file; the legacy 0.1.0 format has no digest verifiable under
 current rules, so import it with `Run.load` / `tine migrate` rather than `verify`.
 
-### Known v2 identity limitation
+### Known v2 identity limitations
 
-V2 preserves its released identity semantics for compatibility. A step ID can
-be formed from in-memory fields before save-time redaction, then the serialized
-step contains the redacted value. The artifact-level digest still verifies,
-but that individual step ID may not identify the exact serialized step bytes.
-V3 corrects this by redacting before canonicalization and object hashing. The
-v2→v3 migrator always recomputes IDs and never carries this identity claim
-forward.
+V2 preserves its released identity semantics for compatibility. There are two
+known consequences.
+
+**Step IDs and redaction.** A step ID can be formed from in-memory fields before
+save-time redaction, then the serialized step contains the redacted value. The
+artifact-level digest still verifies, but that individual step ID may not
+identify the exact serialized step bytes. V3 corrects this by redacting before
+canonicalization and object hashing. The v2→v3 migrator always recomputes IDs
+and never carries this identity claim forward.
+
+**Fork run IDs.** `Run.fork` derives the new run ID from the source run ID and
+the resolved fork point alone. Forking the same run at the same step twice
+therefore produces the **same** run ID: the `branch` argument does not enter the
+ID, and neither does the MCP fork tool's `reason`, which is recorded after the ID
+is formed. Two forks that diverge afterwards then carry one ID. `tine fork` and
+the MCP `fork_run` tool name the output file after the new run ID unless told
+otherwise, so the second fork lands on the first one's path and is refused rather
+than written (`tine fork --force` overwrites deliberately); `Run.save` performs
+no such check, so a library caller that saves both forks to that path silently
+keeps only the last one. A caller that needs two distinct forks of one run at
+one step must pass an explicit `new_run_id`. V3 run IDs are content hashes over
+the stored object and do not have this property: two forks that differ in any
+recorded content already differ in ID, and two forks that differ in nothing are
+the same object.
 
 ## V3 repository objects
 

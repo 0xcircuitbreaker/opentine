@@ -45,10 +45,23 @@ repo.update_ref("tags/example", oid, expected_old=None)
 assert repo.fsck(deep=True).ok
 ```
 
-`heads/*`, `experiments/*`, and `promotions/*` move between `run` objects;
-`tags/*` may label any immutable object. Attestations created by the v3 workflow
-target runs. These type rules are enforced on write, read, pack verification,
-remote ref updates, and by `fsck`.
+Six ref namespaces are accepted — `heads/`, `experiments/`, `promotions/`,
+`annotations/`, `tags/`, and `remotes/` — and any other name is refused.
+`heads/*`, `experiments/*`, and `promotions/*` move between `run` objects, and
+`annotations/*` between `annotation` objects; `tags/*` and `remotes/*` carry no
+type constraint and may label any immutable object. `tine init` creates
+`refs/annotations`, `refs/heads`, and `refs/tags`.
+
+An `annotations/*` ref carries one further rule. Its target must be an
+annotation whose `target_id` is a `run`, and the ref name after `annotations/`
+must equal that run's hex digest, so `annotations/<digest>` is the only
+`annotations/*` name that can point at an annotation of `run:sha256:<digest>`.
+A ref naming a
+different run, an annotation without a string `target_id`, or an annotation of
+a non-run object is refused rather than stored.
+
+Attestations created by the v3 workflow target runs. These type rules are
+enforced on write, read, pack verification, remote ref updates, and by `fsck`.
 
 `fsck` recomputes every ID, validates envelope canonicality, typed links,
 shallow boundaries, refs, and the event DAG. Ref updates are compare-and-swap;
@@ -119,8 +132,14 @@ unless a signature is attached); promotion is a CAS ref update.
 
 When an MCP server starts inside a repository, it adds `search_runs`,
 `inspect_object`, `context_slice`, `semantic_diff`, `fork_run_v3`,
-`resume_run_v3`, `evaluate_run`, `attest_run`, and `promote_run`, plus verified
-object resources.
+`resume_run_v3`, `evaluate_run`, and `attest_run`, plus verified object
+resources. `promote_run` is not among them by default. It is registered only
+when the host opts in with `allow_promotion=True`, because a promotion ref is a
+release gate and the run content an MCP client reads is untrusted, so text
+recorded inside a run can ask the model to promote a run of an attacker's
+choosing. `fork_run_v3` and `resume_run_v3` may write only `experiments/*`
+refs; the namespace is checked on the canonical ref name, so mainline,
+promotion, tag, and remote-tracking refs stay operator-only.
 
 Search and inspection fail closed at explicit implementation ceilings: search
 indexes at most 100,000 objects, 10,000 candidate runs, and 100,000 aggregate
@@ -143,6 +162,17 @@ raw-byte cap and non-identity HTTP content encodings are rejected; resumable
 offsets must advance, loops are bounded, transient short reads retain partial
 upload state, and abandoned upload state is reaped.
 
+The pack layer is explicit about omitted history; the local read surface treats
+it in two different ways, and a reader of a shallow clone must know which. `log`,
+`diff`, and `context_slice` stop at the boundary silently: a cut object is
+skipped, and `SemanticDiff` carries no truncation marker, so its cost, latency,
+tool-path, and artifact aggregates are computed only over the events present
+locally and omit history beyond the boundary without saying so. `load_run`,
+`fork`, and `resume` instead refuse, with a typed error naming the object that
+lies beyond the repository's shallow fetch boundary and directing the caller to
+deepen the fetch. Treat aggregates read from a shallow clone as lower bounds
+until the clone is deepened.
+
 The HTTP protocol exposes:
 
 - unauthenticated capability discovery;
@@ -151,49 +181,30 @@ The HTTP protocol exposes:
 - depth/object-type filtered fetch;
 - compare-and-swap ref updates.
 
-Clients require HTTPS except for loopback or explicit `--allow-insecure`
-development. Authenticated clients ignore ambient proxy variables so local
-development credentials are not forwarded unexpectedly. Push uploads verified
-missing objects before attempting the CAS ref update.
+Clients require HTTPS except when the base URL host is a literal loopback IP
+address (`127.0.0.1`, `::1`), which is accepted over plain `http://` with no
+opt-in, or when `--allow-insecure` development is requested explicitly. The
+hostname `localhost` is not a literal address and is refused without that flag.
+Authenticated clients ignore ambient proxy variables so local development
+credentials are not forwarded unexpectedly. Push uploads verified missing
+objects before attempting the CAS ref update.
 
 ## Reference self-hosted remote
 
-The reference deployment uses encrypted filesystem objects and SQLite for
-object metadata, refs, and HMAC-chained audit records with an authenticated
-head outside SQLite. AES-GCM is required by
-the reference server; production deployments provide a KMS-backed
-`KeyProvider`.
-
 Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
 `AuthorizationPolicy`, `KeyProvider`, `AuditSink`, `RetentionHook`, and
-`AdmissionPolicy`. Static tokens support development; a built-in `JWTVerifier`
-(RS256/ES256, JWKS + issuer/audience/expiry) backs OIDC, or a custom verifier can
-be injected. Validated claims map to reader/writer/admin roles and a tenant.
+`AdmissionPolicy`. The reference deployment implements them with encrypted
+filesystem objects and SQLite. A `StaticTokenIdentityProvider` supports
+development identities. Retention hooks gate object deletion, and admission
+policies can reject pack bytes, object counts, or ref updates; resumable uploads
+invoke admission at declaration and again after pack inspection, so a policy can
+bound both bytes and object counts.
 
-Authorization is tenant-scoped and enforced on every read and mutating path.
-Reference listings are capped at 1,000 entries. Annotation targets needed to
-validate those listings are additionally capped at 1 MiB per encoded object and
-8 MiB in aggregate; stores exposing a size probe are rejected before the read.
-Audit verification detects interior edits and end truncation without appending
-another row. Legacy rows need an explicit trust-on-migration flag and report
-`legacy-unverified`; the flag cannot recover a lost anchor. A committed row left
-one step ahead of its anchor is healed automatically, while other recovery needs
-an exact `--reanchor-audit-head` value (triggers remain defense in depth).
-The row must authenticate before a one-step heal, and a cross-process lock spans
-the database commit and checkpoint update so shared-SQLite writers cannot regress
-the anchor.
-Production KMS adapters must provide external audit-key derivation or an explicit
-audit key; the reference app fails closed instead of writing a fallback key next
-to SQLite. Retention hooks gate object deletion, and
-admission policies can reject pack bytes/object counts or ref updates based on
-rate and budget policy. Resumable uploads invoke admission at declaration and
-again after pack inspection so policies can bound both bytes and object counts.
-Installed objects and resumable `.part` staging are encrypted through the configured
-tenant-aware key provider. Staging uses independently authenticated frames so a
-restart can resume without writing plaintext packs; its directories and files are
-also tightened to mode 0700/0600 on POSIX and TTL-reaped. The reference
-filesystem object store refuses symlinked, hard-linked, non-regular, and
-oversized encrypted object leaves before decryption.
+The security properties of that deployment — encryption at rest and key
+provision, identity and tenant-scoped authorization, the HMAC-chained audit log
+and its authenticated head outside SQLite, the listing and annotation ceilings,
+and the operator responsibilities that remain — are specified in
+[SECURITY_MODEL.md](SECURITY_MODEL.md) and are not restated here.
 
 The 0.3.0 scope is an enterprise repository foundation. The bundled bounded
 WSGI server targets development and small self-hosted deployments, not turnkey
