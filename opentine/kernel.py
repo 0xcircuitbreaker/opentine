@@ -10,6 +10,8 @@ from typing import Any, Protocol
 
 OBJECT_TYPES = frozenset({"blob", "event", "run", "attestation", "annotation"})
 OID_RE = re.compile(r"^(blob|event|run|attestation|annotation):sha256:([0-9a-f]{64})$")
+#: One nesting bound for both directions: what ``_encode`` writes, ``validate_json_shape`` reads.
+MAX_JSON_DEPTH = 512
 
 
 class KernelError(ValueError):
@@ -35,7 +37,7 @@ def validate_json_shape(raw: bytes | str, *, max_tokens: int = 200_000) -> None:
         elif token in (0x2C, 0x3A, 0x5D, 0x7D):
             tokens += 1
             depth -= token in (0x5D, 0x7D)
-        if depth > 512 or tokens > max_tokens:
+        if depth > MAX_JSON_DEPTH or tokens > max_tokens:
             raise KernelError("JSON structure exceeds semantic parser limits")
 
 
@@ -55,12 +57,8 @@ def _number(value: int | float) -> str:
         if "." in raw:
             raw = raw.rstrip("0").rstrip(".")
         return raw
-    if "e" not in raw:
-        raw = format(value, ".15e")
-    coefficient, exponent = raw.split("e")
-    coefficient = coefficient.rstrip("0").rstrip(".")
-    exponent_number = int(exponent)
-    return f"{coefficient}e{'+' if exponent_number >= 0 else ''}{exponent_number}"
+    coefficient, exponent = (raw if "e" in raw else format(value, ".15e")).split("e")
+    return f"{coefficient.rstrip('0').rstrip('.')}e{int(exponent):+d}"
 
 
 def _parse_int(value: str) -> int | float:
@@ -75,22 +73,24 @@ def _string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def _encode(value: Any) -> str:
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return _number(value)
-    if isinstance(value, str):
-        return _string(value)
+def _encode(value: Any, depth: int = 0) -> str:
+    if value is None or isinstance(value, bool):
+        return "null" if value is None else "true" if value else "false"
+    if isinstance(value, (int, float, str)):
+        return _string(value) if isinstance(value, str) else _number(value)
+    if depth >= MAX_JSON_DEPTH:
+        raise KernelError(f"canonical JSON nesting exceeds {MAX_JSON_DEPTH} levels")
+    parts: list[str] = []
     if isinstance(value, (list, tuple)):
-        return "[" + ",".join(_encode(item) for item in value) + "]"
+        for item in value:
+            parts.append(_encode(item, depth + 1))
+        return "[" + ",".join(parts) + "]"
     if isinstance(value, dict):
         if not all(isinstance(key, str) for key in value):
             raise KernelError("canonical JSON object keys must be strings")
-        keys = sorted(value, key=lambda item: item.encode("utf-16be"))
-        return "{" + ",".join(_string(key) + ":" + _encode(value[key]) for key in keys) + "}"
+        for key in sorted(value, key=lambda item: item.encode("utf-16be")):
+            parts.append(_string(key) + ":" + _encode(value[key], depth + 1))
+        return "{" + ",".join(parts) + "}"
     raise KernelError(f"unsupported canonical JSON type: {type(value).__name__}")
 
 
