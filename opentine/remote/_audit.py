@@ -82,7 +82,11 @@ def _anchor_mac(head: str, key: bytes) -> str:
 
 
 def _read_small(path: Path, maximum: int, *, private: bool = False) -> bytes:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    # O_BINARY (Windows-only, 0 elsewhere): this fd is read with raw os.read and
+    # carries the 32 random bytes of the audit HMAC key; without it Windows opens
+    # text-mode and corrupts the key (CRLF collapse, 0x1A EOF truncation), so a
+    # reopened store would verify its chain with the wrong key or refuse to open.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
         fd = os.open(path, flags)
     except FileNotFoundError:

@@ -19,7 +19,12 @@ def _open_regular(path: Path) -> tuple[int, os.stat_result]:
         raise
     if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
         raise ValueError("object path is not a single-link regular file")
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    # O_BINARY (Windows-only, 0 elsewhere): the fd is read with raw os.read, so
+    # without it Windows opens text-mode and mangles the encrypted body — CRLF
+    # translation and a 0x1A EOF truncation corrupt the AES-GCM ciphertext,
+    # leaving decrypt with a short nonce. Local readers escape this by wrapping
+    # in os.fdopen(fd, "rb"), which _setmode's the fd binary; this path does not.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
         fd = os.open(path, flags)
     except FileNotFoundError:
