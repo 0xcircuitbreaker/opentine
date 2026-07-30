@@ -1,9 +1,20 @@
-"""Typed/path-aware client-side redaction for v3 object creation."""
+"""Typed/path-aware client-side redaction for v3 object creation.
+
+Two halves: ``redact_blob`` scrubs credential-shaped bytes with iterative regex
+scans, and ``redact_value`` walks a decoded value tree. PEM private-key handling
+lives in the stdlib-only leaf ``_redact_pem`` for the module line cap. Both
+imports below are stdlib-only leaves themselves, so this module stays importable
+from every layer that writes objects.
+"""
 
 from __future__ import annotations
 
 import re
 from typing import Any
+
+from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
+from opentine._redact_pem import redact_private_keys
+from opentine._unicode_text import assert_unicode_text
 
 # A credential-bearing identifier: an optional vendor/scope prefix (OPENAI_, X-, AWS_, …)
 # followed by an unambiguous credential compound. Bare "token"/"key" are intentionally
@@ -76,9 +87,6 @@ _HEADER_LINE = re.compile(
     rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
-_PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
-_PRIVATE_KEY_END = re.compile(rb"-----END [A-Z ]{0,64}PRIVATE KEY-----")
-_PEM_DATA = re.compile(rb"[A-Za-z0-9+/]{4,}={0,2}")
 # High-confidence secret token shapes, scrubbed regardless of the surrounding field name.
 _TOKEN_SHAPES = re.compile(
     rb"(?i)\b(?:"
@@ -129,69 +137,6 @@ def _quoted_fields(value: bytes) -> bytes:
     return bytes(output)
 
 
-#: Shortest leading base64 run treated as key material rather than prose. A PEM
-#: body line is 64 characters and a real key is far longer, while an English word
-#: that happens to be base64-shaped ("note", "parser") is short — so this is what
-#: separates "-----BEGIN … MIIEvQIB…" from "-----BEGIN … note: parser saw a marker".
-_PEM_RUN_MINIMUM = 40
-
-
-def _pem_run(value: bytes, offset: int, limit: int) -> int:
-    """End of the key-material run starting at ``offset``, or ``offset`` if none.
-
-    Requiring the *whole* remainder to be PEM data (``fullmatch``) meant a single
-    trailing byte defeated it: for ``{"k": "-----BEGIN PRIVATE KEY-----MIIE…"}``
-    the closing quote and brace made the match fail, so the scanner gave up and
-    the key was emitted verbatim immediately after "[REDACTED PRIVATE KEY]" —
-    output that reads as redacted while leaking every byte. Consuming the leading
-    run instead removes exactly the key and keeps the surrounding diagnostics.
-    """
-    span = value[offset:limit]
-    match = _PEM_DATA.match(value, offset + len(span) - len(span.lstrip()), limit)
-    if match is None or match.end() - match.start() < _PEM_RUN_MINIMUM:
-        return offset
-    return match.end()
-
-
-def _trailing_text(value: bytes, offset: int) -> int:
-    line_end = value.find(b"\n", offset)
-    if line_end < 0:
-        if _PRIVATE_KEY_BEGIN.search(value, offset):
-            return len(value)
-        return _pem_run(value, offset, len(value))
-    same_line = value[offset:line_end].strip()
-    if same_line and not (_PRIVATE_KEY_BEGIN.search(same_line) or _PEM_DATA.fullmatch(same_line)):
-        return _pem_run(value, offset, line_end)
-    cursor = line_end + 1
-    while cursor < len(value):
-        line_end = value.find(b"\n", cursor)
-        line_end = len(value) if line_end < 0 else line_end
-        line = value[cursor:line_end].strip()
-        if not line:
-            return cursor
-        if not _PEM_DATA.fullmatch(line):
-            return cursor
-        cursor = line_end + 1
-    return len(value)
-
-
-def _private_keys(value: bytes) -> bytes:
-    output = bytearray()
-    cursor = 0
-    while begin := _PRIVATE_KEY_BEGIN.search(value, cursor):
-        output.extend(value[cursor : begin.start()])
-        output.extend(b"[REDACTED PRIVATE KEY]")
-        end = _PRIVATE_KEY_END.search(value, begin.end())
-        if end is None:
-            cursor = _trailing_text(value, begin.end())
-            if cursor == len(value):
-                return bytes(output)
-            continue
-        cursor = end.end()
-    output.extend(value[cursor:])
-    return bytes(output)
-
-
 def redact_blob(value: bytes) -> bytes:
     """Scrub credential-shaped UTF-8 text while leaving opaque binary intact."""
     try:
@@ -214,23 +159,59 @@ def redact_blob(value: bytes) -> bytes:
     value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)
-    return _private_keys(value)
+    return redact_private_keys(value)
 
 
-def redact_value(value: Any) -> Any:
-    """Scrub free-form strings inside an already type-redacted value."""
-    if isinstance(value, str):
+def redact_text(value: str) -> str:
+    """Scrub one string, refusing text UTF-8 has no spelling for.
+
+    ``str.encode("utf-8")`` on an unpaired UTF-16 surrogate — what ``json.loads``
+    hands back for a ``\\udXXX`` escape, i.e. a model response sliced mid-emoji —
+    raises a bare ``UnicodeEncodeError`` naming a codec and a byte position, from
+    inside a walk that cannot say which field it was reading. Callers that guard
+    their whole payload (``_blob_guard``, ``repository/store``) report the JSON
+    path; this is the backstop for the ones that reach a single value, so no
+    caller ever surfaces a codec message as an opentine error.
+    """
+    try:
         return redact_blob(value.encode("utf-8")).decode("utf-8")
+    except UnicodeEncodeError as exc:
+        assert_unicode_text(value, where="the value being redacted")
+        raise ValueError(f"value is not UTF-8 text: {exc.reason}") from exc
+
+
+def redact_value(value: Any, _depth: int = 0) -> Any:
+    """Scrub free-form strings inside an already type-redacted value.
+
+    ``_depth`` is the bound ``_canon_redact._redact`` enforces, and this walk needs
+    its own check rather than inheriting that one: it runs *after* ``_redact`` over
+    the same value on the v3 write path, so it still sees everything ``_redact``
+    admitted. Unbounded it raised ``RecursionError`` instead of a refusal — and at
+    an interpreter-dependent depth, because the list branch was a comprehension
+    (~498 levels on 3.11 against ~996 on 3.12+, PEP 709 having inlined
+    comprehension frames in 3.12) while the tuple branch was a generator
+    expression, which is *never* inlined and so cost two frames per level on every
+    version. Both are statement loops below for that reason: one frame per nesting
+    level everywhere, so every interpreter refuses the same input at the same
+    depth. Cycles land here too — a self-referential container is infinitely deep.
+    """
+    if _depth > MAX_CANONICAL_DEPTH:
+        raise _too_deep()
+    if isinstance(value, str):
+        return redact_text(value)
     if isinstance(value, dict):
-        redacted = {}
+        redacted: dict[Any, Any] = {}
         for key, item in value.items():
-            clean_key = redact_value(key) if isinstance(key, str) else key
+            # Keys are strings, so scrub them directly instead of recursing: a key
+            # is not a nesting level and must not spend one.
+            clean_key = redact_text(key) if isinstance(key, str) else key
             if clean_key in redacted:
                 raise ValueError("redaction collapsed distinct object keys")
-            redacted[clean_key] = redact_value(item)
+            redacted[clean_key] = redact_value(item, _depth + 1)
         return redacted
-    if isinstance(value, list):
-        return [redact_value(item) for item in value]
-    if isinstance(value, tuple):
-        return tuple(redact_value(item) for item in value)
+    if isinstance(value, (list, tuple)):
+        items: list[Any] = []
+        for item in value:
+            items.append(redact_value(item, _depth + 1))
+        return tuple(items) if isinstance(value, tuple) else items
     return value

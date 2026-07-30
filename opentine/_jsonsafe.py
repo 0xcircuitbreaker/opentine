@@ -21,7 +21,16 @@ def _string(value: Any) -> str:
 
 
 def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any:
-    """Make a value canonical-JSON-safe, preserving large integers as strings."""
+    """Make a value canonical-JSON-safe, preserving large integers as strings.
+
+    ``_depth`` truncates rather than refuses on purpose: this is the *import*
+    path, where untrusted trace data must land in the store instead of failing.
+    Its bound is reached long before any interpreter's frame budget, and the
+    recursion below is written as statements so it stays that way — a
+    comprehension costs a second frame per level before 3.12 (PEP 709 inlined
+    them in 3.12), which is how the same input crossed the 1000-frame limit at
+    half the nesting depth on the declared support floor.
+    """
     if value is None or isinstance(value, (str, bool)):
         return value
     if isinstance(value, int):
@@ -45,7 +54,10 @@ def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any
                         raise ValueError(f"mapping keys collide after string conversion: {name!r}")
                     result[name] = json_safe(item, seen, _depth + 1)
                 return result
-            return [json_safe(item, seen, _depth + 1) for item in value]
+            items = []
+            for item in value:
+                items.append(json_safe(item, seen, _depth + 1))
+            return items
         finally:
             seen.remove(identity)
     return _string(value)
