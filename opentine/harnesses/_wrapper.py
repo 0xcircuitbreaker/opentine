@@ -191,7 +191,7 @@ class OpentineHarness:
     def fork(self, from_step: int | str, new_run_id: str | None = None) -> Run:
         run = self._require_run()
         step = run.steps[from_step].id if isinstance(from_step, int) else from_step
-        forked = run.fork(step, new_run_id=new_run_id)
+        forked = run.fork(step, new_run_id=new_run_id, intent={"harness": self.harness.name})
         forked.metadata["next_harness"] = self.harness.name
         return forked
 

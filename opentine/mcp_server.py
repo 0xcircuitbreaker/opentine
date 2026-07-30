@@ -159,7 +159,7 @@ def fork_run_file(
         raise IndexError(f"Step index {from_step} out of range")
 
     fork_step = run.steps[from_step]
-    forked = run.fork(fork_step.id)
+    forked = run.fork(fork_step.id, intent={"reason": reason} if reason else None)
     if reason:
         forked.metadata["fork_reason"] = reason
 

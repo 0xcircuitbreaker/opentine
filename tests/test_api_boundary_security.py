@@ -103,16 +103,34 @@ def test_legacy_mcp_prefixes_are_unambiguous_and_exact_ids_win(tmp_path: Path):
         legacy_mcp.find_run("abc", tmp_path)
 
 
-def test_legacy_mcp_fork_refuses_to_overwrite_deterministic_output(tmp_path: Path):
-    _saved_run(tmp_path / "source.tine", "source")
+def test_legacy_mcp_fork_refuses_to_overwrite_an_occupied_artifact_path(tmp_path: Path):
+    # 0.4.0: a v2 fork id names the fork ACT (lineage + slice + intent + a recorded
+    # nonce), so two forks of one point no longer collide on one filename. The MCP
+    # dead end is gone WITHOUT weakening the refusal: an explicitly named destination
+    # that already exists is still refused, with no force escape.
+    source_path = tmp_path / "source.tine"
+    _saved_run(source_path, "source")
+    source_bytes = source_path.read_bytes()
+
     first = legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path)
-    output = Path(first["path"])
-    original = output.read_bytes()
+    first_path = Path(first["path"])
+    first_bytes = first_path.read_bytes()
 
-    with pytest.raises(FileExistsError, match="refusing to overwrite"):
-        legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path)
+    # Two repeat forks of the same point get distinct ids and distinct paths.
+    second = legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path)
+    second_path = Path(second["path"])
+    assert first["new_run_id"] != second["new_run_id"]
+    assert first_path != second_path and second_path.exists()
+    assert first_path.read_bytes() == first_bytes  # the first fork was never touched
 
-    assert output.read_bytes() == original
+    # save= at an occupied path is still refused with no force escape, whether it
+    # points at the first fork's artifact or at the source run itself.
+    for occupied in (first_path, source_path):
+        with pytest.raises(FileExistsError, match="refusing to overwrite"):
+            legacy_mcp.fork_run_file("source", 0, runs_dir=tmp_path, save=occupied)
+
+    assert first_path.read_bytes() == first_bytes
+    assert source_path.read_bytes() == source_bytes
 
 
 def test_legacy_mcp_scan_summary_and_rendering_are_bounded(tmp_path: Path, monkeypatch):

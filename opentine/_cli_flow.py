@@ -65,7 +65,7 @@ def cmd_fork(args: argparse.Namespace) -> None:
     if step is None:
         console.print(f"[red]Step not found: {_terminal(step_id)}[/]")
         raise SystemExit(1)
-    forked = run.fork(step.id)
+    forked = run.fork(step.id, intent={"harness": args.harness, "prompt": args.prompt})
     output = Path(args.save or (_runs_dir() / f"{forked.id}.tine"))
     _require_output_slot(output, args.force)
     if args.harness:
@@ -174,7 +174,13 @@ def cmd_replay(args: argparse.Namespace) -> None:
                 "[red]Rerun replay requires an explicit --harness or opentine-native Agent API.[/]"
             )
             raise SystemExit(1)
-        replayed = run.fork(_resolve_step_ref(run, args.from_step))
+        # A cached replay only reuses recorded steps, so it is an idempotent act:
+        # nonce="" keeps the id reproducible, which is exactly what makes a second
+        # replay resolve to the same path and hit the overwrite refusal (the property
+        # pinned by test_cached_replay_never_derives_an_output_path_from_untrusted_run_id).
+        replayed = run.fork(
+            _resolve_step_ref(run, args.from_step), intent={"replay": "cache"}, nonce=""
+        )
     except (KeyError, ValueError) as exc:
         console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc

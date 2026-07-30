@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 
 import pytest
 
@@ -280,11 +281,18 @@ def test_cache_replay_of_a_stepless_run_refuses_instead_of_indexerror(tmp_path):
 
 
 def test_rerun_replay_of_a_stepless_run_still_works(tmp_path):
-    """The refusal names this mode, so it has to keep working."""
+    """The refusal names this mode, so it has to keep working.
+
+    A rerun re-executes from scratch and mints a fresh digest id. The old
+    ``f"{run.id}-rerun"`` concatenation is gone (0.4.0): it spliced untrusted
+    artifact text into a run id and collided on repeat reruns, so the id must
+    now be a 64-hex digest that never contains the parent id.
+    """
     path = _saved(tmp_path, "empty-rerun", steps=0)
     replayed = _replay(path, mode="rerun")
     assert replayed.status is RunStatus.completed
-    assert replayed.id == "empty-rerun-rerun"
+    assert re.fullmatch(r"[0-9a-f]{64}", replayed.id)
+    assert "empty-rerun" not in replayed.id
 
 
 def test_resume_of_a_stepless_run_still_works(tmp_path):
