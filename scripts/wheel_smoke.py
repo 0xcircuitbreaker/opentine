@@ -7,10 +7,19 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import venv
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _uv() -> str:
+    # uv builds the venv and installs the wheel instead of the stdlib venv +
+    # ensurepip, whose pip bootstrap aborts (SIGABRT) on some interpreters —
+    # notably CPython 3.14 on macOS. uv needs no ensurepip on any platform.
+    uv = shutil.which("uv")
+    if uv is None:
+        raise SystemExit("uv is required for the hash-locked wheel smoke test")
+    return uv
 
 
 def _dist_dir() -> Path:
@@ -46,9 +55,7 @@ def _run(cmd: list[str | Path], *, cwd: Path | None = None) -> None:
 
 
 def _install_locked_core(python: Path, wheel: Path, work: Path) -> None:
-    uv = shutil.which("uv")
-    if uv is None:
-        raise SystemExit("uv is required for the hash-locked wheel smoke test")
+    uv = _uv()
     requirements = work / "core-requirements.txt"
     _run(
         [
@@ -66,18 +73,18 @@ def _install_locked_core(python: Path, wheel: Path, work: Path) -> None:
     )
     _run(
         [
-            python,
-            "-m",
+            uv,
             "pip",
             "install",
-            "--disable-pip-version-check",
+            "--python",
+            python,
             "--only-binary=:all:",
             "--require-hashes",
             "-r",
             requirements,
         ]
     )
-    _run([python, "-m", "pip", "install", "--no-deps", wheel])
+    _run([uv, "pip", "install", "--python", python, "--no-deps", wheel])
 
 
 def main() -> None:
@@ -93,13 +100,13 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="opentine-wheel-smoke-") as tmp:
         work = Path(tmp)
         venv_dir = work / "venv"
-        venv.EnvBuilder(with_pip=True).create(venv_dir)
+        _run([_uv(), "venv", "--python", sys.executable, venv_dir])
         python = _venv_python(venv_dir)
         tine = _console_script(venv_dir, "tine")
         artifact = work / "smoke.tine"
 
         _install_locked_core(python, wheel, work)
-        _run([python, "-m", "pip", "check"])
+        _run([_uv(), "pip", "check", "--python", python])
         _run(
             [
                 python,
