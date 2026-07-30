@@ -58,6 +58,19 @@ def _first_value(*candidates: tuple[Any, str], default: Any = 0) -> Any:
     return default
 
 
+def alias_integer(obj: Any, *names: str) -> int:
+    """Read the first present-and-non-null spelling of an aliased integer field.
+
+    Shares missing_usage_dimensions' notion of presence: a spelling that is
+    present but null never masks a populated alias behind it.
+    """
+    for name in names:
+        raw = value(obj, name, _MISSING)
+        if raw is not _MISSING and raw is not None:
+            return integer({name: raw}, name)
+    return 0
+
+
 def usage_field_present(raw: Any, *paths: tuple[str, ...]) -> bool:
     """Return whether any nested provider field is present and non-null."""
     for path in paths:
@@ -95,8 +108,8 @@ def openai_missing_usage(raw: Any, *, require_cache_write: bool = False) -> tupl
 
 def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
     """Normalize Responses or Chat Completions usage into exclusive buckets."""
-    input_total = integer(raw, "input_tokens", integer(raw, "prompt_tokens"))
-    output_total = integer(raw, "output_tokens", integer(raw, "completion_tokens"))
+    input_total = alias_integer(raw, "input_tokens", "prompt_tokens")
+    output_total = alias_integer(raw, "output_tokens", "completion_tokens")
     input_details = (value(raw, "input_tokens_details"), value(raw, "prompt_tokens_details"))
     output_details = (value(raw, "output_tokens_details"), value(raw, "completion_tokens_details"))
 
@@ -165,24 +178,22 @@ def anthropic_usage(raw: Any) -> Usage:
 
 def _google_modalities(raw: Any, name: str, wire_name: str) -> dict[str, int]:
     result: dict[str, int] = {}
-    details = value(raw, name, _MISSING)
-    if details is _MISSING:
-        details = value(raw, wire_name, [])
+    details = _first_value((raw, name), (raw, wire_name), default=[])
     for item in details or []:
         modality = str(value(item, "modality", "")).lower().rsplit(".", 1)[-1]
         if modality:
-            count = integer(item, "token_count", integer(item, "tokenCount"))
+            count = alias_integer(item, "token_count", "tokenCount")
             result[modality] = result.get(modality, 0) + count
     return result
 
 
 def google_usage(raw: Any) -> Usage:
-    prompt = integer(raw, "prompt_token_count", integer(raw, "promptTokenCount"))
-    tool_use = integer(raw, "tool_use_prompt_token_count", integer(raw, "toolUsePromptTokenCount"))
-    cached = integer(raw, "cached_content_token_count", integer(raw, "cachedContentTokenCount"))
-    output = integer(raw, "candidates_token_count", integer(raw, "candidatesTokenCount"))
-    reasoning = integer(raw, "thoughts_token_count", integer(raw, "thoughtsTokenCount"))
-    total = integer(raw, "total_token_count", integer(raw, "totalTokenCount"))
+    prompt = alias_integer(raw, "prompt_token_count", "promptTokenCount")
+    tool_use = alias_integer(raw, "tool_use_prompt_token_count", "toolUsePromptTokenCount")
+    cached = alias_integer(raw, "cached_content_token_count", "cachedContentTokenCount")
+    output = alias_integer(raw, "candidates_token_count", "candidatesTokenCount")
+    reasoning = alias_integer(raw, "thoughts_token_count", "thoughtsTokenCount")
+    total = alias_integer(raw, "total_token_count", "totalTokenCount")
     total = total or _safe_total(prompt, output, reasoning, tool_use)
     prompt_modalities = _google_modalities(raw, "prompt_tokens_details", "promptTokensDetails")
     cache_modalities = _google_modalities(raw, "cache_tokens_details", "cacheTokensDetails")
