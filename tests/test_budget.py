@@ -375,14 +375,18 @@ def test_async_harness_duration_budget_cancels_before_adapter_timeout():
         supports_resume = False
 
         async def execute(self, task, context=None, step_callback=None):
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(1.0)
             return {"late": True}
 
     run = Run(id="duration-harness")
-    run.set_budget(max_duration=0.02)
+    # 0.1s, not a few milliseconds: the budget must still fire long before the
+    # 1.0s harness, but a budget near the ~15ms Windows timer resolution raced
+    # the cancellation and flaked. The margin here is what is portable, not the
+    # absolute value — real duration budgets are never single-digit milliseconds.
+    run.set_budget(max_duration=0.1)
     started = __import__("time").monotonic()
     result = OpentineHarness(SlowHarness(), run=run).run_sync("go")
 
-    assert __import__("time").monotonic() - started < 0.15
+    assert __import__("time").monotonic() - started < 0.6
     assert result.status == RunStatus.failed
     assert result.metadata["budget_state"]["dimension"] == "duration"
