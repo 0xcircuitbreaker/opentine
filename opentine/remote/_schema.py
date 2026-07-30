@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime
 from sqlite3 import Connection
 
@@ -114,7 +115,10 @@ def _upgrade_audit(database: Connection, columns: set[str], key: bytes, allow_le
 
 
 def initialize(
-    connect: Callable[[], Connection], key: bytes, *, allow_legacy: bool = False
+    connect: Callable[[], AbstractContextManager[Connection]],
+    key: bytes,
+    *,
+    allow_legacy: bool = False,
 ) -> bool:
     with connect() as database:
         columns = {row[1] for row in database.execute("PRAGMA table_info(audit)")}

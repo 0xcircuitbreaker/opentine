@@ -7,6 +7,7 @@ import json
 import sqlite3
 import threading
 import time
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -97,7 +98,10 @@ def test_m4_concurrent_appends_form_one_valid_chain(tmp_path: Path):
 
 def test_m4_existing_unchained_audit_rows_are_migrated(tmp_path: Path):
     path = tmp_path / "legacy.sqlite3"
-    with sqlite3.connect(path) as database:
+    # closing(), not just `with`: sqlite3's context manager commits but does not
+    # close, and a leaked handle locks the file so the SQLiteBackend open below
+    # fails with WinError 5 on Windows.
+    with closing(sqlite3.connect(path)) as database, database:
         database.execute(
             "CREATE TABLE audit (sequence INTEGER PRIMARY KEY AUTOINCREMENT, "
             "event_id TEXT UNIQUE NOT NULL, timestamp TEXT NOT NULL, tenant TEXT NOT NULL, "
