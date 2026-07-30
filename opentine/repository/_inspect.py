@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 from typing import TYPE_CHECKING, Any
 
-from opentine.kernel import parse_oid, validate_json_shape
+from opentine._artifact_io import compact_token_budget
+from opentine.kernel import _parse_int, parse_oid, validate_json_shape
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 
 if TYPE_CHECKING:
@@ -45,6 +47,34 @@ def _direct_blob(repo: Repo, oid: str) -> dict[str, Any]:
 #: ``resolve_blobs=True`` and hands its result straight to an MCP model client.
 #: Fetching it by its own object id still works and is an explicit act.
 _UNREDACTED_BLOB_FIELDS = frozenset({"legacy_blob"})
+
+
+def _finite(number: int | float) -> int | float:
+    # json.dumps writes inf/nan as the bare words Infinity/NaN, which no strict JSON
+    # reader accepts: rendering one made `tine object --resolve-blobs` emit output its
+    # own MCP client could not parse. The loader refuses these bodies too (its
+    # canonical re-encode rejects a non-finite number), so refusing keeps them agreed.
+    if isinstance(number, float) and not math.isfinite(number):
+        raise ValueError("blob body holds a number no JSON reader can round-trip")
+    return number
+
+
+def _rendered_json(raw: bytes) -> Any:
+    """Parse a blob body for display exactly as ``load_run`` reads the same bytes.
+
+    ``parse_int`` is the kernel's own hook, not the default ``int``: canonical_json
+    writes an integral float >= 2**53 as a bare digit run, so a hookless parse
+    rendered an OTel timestamp as 1700000000000000000 where ``load_run`` returned
+    1.7e+18 -- one response disagreeing with the loader, and with the hooked
+    ``payload`` beside it. Every raise here is a ValueError (``KernelError`` is one
+    too), so ``_resolved`` still falls back to its text rendering.
+    """
+    return json.loads(
+        raw,
+        parse_constant=lambda literal: _finite(float(literal)),
+        parse_float=lambda literal: _finite(float(literal)),
+        parse_int=lambda literal: _finite(_parse_int(literal)),
+    )
 
 
 def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool]:
@@ -97,8 +127,14 @@ def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool
             truncated = True
             continue
         try:
-            validate_json_shape(raw, max_tokens=100_000)
-            blobs[field] = json.loads(raw)
+            # The writer's own budget on the same bytes (guarded_blob_body calls this
+            # formula, and blob_json repeats it at load). A fixed 100_000 made this
+            # reader stricter than both, so a wide-but-legal step blob -- 240 KB of
+            # small integers, saved and loaded fine -- was displayed as an unparsed
+            # text dump. Bodies above the prefix limit already left through the
+            # truncation branch above, so ``raw`` here is the complete body.
+            validate_json_shape(raw, max_tokens=compact_token_budget(len(raw)))
+            blobs[field] = _rendered_json(raw)
         except (UnicodeDecodeError, ValueError, RecursionError):
             blobs[field] = raw.decode(errors="replace")
     return blobs, truncated

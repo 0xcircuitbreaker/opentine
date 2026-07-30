@@ -18,12 +18,21 @@ step refuses the release.  These tests pin the whole class:
   .gitattributes would fail as "missing");
 * the gate still fails closed on EOL-only skew but now says so, and never
   blames real content drift on line endings.
+
+The first two of those interrogate the repository itself with git.  ``tests`` is
+shipped inside the sdist, so they must skip — loudly, with a reason — when the
+tree they are running from is not a git checkout (a redistributor validating
+opentine-0.3.0.tar.gz), instead of reporting ``fatal: not a git repository`` as
+a content problem.  ``test_the_git_backed_checks_run_and_are_not_skipped_here``
+in tests/test_release_audit_round10_lows.py keeps that skip from hiding a real
+failure in CI, where the tests always run from a checkout.
 """
 
 from __future__ import annotations
 
 import hashlib
 import io
+import os
 import subprocess
 import tarfile
 import tomllib
@@ -34,6 +43,38 @@ import pytest
 from scripts.check_release_inventory import InventoryError, _digest_pair, check_sdist
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def is_checkout_root() -> bool:
+    """True when ROOT is the top of a real git checkout (so git can be trusted).
+
+    False for an unpacked sdist — including one unpacked *inside* some unrelated
+    repository, where `git ls-files` would answer about that repository and the
+    checks would silently pass on the wrong inventory.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"], capture_output=True
+        )
+    except OSError:  # git is not installed at all
+        return False
+    if result.returncode != 0:
+        return False
+    top = result.stdout.decode("utf-8", "replace").strip()
+    try:
+        return bool(top) and os.path.samefile(top, ROOT)
+    except OSError:
+        return False
+
+
+requires_checkout = pytest.mark.skipif(
+    not is_checkout_root(),
+    reason=(
+        f"{ROOT} is not a git checkout (an unpacked sdist ships these tests too); "
+        "the .gitattributes/EOL guarantees are enforced by CI, which always runs "
+        "from a checkout"
+    ),
+)
 
 
 def _git(*args: str, data: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
@@ -58,6 +99,7 @@ def _attributes(paths: list[str]) -> dict[str, dict[str, str]]:
     return resolved
 
 
+@requires_checkout
 def test_gitattributes_pins_every_tracked_file_to_a_conversion_free_checkout():
     assert (ROOT / ".gitattributes").is_file(), (
         ".gitattributes is required: without it windows-latest materializes CRLF "
@@ -79,6 +121,7 @@ def test_gitattributes_pins_every_tracked_file_to_a_conversion_free_checkout():
     )
 
 
+@requires_checkout
 def test_no_tracked_text_file_contains_a_carriage_return():
     result = _git("grep", "-I", "--name-only", "-e", "\r", "--", ".")
     assert result.returncode == 1 and not result.stdout, (

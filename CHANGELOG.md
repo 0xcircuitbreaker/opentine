@@ -430,6 +430,51 @@ Reliability fixes:
 - Importing a legacy run keeps the extra parents of a merge step as causal
   edges instead of silently dropping all but one parent edge.
 
+### Fixed (fourth release audit)
+
+- Python 3.11, the declared support floor, ran a different build. Recursive
+  walks over caller data cost two interpreter frames per nesting level before
+  3.12 inlined comprehensions, so input that raised a clean error on 3.12+
+  escaped as `RecursionError` on 3.11. Every such walk — canonical conversion,
+  redaction, harness serialization, and pricing-catalog freezing — now uses
+  statement loops and an explicit depth bound, so the same input is refused at
+  the same depth with the same error on every supported interpreter.
+- Canonical encoding is no longer interpreter-dependent, which was a data
+  portability break: the encoder bounded nesting by catching `RecursionError`,
+  so it accepted depth 496 on 3.12 but only 330 on 3.11 while the validator
+  accepted 511 — and an object written on 3.12 could be unreadable on 3.11,
+  because reading re-encodes to verify canonical form. Writer and reader now
+  share one depth limit.
+- Two more cases where a run saved and then never loaded: compatibility blobs
+  are re-parsed with the same bounds the kernel uses, so a large float no
+  longer becomes an unreadable integer literal, and the blob budget scales the
+  way the artifact reader's does, so `migrate-v3` accepts healthy archives it
+  had begun refusing. Saving refuses artifacts above the reader's size bound
+  rather than writing one nothing can open.
+- Text that the canonical form cannot encode — an unpaired surrogate, which
+  any JavaScript producer emits for a truncated emoji — is refused when the
+  artifact is written, with the offending field named, instead of surfacing as
+  a raw codec error deep inside a repository write.
+- Redaction of a private key embedded in JSON, and of a truncated
+  passphrase-encrypted key, no longer leaks key bytes, and the private-key
+  scan is linear rather than quadratic in the number of unterminated markers.
+- Malformed values in `manifest.pricing` no longer crash `fork`, cached
+  replay, `resume`, or `tine migrate-v3` with a raw traceback; nor does a
+  `null` model entry, which the validator has always permitted, crash the
+  loader and with it every command that reads a run.
+- `agent.resume()` and `agent.replay()` no longer raise raw `AttributeError`
+  or `TypeError` on runs the validator accepts and this build writes:
+  malformed resume history, transcript entries, and tool-call records are
+  handled explicitly, and cache-replaying a run with no recorded steps says so
+  instead of raising `IndexError`.
+- Flags are honored or refused, never silently ignored: `tine run --save`
+  writes where it was told, and `tine sign --overwrite` without `--save` and
+  `tine migrate --dry-run` with `--save`/`--in-place` are rejected instead of
+  exiting successfully having done nothing.
+- The test suite shipped in the source distribution passes without a git
+  checkout or a `git` binary, and the release inventory check explains a
+  line-ending mismatch instead of reporting every file as changed.
+
 ### Architecture and compatibility
 
 - Every production Python module is capped at 250 physical lines; CI also caps

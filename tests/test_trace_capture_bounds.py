@@ -2,10 +2,24 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from opentine.trace import capture
+
+# ``tests`` ships inside the sdist, and _repository() below builds its fixture by
+# shelling git with check=True.  Without this guard the three tests here ERROR with
+# FileNotFoundError('git') in any build environment that has no git binary (a
+# redistributor validating opentine-0.3.0.tar.gz), reporting a missing tool as a
+# capture defect.  CI always has git, so the coverage is never lost there --
+# tests/test_release_audit_round11_misc.py asserts this mark is inert in a checkout.
+pytestmark = pytest.mark.skipif(
+    shutil.which("git") is None,
+    reason="git is required to build the fixture repository these bounds are measured on",
+)
 
 
 def _repository(path: Path) -> None:
