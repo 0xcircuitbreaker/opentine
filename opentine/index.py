@@ -19,6 +19,8 @@ INDEX_FILENAME = "index.json"
 MAX_INDEX_BYTES = 16 * 1024 * 1024
 MAX_INDEX_RUNS = 1_000
 MAX_INDEX_SOURCE_BYTES = 512 * 1024 * 1024
+#: Stand-in file name used only to run an extracted entry past the index reader.
+_READER_PROBE_NAME = "probe.tine"
 
 
 class RunIndex:
@@ -75,10 +77,26 @@ class RunIndex:
 
     def _build_entry(self, file: Path, mtime: float) -> IndexEntry:
         try:
-            run = Run.load(file)
+            entry = entry_from_run(Run.load(file), file.name, mtime)
+            # Hold this writer to its own reader's rule. from_dict rejects a non-finite
+            # cost, but entry_from_run can produce one from per-step-finite billing
+            # subtotals whose float sum is inf -- and _save's allow_nan=False then aborts
+            # sync() from OUTSIDE this containment, which is the asymmetry all over again.
+            #
+            # Only what extraction produced is held to that rule. from_dict also applies
+            # a path-traversal rule to `file`, which is this directory's own fact and not
+            # the artifact's: `save()` writes `<run-id>.tine`, a run id may legally hold a
+            # backslash, and the unreadable fallback below records such a name unchecked
+            # anyway -- so checking it here only in the success branch would hide from
+            # `search` a run this build itself wrote and every previous build found.
+            IndexEntry.from_dict({**entry.to_dict(), "file": _READER_PROBE_NAME})
+            return entry
         except Exception:
+            # Containment covers extraction, not only the read. A run that loads but whose
+            # fields cannot be extracted (e.g. per-step-finite billing subtotals that
+            # overflow only when summed) marks ONE entry unreadable instead of escaping
+            # sync() and blinding ls/search for every healthy run in the directory.
             return IndexEntry(file=file.name, mtime=mtime, unreadable=True)
-        return entry_from_run(run, file.name, mtime)
 
     def sync(self) -> RunIndex:
         if not self.runs_dir.exists():

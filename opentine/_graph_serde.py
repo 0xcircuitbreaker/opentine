@@ -49,8 +49,7 @@ def step_to_dict(step: Step) -> dict[str, Any]:
 def step_from_dict(data: dict[str, Any]) -> Step:
     parents = data.get("parent_ids")
     if parents is None:
-        parent = data.get("parent_id")
-        parents = [parent] if parent else []
+        parents = [parent] if (parent := data.get("parent_id")) else []
     return Step(
         id=data["id"],
         parent_ids=list(parents),
@@ -97,10 +96,9 @@ def run_to_dict(run, *, redact: bool = False) -> dict[str, Any]:
         "status": run.status.value,
         "transcript": list(run.transcript),
     }
+    data["metadata"].pop("tags", None)
     if run.tags:
         data["metadata"]["tags"] = list(run.tags)
-    else:
-        data["metadata"].pop("tags", None)
     return _redact(data) if redact else data
 
 
@@ -118,7 +116,11 @@ def run_from_dict(data: dict[str, Any], run_class):
         created_at=data.get("created_at", 0),
         format_version=data.get("format_version", FORMAT_VERSION),
     )
-    run.model_info = run.manifest.get("model", {}).get("name", run.metadata.get("model_info", ""))
+    # validate_run_record permits manifest.model = null and .get("model", {}) does not rescue an
+    # explicit null, so the loader tracebacked on a validator-accepted file, killing every command.
+    model = run.manifest.get("model")
+    name = model.get("name") if isinstance(model, dict) else None
+    run.model_info = name if isinstance(name, str) else run.metadata.get("model_info", "")
     run.system_prompt = run.metadata.get("system_prompt", "")
     run.user_prompt = run.metadata.get("user_prompt", "")
     return run

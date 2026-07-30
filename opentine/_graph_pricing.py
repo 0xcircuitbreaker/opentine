@@ -8,6 +8,12 @@ statuses; anything else can never match a retained step or a catalog
 snapshot. Each membership probe below therefore treats non-conforming values
 as not-matching instead of letting ``set``/``dict`` hashing raise TypeError —
 the data itself is preserved untouched wherever it is not being filtered.
+
+The same rule applies one level up: every *container* read here
+(``pricing`` itself, ``invocations``, ``rate_cards``, ``catalogs``) is shape
+checked before it is iterated or indexed, because ``x or []`` rescues only
+falsey values and a truthy scalar in a container position raises
+``TypeError: … is not iterable`` before any item guard runs.
 """
 
 from __future__ import annotations
@@ -23,20 +29,34 @@ def _catalog_key(item: dict) -> tuple[str | None, str | None] | None:
 
 def _slice_pricing(manifest: dict, retained: set[str]) -> None:
     pricing = manifest.get("pricing")
-    if not isinstance(pricing, dict) or "invocations" not in pricing:
+    if not isinstance(pricing, dict):
+        return
+    cards = pricing.get("rate_cards")
+    if isinstance(cards, dict):
+        # Dict keys are hashable by construction, so membership cannot raise.
+        # This runs whatever ``invocations`` turns out to be, including absent:
+        # the cards are keyed by step id, so a dropped step's card left behind
+        # hands the child a reference to a step it does not contain, which the
+        # repository then refuses to store as an unknown step reference.
+        pricing["rate_cards"] = {key: value for key, value in cards.items() if key in retained}
+    raw = pricing.get("invocations")
+    if not isinstance(raw, list):
+        # A missing or non-list container cannot be filtered, so it is preserved
+        # exactly as loaded and nothing is derived from it. ``or []`` alone
+        # would rescue only falsey shapes — a truthy scalar raised TypeError —
+        # and deriving ``complete`` from a container this function cannot read
+        # would launder a ``complete: false`` manifest into ``complete: true``
+        # across a fork, silencing the strict_cost refusal on the child run.
         return
     invocations = [
         item
-        for item in pricing.get("invocations") or []
+        for item in raw
         # Retained IDs are always strings, so a non-str step_id never matches.
         if isinstance(item, dict)
         and isinstance(item.get("step_id"), str)
         and item["step_id"] in retained
     ]
     pricing["invocations"] = invocations
-    cards = pricing.get("rate_cards")
-    if isinstance(cards, dict):
-        pricing["rate_cards"] = {key: value for key, value in cards.items() if key in retained}
     referenced = {key for item in invocations if (key := _catalog_key(item)) is not None}
     catalogs = pricing.get("catalogs")
     if isinstance(catalogs, list):

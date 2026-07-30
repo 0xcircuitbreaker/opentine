@@ -7,6 +7,29 @@ from typing import Any
 from opentine.budget import Budget, BudgetBreach, BudgetExceeded
 from opentine.graph import Run, RunStatus, StepKind
 
+_MISSING = object()
+
+
+def _container(owner: dict[str, Any], key: str, kind: type, default: Any) -> tuple[Any, bool]:
+    """Return a shape-correct container for ``owner[key]``, and whether one was replaced.
+
+    A manifest and metadata are operator-editable and only partly typed by
+    ``validate_run_record``, so a default that rescues absence (``or {}``,
+    ``setdefault``) still hands a scalar to ``.get``/``.append``/``[key] =``. Absence
+    and a wrong shape are treated as the same case -- "no usable prior record" -- but
+    only the second reports ``True``, because a replaced container must never back a
+    positive cost-completeness claim.
+    """
+    value = owner.get(key, _MISSING)
+    if isinstance(value, kind):
+        return value, False
+    owner[key] = default
+    return default, value is not _MISSING
+
+
+def _listed(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
 
 class AccountingMixin:
     def _enforce_budget(
@@ -16,10 +39,13 @@ class AccountingMixin:
         *,
         elapsed_duration: float | None = None,
     ) -> bool:
-        pricing = run.manifest.get("pricing") or {}
+        pricing = run.manifest.get("pricing")
+        pricing = pricing if isinstance(pricing, dict) else {}
         duration = max(run.total_duration, elapsed_duration or 0)
         breach = None
-        if budget.strict_cost and pricing.get("complete") is False:
+        # Absent means "nothing recorded yet", so it passes; anything that is not
+        # literally True (False, 0, "false", null) is not a proven-complete claim.
+        if budget.strict_cost and pricing.get("complete", True) is not True:
             breach = BudgetBreach("cost_completeness", 1, 0)
         if breach is None:
             breach = budget.check(
@@ -50,9 +76,9 @@ class AccountingMixin:
 
     @staticmethod
     def _pin_billing(run: Run, step_id: str, billing: dict[str, Any]) -> None:
-        if not billing:
-            return
-        pricing = run.manifest.setdefault("pricing", {})
+        if not isinstance(billing, dict) or not billing:
+            return  # a provider may hand back any JSON value under "billing"
+        pricing, damaged = _container(run.manifest, "pricing", dict, {})
         if billing.get("catalog_id"):
             pricing.setdefault("catalog_id", billing["catalog_id"])
         if billing.get("catalog_hash"):
@@ -64,12 +90,17 @@ class AccountingMixin:
             "catalog_hash": billing.get("catalog_hash"),
             "catalog_provenance": billing.get("catalog_provenance") or [],
         }
-        catalogs = pricing.setdefault("catalogs", [])
+        catalogs, broke = _container(pricing, "catalogs", list, [])
+        damaged = damaged or broke
         if (snapshot["catalog_id"] or snapshot["catalog_hash"]) and snapshot not in catalogs:
             catalogs.append(snapshot)
         if billing.get("rate_card_id"):
-            pricing.setdefault("rate_cards", {})[step_id] = billing["rate_card_id"]
-        pricing.setdefault("invocations", []).append(
+            cards, broke = _container(pricing, "rate_cards", dict, {})
+            damaged = damaged or broke
+            cards[step_id] = billing["rate_card_id"]
+        invocations, broke = _container(pricing, "invocations", list, [])
+        damaged = damaged or broke
+        invocations.append(
             {
                 "calculation": billing.get("calculation", {}),
                 "catalog_hash": billing.get("catalog_hash"),
@@ -81,15 +112,18 @@ class AccountingMixin:
             }
         )
         complete = billing.get("status") in {"complete", "unmetered"}
-        pricing["complete"] = bool(pricing.get("complete", True) and complete)
+        # `and` on the raw prior laundered a malformed "false" into a positive claim.
+        prior = pricing.get("complete", True) is True
+        pricing["complete"] = prior and complete and not damaged
 
     @staticmethod
     def _warnings(run: Run, response: dict[str, Any]) -> None:
+        billing = response.get("billing")
         values = [
-            *(response.get("warnings") or []),
-            *((response.get("billing") or {}).get("warnings") or []),
+            *_listed(response.get("warnings")),
+            *_listed(billing.get("warnings") if isinstance(billing, dict) else None),
         ]
-        stored = run.metadata.setdefault("warnings", [])
+        stored, _ = _container(run.metadata, "warnings", list, [])
         for warning in values:
             if warning not in stored:
                 stored.append(warning)

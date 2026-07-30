@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from opentine._canon import _redact
 from opentine._graph_analysis import _causal_transcript, _slice_pricing
+from opentine._jsonsafe import json_safe
+from opentine._unicode_text import assert_unicode_text
 from opentine.repository._run_blobs import blob_json, json_blob, put_transcript, transcript_blob
 from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
 from opentine.repository._shallow_read import ShallowBoundary, shallow_cut_error
@@ -88,7 +91,19 @@ def _manifests(
 
 
 def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
+    if raw is not None and not hasattr(raw, "items"):
+        # The container's own shape, the one this function never checked: every
+        # wrong *value* below is a typed refusal, while a wrong mapping raised a
+        # bare AttributeError out of the comprehension. Duck-typed, not
+        # isinstance(dict), so a MappingProxyType or other Mapping that works
+        # today keeps working.
+        raise ValueError("fork overrides must be an object")
     values = {key: value for key, value in (raw or {}).items() if value is not None}
+    if any(not isinstance(key, str) for key in values):
+        # Checked before the join below, which is where a non-str name actually
+        # landed: reporting the unknown names raised TypeError instead of the
+        # ValueError it was written to raise.
+        raise ValueError("fork override names must be strings")
     unknown = set(values) - {"model", "policy", "prompt", "resume"}
     if unknown:
         raise ValueError(f"unknown fork override(s): {', '.join(sorted(unknown))}")
@@ -100,6 +115,25 @@ def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
         raise ValueError("fork policy override must be an object")
     if "resume" in values and not isinstance(values["resume"], bool):
         raise ValueError("fork resume override must be a boolean")
+    if "prompt" in values:
+        # The text rule belongs on this leg, not on Recorder.fork alone. Repo.fork
+        # is public and MCP's fork_run_v3 calls it directly, so the raw blob encode
+        # in fork_payload was still reachable with a str UTF-8 cannot spell and
+        # surfaced a bare UnicodeEncodeError naming a byte offset instead of the
+        # typed, path-bearing refusal every other write leg now produces. Checked
+        # verbatim because the prompt is stored as a raw blob -- the one override
+        # redaction never sees, so what is checked must be what is encoded.
+        assert_unicode_text({"prompt": values["prompt"]}, where="fork override")
+    # Every *other* override reaches the store through guarded_redaction, so it is
+    # checked in that writer's own order -- json_safe's coercion, then the _redact
+    # that may legitimately drop an unencodable credential-shaped policy value.
+    # Checking the raw values instead would refuse a fork the blob writer accepts.
+    # Written over the whole mapping so an override added above is covered here
+    # without a second edit, and before _closure so nothing is written at all.
+    assert_unicode_text(
+        _redact(json_safe({key: item for key, item in values.items() if key != "prompt"})),
+        where="fork override",
+    )
     return values
 
 
