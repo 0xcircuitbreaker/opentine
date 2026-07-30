@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from opentine._blob_guard import MAX_BLOB_STRUCTURAL_TOKENS, guarded_blob_body
+from opentine._artifact_io import compact_token_budget
+from opentine._blob_guard import guarded_blob_body
 from opentine._jsonsafe import json_safe
 from opentine.kernel import canonical_json, validate_json_shape
 
@@ -20,7 +21,8 @@ def json_blob(repo: Repo, value: Any) -> str:
 def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
     body = repo.get(oid).body
     try:
-        validate_json_shape(body, max_tokens=MAX_BLOB_STRUCTURAL_TOKENS)
+        # The exact budget guarded_blob_body applied at write, on the same bytes.
+        validate_json_shape(body, max_tokens=compact_token_budget(len(body)))
         parsed = json.loads(body)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("compatibility JSON blob is malformed") from exc
@@ -29,12 +31,12 @@ def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
     return parsed
 
 
-def transcript_blob(repo: Repo, oid: str | None) -> list[dict[str, Any]]:
+def transcript_blob(repo: Repo, oid: str | None) -> list[Any]:
     if not oid:
         return []
     messages = blob_json(repo, oid).get("messages")
-    if not isinstance(messages, list) or any(not isinstance(item, dict) for item in messages):
-        raise ValueError("compatibility transcript must be a list of objects")
+    if not isinstance(messages, list):
+        raise ValueError("compatibility transcript must be a list")
     return messages
 
 
@@ -79,10 +81,13 @@ def run_origin(repo: Repo, run: Any) -> dict[str, Any]:
 
 
 def put_transcript(repo: Repo, messages: list[Any], event_map: dict[str, str]) -> str:
-    mapped: list[dict[str, Any]] = []
+    mapped: list[Any] = []
     for item in messages:
         if not isinstance(item, dict):
-            raise ValueError("compatibility transcript must be a list of objects")
+            # Loading and forking tolerate non-dict transcript turns, so a run
+            # that loads must also be writable; only dict turns carry step_ids.
+            mapped.append(item)
+            continue
         stored = dict(item)
         step = stored.get("step_id")
         if step is not None:

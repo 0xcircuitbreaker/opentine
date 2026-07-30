@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import stat
 from pathlib import Path
 from typing import Any
 
+import opentine._artifact_shapes as artifact_shapes
+from opentine._canon import SUPPORTED_VERSIONS
 from opentine.kernel import KernelError, validate_json_shape
 
 MAX_TINE_ARTIFACT_BYTES = 256 * 1024 * 1024
@@ -25,7 +28,7 @@ _MIN_STRUCTURAL_TOKENS = 200_000
 _MAX_STRUCTURAL_TOKENS = 16_000_000
 
 
-def _structural_token_budget(length: int) -> int:
+def _structural_token_budget(length: int, *, density: int = _MAX_TOKEN_DENSITY) -> int:
     """Bound structure relative to size, so writable runs stay readable.
 
     A single fixed cap cannot do both jobs: set low enough to stop amplification
@@ -33,7 +36,26 @@ def _structural_token_budget(length: int) -> int:
     prevents — ``Run.save()`` would persist a ~20k-step artifact that no longer
     loads, silently destroying the run.
     """
-    return min(_MAX_STRUCTURAL_TOKENS, max(_MIN_STRUCTURAL_TOKENS, length // _MAX_TOKEN_DENSITY))
+    return min(_MAX_STRUCTURAL_TOKENS, max(_MIN_STRUCTURAL_TOKENS, length // density))
+
+
+def compact_token_budget(length: int) -> int:
+    """Structural-token budget for *compact* canonical JSON (repository blobs).
+
+    One formula, both sides: ``guarded_blob_body`` (writer) and ``blob_json``
+    (reader) must call this on the same body bytes, or a run wide enough to save
+    is no longer narrow enough to load — round 8 fixed that asymmetry with a
+    fixed 200k cap and thereby made ``tine migrate-v3`` refuse healthy ``.tine``
+    artifacts this build round-trips (a ~590 KB structured tool result).
+
+    Compact canonical JSON has no padding: every structural token is exactly one
+    byte, so tokens can never exceed bytes and any density divisor above 1
+    refuses legal payloads (a matrix of small integers runs ~0.5-0.8
+    tokens/byte). Bytes are therefore the honest density bound, and what stops
+    container amplification is the same absolute ceiling and floor the ``.tine``
+    reader enforces above.
+    """
+    return _structural_token_budget(length, density=1)
 
 
 def artifact_integrity(data: dict[str, Any]) -> dict[str, Any] | None:
@@ -79,13 +101,27 @@ def _bounded_int(value: str) -> int:
 def assert_loadable(serialized: str) -> None:
     """Refuse to persist an artifact this build could never read back.
 
-    The reader bounds nesting depth and integer width and the writer did not, so a
-    deeply nested tool result or a large integer produced a file that saved
-    cleanly and then failed every later load, verify and migrate — destroying the
-    run it was written to preserve. Failing at save leaves the run in memory,
-    where the caller can still do something about it.
+    Every reader bound must hold at write, not just some: size (256 MiB),
+    nesting depth and structural tokens, integer width, format version, and the
+    run/step record shapes ``load_run`` validates. Each rule enforced on read
+    but not on write produced a file that saved cleanly and then failed every
+    later load, verify and migrate — destroying the run it was written to
+    preserve. Failing at save leaves the run in memory, where the caller can
+    still do something about it. (Duplicate keys, NaN/Infinity, and raw NUL
+    bytes are unproducible by construction: ``json.dumps(sort_keys=True,
+    allow_nan=False)`` raises on the first two and escapes control characters.)
     """
     encoded = serialized.encode()
+    # atomic_write_text writes in text mode, so every newline becomes
+    # os.linesep on disk; budget what the reader will stat, not what the
+    # writer holds in memory.
+    on_disk = len(encoded) + serialized.count("\n") * (len(os.linesep) - 1)
+    if on_disk > MAX_TINE_ARTIFACT_BYTES:
+        raise ValueError(
+            ".tine artifact would exceed the size limit every reader enforces "
+            f"({MAX_TINE_ARTIFACT_BYTES} bytes); split the run or save it into "
+            "a v3 repository instead"
+        )
     try:
         validate_json_shape(encoded, max_tokens=_structural_token_budget(len(encoded)))
     except KernelError as exc:
@@ -98,11 +134,22 @@ def assert_loadable(serialized: str) -> None:
     # representation — must save, and a byte-level regex cannot tell the two
     # apart, so it rejected runs this build reads back verbatim.
     try:
-        json.loads(serialized, parse_int=_bounded_int)
+        parsed = json.loads(serialized, parse_int=_bounded_int)
     except ValueError as exc:
         raise ValueError(
             f"integer exceeds the {MAX_TINE_INTEGER_DIGITS}-digit .tine limit; store it as a string"
         ) from exc
+    # Run the reader's own record validation: a list-valued step output or a
+    # non-string tag wrote cleanly and then failed every later load with the
+    # exact messages raised below.
+    record = artifact_shapes.validate_run_record(parsed)
+    artifact_shapes.ordered_step_records(record.get("graph", {}))
+    version = record.get("format_version")
+    if type(version) is not int or version not in SUPPORTED_VERSIONS:
+        raise ValueError(
+            f".tine format_version must be one of {SUPPORTED_VERSIONS} to load back; "
+            f"got {version!r}"
+        )
 
 
 def parse_artifact_json(raw: bytes | str) -> Any:

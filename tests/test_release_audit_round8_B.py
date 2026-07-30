@@ -14,6 +14,7 @@ from opentine import Run, StepKind
 from opentine.kernel import parse_oid
 from opentine.repository import Repo
 from opentine.repository._annotations import write_run_annotation
+from opentine.repository._run_blobs import blob_json
 from opentine.trace._record_event import put_trace_event
 from opentine.trace.schema import TraceEvent
 
@@ -95,26 +96,26 @@ def test_reput_of_the_same_run_repairs_a_poisoned_annotation(tmp_path):
 def test_a_step_wide_enough_to_save_is_still_narrow_enough_to_load(tmp_path):
     # json_blob stored raw bytes with no structural check while blob_json bounds
     # every read, so a wide tool output saved cleanly and then failed every later
-    # Run.load with "compatibility JSON blob is malformed".
+    # Run.load with "compatibility JSON blob is malformed". Round 8 pinned the
+    # fix at a fixed 200k-token write cap, which refused wide-but-legal runs the
+    # .tine path round-trips (healthy migrate-v3 archives). Writer and reader
+    # now share one size-scaled budget: symmetry, not tightness, is the
+    # invariant, so this run must save AND load.
     repo = Repo.init(tmp_path)
     wide = Run(id="wide")
     wide.add_step(StepKind.tool, {"query": "list"}, WIDE)
-    with pytest.raises(ValueError, match="structural limit"):
-        wide.save(tmp_path)
-
-    check = repo.fsck()
-    assert check.ok and check.refs == 0  # rejected save left no bricked head
-
-    ordinary = Run(id="ordinary")
-    ordinary.add_step(StepKind.tool, {"query": "list"}, {"rows": [{"i": i} for i in range(1000)]})
-    ordinary.save(tmp_path)
-    assert len(Run.load(tmp_path).steps) == 1
+    wide.save(tmp_path)
+    loaded = Run.load(tmp_path)
+    assert len(loaded.steps[0].outputs["rows"]) == 60_000
+    assert repo.fsck().ok
 
 
-def test_trace_event_blobs_enforce_the_loader_cap_at_write(tmp_path):
+def test_trace_event_blobs_share_the_loader_budget_at_write(tmp_path):
     # The trace recorder shares the blob writer, so an imported span with a wide
-    # payload bricked load_run the same way.
+    # payload bricked load_run the same way; under round 8's fixed cap it was
+    # refused outright. With the shared budget it must land readable.
     repo = Repo.init(tmp_path)
     event = TraceEvent(kind="tool", timestamp=0.0, trace_id="t", span_id="s", outputs=WIDE)
-    with pytest.raises(ValueError, match="structural limit"):
-        put_trace_event(repo, event, {})
+    event_id, _ = put_trace_event(repo, event, {})
+    payload = repo.get(event_id).payload()
+    assert len(blob_json(repo, payload["output_blob"])["rows"]) == 60_000
