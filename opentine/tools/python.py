@@ -29,7 +29,11 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
     try:
         with tempfile.TemporaryDirectory(prefix="opentine-python-") as tmp:
             script_path = str(Path(tmp) / "snippet.py")
-            Path(script_path).write_text(code, encoding="utf-8")
+            # newline="" keeps model-authored code byte-faithful: the default
+            # translates "\n" to os.linesep, corrupting CRLF (-> \r\r\n) inside
+            # string literals on Windows.
+            with Path(script_path).open("w", encoding="utf-8", newline="") as handle:
+                handle.write(code)
             result = run_bounded(
                 [sys.executable, script_path],
                 timeout=pol.timeout_seconds,
@@ -49,7 +53,9 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
 
 def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
     """Compatibility escape hatch for callers that deliberately opt out."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False, encoding="utf-8", newline=""
+    ) as f:
         f.write(code)
         script_path = f.name
     try:

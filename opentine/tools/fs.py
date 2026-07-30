@@ -85,7 +85,12 @@ def write(
     p.parent.mkdir(parents=True, exist_ok=True)
     if p.exists():
         _require_regular(p)
-    p.write_text(content, encoding="utf-8")
+    # newline="" to match read()/edit(): the default translates "\n" to
+    # os.linesep on write, so on Windows a read()->write() round trip turned
+    # every CRLF into \r\r\n (compounding per trip) and the bytes on disk
+    # could exceed the max_file_bytes budget checked above.
+    with p.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(content)
     return f"Wrote {len(content)} chars to {path}"
 
 
