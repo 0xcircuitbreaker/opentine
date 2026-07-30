@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 from opentine._artifact_io import read_artifact_bytes as read_artifact_bytes
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
+from opentine._unicode_text import assert_unicode_text
+from opentine._v3_guards import as_mapping, text_field
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
 from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
@@ -18,7 +20,7 @@ from opentine.repository._run_blobs import (
     run_origin,
     transcript_blob,
 )
-from opentine.repository._run_graph import compatibility_float
+from opentine.repository._run_graph import _meter, compatibility_float
 from opentine.repository._shallow_read import require_deep
 
 if TYPE_CHECKING:
@@ -41,15 +43,21 @@ def _put_run(
     legacy_blob: str | None = None,
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
+    # Raw blobs: the only two strings guarded_redaction never sees, and the meter
+    # below is load_run's own, because a value the reader refuses must not be
+    # writable -- put_run stored runs every later command then died opening.
+    prompts = {"system_prompt": run.system_prompt, "user_prompt": run.user_prompt}
+    assert_unicode_text(prompts, where="run prompt")
+    _meter(run.created_at or 0, "run created_at", nonnegative=False)
     base = run_origin(repo, run)
     provenance = getattr(run, "_v3_source_payload", None)
     if provenance is None:
         provenance = getattr(run, "_v3_payload", None)
-    reusable_events = (
-        set(provenance.get("events") or ())
-        if legacy_blob is None and isinstance(provenance, dict)
-        else set()
-    )
+    prior = provenance.get("events") if isinstance(provenance, dict) else None
+    if legacy_blob is not None or not isinstance(prior, list):
+        prior = ()  # absent, malformed, or a legacy migration: nothing is reusable
+    reusable_events = {item for item in prior if isinstance(item, str)}
+    causal_map = as_mapping(getattr(run, "_v3_causal_ids", {}))
     event_map: dict[str, str] = {}
     events: list[str] = []
     for step in run.steps:
@@ -64,8 +72,7 @@ def _put_run(
         input_blob = json_blob(repo, step.inputs)
         output_blob = json_blob(repo, step.outputs)
         raw_kind = step.v3_kind or step.kind.value
-        tool = step.tool_info
-        causal = getattr(run, "_v3_causal_ids", {}).get(step.id, [])
+        causal = causal_map.get(step.id) or ()
         payload = {
             "billing": _redact(step.billing),
             "causal_ids": [event_map[item] for item in causal],
@@ -79,7 +86,7 @@ def _put_run(
             "output_blob": output_blob,
             "parent_ids": [event_map[parent] for parent in step.parent_ids],
             "time_unix": step.timestamp,
-            "tool": _redact(tool),
+            "tool": _redact(step.tool_info),
             "usage": _redact(step.usage),
         }
         event_id = repo.put("event", json_safe(payload))
@@ -95,14 +102,10 @@ def _put_run(
         if target and target in event_map
     }
     manifests = dict(base.get("manifests") or {})
-    manifests.update(
-        {
-            "cache": json_blob(repo, run.cache),
-            "policy": json_blob(repo, run.policies),
-            "run": put_run_manifest(repo, run.manifest, event_map),
-            "transcript": put_transcript(repo, run.transcript, event_map),
-        }
-    )
+    manifests["cache"] = json_blob(repo, run.cache)
+    manifests["policy"] = json_blob(repo, run.policies)
+    manifests["run"] = put_run_manifest(repo, run.manifest, event_map)
+    manifests["transcript"] = put_transcript(repo, run.transcript, event_map)
     migration_map_blob = json_blob(repo, event_map) if legacy_blob else None
     payload: dict[str, Any] = {
         **base,
@@ -144,20 +147,15 @@ def put_run(
     legacy_blob: str | None = None,
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
-    preflight_run(
-        repo,
-        run,
-        ref=ref,
-        legacy_blob=legacy_blob,
-        legacy_verification=legacy_verification,
-    )
-    return _put_run(
-        repo,
-        run,
-        ref=ref,
-        legacy_blob=legacy_blob,
-        legacy_verification=legacy_verification,
-    )
+    # Spelled once: the preflight's job is to reject what the writer below would
+    # then attempt, which it can only do if it is handed the identical arguments.
+    conversion: dict[str, Any] = {
+        "ref": ref,
+        "legacy_blob": legacy_blob,
+        "legacy_verification": legacy_verification,
+    }
+    preflight_run(repo, run, **conversion)
+    return _put_run(repo, run, **conversion)
 
 
 def _blob(repo: Repo, cache: dict[str, dict[str, Any]], oid: Any) -> dict[str, Any]:
@@ -204,24 +202,27 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 inputs=_blob(repo, blobs, event.get("input_blob")),
                 outputs=_blob(repo, blobs, event.get("output_blob")),
                 model_info=event.get("model", ""),
-                tool_info=dict(event.get("tool") or {}),
-                error=dict(event.get("error") or {}),
+                tool_info=as_mapping(event.get("tool")),
+                error=as_mapping(event.get("error")),
                 timestamp=float(event.get("time_unix") or 0),
                 duration=compatibility_float(event.get("duration") or 0, "event duration"),
                 cost=compatibility_float(event.get("cost") or 0, "event cost"),
-                usage=dict(event.get("usage") or {}),
-                billing=dict(event.get("billing") or {}),
+                usage=as_mapping(event.get("usage")),
+                billing=as_mapping(event.get("billing")),
                 v3_kind=raw_kind,
             )
         )
-    manifest_id = (payload.get("manifests") or {}).get("run")
-    policy_id = (payload.get("manifests") or {}).get("policy")
-    cache_id = (payload.get("manifests") or {}).get("cache")
-    transcript_id = (payload.get("manifests") or {}).get("transcript")
+    manifests = as_mapping(payload.get("manifests"))
+    manifest_id, policy_id = manifests.get("run"), manifests.get("policy")
+    cache_id, transcript_id = manifests.get("cache"), manifests.get("transcript")
+    # Metered like the event timestamps beside it (a clock reading may be negative,
+    # unlike a cost). Bare float() raised ValueError/TypeError on a shape nothing
+    # validates on a run, and read "1e999999999" back as infinity.
+    _meter(payload.get("created_at") or 0, "run created_at", nonnegative=False)
     refs = dict(payload.get("legacy_refs") or {})
     refs.setdefault("main", (payload.get("tips") or [""])[-1] if payload.get("tips") else "")
     run = Run(
-        id=payload.get("source_run_id") or oid,
+        id=text_field(payload.get("source_run_id"), oid),
         status=RunStatus(payload.get("status", "running")),
         graph=graph,
         refs=refs,
@@ -231,11 +232,14 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
         cache=blob_json(repo, cache_id) if cache_id else {},
         created_at=float(payload.get("created_at") or 0),
     )
-    system_blob = payload.get("system_blob")
-    prompt_blob = payload.get("prompt_blob")
-    run.system_prompt = repo.get(system_blob).body.decode(errors="replace") if system_blob else ""
-    run.user_prompt = repo.get(prompt_blob).body.decode(errors="replace") if prompt_blob else ""
-    run.model_info = payload.get("model") or run.manifest.get("model", {}).get("name", "")
+    for attribute, field in (("system_prompt", "system_blob"), ("user_prompt", "prompt_blob")):
+        blob = payload.get(field)
+        setattr(run, attribute, repo.get(blob).body.decode(errors="replace") if blob else "")
+    # text_field, not `or`: the v3 side constrains neither field, while the .tine
+    # side requires both to be strings, so an unchecked int or dict here loaded a
+    # run that could never be exported again. Manifest and payload stay verbatim.
+    named = as_mapping(run.manifest.get("model")).get("name")
+    run.model_info = text_field(payload.get("model"), named)
     run.metadata, tags = load_run_annotation(repo, oid)
     for tag in tags:
         run.add_tag(tag)

@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from opentine._canon import _redact
+from opentine._v3_guards import guarded_redaction
 from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_oid, validate_links
-from opentine.redaction import redact_blob, redact_value
+from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import validate_config
 from opentine.repository._objects import iter_object_oids, store_envelope
@@ -112,7 +112,7 @@ class Repo:
         if redact and object_type == "blob":
             stored_payload = redact_blob(payload)
         else:
-            stored_payload = redact_value(_redact(payload)) if redact else payload
+            stored_payload = guarded_redaction(payload, where=f"v3 {object_type!r}", redact=redact)
         envelope = ObjectEnvelope.create(object_type, stored_payload, schema)
         validate_links(envelope, self._link_exists)
         validate_annotation_chain(self, envelope)

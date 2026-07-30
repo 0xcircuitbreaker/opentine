@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 
-from opentine._artifact_io import compact_token_budget
-from opentine._blob_guard import guarded_blob_body
+from opentine._blob_guard import guarded_blob_body, guarded_blob_parse
 from opentine._jsonsafe import json_safe
-from opentine.kernel import canonical_json, validate_json_shape
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -19,16 +16,9 @@ def json_blob(repo: Repo, value: Any) -> str:
 
 
 def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
-    body = repo.get(oid).body
-    try:
-        # The exact budget guarded_blob_body applied at write, on the same bytes.
-        validate_json_shape(body, max_tokens=compact_token_budget(len(body)))
-        parsed = json.loads(body)
-    except (ValueError, RecursionError, UnicodeDecodeError) as exc:
-        raise ValueError("compatibility JSON blob is malformed") from exc
-    if not isinstance(parsed, dict) or canonical_json(parsed) != body:
-        raise ValueError("compatibility JSON blob must be a canonical object")
-    return parsed
+    # Reader and writer are the paired halves of one contract; keeping both in
+    # _blob_guard is what stops a rule from drifting onto one side only.
+    return guarded_blob_parse(repo.get(oid).body)
 
 
 def transcript_blob(repo: Repo, oid: str | None) -> list[Any]:
@@ -54,7 +44,13 @@ def run_origin(repo: Repo, run: Any) -> dict[str, Any]:
         if not isinstance(source_payload, dict) or stored.payload() != source_payload:
             raise ValueError("compatibility fork source provenance does not match")
         base = dict(fork_base)
-        manifests = dict(base.get("manifests") or {})
+        stored_manifests = base.get("manifests") or {}
+        if not isinstance(stored_manifests, dict):
+            # dict(<truthy non-mapping>) raised the same bare TypeError the
+            # unguarded pricing loop below did; provenance shape is this
+            # function's own error to report.
+            raise ValueError("compatibility fork has malformed v3 provenance")
+        manifests = dict(stored_manifests)
         pricing_id = manifests.get("pricing")
         if pricing_id:
             from opentine._graph_analysis import _slice_pricing
@@ -81,6 +77,11 @@ def run_origin(repo: Repo, run: Any) -> dict[str, Any]:
 
 
 def put_transcript(repo: Repo, messages: list[Any], event_map: dict[str, str]) -> str:
+    if not isinstance(messages, list):
+        # Same refusal transcript_blob raises on the read side. Iterating the
+        # container blindly raised a bare TypeError on a scalar and silently
+        # shredded a str into one turn per character.
+        raise ValueError("compatibility transcript must be a list")
     mapped: list[Any] = []
     for item in messages:
         if not isinstance(item, dict):
@@ -116,7 +117,13 @@ def put_run_manifest(repo: Repo, manifest: dict[str, Any], event_map: dict[str, 
         cards = pricing.get("rate_cards")
         if isinstance(cards, dict):
             pricing["rate_cards"] = {mapped(key): value for key, value in cards.items()}
-        for invocation in pricing.get("invocations") or []:
+        # Only a list can carry step references to remap. Any other container is
+        # stored verbatim, exactly as a str/dict/None one already was: Run.load
+        # does not constrain manifest.pricing, so refusing here would make a run
+        # that loads unwritable. Iterating it blindly raised a bare TypeError out
+        # of put_run and `tine migrate-v3` on a truthy scalar.
+        invocations = pricing.get("invocations")
+        for invocation in invocations if isinstance(invocations, list) else ():
             if isinstance(invocation, dict) and invocation.get("step_id") is not None:
                 invocation["step_id"] = mapped(invocation["step_id"])
     return json_blob(repo, stored)

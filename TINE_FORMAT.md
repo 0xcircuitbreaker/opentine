@@ -15,6 +15,31 @@ on load (the file on disk is never rewritten); re-saving it upgrades it to v2. A
 missing, older-unsupported, or future `format_version` is rejected with an
 explicit error. `tine migrate` upgrades a file in place or to a new path.
 
+## Text validity (both formats)
+
+Every string in either format is UTF-8 JSON text: a sequence of Unicode **scalar
+values**. An unpaired UTF-16 surrogate — what `JSON.stringify` emits for a string
+sliced mid-emoji, e.g. `"done \ud83d"` — is not one, and `json.loads` accepting
+the escape does not make it representable. Such a string has no UTF-8 spelling,
+so the v3 canonical form cannot encode it and other languages' readers disagree
+about it (Go substitutes U+FFFD, changing every digest computed over the value;
+serde refuses). Both the `.tine` writer and the `.tine` reader therefore refuse
+it, naming the offending field path, so the two formats accept exactly the same
+runs and `tine migrate-v3` never rejects an artifact this build wrote. A properly
+paired escape is a normal scalar value and is unaffected — emoji are valid.
+
+The same rule covers the byte spelling: raw CESU-8/WTF-8 surrogate bytes
+(`ED A0 80`–`ED BF BF`, what a Java or `utf8mb3` producer emits) decode to the
+same code unit without ever appearing as an escape, and are refused identically.
+`ED 80 80`–`ED 9F BF` is ordinary U+D000–U+D7FF text and is unaffected.
+
+opentine never substitutes a replacement character or drops the code unit: that
+would rewrite recorded model output under a digest that claims fidelity. Repair
+the offending string at its source. An archive an older build already wrote with
+one is refused on read with that field path — the bytes stay on disk, untouched
+and repairable — and the run index marks only that file unreadable, so `tine ls`
+and `tine search` keep working for every other run in the directory.
+
 ## Top-Level Fields
 
 `format_version`, `run_id`, `created_at`, `status`, `graph`, `refs`, `transcript`,

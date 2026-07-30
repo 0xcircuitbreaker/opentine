@@ -11,6 +11,7 @@ from typing import Any
 
 import opentine._artifact_shapes as artifact_shapes
 from opentine._canon import SUPPORTED_VERSIONS
+from opentine._unicode_text import SURROGATE_TEXT, assert_unicode_text, surrogate_suspect
 from opentine.kernel import KernelError, validate_json_shape
 
 MAX_TINE_ARTIFACT_BYTES = 256 * 1024 * 1024
@@ -102,16 +103,18 @@ def assert_loadable(serialized: str) -> None:
     """Refuse to persist an artifact this build could never read back.
 
     Every reader bound must hold at write, not just some: size (256 MiB),
-    nesting depth and structural tokens, integer width, format version, and the
-    run/step record shapes ``load_run`` validates. Each rule enforced on read
-    but not on write produced a file that saved cleanly and then failed every
-    later load, verify and migrate — destroying the run it was written to
-    preserve. Failing at save leaves the run in memory, where the caller can
-    still do something about it. (Duplicate keys, NaN/Infinity, and raw NUL
+    nesting depth and structural tokens, integer width, well-formed Unicode text,
+    format version, and the run/step record shapes ``load_run`` validates. Each
+    rule enforced on read but not on write produced a file that saved cleanly and
+    then failed every later load, verify and migrate — destroying the run it was
+    written to preserve. Failing at save leaves the run in memory, where the caller
+    can still do something about it. (Duplicate keys, NaN/Infinity, and raw NUL
     bytes are unproducible by construction: ``json.dumps(sort_keys=True,
     allow_nan=False)`` raises on the first two and escapes control characters.)
     """
-    encoded = serialized.encode()
+    # surrogatepass only so the byte accounting below cannot itself raise a bare
+    # codec error: an unencodable str is refused after the parse, with its path.
+    encoded = serialized.encode(errors="surrogatepass")
     # atomic_write_text writes in text mode, so every newline becomes
     # os.linesep on disk; budget what the reader will stat, not what the
     # writer holds in memory.
@@ -139,6 +142,11 @@ def assert_loadable(serialized: str) -> None:
         raise ValueError(
             f"integer exceeds the {MAX_TINE_INTEGER_DIGITS}-digit .tine limit; store it as a string"
         ) from exc
+    # ``json.dumps`` escapes a lone surrogate back to ASCII, so the encode above
+    # never sees it: only a walk of the parsed values can catch what would later
+    # break canonicalization, the search index, and every non-Python reader.
+    if SURROGATE_TEXT.search(serialized):
+        assert_unicode_text(parsed, where="this run")
     # Run the reader's own record validation: a list-valued step output or a
     # non-string tag wrote cleanly and then failed every later load with the
     # exact messages raised below.
@@ -182,7 +190,7 @@ def parse_artifact_json(raw: bytes | str) -> Any:
         return number
 
     try:
-        return json.loads(
+        parsed = json.loads(
             raw,
             object_pairs_hook=pairs,
             parse_constant=constant,
@@ -191,6 +199,15 @@ def parse_artifact_json(raw: bytes | str) -> Any:
         )
     except RecursionError as exc:
         raise ValueError(".tine artifact nesting exceeds the parser limit") from exc
+    # An unpaired surrogate is a parser differential like the three above: this
+    # reader would hand back a str no other implementation reconstructs, and that
+    # neither the digest nor the v3 canonical form can be computed over. A file
+    # holding one is refused here so the failure is typed and contained — the index
+    # marks that one archive unreadable instead of the whole directory failing, and
+    # the bytes stay on disk, repairable, with the field path named.
+    if surrogate_suspect(raw):
+        assert_unicode_text(parsed, where=".tine artifact")
+    return parsed
 
 
 def read_artifact_json(path: str | Path) -> Any:

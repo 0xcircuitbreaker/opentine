@@ -8,6 +8,7 @@ import uuid
 from collections import defaultdict, deque
 from typing import Any
 
+from opentine._unicode_text import assert_unicode_text
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
 from opentine.trace._span_state import resumed_span_map, validated_span_map
@@ -45,6 +46,9 @@ class Recorder:
         pricing: dict[str, Any] | None = None,
         capture: bool = True,
     ) -> Recorder:
+        # The only text this class encodes itself; every manifest and event below
+        # is guarded inside Repo.put. Refused before the first blob is written.
+        assert_unicode_text({"prompt": prompt, "system": system}, where="recorder prompt")
         captured_code = code if code is not None else code_manifest() if capture else {}
         manifests = {
             "budget": json_blob(repo, budget or {}),
@@ -200,6 +204,8 @@ class Recorder:
         prompt: str | None = None,
         policy: dict[str, Any] | None = None,
     ) -> Recorder:
+        # A prompt override reaches repository/_fork_state as a third raw blob encode.
+        assert_unicode_text({"model": model, "prompt": prompt}, where="fork override")
         fork_id = self.repo.fork(
             self.run_id,
             from_event,

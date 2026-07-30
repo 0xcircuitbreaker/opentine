@@ -119,7 +119,12 @@ def test_blob_budget_is_one_formula_imported_by_both_sides():
     import opentine._blob_guard as blob_guard
     import opentine.repository._run_blobs as run_blobs
 
-    assert blob_guard.compact_token_budget is run_blobs.compact_token_budget
+    # Round 10 moved the reader half into _blob_guard beside the writer, because
+    # the budget was not the only rule that could drift: the reader parsed
+    # without the kernel's parse_int hook. Both halves now call one formula from
+    # one module, which is what this test was pinning -- _run_blobs no longer
+    # imports the budget at all, it delegates the whole read.
+    assert run_blobs.blob_json.__globals__["guarded_blob_parse"] is blob_guard.guarded_blob_parse
     assert blob_guard.compact_token_budget is _artifact_io.compact_token_budget
     # Shares the artifact reader's floor and absolute ceiling; compact canonical
     # JSON is never denser than one structural token per byte, so bytes are the
