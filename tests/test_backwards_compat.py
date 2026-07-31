@@ -41,7 +41,12 @@ FORK_ARTIFACT_ID = "5fd5ce3f46155ecf9e56cc79b94ec9b481a315e04ac4ba810f3106e0a3dd
 REPO_MAIN_OID = "run:sha256:523ad46b326fdf1857d74ab1ab482b835a5e39de0accfd6e6ff43497c7dd899d"
 REPO_FORK_OID = "run:sha256:09c0db642a45c642da4dc2577edd2b66f40b9c7126f7be64d9f5f5ec2786dbf9"
 
-ARTIFACTS = ("artifact.tine", "artifact_signed.tine", "fork.tine")
+ARTIFACTS = (
+    "artifact.tine",
+    "artifact_signed.tine",
+    "artifact_signed_fork_reason.tine",
+    "fork.tine",
+)
 
 
 # --- .tine artifacts ---------------------------------------------------------
@@ -84,6 +89,20 @@ def test_030_signed_artifact_still_verifies():
     assert Run.verify_signature(path, hmac_key=b"x" * 32).state == "mismatch"
 
 
+def test_030_signed_artifact_carrying_fork_reason_still_verifies():
+    """0.3.0 emits metadata.fork_reason (its MCP fork) but did not sign it. If a
+    later release folds fork_reason into the signed set, every genuine 0.3.0
+    signature over such a run flips to a false 'mismatch'. This fixture was
+    signed by the published 0.3.0 and must keep verifying."""
+    path = V0_3_0 / "artifact_signed_fork_reason.tine"
+    assert Run.load(path).metadata["fork_reason"] == "explored approach A"
+    res = Run.verify_signature(path, hmac_key=HMAC_KEY)
+    assert res.ok and res.state == "verified", (
+        f"a genuine 0.3.0 signature over a run carrying fork_reason must verify, got {res.state}"
+    )
+    assert Run.verify_integrity(path).ok
+
+
 def test_030_fork_loads_and_is_never_falsely_rejected():
     path = V0_3_0 / "fork.tine"
     run = Run.load(path)
@@ -101,23 +120,16 @@ def test_030_fork_loads_and_is_never_falsely_rejected():
 # --- v3 repository -----------------------------------------------------------
 
 
-# Empty scratch directories that Repo.init creates but git cannot store (git
-# does not track empty directories). Deep fsck's os.scandir(packs) raises
-# FileNotFoundError when packs/ is absent — identical code in 0.3.0 and 0.4.0 —
-# so these are reconstituted here to present a faithful on-disk 0.3.0 repo.
-# This is git-transport bookkeeping, NOT a relaxation of any read assertion.
-_INIT_EMPTY_DIRS = ("packs", "indexes", "refs/tags")
-
-
 @pytest.fixture
 def repo(tmp_path: Path) -> Repo:
     # Copy out of the source tree first: proves the repo is relocatable (a real
     # cross-version property) and keeps read-time reflog/ref writes off the
-    # committed fixture.
+    # committed fixture. Being committed to git, the fixture is MISSING the empty
+    # scratch dirs (packs/, indexes/, refs/tags/) git drops — Repo.open recreates
+    # them, which is exactly the version-control round trip the store now
+    # survives, so no manual reconstitution is needed.
     dest = tmp_path / "repo"
     shutil.copytree(V0_3_0 / "repo", dest)
-    for name in _INIT_EMPTY_DIRS:
-        (dest / ".tine" / name).mkdir(parents=True, exist_ok=True)
     return Repo.open(dest)
 
 
@@ -171,3 +183,30 @@ def test_a_repository_that_lost_its_empty_dirs_to_version_control_still_opens(tm
     assert reopened.get(oid).body == b"survives version control"
     for name in stripped:
         assert (tine / name).is_dir()
+
+
+def test_a_read_only_repository_missing_empty_dirs_still_opens(tmp_path):
+    """Recreating the dropped layout on open must be best-effort: a repository on
+    read-only media (a container layer, a read-only mount, an archived checkout)
+    cannot be healed, but its objects and refs are still readable, so opening
+    must degrade rather than crash."""
+    import os
+    import stat
+
+    from opentine.repository import Repo
+
+    repo = Repo.init(tmp_path / "src")
+    oid = repo.put("blob", b"readable on read-only media", redact=False)
+    tine = tmp_path / "src" / ".tine"
+    for directory in [p for p in tine.rglob("*") if p.is_dir() and not any(p.iterdir())]:
+        directory.rmdir()
+    for path in sorted(tine.rglob("*"), reverse=True):
+        if path.is_file():
+            os.chmod(path, stat.S_IRUSR)
+    os.chmod(tine, stat.S_IRUSR | stat.S_IXUSR)
+    try:
+        reopened = Repo.open(tmp_path / "src")
+        assert reopened.get(oid).body == b"readable on read-only media"
+    finally:
+        for path in [tine, *tine.rglob("*")]:
+            os.chmod(path, stat.S_IRWXU)

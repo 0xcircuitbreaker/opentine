@@ -42,8 +42,11 @@ _SIGNED_METADATA_KEYS = (
     "context",
     "next_harness",
     "migration",
+    # "fork" (the 0.4.0 fork-identity record) is safe to sign: 0.3.0 never wrote
+    # metadata["fork"], so it changes no existing signature. "fork_reason" is NOT
+    # added here — 0.3.0 emits it (the MCP fork reason) but did not sign it, so
+    # signing it now would flip genuine 0.3.0 signatures to a false mismatch.
     "fork",
-    "fork_reason",
 )
 
 
