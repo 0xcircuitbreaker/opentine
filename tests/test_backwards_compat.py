@@ -207,6 +207,11 @@ def test_a_read_only_repository_missing_empty_dirs_still_opens(tmp_path):
     try:
         reopened = Repo.open(tmp_path / "src")
         assert reopened.get(oid).body == b"readable on read-only media"
+        # Verification must also degrade cleanly: packs/ ships empty, so version
+        # control drops it and read-only media cannot heal it back. An absent
+        # packs/ holds nothing to verify — deep fsck must not flunk the repo.
+        report = reopened.fsck(deep=True)
+        assert report.ok, f"healthy read-only repository must verify clean, got {report.errors}"
     finally:
         for path in [tine, *tine.rglob("*")]:
             os.chmod(path, stat.S_IRWXU)
