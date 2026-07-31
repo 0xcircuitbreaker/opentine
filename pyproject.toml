@@ -90,6 +90,12 @@ include = [
     "/tests",
     "/uv.lock",
 ]
+# The golden compat fixtures are *.tine files, which the root .gitignore
+# excludes; git tracks them via a negating .gitignore in their directory, but
+# hatchling still applies the root ignore and would drop them from the sdist.
+# Force-include them so the archive matches Git's tracked set (the inventory
+# gate requires exact equality).
+artifacts = ["tests/fixtures/compat/**/*.tine"]
 
 [tool.ruff]
 target-version = "py311"
