@@ -1,0 +1,2 @@
+{"encoding":"json","schema":1,"type":"annotation"}
+{"compatibility":"run-metadata-v1","previous_id":null,"target_id":"run:sha256:523ad46b326fdf1857d74ab1ab482b835a5e39de0accfd6e6ff43497c7dd899d","value":{"metadata":{"note":"golden 0.3.0 cross-version fixture","project":"opentine"},"tags":["compat","golden","release"]}}

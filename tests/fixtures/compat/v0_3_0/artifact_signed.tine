@@ -1,0 +1,137 @@
+{
+  "cache": {},
+  "created_at": 1785470816.3805022,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0",
+      "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c",
+      "53dc750d308e81150b1a44f66fab5c7b7c616509d221aeecb5309a616d55603f",
+      "8159d6b6299ae0e64850bae529ac15150f4ea60f82a3a749ed576433915d9a7f"
+    ],
+    "steps": {
+      "53dc750d308e81150b1a44f66fab5c7b7c616509d221aeecb5309a616d55603f": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "53dc750d308e81150b1a44f66fab5c7b7c616509d221aeecb5309a616d55603f",
+        "inputs": {
+          "text": "reconcile the notes"
+        },
+        "kind": "think",
+        "model_info": "",
+        "outputs": {},
+        "parent_ids": [
+          "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c"
+        ],
+        "timestamp": 1785470816.3810654,
+        "tool_info": {}
+      },
+      "8159d6b6299ae0e64850bae529ac15150f4ea60f82a3a749ed576433915d9a7f": {
+        "cost": 0.004,
+        "duration": 0.0,
+        "error": {},
+        "id": "8159d6b6299ae0e64850bae529ac15150f4ea60f82a3a749ed576433915d9a7f",
+        "inputs": {
+          "text": "final summary"
+        },
+        "kind": "done",
+        "model_info": "",
+        "outputs": {
+          "text": "Summary complete."
+        },
+        "parent_ids": [
+          "53dc750d308e81150b1a44f66fab5c7b7c616509d221aeecb5309a616d55603f"
+        ],
+        "timestamp": 1785470816.3811905,
+        "tool_info": {},
+        "usage": {
+          "input": 30,
+          "output": 15
+        }
+      },
+      "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c",
+        "inputs": {
+          "query": "changelog lookup"
+        },
+        "kind": "tool",
+        "model_info": "",
+        "outputs": {
+          "result": "release notes"
+        },
+        "parent_ids": [
+          "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0"
+        ],
+        "timestamp": 1785470816.3809116,
+        "tool_info": {
+          "arguments": {
+            "q": "changelog"
+          },
+          "name": "search"
+        }
+      },
+      "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0": {
+        "cost": 0.012,
+        "duration": 0.0,
+        "error": {},
+        "id": "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0",
+        "inputs": {
+          "text": "draft the summary"
+        },
+        "kind": "model",
+        "model_info": "anthropic/claude-sonnet-5",
+        "outputs": {
+          "text": "v0.3.0 shipped the v3 repository"
+        },
+        "parent_ids": [],
+        "timestamp": 1785470816.3806956,
+        "tool_info": {},
+        "usage": {
+          "input": 120,
+          "output": 60
+        }
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "114f71e699e717b237bf33bdd4113d9f8b78aebb4ad3141edfb59bbc2c327c61",
+      "signature": {
+        "alg": "hmac-sha256",
+        "key_id": "compat-golden",
+        "scheme": "tine-sig/1",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "value": "0262951c4f0de7eb7ed8e6b0d6e7324daa808c2b451f701f760fde5223f4e644"
+      }
+    },
+    "model_info": "",
+    "note": "golden 0.3.0 cross-version fixture",
+    "project": "opentine",
+    "system_prompt": "You are a careful release assistant.",
+    "tags": [
+      "compat",
+      "golden",
+      "release"
+    ],
+    "user_prompt": "Summarize what shipped in this release."
+  },
+  "policies": {},
+  "refs": {
+    "main": "8159d6b6299ae0e64850bae529ac15150f4ea60f82a3a749ed576433915d9a7f"
+  },
+  "run_id": "compat-artifact-signed-v0_3_0",
+  "status": "completed",
+  "transcript": [
+    {
+      "content": "Summarize what shipped in this release.",
+      "role": "user"
+    }
+  ]
+}

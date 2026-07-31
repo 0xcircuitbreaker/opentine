@@ -1,0 +1,9 @@
+# Committed golden cross-version fixtures.
+#
+# The repository-root .gitignore excludes `*.tine`, which matches both the
+# artifact files (artifact.tine, fork.tine, ...) and the v3 repository's
+# internal `.tine` directory. These fixtures are the backwards-compatibility
+# release gate and MUST be tracked, so re-include them here (a deeper .gitignore
+# overrides the root pattern).
+!*.tine
+!.tine/
