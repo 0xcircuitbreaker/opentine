@@ -31,6 +31,7 @@ from opentine.trace._import_helpers import (
 from opentine.trace._import_helpers import (
     timestamp as _timestamp,
 )
+from opentine.trace._otel_logs import span_content as _span_content
 from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
 
@@ -171,6 +172,7 @@ def otel_genai_events(
         nanos = _int(_first(span, "startTimeUnixNano", "start_time_unix_nano", default=0))
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
+        inputs, outputs = _span_content(span, attributes)
         events.append(
             TraceEvent(
                 kind=kind,
@@ -182,8 +184,8 @@ def otel_genai_events(
                 actor=operation,
                 model=str(model or ""),
                 duration=max(0, _timestamp(end_nanos - nanos)) / 1_000_000_000,
-                inputs=_safe(_mapping(span.get("inputs") or attributes.get(semconv.PROMPT))),
-                outputs=_safe(_mapping(span.get("outputs") or attributes.get(semconv.COMPLETION))),
+                inputs=_safe(inputs),
+                outputs=_safe(outputs),
                 usage=usage,
                 attributes=_safe(attributes),
             )
