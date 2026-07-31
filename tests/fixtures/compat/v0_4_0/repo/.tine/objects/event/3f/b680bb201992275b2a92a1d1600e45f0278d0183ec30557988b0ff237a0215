@@ -1,0 +1,2 @@
+{"encoding":"json","schema":1,"type":"event"}
+{"billing":{},"causal_ids":[],"cost":0,"duration":0,"error":{},"input_blob":"blob:sha256:b04ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d","kind":"think","legacy_step_id":"e4c2c685b69597f4a2bea83f304899f75baa1c3f4f858886646864dec647b5af","model":"","output_blob":"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07","parent_ids":["event:sha256:3e9d84ef5c1bdc078d93b18d6067e955e38d925afd77f570de54ea11042865f0"],"time_unix":1767225602,"tool":{},"usage":{}}
