@@ -108,3 +108,39 @@ def test_wheel_package_content_must_match_validated_sdist(tmp_path: Path):
         match=r"wheel content differs from sdist: opentine/__init__\.py",
     ):
         check_wheel(path, tracked, "opentine", "0.3.0", sdist_hashes=source)
+
+
+def test_every_tracked_compat_fixture_is_force_included_in_the_sdist():
+    """The compat fixtures live under a directory with its own .gitignore, which
+    makes hatchling drop them from the sdist unless they are named in the sdist
+    ``artifacts`` key — even though git tracks them. That gap would ship a
+    release whose backwards-compat gate cannot run. Hold every tracked file
+    under tests/fixtures/compat/ to the artifacts globs, so a future
+    ``vX_Y_Z/`` fixture set added without the include is caught here rather
+    than by a red CI leg."""
+    import subprocess
+    import tomllib
+
+    import pathspec
+
+    root = Path(__file__).resolve().parents[1]
+    listed = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z", "tests/fixtures/compat"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    # Only *.tine files are dropped: the repository fixture's non-.tine internals
+    # (config.json, objects/*, refs/*) ship via the plain /tests include.
+    tracked = [
+        name for name in listed.decode("utf-8").split("\0") if name and name.endswith(".tine")
+    ]
+    assert tracked, "expected committed *.tine compat fixtures under tests/fixtures/compat/"
+
+    config = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    artifacts = config["tool"]["hatch"]["build"]["targets"]["sdist"].get("artifacts", [])
+    spec = pathspec.PathSpec.from_lines("gitwildmatch", artifacts)
+    missing = [name for name in tracked if not spec.match_file(name)]
+    assert not missing, (
+        f"tracked .tine fixtures not force-included in [tool.hatch.build.targets.sdist] "
+        f"artifacts, so they will be dropped from the sdist: {missing}"
+    )
