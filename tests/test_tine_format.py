@@ -54,3 +54,28 @@ def test_golden_v1_load_save_fork_and_diff(tmp_path):
     assert change.step_a.inputs.get("text") == "done"
     assert change.step_b.inputs.get("text") == "forked result"
     assert any(d.name == "inputs" and "text" in d.changed_keys for d in change.fields)
+
+
+def test_v2_and_v3_canonicalizations_order_keys_differently_and_must_stay_that_way():
+    """v2 artifacts (``_canon``) and v3 objects (``kernel``) canonicalize
+    independently, with DIFFERENT key orderings: v2 sorts by Unicode code point
+    (``json.dumps(sort_keys=True)``, ASCII-escaped); v3 sorts by UTF-16BE bytes
+    with ``ensure_ascii`` off. The two disagree for non-BMP keys, whose surrogate
+    code units (0xD800..) sort below BMP characters in U+E000..U+FFFF.
+
+    This divergence is load-bearing: every stored v2 integrity digest/signature
+    and every v3 object id was written under its own ordering, so "unifying" the
+    two canonicalizations would silently invalidate all of them and break the
+    backwards-compat gate. Pin both against a discriminating input so any such
+    change fails loudly here rather than as unreadable historical data."""
+    from opentine._canon import _canonical_bytes
+    from opentine.kernel import canonical_json
+
+    # U+E000 (BMP) vs U+10000 (non-BMP; UTF-16 surrogate pair D800 DC00).
+    keys = {"": 1, "\U00010000": 2}
+    # v2: code-point order puts U+E000 first; non-ASCII is \\u-escaped.
+    assert _canonical_bytes(keys) == b'{"\\ue000":1,"\\ud800\\udc00":2}'
+    # v3: UTF-16BE order puts U+10000 first; emitted as raw UTF-8.
+    assert canonical_json(keys) == '{"\U00010000":2,"":1}'.encode("utf-8")
+    # They genuinely disagree — the guard exists to keep it that way.
+    assert _canonical_bytes(keys) != canonical_json(keys)
