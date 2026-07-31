@@ -110,6 +110,16 @@ def test_wheel_package_content_must_match_validated_sdist(tmp_path: Path):
         check_wheel(path, tracked, "opentine", "0.3.0", sdist_hashes=source)
 
 
+def test_py_typed_marker_ships_so_the_typed_api_stays_visible():
+    """PEP 561: without opentine/py.typed, type checkers treat the whole package
+    as untyped and drop every annotation the public API carries. The inventory
+    gate proves a *tracked* marker reaches the wheel, but a deletion drops it
+    from both the tree and the wheel unnoticed (the two stay equal). Assert the
+    marker exists so the typed surface cannot silently regress."""
+    marker = Path(__file__).resolve().parents[1] / "opentine" / "py.typed"
+    assert marker.is_file(), "opentine/py.typed is missing; the package would ship as untyped"
+
+
 def test_every_tracked_compat_fixture_is_force_included_in_the_sdist():
     """The compat fixtures live under a directory with its own .gitignore, which
     makes hatchling drop them from the sdist unless they are named in the sdist
