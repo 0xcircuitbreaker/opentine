@@ -22,6 +22,8 @@ from opentine.core import (
     Usage,
     short_id,
     step_id,
+    to_otel_genai,
+    to_otel_genai_document,
 )
 from opentine.migrations import MigrationError, migrate_dict
 from opentine.tools import tool_schema
@@ -50,5 +52,7 @@ __all__ = [
     "migrate_dict",
     "short_id",
     "step_id",
+    "to_otel_genai",
+    "to_otel_genai_document",
     "tool_schema",
 ]

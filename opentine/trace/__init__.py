@@ -1,5 +1,6 @@
-"""Normalized trace schema and importers."""
+"""Normalized trace schema, importers, and exporters."""
 
+from opentine.trace.exporters import to_otel_genai, to_otel_genai_document
 from opentine.trace.importers import (
     framework_events,
     jsonl_events,
@@ -17,4 +18,6 @@ __all__ = [
     "jsonl_events",
     "native_events",
     "otel_genai_events",
+    "to_otel_genai",
+    "to_otel_genai_document",
 ]

@@ -34,7 +34,7 @@ from opentine.repo import Repo
 from opentine.runtime import Agent, Model
 from opentine.signing import SignatureError, SignatureResult, sign_artifact, verify_artifact
 from opentine.tools import tool_schema
-from opentine.trace import Recorder, TraceEvent
+from opentine.trace import Recorder, TraceEvent, to_otel_genai, to_otel_genai_document
 
 __all__ = [
     "Agent",
@@ -78,6 +78,8 @@ __all__ = [
     "short_id",
     "sign_artifact",
     "step_id",
+    "to_otel_genai",
+    "to_otel_genai_document",
     "tool_schema",
     "verify_artifact",
 ]

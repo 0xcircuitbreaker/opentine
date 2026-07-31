@@ -80,6 +80,43 @@ def _any_value_dict(value: dict[str, Any], depth: int, active: set[int]) -> Any:
     return {_key(key): _any_value(item, depth + 1, active) for key, item in value.items()}
 
 
+def encode_any_value(value: Any) -> dict[str, Any]:
+    """Wrap a JSON-safe Python value as an OTLP ``AnyValue``.
+
+    The inverse of :func:`any_value`, under the same depth bound: integers wider
+    than the JSON-safe range become strings exactly as the decoder reads them
+    back, so an encode/decode round trip is a fixed point.
+    """
+    return _encode(value, 0)
+
+
+def _encode(value: Any, depth: int) -> dict[str, Any]:
+    if depth > _MAX_DEPTH:
+        raise ValueError("OTLP AnyValue exceeds maximum nesting depth")
+    if value is None:
+        return {}
+    if isinstance(value, bool):
+        return {"boolValue": value}
+    if isinstance(value, int):
+        return {"stringValue" if abs(value) > _MAX_SAFE_INTEGER else "intValue": str(value)}
+    if isinstance(value, float):
+        return {"doubleValue": value}
+    # Written as statements, not comprehensions: a comprehension costs a second
+    # frame per nesting level before 3.12, which would make the depth this walk
+    # survives depend on the interpreter running it.
+    if isinstance(value, (list, tuple)):
+        items = []
+        for item in value:
+            items.append(_encode(item, depth + 1))
+        return {"arrayValue": {"values": items}}
+    if isinstance(value, dict):
+        pairs = []
+        for key, item in value.items():
+            pairs.append({"key": _key(key), "value": _encode(item, depth + 1)})
+        return {"kvlistValue": {"values": pairs}}
+    return {"stringValue": str(value)}
+
+
 def _scalar(value: Any) -> Any:
     if isinstance(value, (dict, list, tuple)):
         raise ValueError("OTLP AnyValue scalar contains a container")
