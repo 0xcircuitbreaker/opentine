@@ -1,0 +1,85 @@
+{
+  "cache": {},
+  "created_at": 1785470816.5218582,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0",
+      "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c"
+    ],
+    "steps": {
+      "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c",
+        "inputs": {
+          "query": "changelog lookup"
+        },
+        "kind": "tool",
+        "model_info": "",
+        "outputs": {
+          "result": "release notes"
+        },
+        "parent_ids": [
+          "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0"
+        ],
+        "timestamp": 1785470816.520981,
+        "tool_info": {
+          "arguments": {
+            "q": "changelog"
+          },
+          "name": "search"
+        }
+      },
+      "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0": {
+        "cost": 0.012,
+        "duration": 0.0,
+        "error": {},
+        "id": "afd0b7494d0053555d0ecb2e09a1d2369d12e43ded4416578c99d52c39cce9d0",
+        "inputs": {
+          "text": "draft the summary"
+        },
+        "kind": "model",
+        "model_info": "anthropic/claude-sonnet-5",
+        "outputs": {
+          "text": "v0.3.0 shipped the v3 repository"
+        },
+        "parent_ids": [],
+        "timestamp": 1785470816.5207593,
+        "tool_info": {},
+        "usage": {
+          "input": 120,
+          "output": 60
+        }
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "fork_point": "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c",
+    "forked_from": "compat-fork-source-v0_3_0",
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "259022454278ae5f2d5a2910dc3d1647970300bff757cdc0a0052e0d9c780ef3"
+    },
+    "model_info": "anthropic/claude-sonnet-5",
+    "note": "golden 0.3.0 cross-version fixture",
+    "project": "opentine",
+    "system_prompt": "You are a careful release assistant.",
+    "user_prompt": "Summarize what shipped in this release."
+  },
+  "policies": {},
+  "refs": {
+    "fork_point": "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c",
+    "main": "8dea0446158a6dfdea57b9867928cc73ba4b53203d5a4066c9227644f07e3e3c"
+  },
+  "run_id": "5fd5ce3f46155ecf9e56cc79b94ec9b481a315e04ac4ba810f3106e0a3dd5c78",
+  "status": "running",
+  "transcript": [
+    {
+      "content": "Summarize what shipped in this release.",
+      "role": "user"
+    }
+  ]
+}
