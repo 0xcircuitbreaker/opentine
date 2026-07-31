@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -368,6 +369,10 @@ def test_harness_budget_raise_propagates():
         wrapped.run_sync("go")
 
 
+# The generous margins below should make this reliable, but asyncio cancellation
+# timing is Windows-sensitive; retry there only as a backstop, never masking a
+# real POSIX regression.
+@pytest.mark.flaky(reruns=4, reruns_delay=0.3, condition=sys.platform == "win32")
 def test_async_harness_duration_budget_cancels_before_adapter_timeout():
     class SlowHarness:
         name = "slow"

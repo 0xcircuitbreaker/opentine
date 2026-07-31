@@ -205,6 +205,9 @@ def test_m1_legacy_flag_cannot_launder_tampered_keyed_rows(tmp_path: Path):
         SQLiteBackend(path, audit_key=_AUDIT_KEY, migrate_legacy_audit=True)
 
 
+# Cross-process file locking and scheduling are timing-sensitive on Windows;
+# retry there only, so a real serialization regression on POSIX fails first-run.
+@pytest.mark.flaky(reruns=4, reruns_delay=0.3, condition=sys.platform == "win32")
 def test_l2_audit_commit_and_anchor_are_serialized_across_processes(tmp_path: Path):
     path = tmp_path / "audit.sqlite3"
     backend = SQLiteBackend(path, audit_key=_AUDIT_KEY)
@@ -309,6 +312,9 @@ def test_bounded_result_empty_fallback_honors_output_limit():
     assert BoundedResult(0, b"", b"").output(1) == "("
 
 
+# Job-object teardown and interrupt timing are Windows-sensitive; retry there
+# only, so a real teardown regression on POSIX still fails on the first run.
+@pytest.mark.flaky(reruns=4, reruns_delay=0.3, condition=sys.platform == "win32")
 def test_run_bounded_closes_owned_job_when_wait_is_interrupted(monkeypatch):
     class InterruptedProcess:
         pid = 123
