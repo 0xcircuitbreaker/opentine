@@ -7,6 +7,7 @@ import re
 import sqlite3
 import tempfile
 import threading
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
 from opentine.remote._association_backend import SQLiteAssociationMixin
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
+from opentine.remote._db import open_db
 from opentine.remote._object_file import object_file_size, read_object_file
 from opentine.remote._object_list import list_objects
 from opentine.remote._schema import initialize
@@ -148,19 +150,10 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
         allow_legacy = migrate_legacy_audit and not self._anchor_path.exists()
         self._initialize(allow_legacy, reanchor_audit_head)
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.path, timeout=30)
-        connection.execute("PRAGMA journal_mode=WAL")
-        # sqlite3 creates the database (and its WAL/shm siblings) with the process
-        # umask, typically world-readable — while every other file this server
-        # writes is 0600. The metadata database holds tenant run inventory and the
-        # audit chain, so it gets the same treatment as its siblings.
-        for path in (self.path, f"{self.path}-wal", f"{self.path}-shm"):
-            try:
-                os.chmod(path, 0o600)
-            except OSError:
-                pass
-        return connection
+    def _connect(self) -> AbstractContextManager[sqlite3.Connection]:
+        # open_db closes the handle on exit; sqlite3's own context manager only
+        # commits, and a leaked WAL handle locks the file on Windows.
+        return open_db(self.path)
 
     def _initialize(self, allow_legacy: bool, reanchor: str | None) -> None:
         with self._audit_lock, audit_file_lock(self._audit_lock_path):

@@ -15,6 +15,22 @@ from pathlib import Path
 from opentine._canon import _fsync_dir, atomic_write_text
 from opentine.kernel import canonical_json
 
+
+def _tighten_fd(fd: int) -> None:
+    """Restrict a descriptor to 0600 where the platform supports it.
+
+    Python 3.13 added os.fchmod on Windows, but it raises PermissionError
+    (WinError 5) there, so a hasattr guard is no longer enough. POSIX file
+    modes do not apply on Windows anyway, so a failure is a benign no-op.
+    """
+    if not hasattr(os, "fchmod"):
+        return
+    try:
+        os.fchmod(fd, 0o600)
+    except OSError:
+        pass
+
+
 #: All-zero hash that seeds an empty chain.
 GENESIS = "0" * 64
 
@@ -35,8 +51,7 @@ def audit_file_lock(path: Path) -> Iterator[None]:
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise RuntimeError("audit checkpoint lock is not a regular file")
-        if hasattr(os, "fchmod"):
-            os.fchmod(fd, 0o600)
+        _tighten_fd(fd)
         if windows:
             import msvcrt
 
@@ -82,7 +97,11 @@ def _anchor_mac(head: str, key: bytes) -> str:
 
 
 def _read_small(path: Path, maximum: int, *, private: bool = False) -> bytes:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    # O_BINARY (Windows-only, 0 elsewhere): this fd is read with raw os.read and
+    # carries the 32 random bytes of the audit HMAC key; without it Windows opens
+    # text-mode and corrupts the key (CRLF collapse, 0x1A EOF truncation), so a
+    # reopened store would verify its chain with the wrong key or refuse to open.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
         fd = os.open(path, flags)
     except FileNotFoundError:
@@ -93,8 +112,8 @@ def _read_small(path: Path, maximum: int, *, private: bool = False) -> bytes:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
             raise RuntimeError("stored audit sidecar is not a regular file")
-        if private and stat.S_IMODE(info.st_mode) != 0o600 and hasattr(os, "fchmod"):
-            os.fchmod(fd, 0o600)
+        if private and stat.S_IMODE(info.st_mode) != 0o600:
+            _tighten_fd(fd)
         chunks = []
         remaining = maximum + 1
         while remaining:

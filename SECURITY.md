@@ -24,12 +24,7 @@ through one of these channels:
    [private vulnerability report](https://github.com/0xcircuitbreaker/opentine/security/advisories/new).
    If that page returns an error or shows no reporting form, private reporting
    is not enabled on the repository; use the fallback below.
-2. Email `<SECURITY-CONTACT-ADDRESS>`.
-
-<!-- MAINTAINER ACTION REQUIRED before tagging a public release: replace
-     <SECURITY-CONTACT-ADDRESS> above with a monitored address, and enable
-     Settings -> Security -> Private vulnerability reporting so channel 1
-     works for reporters who are not repository admins. -->
+2. Email `0xcircuitbreaker@protonmail.com`.
 
 Include a minimal reproduction, the affected OpenTine version or commit,
 operating system, Python version, and whether an external harness or model

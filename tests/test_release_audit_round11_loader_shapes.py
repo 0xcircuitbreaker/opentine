@@ -467,6 +467,18 @@ def test_an_unreadable_entry_survives_the_index_round_trip(poison, tmp_path):
     assert reopened.sync().entries["bad.tine"].unreadable is True
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason=(
+        "POSIX-only by construction: this asserts a run id whose backslash is a legal "
+        "filename character, which save() writes as one <run-id>.tine file and the index "
+        "must not reject. On Windows a backslash is a path separator, so `team\\alpha` is "
+        "not a single legal filename at all -- save() cannot write it as one file, so the "
+        "premise (a backslash run id opentine wrote itself as one file) is unreachable "
+        "and has no Windows equivalent. The traversal rule under test (from_dict rejecting "
+        "'\\\\') and Path('team\\alpha.tine').name both behave differently there too."
+    ),
+)
 def test_a_backslash_in_a_run_id_does_not_cost_the_run_its_index_entry(tmp_path):
     """The reverse failure: a guard that refuses what the previous build accepted.
 

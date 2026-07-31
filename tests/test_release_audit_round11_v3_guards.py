@@ -307,7 +307,9 @@ def test_an_event_field_the_kernel_never_constrained_still_loads(tmp_path, field
 
 @pytest.mark.parametrize("bad", ["abc", [1], {"a": 1}, "1e999999999"])
 def test_a_nonnumeric_created_at_is_refused_typed_not_by_float(tmp_path, bad):
-    repo = _repo(tmp_path, f"c{bad!r}")
+    # Fixed, safe repo name (tmp_path is unique per param): repr({"a": 1}) holds a colon,
+    # illegal in a Windows path. `bad` is the subject and reaches the code via put("run").
+    repo = _repo(tmp_path)
     run_id = repo.put(
         "run",
         {"created_at": bad, "events": [], "manifests": {}, "roots": [], "tips": []},
@@ -342,13 +344,16 @@ def test_as_mapping_copies_a_mapping_and_replaces_anything_else():
 
 def test_the_v3_object_store_and_the_tine_writer_refuse_the_same_strings(tmp_path):
     # One rule, both formats: whatever .tine refuses at save, v3 refuses at put.
-    for text in (LONE, LONE_LOW):
+    # The repo dir is named by the loop index, not repr(text): repr of a lone surrogate
+    # is '\ud83d', whose backslash is a path separator on Windows. The surrogate is the
+    # subject and reaches the code through the step inputs.
+    for index, text in enumerate((LONE, LONE_LOW)):
         run = Run(id="run-7", status=RunStatus.completed)
         run.add_step(StepKind.model, {"prompt": text}, {})
         with pytest.raises(ValueError, match="unpaired UTF-16 surrogate"):
             run.save(str(Path(tempfile.mkdtemp()) / "a.tine"))
         with pytest.raises(ValueError, match="unpaired UTF-16 surrogate"):
-            _repo(tmp_path, f"both{text!r}").put_run(run)
+            _repo(tmp_path, f"both{index}").put_run(run)
 
 
 # ------------------------------------------------- write-side/read-side symmetry
@@ -501,7 +506,10 @@ def test_a_causal_item_of_the_wrong_shape_does_break_the_write_today(tmp_path, i
     # so the raise lands before the real repository is touched.
     run = _two_step_run()
     run._v3_causal_ids = {run.steps[0].id: item}
-    repo = _repo(tmp_path, f"item{item!r}"[:12])
+    # Fixed, safe repo name (tmp_path is unique per param): repr({"a": 1}) holds a colon,
+    # illegal in a Windows path. `item` is the subject and reaches the code via the
+    # causal map above.
+    repo = _repo(tmp_path)
     with pytest.raises(raised):
         repo.put_run(run, ref="heads/main")
     assert repo.iter_oids() == [] and repo.read_ref("heads/main") is None

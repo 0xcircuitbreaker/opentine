@@ -208,6 +208,11 @@ def test_size_gate_counts_platform_newline_growth(tmp_path, monkeypatch):
     assert "\n" in text
 
     monkeypatch.setattr(_artifact_io, "MAX_TINE_ARTIFACT_BYTES", len(text.encode()))
+    # Pin the no-growth case explicitly: on Windows the real os.linesep is
+    # "\r\n", so the gate would already budget CRLF growth here and refuse the
+    # file that fits exactly. text was read back with universal newlines, so its
+    # bytes carry "\n"; linesep "\n" is the platform-independent at-the-limit case.
+    monkeypatch.setattr(_artifact_io.os, "linesep", "\n")
     assert_loadable(text)  # exactly at the limit where linesep == "\n"
     monkeypatch.setattr(_artifact_io.os, "linesep", "\r\n")
     with pytest.raises(ValueError, match="size limit"):

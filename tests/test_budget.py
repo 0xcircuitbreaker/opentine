@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -368,6 +369,10 @@ def test_harness_budget_raise_propagates():
         wrapped.run_sync("go")
 
 
+# The generous margins below should make this reliable, but asyncio cancellation
+# timing is Windows-sensitive; retry there only as a backstop, never masking a
+# real POSIX regression.
+@pytest.mark.flaky(reruns=4, reruns_delay=0.3, condition=sys.platform == "win32")
 def test_async_harness_duration_budget_cancels_before_adapter_timeout():
     class SlowHarness:
         name = "slow"
@@ -375,14 +380,18 @@ def test_async_harness_duration_budget_cancels_before_adapter_timeout():
         supports_resume = False
 
         async def execute(self, task, context=None, step_callback=None):
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(1.0)
             return {"late": True}
 
     run = Run(id="duration-harness")
-    run.set_budget(max_duration=0.02)
+    # 0.1s, not a few milliseconds: the budget must still fire long before the
+    # 1.0s harness, but a budget near the ~15ms Windows timer resolution raced
+    # the cancellation and flaked. The margin here is what is portable, not the
+    # absolute value — real duration budgets are never single-digit milliseconds.
+    run.set_budget(max_duration=0.1)
     started = __import__("time").monotonic()
     result = OpentineHarness(SlowHarness(), run=run).run_sync("go")
 
-    assert __import__("time").monotonic() - started < 0.15
+    assert __import__("time").monotonic() - started < 0.6
     assert result.status == RunStatus.failed
     assert result.metadata["budget_state"]["dimension"] == "duration"

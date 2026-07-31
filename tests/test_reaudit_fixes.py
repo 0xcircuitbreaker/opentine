@@ -466,14 +466,22 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
     repo.update_ref("tags/main", old)
     real_close = store_module.os.close
     real_fdopen = store_module.os.fdopen
-    opened: list[int] = []
     closes: list[int] = []
 
     class BrokenFile:
+        def __init__(self, fd: int) -> None:
+            self._fd = fd
+
         def __enter__(self):
             return self
 
         def __exit__(self, *args):
+            # A real os.fdopen object owns and closes the transferred fd on exit;
+            # mirror that so the still-open descriptor cannot block commit_ref's
+            # finally-clause unlink on Windows (an open handle forbids deletion
+            # there). Close through the pre-monkeypatch os.close so this stays out
+            # of the `closes` list the assertion inspects.
+            real_close(self._fd)
             return False
 
         def write(self, value):
@@ -482,15 +490,15 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
     def broken_fdopen(fd, *args, **kwargs):
         if args and args[0] == "rb":
             return real_fdopen(fd, *args, **kwargs)
-        opened.append(fd)
-        return BrokenFile()
+        return BrokenFile(fd)
 
     monkeypatch.setattr(store_module.os, "fdopen", broken_fdopen)
     monkeypatch.setattr(store_module.os, "close", closes.append)
     with pytest.raises(OSError, match="simulated"):
         repo.update_ref("tags/main", new, expected_old=old)
+    # The transferred fds were set to -1 before the failure, so commit_ref's
+    # finally must not os.close them a second time.
     assert closes == []
-    real_close(opened[0])
 
 
 def _b64(value: bytes) -> str:
