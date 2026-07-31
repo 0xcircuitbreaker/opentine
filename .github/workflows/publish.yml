@@ -43,6 +43,10 @@ jobs:
         shell: bash
         run: |
           set -x
+          # actions/checkout leaves a lightweight tag pointing at the commit, so
+          # re-fetch the real tag object from origin before asserting it is
+          # annotated (a signed/dated tag is the release-integrity signal).
+          git fetch --no-tags --force origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
           test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
           release_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
           # A tag-triggered checkout does not reliably populate the origin/main
