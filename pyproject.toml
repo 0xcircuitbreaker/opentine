@@ -59,8 +59,8 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/README.md"
-Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.3.0/CHANGELOG.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.4.0/README.md"
+Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.4.0/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
 
