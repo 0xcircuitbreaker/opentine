@@ -118,15 +118,34 @@ def test_every_tracked_compat_fixture_is_force_included_in_the_sdist():
     under tests/fixtures/compat/ to the artifacts globs, so a future
     ``vX_Y_Z/`` fixture set added without the include is caught here rather
     than by a red CI leg."""
+    import os
+    import shutil
     import subprocess
     import tomllib
 
     import pathspec
 
     root = Path(__file__).resolve().parents[1]
+
+    # The shipped suite must be green without git and from an unpacked sdist,
+    # which has no .git (or is unpacked inside an unrelated repo, where git would
+    # answer about the wrong tree). Enumerating the tracked set is only
+    # meaningful from THIS checkout's root, so skip otherwise. CI always runs
+    # from a real checkout, where this asserts for real.
+    if shutil.which("git") is None:
+        pytest.skip("git is required to enumerate tracked compat fixtures")
+    top = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--show-toplevel"], capture_output=True
+    )
+    try:
+        at_root = top.returncode == 0 and os.path.samefile(top.stdout.decode().strip(), root)
+    except OSError:
+        at_root = False
+    if not at_root:
+        pytest.skip("not this git checkout's root (unpacked sdist); CI validates from a checkout")
+
     listed = subprocess.run(
         ["git", "-C", str(root), "ls-files", "-z", "tests/fixtures/compat"],
-        check=True,
         capture_output=True,
     ).stdout
     # Only *.tine files are dropped: the repository fixture's non-.tine internals
