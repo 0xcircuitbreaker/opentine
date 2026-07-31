@@ -43,12 +43,14 @@ pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"  # hosted and local OpenAI-compatible APIs
 pip install "opentine[mcp]"
+pip install "opentine[langchain]" # live callback capture for LangChain/LangGraph
 pip install "opentine[crypto]" # compatibility alias only; see below
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
 `all` installs the Anthropic, OpenAI, and Google SDKs; it does not include
-`mcp`. Ollama needs no extra because it uses the core `httpx` dependency.
+`mcp` or `langchain`. Ollama needs no extra because it uses the core `httpx`
+dependency.
 `crypto` is retained for older installation instructions and installs nothing
 new: `cryptography` is already a required core dependency, so Ed25519 signing,
 signed pricing catalogs, and the encrypted reference remote work from a plain
@@ -341,6 +343,30 @@ attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
 AutoGen, CrewAI, and OpenAI Agents logs. `tine import` (see the CLI reference)
 is the shell-level front end for exactly these importers.
+
+### Live framework capture
+
+Importing a serialized log is after the fact and only as complete as whatever
+the framework wrote down. `opentine[langchain]` records a run *as it happens*
+instead, through langchain-core's callback protocol — which LangChain and
+LangGraph both dispatch, so one handler covers both:
+
+```python
+from opentine.integrations.langchain import OpenTineCallbackHandler
+from opentine.repository import Repo
+
+handler = OpenTineCallbackHandler(Repo.init("runs"))
+graph.invoke({"question": "..."}, config={"callbacks": [handler]})
+run_id = handler.run_id  # one .invoke() is one finalized v3 run
+```
+
+`run_id` becomes the callback `run_id` of each span, `parent_run_id` the parent
+edge, the run's `name` the actor, and `LLMResult` token usage the run's usage —
+the same mapping `framework_events` applies post hoc, recorded through the same
+`TraceEvent` schema and the same `Recorder`. Nothing here is imported by
+`import opentine`, so the extra is needed only to *use* the handler. CrewAI has
+no live adapter yet: its event bus identifies work by object reference rather
+than by a run/parent id pair, so its logs are still imported post hoc.
 
 Export runs the other way with `to_otel_genai`, which renders any run — a v2
 `Run`, a loaded `.tine` file, a v3 repository run from `repo.load_run(ref)`, or

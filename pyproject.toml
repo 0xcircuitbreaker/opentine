@@ -33,6 +33,11 @@ compat = ["openai>=1.75.0"]
 # Ollama uses httpx (core dep) directly — no extra package needed
 # MCP server (opentine.mcp_server) needs the mcp package
 mcp = ["mcp>=1.28.1,<2"]
+# Live callback capture (opentine.integrations.langchain) covers LangChain and
+# LangGraph; both drive langchain-core's callback protocol, so one extra serves
+# both. opentine.integrations imports cleanly without it — only running a
+# handler against a real framework needs the package.
+langchain = ["langchain-core>=0.3"]
 # Retained as a compatibility extra; signed catalogs and encrypted remotes use it in core.
 crypto = ["cryptography>=48.0.1"]
 all = [
