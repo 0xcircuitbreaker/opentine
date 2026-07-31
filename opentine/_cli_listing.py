@@ -6,6 +6,7 @@ import argparse
 
 from opentine._artifact_io import artifact_integrity, read_artifact_json
 from opentine._cli_common import BRAND, _find_run, _index_update, _runs_dir, _terminal, console
+from opentine._cli_json import emit_entries
 from opentine._cli_render import _entries_table, _has_filters, _query_from_ls_args
 from opentine.core import Run, short_id
 from opentine.index import MAX_INDEX_RUNS, QueryError, RunIndex, match_entry
@@ -36,7 +37,11 @@ def _index(rebuild: bool = False) -> RunIndex:
 
 def cmd_ls(args: argparse.Namespace) -> None:
     index = _index()
+    as_json = getattr(args, "json", False)
     if not index.entries:
+        if as_json:
+            emit_entries("ls", [])
+            return
         console.print("[dim]No runs found. Use tine run <script.py> to create one.[/]")
         return
     try:
@@ -54,6 +59,9 @@ def cmd_ls(args: argparse.Namespace) -> None:
     rows = readable[: args.limit or 20]
     if not filtering:
         rows.extend(entry for entry in index.entries.values() if entry.unreadable)
+    if as_json:
+        emit_entries("ls", rows)
+        return
     if filtering and not readable:
         console.print("[dim]No runs match the given filters.[/]")
         return
@@ -67,6 +75,9 @@ def cmd_search(args: argparse.Namespace) -> None:
     except QueryError as exc:
         console.print(f"[red]Bad query:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
+    if getattr(args, "json", False):
+        emit_entries("search", results, query=query)
+        return
     if not results:
         console.print("[dim]No runs match.[/]")
         return

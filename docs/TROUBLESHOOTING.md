@@ -162,8 +162,10 @@ Two messages, both exiting 1 before any work is done:
   `tine run --harness ... --autosave-interval` without `--autosave`,
   `tine fork --prompt` without `--harness`, `tine replay --inspect` with
   `--compare`, `tine migrate --dry-run` with `--save`, `tine sign --overwrite`
-  without `--save`, and `tine keygen --force` without `--out` or `--pub` all
-  produce it.
+  without `--save`, `tine keygen --force` without `--out` or `--pub`, and
+  `tine import --force` without `--save` all produce it. `tine import --ref`
+  without `--repo` is refused for the same reason in its own words: a `--save`
+  artifact is a file, not a ref.
 - `FLAG_A and FLAG_B cannot be combined: only one takes effect` — two flags
   compete for one slot. `--key-env` with `--key-file`, any two of
   `--key-env`/`--key-file`/`--pubkey`/`--trust-embedded-key` on `tine verify`,
@@ -174,6 +176,28 @@ artifact somewhere other than where it was asked to go, and letting precedence
 decide between two key flags lets the file being checked pick which key it is
 verified against. Drop the flag the mode cannot honour, or switch to the mode
 that reads it.
+
+## `tine import` Reports No Trace Events Found
+
+`No trace events found in SOURCE as --format F` means the source was read
+without error and the importer recognized nothing in it. The usual cause is a
+`--format` that does not match the wire shape:
+
+- `otel-json` expects one complete OTLP/JSON document (`resourceSpans` → …→
+  `spans`), a `{"spans": [...]}` wrapper, or a single span object. A file with
+  one span per line is `otel-spans`, not `otel-json`.
+- `otel-spans` expects a JSON array of GenAI span objects, or one span per line.
+- `jsonl` expects OpenTine `TraceEvent` records — one JSON *object* per line.
+  Lines that are not objects are skipped rather than refused, so a file of bare
+  strings or arrays imports as zero events.
+- The framework formats expect the serialized records of that framework. They
+  are best-effort: an unrecognized record still imports, with empty inputs and
+  outputs. Framework records are also linked by `(trace_id, span_id)`, so log
+  records with no shared `trace_id` import as unrelated roots rather than a
+  parent/child chain.
+
+`Import failed: ...` instead means the source could not be read or parsed at
+all, or the repository refused it; the message carries the reason.
 
 ## Live Ollama Tests Skip
 

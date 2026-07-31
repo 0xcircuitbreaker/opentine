@@ -8,6 +8,7 @@ from pathlib import Path
 from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
+from opentine._cli_json import emit_verify
 from opentine.core import Run, short_id
 from opentine.signing import (
     SignatureError,
@@ -29,11 +30,25 @@ def cmd_verify(args: argparse.Namespace) -> None:
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
     path = _find_run(args.run_id)
+    as_json = getattr(args, "json", False)
     if not path:
         result = Run.verify_integrity(args.run_id)
+        if as_json:
+            emit_verify(args.run_id, result, None)
+            raise SystemExit(1)
         console.print(f"[red]FAILED[/] {_terminal(args.run_id)}: {_terminal(result.reason)}")
         raise SystemExit(1)
     result = Run.verify_integrity(path)
+    if as_json:
+        # One object covering both checks, so a script never has to parse prose.
+        # Ordered exactly like the human path below: integrity is the gate, so a
+        # failed digest is reported without any authenticity claim beside it.
+        armed = result.ok and signature_requested(args)
+        signature = signature_result(args, path) if armed else None
+        emit_verify(path, result, signature)
+        if not result.ok or (signature is not None and not signature.ok):
+            raise SystemExit(1)
+        return
     if not result.ok:
         console.print(f"[red]FAILED[/] {_terminal(path)}: {_terminal(result.reason)}")
         if result.expected:
@@ -47,24 +62,30 @@ def cmd_verify(args: argparse.Namespace) -> None:
     _verify_signature_if_requested(args, path)
 
 
-def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None:
+def signature_requested(args: argparse.Namespace) -> bool:
+    """Whether any flag arms the authenticity check.
+
+    --trust-embedded-key is itself a request to check authenticity (TOFU), so it
+    arms the check like any key would; leaving it out of this test made
+    `tine verify RUN --trust-embedded-key` exit 0 without verifying anything.
+    repository/_migration.py already treats trust_embedded as a verification request.
+    Spelled once so the human and --json paths can never disagree about it.
+    """
+    return bool(
+        getattr(args, "key_env", None)
+        or getattr(args, "key_file", None)
+        or getattr(args, "pubkey", None)
+        or getattr(args, "trust_embedded_key", False)
+        or getattr(args, "require_signature", False)
+    )
+
+
+def signature_result(args: argparse.Namespace, path: Path):
+    """Run the armed signature check, exiting 1 if the key material is unreadable."""
     key_env = getattr(args, "key_env", None)
     key_file = getattr(args, "key_file", None)
     public_path = getattr(args, "pubkey", None)
     trust_embedded = getattr(args, "trust_embedded_key", False)
-    # --trust-embedded-key is itself a request to check authenticity (TOFU), so it
-    # arms the check like any key would; leaving it out of this test made
-    # `tine verify RUN --trust-embedded-key` exit 0 without verifying anything.
-    # repository/_migration.py already treats trust_embedded as a verification request.
-    required = bool(
-        key_env
-        or key_file
-        or public_path
-        or trust_embedded
-        or getattr(args, "require_signature", False)
-    )
-    if not required:
-        return
     try:
         hmac_key = hmac_key_from_env(key_env) if key_env else None
         if key_file:
@@ -76,9 +97,15 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
     except (OSError, SignatureError) as exc:
         console.print(f"[red]SIGNATURE FAILED[/] cannot read the key: {_terminal(exc)}")
         raise SystemExit(1) from exc
-    signature = Run.verify_signature(
+    return Run.verify_signature(
         path, hmac_key=hmac_key, public_key=public, trust_embedded=trust_embedded
     )
+
+
+def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None:
+    if not signature_requested(args):
+        return
+    signature = signature_result(args, path)
     if not signature.ok:
         console.print(
             f"[red]SIGNATURE FAILED[/] state={_terminal(signature.state)}: "

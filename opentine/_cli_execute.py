@@ -20,6 +20,7 @@ from opentine._cli_common import (
     console,
 )
 from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
+from opentine._cli_json import emit_cost, emit_show
 from opentine._cli_render import _budget_str, _print_run_tree
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -112,7 +113,11 @@ def cmd_show(args: argparse.Namespace) -> None:
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
-    _print_run_tree(Run.load(path))
+    run = Run.load(path)
+    if getattr(args, "json", False):
+        emit_show(run, path)
+        return
+    _print_run_tree(run)
 
 
 def cmd_cost(args: argparse.Namespace) -> None:
@@ -121,6 +126,11 @@ def cmd_cost(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
+    if getattr(args, "json", False):
+        # Same exit status as the human path: a breached budget is a failure.
+        if emit_cost(run):
+            raise SystemExit(1)
+        return
     breakdown = run.cost_breakdown()
     console.print(
         f"[{BRAND}]# Cost[/] {_terminal(short_id(run.id))} "
