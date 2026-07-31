@@ -20,6 +20,19 @@ canonical stored bytes. JSON uses RFC 8785/JCS encoding; blobs retain raw bytes.
 Credential redaction precedes canonicalization and hashing. Identical objects
 deduplicate naturally.
 
+This is the key difference from portable v2 identity. A v3 repository id is a
+**content** hash, so two identical forks collapse to one run object. A v2 `.tine`
+fork id names the fork **act** — derived from lineage, the retained slice, the
+branch, the caller's declared intent, and a recorded nonce, stored in
+`metadata.fork`, and provable with `verify_fork_id` — so forking the same point
+twice produces two distinct runs rather than one shared id. Both are digests;
+neither lets an untrusted run id steer an output path. Importing a v2 run
+re-represents its steps as content-addressed event objects, but `load_run`
+reconstructs it with its original run id and `metadata.fork`, so a fork's
+`verify_fork_id` verdict survives the round-trip. A fork created inside a
+repository is a new content-addressed run object that carries no `metadata.fork`
+record, so `verify_fork_id` returns `None` (no verdict) for it.
+
 Integer inputs outside JSON's interoperable ±(2**53−1) range are rejected;
 callers must encode 64-bit identifiers, nanosecond timestamps, or arbitrary-
 precision amounts as strings instead of accepting silent IEEE-754 rounding.

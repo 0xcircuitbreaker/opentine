@@ -283,6 +283,14 @@ bytes. Client-side redaction happens before canonicalization and hashing.
 `fsck` recomputes IDs, validates typed links and refs, and detects event cycles.
 Refs update with compare-and-swap semantics.
 
+The two layers identify runs differently. A v3 repository id is a **content
+hash**, so two identical forks deduplicate to one object. A v2 fork id names the
+fork **act**: it is derived from the lineage, retained slice, branch, declared
+intent, and a recorded nonce, stored in `metadata.fork`, and provable with
+`verify_fork_id`, so forking the same point twice yields two distinct runs
+instead of colliding. Both are always digests; a run id read from an untrusted
+artifact never steers an output path.
+
 The dependency-free trusted semantic kernel is kept at no more than 250
 physical lines. `scripts/check_architecture.py` runs in CI and enforces three
 gates: no production Python module may exceed 250 physical lines, `kernel.py`

@@ -80,6 +80,8 @@ steps with identical content but different cost share an ID (and surface as a
 | `metadata.autosave` | autosave breadcrumb (stripped on final save) | absent |
 | `metadata.migration` | append-only migration chain | recorded on migration |
 | `metadata.integrity.signature` | `tine-sig/1` signature block | absent |
+| `metadata.fork` | fork-act identity basis, recorded since 0.4.0 (see below) | absent |
+| `metadata.fork_reason` | an MCP fork's stated reason, when given | absent |
 
 The unpublished 0.2.1 development line (folded into 0.3.0) extends v2 without
 changing `format_version`: normalized usage
@@ -106,7 +108,7 @@ still fails verification.
 | Field group | in digest | in signature |
 |---|---|---|
 | body: `format_version`, `run_id`, `created_at`, `status`, `graph` (+`usage`), `refs`, `transcript`, `manifest` (+`budget`), `policies`, `cache`, `draft` | yes | yes |
-| `metadata.{model_info, system_prompt, user_prompt, forked_from, fork_point, warnings, replay, context, next_harness, migration}` | no | yes (allowlist) |
+| `metadata.{model_info, system_prompt, user_prompt, forked_from, fork_point, warnings, replay, context, next_harness, migration, fork, fork_reason}` | no | yes (allowlist) |
 | `metadata.tags` | no | **no** (mutable labels — re-tagging never re-signs) |
 | `metadata.{budget_state, autosave}` | no | no (derived/transient) |
 | `metadata.integrity.*` | no | no (holds the signature itself) |
@@ -130,8 +132,8 @@ current rules, so import it with `Run.load` / `tine migrate` rather than `verify
 
 ### Known v2 identity limitations
 
-V2 preserves its released identity semantics for compatibility. There are two
-known consequences.
+V2 keeps its released step-identity semantics for compatibility. One historical
+fork-identity limitation was resolved in 0.4.0 (below); the step-ID one remains.
 
 **Step IDs and redaction.** A step ID can be formed from in-memory fields before
 save-time redaction, then the serialized step contains the redacted value. The
@@ -140,20 +142,44 @@ identify the exact serialized step bytes. V3 corrects this by redacting before
 canonicalization and object hashing. The v2→v3 migrator always recomputes IDs
 and never carries this identity claim forward.
 
-**Fork run IDs.** `Run.fork` derives the new run ID from the source run ID and
-the resolved fork point alone. Forking the same run at the same step twice
-therefore produces the **same** run ID: the `branch` argument does not enter the
-ID, and neither does the MCP fork tool's `reason`, which is recorded after the ID
-is formed. Two forks that diverge afterwards then carry one ID. `tine fork` and
-the MCP `fork_run` tool name the output file after the new run ID unless told
-otherwise, so the second fork lands on the first one's path and is refused rather
-than written (`tine fork --force` overwrites deliberately); `Run.save` performs
-no such check, so a library caller that saves both forks to that path silently
-keeps only the last one. A caller that needs two distinct forks of one run at
-one step must pass an explicit `new_run_id`. V3 run IDs are content hashes over
-the stored object and do not have this property: two forks that differ in any
-recorded content already differ in ID, and two forks that differ in nothing are
-the same object.
+**Fork run IDs (fixed in 0.4.0).** Through 0.3.0, `Run.fork` derived the new run
+ID from the source run ID and the resolved fork point alone, so forking the same
+run at the same step twice produced the **same** run ID: the `branch` argument
+did not enter the ID, and neither did the MCP fork tool's `reason`, which was
+recorded after the ID was formed. Two forks that diverged afterwards then carried
+one ID; `tine fork` and MCP named the output file after that ID and refused the
+second fork, while `Run.save` performed no such check, so a library caller that
+saved both forks to that path silently kept only the last one.
+
+Since 0.4.0 the run ID names the fork *act*, and `Run.fork` records its basis in
+`metadata.fork`:
+
+| `metadata.fork` field | meaning |
+|---|---|
+| `version` | derivation version (currently `1`) |
+| `source` | the source run ID |
+| `source_digest` | the 64-hex integrity digest the source *claims*, or `""` |
+| `point` | the resolved fork point |
+| `slice` | SHA-256 over the sorted retained step IDs |
+| `slice_size` | number of retained steps |
+| `branch` | the `branch` argument |
+| `intent` | SHA-256 over the caller's declared intent (harness/prompt, replay/resume mode, or MCP reason) |
+| `nonce` | a recorded 128-bit random value, or `""` for a deliberately reproducible fork |
+
+The run ID is SHA-256 over that record, so it is always a 64-hex digest and two
+fork acts of one point differ by their nonce. `metadata` is **outside** the
+integrity digest — which covers the top-level `run_id` — so the ID itself, not
+the stored record, is the commitment: editing `metadata.fork` cannot forge a
+matching ID. `verify_fork_id(run)` re-derives the ID from the record and returns
+`True` (the ID matches), `False` (the record was edited), or `None` (no verdict:
+a pre-0.4.0 fork with no record, an explicit `new_run_id`, or a fork created in
+a v3 repository, whose run object carries no record). It returns `None` — never
+`False` — for any pre-0.4.0 fork, so it never accuses old provenance of
+tampering, and it does not replace `verify_integrity`. An explicit `new_run_id`
+still reproduces a chosen or legacy ID exactly, and `nonce=""` makes the derived
+ID reproducible instead of unique. V3 run IDs
+are content hashes over the stored object: two forks that differ in any recorded
+content already differ in ID, and two that differ in nothing are the same object.
 
 ## V3 repository objects
 
