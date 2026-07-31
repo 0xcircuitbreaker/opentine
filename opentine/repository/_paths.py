@@ -92,6 +92,19 @@ def durable_directory(path: Path) -> None:
         _fsync_dir(directory.parent)
 
 
+#: Structural directories a v3 repository keeps. git and tar drop them while
+#: empty, so a repo committed to version control loses them; open() recreates
+#: them so the store survives a checkout or archive round trip.
+LAYOUT_DIRS = ("objects", "refs/annotations", "refs/heads", "refs/tags", "logs", "packs", "indexes")
+
+
+def ensure_layout(tine: Path) -> None:
+    """Create the standard repository directories if any are absent."""
+    durable_directory(tine)
+    for directory in LAYOUT_DIRS:
+        durable_directory(internal_path(tine, *Path(directory).parts))
+
+
 def atomic_bytes(path: Path, data: bytes) -> None:
     """Atomically write bytes after the caller has confined ``path``."""
     durable_directory(path.parent)

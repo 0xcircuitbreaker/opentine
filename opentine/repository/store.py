@@ -12,7 +12,7 @@ from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import validate_config
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
-from opentine.repository._paths import durable_directory, internal_files, internal_path, linklike
+from opentine.repository._paths import ensure_layout, internal_files, internal_path, linklike
 from opentine.repository._ref_store import commit_ref, read_ref_oid
 from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
@@ -34,12 +34,7 @@ class Repo:
     def init(cls, path: str | Path = ".", *, bare: bool = False) -> Repo:
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
-        durable_directory(tine)
-        for directory in (
-            "objects", "refs/annotations", "refs/heads", "refs/tags",
-            "logs", "packs", "indexes",
-        ):  # fmt: skip
-            durable_directory(internal_path(tine, *Path(directory).parts))
+        ensure_layout(tine)
         config = internal_path(tine, "config.json")
         if not config.exists():
             _atomic_bytes(
@@ -64,11 +59,13 @@ class Repo:
         candidate = source.resolve()
         if candidate.is_file():
             candidate = candidate.parent
-        if candidate.name == ".tine" and (candidate / "config.json").exists():
-            return cls(candidate)
-        for parent in (candidate, *candidate.parents):
-            if (parent / ".tine" / "config.json").exists():
-                return cls(parent / ".tine")
+        for base in (candidate, *candidate.parents):
+            tine = base if base.name == ".tine" else base / ".tine"
+            if (tine / "config.json").exists():
+                # Recreate any structural directory a version-control checkout
+                # dropped while empty, so a committed repository opens intact.
+                ensure_layout(tine)
+                return cls(tine)
         raise FileNotFoundError(f"no .tine repository from {path}")
 
     @property

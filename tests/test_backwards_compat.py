@@ -146,3 +146,28 @@ def test_030_v3_repo_fsck_search_and_log(repo: Repo):
     entries = repo.log("heads/main")
     assert len(entries) == 4  # the four events of the reconstructed run
     assert all(entry.object_type == "event" for entry in entries)
+
+
+def test_a_repository_that_lost_its_empty_dirs_to_version_control_still_opens(tmp_path):
+    """git and tar drop empty directories, so a v3 repo committed to version
+    control loses packs/, indexes/, logs/ and the empty refs/* namespaces. Open
+    must recreate them rather than leave the repo unusable and fsck failing."""
+    from opentine.repository import Repo
+
+    repo = Repo.init(tmp_path / "src")
+    oid = repo.put("blob", b"survives version control", redact=False)
+    tine = tmp_path / "src" / ".tine"
+    stripped = sorted(
+        p.relative_to(tine).as_posix()
+        for p in tine.rglob("*")
+        if p.is_dir() and not any(p.iterdir())
+    )
+    assert {"packs", "indexes", "logs"} <= set(stripped)
+    for name in stripped:
+        (tine / name).rmdir()
+
+    reopened = Repo.open(tmp_path / "src")
+    assert reopened.fsck().ok
+    assert reopened.get(oid).body == b"survives version control"
+    for name in stripped:
+        assert (tine / name).is_dir()
