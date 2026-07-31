@@ -7,6 +7,8 @@ from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from typing import Any
 
+from opentine.trace._genai_semconv import USAGE_BY_DIMENSION
+
 _MAX_SAFE_INTEGER = (1 << 53) - 1
 _MAX_INPUT_RECORDS = 100_000
 _TOKEN_USAGE = {
@@ -136,11 +138,18 @@ def imported_usage(value: Any, attributes: dict[str, Any]) -> tuple[dict[str, An
 
 def otel_usage(attributes: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     return imported_usage(
-        {
-            "input": attributes.get("gen_ai.usage.input_tokens", 0),
-            "output": attributes.get("gen_ai.usage.output_tokens", 0),
-        },
+        {name: attributes.get(key, 0) for name, key in USAGE_BY_DIMENSION.items()},
         attributes,
+    )
+
+
+def link_span_ids(span: dict[str, Any]) -> tuple[str, ...]:
+    """Collect the span IDs an OTLP span links to, ignoring malformed entries."""
+    links = span.get("links")
+    return tuple(
+        str(identifier)
+        for link in (links if isinstance(links, list) else ())
+        if isinstance(link, dict) and (identifier := first(link, "spanId", "span_id")) is not None
     )
 
 

@@ -340,6 +340,28 @@ complete OTLP/JSON exports, including camelCase keys and typed `AnyValue`
 attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
 AutoGen, CrewAI, and OpenAI Agents logs.
+
+Export runs the other way with `to_otel_genai`, which renders any run — a v2
+`Run`, a loaded `.tine` file, a v3 repository run from `repo.load_run(ref)`, or
+a list of `TraceEvent`s — as GenAI spans in the same shape the importer reads,
+and `to_otel_genai_document` wraps them in a complete OTLP/JSON export:
+
+```python
+from opentine import Repo, to_otel_genai_document
+
+repo = Repo.open(".")
+document = to_otel_genai_document(repo.load_run("heads/main"), service_name="agent")
+```
+
+Spans carry `gen_ai.operation.name`, request/response model, `gen_ai.prompt` /
+`gen_ai.completion`, `gen_ai.usage.input_tokens` / `output_tokens`, nanosecond
+start/end times, trace/span/parent IDs, and links for causal edges — the
+OpenTelemetry GenAI semantic conventions as of v1.27.0, spelled once in
+`opentine.trace._genai_semconv` so import and export cannot drift. Import and
+export are inverses: re-importing exported spans yields the events they came
+from. Cost and billing have no GenAI convention and travel under `opentine.*`
+attributes, which the importer does not read back. Export is read-only over
+provenance and writes nothing.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,
 and attestation are also available as MCP tools. Promotion is not exposed by
 default: `promote_run` is registered only when the host passes
@@ -551,8 +573,10 @@ and CrewAI is an agent framework rather than a provenance store; OpenTine tries
 to replace neither. It imports from that side of the fence instead:
 `opentine.trace.importers` best-effort normalizes serialized LangChain,
 LlamaIndex, AutoGen, CrewAI, and OpenAI Agents records, as well as OpenTelemetry
-GenAI spans and OTLP/JSON exports, into the same event model. What OpenTine adds
-is the verification and branching layer underneath —
+GenAI spans and OTLP/JSON exports, into the same event model, and
+`opentine.trace.to_otel_genai` emits GenAI spans back out, so a verified run can
+be shipped to whatever observability backend already runs beside it. What
+OpenTine adds is the verification and branching layer underneath —
 signed artifacts, fail-closed verification, forks, cache replay, semantic diff,
 and pinned-catalog cost accounting — with an optional self-hosted remote rather
 than a mandatory hosted backend.

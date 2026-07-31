@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from opentine._jsonsafe import json_safe as _safe
+from opentine.trace import _genai_semconv as semconv
 from opentine.trace._import_helpers import (
     dictionary,
     event_kind,
     imported_usage,
+    link_span_ids,
     logical_size,
     optional_string,
     otel_spans,
@@ -160,32 +162,28 @@ def otel_genai_events(
             attributes = _attributes(span)
         except (RecursionError, ValueError):
             continue
-        operation = str(attributes.get("gen_ai.operation.name", span.get("name", "")))
+        operation = str(attributes.get(semconv.OPERATION_NAME, span.get("name", "")))
         usage, attributes = otel_usage(attributes)
+        # A native run's kind rides in an OpenTine attribute when the operation
+        # name cannot carry it; read it back (and drop it) so export->import
+        # restores tool/think/error instead of collapsing them to "model".
+        kind = str(attributes.pop(semconv.KIND_ATTRIBUTE, "")) or event_kind(operation)
         nanos = _int(_first(span, "startTimeUnixNano", "start_time_unix_nano", default=0))
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
+        model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
         events.append(
             TraceEvent(
-                kind=event_kind(operation),
+                kind=kind,
                 timestamp=_timestamp(nanos) / 1_000_000_000,
                 trace_id=str(_first(span, "traceId", "trace_id", default="")),
                 span_id=str(_first(span, "spanId", "span_id", default=len(events))),
                 parent_span_id=optional_string(_first(span, "parentSpanId", "parent_span_id")),
-                causal_span_ids=tuple(
-                    str(identifier)
-                    for link in span.get("links") or []
-                    if isinstance(link, dict)
-                    and (identifier := _first(link, "spanId", "span_id")) is not None
-                ),
+                causal_span_ids=link_span_ids(span),
                 actor=operation,
-                model=str(
-                    attributes.get("gen_ai.response.model")
-                    or attributes.get("gen_ai.request.model")
-                    or ""
-                ),
+                model=str(model or ""),
                 duration=max(0, _timestamp(end_nanos - nanos)) / 1_000_000_000,
-                inputs=_safe(_mapping(span.get("inputs") or attributes.get("gen_ai.prompt"))),
-                outputs=_safe(_mapping(span.get("outputs") or attributes.get("gen_ai.completion"))),
+                inputs=_safe(_mapping(span.get("inputs") or attributes.get(semconv.PROMPT))),
+                outputs=_safe(_mapping(span.get("outputs") or attributes.get(semconv.COMPLETION))),
                 usage=usage,
                 attributes=_safe(attributes),
             )
