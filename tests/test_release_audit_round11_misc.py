@@ -273,6 +273,7 @@ def test_the_inspection_module_has_no_hookless_json_reader_left():
 #: running.  Extend the mapping, never drop the guard.
 BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_release_audit_round9_inventory.py": "git",
+    "tests/test_release_inventory.py": "git",
     "tests/test_trace_capture_bounds.py": "git",
 }
 
