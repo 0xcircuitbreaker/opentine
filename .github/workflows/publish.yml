@@ -42,10 +42,16 @@ jobs:
       - name: Verify release source and version
         shell: bash
         run: |
+          set -x
           test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
           release_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          # A tag-triggered checkout does not reliably populate the origin/main
+          # tracking ref, so fetch it explicitly before the ancestry check.
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           git merge-base --is-ancestor "$release_commit" origin/main
-          test "v$(uv run python -c 'import opentine; print(opentine.__version__)')" = "$GITHUB_REF_NAME"
+          # --no-sync so uv emits no build chatter that would pollute the capture.
+          installed_version="$(uv run --no-sync python -c 'import opentine; print(opentine.__version__)')"
+          test "v${installed_version}" = "$GITHUB_REF_NAME"
           echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
           echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct "$release_commit")" >> "$GITHUB_ENV"
 
