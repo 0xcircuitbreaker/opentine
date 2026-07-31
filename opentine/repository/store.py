@@ -64,7 +64,12 @@ class Repo:
             if (tine / "config.json").exists():
                 # Recreate any structural directory a version-control checkout
                 # dropped while empty, so a committed repository opens intact.
-                ensure_layout(tine)
+                # Best-effort: read-only media cannot be healed, but the objects
+                # and refs are still readable there, so opening must not fail.
+                try:
+                    ensure_layout(tine)
+                except OSError:
+                    pass
                 return cls(tine)
         raise FileNotFoundError(f"no .tine repository from {path}")
 
