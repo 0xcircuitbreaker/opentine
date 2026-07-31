@@ -6,6 +6,7 @@ import argparse
 
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_common import HARNESS_FACTORIES
+from opentine._cli_import import add_import_parser
 from opentine.pricing_cli import add_pricing_parser
 from opentine.remote.server import add_serve_parser
 from opentine.repo_cli import add_repo_parsers
@@ -120,6 +121,13 @@ def _build_parser() -> argparse.ArgumentParser:
     resume = sub.add_parser("resume", help="Resume a paused run")
     resume.add_argument("run_id")
 
+    # --json is purely additive: without it each of these renders exactly as before.
+    for readable in (show, verify, listing, search, cost):
+        readable.add_argument(
+            "--json", action="store_true", help="Emit a machine-readable JSON object instead"
+        )
+
+    add_import_parser(sub)
     add_pricing_parser(sub)
     add_serve_parser(sub)
     add_repo_parsers(sub)

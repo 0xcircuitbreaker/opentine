@@ -339,7 +339,8 @@ Importers normalize OpenTine traces, JSONL, and OpenTelemetry GenAI spans or
 complete OTLP/JSON exports, including camelCase keys and typed `AnyValue`
 attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
-AutoGen, CrewAI, and OpenAI Agents logs.
+AutoGen, CrewAI, and OpenAI Agents logs. `tine import` (see the CLI reference)
+is the shell-level front end for exactly these importers.
 
 Export runs the other way with `to_otel_genai`, which renders any run — a v2
 `Run`, a loaded `.tine` file, a v3 repository run from `repo.load_run(ref)`, or
@@ -441,7 +442,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.4.0
 
 ## CLI Reference
 
-`tine` ships 26 subcommands. Each one prints its own `--help`, which is
+`tine` ships 27 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted.
 
 Portable `.tine` artifacts:
@@ -464,6 +465,38 @@ tine search "tag:prod model:kimi"     Query that index
 tine tag <run> --add prod             Add, remove, or list tags
 tine reindex                          Rebuild .tine_runs/index.json
 ```
+
+Interoperability:
+
+```text
+tine import <trace> --format otel-json --save run.tine
+tine import - --format jsonl --repo . --ref heads/main
+tine import agent.log --format langchain --save run.tine
+```
+
+`tine import` reads a foreign agent trace — `otel-json` (a complete OTLP/JSON
+export document), `otel-spans` (a JSON array of GenAI spans, or one per line),
+`jsonl` (OpenTine `TraceEvent` records), or one of `langchain`, `llamaindex`,
+`autogen`, `crewai`, `openai-agents` — from a file or `-` for stdin, and records
+it as an ordinary run. At least one destination is required: `--save PATH`
+writes a portable v2 `.tine` artifact (refusing an existing file without
+`--force`), `--repo PATH` records it into a v3 repository and advances `--ref`
+(default `heads/main`). Both may be given. It prints the resulting run id.
+Importing introduces no format change, and `--ref` is refused without `--repo`.
+
+Machine-readable output:
+
+```text
+tine show|verify|ls|search|cost ... --json
+```
+
+`--json` replaces the rich rendering with exactly one JSON object on stdout;
+without it the human rendering is unchanged. The fields of each object are
+enumerated in `opentine/_cli_json.py` and are added to but never renamed within
+a major version. A failure that stops the command producing a result stays human
+text and a non-zero exit; a failure that *is* the result still comes out as the
+object — `verify` reports a failed check as `"ok": false` and `cost` a breached
+budget as `"over_budget": true`, both exiting 1.
 
 Signed pricing catalogs:
 

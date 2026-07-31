@@ -405,6 +405,8 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "signed.tine"], ["--require-signature"], "honoured"),
     (["verify", "ed.tine"], ["--pubkey", "ed.pub"], "honoured"),
     (["verify", "ed.tine"], ["--trust-embedded-key"], "honoured"),
+    # v0.5.0 D2: --json replaces the human rendering with one machine-readable object.
+    (["verify", "source.tine"], ["--json"], "honoured"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--key-file", "hmac.key"], "refused"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--pubkey", "ed.pub"], "refused"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--trust-embedded-key"], "refused"),

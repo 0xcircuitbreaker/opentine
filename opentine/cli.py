@@ -22,6 +22,7 @@ from opentine._cli_common import (
 )
 from opentine._cli_execute import cmd_cost, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_replay, cmd_resume
+from opentine._cli_import import cmd_import
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_migrate import cmd_migrate
 from opentine._cli_parser import _add_filter_args, _add_harness_args, _build_parser
@@ -57,14 +58,16 @@ _REPO_COMMANDS = {
 }
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    """Run one ``tine`` invocation; *argv* defaults to the process arguments."""
     _common.RUNS_DIR = RUNS_DIR
     parser = _build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     commands = {
         "cost": cmd_cost,
         "diff": cmd_diff,
         "fork": cmd_fork,
+        "import": cmd_import,
         "keygen": cmd_keygen,
         "ls": cmd_ls,
         "migrate": cmd_migrate,
@@ -118,6 +121,7 @@ __all__ = [
     "cmd_cost",
     "cmd_diff",
     "cmd_fork",
+    "cmd_import",
     "cmd_keygen",
     "cmd_ls",
     "cmd_migrate",
