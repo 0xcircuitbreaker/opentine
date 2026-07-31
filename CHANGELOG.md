@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.4.0 — 2026-07-31
+
+Fork-act identity for portable `*.tine` files, so divergent forks no longer
+collide. Stored data stays readable: every artifact written by 0.3.0 still
+loads under 0.4.0, and its fork IDs are unchanged.
+
+### Changed — BREAKING (v2 fork identity)
+
+A v2 fork ID now identifies the *fork act*, not just its `(parent, fork point)`
+coordinate. `Run.fork` derives the ID from the source lineage, the retained
+slice, the branch, the caller's declared intent, and a recorded 128-bit random
+nonce, and records that basis in `metadata.fork` so any fork can prove its own
+ID with `verify_fork_id`. Because `metadata` sits outside the integrity digest
+— which does cover the top-level `run_id` — the ID itself, not the stored
+record, is the commitment to the basis.
+
+- Forking the same run at the same point twice now yields two **distinct** runs.
+  Previously both derived one ID and one filename: through the CLI the second
+  fork was refused, through MCP it raised `FileExistsError`, and through the
+  plain library `Run.save` the second write **silently destroyed the first**.
+  Runs lost that way before 0.4.0 cannot be recovered.
+- `branch=` and the MCP fork `reason` now affect identity. Previously neither
+  did — `branch` never entered the ID, and `reason` was attached only after the
+  ID was formed.
+- `Agent.replay`, `Agent.resume`, and rerun no longer splice the parent run ID
+  into the new ID (the former `<parent id>-replay` / `-resume` / `-rerun`
+  names), which concatenated untrusted artifact text into a run ID.
+- Cached replay stays deterministic: it reuses recorded steps and produces
+  nothing new, so it forks with `nonce=""` — replaying twice yields one ID and
+  the existing overwrite refusal still applies. `Run.fork(..., nonce="")` opts
+  any fork into the same reproducibility.
+- v3 repository IDs are unchanged and remain content-addressed hashes; identical
+  v3 forks still dedupe.
+
+This is breaking for fork ID **values** only, and only for callers that hardcode
+a fork's ID or filename. It does not affect data readability: there is no
+`format_version` bump, 0.3.0 artifacts load unchanged and keep their IDs, and
+`verify_fork_id` returns `None` (never `False`) for any pre-0.4.0 fork, so the
+new check never accuses old provenance of tampering.
+
+Migration: use the returned `Run.id`, the MCP `new_run_id`, or `--save` rather
+than recomputing a fork's filename. `Run.fork(new_run_id=...)` still reproduces
+any legacy ID exactly.
+
+### Fixed
+
+- The MCP `fork_run` tool could not fork the same point twice — a dead end in
+  the headline feature, because it always writes the default `<id>.tine` path
+  and the second fork's colliding ID raised `FileExistsError`. It now succeeds,
+  without adding any force escape and without weakening the overwrite refusal on
+  explicitly named destinations.
+- `metadata.fork` and `metadata.fork_reason` are now covered by artifact
+  signatures; an MCP fork's stated reason was unsigned before.
+
 ## 0.3.0 — 2026-07-30
 
 Git-shaped repository foundation for agent runs. Portable `*.tine` files remain

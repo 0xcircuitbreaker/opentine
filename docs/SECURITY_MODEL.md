@@ -101,6 +101,48 @@ What it does **not** prove:
 - It does not prove the artifact was integrity-clean when it was signed. `tine sign` refuses an artifact whose stored digest does not match its body, but `--force` waives that refusal, so a signature records what the signer accepted rather than that the signer checked it.
 - Signing provides no confidentiality (artifacts are not encrypted).
 
+## Fork identity (v2)
+
+A run id read from an artifact is **untrusted input**, exactly like every other
+field in a `.tine` file: the loader accepts any string as `run_id`, and an
+attacker who supplies an artifact controls both the source id and every step id.
+OpenTine never lets that string reach the filesystem verbatim. Every path it
+derives from a run id is named by a digest — `runs_dir / f"{id}.tine"` — and a v2
+fork id is a SHA-256 of the fork basis, so it is always 64 hex characters no
+matter what the source artifact claims. A hostile run id such as `../owned`
+therefore enters the id only as a hash input and yields a 64-hex fork id that
+cannot steer a write outside the runs directory.
+
+A v2 fork id identifies the *fork act*. It is derived from the source lineage,
+the retained slice, the branch, the caller's declared intent, and a recorded
+random nonce, and the basis is stored in `metadata.fork` so the fork can prove
+its own id. `verify_fork_id(run)` re-derives the id from that record and returns
+one of three verdicts:
+
+- **`True`** — the id is exactly what the recorded lineage re-derives.
+- **`False`** — a record is present but does not produce the id, so the record
+  was edited after the fork.
+- **`None`** — no verdict. There is no record to check (a pre-0.4.0 fork, a fork
+  made with an explicit `new_run_id`, or a fork created inside a v3 repository,
+  whose run object carries no record), or the record is versioned beyond this
+  build.
+
+`None` is an abstention and **must never be read as "valid"**. It is the verdict
+for legacy artifacts and repository-created forks precisely so the check never
+accuses old provenance of tampering, which also means it can never vouch for it. The check is
+total on hostile input: a crafted `metadata.fork` (non-dict, bad `slice_size`,
+over-deep nesting) yields `False` or `None`, never an exception, and editing the
+record cannot forge a `True` verdict without a SHA-256 preimage.
+
+`verify_fork_id` does **not** replace `Run.verify_integrity`. It re-derives the
+id from the recorded basis alone and never reads the graph, so editing, renaming,
+or removing retained steps — including the fork point — leaves its verdict
+unchanged; only `verify_integrity` catches those edits. `verify_integrity`
+covers the whole artifact body; treat the fork check as a provenance signal
+layered on top of it, not a substitute. It is a provenance check, not an
+authorization check — it never gates a write, and an artifact author can always
+make their own artifact self-consistent.
+
 ## V3 repository and remote
 
 The v3 kernel recomputes typed object IDs, rejects non-canonical envelopes,
