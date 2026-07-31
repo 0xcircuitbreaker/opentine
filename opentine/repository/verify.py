@@ -73,6 +73,11 @@ def _pack_errors(repo: Repo) -> list[str]:
                 names.append(entry.name)
                 if len(names) > _MAX_FSCK_PACKS:
                     raise KernelError("pack count exceeds the fsck verification limit")
+    except FileNotFoundError:
+        # packs/ ships empty, so version control drops it; on read-only media
+        # Repo.open cannot heal it back. An absent directory holds no packs to
+        # verify — reporting it would flunk a healthy repository.
+        return []
     except (KernelError, OSError) as exc:
         return [f"packs: {exc}"]
     for name in sorted(names):
