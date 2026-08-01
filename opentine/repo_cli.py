@@ -25,7 +25,9 @@ from opentine._repo_cli_plumbing import (
     cmd_object,
     cmd_pack,
     cmd_push,
+    cmd_repo_diff,
     cmd_repo_log,
+    cmd_repo_search,
     cmd_repo_show,
 )
 from opentine._signing_keys import SignatureError
@@ -46,7 +48,9 @@ REPO_COMMANDS: dict[str, RepoHandler] = {
     "object": cmd_object,
     "pack": cmd_pack,
     "push": cmd_push,
+    "repo-diff": cmd_repo_diff,
     "repo-log": cmd_repo_log,
+    "repo-search": cmd_repo_search,
     "repo-show": cmd_repo_show,
 }
 
