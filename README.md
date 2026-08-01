@@ -539,7 +539,9 @@ V3 repository:
 tine init [path] [--bare]
 tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified]
 tine fsck --repo . [--shallow]
-tine repo-log [ref] --repo . [--limit N]
+tine repo-log [ref] --repo . [--limit N] [--json]
+tine repo-show <ref-or-run-oid> --repo . [--json]
+tine context <event-oid> --repo . [--depth N] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
