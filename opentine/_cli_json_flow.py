@@ -1,4 +1,4 @@
-"""Stable machine-readable JSON for the ``tine`` commands that *act* on a run.
+"""Stable machine-readable JSON for the ``tine`` commands that *compare* runs.
 
 The contract is the one documented in :mod:`opentine._cli_json`, extended by
 reference rather than restated: one JSON object on stdout and nothing else,
@@ -16,6 +16,22 @@ source that does not load, a step reference that does not resolve, or a harness
 that will not start produces no replay and therefore no comparison — those
 print a human message and exit 1. Every object this module writes describes a
 comparison that completed.
+
+Both comparison commands publish **one** drift object, built here by
+``drift_payload`` out of ``classify_drift`` over the buckets ``_graph_diff``
+already reports, so a consumer parses the same four keys either way and a new
+bucket appears in both surfaces at once:
+
+    ``structural``   array of str — ``"<step short id> <field>"`` for every
+                     non-accounting delta, plus ``"<step short id> missing"``
+                     and ``"... added"`` for a step on one side only; any entry
+                     means the two runs are not the same run
+    ``accounting``   array of str — cost/usage/billing deltas only, the ones
+                     ``--ignore-cost-drift`` is allowed to forgive
+    ``only_source``  array of str — short ids present only on the left (the
+                     source run, or the second derivation under ``--verify``)
+    ``only_replay``  array of str — short ids present only on the right (the
+                     run compared against it, or the reloaded replay)
 
 ``tine replay RUN --verify --json``
     ``command``            ``"replay-verify"``
@@ -39,11 +55,22 @@ comparison that completed.
     ``integrity``          object — of the reloaded replay: ``ok``,
                            ``algorithm``, ``expected``, ``actual``, ``reason``,
                            ``draft``
-    ``structural_drift``   array of str — ``"<step short id> <field>"``, plus
-                           ``"<step short id> missing"``/``"... added"``; any
-                           entry fails the check
-    ``accounting_drift``   array of str — cost/usage/billing deltas only
+    ``drift``              object — the four shared buckets above
+    ``structural_drift``   array of str — ``drift.structural``, kept flat at the
+                           top level because it shipped that way
+    ``accounting_drift``   array of str — ``drift.accounting``, likewise
     ``ignore_cost_drift``  bool — whether ``--ignore-cost-drift`` was passed
+
+``tine diff RUN_A RUN_B --json``
+    ``command``          ``"diff"``
+    ``left``             object — ``run_id``, ``short_id``, ``path``
+    ``right``            object — the same three fields for the second run
+    ``common_ancestor``  str or null — full step id of the newest step both
+                         tips descend from, null when the runs share no history
+    ``identical``        bool — no bucket of ``drift`` carries an entry; this is
+                         exactly the ``--exit-code`` predicate
+    ``drift``            object — the four shared buckets above, byte-for-byte
+                         the shape ``replay --verify --json`` publishes
 """
 
 from __future__ import annotations
@@ -51,7 +78,62 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._cli_json import emit
-from opentine.core import short_id
+from opentine.core import Run, short_id
+
+#: Exactly the deltas ``_graph_diff._drift`` reports; everything ``_fields`` adds
+#: on top is structural. A guard test pins the split against that function.
+ACCOUNTING_FIELDS = frozenset({"billing", "cost", "usage"})
+
+
+def classify_drift(diff: Any) -> tuple[list[str], list[str]]:
+    """Split one ``RunDiff`` into (structural, accounting) labels."""
+    structural: list[str] = []
+    accounting: list[str] = []
+    for change in diff.changed:
+        label = short_id(change.step_a.id)
+        for delta in change.fields:
+            bucket = accounting if delta.name in ACCOUNTING_FIELDS else structural
+            bucket.append(f"{label} {delta.name}")
+    structural.extend(f"{short_id(step.id)} missing" for step in diff.only_a)
+    structural.extend(f"{short_id(step.id)} added" for step in diff.only_b)
+    return sorted(structural), sorted(accounting)
+
+
+def drift_payload(diff: Any) -> dict[str, list[str]]:
+    """The one drift object, so the two comparison commands cannot disagree."""
+    structural, accounting = classify_drift(diff)
+    return {
+        "structural": structural,
+        "accounting": accounting,
+        "only_source": sorted(short_id(step.id) for step in diff.only_a),
+        "only_replay": sorted(short_id(step.id) for step in diff.only_b),
+    }
+
+
+def identical(drift: dict[str, list[str]]) -> bool:
+    """No bucket carries an entry — the ``--exit-code`` predicate, spelled once."""
+    return not any(drift.values())
+
+
+def _side(run: Run, path: Any) -> dict[str, Any]:
+    return {"run_id": run.id, "short_id": short_id(run.id), "path": str(path)}
+
+
+def emit_diff(left: Run, right: Run, paths: tuple[Any, Any], diff: Any) -> bool:
+    """Write the object describing one legacy comparison; return ``identical``."""
+    drift = drift_payload(diff)
+    same = identical(drift)
+    emit(
+        {
+            "command": "diff",
+            "left": _side(left, paths[0]),
+            "right": _side(right, paths[1]),
+            "common_ancestor": diff.common_ancestor,
+            "identical": same,
+            "drift": drift,
+        }
+    )
+    return same
 
 
 def emit_replay_verify(verdict: Any) -> None:
@@ -80,6 +162,7 @@ def emit_replay_verify(verdict: Any) -> None:
                 "reason": integrity.reason,
                 "draft": bool(integrity.draft),
             },
+            "drift": dict(verdict.drift),
             "structural_drift": list(verdict.structural),
             "accounting_drift": list(verdict.accounting),
             "ignore_cost_drift": bool(verdict.ignore_cost_drift),

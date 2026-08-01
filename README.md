@@ -548,7 +548,7 @@ tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
 tine fork <run> --from-step 3         Branch from a step and continue there
 tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
 tine replay <run> --verify            Check the replay reproduces the run: exit 0/1
-tine diff <run_a> <run_b>             Compare two runs step by step
+tine diff <run_a> <run_b>             Compare two runs step by step; --exit-code for 0/1
 tine resume <run>                     Continue a run whose manifest declares resume support
 tine migrate <run> --in-place         Upgrade a legacy artifact to format v2
 tine ls --tag prod --limit 20         List indexed runs from .tine_runs
@@ -579,12 +579,19 @@ Machine-readable output:
 
 ```text
 tine show|verify|ls|search|cost ... --json
+tine replay <run> --verify --json
+tine diff <run_a> <run_b> [--json] [--exit-code]
 ```
 
 `--json` replaces the rich rendering with exactly one JSON object on stdout;
 without it the human rendering is unchanged. The fields of each object are
-enumerated in `opentine/_cli_json.py` and are added to but never renamed within
-a major version. A failure that stops the command producing a result stays human
+enumerated in `opentine/_cli_json.py` — and, for the two commands that compare
+runs, in `opentine/_cli_json_flow.py` — and are added to but never renamed
+within a major version. `tine diff` and `tine replay --verify` publish the same
+`drift` object (`structural`, `accounting`, `only_source`, `only_replay`) from
+one builder. With `--exit-code`, `tine diff` follows `git diff`: **0** when the
+runs are identical, **1** when they differ, and never 2 — argparse keeps 2 for a
+usage error. Without `--exit-code` a successful comparison always exits 0. A failure that stops the command producing a result stays human
 text and a non-zero exit; a failure that *is* the result still comes out as the
 object — `verify` reports a failed check as `"ok": false` and `cost` a breached
 budget as `"over_budget": true`, both exiting 1.
