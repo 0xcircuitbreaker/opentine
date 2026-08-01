@@ -38,7 +38,9 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "harness_max_line_bytes": ("--harness-max-line-bytes", 1_000_000),
     "harness_max_output": ("--harness-max-output", 4_000_000),
     "harness_timeout": ("--harness-timeout", 3_600.0),
+    "ignore_cost_drift": ("--ignore-cost-drift", False),
     "in_place": ("--in-place", False),
+    "json": ("--json", False),
     "key_env": ("--key-env", None),
     "key_file": ("--key-file", None),
     "mode": ("--mode", "cache"),
@@ -49,6 +51,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "pubkey": ("--pubkey", None),
     "save": ("--save", None),
     "trust_embedded_key": ("--trust-embedded-key", False),
+    "verify": ("--verify", False),
 }
 
 AUTOSAVE_FLAGS = ("autosave", "autosave_interval", "autosave_seconds")

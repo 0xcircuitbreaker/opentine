@@ -113,6 +113,18 @@ def _build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--save")
     replay.add_argument("--force", action="store_true")
     replay.add_argument("--compare", action="store_true")
+    # --verify replays into a temporary workspace and compares; it writes an
+    # artifact only when --save names one.
+    replay.add_argument(
+        "--verify",
+        action="store_true",
+        help="Check the replay reproduces the run: exit 0 reproduced, 1 drift",
+    )
+    replay.add_argument(
+        "--ignore-cost-drift",
+        action="store_true",
+        help="With --verify, let cost/usage/billing drift alone still pass",
+    )
     _add_harness_args(replay)
 
     diff = sub.add_parser("diff", help="Diff two legacy runs")
@@ -122,7 +134,9 @@ def _build_parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id")
 
     # --json is purely additive: without it each of these renders exactly as before.
-    for readable in (show, verify, listing, search, cost):
+    # `replay` earns it only through --verify, whose verdict is a result a script
+    # reads; a plain replay's output is the artifact it writes.
+    for readable in (show, verify, listing, search, cost, replay):
         readable.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )

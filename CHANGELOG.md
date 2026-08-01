@@ -1,5 +1,64 @@
 # Changelog
 
+## Unreleased — 0.6.0 (Surface Release)
+
+### Added
+
+- **`tine replay <run> --verify`.** Deterministic replay was an asserted
+  property; it is now a check with an exit status, so CI can gate on it. The
+  check is deliberately not an in-memory one — `Run.fork` deep-copies, so
+  diffing a fork against its source always passes and proves nothing. Instead
+  the replay is saved to a *temporary* path and loaded back, the replay is
+  derived a second time from the source file, and the two must agree on the
+  64-hex run id, on the retained slice, on the canonical digest of the
+  round-tripped artifact (`Run.verify_integrity`), and on every structural
+  field. Exit status is binary: **0** reproduced, **1** drift or a source that
+  will not load (argparse keeps 2). `--ignore-cost-drift` downgrades an
+  accounting-only difference — the cost/usage/billing bucket `tine diff`
+  already reports separately — to a pass; structural drift always fails.
+  `--json` emits one documented object (`command: "replay-verify"`) through the
+  same single writer as the other `--json` commands. A source that does not
+  load produces no verdict, so it is a human message and never JSON.
+- **`--verify` with `--harness`** re-executes the run **twice** over one
+  context and compares the two saved artifacts: the real nondeterminism gate
+  for an external agent. Cache-mode verification, which spawns nothing, is the
+  default CI gate.
+
+### Fixed
+
+- **`tine replay --inspect` / `--dry-run` previewed the wrong steps.**
+  Inspection listed the *descendant* closure of `--from-step` while a replay
+  retains the *ancestor* closure, so on any branched run the preview was the
+  complement of what the replay reuses; on a linear run the two agreed by
+  accident. Preview, verification verdict, and `Run.fork` now read one helper
+  (`retained_closure`), and inspection prints the matching `would reuse N
+  recorded steps` count.
+
+### Changed
+
+- `tine replay --verify` writes nothing under `.tine_runs/` unless `--save`
+  names a destination — the always-write paths of a plain replay are
+  conditional under `--verify`. With `--save` the verified bytes are copied out
+  and the existing refusal to overwrite without `--force` still applies. The
+  temporary workspace is removed on every path, failures included.
+- `--json` and `--ignore-cost-drift` are refused, not ignored, when the chosen
+  replay mode cannot honour them (`--json` without `--verify`, either of them
+  with `--inspect`/`--dry-run`), matching the refusal rule the other commands
+  already follow.
+
+### Known divergence
+
+- A cached replay from the CLI carries the *source's* status, while
+  `Agent.replay(mode="cache")` (`HistoryMixin.replay`) marks its result
+  `completed`. `--verify` checks the CLI's artifact and therefore pins the CLI
+  behaviour. This is documented, not changed, in 0.6.0; reconciling the two is
+  a 0.7.0 change.
+
+### Compatibility
+
+- No format change. `--verify` runs over the committed v0.3.0 / v0.4.0 / v0.5.0
+  golden artifacts in cache mode as part of the backwards-compatibility gate.
+
 ## 0.5.0 — 2026-07-31
 
 The Ecosystem Release. OpenTine is now a *source* of OpenTelemetry GenAI

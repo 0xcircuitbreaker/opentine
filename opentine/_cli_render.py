@@ -160,3 +160,29 @@ def _print_diff_table(left: Run, right: Run) -> None:
                 "",
             )
     console.print(table)
+
+
+def print_replay_verify(verdict) -> None:
+    """Render one ``tine replay --verify`` verdict (the object ``--json`` emits)."""
+    headline = "[green]REPRODUCED[/]" if verdict.reproduced else "[red]DRIFT[/]"
+    console.print(
+        f"[{BRAND}]# Replay verify[/] ({verdict.mode}) {_terminal(short_id(verdict.run_id))} -> "
+        f"{_terminal(short_id(verdict.replay_id))} {headline}"
+    )
+    if verdict.reused_steps is not None:
+        console.print(
+            f"reused {verdict.reused_steps} recorded steps (expected {verdict.expected_steps})"
+        )
+    digest = verdict.integrity.actual or verdict.integrity.expected or ""
+    state = "verified" if verdict.integrity.ok else f"FAILED: {verdict.integrity.reason}"
+    console.print(f"round trip sha256:{_terminal(digest[:12])} {_terminal(state)}")
+    if not verdict.identity_ok:
+        console.print(f"[red]identity drift:[/] {_terminal(short_id(verdict.second_id))}")
+    if verdict.slice_ok is False:
+        console.print("[red]retained slice differs from the expected closure[/]")
+    if verdict.structural:
+        console.print(f"[red]structural drift:[/] {_terminal(', '.join(verdict.structural))}")
+    if verdict.accounting:
+        note = " [dim](ignored)[/]" if verdict.ignore_cost_drift else ""
+        drift = _terminal(", ".join(verdict.accounting))
+        console.print(f"[yellow]accounting drift:[/] {drift}{note}")

@@ -41,6 +41,27 @@ def _causal_transcript(transcript: list[dict], retained: set[str], fork_point: s
     return result
 
 
+def retained_closure(run, fork_point: str) -> set[str]:
+    """Step ids a fork from *fork_point* keeps: its ANCESTOR closure, causal edges included.
+
+    Spelled once because more than one caller has to agree with ``fork`` exactly:
+    ``tine replay --inspect`` previews this slice and ``tine replay --verify``
+    states it as the expected result, and a preview computed a *second* way is a
+    preview that can be wrong (it was: it listed the descendants instead).
+    """
+    causal = getattr(run, "_v3_causal_ids", {})
+    retained: set[str] = set()
+    pending = [fork_point]
+    while pending:
+        step_id_value = pending.pop()
+        if step_id_value in retained:
+            continue
+        retained.add(step_id_value)
+        step = run.graph.steps[step_id_value]
+        pending.extend([*step.parent_ids, *(causal.get(step_id_value) or [])])
+    return retained
+
+
 class RunAnalysisMixin:
     def cost_breakdown(self) -> CostBreakdown:
         by_model_decimal: dict[str, Decimal] = {}
@@ -120,16 +141,7 @@ class RunAnalysisMixin:
     ):
         fork_point = self.graph.resolve(from_step_id)
         causal = getattr(self, "_v3_causal_ids", {})
-        retained: set[str] = set()
-
-        pending = [fork_point]
-        while pending:
-            step_id_value = pending.pop()
-            if step_id_value in retained:
-                continue
-            retained.add(step_id_value)
-            step = self.graph.steps[step_id_value]
-            pending.extend([*step.parent_ids, *(causal.get(step_id_value) or [])])
+        retained = retained_closure(self, fork_point)
         graph = Graph()
         for step in self.steps:
             if step.id in retained:
