@@ -30,8 +30,37 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     # operator reproducing what an agent saw types this command.
     context.add_argument("--depth", type=int, default=8)
 
+    diff = subparsers.add_parser("repo-diff", help="Semantically diff two v3 runs")
+    for side in ("left", "right"):
+        diff.add_argument(side, help="A ref name such as heads/main, or a run:sha256:… oid")
+    diff.add_argument("--repo", default=".")
+    diff.add_argument(
+        "--exit-code",
+        action="store_true",
+        help="Exit 1 when the runs differ and 0 when they are identical, like git diff",
+    )
+
+    search = subparsers.add_parser(
+        "repo-search",
+        help="Search completed v3 runs (scans up to 100,000 objects; bound output with --limit)",
+    )
+    search.add_argument("query", nargs="?", default="", help="Text matched against run content")
+    search.add_argument("--repo", default=".")
+    # successful_only=True and limit=20 are the MCP search_runs defaults, mirrored
+    # exactly: an operator reproducing what an agent searched must get its result set.
+    search.add_argument(
+        "--limit", type=int, default=20, help="Maximum runs returned, 1-1000 (default 20)"
+    )
+    search.add_argument("--min-score", type=float, help="Keep runs scoring at least this")
+    search.add_argument("--model", help="Keep runs whose model ids contain this substring")
+    search.add_argument(
+        "--include-unsuccessful",
+        action="store_true",
+        help="Also return non-completed runs (the default is completed runs only)",
+    )
+
     # --json is purely additive on the read verbs: without it each renders as before.
-    for readable in (log, show, context):
+    for readable in (log, show, context, diff, search):
         readable.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )

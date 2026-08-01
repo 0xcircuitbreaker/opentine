@@ -90,19 +90,48 @@ resume, evaluate, attest, and promote run graphs instead.
 
 ## Read verbs and their `--json` contract
 
-Three read verbs expose repository engines on the command line. Each renders for
+Five read verbs expose repository engines on the command line. Each renders for
 a human by default and emits exactly one JSON object with `--json`:
 
 ```bash
 tine repo-show heads/main --repo . [--json]      # a whole run, as a step tree
 tine context <event-oid> --repo . [--depth N]    # only that event's ancestors
 tine repo-log [ref] --repo . [--limit N]         # the event ancestry, one per line
+tine repo-diff <left> <right> --repo .           # the semantic diff of two runs
+tine repo-search [query] --repo . [--limit N]    # completed runs, by content
 ```
 
 `repo-show` accepts a ref name or a `run:sha256:…` oid; `context` requires an
 `event:sha256:…` oid and defaults to `--depth 8`, the same default the MCP
 `context_slice` tool uses, so an operator reproducing what an agent saw gets the
-same slice. Both are read-only and never write a ref.
+same slice. Every one of the five is read-only and never writes a ref.
+
+`repo-diff` takes a ref name or a run oid on either side, resolves each once, and
+compares the resolved objects, so the `left_id`/`right_id` it reports are exactly
+what was diffed. It is the `semantic_diff` MCP tool, so the human table and the
+JSON carry the same divergence sets and the same five summary dimensions.
+With `--exit-code` it follows `git diff`: **0** when the runs are identical,
+**1** when they differ. Identical means no event-level divergence — no
+`only_left`, no `only_right`, no `changed` — which the JSON also reports as
+`identical`. Without `--exit-code` a successful comparison always exits 0.
+A usage error is argparse's **2**, which the verb itself never emits, so a script
+can distinguish "the runs differ" from "you typed the command wrong".
+
+`repo-search` mirrors the MCP `search_runs` tool exactly: it defaults to
+`successful_only` (completed runs only, flipped by `--include-unsuccessful`) and
+to `--limit 20`, with `--min-score` and `--model` as the same optional filters.
+An empty query lists candidate runs; a query is matched case-insensitively
+against event input and output blob text, and the matching prefix comes back as
+`matched_text`.
+
+Search is a **bounded scan, not an index**. It walks up to
+`MAX_SEARCH_OBJECTS` = 100,000 repository objects per invocation and reads blob
+text under further aggregate byte budgets, so its latency grows with repository
+size and it is deliberately not on any write path. `--limit` bounds the *result
+set*, not the scan — it is what keeps output readable, not what makes the command
+fast. Exceeding any of the scan budgets is a refusal, printed as a single
+`tine repo-search: <message>` line with exit 1, never a partial result presented
+as a complete one.
 
 The JSON objects come from the same writer as `tine show --json`: keys are
 sorted, every value passes `json_safe`, and each object carries `command`, which
@@ -130,6 +159,26 @@ single `tine <verb>: <message>` line on stderr and exit 1, not JSON.
 | | `ref` | str | the ref or oid the walk started at |
 | | `count` | int | number of entries |
 | | `entries` | array | `oid`, `object_type`, `kind` |
+| `repo-diff` | `command` | str | `"repo-diff"` |
+| | `repo` | str | repository the runs were read from |
+| | `left`, `right` | str | each side as the caller spelled it |
+| | `left_id`, `right_id` | str | the `run:sha256:…` oid each side resolved to |
+| | `identical` | bool | the `--exit-code` predicate: no divergent events |
+| | `common_events` | array | event oids both runs contain |
+| | `only_left`, `only_right` | array | event oids unique to one side |
+| | `changed` | array | position-aligned divergent pairs: `index`, `before`, `after`, `fields` |
+| | `summary` | object | `cost`, `latency`, `artifacts`, `evaluations`, `tool_path`, each `{left, right}` |
+| `repo-search` | `command` | str | `"repo-search"` — distinct from the legacy index-backed `"search"`, which emits `runs` |
+| | `repo` | str | repository searched |
+| | `query` | str | the query, empty when none was given |
+| | `successful_only` | bool | false only with `--include-unsuccessful` |
+| | `limit` | int | result cap as requested (default 20) |
+| | `min_score`, `model` | float/str or null | the optional filters, null when unset |
+| | `count` | int | rows in `results`, never more than `limit` |
+| | `results` | array | `run_id`, `status`, `score` (null when unevaluated), `cost`, `latency`, `models`, `matched_text` |
+
+`repo-diff` emits every `SemanticDiff` field verbatim and adds only the envelope
+keys above, so a new engine field appears in the JSON without a schema change.
 
 `short_id` is deliberately absent from every v3 object. It is a twelve-character
 prefix, and a v3 oid's first twelve characters are the constant `run:sha256:` or
