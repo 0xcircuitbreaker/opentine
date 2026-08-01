@@ -29,6 +29,9 @@ repository that is deleted afterwards, so importing never leaves a repository
 behind that the user did not ask for. Environment and code capture is off: the
 provenance of an imported trace belongs to the machine that produced it, not to
 the one running ``tine import``.
+
+With ``--json`` the human lines are replaced by one object naming the run and
+both targets; its schema is documented in :mod:`opentine._cli_json_surface`.
 """
 
 from __future__ import annotations
@@ -42,6 +45,8 @@ from pathlib import Path
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import refuse_unhonoured
 from opentine._cli_flow import _require_output_slot
+from opentine._cli_json_surface import emit_import
+from opentine.core import Run
 from opentine.repo import Repo
 from opentine.trace.importers import (
     MAX_TRACE_IMPORT_BYTES,
@@ -58,7 +63,7 @@ DEFAULT_REF = "heads/main"
 STDIN = "-"
 
 
-def add_import_parser(subparsers: argparse._SubParsersAction) -> None:
+def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
     parser = subparsers.add_parser("import", help="Import a foreign agent trace as a run")
     parser.add_argument("source", help="Trace file to read, or - for stdin")
     parser.add_argument("--format", choices=IMPORT_FORMATS, required=True)
@@ -77,6 +82,7 @@ def add_import_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--force", action="store_true", help="Replace an existing --save destination"
     )
+    return parser
 
 
 def _refuse_unusable_flags(args: argparse.Namespace) -> None:
@@ -165,11 +171,12 @@ def _record(repo: Repo, events: list[TraceEvent], ref: str) -> str:
     return recorder.finalize()
 
 
-def _persist(repo: Repo, events: list[TraceEvent], ref: str, output: Path | None) -> str:
-    run_id = _record(repo, events, ref)
+def _persist(repo: Repo, events: list[TraceEvent], ref: str, output: Path | None) -> Run:
+    """Record the events and read the run back, before any scratch repo is gone."""
+    run = repo.load_run(_record(repo, events, ref))
     if output is not None:
-        repo.load_run(run_id).save(output)
-    return run_id
+        run.save(output)
+    return run
 
 
 def _refused(exc: Exception) -> SystemExit:
@@ -205,15 +212,27 @@ def cmd_import(args: argparse.Namespace) -> None:
         if args.repo:
             repo = Repo.open(args.repo)
             repo_path = repo.path
-            run_id = _persist(repo, events, ref, output)
+            run = _persist(repo, events, ref, output)
         else:
             with tempfile.TemporaryDirectory(prefix="tine-import-") as scratch:
-                run_id = _persist(Repo.init(Path(scratch) / "import"), events, ref, output)
+                run = _persist(Repo.init(Path(scratch) / "import"), events, ref, output)
     except (OSError, RecursionError, ValueError) as exc:
         raise _refused(exc) from exc
+    if getattr(args, "json", False):
+        emit_import(
+            run,
+            source=args.source,
+            source_format=args.format,
+            events_imported=len(events),
+            saved_to=output,
+            repo=repo_path,
+            # --ref is refused without --repo, so a --save-only import advanced none.
+            ref=ref if repo_path is not None else None,
+        )
+        return
     console.print(
         f"[{BRAND}]# Imported[/] {len(events)} event(s) from "
-        f"{_terminal(args.source)} [{BRAND}]as[/] {_terminal(run_id)}"
+        f"{_terminal(args.source)} [{BRAND}]as[/] {_terminal(run.id)}"
     )
     if output is not None:
         console.print(f"[{BRAND}]Saved:[/] {_terminal(output)}")

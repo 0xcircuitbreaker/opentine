@@ -6,7 +6,9 @@ import argparse
 
 from opentine._artifact_io import artifact_integrity, read_artifact_json
 from opentine._cli_common import BRAND, _find_run, _index_update, _runs_dir, _terminal, console
+from opentine._cli_flags import refuse_unhonoured
 from opentine._cli_json import emit_entries
+from opentine._cli_json_surface import emit_tags
 from opentine._cli_render import _entries_table, _has_filters, _query_from_ls_args
 from opentine.core import Run, short_id
 from opentine.index import MAX_INDEX_RUNS, QueryError, RunIndex, match_entry
@@ -95,12 +97,26 @@ def cmd_reindex(args: argparse.Namespace) -> None:
 
 
 def cmd_tag(args: argparse.Namespace) -> None:
+    # --list and "neither --add nor --remove" are the same listing mode; the
+    # mutating path is a different command shape, so it refuses --json out loud
+    # rather than writing the artifact and dropping the flag.
+    listing = args.list or (not args.add and not args.remove)
+    if not listing:
+        refuse_unhonoured(
+            args,
+            ("json",),
+            mode="with --add or --remove",
+            hint="--json reports the tags a run carries; drop the edit to read them.",
+        )
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     run = Run.load(path)
-    if args.list or (not args.add and not args.remove):
+    if listing:
+        if getattr(args, "json", False):
+            emit_tags(run, path)
+            return
         console.print(_terminal(", ".join(run.tags)) if run.tags else "[dim](no tags)[/]")
         return
     changed = False
