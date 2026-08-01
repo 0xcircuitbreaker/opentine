@@ -545,16 +545,21 @@ Importing introduces no format change, and `--ref` is refused without `--repo`.
 Machine-readable output:
 
 ```text
-tine show|verify|ls|search|cost ... --json
+tine show|verify|ls|search|stats|cost ... --json
 tine replay <run> --verify --json
 tine diff <run_a> <run_b> [--json] [--exit-code]
+tine import <trace> --format FMT [--save PATH] [--repo PATH] --json
+tine tag <run> [--list] --json
 ```
 
 `--json` replaces the rich rendering with exactly one JSON object on stdout;
 without it the human rendering is unchanged. The fields of each object are
-enumerated in `opentine/_cli_json.py` — and, for the two commands that compare
-runs, in `opentine/_cli_json_flow.py` — and are added to but never renamed
-within a major version. `tine diff` and `tine replay --verify` publish the same
+enumerated in `opentine/_cli_json.py` — for the two commands that compare runs
+in `opentine/_cli_json_flow.py`, and for `import` and `tag` in
+`opentine/_cli_json_surface.py` — and are added to but never renamed
+within a major version. `tine tag --json` describes a *listing*: `--list` and
+the implicit default (neither `--add` nor `--remove`) emit the same object, and
+the mutating path refuses `--json` rather than dropping it. `tine diff` and `tine replay --verify` publish the same
 `drift` object (`structural`, `accounting`, `only_source`, `only_replay`) from
 one builder. With `--exit-code`, `tine diff` follows `git diff`: **0** when the
 runs are identical, **1** when they differ, and never 2 — argparse keeps 2 for a
