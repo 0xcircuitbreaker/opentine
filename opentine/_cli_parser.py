@@ -7,9 +7,9 @@ import argparse
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_common import HARNESS_FACTORIES
 from opentine._cli_import import add_import_parser
+from opentine._repo_cli_parser import add_repo_parsers
 from opentine.pricing_cli import add_pricing_parser
 from opentine.remote.server import add_serve_parser
-from opentine.repo_cli import add_repo_parsers
 
 
 def _build_parser() -> argparse.ArgumentParser:
