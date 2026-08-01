@@ -514,6 +514,7 @@ tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
 tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
 tine fork <run> --from-step 3         Branch from a step and continue there
 tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
+tine replay <run> --verify            Check the replay reproduces the run: exit 0/1
 tine diff <run_a> <run_b>             Compare two runs step by step
 tine resume <run>                     Continue a run whose manifest declares resume support
 tine migrate <run> --in-place         Upgrade a legacy artifact to format v2
@@ -608,6 +609,15 @@ Flag details that are easy to get wrong:
   write `.tine_runs/<run-id>.tine`; `fork` and `replay` refuse to overwrite an
   existing `--save` destination unless `--force` is passed, and `keygen --force`
   overwrites an existing key file.
+- `tine replay --verify` writes nothing unless `--save` names a destination: it
+  replays into a temporary directory, reads the artifact back, derives the
+  replay a second time from the source file, and compares. It exits 0 when the
+  replay is reproduced and 1 on drift or a source that will not load;
+  `--ignore-cost-drift` lets cost/usage/billing differences alone still pass,
+  while structural drift always fails. `--inspect` previews exactly the steps
+  the replay retains — the ancestors of `--from-step`, the same slice `--verify`
+  expects. With `--harness` the run is re-executed twice and the two artifacts
+  compared, which is how a nondeterministic agent is caught.
 - `tine migrate` only previews unless `--in-place` or `--save` is given, and it
   drops any existing signature, so re-sign after migrating. Its single `--force`
   does two jobs: it overwrites an existing `--save` destination, and it waives

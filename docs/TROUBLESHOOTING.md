@@ -161,7 +161,8 @@ Two messages, both exiting 1 before any work is done:
 - `FLAG has no effect MODE` — the selected mode never reads that flag.
   `tine run --harness ... --autosave-interval` without `--autosave`,
   `tine fork --prompt` without `--harness`, `tine replay --inspect` with
-  `--compare`, `tine migrate --dry-run` with `--save`, `tine sign --overwrite`
+  `--compare`, `tine replay --json`/`--ignore-cost-drift` without `--verify`,
+  `tine migrate --dry-run` with `--save`, `tine sign --overwrite`
   without `--save`, `tine keygen --force` without `--out` or `--pub`, and
   `tine import --force` without `--save` all produce it. `tine import --ref`
   without `--repo` is refused for the same reason in its own words: a `--save`
