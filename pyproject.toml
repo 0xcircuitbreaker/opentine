@@ -30,6 +30,14 @@ google = ["google-genai>=2.8.0"]
 # Kimi, DeepSeek, Qwen, GLM, Grok, Groq, Together, Mistral/Ministral,
 # OpenRouter, and Hermes use the OpenAI SDK transport.
 compat = ["openai>=1.75.0"]
+# Managed re-hosts. Bedrock's Anthropic surface needs the SDK's SigV4 signer
+# (anthropic[bedrock] pulls boto3/botocore); Vertex needs google-auth via
+# google-genai plus the SDK's Vertex client. Both stay OUT of the base install:
+# opentine.models.managed imports without them and only _get_client raises.
+# BedrockCompatible (Nova/Llama/Mistral over the OpenAI-compatible endpoint) and
+# Azure OpenAI are served by `compat` — no extra of their own.
+bedrock = ["anthropic[bedrock]>=0.87"]
+vertex = ["google-genai>=2.8.0", "anthropic[vertex]>=0.87"]
 # Ollama uses httpx (core dep) directly — no extra package needed
 # MCP server (opentine.mcp_server) needs the mcp package
 mcp = ["mcp>=1.28.1,<2"]
@@ -42,6 +50,8 @@ langchain = ["langchain-core>=0.3"]
 crypto = ["cryptography>=48.0.1"]
 all = [
     "anthropic>=0.87",
+    "anthropic[bedrock]>=0.87",
+    "anthropic[vertex]>=0.87",
     "openai>=1.75.0",
     "google-genai>=2.8.0",
     "cryptography>=48.0.1",

@@ -122,6 +122,12 @@ class ChatCompletions(ChatStreamMixin):
     _build_tools = staticmethod(build_tools)
     _build_messages = staticmethod(build_messages)
 
+    @staticmethod
+    def _model_id(reported: Any) -> Any:
+        """The model identity to persist. Identity for a direct endpoint; a managed
+        re-host overrides it to strip account-bearing ids before they are recorded."""
+        return reported
+
     def _kwargs(
         self,
         messages: list[dict[str, Any]],
@@ -182,7 +188,7 @@ class ChatCompletions(ChatStreamMixin):
         chat_terminal(result, value(choice, "finish_reason") if choice else "empty_choices")
         observed_tier = value(response, "service_tier")
         tier = self._billing_tier(kwargs["messages"], observed_tier)
-        reported_model = value(response, "model")
+        reported_model = self._model_id(value(response, "model"))
         result.update(
             self._meter(
                 value(response, "usage"),

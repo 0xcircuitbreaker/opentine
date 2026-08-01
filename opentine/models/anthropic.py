@@ -30,6 +30,12 @@ class Anthropic:
     _build_tools = staticmethod(build_tools)
     _convert_messages = staticmethod(convert_messages)
 
+    @staticmethod
+    def _model_id(reported: Any) -> Any:
+        """The model identity to persist. Identity for the direct API; a managed
+        re-host overrides it to strip account-bearing ids before they are recorded."""
+        return reported
+
     def __init__(
         self,
         model: str = "claude-sonnet-5",
@@ -100,7 +106,7 @@ class Anthropic:
 
     def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
         raw_usage = value(response, "usage")
-        raw_model = value(response, "model")
+        raw_model = self._model_id(value(response, "model"))
         reported_model = model_name(raw_model)
         payload = metered_response(
             self._provider_id,
@@ -168,7 +174,7 @@ class Anthropic:
                 ),
             )
         )
-        if reported_model := model_name(value(response, "model")):
+        if reported_model := model_name(self._model_id(value(response, "model"))):
             result["model"] = reported_model
         reject_refused_tool_calls(result)
         return result

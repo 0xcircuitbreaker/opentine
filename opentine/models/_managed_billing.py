@@ -21,6 +21,24 @@ USER_SUPPLIED = "user_supplied_regional_rates"
 _PRICED_STATUSES = {"complete", "partial", "unmetered"}
 
 
+def reject_unsupported_controls(surface: str, **controls: Any) -> None:
+    """Refuse request knobs a managed surface does not expose.
+
+    Bedrock's and Vertex's Anthropic Messages surfaces have neither
+    ``service_tier`` nor ``inference_geo``: the re-host's contract, not the
+    request, decides capacity and geography. Accepting the argument and dropping
+    it would leave the caller believing they asked for a tier they never got —
+    and, for ``inference_geo``, would change how the tier is priced. Raising is
+    the only honest answer.
+    """
+    named = sorted(name for name, control in controls.items() if control is not None)
+    if named:
+        raise ValueError(
+            f"{surface} has no {' or '.join(named)}; the managed re-host's contract "
+            "sets capacity and region, not the request"
+        )
+
+
 def unpriced_warning(provider: str) -> str:
     return (
         f"{provider} regional rates are not in the signed catalog; "

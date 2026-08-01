@@ -41,7 +41,7 @@ class ChatStreamMixin:
                 for event in state.add(value(choices[0], "delta")):
                     yield event
             raw_usage = chat_chunk_usage(chunk, choices)
-            reported_model = value(chunk, "model")
+            reported_model = self._model_id(value(chunk, "model"))
             if reported_model is not None:
                 final_model = reported_model
             chunk_tier = value(chunk, "service_tier")

@@ -23,6 +23,53 @@
   context and compares the two saved artifacts: the real nondeterminism gate
   for an external agent. Cache-mode verification, which spawns nothing, is the
   default CI gate.
+- **Managed-cloud adapters (`opentine.models.managed`): `Bedrock`,
+  `BedrockCompatible`, `Vertex`, `VertexAnthropic`.** Thin subclasses of the
+  adapters that already exist — they inherit the request building, content
+  handling, and usage extraction unchanged, and alter exactly two things: the
+  `_provider_id` class attribute, and a `managed_unpriced()` pass after
+  metering. So every managed call is recorded with usage in full and
+  `status: "unknown"`, `amount_usd: null`, `cost: 0.0`, plus
+  `pricing_basis: "managed_cloud_unpriced"` and the region. Supplying `rates=`
+  or an overlay card prices the call and flips the basis to
+  `user_supplied_regional_rates`. Bedrock needs no new usage code (it reports
+  the direct API's `cache_creation` shape and the model rules are substring
+  matches); Vertex needs none either (the normalizer already reads camelCase
+  `usageMetadata`). Extras: `opentine[bedrock]`, `opentine[vertex]`; both are in
+  `all`. The base install is unchanged — no `boto3`, no `google-auth` — and the
+  modules import without either, since the `ImportError` naming the extra is
+  raised inside `_get_client`, never at import time.
+- **A Bedrock inference-profile ARN is truncated to its profile name before it
+  is persisted.** `arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-sonnet-5-v1:0`
+  carries the caller's **AWS account id**, and a model identity is written to
+  `requested_model`, `reported_model`, the step's `model_info`, and so every
+  `tine cost` `by_model` row — in artifacts that get shared, diffed, and
+  attached to pull requests. The request still goes out with the full ARN (that
+  is what Bedrock resolves); only the recorded identity is truncated, on the way
+  out *and* on the way back, so an ARN echoed by the response cannot smuggle the
+  account id in. The calculation notes `model_id_truncated`.
+- **Vertex is structurally unable to borrow Google's rate card.** Vertex reports
+  a bare `gemini-3.5-flash` — the same string the direct API reports, and one the
+  bundled catalog prices. `RateCard.matches` compares the provider *first* and
+  `_provider_id` is a class attribute (no constructor argument can relabel a
+  managed call), so a Vertex call resolves no card and prices as unknown.
+  Regression-tested against the direct-API call it would otherwise be confused
+  with.
+- Bedrock's and Vertex's Messages surfaces have no `service_tier` and no
+  `inference_geo`. Passing either raises `ValueError` instead of being silently
+  dropped: the re-host's contract sets capacity and region, and accepting a knob
+  that does nothing would leave a caller believing they bought a tier.
+
+### Rejected (recorded so it is not relitigated)
+
+- **A generic `boto3` Converse adapter.** It buys the non-Anthropic Bedrock
+  families a second time — `BedrockCompatible` already reaches Nova, Llama, and
+  Mistral over Bedrock's OpenAI-compatible endpoint with zero new normalizers —
+  in exchange for a sync-only client needing an async bridge, plus new
+  content-block, streaming, and usage normalizers for a wire shape nothing else
+  in the codebase speaks. That is a large reimplementation of tested code, and
+  the opposite of this release's thesis: a managed cloud is a *surface* over the
+  adapters we have, not a new provider stack.
 
 ### Fixed
 

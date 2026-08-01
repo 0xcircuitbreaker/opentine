@@ -42,6 +42,8 @@ pip install "opentine[anthropic]"
 pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"  # hosted and local OpenAI-compatible APIs
+pip install "opentine[bedrock]" # Anthropic models on Amazon Bedrock
+pip install "opentine[vertex]"  # Gemini and Anthropic models on Vertex AI
 pip install "opentine[mcp]"
 pip install "opentine[langchain]" # live callback capture for LangChain/LangGraph
 pip install "opentine[crypto]" # compatibility alias only; see below
@@ -257,6 +259,31 @@ when the server implements final stream usage. Local API cost is `unmetered` by
 default; supply `rates=` to account for infrastructure. The `LiteLLM` preset
 and `OpenAICompatible` deliberately default to unknown billing because a
 gateway may route paid hosted APIs.
+
+### Managed clouds (usage recorded, cost unknown)
+
+Bedrock and Vertex re-host the same models under per-region, per-account
+contract pricing that no public snapshot can state truthfully. The adapters are
+the existing ones with a different billing identity:
+
+```python
+from opentine.models.managed import Bedrock, BedrockCompatible, Vertex, VertexAnthropic
+
+Bedrock("us.anthropic.claude-sonnet-5-v1:0", region="us-east-1")
+Bedrock("arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-sonnet-5-v1:0")
+BedrockCompatible("amazon.nova-pro-v1:0")   # Nova/Llama/Mistral; needs opentine[compat]
+Vertex("gemini-3.5-flash", project="acme-prod", location="europe-west4")
+VertexAnthropic("claude-sonnet-5@20260101", project="acme-prod", region="us-east5")
+```
+
+Every managed call records usage in full and reports `status: "unknown"` with no
+amount — `tine cost` shows the unpriced step count and says its total is a known
+subtotal, not the bill. Supply your negotiated rates with `rates=` (or a catalog
+overlay) to price them; the calculation then records
+`pricing_basis: "user_supplied_regional_rates"`. An inference-profile ARN is
+truncated to its profile name before anything is persisted, so an AWS account id
+never reaches an artifact. Bedrock's Messages surface has no `service_tier` or
+`inference_geo`, so passing either raises rather than being silently dropped.
 
 ## V3 repository
 
