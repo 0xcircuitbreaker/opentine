@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
+import sys
+from collections.abc import Callable
+
 import opentine._cli_common as _common
 from opentine._cli_common import (
     BRAND,
@@ -43,18 +47,29 @@ from opentine._cli_security import (
 )
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
-from opentine.repo_cli import cmd_repo
+from opentine.repo_cli import REPO_COMMANDS, cmd_repo
 
-_REPO_COMMANDS = {
-    "clone",
-    "fetch",
-    "fsck",
-    "init",
-    "migrate-v3",
-    "object",
-    "pack",
-    "push",
-    "repo-log",
+# The legacy (v2) command table. REPO_COMMANDS owns the v3 side; the two must stay
+# disjoint and together cover every parser choice — tests/test_repo_cli_routing.py.
+LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "cost": cmd_cost,
+    "diff": cmd_diff,
+    "fork": cmd_fork,
+    "import": cmd_import,
+    "keygen": cmd_keygen,
+    "ls": cmd_ls,
+    "migrate": cmd_migrate,
+    "pricing": lambda namespace: cmd_pricing(namespace, console),
+    "reindex": cmd_reindex,
+    "replay": cmd_replay,
+    "resume": cmd_resume,
+    "run": cmd_run,
+    "search": cmd_search,
+    "serve": lambda namespace: cmd_serve(namespace, console),
+    "show": cmd_show,
+    "sign": cmd_sign,
+    "tag": cmd_tag,
+    "verify": cmd_verify,
 }
 
 
@@ -63,39 +78,26 @@ def main(argv: list[str] | None = None) -> None:
     _common.RUNS_DIR = RUNS_DIR
     parser = _build_parser()
     args = parser.parse_args(argv)
-    commands = {
-        "cost": cmd_cost,
-        "diff": cmd_diff,
-        "fork": cmd_fork,
-        "import": cmd_import,
-        "keygen": cmd_keygen,
-        "ls": cmd_ls,
-        "migrate": cmd_migrate,
-        "pricing": lambda namespace: cmd_pricing(namespace, console),
-        "reindex": cmd_reindex,
-        "replay": cmd_replay,
-        "resume": cmd_resume,
-        "run": cmd_run,
-        "search": cmd_search,
-        "serve": lambda namespace: cmd_serve(namespace, console),
-        "show": cmd_show,
-        "sign": cmd_sign,
-        "tag": cmd_tag,
-        "verify": cmd_verify,
-    }
-    if args.command in commands:
-        commands[args.command](args)
-    elif args.command in _REPO_COMMANDS:
+    if args.command in LEGACY_COMMANDS:
+        LEGACY_COMMANDS[args.command](args)
+    elif args.command in REPO_COMMANDS:
         cmd_repo(args, console)
-    else:
+    elif args.command is None:
         console.print(f"\n  [{BRAND}]opentine[/] — git for agent runs\n")
         parser.print_help()
+    else:
+        # A parser choice nobody routes is a packaging bug, not a usage banner: the
+        # old fall-through printed help and exited 0, so CI never saw the hole.
+        print(f"tine: unrouted command {args.command!r}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 __all__ = [
     "BRAND",
     "BRAND_DIM",
     "HARNESS_FACTORIES",
+    "LEGACY_COMMANDS",
+    "REPO_COMMANDS",
     "RUNS_DIR",
     "STATUS_COLORS",
     "STEP_ICONS",
