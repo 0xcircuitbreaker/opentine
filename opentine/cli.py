@@ -25,7 +25,7 @@ from opentine._cli_common import (
     console,
 )
 from opentine._cli_execute import cmd_cost, cmd_run, cmd_run_harness, cmd_show
-from opentine._cli_flow import cmd_diff, cmd_fork, cmd_replay, cmd_resume
+from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_import import cmd_import
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_migrate import cmd_migrate
@@ -39,6 +39,7 @@ from opentine._cli_render import (
     _print_run_tree,
     _query_from_ls_args,
 )
+from opentine._cli_replay import cmd_replay
 from opentine._cli_security import (
     _verify_signature_if_requested,
     cmd_keygen,
