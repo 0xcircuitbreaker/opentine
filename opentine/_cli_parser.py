@@ -7,6 +7,8 @@ import argparse
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_common import HARNESS_FACTORIES
 from opentine._cli_import import add_import_parser
+from opentine._cli_json_flow import STATS_SCOPE_NOTE
+from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine.pricing_cli import add_pricing_parser
 from opentine.remote.server import add_serve_parser
@@ -87,6 +89,21 @@ def _build_parser() -> argparse.ArgumentParser:
     search = sub.add_parser("search", help="Search legacy runs")
     search.add_argument("query", nargs="*")
 
+    # Same filter set as `ls`, so a filter learned there aggregates here unchanged.
+    stats = sub.add_parser(
+        "stats",
+        help=f"Aggregate legacy runs — {STATS_SCOPE_NOTE}",
+        description=f"Aggregate runs across the file index — {STATS_SCOPE_NOTE}",
+    )
+    _add_filter_args(stats)
+    stats.add_argument("--group-by", choices=GROUP_BY_CHOICES, default=None)
+    stats.add_argument(
+        "--deep",
+        action="store_true",
+        help="Load each matched run for tokens and duration, which the index does not store",
+    )
+    stats.add_argument("--limit", type=int, default=20, help="Max groups to show; 0 for all")
+
     tag = sub.add_parser("tag", help="Add, remove, or list tags")
     tag.add_argument("run_id")
     tag.add_argument("--add", action="append", default=[])
@@ -142,7 +159,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # --json is purely additive: without it each of these renders exactly as before.
     # `replay` earns it only through --verify, whose verdict is a result a script
     # reads; a plain replay's output is the artifact it writes.
-    for readable in (show, verify, listing, search, cost, replay, diff):
+    for readable in (show, verify, listing, search, stats, cost, replay, diff):
         readable.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
