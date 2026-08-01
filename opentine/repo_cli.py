@@ -1,87 +1,55 @@
-"""CLI commands for v3 repositories, packs, migration, and remotes."""
+"""Facade for the v3 repository CLI: the command registry and the error envelope.
+
+``REPO_COMMANDS`` is the single source of truth for which subcommands the v3 side
+owns; ``opentine.cli`` routes through it instead of keeping a second literal list,
+and tests/test_repo_cli_routing.py proves every parser choice is routed exactly once.
+"""
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
-from dataclasses import asdict
-from pathlib import Path
+from collections.abc import Callable
 
 import httpx
 
 from opentine._cli_common import _terminal
+from opentine._repo_cli_parser import add_repo_parsers
+from opentine._repo_cli_plumbing import (
+    cmd_clone,
+    cmd_fetch,
+    cmd_fsck,
+    cmd_init,
+    cmd_migrate_v3,
+    cmd_object,
+    cmd_pack,
+    cmd_push,
+    cmd_repo_log,
+)
 from opentine._signing_keys import SignatureError
-from opentine.repo import Repo
+
+# Re-exported so ``opentine.repo_cli.clone`` stays the live seam that transport tests
+# monkeypatch; opentine._repo_cli_plumbing.cmd_clone reads it back off this module.
 from opentine.repository.client import clone
-from opentine.repository.store import _atomic_bytes
 
+RepoHandler = Callable[[argparse.Namespace, object], None]
 
-def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
-    init = subparsers.add_parser("init", help="Initialize a v3 .tine repository")
-    init.add_argument("path", nargs="?", default=".")
-    init.add_argument("--bare", action="store_true")
-
-    fsck = subparsers.add_parser("fsck", help="Verify every object, ref, and causal link")
-    fsck.add_argument("--repo", default=".")
-    fsck.add_argument("--shallow", action="store_true", help="Skip linked-object checks")
-
-    log = subparsers.add_parser("repo-log", help="Show the v3 event ancestry")
-    log.add_argument("ref", nargs="?", default="heads/main")
-    log.add_argument("--repo", default=".")
-    log.add_argument("--limit", type=int)
-
-    inspect = subparsers.add_parser("object", help="Inspect a verified v3 object")
-    inspect.add_argument("object_id")
-    inspect.add_argument("--repo", default=".")
-    inspect.add_argument("--resolve-blobs", action="store_true")
-
-    pack = subparsers.add_parser("pack", help="Write a deterministic object pack")
-    pack.add_argument("--repo", default=".")
-    pack.add_argument("--output", required=True)
-    pack.add_argument("object_ids", nargs="*")
-
-    migration = subparsers.add_parser(
-        "migrate-v3", help="Import a v2 .tine artifact into a v3 repository"
-    )
-    migration.add_argument("source")
-    migration.add_argument("--repo", default=".")
-    migration.add_argument("--ref", default="heads/main")
-    migration.add_argument(
-        "--allow-unverified",
-        action="store_true",
-        help="Import even if the v2 source fails integrity or signature verification",
-    )
-
-    fetch = subparsers.add_parser("fetch", help="Fetch a verified pack from a remote")
-    _remote_args(fetch)
-    fetch.add_argument("--ref", default="heads/main")
-    fetch.add_argument("--depth", type=int)
-    fetch.add_argument("--repo", default=".")
-
-    push = subparsers.add_parser("push", help="Push a pack and CAS-update a remote ref")
-    _remote_args(push)
-    push.add_argument("--ref", default="heads/main")
-    push.add_argument("--remote-ref")
-    push.add_argument("--repo", default=".")
-
-    clone_parser = subparsers.add_parser("clone", help="Clone a remote v3 repository")
-    _remote_args(clone_parser)
-    clone_parser.add_argument("path")
-    clone_parser.add_argument("--ref", default="heads/main")
-    clone_parser.add_argument("--depth", type=int)
-
-
-def _remote_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("remote")
-    parser.add_argument("--tenant")
-    parser.add_argument("--token")
-    parser.add_argument("--allow-insecure", action="store_true")
+REPO_COMMANDS: dict[str, RepoHandler] = {
+    "clone": cmd_clone,
+    "fetch": cmd_fetch,
+    "fsck": cmd_fsck,
+    "init": cmd_init,
+    "migrate-v3": cmd_migrate_v3,
+    "object": cmd_object,
+    "pack": cmd_pack,
+    "push": cmd_push,
+    "repo-log": cmd_repo_log,
+}
 
 
 def cmd_repo(args: argparse.Namespace, console) -> None:
     try:
-        _cmd_repo(args, console)
+        REPO_COMMANDS[args.command](args, console)
     # SignatureError is the one opentine error not rooted in ValueError/OSError, and
     # migrate-v3 raises it on its fail-closed path — the expected refusal must read
     # as a refusal, not as an interpreter traceback.
@@ -91,65 +59,4 @@ def cmd_repo(args: argparse.Namespace, console) -> None:
         raise SystemExit(1) from None
 
 
-def _cmd_repo(args: argparse.Namespace, console) -> None:
-    command = args.command
-    if command == "init":
-        repo = Repo.init(args.path, bare=args.bare)
-        console.print(f"Initialized OpenTine repository in {_terminal(repo.path)}")
-        return
-    if command == "clone":
-        repo = clone(
-            args.remote,
-            args.path,
-            tenant=args.tenant,
-            token=args.token,
-            ref=args.ref,
-            depth=args.depth,
-            allow_insecure=args.allow_insecure,
-        )
-        console.print(f"Cloned into {_terminal(repo.path)}")
-        return
-    repo = Repo.open(args.repo)
-    if command == "fsck":
-        result = repo.fsck(deep=not args.shallow)
-        print(json.dumps(asdict(result), indent=2))
-        if not result.ok:
-            raise SystemExit(1)
-    elif command == "repo-log":
-        for entry in repo.log(args.ref, limit=args.limit):
-            kind = (
-                entry.payload.get("kind", entry.object_type)
-                if isinstance(entry.payload, dict)
-                else entry.object_type
-            )
-            console.print(f"{_terminal(entry.oid)} {_terminal(kind)}")
-    elif command == "object":
-        inspected = repo.inspect(args.object_id, resolve_blobs=args.resolve_blobs)
-        print(json.dumps(inspected, indent=2))
-    elif command == "pack":
-        data = repo.pack(args.object_ids or None)
-        _atomic_bytes(Path(args.output), data)
-        console.print(f"Wrote {len(data)} bytes to {_terminal(args.output)}")
-    elif command == "migrate-v3":
-        result = repo.migrate_v2(args.source, ref=args.ref, strict=not args.allow_unverified)
-        print(json.dumps(asdict(result), indent=2))
-    elif command == "fetch":
-        result = repo.fetch(
-            args.remote,
-            tenant=args.tenant,
-            token=args.token,
-            ref=args.ref,
-            depth=args.depth,
-            allow_insecure=args.allow_insecure,
-        )
-        print(json.dumps(asdict(result), indent=2))
-    elif command == "push":
-        result = repo.push(
-            args.remote,
-            tenant=args.tenant,
-            token=args.token,
-            ref=args.ref,
-            remote_ref=args.remote_ref,
-            allow_insecure=args.allow_insecure,
-        )
-        print(json.dumps(asdict(result), indent=2))
+__all__ = ["REPO_COMMANDS", "RepoHandler", "add_repo_parsers", "clone", "cmd_repo"]
