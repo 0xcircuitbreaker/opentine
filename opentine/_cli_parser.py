@@ -156,15 +156,18 @@ def _build_parser() -> argparse.ArgumentParser:
     resume = sub.add_parser("resume", help="Resume a paused run")
     resume.add_argument("run_id")
 
+    importer = add_import_parser(sub)
+
     # --json is purely additive: without it each of these renders exactly as before.
     # `replay` earns it only through --verify, whose verdict is a result a script
-    # reads; a plain replay's output is the artifact it writes.
-    for readable in (show, verify, listing, search, stats, cost, replay, diff):
+    # reads; a plain replay's output is the artifact it writes. `import` writes an
+    # artifact too, but its result is the run id a caller must then address, and
+    # `tag` earns it on its listing mode alone (see cmd_tag).
+    for readable in (show, verify, listing, search, stats, cost, replay, diff, importer, tag):
         readable.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
 
-    add_import_parser(sub)
     add_pricing_parser(sub)
     add_serve_parser(sub)
     add_repo_parsers(sub)
