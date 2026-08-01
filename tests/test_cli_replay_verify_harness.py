@@ -32,7 +32,14 @@ import pytest
 from opentine import Run, cli
 
 SHELL = shutil.which("sh")
-pytestmark = pytest.mark.skipif(SHELL is None, reason="sh is required to stand in for an agent CLI")
+pytestmark = pytest.mark.skipif(
+    SHELL is None or sys.platform == "win32",
+    reason=(
+        "the stand-in agent is a POSIX shell script; sh is required, and Windows sh "
+        "(Git Bash) does not run it with a Windows script path reliably. The verify "
+        "feature is OS-agnostic and cache-mode verification covers every platform"
+    ),
+)
 
 #: Two JSONL events, byte-identical on every invocation.
 STABLE = """#!/bin/sh
