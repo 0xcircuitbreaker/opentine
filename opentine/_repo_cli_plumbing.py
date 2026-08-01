@@ -14,9 +14,20 @@ from dataclasses import asdict
 from pathlib import Path
 
 from opentine._cli_common import _terminal
-from opentine._repo_cli_json import emit_context, emit_repo_log, emit_repo_show
+from opentine._repo_cli_json import (
+    emit_context,
+    emit_repo_diff,
+    emit_repo_log,
+    emit_repo_search,
+    emit_repo_show,
+)
+from opentine._repo_cli_query_render import render_diff, render_search
 from opentine._repo_cli_render import render_context, render_log, render_repo_show
 from opentine.repo import Repo
+
+# The engine's own ref-or-oid resolver, imported rather than re-implemented: the
+# ids ``repo-diff --json`` reports must be the objects semantic_diff compared.
+from opentine.repository.ops import _resolve
 from opentine.repository.store import _atomic_bytes
 
 
@@ -85,6 +96,63 @@ def cmd_context(args: argparse.Namespace, console) -> None:
         emit_context(repo.path, args.event_id, args.depth, entries)
         return
     render_context(console, args.event_id, entries)
+
+
+def _resolve_run(repo: Repo, value: str) -> str:
+    """Resolve one side of a diff, naming what could not be found.
+
+    ``_resolve`` signals "not here" with ``KeyError(<the name>)``, which the repo
+    error envelope would print as ``tine repo-diff: heads/nope`` and nothing else.
+    """
+    try:
+        return _resolve(repo, value)
+    except KeyError:
+        message = f"cannot resolve {value}: no such ref or object in {repo.path}"
+        raise KeyError(message) from None
+
+
+def cmd_repo_diff(args: argparse.Namespace, console) -> None:
+    repo = Repo.open(args.repo)
+    # Resolved here, then diffed by oid: semantic_diff resolves its own arguments,
+    # so passing the oids removes any chance the ids reported disagree with the
+    # objects compared, and a ref moving mid-command cannot split the two reads.
+    left_id, right_id = _resolve_run(repo, args.left), _resolve_run(repo, args.right)
+    diff = repo.diff(left_id, right_id)
+    # git-diff semantics: identical means no event-level divergence. Summary
+    # numbers are derived from those events, so they cannot differ on their own.
+    identical = not (diff.only_left or diff.only_right or diff.changed)
+    if getattr(args, "json", False):
+        emit_repo_diff(repo.path, args.left, args.right, left_id, right_id, diff, identical)
+    else:
+        render_diff(console, left_id, right_id, diff)
+    # Only --exit-code may make a successful diff non-zero, and only ever with 1:
+    # argparse owns 2 for a usage error, so a caller can tell the two apart.
+    if getattr(args, "exit_code", False) and not identical:
+        raise SystemExit(1)
+
+
+def cmd_repo_search(args: argparse.Namespace, console) -> None:
+    repo = Repo.open(args.repo)
+    successful_only = not args.include_unsuccessful
+    results = repo.search(
+        args.query,
+        successful_only=successful_only,
+        min_score=args.min_score,
+        model=args.model,
+        limit=args.limit,
+    )
+    if getattr(args, "json", False):
+        emit_repo_search(
+            repo.path,
+            args.query,
+            results,
+            successful_only=successful_only,
+            limit=args.limit,
+            min_score=args.min_score,
+            model=args.model,
+        )
+        return
+    render_search(console, args.query, results)
 
 
 def cmd_object(args: argparse.Namespace, console) -> None:
