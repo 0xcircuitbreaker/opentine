@@ -35,7 +35,14 @@ class SemanticDiff:
     summary: dict[str, Any]
 
 
-def _resolve(repo: Repo, value: str) -> str:
+def resolve_target(repo: Repo, value: str) -> str:
+    """Resolve a ref name or an object id to the object id it names.
+
+    Public because every *write* verb must call it before the engine: ``attest``
+    hands ``target_id`` to ``repo.put``, which requires an existing object, and
+    ``promote`` hands its argument to ``update_ref``, which rejects a ref string.
+    Signals "not here" with ``KeyError(<the name as given>)``.
+    """
     try:
         parse_oid(value)
         return value
@@ -47,7 +54,7 @@ def _resolve(repo: Repo, value: str) -> str:
 
 
 def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> list[LogEntry]:
-    tip = _resolve(repo, ref)
+    tip = resolve_target(repo, ref)
     boundary = ShallowBoundary(repo)
     if boundary.cuts(tip):
         return []
@@ -75,7 +82,7 @@ def log(repo: Repo, ref: str = "heads/main", *, limit: int | None = None) -> lis
 
 
 def _run_payload(repo: Repo, value: str, get=_get) -> tuple[str, dict[str, Any]]:
-    oid = _resolve(repo, value)
+    oid = resolve_target(repo, value)
     if parse_oid(oid)[0] != "run":
         raise ValueError("operation requires a run object")
     envelope = get(repo, oid) if get is _get else get(oid)

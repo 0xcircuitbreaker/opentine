@@ -180,6 +180,87 @@ single `tine <verb>: <message>` line on stderr and exit 1, not JSON.
 `repo-diff` emits every `SemanticDiff` field verbatim and adds only the envelope
 keys above, so a new engine field appears in the JSON without a schema change.
 
+## Write verbs
+
+Three verbs mutate a repository. They are the operator half of the surface: MCP
+withholds `promote_run` unless the host opts in, because a model reading
+untrusted run content must not be able to move a release gate, but the person at
+the terminal already holds the repository.
+
+```bash
+tine attest <run-ref-or-oid> --signer NAME (--claim JSON | --claim-file PATH) \
+    [--evidence OID]... [--repo .] [--json]
+tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... [--json]
+tine promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
+```
+
+Each accepts a ref name or a `run:sha256:…` oid and **resolves it first**. That
+resolution is not cosmetic: `attest` hands `target_id` to the object store,
+whose link check requires an object that already exists, and `promote` hands its
+run into `update_ref`, which rejects a ref string outright. After resolving,
+each verb makes exactly one engine call — `Repo.attest` or `Repo.promote` — so a
+CLI-written object is byte-identical to the object the matching MCP tool writes.
+A target that resolves to no object, or to something that is not a run, is
+refused before anything is written.
+
+`attest` stores the claim verbatim inside a content-addressed attestation. The
+claim must parse to a JSON **object**; a list, number, or string is refused,
+because every reader — the association scan behind `repo-diff`'s
+`summary.evaluations`, and `repo-search`'s score scan — reads a claim as a
+mapping. `--evidence` may be repeated and each value must be an existing object.
+
+`evaluate` is `attest` with the claim fixed to
+`{"kind": "evaluation", "scores": {…}}` and `signer` taken from `--evaluator` —
+exactly what the MCP `evaluate_run` tool builds. There is deliberately only one
+evaluation claim shape in the format; a second would be scores no reader could
+see. Each `--score` must be a finite number, and a repeated name is refused
+rather than silently resolved.
+
+There is no `--sign`/`--signature` flag. v3 ships no attestation signing helper,
+so a `signer` is a self-asserted label, and the human output says `unsigned`
+rather than implying a binding that does not exist.
+
+`promote` compare-and-swaps `promotions/<name>`. **`--expected-old` omitted means
+expect no existing ref**, so creating a promotion is the default and *moving* one
+always requires naming the value being replaced; the refusal on a conflict prints
+the current oid and the `--expected-old` invocation that would move it. There is
+no `--force`, and there will not be one: a release gate that can be overwritten
+without stating what it overwrote is not a gate.
+
+Their `--json` object is a **receipt**, emitted only after the write has
+succeeded. A failure that stops the result — a CAS conflict, an unresolvable or
+non-run target, an invalid claim or score — is a single `tine <verb>: <message>`
+line on stderr with exit 1 and *no JSON on stdout*, so a consumer never has to
+parse an object to learn whether the repository changed. A usage error is
+argparse's 2, which these verbs never emit themselves.
+
+| Verb | Key | Type | Meaning |
+| --- | --- | --- | --- |
+| `attest` | `command` | str | `"attest"` |
+| | `repo` | str | repository written to |
+| | `target` | str | the ref or oid as the caller spelled it |
+| | `run_id` | str | the `run:sha256:…` oid `target` resolved to |
+| | `attestation_id` | str | the new `attestation:sha256:…` oid |
+| | `signer` | str | the self-asserted signer label |
+| | `claim` | object | the claim as stored |
+| | `evidence_ids` | array | supporting object ids, empty by default |
+| | `signed` | bool | always `false` — no signing helper exists yet |
+| `evaluate` | `command` | str | `"evaluate"` |
+| | `repo`, `target`, `run_id`, `attestation_id` | str | as above |
+| | `evaluator` | str | stored as the attestation's `signer` |
+| | `scores` | object | the finite scores as stored |
+| | `signed` | bool | always `false` |
+| `promote` | `command` | str | `"promote"` |
+| | `repo`, `target`, `run_id` | str | as above |
+| | `name` | str | the promotion name |
+| | `ref` | str | always `"promotions/<name>"` |
+| | `expected_old` | str or null | the compare-and-swap value as given |
+| | `created` | bool | true exactly when `expected_old` was null |
+
+Appending to a repository written by an older release is a release gate, tested
+the same way reading one is: every verb runs against a copy of every committed
+golden repository from 0.3.0 onward, and the copy must `fsck` clean afterwards.
+
 `short_id` is deliberately absent from every v3 object. It is a twelve-character
 prefix, and a v3 oid's first twelve characters are the constant `run:sha256:` or
 `event:sha25`, so the field would be identical for every object in the
@@ -261,6 +342,11 @@ recorded inside a run can ask the model to promote a run of an attacker's
 choosing. `fork_run_v3` and `resume_run_v3` may write only `experiments/*`
 refs; the namespace is checked on the canonical ref name, so mainline,
 promotion, tag, and remote-tracking refs stay operator-only.
+
+Promotion being an operator CLI verb (`tine promote`) does not change that
+default. The two surfaces are trusted differently on purpose: an operator at a
+terminal already holds the repository, while a model over MCP is acting on
+content it read out of that repository. `allow_promotion` remains `False`.
 
 Search and inspection fail closed at explicit implementation ceilings: search
 indexes at most 100,000 objects, 10,000 candidate runs, and 100,000 aggregate

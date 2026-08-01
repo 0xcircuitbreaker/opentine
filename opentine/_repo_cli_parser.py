@@ -65,6 +65,8 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
 
+    _add_write_parsers(subparsers)
+
     inspect = subparsers.add_parser("object", help="Inspect a verified v3 object")
     inspect.add_argument("object_id")
     inspect.add_argument("--repo", default=".")
@@ -104,6 +106,55 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     clone_parser.add_argument("path")
     clone_parser.add_argument("--ref", default="heads/main")
     clone_parser.add_argument("--depth", type=int)
+
+
+def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """The three mutating verbs. Each takes a ref *or* a run oid as its target.
+
+    ``promote`` deliberately has no ``--force``: ``--expected-old`` is the only way
+    to move an existing promotion, so replacing a release gate always states which
+    value is being replaced.
+    """
+    target = "A ref name such as heads/main, or a run:sha256:… oid"
+
+    attest = subparsers.add_parser("attest", help="Attach a signed-by-label claim to a run")
+    attest.add_argument("target", help=target)
+    attest.add_argument("--signer", required=True, help="Self-asserted signer label")
+    claim = attest.add_mutually_exclusive_group(required=True)
+    claim.add_argument("--claim", help="The claim as a JSON object")
+    claim.add_argument("--claim-file", help="Read the JSON object claim from this file")
+    attest.add_argument(
+        "--evidence",
+        action="append",
+        metavar="OID",
+        help="An existing object id supporting the claim; repeatable",
+    )
+
+    evaluate = subparsers.add_parser("evaluate", help="Attach immutable evaluation scores to a run")
+    evaluate.add_argument("target", help=target)
+    evaluate.add_argument("--evaluator", required=True, help="Self-asserted evaluator label")
+    evaluate.add_argument(
+        "--score",
+        action="append",
+        required=True,
+        metavar="NAME=VALUE",
+        help="One finite numeric score; repeatable",
+    )
+
+    promote = subparsers.add_parser("promote", help="CAS-update a promotions/<name> release gate")
+    promote.add_argument("target", help=target)
+    promote.add_argument("--name", required=True, help="The promotions/<name> to point at the run")
+    promote.add_argument(
+        "--expected-old",
+        help="The oid promotions/<name> currently holds; required to move an existing promotion",
+    )
+
+    for writable in (attest, evaluate, promote):
+        writable.add_argument("--repo", default=".")
+        # Emitted only after the write succeeds; a refusal stays human text + exit 1.
+        writable.add_argument(
+            "--json", action="store_true", help="Emit a machine-readable JSON object instead"
+        )
 
 
 def _remote_args(parser: argparse.ArgumentParser) -> None:
