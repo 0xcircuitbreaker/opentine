@@ -1,4 +1,4 @@
-"""Stable machine-readable JSON for the v3 repository read verbs.
+"""Stable machine-readable JSON for the v3 repository verbs.
 
 Every function here builds a plain dict and hands it to the one writer,
 ``opentine._cli_json.emit``. That is deliberate: ``emit`` applies ``json_safe``,
@@ -65,6 +65,41 @@ non-zero exit, never a JSON object.
 ``entries`` carries no payload in either verb, exactly like the human line:
 event payloads are unbounded recorded content, and ``tine object OID`` is the
 verb that resolves one. The full contract table lives in docs/REPOSITORY.md.
+
+Mutating verbs: --json is a receipt, never a plan
+-------------------------------------------------
+``attest``, ``evaluate``, and ``promote`` write. Their ``--json`` object is
+emitted **only after the write has succeeded**, so receiving one is proof the
+object or ref landed; a failure that stops the result — a CAS conflict, an
+unresolvable or non-run target, a claim that is not a JSON object — stays a
+single ``tine <verb>: <message>`` line on stderr with exit 1 through the
+``cmd_repo`` envelope, and prints no JSON at all. A consumer therefore never has
+to parse an object to learn whether the repository changed: stdout is empty on
+failure. Their builders live next to the verbs in ``_repo_cli_write.py``, but
+they go through the same ``emit`` and follow every rule above.
+
+``tine attest TARGET --json``
+    ``command`` ``"attest"``; ``repo``; ``target`` str — as the caller spelled
+    it; ``run_id`` str — the ``run:sha256:…`` oid it resolved to;
+    ``attestation_id`` str — the new ``attestation:sha256:…`` oid; ``signer``
+    str; ``claim`` object — verbatim as stored; ``evidence_ids`` array;
+    ``signed`` bool — always ``false``, because v3 has no attestation signing
+    helper yet, so the ``signer`` label is self-asserted.
+
+``tine evaluate TARGET --json``
+    ``command`` ``"evaluate"``; ``repo``; ``target``; ``run_id``;
+    ``attestation_id``; ``evaluator`` str — stored as the attestation's
+    ``signer``; ``scores`` object of finite floats; ``signed`` bool — always
+    ``false``. The object written is an ``attest`` with the claim fixed to
+    ``{"kind": "evaluation", "scores": …}``, the one shape ``repo-search`` and
+    ``repo-diff``'s ``summary.evaluations`` read back.
+
+``tine promote TARGET --json``
+    ``command`` ``"promote"``; ``repo``; ``target``; ``run_id``; ``name`` str;
+    ``ref`` str — always ``"promotions/<name>"``; ``expected_old`` str or null —
+    the compare-and-swap value as given; ``created`` bool — true exactly when
+    ``expected_old`` was null, which is the *expect-absent* case, so a promotion
+    that already exists can only be moved by naming its current oid.
 """
 
 from __future__ import annotations

@@ -30,6 +30,7 @@ from opentine._repo_cli_plumbing import (
     cmd_repo_search,
     cmd_repo_show,
 )
+from opentine._repo_cli_write import cmd_attest, cmd_evaluate, cmd_promote
 from opentine._signing_keys import SignatureError
 
 # Re-exported so ``opentine.repo_cli.clone`` stays the live seam that transport tests
@@ -39,14 +40,17 @@ from opentine.repository.client import clone
 RepoHandler = Callable[[argparse.Namespace, object], None]
 
 REPO_COMMANDS: dict[str, RepoHandler] = {
+    "attest": cmd_attest,
     "clone": cmd_clone,
     "context": cmd_context,
+    "evaluate": cmd_evaluate,
     "fetch": cmd_fetch,
     "fsck": cmd_fsck,
     "init": cmd_init,
     "migrate-v3": cmd_migrate_v3,
     "object": cmd_object,
     "pack": cmd_pack,
+    "promote": cmd_promote,
     "push": cmd_push,
     "repo-diff": cmd_repo_diff,
     "repo-log": cmd_repo_log,
