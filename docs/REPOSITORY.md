@@ -88,6 +88,35 @@ sequence-position comparison of divergent events, not a causal merge alignment.
 Transcript line merging is not an operation. Agents select, compose, fork,
 resume, evaluate, attest, and promote run graphs instead.
 
+## Verb names: the `repo-` prefix rule
+
+`tine` carries two command families. The legacy v2 verbs read and write portable
+`.tine` artifacts through the `.tine_runs` file index; the v3 verbs read and
+write objects and refs inside a `.tine` repository. They are different stores,
+so where both families need the same word, the v3 verb takes a `repo-` prefix.
+
+**The prefix is a collision marker, not a namespace.** It appears only where a
+legacy verb already owns the plain name, which is why `context`, `attest`,
+`evaluate`, and `promote` are bare — v2 has no such verbs. Do not add a
+`repo-` prefix for symmetry.
+
+| Legacy verb (`.tine` file + `.tine_runs` index) | v3 verb (`.tine` repository) | MCP tool |
+| --- | --- | --- |
+| `tine show <run>` | `tine repo-show <ref-or-oid>` | — (`inspect_object` is `tine object`) |
+| `tine search <query>` | `tine repo-search [query]` | `search_runs` |
+| `tine diff <a> <b>` | `tine repo-diff <a> <b>` | `semantic_diff` |
+| `tine fork <run> --from-step N` | `tine repo-fork <ref-or-oid> --from-event OID` | `fork_run_v3` |
+| `tine resume <run>` | `tine repo-resume <ref-or-oid>` | `resume_run_v3` |
+
+`repo-log` is the one prefix without a collision: `log` was never a legacy verb,
+but `repo-log` shipped in 0.3.0 and renaming a released verb is a breaking
+change, so it is grandfathered. tests/test_repo_cli_parity.py asserts the rule
+and pins that single exception, so a second one cannot appear by accident.
+
+The two families never share state. `tine fork` branches a run *file* and writes
+`.tine_runs/<run-id>.tine`; `tine repo-fork` branches a run *object* and moves a
+repository ref. A v2 artifact reaches the v3 side only through `tine migrate-v3`.
+
 ## Read verbs and their `--json` contract
 
 Five read verbs expose repository engines on the command line. Each renders for
@@ -261,6 +290,78 @@ Appending to a repository written by an older release is a release gate, tested
 the same way reading one is: every verb runs against a copy of every committed
 golden repository from 0.3.0 onward, and the copy must `fsck` clean afterwards.
 
+## Lineage verbs
+
+Two more verbs branch a run graph. They are the CLI twins of the MCP
+`fork_run_v3` and `resume_run_v3` tools, and both make exactly one engine call,
+`Repo.fork`, with the same arguments the tool passes — so a CLI-written fork is
+the same content-addressed object the tool writes.
+
+```bash
+tine repo-fork <run-ref-or-oid> --from-event OID --ref REF \
+    [--model M] [--prompt P] [--policy JSON] [--repo .] [--json]
+tine repo-resume <run-ref-or-oid> --ref REF [--repo .] [--json]
+```
+
+`repo-fork` rebuilds a run from the causal closure of `--from-event`, so the
+forked run contains that event and its ancestors and nothing later. `--model`,
+`--prompt`, and `--policy` are the three overrides `fork_run_v3` accepts;
+`--policy` must parse to a JSON object, and an omitted flag is identical to an
+absent override key, not to a null one.
+
+`repo-resume` is the same fork taken at the run's **last verified tip** with
+`overrides={"resume": True}`, which is what makes the new run `status:
+"running"` instead of a plain branch. A run with no event tip cannot be resumed
+and is refused by name rather than crashing on an empty tip list.
+
+Both accept a ref name or a `run:sha256:…` oid and resolve it first, then apply
+the run-type check `resume_run_v3` performs; a target that is not a run is
+refused before anything is written.
+
+### `--ref` is required, has no default, and is not confined
+
+`--ref` must be given on both verbs and there is deliberately **no default**.
+A fork's ref update is an unconditional overwrite — it compare-and-swaps against
+the value it just read — so a defaulted destination would mean a bare
+`tine repo-fork RUN` silently advancing whatever ref the default named. Every
+fork destination is an explicit operator choice.
+
+The CLI is also deliberately **not** confined to `experiments/*`. That
+confinement is real, and it stays where it is: at the MCP boundary, in
+`mcp_repository._writable_ref`. Its threat model is model-controlled input — the
+ref an MCP client picks is chosen from run content it just read, so an
+unconfined fork tool would make "fork onto `heads/main`" a one-step
+prompt-injection payload. An operator at a terminal already holds the
+repository and can move any ref with `tine promote` or a direct write, so
+confining the CLI would buy no security and would only push people around it.
+The CLI still validates the ref name (canonicalizing it *before* the write, so a
+malformed ref is refused rather than reported after the object exists).
+
+Their `--json` object is a **receipt**, emitted only after the write succeeded;
+a refusal is one `tine repo-fork: <message>` / `tine repo-resume: <message>`
+line on stderr with exit 1 and no JSON on stdout.
+
+| Verb | Key | Type | Meaning |
+| --- | --- | --- | --- |
+| `repo-fork` | `command` | str | `"repo-fork"` |
+| | `repo` | str | repository written to |
+| | `target` | str | the ref or oid as the caller spelled it |
+| | `source_run_id` | str | the `run:sha256:…` oid `target` resolved to |
+| | `from_event` | str | the `event:sha256:…` fork point |
+| | `ref` | str | the canonicalized ref now pointing at the new run |
+| | `run_id` | str | the new `run:sha256:…` oid |
+| | `overrides` | object | only the overrides actually given: `model`, `prompt`, `policy` |
+| | `resumed` | bool | always `false` |
+| `repo-resume` | `command` | str | `"repo-resume"` |
+| | `repo`, `target`, `source_run_id`, `ref`, `run_id` | str | as above |
+| | `from_event` | str | the tip the resume forked from |
+| | `overrides` | object | always `{"resume": true}` |
+| | `resumed` | bool | always `true` |
+
+Forking a repository an older release wrote is a release gate exactly as
+appending to one is: both verbs run against a copy of every committed golden
+repository from 0.3.0 onward, and the copy must `fsck` clean afterwards.
+
 `short_id` is deliberately absent from every v3 object. It is a twelve-character
 prefix, and a v3 oid's first twelve characters are the constant `run:sha256:` or
 `event:sha25`, so the field would be identical for every object in the
@@ -347,6 +448,53 @@ Promotion being an operator CLI verb (`tine promote`) does not change that
 default. The two surfaces are trusted differently on purpose: an operator at a
 terminal already holds the repository, while a model over MCP is acting on
 content it read out of that repository. `allow_promotion` remains `False`.
+
+### CLI ↔ MCP parity, and the four places they differ
+
+Every MCP tool has a CLI verb and every v3 verb is accounted for.
+tests/test_repo_cli_parity.py holds the map and fails CI in **both**
+directions: a new tool without a verb is red, and so is a verb that is neither
+mapped to a tool nor listed as deliberately CLI-only.
+
+| MCP tool | CLI verb |
+| --- | --- |
+| `search_runs` | `tine repo-search` |
+| `inspect_object` | `tine object` |
+| `context_slice` | `tine context` |
+| `semantic_diff` | `tine repo-diff` |
+| `fork_run_v3` | `tine repo-fork` |
+| `resume_run_v3` | `tine repo-resume` |
+| `evaluate_run` | `tine evaluate` |
+| `attest_run` | `tine attest` |
+| `promote_run` | `tine promote` |
+
+The CLI-only verbs are `init`, `fsck`, `pack`, `migrate-v3`, `fetch`, `push`,
+and `clone` — repository administration and transport, each handing out a
+filesystem path, a network endpoint, or a credential that has no business being
+driven by run content — plus `repo-show` and `repo-log`, which render a run tree
+and an event ancestry for a *terminal*; a model reads the same objects through
+`inspect_object` and `context_slice`.
+
+Four differences are deliberate. Each is asserted as a fact in the parity test,
+so making the surfaces agree turns CI red and forces the argument to be re-made.
+
+1. **`promote` is unconditional on the CLI, opt-in over MCP.** No flag, no
+   environment variable. The reasoning is the paragraph above.
+2. **`repo-fork` / `repo-resume` are not confined to `experiments/*`.** The
+   namespace confinement is an MCP-boundary control against model-chosen refs;
+   see the lineage-verb section.
+3. **CLI `--json` receipts are a superset of the MCP return.** `fork_run_v3`
+   returns `{ref, run_id}` — a model's working set. The CLI receipt adds what
+   the operator typed and what it resolved to, because it is an audit artifact.
+   Shared keys always carry the same values.
+4. **The CLI refuses non-finite evaluation scores; MCP passes them through.**
+   `tine evaluate --score q=nan` is refused at the argument door, naming the
+   flag, before any engine call, because `repo-search` averages scores.
+   `evaluate_run` takes an already-typed `dict[str, float]` and adds no check of
+   its own, so the value travels into `canonical_json` and is refused there as a
+   kernel error about JSON encoding. Nothing non-finite is stored either way —
+   the kernel is the backstop — but the CLI is the stricter and more legible
+   surface, and that asymmetry is recorded rather than levelled.
 
 Search and inspection fail closed at explicit implementation ceilings: search
 indexes at most 100,000 objects, 10,000 candidate runs, and 100,000 aggregate

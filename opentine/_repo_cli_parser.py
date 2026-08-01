@@ -66,6 +66,7 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
         )
 
     _add_write_parsers(subparsers)
+    _add_porcelain_parsers(subparsers)
 
     inspect = subparsers.add_parser("object", help="Inspect a verified v3 object")
     inspect.add_argument("object_id")
@@ -153,6 +154,42 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
         writable.add_argument("--repo", default=".")
         # Emitted only after the write succeeds; a refusal stays human text + exit 1.
         writable.add_argument(
+            "--json", action="store_true", help="Emit a machine-readable JSON object instead"
+        )
+
+
+def _add_porcelain_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """The two lineage verbs, prefixed because ``fork``/``resume`` are legacy v2.
+
+    ``--ref`` is required on both and has **no default**. The MCP tools confine a
+    fork's ref to ``experiments/*`` because a fork's ref update is an
+    unconditional overwrite driven by untrusted run content; the CLI is an
+    operator surface and is deliberately not confined, so the safety here is that
+    the destination is always stated rather than inherited from a default.
+    """
+    target = "A ref name such as heads/main, or a run:sha256:… oid"
+
+    fork = subparsers.add_parser(
+        "repo-fork", help="Fork a v3 run from an event onto a ref (v3 twin of tine fork)"
+    )
+    fork.add_argument("target", help=target)
+    fork.add_argument("--from-event", required=True, metavar="OID", help="An event:sha256:… oid")
+    fork.add_argument("--model", help="Override the model of the forked run")
+    fork.add_argument("--prompt", help="Override the prompt of the forked run")
+    fork.add_argument("--policy", help="Override the policy manifest, as a JSON object")
+
+    resume = subparsers.add_parser(
+        "repo-resume", help="Resume a v3 run at its last verified tip (v3 twin of tine resume)"
+    )
+    resume.add_argument("target", help=target)
+
+    for lineage in (fork, resume):
+        lineage.add_argument("--repo", default=".")
+        lineage.add_argument(
+            "--ref", required=True, help="The ref to point at the new run; required, no default"
+        )
+        # Emitted only after the write succeeds; a refusal stays human text + exit 1.
+        lineage.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
 

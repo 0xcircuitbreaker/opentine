@@ -59,7 +59,9 @@ def test_repo_commands_are_all_callable_handlers() -> None:
         "promote",
         "push",
         "repo-diff",
+        "repo-fork",
         "repo-log",
+        "repo-resume",
         "repo-search",
         "repo-show",
     }
