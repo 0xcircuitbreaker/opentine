@@ -272,6 +272,7 @@ def test_the_inspection_module_has_no_hookless_json_reader_left():
 #: program is missing.  ``sys.executable`` is exempt: it is the interpreter already
 #: running.  Extend the mapping, never drop the guard.
 BINARY_DEPENDENT_TEST_MODULES = {
+    "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_release_audit_round9_inventory.py": "git",
     "tests/test_release_inventory.py": "git",
     "tests/test_trace_capture_bounds.py": "git",

@@ -21,19 +21,29 @@ from opentine._cli_common import (
 from opentine._cli_flags import HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_flow import _require_output_slot
 from opentine._cli_render import _print_diff_table, _print_run_tree
+from opentine._cli_verify_replay import cache_replay, expected_slice, verify_replay
 from opentine.core import Run
 from opentine.harnesses import OpentineHarness
 
 
 def _inspect_replay(run: Run, from_step: str | None) -> None:
-    selected = run.steps
-    if from_step is not None:
-        start = _resolve_step_ref(run, from_step)
-        keep = run.graph.descendant_closure(start)
-        selected = [step for step in run.steps if step.id in keep]
+    """Preview exactly the slice the replay would retain.
+
+    This previewed ``graph.descendant_closure(start)`` — the steps *after* the
+    fork point — while ``Run.fork`` retains the ANCESTOR closure, the steps that
+    led *to* it. So `--inspect`/`--dry-run` listed the complement of what the
+    replay reuses on any branched run, and agreed only by accident on a linear
+    one. Both now read ``expected_slice``, the same helper ``--verify`` states
+    its expectation with, so a preview and the replay cannot disagree again.
+    """
+    selected: list = []
+    if run.steps:
+        _, retained = expected_slice(run, from_step)
+        selected = [step for step in run.steps if step.id in retained]
     console.print(f"[{BRAND}]Inspecting recorded steps...[/]\n")
     for step in selected:
         console.print(Text("  ") + _step_label(step))
+    console.print(f"\n[{BRAND}]# Cached replay[/] would reuse {len(selected)} recorded steps")
 
 
 def _harness_replay(args: argparse.Namespace, run: Run) -> None:
@@ -73,11 +83,30 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
     if args.inspect or args.dry_run:
         refuse_unhonoured(
             args,
-            ("compare", "force", "harness", "mode", "prompt", "save", *HARNESS_CONFIG_FLAGS),
+            (
+                "compare",
+                "force",
+                "harness",
+                "ignore_cost_drift",
+                "json",
+                "mode",
+                "prompt",
+                "save",
+                "verify",
+                *HARNESS_CONFIG_FLAGS,
+            ),
             mode="with --inspect/--dry-run",
             hint="Inspection only lists the recorded steps; drop it to replay for real.",
         )
-    elif not args.harness:
+        return
+    if not args.verify:
+        refuse_unhonoured(
+            args,
+            ("ignore_cost_drift", "json"),
+            mode="without --verify",
+            hint="Both describe the verification verdict; a plain replay only writes the run.",
+        )
+    if not args.harness:
         refuse_unhonoured(
             args,
             ("compare", "prompt", *HARNESS_CONFIG_FLAGS),
@@ -87,7 +116,20 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
 
 
 def cmd_replay(args: argparse.Namespace) -> None:
+    """Inspect, cache-replay, harness-replay, or (``--verify``) check a replay.
+
+    Known status divergence, documented rather than changed in 0.6.0: a cached
+    replay here carries the *source's* status (a replay of a failed run is a
+    replay of a failure), while ``HistoryMixin.replay`` — the ``Agent`` API —
+    marks its cached replay ``completed``. ``tine replay --verify`` checks this
+    path, so it pins the CLI behaviour; reconciling the two is a 0.7.0 change.
+    """
     _refuse_ignored_replay_flags(args)
+    if args.verify:
+        # --verify owns its own lookup, load, temp workspace and exit status, and
+        # writes an artifact only when --save asks for one.
+        verify_replay(args)
+        return
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
@@ -105,22 +147,11 @@ def cmd_replay(args: argparse.Namespace) -> None:
                 "[red]Rerun replay requires an explicit --harness or opentine-native Agent API.[/]"
             )
             raise SystemExit(1)
-        # A cached replay only reuses recorded steps, so it is an idempotent act:
-        # nonce="" keeps the id reproducible, which is exactly what makes a second
-        # replay resolve to the same path and hit the overwrite refusal (the property
-        # pinned by test_cached_replay_never_derives_an_output_path_from_untrusted_run_id).
-        replayed = run.fork(
-            _resolve_step_ref(run, args.from_step), intent={"replay": "cache"}, nonce=""
-        )
+        # One source of truth with --verify, which checks this exact artifact.
+        replayed = cache_replay(run, _resolve_step_ref(run, args.from_step))
     except (KeyError, ValueError) as exc:
         console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc
-    replayed.metadata["replay"] = {
-        "mode": "cache",
-        "reused_steps": len(replayed.steps),
-        "source_run": run.id,
-    }
-    replayed.status = run.status
     output = Path(args.save) if args.save else _runs_dir() / f"{replayed.id}.tine"
     _require_output_slot(output, getattr(args, "force", False))
     replayed.save(output)
