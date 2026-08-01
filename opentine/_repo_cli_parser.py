@@ -19,6 +19,23 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     log.add_argument("--repo", default=".")
     log.add_argument("--limit", type=int)
 
+    show = subparsers.add_parser("repo-show", help="Render a v3 run from a ref or run oid")
+    show.add_argument("ref", help="A ref name such as heads/main, or a run:sha256:… oid")
+    show.add_argument("--repo", default=".")
+
+    context = subparsers.add_parser("context", help="Show only an event's causal ancestors")
+    context.add_argument("event_id", help="An event:sha256:… oid")
+    context.add_argument("--repo", default=".")
+    # 8 is the MCP context_slice default; the two surfaces must agree, because an
+    # operator reproducing what an agent saw types this command.
+    context.add_argument("--depth", type=int, default=8)
+
+    # --json is purely additive on the read verbs: without it each renders as before.
+    for readable in (log, show, context):
+        readable.add_argument(
+            "--json", action="store_true", help="Emit a machine-readable JSON object instead"
+        )
+
     inspect = subparsers.add_parser("object", help="Inspect a verified v3 object")
     inspect.add_argument("object_id")
     inspect.add_argument("--repo", default=".")

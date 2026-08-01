@@ -47,6 +47,7 @@ def test_every_parser_choice_is_routed_by_exactly_one_table() -> None:
 def test_repo_commands_are_all_callable_handlers() -> None:
     assert set(REPO_COMMANDS) == {
         "clone",
+        "context",
         "fetch",
         "fsck",
         "init",
@@ -55,6 +56,7 @@ def test_repo_commands_are_all_callable_handlers() -> None:
         "pack",
         "push",
         "repo-log",
+        "repo-show",
     }
     assert all(callable(handler) for handler in REPO_COMMANDS.values())
 

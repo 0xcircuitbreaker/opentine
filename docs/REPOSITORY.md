@@ -88,6 +88,65 @@ sequence-position comparison of divergent events, not a causal merge alignment.
 Transcript line merging is not an operation. Agents select, compose, fork,
 resume, evaluate, attest, and promote run graphs instead.
 
+## Read verbs and their `--json` contract
+
+Three read verbs expose repository engines on the command line. Each renders for
+a human by default and emits exactly one JSON object with `--json`:
+
+```bash
+tine repo-show heads/main --repo . [--json]      # a whole run, as a step tree
+tine context <event-oid> --repo . [--depth N]    # only that event's ancestors
+tine repo-log [ref] --repo . [--limit N]         # the event ancestry, one per line
+```
+
+`repo-show` accepts a ref name or a `run:sha256:…` oid; `context` requires an
+`event:sha256:…` oid and defaults to `--depth 8`, the same default the MCP
+`context_slice` tool uses, so an operator reproducing what an agent saw gets the
+same slice. Both are read-only and never write a ref.
+
+The JSON objects come from the same writer as `tine show --json`: keys are
+sorted, every value passes `json_safe`, and each object carries `command`, which
+names the schema below. Within a major version fields are added, never renamed
+or removed. A failure that stops a verb producing a result — an unresolvable
+ref, a non-event id, a negative depth, a run beyond a shallow boundary — is a
+single `tine <verb>: <message>` line on stderr and exit 1, not JSON.
+
+| Verb | Key | Type | Meaning |
+| --- | --- | --- | --- |
+| `repo-show` | `command` | str | `"repo-show"` |
+| | `repo` | str | repository the run was read from |
+| | `ref` | str | the ref or run oid as the caller spelled it |
+| | `run_object_id` | str | the `run:sha256:…` oid `ref` resolved to |
+| | `run` | object | `id`, `status`, `model`, `created_at`, `total_cost`, `step_count`, `tags`, `user_prompt`, `system_prompt` |
+| | `steps` | array | the `tine show --json` step shape — `id`, `kind`, `parent_ids`, `model`, `cost`, `duration`, `timestamp`, `inputs`, `outputs`, `usage`, `billing`, `error`, `tool` — where `id` is the event's v3 oid |
+| `context` | `command` | str | `"context"` |
+| | `repo` | str | repository the slice was read from |
+| | `event` | str | the event oid the slice was requested for |
+| | `depth` | int | causal depth requested |
+| | `count` | int | number of entries |
+| | `entries` | array | oldest first: `oid`, `object_type`, `kind` |
+| `repo-log` | `command` | str | `"repo-log"` |
+| | `repo` | str | repository the ancestry was read from |
+| | `ref` | str | the ref or oid the walk started at |
+| | `count` | int | number of entries |
+| | `entries` | array | `oid`, `object_type`, `kind` |
+
+`short_id` is deliberately absent from every v3 object. It is a twelve-character
+prefix, and a v3 oid's first twelve characters are the constant `run:sha256:` or
+`event:sha25`, so the field would be identical for every object in the
+repository. Human output shortens an oid as `type:<12 hex digits>` instead,
+dropping the hash-name segment rather than the digest.
+
+`entries` carries no payload in either verb, exactly like the human line. Event
+payloads are unbounded recorded content; `tine object <oid> --repo .` is the
+verb that resolves one, with `--resolve-blobs` to follow its content blobs.
+
+Everything these verbs print is recorded content — prompts, tool names, model
+strings, and ids an agent may have been fed by an attacker. Human rendering
+routes all of it through the CLI's terminal sanitizer, which strips control
+bytes and bidi overrides and escapes markup. `--json` does not sanitize: it is
+not a terminal, and a consumer must see the bytes as recorded.
+
 ## V2 migration
 
 ```bash
