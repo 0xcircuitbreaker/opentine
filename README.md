@@ -265,9 +265,21 @@ tine init .
 tine migrate-v3 result.tine --repo . --ref heads/main
 tine fsck --repo .
 tine repo-log heads/main --repo .
+tine repo-fork heads/main --from-event event:sha256:... --ref experiments/alt --repo .
+tine repo-resume heads/main --ref experiments/live --repo .
+tine promote experiments/alt --name released --repo .
 tine object run:sha256:... --repo . --resolve-blobs
 tine pack --repo . --output run.pack
 ```
+
+Every v3 MCP tool has a CLI verb and vice versa, and the map is a CI gate. The
+two surfaces differ in exactly four documented places, all of them trust
+decisions: `promote` is unconditional on the CLI but opt-in over MCP,
+`repo-fork`/`repo-resume` are confined to `experiments/*` only over MCP (whose
+threat model is model-chosen refs, not an operator), CLI `--json` receipts are a
+superset of the MCP return, and the CLI refuses non-finite evaluation scores at
+the argument door. See
+[REPOSITORY.md](docs/REPOSITORY.md) for the table and the reasoning.
 
 Python API:
 
@@ -560,10 +572,24 @@ tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified]
 tine fsck --repo . [--shallow]
 tine repo-log [ref] --repo . [--limit N] [--json]
 tine repo-show <ref-or-run-oid> --repo . [--json]
+tine repo-diff <left> <right> --repo . [--exit-code] [--json]
+tine repo-search [query] --repo . [--limit N] [--min-score S] [--model M] [--json]
 tine context <event-oid> --repo . [--depth N] [--json]
+tine repo-fork <ref-or-run-oid> --from-event <oid> --ref REF \
+    [--model M] [--prompt P] [--policy JSON] [--repo .] [--json]
+tine repo-resume <ref-or-run-oid> --ref REF [--repo .] [--json]
+tine attest <ref-or-run-oid> --signer NAME (--claim JSON | --claim-file PATH) [--json]
+tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... [--json]
+tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
+
+A v3 verb takes a `repo-` prefix only where a legacy v2 verb already owns the
+plain name — `show`, `search`, `diff`, `fork`, `resume`. `context`, `attest`,
+`evaluate`, and `promote` have no v2 namesake and stay unprefixed. The two
+families are different stores: `tine fork` branches a `.tine` file, `tine
+repo-fork` branches a run object and moves a repository ref.
 
 Self-hosted remote:
 
