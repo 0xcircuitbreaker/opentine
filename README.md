@@ -12,16 +12,16 @@
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.5.0-d4a574" alt="0.5.0" />
+  <img src="https://img.shields.io/badge/status-0.6.0-d4a574" alt="0.6.0" />
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/main/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine show inspects the portable .tine" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.6.0/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
 
-OpenTine 0.5.0 has two deliberately separate compatibility surfaces:
+OpenTine 0.6.0 has two deliberately separate compatibility surfaces:
 
 - Portable `*.tine` files remain format v2. Existing `Run`, `Agent`, signing,
   replay, and `total_cost` APIs continue to work.
@@ -34,16 +34,17 @@ transcripts.
 ## How it works
 
 Every run becomes a content-addressed graph — model steps, tool calls, and
-outcomes, each named by digest. Fork from any step to retry a different way,
-replay a run, and compare two runs semantically — all without losing provenance.
+outcomes, each named by digest. Fork from any step to retry a different way;
+`tine replay --verify` re-derives the run and proves it reproduces (digests
+intact, no structural drift) — all without losing provenance.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/main/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.6.0/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
 </p>
 
 ## Install
 
-OpenTine 0.5.x supports Python 3.11 through 3.14.
+OpenTine 0.6.x supports Python 3.11 through 3.14.
 
 ```bash
 pip install opentine
@@ -497,10 +498,10 @@ graph LR
     Kimi --> Tine
     Generic --> Tine
     SDK --> Tine
-    Tine[["portable .tine<br/>+ .tine/ repo"]] --> Replay["replay"]
+    Tine[["portable .tine<br/>+ .tine/ repo"]] --> Verify["replay --verify"]
     Tine --> Fork["fork · resume"]
-    Tine --> Diff["diff · search"]
-    Tine --> Cost["cost · import"]
+    Tine --> Diff["repo-diff · repo-search"]
+    Tine --> Attest["attest · promote"]
     classDef hub fill:#d4a574,stroke:#b98a56,color:#1a1206,font-weight:bold;
     class Tine hub;
 ```

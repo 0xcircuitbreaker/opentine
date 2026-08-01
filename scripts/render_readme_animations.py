@@ -151,15 +151,15 @@ def hero_states() -> Iterable[tuple[list[Line], bool, int]]:
         [("|-- > 31fd tool", TEAL), ('    web.search(query="release readiness")', TEXT)],
         [("|-- > 77be tool", TEAL), ('    fs.write(path="summary.md")', TEXT)],
         [("`-- + f29c done", GREEN), ('    "saved docs/research-summary.md"', TEXT)],
-        [("saved run ", MUTED), ("a7f3c2", GOLD), (" to research.tine", MUTED)],
+        [("saved run ", MUTED), ("a7f3c2", GOLD), (" to .tine_runs/a7f3c2.tine", MUTED)],
     ]
-    show_command = "tine show research.tine"
-    show_output: list[Line] = [
-        [("* ", GOLD), ("a7f3c2 run: research.py", TEXT)],
-        [("|-- ", DIM), ("model", BLUE), ('  qwen3        "draft synthesis"', TEXT)],
-        [("|-- ", DIM), ("tool ", TEAL), ("  search       cache hit", TEXT)],
-        [("|-- ", DIM), ("tool ", TEAL), ("  fs.write     checksum ok", TEXT)],
-        [("`-- ", DIM), ("done ", GREEN), ("  verified     portable .tine", TEXT)],
+    verify_command = "tine replay a7f3c2 --verify"
+    verify_output: list[Line] = [
+        [("verifying ", MUTED), ("a7f3c2", GOLD), ("  re-deriving 5 steps", DIM)],
+        [("|-- ", DIM), ("model", BLUE), ("  qwen3        digest matches", TEXT)],
+        [("|-- ", DIM), ("tool ", TEAL), ("  search       digest matches", TEXT)],
+        [("|-- ", DIM), ("tool ", TEAL), ("  fs.write     digest matches", TEXT)],
+        [("`-- ", DIM), ("done ", GREEN), ("  reproduced   0 structural drift", TEXT)],
     ]
 
     char_counts = [0, 2, 5, 8, 11, 14, 17, len(run_command)]
@@ -173,15 +173,15 @@ def hero_states() -> Iterable[tuple[list[Line], bool, int]]:
     yield lines + run_output, False, 450
 
     base = lines + run_output + [[]]
-    char_counts = [0, 4, 8, 12, 16, 20, len(show_command)]
+    char_counts = [0, 4, 8, 12, 16, 20, 24, len(verify_command)]
     for count in char_counts:
-        yield base + [command_line(show_command[:count])], True, 70
+        yield base + [command_line(verify_command[:count])], True, 70
 
-    lines = base + [command_line(show_command)]
-    for count in range(1, len(show_output) + 1):
-        yield lines + show_output[:count], False, 125
+    lines = base + [command_line(verify_command)]
+    for count in range(1, len(verify_output) + 1):
+        yield lines + verify_output[:count], False, 125
 
-    yield lines + show_output, False, 900
+    yield lines + verify_output, False, 900
 
 
 def draw_terminal_frame(lines: list[Line], show_cursor: bool) -> Image.Image:
