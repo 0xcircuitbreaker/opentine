@@ -16,6 +16,7 @@ from opentine._cli_common import (
     console,
 )
 from opentine._cli_flags import HARNESS_CONFIG_FLAGS, refuse_unhonoured
+from opentine._cli_json_flow import drift_payload, emit_diff, identical
 from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -92,12 +93,28 @@ def cmd_fork(args: argparse.Namespace) -> None:
 
 
 def cmd_diff(args: argparse.Namespace) -> None:
+    """Compare two legacy artifacts: the table by default, JSON and a status on request.
+
+    The comparison is only computed for the flags that need it, so a plain
+    ``tine diff`` is exactly the table it has always printed and still exits 0 —
+    the drift object and the exit status are additions, not a new default.
+    """
     left, right = _find_run(args.run_a), _find_run(args.run_b)
     if not left or not right:
         missing = args.run_a if not left else args.run_b
         console.print(f"[red]Run not found: {_terminal(missing)}[/]")
         raise SystemExit(1)
-    _print_diff_table(Run.load(left), Run.load(right))
+    as_json, gate = getattr(args, "json", False), getattr(args, "exit_code", False)
+    left_run, right_run = Run.load(left), Run.load(right)
+    comparison = left_run.diff(right_run) if as_json or gate else None
+    if as_json:
+        same = emit_diff(left_run, right_run, (left, right), comparison)
+    else:
+        _print_diff_table(left_run, right_run)
+        same = comparison is None or identical(drift_payload(comparison))
+    # git-diff semantics, and only ever 1: argparse owns 2 for a usage error.
+    if gate and not same:
+        raise SystemExit(1)
 
 
 def cmd_resume(args: argparse.Namespace) -> None:

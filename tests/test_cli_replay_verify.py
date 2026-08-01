@@ -35,7 +35,8 @@ from pathlib import Path
 import pytest
 
 from opentine import Run, RunStatus, StepKind, cli
-from opentine._cli_verify_replay import ACCOUNTING_FIELDS, cache_replay, expected_slice
+from opentine._cli_json_flow import ACCOUNTING_FIELDS
+from opentine._cli_verify_replay import cache_replay, expected_slice
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import _drift, _fields, diff_runs
 from opentine._graph_types import Step
@@ -524,14 +525,28 @@ def test_verify_reproduces_replays_of_artifacts_written_by_older_releases(
     assert HEX64.fullmatch(verdict["replay_id"])
 
 
-def test_the_verdict_object_carries_exactly_its_documented_fields(workspace, monkeypatch, capsys):
-    """The docstring of ``_cli_json_flow`` is the schema; keep them one thing."""
+def _documented_keys(section: str) -> set[str]:
+    """The keys one ``tine ...`` section of ``_cli_json_flow``'s docstring lists.
+
+    The module documents two schemas now, so the parse is scoped to a section
+    instead of reading every indented ``key`` in the file.
+    """
     from opentine import _cli_json_flow
 
-    _, verdict = _payload(monkeypatch, capsys, "replay", "source.tine", "--verify", "--json")
-    documented = set(re.findall(r"^    ``(\w+)``", _cli_json_flow.__doc__ or "", re.MULTILINE))
+    blocks = [
+        block
+        for block in (_cli_json_flow.__doc__ or "").split("``tine ")
+        if block.startswith(section)
+    ]
+    assert len(blocks) == 1, f"{section!r} is not one heading in the docstring"
+    return set(re.findall(r"^    ``(\w+)``", blocks[0], re.MULTILINE))
 
-    assert set(verdict) == documented
+
+def test_the_verdict_object_carries_exactly_its_documented_fields(workspace, monkeypatch, capsys):
+    """The docstring of ``_cli_json_flow`` is the schema; keep them one thing."""
+    _, verdict = _payload(monkeypatch, capsys, "replay", "source.tine", "--verify", "--json")
+
+    assert set(verdict) == _documented_keys("replay RUN --verify --json")
     assert verdict["command"] == "replay-verify"
 
 

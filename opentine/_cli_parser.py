@@ -130,13 +130,19 @@ def _build_parser() -> argparse.ArgumentParser:
     diff = sub.add_parser("diff", help="Diff two legacy runs")
     diff.add_argument("run_a")
     diff.add_argument("run_b")
+    # Same flag, same meaning as `repo-diff --exit-code`: one habit for both formats.
+    diff.add_argument(
+        "--exit-code",
+        action="store_true",
+        help="Exit 1 when the runs differ and 0 when they are identical, like git diff",
+    )
     resume = sub.add_parser("resume", help="Resume a paused run")
     resume.add_argument("run_id")
 
     # --json is purely additive: without it each of these renders exactly as before.
     # `replay` earns it only through --verify, whose verdict is a result a script
     # reads; a plain replay's output is the artifact it writes.
-    for readable in (show, verify, listing, search, cost, replay):
+    for readable in (show, verify, listing, search, cost, replay, diff):
         readable.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )

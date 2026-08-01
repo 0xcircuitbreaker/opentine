@@ -24,9 +24,11 @@ and read back, and the two artifacts compared. Two executions must mint two
 *distinct* 64-hex ids (a rerun is a new act, never a name derived from the
 source id) and agree on every structural field.
 
-Drift is classified over the buckets ``_graph_diff`` already reports:
+Drift is classified over the buckets ``_graph_diff`` already reports —
 ``_drift``'s cost/usage/billing deltas are *accounting*, everything ``_fields``
-adds is *structural*. ``--ignore-cost-drift`` downgrades an accounting-only
+adds is *structural* — by ``_cli_json_flow.drift_payload``, the one builder
+``tine diff --json`` also uses, so the two comparisons publish one shape.
+``--ignore-cost-drift`` downgrades an accounting-only
 difference to a pass; structural drift always fails. Exit status is binary: 0
 reproduced, 1 drift or a source that would not load (argparse owns 2). An
 unloadable source yields no verdict, so it is a human message and never a JSON
@@ -57,16 +59,13 @@ from opentine._cli_common import (
     console,
 )
 from opentine._cli_flow import _require_output_slot
-from opentine._cli_json_flow import emit_replay_verify
+from opentine._cli_json_flow import drift_payload, emit_replay_verify
 from opentine._cli_render import print_replay_verify
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import diff_runs
-from opentine.core import Run, short_id
+from opentine.core import Run
 from opentine.harnesses import OpentineHarness
 
-#: Exactly the deltas ``_graph_diff._drift`` reports; everything ``_fields`` adds
-#: on top is structural. A guard test pins the split against that function.
-ACCOUNTING_FIELDS = frozenset({"billing", "cost", "usage"})
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
@@ -95,23 +94,14 @@ def cache_replay(run: Run, fork_point: str) -> Run:
     return replayed
 
 
-def classify_drift(diff: Any) -> tuple[list[str], list[str]]:
-    """Split one ``RunDiff`` into (structural, accounting) labels."""
-    structural: list[str] = []
-    accounting: list[str] = []
-    for change in diff.changed:
-        label = short_id(change.step_a.id)
-        for delta in change.fields:
-            bucket = accounting if delta.name in ACCOUNTING_FIELDS else structural
-            bucket.append(f"{label} {delta.name}")
-    structural.extend(f"{short_id(step.id)} missing" for step in diff.only_a)
-    structural.extend(f"{short_id(step.id)} added" for step in diff.only_b)
-    return sorted(structural), sorted(accounting)
-
-
 @dataclass
 class Verdict:
-    """One completed comparison; the human text and the JSON both render this."""
+    """One completed comparison; the human text and the JSON both render this.
+
+    ``drift`` is the shared object ``_cli_json_flow.drift_payload`` builds, held
+    whole rather than unpacked so that ``tine diff --json`` and this verdict
+    cannot describe the same buckets differently.
+    """
 
     mode: str
     path: str
@@ -120,13 +110,20 @@ class Verdict:
     second_id: str
     identity_ok: bool
     integrity: Any
-    structural: list[str] = field(default_factory=list)
-    accounting: list[str] = field(default_factory=list)
+    drift: dict[str, list[str]] = field(default_factory=dict)
     ignore_cost_drift: bool = False
     fork_point: str | None = None
     expected_steps: int | None = None
     reused_steps: int | None = None
     slice_ok: bool | None = None
+
+    @property
+    def structural(self) -> list[str]:
+        return self.drift.get("structural", [])
+
+    @property
+    def accounting(self) -> list[str]:
+        return self.drift.get("accounting", [])
 
     @property
     def reproduced(self) -> bool:
@@ -145,7 +142,6 @@ def _cache_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path) -
     again = Run.load(path)
     second_point, second_expected = expected_slice(again, args.from_step)
     second = cache_replay(again, second_point)
-    structural, accounting = classify_drift(diff_runs(second, reloaded))
     # The expected closure, the two derivations, and the round-tripped file: one set.
     slices = (second_expected, set(reloaded.graph.steps), set(second.graph.steps))
     return Verdict(
@@ -156,8 +152,7 @@ def _cache_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path) -
         second_id=second.id,
         identity_ok=reloaded.id == second.id and bool(_HEX64.fullmatch(second.id)),
         integrity=integrity,
-        structural=structural,
-        accounting=accounting,
+        drift=drift_payload(diff_runs(second, reloaded)),
         ignore_cost_drift=bool(getattr(args, "ignore_cost_drift", False)),
         fork_point=fork_point,
         expected_steps=len(expected),
@@ -186,7 +181,6 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
     _execute(args, task, context, artifact)
     reloaded, integrity = Run.load(artifact), Run.verify_integrity(artifact)
     second = _execute(args, task, context, room / "rerun-b.tine")
-    structural, accounting = classify_drift(diff_runs(second, reloaded))
     return Verdict(
         mode="rerun",
         path=str(path),
@@ -198,8 +192,7 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
         identity_ok=reloaded.id != second.id
         and all(bool(_HEX64.fullmatch(value)) for value in (reloaded.id, second.id)),
         integrity=integrity,
-        structural=structural,
-        accounting=accounting,
+        drift=drift_payload(diff_runs(second, reloaded)),
         ignore_cost_drift=bool(getattr(args, "ignore_cost_drift", False)),
     )
 
