@@ -14,6 +14,8 @@ from dataclasses import asdict
 from pathlib import Path
 
 from opentine._cli_common import _terminal
+from opentine._repo_cli_json import emit_context, emit_repo_log, emit_repo_show
+from opentine._repo_cli_render import render_context, render_log, render_repo_show
 from opentine.repo import Repo
 from opentine.repository.store import _atomic_bytes
 
@@ -50,13 +52,39 @@ def cmd_fsck(args: argparse.Namespace, console) -> None:
 
 def cmd_repo_log(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
-    for entry in repo.log(args.ref, limit=args.limit):
-        kind = (
-            entry.payload.get("kind", entry.object_type)
-            if isinstance(entry.payload, dict)
-            else entry.object_type
-        )
-        console.print(f"{_terminal(entry.oid)} {_terminal(kind)}")
+    entries = repo.log(args.ref, limit=args.limit)
+    if getattr(args, "json", False):
+        emit_repo_log(repo.path, args.ref, entries)
+        return
+    render_log(console, entries)
+
+
+def cmd_repo_show(args: argparse.Namespace, console) -> None:
+    # load_run resolves a ref or a run oid itself, and refuses a run whose events a
+    # shallow fetch cut away; that refusal reaches the operator through cmd_repo's
+    # envelope as "tine repo-show: … deepen the fetch", never as a traceback.
+    repo = Repo.open(args.repo)
+    try:
+        run = repo.load_run(args.ref)
+    except KeyError as exc:
+        # load_run signals "not here" with KeyError(<the id it could not find>), so
+        # the bare envelope printed "tine repo-show: heads/nope" and nothing else.
+        missing = exc.args[0] if exc.args else args.ref
+        raise KeyError(f"cannot load {missing}: no such ref or object in {args.repo}") from None
+    oid = str(getattr(run, "_v3_run_id", "") or "")
+    if getattr(args, "json", False):
+        emit_repo_show(repo.path, args.ref, run, oid)
+        return
+    render_repo_show(console, run, oid)
+
+
+def cmd_context(args: argparse.Namespace, console) -> None:
+    repo = Repo.open(args.repo)
+    entries = repo.context_slice(args.event_id, depth=args.depth)
+    if getattr(args, "json", False):
+        emit_context(repo.path, args.event_id, args.depth, entries)
+        return
+    render_context(console, args.event_id, entries)
 
 
 def cmd_object(args: argparse.Namespace, console) -> None:

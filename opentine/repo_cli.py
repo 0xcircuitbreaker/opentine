@@ -17,6 +17,7 @@ from opentine._cli_common import _terminal
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._repo_cli_plumbing import (
     cmd_clone,
+    cmd_context,
     cmd_fetch,
     cmd_fsck,
     cmd_init,
@@ -25,6 +26,7 @@ from opentine._repo_cli_plumbing import (
     cmd_pack,
     cmd_push,
     cmd_repo_log,
+    cmd_repo_show,
 )
 from opentine._signing_keys import SignatureError
 
@@ -36,6 +38,7 @@ RepoHandler = Callable[[argparse.Namespace, object], None]
 
 REPO_COMMANDS: dict[str, RepoHandler] = {
     "clone": cmd_clone,
+    "context": cmd_context,
     "fetch": cmd_fetch,
     "fsck": cmd_fsck,
     "init": cmd_init,
@@ -44,6 +47,7 @@ REPO_COMMANDS: dict[str, RepoHandler] = {
     "pack": cmd_pack,
     "push": cmd_push,
     "repo-log": cmd_repo_log,
+    "repo-show": cmd_repo_show,
 }
 
 
