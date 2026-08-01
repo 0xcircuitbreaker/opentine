@@ -17,6 +17,16 @@ def pytest_configure(config):
     """
     os.environ.pop("FORCE_COLOR", None)
     os.environ["NO_COLOR"] = "1"
+    # Also pin a fixed, wide console WIDTH. The CLI's Rich console captures its
+    # width at import: from the controlling terminal in an interactive dev shell
+    # (wide), or 80 when stdout is not a tty (CI). A long message or temp path
+    # then wraps differently between local and CI, so a substring assertion on
+    # CLI output can pass locally and fail on CI (e.g. "Pass --force" split across
+    # a wrap). Force one width everywhere so rendering is deterministic.
+    os.environ["COLUMNS"] = "200"
+    from opentine import _cli_common
+
+    _cli_common.console._width = 200
 
 
 def pytest_addoption(parser):
