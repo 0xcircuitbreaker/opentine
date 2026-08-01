@@ -404,17 +404,36 @@ from. Cost and billing have no GenAI convention and travel under `opentine.*`
 attributes, which the importer does not read back. Export is read-only over
 provenance and writes nothing.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,
-and attestation are also available as MCP tools. Promotion is not exposed by
-default: `promote_run` is registered only when the host passes
-`allow_promotion=True`, and the shipped `opentine.mcp_server` never passes it.
-Run content an MCP client reads is untrusted input, so text recorded inside a
-run can ask a model to promote a run of an attacker's choosing; creating a
-release gate stays an operator action. For the same reason MCP fork/resume may
-only write `experiments/*` refs. Mainline `heads/*`, `promotions/*`, `tags/*`,
-and remote-tracking refs are operator-only, so an MCP call that names
-`heads/main` is refused.
+and attestation are also available as MCP tools. Promotion is still **not**
+exposed to a model by default: `promote_run` is registered only when the host
+passes `allow_promotion=True`, and the shipped `opentine.mcp_server` never
+passes it. Run content an MCP client reads is untrusted input, so text recorded
+inside a run can ask a model to promote a run of an attacker's choosing;
+creating a release gate stays an operator action. For the same reason MCP
+fork/resume may only write `experiments/*` refs. Mainline `heads/*`,
+`promotions/*`, `tags/*`, and remote-tracking refs are operator-only, so an MCP
+call that names `heads/main` is refused.
+
+Operators get all three writes on the command line, which is the point: the
+person at the terminal is authenticated by having the shell, a model reached
+over MCP is not.
+
+```bash
+tine attest heads/main --signer release-manager --claim '{"kind":"approval"}'
+tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
+tine promote heads/main --name production            # creates the release gate
+tine promote <run-oid> --name production --expected-old <current-oid>   # moves it
+```
+
+Each takes a ref name or a run oid, resolves it, and makes one engine call, so a
+CLI-written attestation is byte-identical to the MCP one. `promote` defaults to
+*expect no existing ref*: moving a promotion that already exists requires
+`--expected-old` naming the value being replaced, and there is no `--force`.
+Adding the CLI verb does not widen the MCP surface — `allow_promotion` stays
+`False` — it just stops the operator having to write Python to do their job.
 Evaluation/approval attestations are content-addressed but their `signer` label
-is self-asserted unless the caller attaches and independently verifies a signature.
+is self-asserted unless the caller attaches and independently verifies a
+signature, and the CLI has no flag that claims otherwise; it prints `unsigned`.
 
 ## Self-hosted remote
 

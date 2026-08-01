@@ -46,14 +46,17 @@ def test_every_parser_choice_is_routed_by_exactly_one_table() -> None:
 
 def test_repo_commands_are_all_callable_handlers() -> None:
     assert set(REPO_COMMANDS) == {
+        "attest",
         "clone",
         "context",
+        "evaluate",
         "fetch",
         "fsck",
         "init",
         "migrate-v3",
         "object",
         "pack",
+        "promote",
         "push",
         "repo-diff",
         "repo-log",

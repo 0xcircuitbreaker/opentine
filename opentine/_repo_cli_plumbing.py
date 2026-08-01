@@ -27,7 +27,7 @@ from opentine.repo import Repo
 
 # The engine's own ref-or-oid resolver, imported rather than re-implemented: the
 # ids ``repo-diff --json`` reports must be the objects semantic_diff compared.
-from opentine.repository.ops import _resolve
+from opentine.repository.ops import resolve_target
 from opentine.repository.store import _atomic_bytes
 
 
@@ -101,11 +101,11 @@ def cmd_context(args: argparse.Namespace, console) -> None:
 def _resolve_run(repo: Repo, value: str) -> str:
     """Resolve one side of a diff, naming what could not be found.
 
-    ``_resolve`` signals "not here" with ``KeyError(<the name>)``, which the repo
-    error envelope would print as ``tine repo-diff: heads/nope`` and nothing else.
+    ``resolve_target`` signals "not here" with ``KeyError(<the name>)``, which the
+    repo error envelope would print as ``tine repo-diff: heads/nope`` and nothing else.
     """
     try:
-        return _resolve(repo, value)
+        return resolve_target(repo, value)
     except KeyError:
         message = f"cannot resolve {value}: no such ref or object in {repo.path}"
         raise KeyError(message) from None
