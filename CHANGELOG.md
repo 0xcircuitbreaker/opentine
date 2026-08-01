@@ -1,9 +1,52 @@
 # Changelog
 
-## Unreleased — 0.6.0 (Surface Release)
+## 0.6.0 — 2026-08-01
+
+The Surface Release. The v3 provenance engines that shipped as MCP tools —
+semantic diff, search, attestation, evaluation, promotion, fork and resume — are
+now human CLI verbs, so an operator at a terminal, and CI, can drive what only an
+agent could before. Deterministic replay becomes a checkable gate, cross-run
+statistics land, and the managed clouds (Bedrock, Vertex, Azure) join the
+transport family usage-only. Stored data stays readable: every artifact and
+repository written by 0.3.0, 0.4.0, and 0.5.0 still loads, gated by golden
+fixtures for all three.
 
 ### Added
 
+- **The v3 repository engines are now CLI verbs.** `repo-show`, `repo-log --json`,
+  and `context` read a run, its object log, and a minimal causal slice;
+  `repo-diff` (with `--exit-code`) and `repo-search` expose the semantic-diff and
+  search engines; `attest`, `evaluate`, and `promote` append an attestation, an
+  evaluation, or a promotion; `repo-fork` and `repo-resume` branch and continue a
+  v3 run. Each mirrors the MCP tool it shares an engine with, and a parity
+  meta-test keeps the two in lockstep — pinning the deliberate divergences
+  (`promote` is an unconditional operator verb on the CLI though MCP gates it
+  behind `allow_promotion`; the CLI is not confined to `experiments/*`, whose
+  threat model is model-controlled input rather than an operator). The read verbs
+  are read-only; the mutating verbs append objects exactly as the MCP path does,
+  preserve the expect-absent CAS on a promotion (moving one needs
+  `--expected-old`; there is no `--force`), and never emit a `--json` object on a
+  failed write. Every verb has a stable `--json` object through one writer, and
+  attacker-controlled recorded content is terminal-escaped on the human path.
+- **`tine diff` gains `--json` and `--exit-code`.** The legacy diff verb becomes
+  scriptable, with git-diff exit semantics (0 identical / 1 differs / never 2)
+  and a drift object literally the same shape `replay --verify` reports. The
+  default invocation is byte-identical.
+- **`tine stats`.** Cross-run aggregation over the local `.tine_runs` index — run
+  and step counts, cost total/mean/max, distinct models, tag and format-version
+  histograms — grouped (`--group-by model|status|tag|day|format-version`) and
+  filtered exactly like `tine ls`. Token and duration figures are *absent* unless
+  `--deep` loads each run; "not collected" is never a silent zero that would sum
+  with real costs.
+- **Top-level re-exports and more `--json`.** Thirteen diff/query/signing names
+  (`RunDiff`, `Graph`, `Query`, `parse_query`, `sign_artifact`, `verify_artifact`,
+  …) are now importable straight from `opentine`, and `tine import` and `tine tag`
+  gain `--json`.
+- **`tine cost` shows unpriced steps.** A `pricing: {complete, unpriced_steps,
+  unpriced_providers}` object in `--json` and a human warning ("N step(s) unpriced
+  (bedrock); total is a known subtotal, not the bill") make a managed-cloud run's
+  cost honest rather than a silent `$0`. Exit status and `Budget` are unchanged;
+  refusing an unknown-priced step under `strict_cost` is deferred to 0.8.0.
 - **`tine replay <run> --verify`.** Deterministic replay was an asserted
   property; it is now a check with an exit status, so CI can gate on it. The
   check is deliberately not an in-memory one — `Run.fork` deep-copies, so
