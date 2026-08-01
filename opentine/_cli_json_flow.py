@@ -71,6 +71,38 @@ bucket appears in both surfaces at once:
                          exactly the ``--exit-code`` predicate
     ``drift``            object — the four shared buckets above, byte-for-byte
                          the shape ``replay --verify --json`` publishes
+
+``tine stats --json``
+    ``command``      ``"stats"``
+    ``scope``        str — always ``"legacy-index"``; the aggregate covers the
+                     ``.tine_runs`` file index and no v3 repository (see
+                     ``STATS_SCOPE_NOTE``), so a consumer can tell a small
+                     number caused by scope from a small number caused by data
+    ``scope_note``   str — ``STATS_SCOPE_NOTE``, the same sentence the help and
+                     the human rendering print
+    ``deep``         bool — whether ``--deep`` loaded the matched runs
+    ``deep_failed``  int — present only with ``--deep``: matched runs that would
+                     not load, reported rather than counted as costing nothing
+    ``group_by``     str or null — the ``--group-by`` dimension
+    ``unreadable``   int — corrupt rows in the index; they match no filter and
+                     are in **none** of the numbers below, hence a field of
+                     their own
+    ``totals``       object — one aggregate over every matched run (below)
+    ``groups``       array — one aggregate per group, each with an extra
+                     ``key``, ordered cost desc then key asc and cut to
+                     ``--limit``; empty without ``--group-by``
+
+    Each aggregate object carries ``runs``, ``steps_total``, ``steps_mean``,
+    ``cost_total``, ``cost_mean``, ``cost_max``, ``models`` (sorted distinct),
+    ``tags`` (histogram), ``format_versions`` (histogram keyed by the version as
+    a string), ``first_created_at`` and ``last_created_at``.
+
+    **Absent, not zero.** ``input_tokens``, ``output_tokens``, ``total_tokens``,
+    ``duration_total`` and ``duration_mean`` appear **only** under ``--deep``.
+    The index record holds no tokens and no durations, and emitting ``0`` for
+    them would be a claim — that these runs spent nothing — rather than the
+    truth, which is that nothing was collected. Consumers must test presence
+    (``"total_tokens" in totals``), never equality with zero.
 """
 
 from __future__ import annotations
@@ -83,6 +115,14 @@ from opentine.core import Run, short_id
 #: Exactly the deltas ``_graph_diff._drift`` reports; everything ``_fields`` adds
 #: on top is structural. A guard test pins the split against that function.
 ACCOUNTING_FIELDS = frozenset({"billing", "cost", "usage"})
+
+#: The one sentence stating what ``tine stats`` counts. Lives here, with the
+#: schema, so the help text, the human rendering and the JSON cannot drift apart.
+STATS_SCOPE = "legacy-index"
+STATS_SCOPE_NOTE = (
+    "scope: the legacy .tine_runs file index only, not v3 repositories "
+    "(a --repo mode belongs to the v3 search engine and is deferred to 0.7.0)"
+)
 
 
 def classify_drift(diff: Any) -> tuple[list[str], list[str]]:
@@ -134,6 +174,36 @@ def emit_diff(left: Run, right: Run, paths: tuple[Any, Any], diff: Any) -> bool:
         }
     )
     return same
+
+
+def emit_stats(
+    *,
+    totals: dict[str, Any],
+    groups: list[dict[str, Any]],
+    group_by: str | None,
+    deep: bool,
+    unreadable: int,
+    deep_failed: int | None = None,
+) -> None:
+    """Write the one object describing a legacy-index aggregate.
+
+    The aggregate dicts are passed through as built: the absent-not-zero rule is
+    enforced by *not adding* token and duration keys upstream, so there is no
+    place here that could helpfully default them to 0.
+    """
+    payload: dict[str, Any] = {
+        "command": "stats",
+        "scope": STATS_SCOPE,
+        "scope_note": STATS_SCOPE_NOTE,
+        "deep": bool(deep),
+        "group_by": group_by,
+        "unreadable": int(unreadable),
+        "totals": totals,
+        "groups": groups,
+    }
+    if deep_failed is not None:
+        payload["deep_failed"] = int(deep_failed)
+    emit(payload)
 
 
 def emit_replay_verify(verdict: Any) -> None:

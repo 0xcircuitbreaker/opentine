@@ -46,6 +46,7 @@ from opentine._cli_security import (
     cmd_sign,
     cmd_verify,
 )
+from opentine._cli_stats import cmd_stats
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
 from opentine.repo_cli import REPO_COMMANDS, cmd_repo
@@ -69,6 +70,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "serve": lambda namespace: cmd_serve(namespace, console),
     "show": cmd_show,
     "sign": cmd_sign,
+    "stats": cmd_stats,
     "tag": cmd_tag,
     "verify": cmd_verify,
 }
@@ -136,6 +138,7 @@ __all__ = [
     "cmd_search",
     "cmd_show",
     "cmd_sign",
+    "cmd_stats",
     "cmd_tag",
     "cmd_verify",
     "console",
