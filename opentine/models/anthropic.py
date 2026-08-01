@@ -22,6 +22,11 @@ from opentine.models._usage import (
 
 
 class Anthropic:
+    # Which service metered the call, and so which rate cards may price it. A class
+    # attribute and not an __init__ parameter: a managed re-host (Bedrock) is a
+    # different billing identity, chosen by subclassing, never by a caller argument
+    # that could relabel a managed call as direct-API and borrow its rates.
+    _provider_id = "anthropic"
     _build_tools = staticmethod(build_tools)
     _convert_messages = staticmethod(convert_messages)
 
@@ -38,7 +43,7 @@ class Anthropic:
         validate_service_tier(service_tier)
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self._rate_override = validated_rates("anthropic", model, rates)
+        self._rate_override = validated_rates(self._provider_id, model, rates)
         self._catalog = catalog
         self._service_tier = service_tier
         self._inference_geo = inference_geo
@@ -98,7 +103,7 @@ class Anthropic:
         raw_model = value(response, "model")
         reported_model = model_name(raw_model)
         payload = metered_response(
-            "anthropic",
+            self._provider_id,
             self._model,
             anthropic_usage(raw_usage),
             catalog=self._catalog,

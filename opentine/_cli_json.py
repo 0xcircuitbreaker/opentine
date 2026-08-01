@@ -66,6 +66,16 @@ exits 1.
     ``budget_state``   object or null — the recorded breach state, verbatim
     ``over_budget``    bool — true when ``budget_state`` records a breach, which
                        is also when the command exits 1
+    ``pricing``        object — cost completeness: ``complete`` (bool),
+                       ``unpriced_steps`` (int), ``unpriced_providers`` (list of
+                       str). ``total_cost`` counts only priced steps, so when
+                       ``complete`` is false it is a known subtotal and not the
+                       bill; a managed-cloud step whose regional rates are not in
+                       the signed catalog contributes usage but $0. Reported, not
+                       enforced: unpriced steps do not change the exit status. A
+                       run recorded before this field existed reports
+                       ``{complete: true, unpriced_steps: 0}``, since an absent
+                       record is no evidence of an unpriced step.
 """
 
 from __future__ import annotations
@@ -75,6 +85,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._jsonsafe import json_safe
+from opentine._runtime_accounting import pricing_summary
 from opentine.core import Run, short_id
 
 
@@ -214,6 +225,7 @@ def emit_cost(run: Run) -> bool:
             },
             "budget_state": state if isinstance(state, dict) else None,
             "over_budget": breached,
+            "pricing": pricing_summary(run),
         }
     )
     return breached

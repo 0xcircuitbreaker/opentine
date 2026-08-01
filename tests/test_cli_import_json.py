@@ -484,10 +484,18 @@ def test_cost_json_carries_the_documented_fields(workspace, capsys):
         "budget",
         "budget_state",
         "over_budget",
+        "pricing",
     }
     assert payload["command"] == "cost"
     assert payload["total_tokens"] == 12
     assert payload["over_budget"] is False and payload["budget"] is None
+    # A run with nothing pinned reports complete rather than "unknown": absence of
+    # a pricing record is not evidence of an unpriced step (see _runtime_accounting).
+    assert payload["pricing"] == {
+        "complete": True,
+        "unpriced_steps": 0,
+        "unpriced_providers": [],
+    }
 
 
 @pytest.mark.parametrize("release", RELEASES)

@@ -31,6 +31,36 @@ def _listed(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def pricing_summary(run: Run) -> dict[str, Any]:
+    """Summarize how much of a run's cost is actually known.
+
+    The reader half of ``_pin_billing``: it answers only from what that writer
+    pins into ``manifest['pricing']``, so a run recorded before this existed
+    (every pre-0.6.0 artifact) degrades to a complete, zero-unpriced summary
+    rather than reporting an absent record as a defect.
+
+    ``complete`` is conjunctive with the step census on purpose. The pinned flag
+    is operator-editable; a summary that claimed completeness while listing
+    unpriced steps would be a false trust signal in exactly the case that
+    matters.
+    """
+    pricing = run.manifest.get("pricing")
+    pricing = pricing if isinstance(pricing, dict) else {}
+    invocations = [item for item in _listed(pricing.get("invocations")) if isinstance(item, dict)]
+    unpriced = [item for item in invocations if item.get("status") not in {"complete", "unmetered"}]
+    providers = set()
+    for item in unpriced:
+        calculation = item.get("calculation")
+        provider = calculation.get("provider") if isinstance(calculation, dict) else None
+        if isinstance(provider, str) and provider:
+            providers.add(provider)
+    return {
+        "complete": pricing.get("complete", True) is True and not unpriced,
+        "unpriced_steps": len(unpriced),
+        "unpriced_providers": sorted(providers),
+    }
+
+
 class AccountingMixin:
     def _enforce_budget(
         self,

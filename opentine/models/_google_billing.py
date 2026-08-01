@@ -50,9 +50,11 @@ def google_meter(
     rates: dict[str, Any] | None,
     service_tier: str | None,
     reported_model: str | None,
+    *,
+    provider: str = "google",
 ) -> dict[str, Any]:
     return metered_response(
-        "google",
+        provider,
         model,
         google_usage(raw_usage),
         catalog=catalog,

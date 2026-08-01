@@ -20,6 +20,11 @@ from opentine.models._usage import value
 
 
 class Google:
+    # Billing identity, fixed by the class rather than by a caller argument: a
+    # managed re-host (Vertex) subclasses this and overrides it, so no constructor
+    # argument can relabel a managed call as direct-API and borrow its rate card.
+    _provider_id = "google"
+
     def __init__(
         self,
         model: str = "gemini-3.5-flash",
@@ -33,7 +38,7 @@ class Google:
             raise ValueError("Google service_tier must be standard, flex, or priority")
         self._model = model
         self._api_key = api_key or os.environ.get("GOOGLE_API_KEY", "")
-        self._rate_override = validated_rates("google", model, rates)
+        self._rate_override = validated_rates(self._provider_id, model, rates)
         self._catalog = catalog
         self._service_tier = service_tier
 
@@ -164,6 +169,7 @@ class Google:
             self._rate_override,
             observed_tier or self._service_tier,
             reported_model,
+            provider=self._provider_id,
         )
         if (
             self._service_tier == "priority"

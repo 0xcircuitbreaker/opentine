@@ -22,6 +22,7 @@ from opentine._cli_common import (
 from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_json import emit_cost, emit_show
 from opentine._cli_render import _budget_str, _print_run_tree
+from opentine._runtime_accounting import pricing_summary
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
@@ -138,6 +139,16 @@ def cmd_cost(args: argparse.Namespace) -> None:
         f"tokens={breakdown.total_tokens} "
         f"(in {breakdown.input_tokens} / out {breakdown.output_tokens})"
     )
+    # Reported, never enforced: an unpriced step must not change the exit status
+    # (refusing them is Budget's job, and strict_cost is unchanged this release).
+    # Silence here would let a $0 managed-cloud step read as a free one.
+    pricing = pricing_summary(run)
+    if pricing["unpriced_steps"]:
+        providers = ", ".join(pricing["unpriced_providers"]) or "unknown provider"
+        console.print(
+            f"[yellow]Warning:[/] {pricing['unpriced_steps']} step(s) unpriced "
+            f"({_terminal(providers)}); total is a known subtotal, not the bill"
+        )
     for title, values in (("By model", breakdown.by_model), ("By step kind", breakdown.by_kind)):
         if not values:
             continue
