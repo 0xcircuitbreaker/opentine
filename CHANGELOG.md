@@ -24,7 +24,7 @@
   for an external agent. Cache-mode verification, which spawns nothing, is the
   default CI gate.
 - **Managed-cloud adapters (`opentine.models.managed`): `Bedrock`,
-  `BedrockCompatible`, `Vertex`, `VertexAnthropic`.** Thin subclasses of the
+  `BedrockCompatible`, `Vertex`, `VertexAnthropic`, `AzureOpenAI`.** Thin subclasses of the
   adapters that already exist — they inherit the request building, content
   handling, and usage extraction unchanged, and alter exactly two things: the
   `_provider_id` class attribute, and a `managed_unpriced()` pass after
@@ -59,8 +59,62 @@
   `inference_geo`. Passing either raises `ValueError` instead of being silently
   dropped: the re-host's contract sets capacity and region, and accepting a knob
   that does nothing would leave a caller believing they bought a tier.
+- **`AzureOpenAI` cannot be billed at OpenAI's list prices.** This is the
+  mispricing the class exists to prevent: Azure echoes the *same* model strings
+  the direct API reports — a response says `gpt-5.6` on both surfaces, and the
+  bundled catalog holds a real, signed card for the direct one. Nothing in the
+  payload distinguishes an Azure call, so anything matching cards by model name
+  would price every Azure call at openai.com rates and hand an operator a number
+  their Azure invoice will not contain, under OpenTine's signature. It is
+  structurally impossible instead: `_provider_id = "azure-openai"` is a class
+  attribute, `RateCard.matches` compares provider first, and the signed catalog
+  declares no `azure-openai` card (permanently, per
+  `tests/test_managed_cloud_pricing.py`), so the engine takes its no-card path
+  and `managed_unpriced()` records why. Regression-tested against the direct
+  `gpt-5.6` call it would otherwise be confused with. Enterprise agreement,
+  PTU, and regional rates are supplied by the operator with `rates=` or an
+  overlay.
+- **`AzureOpenAI` never falls back to `OPENAI_API_KEY`.** It reads
+  `AZURE_OPENAI_API_KEY` only; a Microsoft Entra bearer is passed as `api_key=`
+  (acquisition and refresh belong to the caller's identity library). This is the
+  non-forwarding rule the compatible transport already applies to gateways and
+  `glm-cn`: without it, any developer with `OPENAI_API_KEY` exported would ship
+  their direct-OpenAI secret to `*.openai.azure.com` — a different company's
+  endpoint — on the first call, silently.
+- **`AzureOpenAI` requests streamed usage at the adapter level.** Azure's
+  OpenAI-compatible endpoint sends a final usage chunk only when the request
+  carries `stream_options={"include_usage": true}`; without it the stream just
+  ends, so a streamed call records zero tokens and a billing status of
+  `unknown` that is indistinguishable, in the artifact, from the managed-cloud
+  silence that is *supposed* to be there. Set as `include_usage=True` on the
+  class rather than by widening `ChatCompletions._stream_usage_providers`, whose
+  documented bar for membership is positive evidence that a provider accepts the
+  field (a wrong entry breaks a provider outright — Mistral answers HTTP 422).
+  The endpoint is assembled from `resource=`, `AZURE_OPENAI_ENDPOINT`, or an
+  exact `base_url=`; `model` is the deployment name. No new extra: `compat` (the
+  `openai` SDK) already serves it.
+- **Credential-guarded live smokes for all three clouds**
+  (`tests/test_live.py`, `-m live`, `--provider bedrock|vertex|azure`). Each
+  asserts a real call returns non-zero token counts — the one managed-cloud
+  failure that is otherwise invisible, since an adapter that lost usage looks
+  identical in the artifact to one working correctly (both report `cost: 0.0`).
+  Azure's additionally makes a streamed call and requires exactly one usage
+  event. They call SDKs, never a binary, and skip cleanly without `--provider`
+  and without credentials, so they stay out of CI and out of the offline suite.
 
 ### Rejected (recorded so it is not relitigated)
+
+- **The legacy Azure OpenAI surface**
+  (`/openai/deployments/{deployment}/chat/completions?api-version=...`). It is
+  not a base URL an OpenAI-compatible client can be pointed at: the deployment
+  name sits in the *path* rather than the `model` field, and a dated
+  `api-version` query parameter is mandatory on every request. Supporting it
+  means depending on `openai.AsyncAzureOpenAI` and threading a version through
+  request building — a real adapter with its own surface area, not a preset. The
+  version-less `/openai/v1` endpoint, which Azure documents as the forward path,
+  is a plain OpenAI-compatible base URL and needs none of it. A legacy URL
+  passed to `base_url=` raises with the supported form named, rather than
+  producing 404s the caller cannot explain.
 
 - **A generic `boto3` Converse adapter.** It buys the non-Anthropic Bedrock
   families a second time — `BedrockCompatible` already reaches Nova, Llama, and

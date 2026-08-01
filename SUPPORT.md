@@ -38,9 +38,23 @@ and repository-object compatibility is specified in
   OpenAI-compatible local runtimes through exact-base generic transport. Model
   discovery, chat templates, tools, reasoning, and usage fields depend on the
   configured server and loaded model.
+- `Validated` contracts, `Scoped` live services: the managed-cloud re-hosts
+  `Bedrock` and `BedrockCompatible` (AWS), `Vertex` and `VertexAnthropic`
+  (Google Cloud), and `AzureOpenAI` (Azure), in `opentine.models.managed`.
+  Wire shape, usage extraction, provider identity, and the never-priced rule
+  below are offline-tested against fake clients; a real endpoint is exercised
+  only by the maintainer's credential-guarded live smokes in
+  `tests/test_live.py` (`--provider bedrock|vertex|azure`), which are excluded
+  from CI. `AzureOpenAI` targets the version-less `/openai/v1` endpoint; the
+  legacy `?api-version=` / `/deployments/` surface is `Unavailable` by design
+  and is rejected rather than half-supported.
 
 An exact signed price card is independent of transport support. Unknown models
-remain runnable but visibly unpriced. Local runtime adapters default to
+remain runnable but visibly unpriced. Managed-cloud usage is always recorded and
+never priced: regional and contract rates differ per account, so no signed
+public snapshot can state them, and every managed call reports billing status
+`unknown` until the operator supplies `rates=` or a provider-scoped catalog
+overlay. Local runtime adapters default to
 `unmetered` unless per-token rates are supplied for infrastructure accounting.
 The `LiteLLM` preset and the generic `OpenAICompatible` transport are the
 exceptions: both default to metered because a gateway may route paid hosted

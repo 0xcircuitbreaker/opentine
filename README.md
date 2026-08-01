@@ -260,30 +260,67 @@ default; supply `rates=` to account for infrastructure. The `LiteLLM` preset
 and `OpenAICompatible` deliberately default to unknown billing because a
 gateway may route paid hosted APIs.
 
-### Managed clouds (usage recorded, cost unknown)
+### Managed-cloud endpoints
 
-Bedrock and Vertex re-host the same models under per-region, per-account
-contract pricing that no public snapshot can state truthfully. The adapters are
-the existing ones with a different billing identity:
+Bedrock, Vertex, and Azure OpenAI re-host the same models under per-region,
+per-account contract pricing. The adapters are the existing ones with a
+different billing identity — same request building, same usage extraction:
 
 ```python
-from opentine.models.managed import Bedrock, BedrockCompatible, Vertex, VertexAnthropic
+from opentine.models.managed import AzureOpenAI, Bedrock, BedrockCompatible, Vertex, VertexAnthropic
 
 Bedrock("us.anthropic.claude-sonnet-5-v1:0", region="us-east-1")
 Bedrock("arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-sonnet-5-v1:0")
-BedrockCompatible("amazon.nova-pro-v1:0")   # Nova/Llama/Mistral; needs opentine[compat]
+BedrockCompatible("amazon.nova-pro-v1:0")   # Nova/Llama/Mistral over Bedrock's OpenAI wire
 Vertex("gemini-3.5-flash", project="acme-prod", location="europe-west4")
 VertexAnthropic("claude-sonnet-5@20260101", project="acme-prod", region="us-east5")
+AzureOpenAI("my-gpt-deployment", resource="acme-prod")
 ```
 
-Every managed call records usage in full and reports `status: "unknown"` with no
-amount — `tine cost` shows the unpriced step count and says its total is a known
-subtotal, not the bill. Supply your negotiated rates with `rates=` (or a catalog
-overlay) to price them; the calculation then records
-`pricing_basis: "user_supplied_regional_rates"`. An inference-profile ARN is
-truncated to its profile name before anything is persisted, so an AWS account id
-never reaches an artifact. Bedrock's Messages surface has no `service_tier` or
+| Class | Wire | Credentials | Extra | Recorded provider |
+|---|---|---|---|---|
+| `Bedrock` | Anthropic Messages | AWS SigV4 (`AWS_REGION`, standard chain) | `opentine[bedrock]` | `bedrock` |
+| `BedrockCompatible` | Chat Completions | `AWS_BEARER_TOKEN_BEDROCK` | `opentine[compat]` | `bedrock` |
+| `Vertex` | google-genai | ADC (`GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`) | `opentine[vertex]` | `vertex` |
+| `VertexAnthropic` | Anthropic Messages | ADC (`ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_REGION`) | `opentine[vertex]` | `vertex` |
+| `AzureOpenAI` | Chat Completions | `AZURE_OPENAI_API_KEY` or an Entra bearer via `api_key=` (`AZURE_OPENAI_ENDPOINT`) | `opentine[compat]` | `azure-openai` |
+
+**The rule: OpenTine records managed-cloud usage but never prices it.** Every
+managed call records usage in full and reports `status: "unknown"` with no
+amount and `pricing_basis: "managed_cloud_unpriced"`; `tine cost` shows the
+unpriced step count and says its total is a known subtotal, not the bill.
+Regional and contract rates differ per account, so a signed public snapshot
+cannot state them truthfully. Supply your negotiated rates with `rates=` or a
+provider-scoped catalog overlay to price the calls; the calculation then records
+`pricing_basis: "user_supplied_regional_rates"`. The recorded provider is a
+class attribute, not an argument, so a managed call can never resolve a
+direct-API card: `gemini-3.5-flash` and `gpt-5.6` are the *same strings* the
+direct APIs report and the bundled catalog prices.
+
+Both doctrines here are the ones stated earlier. The credential rule is the
+gateway rule from the compatible-runtimes section — a key minted for one host is
+never forwarded to another because the wire format matches — so `AzureOpenAI`
+reads `AZURE_OPENAI_API_KEY` and never falls back to `OPENAI_API_KEY`, and an
+exported direct-OpenAI key cannot ride out to `*.openai.azure.com`. The pricing
+rule is the `glm-cn` rule: a distinct endpoint gets a distinct provider identity
+and a catalog overlay, never a borrowed card.
+
+Details worth knowing: a Bedrock inference-profile ARN is truncated to its
+profile name before anything is persisted, so an AWS account id never reaches an
+artifact. The Bedrock and Vertex Messages surfaces have no `service_tier` or
 `inference_geo`, so passing either raises rather than being silently dropped.
+`AzureOpenAI` sets `include_usage=True` itself, because an Azure stream that is
+not asked for usage ends without it and would silently record zero tokens; its
+`model` argument is the **deployment name**.
+
+Two explicit non-goals. The legacy Azure surface
+(`/openai/deployments/{name}/...?api-version=...`) is not supported — the
+deployment lives in the path and a dated `api-version` is mandatory, so it needs
+`AsyncAzureOpenAI` and a real adapter rather than a preset; `AzureOpenAI` speaks
+the version-less `/openai/v1` endpoint and rejects a legacy URL instead of
+half-supporting it. A generic `boto3` Converse adapter is not supported either —
+`BedrockCompatible` already reaches the non-Anthropic families with no new
+normalizers.
 
 ## V3 repository
 
