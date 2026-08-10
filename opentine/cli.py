@@ -41,6 +41,7 @@ from opentine._cli_render import (
     _query_from_ls_args,
 )
 from opentine._cli_replay import cmd_replay
+from opentine._cli_run_model import cmd_run_model
 from opentine._cli_security import (
     _verify_signature_if_requested,
     cmd_keygen,
@@ -138,6 +139,7 @@ __all__ = [
     "cmd_resume",
     "cmd_run",
     "cmd_run_harness",
+    "cmd_run_model",
     "cmd_search",
     "cmd_show",
     "cmd_sign",
