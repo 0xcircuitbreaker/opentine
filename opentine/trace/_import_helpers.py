@@ -137,8 +137,14 @@ def imported_usage(value: Any, attributes: dict[str, Any]) -> tuple[dict[str, An
 
 
 def otel_usage(attributes: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read the GenAI token counters a span actually carries.
+
+    Only counters present on the span become dimensions: a span that reported no
+    usage imports with empty usage rather than invented zeros, so exporting it
+    again reproduces the very counters it arrived with.
+    """
     return imported_usage(
-        {name: attributes.get(key, 0) for name, key in USAGE_BY_DIMENSION.items()},
+        {name: attributes[key] for name, key in USAGE_BY_DIMENSION.items() if key in attributes},
         attributes,
     )
 

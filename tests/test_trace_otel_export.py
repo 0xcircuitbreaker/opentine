@@ -20,6 +20,7 @@ from opentine.trace import (
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace._otel_values import attributes as decoded_attributes
 from opentine.trace._otel_values import encode_any_value
+from opentine.trace.exporters import COST_ATTRIBUTE
 
 COMPAT = Path(__file__).parent / "fixtures" / "compat"
 
@@ -120,19 +121,113 @@ def test_otel_genai_export_round_trips_every_field_the_importer_reads():
     assert to_otel_genai(otel_genai_events(spans)) == spans
 
 
-def test_exported_spans_carry_a_client_span_kind_and_error_status():
+def test_span_kind_follows_the_event_kind_and_errors_carry_status():
     spans = to_otel_genai(
         [
             TraceEvent("error", 1.0, "t", "s", actor="chat", outputs={"message": "boom"}),
             TraceEvent("model", 1.0, "t", "s2", actor="chat"),
+            TraceEvent("tool", 1.0, "t", "s3", actor="lookup"),
         ]
     )
-    assert spans[0]["kind"] == "SPAN_KIND_CLIENT"
+    # A model call leaves the process for a provider API, which is what CLIENT
+    # means; a tool call and a failure are in-process work. Marking every span
+    # CLIENT told a backend a local function was a remote dependency.
+    assert [span["kind"] for span in spans] == [
+        "SPAN_KIND_INTERNAL",
+        "SPAN_KIND_CLIENT",
+        "SPAN_KIND_INTERNAL",
+    ]
     assert spans[0]["status"] == {"code": "STATUS_CODE_ERROR"}
     assert "status" not in spans[1]
     # "chat" alone would import back as a model event, so the kind is repaired.
     assert _by_key(spans[0])["opentine.trace.kind"] == "error"
     assert otel_genai_events(spans)[0].outputs == {"message": "boom"}
+
+
+def test_every_usage_dimension_opentine_meters_is_exported_and_re_imported():
+    """Export used to emit input/output only, so cache and reasoning tokens —
+    the dimensions that decide what a cached agent run actually cost — vanished
+    on the way to a backend and did not come back on re-import."""
+    usage = {
+        "input": 12,
+        "output": 5,
+        "cache_read": 100,
+        "cache_write_5m": 7,
+        "cache_write_1h": 3,
+        "reasoning": 40,
+        "total": 167,
+    }
+    span = to_otel_genai(TraceEvent("model", 1.0, "t", "s", actor="chat", usage=usage))[0]
+
+    values = _by_key(span)
+    assert values[semconv.INPUT_TOKENS] == 12 and values[semconv.OUTPUT_TOKENS] == 5
+    assert values[semconv.CACHE_READ_TOKENS] == 100
+    assert values[semconv.CACHE_WRITE_TOKENS] == 7
+    assert values[semconv.CACHE_WRITE_1H_TOKENS] == 3
+    assert values[semconv.REASONING_TOKENS] == 40
+    assert values[semconv.TOTAL_TOKENS] == 167
+    assert otel_genai_events([span])[0].usage == usage, "every counter came back"
+
+    # And a step that metered nothing still gains no invented counters.
+    bare = to_otel_genai(TraceEvent("model", 1.0, "t", "s2", actor="chat"))
+    assert not any(key.startswith("gen_ai.usage.") for key in _by_key(bare[0]))
+    assert otel_genai_events(bare)[0].usage == {}
+
+
+def test_spans_carry_1_36_messages_beside_the_1_27_content():
+    """Modern backends render gen_ai.input/output.messages; only the 1.27 keys
+    were emitted, so a run displayed in Phoenix or Langfuse with no content."""
+    event = TraceEvent(
+        "model",
+        1.0,
+        "t",
+        "s",
+        actor="chat",
+        inputs={
+            "messages": [
+                {"role": "system", "content": "Be terse."},
+                {"role": "user", "content": "2+2?"},
+            ]
+        },
+        outputs={"messages": [{"role": "assistant", "content": "4", "finish_reason": "stop"}]},
+    )
+
+    values = _by_key(to_otel_genai(event)[0])
+    assert values[semconv.INPUT_MESSAGES] == [
+        {"role": "system", "parts": [{"type": "text", "content": "Be terse."}]},
+        {"role": "user", "parts": [{"type": "text", "content": "2+2?"}]},
+    ]
+    assert values[semconv.OUTPUT_MESSAGES] == [
+        {"role": "assistant", "parts": [{"type": "text", "content": "4"}], "finish_reason": "stop"}
+    ]
+    # The 1.27 content is still there, so a legacy reader loses nothing.
+    assert values[semconv.PROMPT] == event.inputs
+    assert values[semconv.COMPLETION] == event.outputs
+
+
+def test_the_1_36_messages_are_consumed_on_re_import_not_duplicated():
+    event = TraceEvent(
+        "model", 1.0, "t", "s", actor="chat", inputs={"prompt": "hello"}, outputs={"value": "hi"}
+    )
+    span = to_otel_genai(event)[0]
+
+    values = _by_key(span)
+    # A payload that is not a chat still renders: one message under the side's
+    # default role, a structure carried as its JSON text.
+    assert values[semconv.INPUT_MESSAGES] == [
+        {"role": "user", "parts": [{"type": "text", "content": '{"prompt": "hello"}'}]}
+    ]
+    assert values[semconv.OUTPUT_MESSAGES] == [
+        {"role": "assistant", "parts": [{"type": "text", "content": "hi"}]}
+    ]
+
+    reimported = otel_genai_events([span])[0]
+    assert reimported.inputs == {"prompt": "hello"} and reimported.outputs == {"value": "hi"}
+    # The content became inputs/outputs, so the message attributes do not also
+    # linger as attributes — which is what keeps the round trip exact.
+    assert semconv.INPUT_MESSAGES not in reimported.attributes
+    assert semconv.OUTPUT_MESSAGES not in reimported.attributes
+    assert to_otel_genai(reimported) == [span]
 
 
 def test_native_run_exports_expected_gen_ai_attributes_usage_and_timings():
@@ -159,8 +254,15 @@ def test_native_run_exports_expected_gen_ai_attributes_usage_and_timings():
     assert values[semconv.RESPONSE_MODEL] == "kimi-k2.6"
     assert values[semconv.PROMPT] == {"prompt": "hello"}
     assert values[semconv.COMPLETION] == {"text": "hi"}
+    assert values[semconv.INPUT_MESSAGES] == [
+        {"role": "user", "parts": [{"type": "text", "content": '{"prompt": "hello"}'}]}
+    ]
+    assert values[semconv.OUTPUT_MESSAGES] == [
+        {"role": "assistant", "parts": [{"type": "text", "content": '{"text": "hi"}'}]}
+    ]
     assert values[semconv.INPUT_TOKENS] == 7 and values[semconv.OUTPUT_TOKENS] == 3
-    assert values["opentine.cost_usd"] == "0.002"
+    # Cost has no GenAI convention, so it rides under the one documented key.
+    assert values[COST_ATTRIBUTE] == "0.002"
 
     start = int(model_span["startTimeUnixNano"])
     assert int(model_span["endTimeUnixNano"]) - start == 1_500_000_000
@@ -212,6 +314,10 @@ def test_export_document_is_a_complete_otlp_export_the_importer_accepts():
     scope = document["resourceSpans"][0]["scopeSpans"][0]
     assert scope["scope"]["name"] == "opentine"
     assert scope["spans"] == to_otel_genai(events)
+    # The scope names the convention its attributes follow, so a collector can
+    # transform them instead of guessing which release they came from.
+    version = semconv.MODERN_SEMCONV_VERSION
+    assert scope["schemaUrl"] == f"https://opentelemetry.io/schemas/{version}" == semconv.SCHEMA_URL
     resource = document["resourceSpans"][0]["resource"]["attributes"][0]
     assert resource == {"key": "service.name", "value": {"stringValue": "checkout-agent"}}
     assert otel_genai_events(document) == events

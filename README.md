@@ -407,15 +407,22 @@ repo = Repo.open(".")
 document = to_otel_genai_document(repo.load_run("heads/main"), service_name="agent")
 ```
 
-Spans carry `gen_ai.operation.name`, request/response model, `gen_ai.prompt` /
-`gen_ai.completion`, `gen_ai.usage.input_tokens` / `output_tokens`, nanosecond
-start/end times, trace/span/parent IDs, and links for causal edges — the
-OpenTelemetry GenAI semantic conventions as of v1.27.0, spelled once in
-`opentine.trace._genai_semconv` so import and export cannot drift. Import and
-export are inverses: re-importing exported spans yields the events they came
-from. Cost and billing have no GenAI convention and travel under `opentine.*`
-attributes, which the importer does not read back. Export is read-only over
-provenance and writes nothing. The same document is one command away from a
+Spans carry `gen_ai.operation.name`, request/response model, nanosecond
+start/end times, trace/span/parent IDs, links for causal edges, and a span kind
+per step (a model call is `CLIENT`, in-process work is `INTERNAL`). Content goes
+out twice, so one document renders everywhere: `gen_ai.prompt` /
+`gen_ai.completion` for readers that know the v1.27.0 conventions, and the
+structured `gen_ai.input.messages` / `gen_ai.output.messages` arrays current
+backends (Arize Phoenix, Langfuse) render, with the scope's `schemaUrl` naming
+the v1.36.0 conventions they follow. Usage goes out whole — input, output,
+cache read, both cache-write TTLs, reasoning, total — as `gen_ai.usage.*`
+counters, so a cached, reasoning step keeps its numbers. Every key is spelled
+once in `opentine.trace._genai_semconv` so import and export cannot drift.
+Import and export are inverses: re-importing exported spans yields the events
+they came from, usage included. Cost has no GenAI convention, so it travels
+under the one documented `opentine.cost_usd` attribute (billing under
+`opentine.billing`); the importer leaves both as attributes. Export is read-only
+over provenance and writes nothing. The same document is one command away from a
 terminal or a CI job: see `tine export` in the CLI reference.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,
 and attestation are also available as MCP tools. Promotion is still **not**
@@ -589,7 +596,10 @@ POSTs it to an OTLP/HTTP collector instead and implies `--format otlp`, which on
 its own falls back to `$OTEL_EXPORTER_OTLP_ENDPOINT`; `/v1/traces` is appended
 unless the endpoint already ends there. The push prints a receipt naming the
 endpoint, the span count, and the HTTP status, and exits non-zero if the
-collector is unreachable or answers anything but 2xx. Because a run carries
+collector is unreachable or answers anything but 2xx. Spans carry both the
+v1.27.0 and the v1.36.0 GenAI content shapes and every `gen_ai.usage.*` counter;
+cost, which the conventions do not define, rides in `opentine.cost_usd`. Because
+a run carries
 prompts and completions, a cleartext push is refused unless the endpoint is a
 loopback IP (e.g. `127.0.0.1`) or `--allow-insecure` says otherwise — the same
 rule the v3 transport verbs apply. `--service-name` sets the `service.name` the spans arrive under.
