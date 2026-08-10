@@ -35,6 +35,7 @@ from pathlib import Path
 import pytest
 
 from opentine import Run, RunStatus, StepKind, cli
+from opentine._cli_common import _run_context
 from opentine._cli_json_flow import ACCOUNTING_FIELDS
 from opentine._cli_verify_replay import cache_replay, expected_slice
 from opentine._graph_analysis import retained_closure
@@ -152,6 +153,26 @@ def test_the_expected_slice_follows_v3_causal_edges_exactly_as_fork_does():
 
     assert other in expected, "a causal parent is retained and must be previewed"
     assert expected == retained_closure(run, tip) == set(forked.graph.steps)
+
+
+def test_run_context_slices_the_ancestor_closure_not_the_descendants():
+    """The context a fork/rerun records is the history LEADING TO the fork point.
+
+    Regression guard for the descendant-vs-ancestor bug (``_run_context`` once
+    sliced ``descendant_closure``): the recorded context must equal what ``fork``
+    keeps (``retained_closure``), never the discarded future, so a child run never
+    cites steps it does not contain. ``_run_context`` feeds every ``fork``/``replay
+    --harness`` and ``replay --verify --harness`` context.
+    """
+    run = _branched()
+    fork_point = run.steps[2].id  # c: ancestors {a, b, c}; descendants {c} alone
+
+    context_ids = {step["id"] for step in _run_context(run, fork_point)["steps"]}
+
+    assert context_ids == retained_closure(run, fork_point) == {s.id for s in run.steps[:3]}
+    assert run.steps[3].id not in context_ids, "the sibling branch d is not retained"
+    # The pre-fix code returned the descendant closure {c}; assert we are not that.
+    assert context_ids != run.graph.descendant_closure(fork_point)
 
 
 def test_inspect_of_a_stepless_run_still_lists_nothing_instead_of_failing(

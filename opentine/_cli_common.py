@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.text import Text
 
+from opentine._graph_analysis import retained_closure
 from opentine.core import Run, StepKind, short_id
 from opentine.harnesses import (
     ClaudeCodeHarness,
@@ -155,7 +156,11 @@ def _resolve_step_ref(run: Run, ref: str | None) -> str:
 def _run_context(run: Run, from_step: str | None = None) -> dict:
     steps = run.steps
     if from_step is not None:
-        keep = run.graph.descendant_closure(run.graph.resolve(from_step))
+        # A fork/rerun's context is the history LEADING TO the fork point (its
+        # ancestor closure), not the discarded future after it. retained_closure is
+        # the same helper `fork`/`expected_slice` use, so the recorded context, the
+        # child graph, and `--verify`'s expected slice cannot disagree.
+        keep = retained_closure(run, run.graph.resolve(from_step))
         steps = [step for step in steps if step.id in keep]
     return {
         "from_step": from_step,
