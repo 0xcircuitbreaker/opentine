@@ -8,9 +8,9 @@ check: the document the command writes is fed back through the very importer
 the structure ``native_events`` produced from the run that went in — every span
 id, parent, causal edge, payload, token counter and cost. A shape assertion
 would pass on a document that dropped the causal edges, the usage counters, or
-the error status; this one cannot. The two edges the mapping is documented to
-move rather than keep (cost, and absent token counters) are pinned by their own
-test, so the normalization cannot grow to cover a real loss.
+the error status; this one cannot. The one edge the mapping is documented to
+move rather than keep — cost, which has no GenAI attribute — is pinned by its
+own test, so the normalization cannot grow to cover a real loss.
 
 The push half is exercised against a real ``httpx`` client wired to a
 ``MockTransport``, so the URL, the method, the ``Content-Type`` and the body are
@@ -30,6 +30,8 @@ import pytest
 
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._cli_export import TRACES_PATH
+from opentine.trace import _genai_semconv as semconv
+from opentine.trace._otel_values import attributes as decoded_attributes
 from opentine.trace.exporters import COST_ATTRIBUTE
 from opentine.trace.importers import native_events, otel_genai_events
 from opentine.trace.schema import TraceEvent
@@ -41,10 +43,12 @@ ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 def _structure(event) -> dict:
     """Everything the GenAI mapping promises to carry, in a comparable form.
 
-    Two documented edges are *normalized*, never ignored, and the loss test
-    below proves they are the only two: ``cost`` has no GenAI convention so it
-    rides in ``opentine.cost_usd``, which the importer leaves as an attribute;
-    and a span that reported no tokens imports as explicit zero counters.
+    One documented edge is *normalized*, never ignored, and the loss test below
+    proves it is the only one: ``cost`` has no GenAI convention so it rides in
+    ``opentine.cost_usd``, which the importer leaves as an attribute. Usage is
+    compared as recorded — every dimension OpenTine meters now has a
+    ``gen_ai.usage.*`` counter, and a step that metered nothing imports empty
+    rather than as invented zeros.
     """
     recorded = event.cost if event.cost is not None else event.attributes.get(COST_ATTRIBUTE, 0.0)
     return {
@@ -58,7 +62,7 @@ def _structure(event) -> dict:
         "duration": event.duration,
         "inputs": event.inputs,
         "outputs": event.outputs,
-        "usage": {name: count for name, count in event.usage.items() if count},
+        "usage": dict(event.usage),
         "cost": float(recorded),
     }
 
@@ -96,7 +100,9 @@ def _rich_run(path: Path | None = None) -> Run:
         parent_id=tool.id,
         model_info="mock-model",
         cost=0.0125,
-        usage={"input": 11, "output": 7},
+        # Every metered dimension, not just input/output: a cached, reasoning
+        # step is the ordinary shape of a 2026 run and has to survive the trip.
+        usage={"input": 11, "output": 7, "cache_read": 90, "cache_write_5m": 5, "reasoning": 21},
     )
     # Two parents, so the export has to carry a causal edge, not just a tree.
     merge = run.add_step(StepKind.done, {"text": "done"}, parent_ids=[think.id, model.id])
@@ -162,8 +168,13 @@ def test_exported_document_reimports_to_the_events_the_run_produced(workspace, m
     )
 
 
-def test_the_round_trip_loses_nothing_but_the_two_documented_edges(workspace, monkeypatch, capsys):
-    """Pin the loss set, so the normalization above cannot hide a real regression."""
+def test_the_round_trip_loses_nothing_but_the_one_documented_edge(workspace, monkeypatch, capsys):
+    """Pin the loss set, so the normalization above cannot hide a real regression.
+
+    ``usage`` used to sit in this set: export emitted input/output only and the
+    importer zero-filled what a span never reported. Both are fixed, so the set
+    is one field smaller and stays pinned at that.
+    """
     run = Run.load(workspace / "source.tine")
     _, out = _invoke(monkeypatch, capsys, "export", "source.tine")
 
@@ -175,9 +186,9 @@ def test_the_round_trip_loses_nothing_but_the_two_documented_edges(workspace, mo
             for field in fields(TraceEvent)
             if getattr(source, field.name) != getattr(returned, field.name)
         }
-        assert differing <= {"cost", "usage", "attributes"}, differing
+        assert differing <= {"cost", "attributes"}, differing
         assert returned.attributes[COST_ATTRIBUTE] == str(source.cost), "cost rides in an attribute"
-        assert {name: count for name, count in returned.usage.items() if count} == source.usage
+        assert returned.usage == source.usage, "every metered dimension came back"
         assert source.attributes.items() <= returned.attributes.items(), "attributes only grew"
 
 
@@ -194,7 +205,13 @@ def test_the_round_trip_carries_structure_costs_and_failure(workspace, monkeypat
     merge = events[3]
     assert merge.causal_span_ids == tuple(run.steps[3].parent_ids[:-1]), "merge parent survived"
     priced = events[2]
-    assert priced.usage == {"input": 11, "output": 7}
+    assert priced.usage == {
+        "input": 11,
+        "output": 7,
+        "cache_read": 90,
+        "cache_write_5m": 5,
+        "reasoning": 21,
+    }
     assert priced.attributes[COST_ATTRIBUTE] == "0.0125", "cost has no GenAI key of its own"
     assert priced.outputs == {"text": "an answer"}
 
@@ -216,9 +233,38 @@ def test_the_document_is_a_complete_otlp_envelope(workspace, monkeypatch, capsys
     scope = document["resourceSpans"][0]["scopeSpans"][0]
     assert scope["scope"]["name"] == "opentine"
     assert len(scope["spans"]) == 5
+    assert scope["schemaUrl"] == semconv.SCHEMA_URL, "the scope names its convention"
     resource = document["resourceSpans"][0]["resource"]["attributes"]
     assert resource == [{"key": "service.name", "value": {"stringValue": "opentine"}}]
     assert out.startswith("{\n"), "stdout is the pretty document and nothing else"
+
+
+def test_the_document_a_modern_backend_reads_carries_modern_content_and_kinds(
+    workspace, monkeypatch, capsys
+):
+    """What a current backend (Phoenix, Langfuse, any collector) needs to render
+    a run: 1.36 message arrays, the full token counters, and span kinds that do
+    not claim a local tool call was a remote dependency."""
+    _, out = _invoke(monkeypatch, capsys, "export", "source.tine")
+    spans = json.loads(out)["resourceSpans"][0]["scopeSpans"][0]["spans"]
+    priced = spans[2]
+
+    values = decoded_attributes(priced)
+    assert values[semconv.OUTPUT_MESSAGES] == [
+        {"role": "assistant", "parts": [{"type": "text", "content": '{"text": "an answer"}'}]}
+    ]
+    assert values[semconv.PROMPT] == {"prompt": "answer"}, "and the 1.27 keys are still there"
+    assert values[semconv.CACHE_READ_TOKENS] == 90 and values[semconv.REASONING_TOKENS] == 21
+    # Span kind follows the *event* kind, which is what the trace schema knows:
+    # think/done steps are model events, a tool call and a failure are not, and
+    # those two no longer claim to be remote dependencies.
+    assert [span["kind"] for span in spans] == [
+        "SPAN_KIND_CLIENT",  # think, a model event
+        "SPAN_KIND_INTERNAL",  # tool
+        "SPAN_KIND_CLIENT",  # the model call
+        "SPAN_KIND_CLIENT",  # done, a model event
+        "SPAN_KIND_INTERNAL",  # error
+    ]
 
 
 def test_service_name_names_the_run_in_the_backend(workspace, monkeypatch, capsys):

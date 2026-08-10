@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace import otel_genai_events, to_otel_genai
+from opentine.trace._otel_values import attributes as _decoded
 
 
 def _string(value: str) -> dict:
@@ -196,13 +197,17 @@ def test_structured_messages_carried_as_a_json_string_import():
     assert event.outputs == {
         "messages": [{"role": "assistant", "content": "yo", "finish_reason": "stop"}]
     }
-    # A string that is not JSON must degrade to empty, never raise.
+    # A string that is not JSON must degrade to empty, never raise — and the raw
+    # payload is preserved in attributes rather than silently dropped: the 1.36
+    # keys are consumed only when they yield content (regression guard).
     bad = {
         "traceId": "t",
         "spanId": "b",
         "attributes": _attributes(**{semconv.INPUT_MESSAGES: _string("not json at all")}),
     }
-    assert otel_genai_events([bad])[0].inputs == {}
+    bad_event = otel_genai_events([bad])[0]
+    assert bad_event.inputs == {}
+    assert bad_event.attributes[semconv.INPUT_MESSAGES] == "not json at all"
 
 
 def test_openllmetry_flattened_indexed_attributes_import():
@@ -285,13 +290,49 @@ def test_modern_content_survives_a_re_export_round_trip():
     }
     events = otel_genai_events([span])
     assert events[0].inputs == {"messages": [{"role": "user", "content": "hi"}]}
-    # Export writes the normalized content back out as gen_ai.prompt/completion
-    # (it emits only the 1.27 keys), so the content survives unchanged and the
-    # exported span is thereafter a classic-shape fixed point.
-    reimported = otel_genai_events(to_otel_genai(events))
+    # Export writes the normalized content back out twice: as the 1.27
+    # prompt/completion attributes, and as 1.36 message arrays. The content
+    # survives unchanged and the exported span is thereafter a fixed point.
+    exported = to_otel_genai(events)
+    assert _decoded(exported[0])[semconv.INPUT_MESSAGES] == [
+        {"role": "user", "parts": [{"type": "text", "content": "hi"}]}
+    ]
+    assert _decoded(exported[0])[semconv.OUTPUT_MESSAGES] == [
+        {"role": "assistant", "parts": [{"type": "text", "content": "yo"}]}
+    ]
+    reimported = otel_genai_events(exported)
     assert [event.inputs for event in reimported] == [event.inputs for event in events]
     assert [event.outputs for event in reimported] == [event.outputs for event in events]
     assert otel_genai_events(to_otel_genai(reimported)) == reimported
+
+
+def test_a_span_carrying_both_generations_imports_its_content_once():
+    """An OpenTine export carries 1.27 and 1.36 content side by side. The
+    classic keys still win, and the message attributes are consumed rather than
+    left behind as a second copy of what is now inputs/outputs."""
+    span = {
+        "traceId": "trace",
+        "spanId": "both",
+        "attributes": _attributes(
+            **{
+                semconv.PROMPT: _string("hello"),
+                semconv.INPUT_MESSAGES: {
+                    "arrayValue": {"values": [_kvlist(role=_string("user"), content=_string("hi"))]}
+                },
+                semconv.OUTPUT_MESSAGES: {
+                    "arrayValue": {
+                        "values": [_kvlist(role=_string("assistant"), content=_string("yo"))]
+                    }
+                },
+            }
+        ),
+    }
+    event = otel_genai_events([span])[0]
+    assert event.inputs == {"value": "hello"}, "the classic attribute still wins"
+    assert event.outputs == {"messages": [{"role": "assistant", "content": "yo"}]}
+    assert semconv.INPUT_MESSAGES not in event.attributes
+    assert semconv.OUTPUT_MESSAGES not in event.attributes
+    assert event.attributes[semconv.PROMPT] == "hello", "the 1.27 attribute is untouched"
 
 
 def test_classic_prompt_and_completion_span_imports_exactly_as_before():

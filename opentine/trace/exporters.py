@@ -6,6 +6,12 @@ produced here are the shape that importer consumes, so
 Both directions spell their ``gen_ai.*`` keys through
 :mod:`opentine.trace._genai_semconv` so they cannot drift apart.
 
+Every span carries two content generations at once: the 1.27 ``gen_ai.prompt`` /
+``gen_ai.completion`` attributes every deployed reader (this package's importer
+included) understands, and the 1.36 ``gen_ai.input.messages`` /
+``gen_ai.output.messages`` arrays current backends — Arize Phoenix, Langfuse —
+render as a conversation, under the scope ``schemaUrl`` that names them.
+
 Export is read-only over provenance. It reads runs through the same public
 loaders every release since 0.3.0 exposes, writes nothing, and introduces no
 artifact or repository format version.
@@ -19,6 +25,8 @@ Known lossy edges, all outside the GenAI conventions:
 * ``cost`` and ``billing`` have no GenAI convention. They are emitted under
   ``opentine.*`` so no data is dropped, but the importer does not read them
   back into :class:`~opentine.trace.schema.TraceEvent` fields.
+* Usage dimensions outside the token counters GenAI names (an ``eval_seconds``,
+  say) have no attribute to ride in, so they do not survive the round trip.
 * Attributes whose value is ``None`` are dropped; OTLP has no null ``AnyValue``.
 
 Everything the importer does read survives: ``otel_genai_events(spans)`` and
@@ -27,6 +35,7 @@ Everything the importer does read survives: ``otel_genai_events(spans)`` and
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from typing import Any, Protocol, runtime_checkable
 
@@ -39,11 +48,23 @@ from opentine.trace.importers import native_events
 from opentine.trace.schema import TraceEvent
 
 MAX_EXPORTED_SPANS = 100_000
+#: Upper bound on 1.36 messages rendered per side. The 1.27 attribute still
+#: carries the whole payload, so this bounds the rendering, never the content.
+MAX_EXPORTED_MESSAGES = 10_000
 SCOPE_NAME = "opentine"
+SCHEMA_URL = semconv.SCHEMA_URL
 KIND_ATTRIBUTE = semconv.KIND_ATTRIBUTE
+#: Cost and billing stay OpenTine-namespaced on purpose: the GenAI conventions
+#: have no cost attribute, and inventing a ``gen_ai.*`` one would collide with
+#: whatever the working group standardizes. Named here, so one key finds them.
 COST_ATTRIBUTE = "opentine.cost_usd"
 BILLING_ATTRIBUTE = "opentine.billing"
 _CLIENT_SPAN = "SPAN_KIND_CLIENT"
+_INTERNAL_SPAN = "SPAN_KIND_INTERNAL"
+#: Event kind -> OTLP span kind: a model step leaves the process for a provider
+#: API (CLIENT); every other step is in-process work (INTERNAL, the kind the
+#: GenAI conventions give ``execute_tool``).
+_SPAN_KINDS = {"model": _CLIENT_SPAN}
 _ERROR_STATUS = {"code": "STATUS_CODE_ERROR"}
 _NANOS = 1_000_000_000
 
@@ -85,6 +106,9 @@ def to_otel_genai_document(
                     {
                         "scope": {"name": SCOPE_NAME, "version": __version__},
                         "spans": to_otel_genai(source),
+                        # Name the convention the attributes follow, so a
+                        # collector transforms rather than guesses.
+                        "schemaUrl": SCHEMA_URL,
                     }
                 ],
             }
@@ -116,7 +140,7 @@ def _span(event: TraceEvent) -> dict[str, Any]:
     start = _nanos(event.timestamp)
     span: dict[str, Any] = {
         "name": str(attributes.get(semconv.OPERATION_NAME) or event.actor or event.kind),
-        "kind": _CLIENT_SPAN,
+        "kind": _SPAN_KINDS.get(event.kind, _INTERNAL_SPAN),
         "traceId": event.trace_id,
         "spanId": event.span_id,
         "startTimeUnixNano": str(start),
@@ -157,9 +181,9 @@ def _attributes(event: TraceEvent) -> dict[str, Any]:
             attributes[key] = _safe(payload)
     for dimension, key in semconv.USAGE_BY_DIMENSION.items():
         tokens = event.usage.get(dimension)
-        # A zero counter no span ever reported stays absent, so importing a span
-        # without usage and exporting it again does not invent attributes.
-        if key not in attributes and isinstance(tokens, (int, float)) and tokens > 0:
+        # Every counter the event carries goes out, zero included: the importer
+        # reads back only the counters present, so this is exactly reversible.
+        if key not in attributes and isinstance(tokens, (int, float)) and tokens >= 0:
             attributes[key] = int(tokens)
     operation = str(attributes.get(semconv.OPERATION_NAME, ""))
     # Only when the operation name cannot carry the kind back: the importer
@@ -171,7 +195,49 @@ def _attributes(event: TraceEvent) -> dict[str, Any]:
         attributes[COST_ATTRIBUTE] = str(event.cost)
     if event.billing:
         attributes[BILLING_ATTRIBUTE] = _safe(event.billing)
+    # The 1.36 rendering of the same content, always last: the importer consumes
+    # these two keys, so re-exporting an imported span re-appends them here, and
+    # writing them anywhere else would reorder the attribute list on every hop.
+    for (key, role), payload in zip(semconv.MESSAGE_ATTRIBUTES, (event.inputs, event.outputs)):
+        if payload and key not in attributes:
+            attributes[key] = _messages(_safe(payload), role)
     return attributes
+
+
+def _messages(payload: Any, role: str) -> list[dict[str, Any]]:
+    """Render a payload as semconv 1.36 messages: ``{role, parts: [{type, content}]}``.
+
+    A payload already shaped like a chat — ``{"messages": [...]}``, what every
+    OpenTine importer normalizes to — keeps its roles and identifying fields;
+    anything else (a step's ``{"prompt": ...}``, a scalar completion) becomes one
+    message under *role*, so a modern backend renders it rather than nothing.
+    """
+    entries = payload.get("messages") if isinstance(payload, dict) else None
+    if not isinstance(entries, list) or not entries:
+        entries = [payload.get("value", payload) if isinstance(payload, dict) else payload]
+    messages: list[dict[str, Any]] = []
+    for entry in entries[:MAX_EXPORTED_MESSAGES]:
+        source = entry if isinstance(entry, dict) else {"content": entry}
+        content = source.get("content", "" if source.get("role") else source)
+        message: dict[str, Any] = {
+            "role": str(source.get("role") or role),
+            "parts": [{"type": semconv.TEXT_PART, "content": _text(content)}],
+        }
+        for field in semconv.CARRIED_FIELDS:
+            if source.get(field) is not None:
+                message[field] = source[field]
+        messages.append(message)
+    return messages
+
+
+def _text(value: Any) -> str:
+    """Message-part text for a payload; a structure is rendered as its JSON."""
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, default=str)
+    except (RecursionError, TypeError, ValueError):
+        return str(value)
 
 
 def _nanos(value: float | str) -> int:

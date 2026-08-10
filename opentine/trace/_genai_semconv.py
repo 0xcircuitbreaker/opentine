@@ -6,25 +6,39 @@ Single source of truth for every ``gen_ai.*`` attribute OpenTine reads on import
 convention update lands in one place instead of drifting between the two halves
 and silently breaking the round trip.
 
-Targeted convention: **OpenTelemetry semantic conventions v1.27.0**, the release
-that settled the ``gen_ai.usage.input_tokens`` / ``gen_ai.usage.output_tokens``
-counters (renamed there from ``gen_ai.usage.prompt_tokens`` /
-``gen_ai.usage.completion_tokens``). ``gen_ai.prompt`` and ``gen_ai.completion``
-are the content attributes from that same generation; later releases move
-content onto ``gen_ai.input.messages`` / ``gen_ai.output.messages``, but the
-1.27-era keys are what SDK exporters in the wild still emit, so they stay the
-shape OpenTine both accepts and produces.
+Two convention generations are spelled here, and export emits **both** so one
+document renders everywhere:
 
-Import additionally *reads* the newer content shapes listed at the bottom of
+* **v1.27.0** settled the ``gen_ai.usage.input_tokens`` /
+  ``gen_ai.usage.output_tokens`` counters (renamed there from
+  ``gen_ai.usage.prompt_tokens`` / ``gen_ai.usage.completion_tokens``) and
+  carries content on ``gen_ai.prompt`` / ``gen_ai.completion``. These are what
+  SDK exporters in the wild still emit and what every deployed reader
+  understands, so they are never dropped.
+* **v1.36.0** moved content onto structured ``gen_ai.input.messages`` /
+  ``gen_ai.output.messages``. Current backends (Arize Phoenix, Langfuse) render
+  those, so export adds them alongside the 1.27 keys and declares
+  :data:`SCHEMA_URL` on the exported scope.
+
+Import additionally *reads* the vendor content shapes listed at the bottom of
 this module (see :mod:`opentine.trace._otel_logs`), so a run from a current
-instrumentation does not import with empty inputs and outputs. Those are
-read-only: export keeps emitting the 1.27 keys, which every reader still
-understands.
+instrumentation does not import with empty inputs and outputs. Those remain
+read-only: export never invents a vendor spelling it cannot read back.
 """
 
 from __future__ import annotations
 
 SEMCONV_VERSION = "1.27.0"
+
+#: Semantic-convention release that moved GenAI message content off
+#: ``gen_ai.prompt``/``gen_ai.completion`` and onto structured message
+#: attributes. It is the shape export declares, because it is the newest one the
+#: exported spans carry.
+MODERN_SEMCONV_VERSION = "1.36.0"
+
+#: Schema URL for the exported scope, so a collector knows which convention
+#: release the attributes below follow instead of guessing.
+SCHEMA_URL = f"https://opentelemetry.io/schemas/{MODERN_SEMCONV_VERSION}"
 
 NAMESPACE = "gen_ai."
 
@@ -35,23 +49,57 @@ PROMPT = "gen_ai.prompt"
 COMPLETION = "gen_ai.completion"
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 OUTPUT_TOKENS = "gen_ai.usage.output_tokens"
+TOTAL_TOKENS = "gen_ai.usage.total_tokens"
+
+#: Token counters outside the 1.27 core. ``total_tokens`` above predates it and
+#: is still emitted everywhere; the three below have no entry in any released
+#: convention, so these are the spellings deployed instrumentations use —
+#: ``cache_read_input_tokens`` / ``cache_creation_input_tokens`` from the
+#: Anthropic-shaped exporters, ``reasoning_tokens`` from OpenLLMetry. OpenTine
+#: splits cache writes by TTL, which no convention does, so the 5-minute bucket
+#: takes the conventional key and the 1-hour bucket a suffixed sibling.
+CACHE_READ_TOKENS = "gen_ai.usage.cache_read_input_tokens"
+CACHE_WRITE_TOKENS = "gen_ai.usage.cache_creation_input_tokens"
+CACHE_WRITE_1H_TOKENS = "gen_ai.usage.cache_creation_1h_input_tokens"
+REASONING_TOKENS = "gen_ai.usage.reasoning_tokens"
 
 #: OpenTine usage dimension -> GenAI token counter. Import reads right to left,
-#: export writes left to right; neither side spells the keys itself.
-USAGE_BY_DIMENSION: dict[str, str] = {"input": INPUT_TOKENS, "output": OUTPUT_TOKENS}
+#: export writes left to right; neither side spells the keys itself. Every
+#: dimension OpenTine meters is here, so usage survives a round trip whole
+#: instead of collapsing to input/output.
+USAGE_BY_DIMENSION: dict[str, str] = {
+    "input": INPUT_TOKENS,
+    "output": OUTPUT_TOKENS,
+    "cache_read": CACHE_READ_TOKENS,
+    "cache_write_5m": CACHE_WRITE_TOKENS,
+    "cache_write_1h": CACHE_WRITE_1H_TOKENS,
+    "reasoning": REASONING_TOKENS,
+    "total": TOTAL_TOKENS,
+}
 
 #: Model attributes in importer preference order (response wins over request).
 MODEL_KEYS: tuple[str, ...] = (RESPONSE_MODEL, REQUEST_MODEL)
-
-#: Semantic-convention release that moved GenAI message content off
-#: ``gen_ai.prompt``/``gen_ai.completion`` and onto structured message
-#: attributes. Import reads these; export does not emit them.
-MODERN_SEMCONV_VERSION = "1.36.0"
 
 #: Structured message attributes (semconv >= 1.36): arrays of
 #: ``{role, parts: [{type, content}]}`` or ``{role, content}``.
 INPUT_MESSAGES = "gen_ai.input.messages"
 OUTPUT_MESSAGES = "gen_ai.output.messages"
+
+#: Both structured message attributes, in ``(key, default role)`` pairs. Import
+#: *consumes* these keys — their content becomes the event's inputs/outputs — and
+#: export writes them back from those fields, which is what keeps an exported
+#: span re-importable to the event it was written from.
+MESSAGE_ATTRIBUTES: tuple[tuple[str, str], ...] = (
+    (INPUT_MESSAGES, "user"),
+    (OUTPUT_MESSAGES, "assistant"),
+)
+
+#: Part type for textual message content (semconv >= 1.36 message parts).
+TEXT_PART = "text"
+
+#: Per-message fields besides role/content that both directions carry through;
+#: anything else stays in the span attributes rather than in the message.
+CARRIED_FIELDS: tuple[str, ...] = ("id", "name", "tool_call_id", "tool_calls", "finish_reason")
 
 #: GenAI event names (semconv 1.27+ as span events, >= 1.36 as log records).
 #: The four message events carry the conversation *sent* to the model; a

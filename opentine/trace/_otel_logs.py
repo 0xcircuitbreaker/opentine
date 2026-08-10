@@ -19,9 +19,8 @@ prompt as events and its completion as attributes still gets both):
 2. **Structured message attributes** — ``gen_ai.input.messages`` /
    ``gen_ai.output.messages`` (current semconv), entries being
    ``{role, parts: [{type, content}]}`` or ``{role, content}``.
-3. **Flattened indexed attributes** — OpenLLMetry's ``gen_ai.prompt.{i}.role`` /
-   ``.content`` and ``gen_ai.completion.{i}.*``, then OpenInference's
-   ``llm.input_messages.{i}.message.*`` / ``llm.output_messages.{i}.message.*``.
+3. **Flattened indexed attributes** — OpenLLMetry's ``gen_ai.prompt.{i}.*`` and
+   ``gen_ai.completion.{i}.*``, then OpenInference's ``llm.*_messages.{i}.*``.
 
 **Normalized representation.** Every shape collapses to the ``{"messages":
 [{"role", "content"}, ...]}`` mapping the JSONL and framework importers already
@@ -47,28 +46,29 @@ from opentine.trace._otel_values import attributes as _decode_attributes
 #: becoming an unbounded message list.
 MAX_MESSAGES = 10_000
 
-#: Per-message fields carried through besides role/content; anything else stays
-#: in the span attributes, not copied into the normalized message.
-_CARRIED_FIELDS = ("id", "name", "tool_call_id", "tool_calls", "finish_reason")
-
 Messages = list[dict[str, Any]]
 
 
 def span_content(
     span: dict[str, Any], attributes: dict[str, Any]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Return the ``(inputs, outputs)`` an OTLP GenAI span carries.
-
-    The classic ``gen_ai.prompt`` / ``gen_ai.completion`` content wins outright
-    and is coerced exactly as it always was; :func:`message_content` is consulted
-    only for a side the classic attributes leave empty.
+    """Return the ``(inputs, outputs)`` an OTLP GenAI span carries: classic
+    ``gen_ai.prompt``/``gen_ai.completion`` content wins, and the 1.36 message
+    attributes are *consumed* so an exported span re-imports to its event — but a
+    popped value that yields no content (e.g. a malformed string) is restored to
+    ``attributes``, never silently dropped.
     """
+    structured = {key: attributes.pop(key, None) for key, _ in semconv.MESSAGE_ATTRIBUTES}
     inputs = _mapping(span.get("inputs") or attributes.get(semconv.PROMPT))
     outputs = _mapping(span.get("outputs") or attributes.get(semconv.COMPLETION))
-    if inputs and outputs:
-        return inputs, outputs
-    modern_inputs, modern_outputs = message_content(span, attributes)
-    return inputs or modern_inputs, outputs or modern_outputs
+    if not (inputs and outputs):
+        modern_inputs, modern_outputs = message_content(span, {**attributes, **structured})
+        inputs, outputs = inputs or modern_inputs, outputs or modern_outputs
+    filled = {"user": bool(inputs), "assistant": bool(outputs)}
+    for key, side in semconv.MESSAGE_ATTRIBUTES:
+        if structured.get(key) is not None and not filled[side]:
+            attributes[key] = structured[key]
+    return inputs, outputs
 
 
 def message_content(
@@ -219,13 +219,13 @@ def _message(source: dict[str, Any], default_role: str) -> dict[str, Any] | None
     content = source.get("content")
     if content is None and "parts" in source:
         content = _parts(source.get("parts"))
-    if content is None and not role and not any(name in source for name in _CARRIED_FIELDS):
+    if content is None and not role and not any(f in source for f in semconv.CARRIED_FIELDS):
         return None
     message: dict[str, Any] = {
         "role": str(role) if role not in (None, "") else default_role,
         "content": "" if content is None else content,
     }
-    for field in _CARRIED_FIELDS:
+    for field in semconv.CARRIED_FIELDS:
         if source.get(field) is not None:
             message[field] = source[field]
     return message
