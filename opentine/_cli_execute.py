@@ -21,7 +21,7 @@ from opentine._cli_common import (
 )
 from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_json import emit_cost, emit_show
-from opentine._cli_render import _budget_str, _print_run_tree
+from opentine._cli_render import _budget_str, _print_run_tree, _save_run_receipt
 from opentine._cli_run_model import cmd_run_model
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -66,10 +66,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     if run is None:
         console.print("[red]No Run object found in script.[/]")
         raise SystemExit(1)
-    output = Path(args.save) if args.save else _runs_dir() / f"{run.id}.tine"
-    run.save(output)
-    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
-    _print_run_tree(run)
+    _save_run_receipt(run, args.save)
 
 
 def cmd_run_harness(args: argparse.Namespace) -> None:
@@ -108,10 +105,7 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
             _print_run_tree(run)
         console.print(f"[red]Harness failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    output = output or (_runs_dir() / f"{run.id}.tine")
-    run.save(output)
-    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
-    _print_run_tree(run)
+    _save_run_receipt(run, args.save)
 
 
 def cmd_show(args: argparse.Namespace) -> None:

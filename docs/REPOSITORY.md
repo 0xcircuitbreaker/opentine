@@ -162,12 +162,27 @@ fast. Exceeding any of the scan budgets is a refusal, printed as a single
 `tine repo-search: <message>` line with exit 1, never a partial result presented
 as a complete one.
 
-The JSON objects come from the same writer as `tine show --json`: keys are
+The JSON objects come from the same writer as `tine show --json` — literally the
+one function `opentine/_cli_json.py:serialize`, which every `--json` surface in
+the CLI calls: keys are
 sorted, every value passes `json_safe`, and each object carries `command`, which
 names the schema below. Within a major version fields are added, never renamed
 or removed. A failure that stops a verb producing a result — an unresolvable
 ref, a non-event id, a negative depth, a run beyond a shallow boundary — is a
 single `tine <verb>: <message>` line on stderr and exit 1, not JSON.
+
+### The five plumbing verbs have no `--json` flag
+
+`fsck`, `object`, `migrate-v3`, `fetch`, and `push` print **bare JSON
+unconditionally** and deliberately take no `--json` flag. They are plumbing: a
+consistency report, an object dump, a migration receipt, and two transport
+receipts. None of them has a rich human rendering that `--json` would replace,
+so a flag to ask for JSON would only be a flag you could forget. Their output
+bytes are pinned by tests (`tests/test_cli_surface_json.py`,
+`tests/test_repo_cli_routing.py`, `tests/test_cli_v3.py`) and are part of the
+compatibility surface: scripts parse them as they stand. Everywhere else —
+including all four `tine pricing` subcommands — JSON is opt-in behind `--json`,
+and the human rendering is the default.
 
 | Verb | Key | Type | Meaning |
 | --- | --- | --- | --- |
