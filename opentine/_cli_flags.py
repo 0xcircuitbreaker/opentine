@@ -22,6 +22,7 @@ from collections.abc import Iterable
 
 # dest -> (option string, parser default)
 FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
+    "allow_insecure": ("--allow-insecure", False),
     "autosave": ("--autosave", None),
     "autosave_interval": ("--autosave-interval", 0),
     "autosave_seconds": ("--autosave-seconds", 0.0),
@@ -45,6 +46,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "key_file": ("--key-file", None),
     "mode": ("--mode", "cache"),
     "out": ("--out", None),
+    "output": ("--output", None),
     "overwrite": ("--overwrite", False),
     "prompt": ("--prompt", None),
     "pub": ("--pub", None),

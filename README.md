@@ -415,7 +415,8 @@ OpenTelemetry GenAI semantic conventions as of v1.27.0, spelled once in
 export are inverses: re-importing exported spans yields the events they came
 from. Cost and billing have no GenAI convention and travel under `opentine.*`
 attributes, which the importer does not read back. Export is read-only over
-provenance and writes nothing.
+provenance and writes nothing. The same document is one command away from a
+terminal or a CI job: see `tine export` in the CLI reference.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,
 and attestation are also available as MCP tools. Promotion is still **not**
 exposed to a model by default: `promote_run` is registered only when the host
@@ -564,6 +565,10 @@ Interoperability:
 tine import <trace> --format otel-json --save run.tine
 tine import - --format jsonl --repo . --ref heads/main
 tine import agent.log --format langchain --save run.tine
+tine export <run> > spans.json
+tine export <run> --output spans.json
+tine export <run> --endpoint http://127.0.0.1:4318          # local OTLP collector
+tine export <run> --endpoint https://collector.example/v1/traces
 ```
 
 `tine import` reads a foreign agent trace — `otel-json` (a complete OTLP/JSON
@@ -575,6 +580,20 @@ writes a portable v2 `.tine` artifact (refusing an existing file without
 `--force`), `--repo PATH` records it into a v3 repository and advances `--ref`
 (default `heads/main`). Both may be given. It prints the resulting run id.
 Importing introduces no format change, and `--ref` is refused without `--repo`.
+
+`tine export` is the other direction: it renders a run as an OTLP/JSON GenAI
+document — the exact shape `--format otel-json` imports, so the two round-trip.
+With the default `--format otel-json` the document goes to stdout, or to
+`--output PATH` (refusing an existing file without `--force`). `--endpoint URL`
+POSTs it to an OTLP/HTTP collector instead and implies `--format otlp`, which on
+its own falls back to `$OTEL_EXPORTER_OTLP_ENDPOINT`; `/v1/traces` is appended
+unless the endpoint already ends there. The push prints a receipt naming the
+endpoint, the span count, and the HTTP status, and exits non-zero if the
+collector is unreachable or answers anything but 2xx. Because a run carries
+prompts and completions, a cleartext push is refused unless the endpoint is a
+loopback IP (e.g. `127.0.0.1`) or `--allow-insecure` says otherwise — the same
+rule the v3 transport verbs apply. `--service-name` sets the `service.name` the spans arrive under.
+Exporting is read-only: the artifact is never rewritten.
 
 Machine-readable output:
 
