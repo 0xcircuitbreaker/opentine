@@ -45,6 +45,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "key_env": ("--key-env", None),
     "key_file": ("--key-file", None),
     "mode": ("--mode", "cache"),
+    "model": ("--model", None),
     "out": ("--out", None),
     "output": ("--output", None),
     "overwrite": ("--overwrite", False),

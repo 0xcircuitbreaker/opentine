@@ -19,9 +19,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
     sub = parser.add_subparsers(dest="command")
 
-    run = sub.add_parser("run", help="Execute a script or harness")
+    run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
     run.add_argument("script", nargs="?")
     _add_harness_args(run)
+    # The third run mode, and the only one that needs nothing written first: it
+    # calls a bundled adapter directly, so it is exclusive with the other two.
+    run.add_argument(
+        "--model",
+        metavar="PROVIDER[:MODEL]",
+        help="Run a bundled model adapter with --prompt, e.g. anthropic or openai:gpt-5.6",
+    )
     # --save works in both modes; the autosave trio checkpoints a run in flight
     # and so needs --harness. Script mode refuses them rather than ignoring them.
     run.add_argument(

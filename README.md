@@ -91,6 +91,24 @@ rejects the request. Swap in `opentine.models.openai`, `opentine.models.google`,
 or `opentine.models.ollama` and the matching variable from `.env.example` to run
 against something else.
 
+The shortest first run needs no Python at all — `tine run --model` drives a
+bundled adapter straight from the command line and saves the run it produces:
+
+```bash
+tine run --model anthropic --prompt "Explain the current branch"
+tine run --model openai:gpt-5.6 --prompt "Explain the current branch" --save result.tine
+```
+
+`--model` takes `provider` or `provider:model`; without a model id the adapter
+keeps its own default. Valid providers are `anthropic`, `openai`, `google`, and
+`ollama` plus every hosted OpenAI-compatible adapter — `deepseek`, `glm`/`zai`,
+`grok`, `groq`, `hermes`, `kimi`, `ministral`, `mistral`, `openrouter`, `qwen`,
+and `together`. A name outside that list is reported with the full list. The
+mode is exclusive with a script argument and with `--harness`.
+
+For anything with tools, a budget, or more than one prompt, build the agent
+yourself:
+
 ```python
 from opentine import Agent
 from opentine.models.anthropic import Anthropic
@@ -548,6 +566,7 @@ Portable `.tine` artifacts:
 
 ```text
 tine run <script.py>                  Execute a Python script and save the Run it builds
+tine run --model anthropic --prompt P Call a bundled model adapter directly, no script
 tine run --harness codex --prompt P   Record an external CLI agent as a run
 tine show <run>                       Pretty-print a run tree
 tine cost <run>                       Show cost, tokens, and budget state

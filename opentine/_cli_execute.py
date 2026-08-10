@@ -22,16 +22,22 @@ from opentine._cli_common import (
 from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
 from opentine._cli_json import emit_cost, emit_show
 from opentine._cli_render import _budget_str, _print_run_tree
+from opentine._cli_run_model import cmd_run_model
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
 
 def cmd_run(args: argparse.Namespace) -> None:
+    # --model is checked first so a command line naming two modes is refused by
+    # the mode that can see both, rather than half-run by whichever wins here.
+    if getattr(args, "model", None):
+        cmd_run_model(args)
+        return
     if args.harness:
         cmd_run_harness(args)
         return
     if not args.script:
-        console.print("[red]Provide a Python script or use --harness with --prompt.[/]")
+        console.print("[red]Provide a Python script, or --harness/--model with --prompt.[/]")
         raise SystemExit(1)
     refuse_unhonoured(
         args,
