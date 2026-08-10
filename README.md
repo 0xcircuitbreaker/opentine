@@ -774,6 +774,15 @@ checklist.
 
 ## Documentation
 
+Start here:
+
+- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
+- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
+- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/CAPTURE.md): capture the agent you already have, and export it back out.
+- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/API.md): the public Python surface, one line per name.
+
+Reference:
+
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/CHANGELOG.md): release-level changes and compatibility.
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/PRICING.md): signed catalogs and billing semantics.
@@ -782,6 +791,25 @@ checklist.
 - [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/RELEASING.md): trusted publication and release verification.
 - [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/SUPPORT.md): supported runtimes and support levels.
 - [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
+- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
+
+## Examples
+
+`examples/` holds runnable scripts. Four of them need no API key, no provider
+SDK, and no network, and `tests/test_examples_smoke.py` executes all four on
+every test run so they cannot drift from the code:
+
+```bash
+python examples/v3_repository.py     # init, record, repo-fork, repo-diff, evaluate, attest, promote, fsck
+python examples/otel_interop.py      # OTel GenAI import -> run -> tine export, round-tripped
+python examples/forked_debug.py      # fork a failed run past the failure, then pause and resume
+python examples/harness_comparison.py # three scripted harnesses under one run format
+```
+
+`v3_repository.py` and `otel_interop.py` take an optional output directory; the
+other two write into the current directory. The remaining examples —
+`cross_model.py`, `demo_research.py`, and `live_demo.py` — call real providers
+and need the matching key.
 
 ## Comparison
 
@@ -816,7 +844,11 @@ graphs, and `tine` is the CLI command.
 
 ## Contributing
 
-There is no separate contributor guide yet; this section is it.
+[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/CONTRIBUTING.md)
+is the full guide — dev setup, the gate list, and the standing rules (the
+250-line architecture gate, backwards compatibility with every release from
+0.3.0 on, the git-shelling test contract, and why a new module must be tracked).
+The short version:
 
 ```bash
 git clone https://github.com/0xcircuitbreaker/opentine.git

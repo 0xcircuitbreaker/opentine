@@ -83,6 +83,7 @@ include = [
     "/.github/workflows",
     "/.gitignore",
     "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
     "/LICENSE",
     "/README.md",
     "/SECURITY.md",

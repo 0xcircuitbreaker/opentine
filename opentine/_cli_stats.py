@@ -3,7 +3,7 @@
 Scope, stated here and repeated verbatim in the help text and in ``--json``:
 ``tine stats`` reads the same rebuildable index ``tine ls`` and ``tine search``
 read, and nothing else. It does not walk v3 repositories — aggregating those is
-the v3 search engine's job and a ``--repo`` mode is deferred to 0.7.0. The
+the v3 search engine's job and a ``--repo`` mode is deferred to a later release. The
 ``scope`` field is what tells a script that a small number is small because of
 what was *counted*.
 

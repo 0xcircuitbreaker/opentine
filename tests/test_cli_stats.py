@@ -178,7 +178,7 @@ def test_scope_is_stated_in_json_and_help(runs_dir: Path, capsys):
     assert payload["scope"] == "legacy-index"
     assert ".tine_runs" in payload["scope_note"]
     assert "not v3 repositories" in payload["scope_note"]
-    assert "0.7.0" in payload["scope_note"]
+    assert "later release" in payload["scope_note"]
 
     code, out = _invoke(capsys, "stats", "--help")
     assert code == 0
