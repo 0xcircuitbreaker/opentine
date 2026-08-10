@@ -6,22 +6,22 @@ This third mode drives a bundled adapter straight from the command line, so a
 new user's first captured run costs one command.  It is exclusive with the other
 two — three modes competing for one Run would leave two of them silently
 dropped — and everything downstream of the model call (default save location,
-``--save``, the receipt) is the script mode's behaviour, unchanged.
+``--save``, the receipt) is the script mode's behaviour, unchanged: literally
+so, since all three modes end in ``_cli_render._save_run_receipt``.
 """
 
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
-from opentine._cli_common import BRAND, _runs_dir, _terminal, console
+from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import (
     AUTOSAVE_FLAGS,
     HARNESS_CONFIG_FLAGS,
     refuse_conflict,
     refuse_unhonoured,
 )
-from opentine._cli_render import _print_run_tree
+from opentine._cli_render import _save_run_receipt
 
 
 def cmd_run_model(args: argparse.Namespace) -> None:
@@ -49,10 +49,7 @@ def cmd_run_model(args: argparse.Namespace) -> None:
         # reported as one line rather than as a traceback.
         console.print(f"[red]Model run failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    output = Path(args.save) if args.save else _runs_dir() / f"{run.id}.tine"
-    run.save(output)
-    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
-    _print_run_tree(run)
+    _save_run_receipt(run, args.save)
 
 
 def _refuse_competing_modes(args: argparse.Namespace) -> None:

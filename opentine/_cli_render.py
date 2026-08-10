@@ -1,6 +1,8 @@
-"""Rich renderers for run trees, file-index rows, costs, and diffs."""
+"""Rich renderers for run trees, file-index rows, costs, diffs, and run receipts."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from rich.table import Table
 from rich.text import Text
@@ -11,6 +13,7 @@ from opentine._cli_common import (
     BRAND_DIM,
     _cost_str,
     _display_value,
+    _runs_dir,
     _step_label,
     _terminal,
     console,
@@ -71,6 +74,22 @@ def _print_run_tree(run: Run) -> None:
             f"{_terminal(state.get('incurred'))} > {_terminal(state.get('limit'))}",
             highlight=False,
         )
+
+
+def _save_run_receipt(run: Run, save: str | None) -> Path:
+    """Write *run*, print the ``Saved:`` receipt, and render its tree.
+
+    Every mode of ``tine run`` — a script, ``--harness``, ``--model`` — ends
+    exactly here: same default location under ``.tine_runs``, same ``--save``
+    override, same receipt, same tree. It is one function because three copies
+    of a receipt are three receipts that can drift, and the tail is the part a
+    user reads after every single run.
+    """
+    output = Path(save) if save else _runs_dir() / f"{run.id}.tine"
+    run.save(output)
+    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
+    _print_run_tree(run)
+    return output
 
 
 def _has_filters(query: Query) -> bool:

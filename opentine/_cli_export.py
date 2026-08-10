@@ -17,8 +17,11 @@ Destinations
 ``--format otel-json``  (the default) writes the OTLP/JSON document — one
                         ``resourceSpans`` envelope — to stdout, or to
                         ``--output PATH``, which refuses an existing file
-                        without ``--force``. Stdout goes through the CLI's one
-                        JSON writer, so it stays pipeable and diffable.
+                        without ``--force``. Stdout, the written file, and the
+                        OTLP body below are all spelled by the CLI's one JSON
+                        serializer (``_cli_json.serialize``), so the document a
+                        collector receives is the document a file gets, and both
+                        stay pipeable and diffable.
 ``--format otlp``       POSTs that same document to an OTLP/HTTP collector.
 
 ``--endpoint URL`` names the collector and implies ``--format otlp``; with
@@ -39,7 +42,6 @@ guard with the same rule, through the same check and the same flag name.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 from typing import Any
@@ -49,8 +51,7 @@ import httpx
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import refuse_unhonoured
 from opentine._cli_flow import _require_output_slot
-from opentine._cli_json import emit
-from opentine._jsonsafe import json_safe
+from opentine._cli_json import emit, serialize
 from opentine.core import Run
 from opentine.repository._http import require_secure_remote
 from opentine.trace.exporters import to_otel_genai_document
@@ -151,17 +152,12 @@ def _spans(document: dict[str, Any]) -> list[Any]:
     return resource["scopeSpans"][0]["spans"]
 
 
-def _serialized(document: dict[str, Any], *, indent: int | None) -> str:
-    """The document as text, keys sorted, exactly as :func:`_cli_json.emit` writes it."""
-    return json.dumps(json_safe(document), sort_keys=True, indent=indent)
-
-
 def _write(document: dict[str, Any], output: Path | None) -> None:
     if output is None:
         # The CLI's one JSON writer: no Rich wrapping or markup on machine output.
         emit(document)
         return
-    output.write_text(_serialized(document, indent=2) + "\n", encoding="utf-8")
+    output.write_text(serialize(document) + "\n", encoding="utf-8")
     console.print(
         f"[{BRAND}]# Exported[/] {len(_spans(document))} span(s) [{BRAND}]to[/] {_terminal(output)}"
     )
@@ -210,7 +206,7 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
             "a run carries prompts and completions. Use https, or --allow-insecure.[/]"
         )
         raise SystemExit(1) from exc
-    status, detail = _post(url, _serialized(document, indent=None).encode("utf-8"))
+    status, detail = _post(url, serialize(document, indent=None).encode("utf-8"))
     if not 200 <= status < 300:
         suffix = f": {_terminal(detail)}" if detail else ""
         console.print(

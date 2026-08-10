@@ -559,7 +559,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0
 
 ## CLI Reference
 
-`tine` ships 27 subcommands. Each one prints its own `--help`, which is
+`tine` ships 38 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted.
 
 Portable `.tine` artifacts:
@@ -632,14 +632,28 @@ tine replay <run> --verify --json
 tine diff <run_a> <run_b> [--json] [--exit-code]
 tine import <trace> --format FMT [--save PATH] [--repo PATH] --json
 tine tag <run> [--list] --json
+tine pricing list|show|check|update ... --json
+tine repo-log|repo-show|repo-diff|repo-search|context ... --json
+tine repo-fork|repo-resume|attest|evaluate|promote ... --json
 ```
 
 `--json` replaces the rich rendering with exactly one JSON object on stdout;
-without it the human rendering is unchanged. The fields of each object are
+without it the human rendering is unchanged. Every one of these objects is
+written by the single serializer `opentine/_cli_json.py:serialize` — keys
+sorted, two-space indent, every value passed through `json_safe` — so two
+commands cannot disagree about how JSON is spelled, and `tine export` uses the
+same function for stdout, `--output`, and the OTLP body it puts on the wire.
+The fields of each object are
 enumerated in `opentine/_cli_json.py` — for the two commands that compare runs
-in `opentine/_cli_json_flow.py`, and for `import` and `tag` in
-`opentine/_cli_json_surface.py` — and are added to but never renamed
-within a major version. `tine tag --json` describes a *listing*: `--list` and
+in `opentine/_cli_json_flow.py`, for `import` and `tag` in
+`opentine/_cli_json_surface.py`, and for `pricing` in
+`opentine/_cli_json_pricing.py` — and are added to but never renamed
+within a major version. Five v3 plumbing verbs — `fsck`, `object`,
+`migrate-v3`, `fetch`, and `push` — take no `--json` flag *by design*: they are
+machine reports with no human rendering to replace, so they always print bare
+JSON. Their exact bytes predate the shared writer and are pinned by tests, so
+they are left as they are rather than reformatted.
+`tine tag --json` describes a *listing*: `--list` and
 the implicit default (neither `--add` nor `--remove`) emit the same object, and
 the mutating path refuses `--json` rather than dropping it. `tine diff` and `tine replay --verify` publish the same
 `drift` object (`structural`, `accounting`, `only_source`, `only_replay`) from
@@ -653,11 +667,15 @@ budget as `"over_budget": true`, both exiting 1.
 Signed pricing catalogs:
 
 ```text
-tine pricing list [--provider P] [--model M] [--at YYYY-MM-DD]
+tine pricing list [--provider P] [--model M] [--at YYYY-MM-DD] [--json]
 tine pricing show <provider> <model> [--at YYYY-MM-DD] [--json]
-tine pricing check
-tine pricing update <file-or-https-url> [--dest PATH]
+tine pricing check [path] [--allow-unsigned] [--json]
+tine pricing update <file-or-https-url> [--dest PATH] [--json]
 ```
+
+All four take `--json`; every payload names the `catalog_id` and `catalog_hash`
+it answered from, because a rate only means something against the catalog it
+was read out of. A catalog that will not load stays human text and exits 1.
 
 V3 repository:
 

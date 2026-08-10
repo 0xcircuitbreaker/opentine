@@ -1,9 +1,12 @@
-"""Implementation of the explicit ``tine pricing`` lifecycle commands."""
+"""Implementation of the explicit ``tine pricing`` lifecycle commands.
+
+Every subcommand takes ``--json`` and emits the object documented in
+:mod:`opentine._cli_json_pricing`; the rich rendering below stays the default.
+"""
 
 from __future__ import annotations
 
 import argparse
-import json
 import time
 from pathlib import Path
 
@@ -12,6 +15,7 @@ from rich.console import Console
 from rich.table import Table
 
 from opentine._cli_common import _terminal
+from opentine._cli_json_pricing import emit_check, emit_list, emit_show, emit_update
 from opentine.billing import BUNDLED_CATALOG, PricingCatalog, install_catalog, load_catalogs
 from opentine.billing.catalog import MAX_CATALOG_BYTES, CatalogError, user_catalog_path
 
@@ -29,7 +33,6 @@ def add_pricing_parser(subparsers: argparse._SubParsersAction) -> None:
     show.add_argument("provider")
     show.add_argument("model")
     show.add_argument("--at", help="Effective date (YYYY-MM-DD)")
-    show.add_argument("--json", action="store_true")
 
     check = actions.add_parser("check", help="Verify catalog hash and signature")
     check.add_argument("path", nargs="?", default=str(BUNDLED_CATALOG))
@@ -41,20 +44,34 @@ def add_pricing_parser(subparsers: argparse._SubParsersAction) -> None:
     # install silently has no effect under a non-default XDG_CONFIG_HOME.
     update.add_argument("--dest", default=str(user_catalog_path()))
 
+    # One flag, one spelling, on every pricing subcommand: a catalog is exactly the
+    # kind of thing CI diffs, so none of the four may be human-only.
+    for action in (listing, show, check, update):
+        action.add_argument("--json", action="store_true", help="Emit one JSON object on stdout")
+
+
+def _selected(args: argparse.Namespace, card) -> bool:
+    """Whether ``list``'s filters keep this card — one predicate for both renderings."""
+    if args.provider and card.provider.casefold() != args.provider.casefold():
+        return False
+    if args.model and args.model.casefold() not in card.model.casefold():
+        return False
+    return not (args.at and not card.active(card.effective_from.fromisoformat(args.at)))
+
 
 def _cmd_list(args: argparse.Namespace, console: Console) -> None:
     catalog = load_catalogs()
-    cards = sorted(catalog.cards, key=lambda card: (card.provider, card.model, card.effective_from))
+    ordered = sorted(
+        catalog.cards, key=lambda card: (card.provider, card.model, card.effective_from)
+    )
+    cards = [card for card in ordered if _selected(args, card)]
+    if args.json:
+        emit_list(catalog, cards)
+        return
     table = Table(title=f"Pricing catalog {catalog.id[:19]}…")
     for column in ("Provider", "Model", "Effective", "Input", "Cache", "Output", "Card"):
         table.add_column(column)
     for card in cards:
-        if args.provider and card.provider.casefold() != args.provider.casefold():
-            continue
-        if args.model and args.model.casefold() not in card.model.casefold():
-            continue
-        if args.at and not card.active(card.effective_from.fromisoformat(args.at)):
-            continue
         table.add_row(
             _terminal(card.provider),
             _terminal(card.model),
@@ -72,12 +89,10 @@ def _cmd_show(args: argparse.Namespace, console: Console) -> None:
     card = catalog.lookup(args.provider, args.model, effective_at=args.at)
     if card is None:
         raise SystemExit(f"No exact rate card for {args.provider}/{args.model}")
-    data = card.to_dict()
-    data["catalog_id"] = catalog.id
-    data["catalog_hash"] = catalog.hash
     if args.json:
-        console.print_json(json.dumps(data))
+        emit_show(catalog, card)
         return
+    data = card.to_dict()
     console.print(
         f"[bold]{_terminal(card.provider)}/{_terminal(card.model)}[/]  {_terminal(card.id)}"
     )
@@ -95,6 +110,9 @@ def _cmd_show(args: argparse.Namespace, console: Console) -> None:
 def _cmd_check(args: argparse.Namespace, console: Console) -> None:
     catalog = PricingCatalog.load(args.path, require_signature=not args.allow_unsigned)
     state = "signed" if catalog.signed else "unsigned local overlay"
+    if args.json:
+        emit_check(catalog, args.path, state)
+        return
     console.print(
         f"[green]OK[/] {_terminal(args.path)} {_terminal(catalog.id)} "
         f"({state}, {len(catalog.cards)} cards)"
@@ -125,6 +143,9 @@ def _cmd_update(args: argparse.Namespace, console: Console) -> None:
         with Path(args.source).open("rb") as handle:
             raw = handle.read(MAX_CATALOG_BYTES + 1)
     catalog = install_catalog(raw, args.dest)
+    if args.json:
+        emit_update(catalog, args.source, args.dest)
+        return
     console.print(f"[green]Installed[/] {_terminal(catalog.id)} -> {_terminal(args.dest)}")
 
 

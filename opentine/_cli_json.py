@@ -8,6 +8,17 @@ sorted so two runs of a command diff cleanly. Every value passes through
 ``json_safe``, so untrusted recorded content cannot make the output
 unserializable. Every object carries ``command``, naming the schema it follows.
 
+Every ``--json`` surface in the CLI writes through :func:`serialize` — here, in
+:mod:`opentine._cli_json_flow`, :mod:`opentine._cli_json_surface`,
+:mod:`opentine._cli_json_pricing`, and in ``tine export`` for its stdout,
+``--output`` and OTLP bodies alike — so no command can grow its own spelling of
+``json.dumps``. The five v3 plumbing verbs (``fsck``, ``object``,
+``migrate-v3``, ``fetch``, ``push``) are the documented exception: they are
+machine reports with no human rendering to replace, so they print bare JSON
+unconditionally and take no ``--json`` flag. Their bytes predate this writer and
+are pinned by tests, so they keep their own ``json.dumps`` — changing them would
+break scripts that already parse them.
+
 A failure that stops the command from producing a result is *not* JSON: a run
 ``show`` or ``cost`` cannot find, an unreadable key file, or a bad filter prints
 a human message and exits non-zero, so a script must check the exit status. A
@@ -78,13 +89,24 @@ from opentine._jsonsafe import json_safe
 from opentine.core import Run, short_id
 
 
+def serialize(payload: dict[str, Any], *, indent: int | None = 2) -> str:
+    """The one JSON spelling every machine surface writes.
+
+    ``emit`` is stdout; ``tine export`` also writes documents to ``--output``
+    and onto the wire. All three go through this function so the sorting, the
+    ``json_safe`` coercion, and the separators cannot drift apart — only
+    ``indent`` differs, and only because a wire body is not read by a human.
+    """
+    return json.dumps(json_safe(payload), sort_keys=True, indent=indent)
+
+
 def emit(payload: dict[str, Any]) -> None:
     """Write one JSON object to stdout.
 
     Deliberately ``print`` and not the Rich console: machine output must not be
     wrapped, coloured, or have square brackets read as markup.
     """
-    print(json.dumps(json_safe(payload), sort_keys=True, indent=2))
+    print(serialize(payload))
 
 
 def _step(step: Any) -> dict[str, Any]:
