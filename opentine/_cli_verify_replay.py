@@ -177,6 +177,13 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
         raise SystemExit(1)
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
     context = _run_context(run, start)
+    # Both reruns share this one context, so a wrong slice (descendants instead of
+    # ancestors) makes them agree on a corrupt history and the determinism gate alone
+    # cannot see it. Check the slice the reruns were actually handed.
+    fork_point, expected = (
+        expected_slice(run, args.from_step) if args.from_step is not None else (None, None)
+    )
+    slice_ok = None if expected is None else {s["id"] for s in context["steps"]} == expected
     artifact = room / "rerun-a.tine"
     _execute(args, task, context, artifact)
     reloaded, integrity = Run.load(artifact), Run.verify_integrity(artifact)
@@ -194,6 +201,9 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
         integrity=integrity,
         drift=drift_payload(diff_runs(second, reloaded)),
         ignore_cost_drift=bool(getattr(args, "ignore_cost_drift", False)),
+        fork_point=fork_point,
+        expected_steps=None if expected is None else len(expected),
+        slice_ok=slice_ok,
     )
 
 
