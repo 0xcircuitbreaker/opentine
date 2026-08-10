@@ -6,6 +6,7 @@ import argparse
 
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_common import HARNESS_FACTORIES
+from opentine._cli_export import add_export_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_stats import GROUP_BY_CHOICES
@@ -157,6 +158,9 @@ def _build_parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id")
 
     importer = add_import_parser(sub)
+    # `export` is the other direction and takes no --json: its whole output *is*
+    # the OTLP/JSON document, so a second JSON object would compete with it.
+    add_export_parser(sub)
 
     # --json is purely additive: without it each of these renders exactly as before.
     # `replay` earns it only through --verify, whose verdict is a result a script
