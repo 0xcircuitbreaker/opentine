@@ -45,16 +45,6 @@ every artifact and repository written by 0.3.0 through 0.6.0 still loads.
   per-token API is not yet published — so it runs and reports `unknown` cost until
   a real rate exists.
 
-### Fixed
-
-- **`tine fork` / `replay --harness` recorded the wrong causal context.**
-  `_run_context` sliced the *descendant* closure of the fork point (the discarded
-  future) instead of the *ancestor* closure (the history leading to it), so a
-  forked run's recorded context cited steps its own graph does not contain — a
-  silent provenance defect. It now uses the same `retained_closure` that `fork`
-  and `replay --verify` share, and `replay --verify --harness` gained the slice
-  check that catches a regression.
-
 ## 0.6.0 — 2026-08-01
 
 The Surface Release. The v3 provenance engines that shipped only as MCP tools —
