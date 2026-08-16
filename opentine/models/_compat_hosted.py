@@ -129,7 +129,7 @@ ZAI = GLM
 
 
 class Grok(ChatCompletions):
-    def __init__(self, model: str = "grok-4.5", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "grok-4.6", api_key: str | None = None, **kwargs: Any):
         _base(
             self,
             model,
