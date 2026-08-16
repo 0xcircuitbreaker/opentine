@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.7.0 — 2026-08-16
+
+The Interop & Adoption Release. OpenTine stops being a silo: a recorded run now
+ships to any OpenTelemetry backend in one command, a first capture no longer
+requires writing Python, and the v3 repository — the headline of 0.6.0 — finally
+has a runnable on-ramp and real getting-started docs. Stored data stays readable:
+every artifact and repository written by 0.3.0 through 0.6.0 still loads.
+
+### Added
+
+- **`tine export` — ship a run to the OpenTelemetry ecosystem.** `tine export
+  <run>` renders a recorded run as an OTLP/JSON GenAI document to stdout or
+  `--output PATH`, or POSTs it to an OTLP/HTTP collector (`--endpoint`, or
+  `$OTEL_EXPORTER_OTLP_ENDPOINT` under `--format otlp`). It reuses the exact
+  exporter the `otel-json` importer inverts, so a run exported and re-imported is
+  the run that was exported. A cleartext push is refused unless the endpoint is a
+  loopback IP or `--allow-insecure`; a connection failure or non-2xx exits 1,
+  never a silent drop.
+- **Complete, modern OTel export.** The exporter now emits semconv 1.36 structured
+  `gen_ai.input/output.messages` beside the 1.27 attributes (so Arize Phoenix and
+  Langfuse render rich content), every usage dimension (cache, reasoning, total —
+  not just input/output), a scope `schemaUrl`, and per-event span kinds. The
+  event-level round-trip still holds exactly, and usage now survives it verbatim.
+- **No-code first run: `tine run --model <provider>[:model] --prompt`.** Capture a
+  run against any bundled adapter without writing a Python script — sixteen
+  providers (the native four plus the hosted-compatible set, read off the adapters
+  so a new one is nameable for free). `provider:model` splits on the first colon;
+  no provider SDK is imported until one is named.
+- **One `--json` contract.** `tine pricing` gains `--json` on `list`, `check`, and
+  `update` (all four subverbs scriptable through one writer); `tine export`, the
+  run receipt, and every JSON path share a single serializer, so a collector and a
+  file cannot receive different bytes. The five v3 plumbing verbs (`fsck`,
+  `object`, `migrate-v3`, `fetch`, `push`) stay bare-JSON by design, now documented
+  as such, and the README's subcommand count is pinned to the router by a meta-test.
+- **Adoption docs and runnable v3 examples.** `docs/GETTING_STARTED.md`,
+  `docs/CAPTURE.md`, `docs/CONCEPTS.md`, `docs/API.md`, and `CONTRIBUTING.md`, plus
+  `examples/v3_repository.py` and `examples/otel_interop.py` — executed in-process
+  by a smoke test so they cannot rot. Every documented command is parse-verified
+  against the real CLI.
+- **New-model pricing.** A verified rate card for xAI `grok-4.6` (with its
+  ≥200k-prompt 2× tier), and `Grok` now defaults to it. Kimi K3 re-verified
+  unchanged. GLM 5.3 is intentionally left unpriced — it is announced but its
+  per-token API is not yet published — so it runs and reports `unknown` cost until
+  a real rate exists.
+
+### Fixed
+
+- **`tine fork` / `replay --harness` recorded the wrong causal context.**
+  `_run_context` sliced the *descendant* closure of the fork point (the discarded
+  future) instead of the *ancestor* closure (the history leading to it), so a
+  forked run's recorded context cited steps its own graph does not contain — a
+  silent provenance defect. It now uses the same `retained_closure` that `fork`
+  and `replay --verify` share, and `replay --verify --harness` gained the slice
+  check that catches a regression.
+
 ## 0.6.0 — 2026-08-01
 
 The Surface Release. The v3 provenance engines that shipped only as MCP tools —

@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.6.0"
+version = "0.7.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -64,8 +64,8 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/README.md"
-Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.6.0/CHANGELOG.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.7.0/README.md"
+Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.7.0/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
 
