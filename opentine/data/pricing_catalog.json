@@ -363,6 +363,17 @@
       "verified_at": "2026-07-20"
     },
     {
+      "id": "xai:grok-4.6:2026-08-12",
+      "provider": "xai",
+      "model": "grok-4.6",
+      "aliases": ["grok-4.6-latest"],
+      "effective_from": "2026-08-12",
+      "rates": {"input": "2", "cache_read": "0.50", "output": "6", "reasoning": "6"},
+      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/docs/models", "https://x.ai/news/grok-4-6"],
+      "verified_at": "2026-08-16"
+    },
+    {
       "id": "xai:grok-4.3:2026-05-15",
       "provider": "xai",
       "model": "grok-4.3",
@@ -650,10 +661,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:1222214bfcb217e2581fab9b57a45761c8c5036c55ff64c9f3524dd029db2b0f",
+  "catalog_id": "sha256:a1781a621a06345546a70de7d5c34c95c68a3ce0709b7f61224a7bcc91abc558",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "UB5KRggdfkzvPjFUUUVG4yaKGoqrTTaB2uMJLI3Qt8ZhamblbDA8MY4oewTSTGUaiWXPyRYFA5ulFXZ8qFCIBQ=="
+    "value": "1D5TPilcTzEbRCYk5C7gxfhonyh0sATcJb0cGwTDoJikx6Td7+eXmlsp7D2VM05EfpvZmS6m1/SpiHRk3d4hDw=="
   }
 }
