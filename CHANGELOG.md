@@ -70,6 +70,13 @@ three.
   accident. Preview, verification verdict, and `Run.fork` now read one helper
   (`retained_closure`), and inspection prints the matching `would reuse N
   recorded steps` count.
+- **`tine fork` / `replay --harness` recorded the wrong causal context.** The
+  same descendant-vs-ancestor slip, in a second place: `_run_context` fed a
+  fork/rerun the *descendant* closure of the fork point (the discarded future)
+  instead of the *ancestor* closure it keeps, so a forked run's recorded context
+  cited steps its own graph does not contain — a silent provenance defect. It now
+  shares the one `retained_closure` helper `fork` and `replay --verify` use, and
+  `replay --verify --harness` gained the slice check that catches a regression.
 
 ### Changed
 
