@@ -92,6 +92,20 @@ GOLDEN = (
         repo_fork_oid="run:sha256:38820f030c6cb27f0a456f9effb39d95eb341644ae3dc83a18eb047ad22b79db",
         fork_records_identity=True,
     ),
+    Golden(
+        version="v0_6_0",
+        fork_id="8fae8d12cdb39a8744dd8cb0029e303de9e818892172f8e52cbc2cf870bf21ec",
+        repo_main_oid="run:sha256:53daa707bc18cbc49c784a7df10ad22cfa5695fc9dd3b4323e3decb8bb88f92b",
+        repo_fork_oid="run:sha256:af36065da5539df15217b153cd55f94ca02d24c084770aecf34d2fd4d112c35e",
+        fork_records_identity=True,
+    ),
+    Golden(
+        version="v0_7_0",
+        fork_id="93948537922bdf8b3ec893ec438c46356c583b1a453738b9bda1d69539c9fd7b",
+        repo_main_oid="run:sha256:24a7f681b2214c0178861ddce142bd3e3e93ecab5c9971355192053f4c309a1d",
+        repo_fork_oid="run:sha256:781737c53337a95bc8a91525b85c99dd7d0f2f4660f0f41c0b5bad2a63434ea9",
+        fork_records_identity=True,
+    ),
 )
 
 VERSIONED = pytest.mark.parametrize("golden", GOLDEN, ids=[item.version for item in GOLDEN])
