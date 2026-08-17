@@ -1,0 +1,77 @@
+{
+  "cache": {},
+  "created_at": 1767225600.0,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20",
+      "cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f"
+    ],
+    "steps": {
+      "cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f",
+        "inputs": {
+          "q": "go"
+        },
+        "kind": "tool",
+        "model_info": "",
+        "outputs": {
+          "rows": [
+            1,
+            2
+          ]
+        },
+        "parent_ids": [
+          "f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20"
+        ],
+        "timestamp": 1767225601.0,
+        "tool_info": {}
+      },
+      "f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20",
+        "inputs": {
+          "prompt": "start"
+        },
+        "kind": "model",
+        "model_info": "",
+        "outputs": {
+          "out": "a"
+        },
+        "parent_ids": [],
+        "timestamp": 1767225600.0,
+        "tool_info": {}
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "fork_point": "step-0",
+    "fork_reason": "explored approach A",
+    "forked_from": "compat-fork-reason-source-v0_6_0",
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "4067f325aea2c3dac597de3d9d12b281ce5780c611f9e5a762ba10ed5006610a",
+      "signature": {
+        "alg": "hmac-sha256",
+        "scheme": "tine-sig/1",
+        "value": "fe3ffd304baf540ca553458038390bd3317624a8d615c832f096c09ebe172e87"
+      }
+    },
+    "model_info": "",
+    "system_prompt": "",
+    "user_prompt": ""
+  },
+  "policies": {},
+  "refs": {
+    "main": "cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f"
+  },
+  "run_id": "compat-fork-reason-v0_6_0",
+  "status": "completed",
+  "transcript": []
+}
