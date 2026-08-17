@@ -18,8 +18,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
-from opentine._cli_flags import HARNESS_CONFIG_FLAGS, refuse_unhonoured
-from opentine._cli_flow import _require_output_slot
+from opentine._cli_flags import HARNESS_CONFIG_FLAGS, _require_output_slot, refuse_unhonoured
 from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine._cli_verify_replay import cache_replay, expected_slice, verify_replay
 from opentine.core import Run

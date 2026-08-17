@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Iterable
+from pathlib import Path
 
 # dest -> (option string, parser default)
 FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
@@ -103,6 +104,25 @@ def refuse_unhonoured(
     verb = "has" if len(flags) == 1 else "have"
     console.print(f"[red]{', '.join(flags)} {verb} no effect {mode}. {hint}[/]")
     raise SystemExit(1)
+
+
+def _require_output_slot(output: Path, force: bool) -> None:
+    """Exit 1 rather than destroy an artifact the user did not name for replacement.
+
+    The third refusal shape, and the one every artifact-writing verb shares:
+    ``--force`` is the only way an existing file is overwritten.  It lives here,
+    beside the other two, because ``_cli_render`` writes run receipts and cannot
+    import ``_cli_flow`` (which imports it back) to reach the same guard — and a
+    second copy of this check is how ``tine run --save`` came to be the one verb
+    that silently destroyed the artifact already at its destination.
+    """
+    from opentine._cli_common import _terminal, console
+
+    if output.exists() and not force:
+        console.print(
+            f"[red]Refusing to overwrite existing file: {_terminal(output)}. Pass --force.[/]"
+        )
+        raise SystemExit(1)
 
 
 def refuse_conflict(args: argparse.Namespace, dests: Iterable[str], *, hint: str) -> None:

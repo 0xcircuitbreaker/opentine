@@ -18,6 +18,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
+from opentine._cli_flags import _require_output_slot
 from opentine.core import Run, short_id
 from opentine.index import IndexEntry, Query, _parse_date
 
@@ -76,7 +77,7 @@ def _print_run_tree(run: Run) -> None:
         )
 
 
-def _save_run_receipt(run: Run, save: str | None) -> Path:
+def _save_run_receipt(run: Run, save: str | None, force: bool = False) -> Path:
     """Write *run*, print the ``Saved:`` receipt, and render its tree.
 
     Every mode of ``tine run`` — a script, ``--harness``, ``--model`` — ends
@@ -84,8 +85,16 @@ def _save_run_receipt(run: Run, save: str | None) -> Path:
     override, same receipt, same tree. It is one function because three copies
     of a receipt are three receipts that can drift, and the tail is the part a
     user reads after every single run.
+
+    A named ``--save`` destination goes through the same overwrite guard every
+    other artifact-writing verb uses: running the same script twice used to
+    destroy the first receipt without a word. The default location is keyed by
+    the run id, which is content-addressed, so re-writing it is idempotent
+    rather than destructive and stays unguarded.
     """
     output = Path(save) if save else _runs_dir() / f"{run.id}.tine"
+    if save:
+        _require_output_slot(output, force)
     run.save(output)
     console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
     _print_run_tree(run)

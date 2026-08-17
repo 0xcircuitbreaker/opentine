@@ -58,7 +58,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
-from opentine._cli_flow import _require_output_slot
+from opentine._cli_flags import _require_output_slot
 from opentine._cli_json_flow import drift_payload, emit_replay_verify
 from opentine._cli_render import print_replay_verify
 from opentine._graph_analysis import retained_closure

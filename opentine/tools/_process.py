@@ -3,11 +3,30 @@
 from __future__ import annotations
 
 import os
+import re
 import signal
 import subprocess
 import threading
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
+
+#: Environment names a tool subprocess never needs and must never be handed.
+_SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
+
+
+def clean_env(inherit_env: bool, env_allowlist: Iterable[str]) -> dict[str, str]:
+    """The environment a bounded subprocess may see, scrubbed on inheritance.
+
+    One spelling for every tool that spawns a process. The shell tool used to
+    hand ``dict(os.environ)`` over verbatim on ``inherit_env``, so an
+    ANTHROPIC_API_KEY left the host and came straight back into model context
+    through the command's own output, while the python tool scrubbed the same
+    names — a divergence that only exists while the helper is written twice.
+    """
+    if inherit_env:
+        return {key: value for key, value in os.environ.items() if not _SENSITIVE_PAT.search(key)}
+    return {name: os.environ[name] for name in env_allowlist if name in os.environ}
 
 
 @dataclass(frozen=True)

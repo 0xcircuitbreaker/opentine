@@ -34,6 +34,9 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--save", metavar="PATH", help="Write the run here instead of .tine_runs/<id>.tine"
     )
+    # Same meaning as everywhere else a verb writes an artifact: replace what is
+    # already at the --save destination. Without it the second run refuses.
+    run.add_argument("--force", action="store_true", help="Replace an existing --save destination")
     run.add_argument("--autosave", metavar="PATH", help="Checkpoint path (--harness runs only)")
     run.add_argument(
         "--autosave-interval",

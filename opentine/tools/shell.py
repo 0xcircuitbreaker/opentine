@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import shlex
 import sys
 from pathlib import Path
 
 from opentine.policies import ShellPolicy
-from opentine.tools._process import run_bounded
+from opentine.tools._process import clean_env, run_bounded
 
 
 def _strip_outer_quotes(part: str) -> str:
@@ -28,12 +27,6 @@ def _subprocess_parts(parts: list[str]) -> list[str]:
     if sys.platform == "win32" and parts[0] in {"python", "python3"}:
         return [sys.executable, *parts[1:]]
     return parts
-
-
-def _clean_env(policy: ShellPolicy) -> dict[str, str]:
-    if policy.inherit_env:
-        return dict(os.environ)
-    return {name: os.environ[name] for name in policy.env_allowlist if name in os.environ}
 
 
 def run(
@@ -81,7 +74,7 @@ def run(
             timeout=pol.timeout_seconds,
             max_chars=pol.max_output_chars,
             cwd=str(Path.cwd()),
-            env=_clean_env(pol),
+            env=clean_env(pol.inherit_env, pol.env_allowlist),
         )
         if result.timed_out:
             return result.output(

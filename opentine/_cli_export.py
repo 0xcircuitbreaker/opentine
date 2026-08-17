@@ -49,8 +49,7 @@ from typing import Any
 import httpx
 
 from opentine._cli_common import BRAND, _find_run, _terminal, console
-from opentine._cli_flags import refuse_unhonoured
-from opentine._cli_flow import _require_output_slot
+from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
 from opentine.core import Run
 from opentine.repository._http import require_secure_remote
