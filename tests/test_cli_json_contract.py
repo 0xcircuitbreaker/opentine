@@ -249,8 +249,12 @@ def test_all_three_run_modes_end_in_the_shared_receipt() -> None:
     run_model = (PACKAGE / "_cli_run_model.py").read_text(encoding="utf-8")
 
     # script mode and --harness live in _cli_execute; --model in _cli_run_model.
-    assert execute.count("_save_run_receipt(run, args.save)") == 2
-    assert run_model.count("_save_run_receipt(run, args.save)") == 1
+    # The tail now also takes the overwrite waiver: script and --model pass the
+    # user's ``args.force``, while --harness claims the slot before the agent
+    # starts (it checkpoints into --save) and so finishes writing its own file.
+    assert execute.count("_save_run_receipt(run, args.save, args.force)") == 1
+    assert execute.count("_save_run_receipt(run, args.save, force=True)") == 1
+    assert run_model.count("_save_run_receipt(run, args.save, args.force)") == 1
 
 
 def test_shared_receipt_writes_the_default_location_and_returns_it(

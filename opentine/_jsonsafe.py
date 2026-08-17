@@ -6,6 +6,8 @@ import hashlib
 import math
 from typing import Any
 
+from opentine.kernel import MAX_JSON_DEPTH
+
 
 def _string(value: Any) -> str:
     try:
@@ -20,7 +22,9 @@ def _string(value: Any) -> str:
         return f"[UNREPRESENTABLE:{type(value).__name__}]"
 
 
-def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any:
+def json_safe(
+    value: Any, _seen: set[int] | None = None, _depth: int = 0, *, strict: bool = False
+) -> Any:
     """Make a value canonical-JSON-safe, preserving large integers as strings.
 
     ``_depth`` truncates rather than refuses on purpose: this is the *import*
@@ -30,6 +34,15 @@ def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any
     comprehension costs a second frame per level before 3.12 (PEP 709 inlined
     them in 3.12), which is how the same input crossed the 1000-frame limit at
     half the nesting depth on the declared support floor.
+
+    ``strict=True`` is the *export* mode, and inverts exactly those two rules: a
+    ``"[MAX_DEPTH]"`` or ``"[CIRCULAR]"`` marker written into a document that is
+    supposed to reproduce a run is silent corruption — it exits 0 and re-imports
+    with the content gone. So it raises instead, and its bound is the format's
+    own :data:`~opentine.kernel.MAX_JSON_DEPTH`, which every structure that
+    legally loaded already sits within. That is a deeper walk than the lenient
+    one but still statements-only, and it stays inside the same frame budget
+    ``_canon.MAX_CANONICAL_DEPTH`` (768) is already written against.
     """
     if value is None or isinstance(value, (str, bool)):
         return value
@@ -41,8 +54,13 @@ def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any
         seen = _seen if _seen is not None else set()
         identity = id(value)
         if identity in seen:
+            if strict:
+                raise ValueError("value contains a circular reference")
             return "[CIRCULAR]"
-        if _depth >= 100:
+        if strict:
+            if _depth >= MAX_JSON_DEPTH:
+                raise ValueError(f"value nesting exceeds {MAX_JSON_DEPTH} levels")
+        elif _depth >= 100:
             return "[MAX_DEPTH]"
         seen.add(identity)
         try:
@@ -52,12 +70,23 @@ def json_safe(value: Any, _seen: set[int] | None = None, _depth: int = 0) -> Any
                     name = _string(key)
                     if name in result:
                         raise ValueError(f"mapping keys collide after string conversion: {name!r}")
-                    result[name] = json_safe(item, seen, _depth + 1)
+                    result[name] = json_safe(item, seen, _depth + 1, strict=strict)
                 return result
             items = []
             for item in value:
-                items.append(json_safe(item, seen, _depth + 1))
+                items.append(json_safe(item, seen, _depth + 1, strict=strict))
             return items
         finally:
             seen.remove(identity)
     return _string(value)
+
+
+def json_exact(value: Any) -> Any:
+    """The *export* spelling of :func:`json_safe`: refuse rather than truncate.
+
+    One name for the whole outbound side — ``tine export``'s document, the OTLP
+    wire body, every ``--json`` object — so a second export writer cannot pick
+    up the lenient default and reintroduce a ``"[MAX_DEPTH]"`` marker in bytes
+    that are supposed to reproduce a run.
+    """
+    return json_safe(value, strict=True)

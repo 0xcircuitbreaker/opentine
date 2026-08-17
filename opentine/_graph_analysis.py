@@ -54,11 +54,16 @@ def retained_closure(run, fork_point: str) -> set[str]:
     pending = [fork_point]
     while pending:
         step_id_value = pending.pop()
-        if step_id_value in retained:
+        step = run.graph.steps.get(step_id_value)
+        # A causal edge can name an event outside this run, and a ``.tine`` now
+        # carries the edges too, so a hand-edited one can dangle: skip it rather
+        # than crash the fork it was read for.
+        if step_id_value in retained or step is None:
             continue
         retained.add(step_id_value)
-        step = run.graph.steps[step_id_value]
-        pending.extend([*step.parent_ids, *(causal.get(step_id_value) or [])])
+        # ``step.causal_ids`` is the ``.tine`` carrier of the same edges the v3
+        # map holds, so a repository run exported and reloaded forks identically.
+        pending.extend([*step.parent_ids, *(causal.get(step_id_value) or step.causal_ids)])
     return retained
 
 

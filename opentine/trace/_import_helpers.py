@@ -11,6 +11,9 @@ from opentine.trace._genai_semconv import USAGE_BY_DIMENSION
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
 _MAX_INPUT_RECORDS = 100_000
+#: Attribute every importer records recoverable problems on; spelled once so a
+#: second writer of it cannot pick a near-miss key nobody reads.
+IMPORT_WARNINGS = "opentine.import_warnings"
 _TOKEN_USAGE = {
     "input",
     "output",
@@ -129,10 +132,24 @@ def safe_usage(value: Any) -> tuple[dict[str, int | float], list[str]]:
     return result, warnings
 
 
+def note_import_warning(attributes: dict[str, Any], warning: str) -> None:
+    """Record one recoverable import problem on a span's attributes.
+
+    Appends rather than assigns: a single span can trip more than one importer
+    check (a discarded usage dimension *and* a disagreeing content shape), and
+    an importer that overwrote the key would report the last one only.
+    """
+    existing = attributes.get(IMPORT_WARNINGS)
+    warnings = list(existing) if isinstance(existing, list) else []
+    if warning not in warnings:
+        warnings.append(warning)
+    attributes[IMPORT_WARNINGS] = warnings
+
+
 def imported_usage(value: Any, attributes: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     usage, warnings = safe_usage(value)
-    if warnings:
-        attributes["opentine.import_warnings"] = warnings
+    for warning in warnings:
+        note_import_warning(attributes, warning)
     return usage, attributes
 
 

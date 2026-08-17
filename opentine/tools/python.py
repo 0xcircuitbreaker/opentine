@@ -2,23 +2,12 @@
 
 from __future__ import annotations
 
-import os
-import re
 import sys
 import tempfile
 from pathlib import Path
 
 from opentine.policies import PythonPolicy
-from opentine.tools._process import run_bounded
-
-_SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
-
-
-def _clean_env(policy: PythonPolicy) -> dict[str, str]:
-    """Return a copy of the environment with sensitive variables removed."""
-    if policy.inherit_env:
-        return {k: v for k, v in os.environ.items() if not _SENSITIVE_PAT.search(k)}
-    return {name: os.environ[name] for name in policy.env_allowlist if name in os.environ}
+from opentine.tools._process import clean_env, run_bounded
 
 
 def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) -> str:
@@ -38,7 +27,7 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
                 [sys.executable, script_path],
                 timeout=pol.timeout_seconds,
                 max_chars=pol.max_output_chars,
-                env=_clean_env(pol),
+                env=clean_env(pol.inherit_env, pol.env_allowlist),
                 cwd=tmp,
             )
             if result.timed_out:
@@ -63,7 +52,7 @@ def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
             [sys.executable, script_path],
             timeout=timeout,
             max_chars=8_000,
-            env=_clean_env(PythonPolicy(enabled=True, inherit_env=True)),
+            env=clean_env(True, ()),
         )
         if result.timed_out:
             return result.output(8_000, prefix=f"Error: execution timed out after {timeout}s\n")

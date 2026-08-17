@@ -8,7 +8,13 @@ from opentine._canon import _redact
 from opentine._graph_analysis import _causal_transcript, _slice_pricing
 from opentine._jsonsafe import json_safe
 from opentine._unicode_text import assert_unicode_text
-from opentine.repository._run_blobs import blob_json, json_blob, put_transcript, transcript_blob
+from opentine.repository._run_blobs import (
+    LEGACY_MIGRATION_FIELDS,
+    blob_json,
+    json_blob,
+    put_transcript,
+    transcript_blob,
+)
 from opentine.repository._run_graph import filtered_legacy_refs, graph_tips
 from opentine.repository._shallow_read import ShallowBoundary, shallow_cut_error
 from opentine.repository._traversal import TraversalQueue
@@ -175,13 +181,7 @@ def fork_payload(
     forked["status"] = "running"
     forked["tips"] = graph_tips(repo, events)
     forked.pop("finished_at", None)
-    for field in (
-        "legacy_blob",
-        "legacy_format",
-        "legacy_verification",
-        "migration_map_blob",
-        "signature_scope",
-    ):
+    for field in LEGACY_MIGRATION_FIELDS:
         forked.pop(field, None)
     if model:
         forked["model"] = model

@@ -49,7 +49,9 @@ def cmd_run_model(args: argparse.Namespace) -> None:
         # reported as one line rather than as a traceback.
         console.print(f"[red]Model run failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    _save_run_receipt(run, args.save)
+    # args.force, like args.save, because this mode's tail *is* the script
+    # mode's tail: the third `tine run` mode may not be the one that overwrites.
+    _save_run_receipt(run, args.save, args.force)
 
 
 def _refuse_competing_modes(args: argparse.Namespace) -> None:

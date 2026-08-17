@@ -10,6 +10,47 @@ from opentine._jsonsafe import json_safe
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
 
+#: The fields a v2 migration adds to a run payload. Every one of them describes
+#: one exact set of legacy bytes, so a writer that builds on a stored payload must
+#: drop the whole set unless it is re-attaching those same bytes. Spelled once,
+#: and imported by both writers, so the two cannot drift apart again.
+LEGACY_MIGRATION_FIELDS = (
+    "legacy_blob",
+    "legacy_format",
+    "legacy_verification",
+    "migration_map_blob",
+    "signature_scope",
+)
+
+
+def apply_legacy_migration(
+    payload: dict[str, Any],
+    legacy_blob: str | None,
+    verification: dict[str, Any] | None,
+    migration_map_blob: str | None,
+) -> None:
+    """Restate this save's migration fields, dropping whatever a prior save left.
+
+    ``_put_run`` spreads the run's stored payload into the new one, so a migrated
+    run carried these fields forward forever: loading it, changing an event and
+    saving it again republished ``legacy_verification.signature.ok`` over an
+    artifact the run no longer matched — a signed claim about bytes that were
+    never re-checked. ``fork_payload`` drops the same set for the same reason.
+    """
+    for field in LEGACY_MIGRATION_FIELDS:
+        payload.pop(field, None)
+    if not legacy_blob:
+        return
+    payload.update(
+        {
+            "legacy_blob": legacy_blob,
+            "legacy_format": 2,
+            "legacy_verification": verification or {},
+            "migration_map_blob": migration_map_blob,
+            "signature_scope": "legacy_blob_only",
+        }
+    )
+
 
 def json_blob(repo: Repo, value: Any) -> str:
     return repo.put("blob", guarded_blob_body(value), redact=False)

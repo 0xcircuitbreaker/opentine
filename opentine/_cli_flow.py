@@ -15,19 +15,11 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
-from opentine._cli_flags import HARNESS_CONFIG_FLAGS, refuse_unhonoured
+from opentine._cli_flags import HARNESS_CONFIG_FLAGS, _require_output_slot, refuse_unhonoured
 from opentine._cli_json_flow import drift_payload, emit_diff, identical
 from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
-
-
-def _require_output_slot(output: Path, force: bool) -> None:
-    if output.exists() and not force:
-        console.print(
-            f"[red]Refusing to overwrite existing file: {_terminal(output)}. Pass --force.[/]"
-        )
-        raise SystemExit(1)
 
 
 def _refuse_ignored_fork_flags(args: argparse.Namespace) -> None:

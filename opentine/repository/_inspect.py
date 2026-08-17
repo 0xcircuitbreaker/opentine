@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine._artifact_io import compact_token_budget
 from opentine.kernel import _parse_int, parse_oid, validate_json_shape
+from opentine.redaction import redact_blob
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 
 if TYPE_CHECKING:
@@ -29,6 +30,18 @@ def _direct_blob(repo: Repo, oid: str) -> dict[str, Any]:
         source_limit=MAX_INSPECT_SOURCE_BYTES,
     )
     truncated = size > len(raw)
+    # Scrubbed, not served verbatim. The v2 migration blob below is stored with
+    # ``redact=False`` and is the one body in the store that may still hold
+    # credentials, and this path renders whatever id it is handed:
+    # ``inspect_object`` and the ``tine-object://`` resource take that id straight
+    # from a model, so "fetched by its own object id" stopped being the explicit
+    # operator act _UNREDACTED_BLOB_FIELDS assumes. Nothing reachable from an oid
+    # alone says which blob that is — only a run payload names it, and finding the
+    # run means reading every run (and every event each one validates) in the
+    # repository — so every rendered body goes through the pass instead. For the
+    # bodies the writer already redacted it is idempotent, and the byte-exact
+    # legacy artifact stays reachable through ``Repo.raw`` for review.
+    raw = redact_blob(raw)
     try:
         payload = {"encoding": "utf-8", "text": raw.decode("utf-8")}
     except UnicodeDecodeError:
@@ -45,7 +58,8 @@ def _direct_blob(repo: Repo, oid: str) -> dict[str, Any]:
 #: hold credentials — SECURITY_MODEL.md requires it be reviewed before it leaves a
 #: trusted boundary. Bulk resolution is not review: ``inspect_object`` defaults to
 #: ``resolve_blobs=True`` and hands its result straight to an MCP model client.
-#: Fetching it by its own object id still works and is an explicit act.
+#: Fetching it by its own object id still renders it, scrubbed by ``_direct_blob``;
+#: the byte-exact bytes come from ``Repo.raw``, which no MCP tool exposes.
 _UNREDACTED_BLOB_FIELDS = frozenset({"legacy_blob"})
 
 
@@ -117,7 +131,14 @@ def _resolved(repo: Repo, payload: dict[str, Any]) -> tuple[dict[str, Any], bool
         raw = raw[:maximum]
         remaining -= len(raw)
         count += 1
-        if size > len(raw):
+        body_truncated = size > len(raw)
+        # The same scrub _direct_blob applies: only ``legacy_blob`` itself is skipped
+        # above, so a run aliasing the unredacted v2 migration bytes under any other
+        # ``*_blob`` key resolved them verbatim to an MCP client. Redacting after the
+        # length/budget checks keeps their accounting on the stored bytes; it is a
+        # no-op for the bodies the writer already redacted.
+        raw = redact_blob(raw)
+        if body_truncated:
             blobs[field] = {
                 "encoding": "utf-8",
                 "text": raw.decode(errors="replace"),

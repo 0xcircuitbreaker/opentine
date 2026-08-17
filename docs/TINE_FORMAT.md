@@ -100,20 +100,25 @@ the canonical artifact body — **every top-level key except `metadata`**. It is
 checksum: it detects accidental corruption and many edits, but anyone who can
 edit the file can recompute it.
 
-`tine sign` adds a real signature at `metadata.integrity.signature` (scheme
-`tine-sig/1`). It commits to a single canonical *signed view* recomputed from
-content — never to the stored digest — so a body edit plus a digest rewrite
-still fails verification.
+`tine sign` adds a real signature at `metadata.integrity.signature`, at scheme
+`tine-sig/2` since 0.7.1 (`tine-sig/1` blocks written by 0.3.0–0.7.0 are still
+verified, under their own narrower view). It commits to a single canonical
+*signed view* recomputed from content — never to the stored digest — so a body
+edit plus a digest rewrite still fails verification.
 
-| Field group | in digest | in signature |
-|---|---|---|
-| body: `format_version`, `run_id`, `created_at`, `status`, `graph` (+`usage`), `refs`, `transcript`, `manifest` (+`budget`), `policies`, `cache`, `draft` | yes | yes |
-| `metadata.{model_info, system_prompt, user_prompt, forked_from, fork_point, warnings, replay, context, next_harness, migration, fork, fork_reason}` | no | yes (allowlist) |
-| `metadata.tags` | no | **no** (mutable labels — re-tagging never re-signs) |
-| `metadata.{budget_state, autosave}` | no | no (derived/transient) |
-| `metadata.integrity.*` | no | no (holds the signature itself) |
-| signature header `scheme/alg/key_id/signer/signed_at` | no | yes |
-| signature `value`/`public_key` | no | no |
+| Field group | in digest | in `tine-sig/2` | in `tine-sig/1` |
+|---|---|---|---|
+| body: `format_version`, `run_id`, `created_at`, `status`, `graph` (+`usage`), `refs`, `transcript`, `manifest` (+`budget`), `policies`, `cache`, `draft` | yes | yes | yes |
+| `metadata.{model_info, system_prompt, user_prompt, forked_from, fork_point, warnings, replay, context, next_harness, migration, fork}` | no | yes | yes (allowlist) |
+| `metadata.tags` | no | yes | **no** (re-tagging never broke a v1 signature) |
+| `metadata.{fork_reason, budget_state, autosave}`, any app-set key | no | yes | **no** |
+| `metadata.integrity.*` | no | no (holds the signature itself) | no |
+| signature header `scheme/alg/key_id/signer/signed_at` | no | yes | yes |
+| signature `value`/`public_key` | no | no | no |
+
+The digest's `metadata` exclusion is a deliberate boundary, not an oversight:
+the digest is unkeyed, so it means "consistent", not "genuine". Metadata
+authenticity comes from a `tine-sig/2` signature.
 
 Use `Run.verify_integrity(...)` / `tine verify` before trusting an artifact, and
 `Run.verify_signature(...)` / `tine verify --key-*` / `--pubkey` for authenticity.

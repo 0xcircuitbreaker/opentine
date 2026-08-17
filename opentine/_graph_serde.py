@@ -6,13 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import opentine._artifact_io as artifact_io
 import opentine._artifact_shapes as artifact_shapes
-from opentine._artifact_io import (  # fmt: skip  # fmt: skip
-    artifact_digest,
-    artifact_integrity,
-    assert_loadable,
-    read_artifact_json,
-)
 from opentine._canon import (
     FORMAT_VERSION,
     SUPPORTED_VERSIONS,
@@ -38,6 +33,10 @@ def step_to_dict(step: Step) -> dict[str, Any]:
         "parent_ids": list(step.parent_ids),
         "timestamp": step.timestamp,
         "tool_info": step.tool_info,
+        # Additive and absent when empty: a v3 run exported here used to lose
+        # every causal edge, silently shrinking a later fork's retained slice,
+        # while a run that never had one still writes the bytes it always did.
+        **({"causal_ids": list(step.causal_ids)} if step.causal_ids else {}),
     }
     if step.usage:
         data["usage"] = dict(step.usage)
@@ -64,6 +63,7 @@ def step_from_dict(data: dict[str, Any]) -> Step:
         cost=0 if data.get("cost") is None else data["cost"],
         usage=_usage(data.get("usage")),
         billing=dict(data.get("billing") or {}),
+        causal_ids=list(data.get("causal_ids") or []),
     )
 
 
@@ -174,7 +174,7 @@ def save_run(
             signed_at=signed_at,
         )
     serialized = json.dumps(data, indent=2, sort_keys=True, allow_nan=False)
-    assert_loadable(serialized)  # never persist what this build could not read back
+    artifact_io.assert_loadable(serialized)  # never persist what this build could not read back
     atomic_write_text(target, serialized, fsync=fsync)
     return target
 
@@ -188,7 +188,7 @@ def load_run(path: str | Path, run_class):
         from opentine.repo import Repo
 
         return Repo.open(source).load_run("heads/main")
-    data = read_artifact_json(source)
+    data = artifact_io.read_artifact_json(source)
     if not isinstance(data, dict):
         raise ValueError(".tine artifact root must be an object")
     try:
@@ -207,7 +207,8 @@ def load_run(path: str | Path, run_class):
 
 def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResult:
     try:
-        data = path_or_data if isinstance(path_or_data, dict) else read_artifact_json(path_or_data)
+        source = path_or_data
+        data = source if isinstance(source, dict) else artifact_io.read_artifact_json(source)
     except FileNotFoundError:
         return IntegrityResult(False, None, None, None, "file not found")
     except OSError as exc:
@@ -224,7 +225,7 @@ def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResu
         if isinstance(version, int) and not isinstance(version, bool) and version > FORMAT_VERSION:
             reason = f"unsupported .tine format_version={found}; written by a newer opentine"
         return IntegrityResult(False, None, None, None, reason)
-    integrity = artifact_integrity(data)
+    integrity = artifact_io.artifact_integrity(data)
     if not isinstance(integrity, dict):
         return IntegrityResult(False, None, None, None, "missing integrity digest")
     algorithm, expected = integrity.get("algorithm"), integrity.get("digest")
@@ -238,7 +239,7 @@ def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResu
         valid_digest = False
     if not valid_digest:
         return IntegrityResult(False, "sha256", expected, None, "malformed digest")
-    actual = artifact_digest(data)
+    actual = artifact_io.artifact_digest(data)
     return IntegrityResult(
         actual == expected,
         "sha256",

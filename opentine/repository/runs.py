@@ -13,6 +13,7 @@ from opentine._v3_guards import as_mapping, text_field
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
 from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
+    apply_legacy_migration,
     blob_json,
     json_blob,
     put_run_manifest,
@@ -72,7 +73,9 @@ def _put_run(
         input_blob = json_blob(repo, step.inputs)
         output_blob = json_blob(repo, step.outputs)
         raw_kind = step.v3_kind or step.kind.value
-        causal = causal_map.get(step.id) or ()
+        # The step's own edges are the fallback: a repository run exported to
+        # .tine and reloaded carries them there, with no _v3_causal_ids map.
+        causal = causal_map.get(step.id) or step.causal_ids
         payload = {
             "billing": _redact(step.billing),
             "causal_ids": [event_map[item] for item in causal],
@@ -121,16 +124,7 @@ def _put_run(
         "prompt_blob": repo.put("blob", run.user_prompt.encode()),
         "tips": tips,
     }
-    if legacy_blob:
-        payload.update(
-            {
-                "legacy_blob": legacy_blob,
-                "legacy_format": 2,
-                "legacy_verification": legacy_verification or {},
-                "migration_map_blob": migration_map_blob,
-                "signature_scope": "legacy_blob_only",
-            }
-        )
+    apply_legacy_migration(payload, legacy_blob, legacy_verification, migration_map_blob)
     run_id = repo.put("run", json_safe(payload))
     annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:
@@ -209,6 +203,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 cost=compatibility_float(event.get("cost") or 0, "event cost"),
                 usage=as_mapping(event.get("usage")),
                 billing=as_mapping(event.get("billing")),
+                causal_ids=list(causal_ids[event_id]),
                 v3_kind=raw_kind,
             )
         )

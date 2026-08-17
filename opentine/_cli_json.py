@@ -5,8 +5,10 @@ nothing else. The rich human rendering is unchanged and stays the default, so
 ``--json`` is purely additive. These objects are a machine interface: within a
 major version fields are added, never renamed or removed, and keys are emitted
 sorted so two runs of a command diff cleanly. Every value passes through
-``json_safe``, so untrusted recorded content cannot make the output
-unserializable. Every object carries ``command``, naming the schema it follows.
+``json_safe`` in its strict mode, so untrusted recorded content cannot make the
+output unserializable and cannot be silently truncated into it either: a
+structure past the format's nesting bound, or a cyclic one, is refused rather
+than written as a marker. Every object carries ``command``, naming its schema.
 
 Every ``--json`` surface in the CLI writes through :func:`serialize` — here, in
 :mod:`opentine._cli_json_flow`, :mod:`opentine._cli_json_surface`,
@@ -85,7 +87,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from opentine._jsonsafe import json_safe
+from opentine._jsonsafe import json_exact
 from opentine.core import Run, short_id
 
 
@@ -96,8 +98,15 @@ def serialize(payload: dict[str, Any], *, indent: int | None = 2) -> str:
     and onto the wire. All three go through this function so the sorting, the
     ``json_safe`` coercion, and the separators cannot drift apart — only
     ``indent`` differs, and only because a wire body is not read by a human.
+
+    The coercion is the *strict* one: lenient ``json_safe`` replaces an
+    over-deep or cyclic branch with a ``"[MAX_DEPTH]"``/``"[CIRCULAR]"`` string,
+    which is right on import (untrusted data must land in the store) and wrong
+    here — a run that loaded fine exported a corrupt document, exit 0, and
+    re-imported with the content gone. Strict raises instead, at the format's
+    own bound, so what a reader accepts is written verbatim and the rest exits 1.
     """
-    return json.dumps(json_safe(payload), sort_keys=True, indent=indent)
+    return json.dumps(json_exact(payload), sort_keys=True, indent=indent)
 
 
 def emit(payload: dict[str, Any]) -> None:

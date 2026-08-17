@@ -19,7 +19,12 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
-from opentine._cli_flags import AUTOSAVE_FLAGS, HARNESS_CONFIG_FLAGS, refuse_unhonoured
+from opentine._cli_flags import (
+    AUTOSAVE_FLAGS,
+    HARNESS_CONFIG_FLAGS,
+    _require_output_slot,
+    refuse_unhonoured,
+)
 from opentine._cli_json import emit_cost, emit_show
 from opentine._cli_render import _budget_str, _print_run_tree, _save_run_receipt
 from opentine._cli_run_model import cmd_run_model
@@ -66,7 +71,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     if run is None:
         console.print("[red]No Run object found in script.[/]")
         raise SystemExit(1)
-    _save_run_receipt(run, args.save)
+    _save_run_receipt(run, args.save, args.force)
 
 
 def cmd_run_harness(args: argparse.Namespace) -> None:
@@ -95,6 +100,12 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         autosave_seconds=seconds,
     )
     output = Path(args.save) if args.save else None
+    if output:
+        # Before the agent starts, not at the receipt: run_sync checkpoints into
+        # this very path, so by the time the tail writes, the artifact sitting
+        # there is already this run's own. Now is the last moment the file is
+        # still the user's older one -- and the first moment they can be told.
+        _require_output_slot(output, args.force)
     try:
         run = wrapped.run_sync(task, context={"cwd": args.cwd}, save_path=output)
     except Exception as exc:
@@ -105,7 +116,10 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
             _print_run_tree(run)
         console.print(f"[red]Harness failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    _save_run_receipt(run, args.save)
+    # force, because the slot was claimed above: the file now at --save is the
+    # checkpoint this run just wrote, and refusing to finish writing it would
+    # leave the user a half-written artifact instead of a receipt.
+    _save_run_receipt(run, args.save, force=True)
 
 
 def cmd_show(args: argparse.Namespace) -> None:
