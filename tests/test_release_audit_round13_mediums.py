@@ -17,8 +17,6 @@ ever corrected:
 from __future__ import annotations
 
 import ast
-import shlex
-import sys
 from pathlib import Path
 
 import pytest
@@ -32,8 +30,8 @@ ROOT = Path(__file__).resolve().parents[1]
 #: Printed by the subprocess under test: the credential it must never receive,
 #: and a harmless inherited name that must still arrive.
 PROBE = (
-    "import os; print(os.environ.get('TEST_SECRET_TOKEN', 'missing'), "
-    "os.environ.get('TINE_PARITY_MARKER', 'missing'), bool(os.environ.get('PATH')))"
+    'import os; print(os.environ.get("TEST_SECRET_TOKEN", "missing"), '
+    'os.environ.get("TINE_PARITY_MARKER", "missing"), bool(os.environ.get("PATH")))'
 )
 
 
@@ -47,11 +45,14 @@ def probed(monkeypatch):
 
 
 def test_the_shell_tool_scrubs_credentials_from_the_environment_it_inherits(probed):
-    # sys.executable, not a program looked up by name: the interpreter already
-    # running is the one binary a test may spawn without a skip guard.
+    # A single-quote-wrapped -c snippet that quotes only with double quotes, and
+    # python3 (aliased to sys.executable on win32): shlex.quote would emit the
+    # POSIX '"'"' escape the win32 posix=False command splitter cannot parse.
+    # Mirrors the shell tests in test_core so it runs on every platform without a
+    # skip guard.
     out = shell.run(
-        f"{shlex.quote(sys.executable)} -c {shlex.quote(PROBE)}",
-        policy=ShellPolicy(enabled=True, executables=(sys.executable,), inherit_env=True),
+        f"python3 -c '{PROBE}'",
+        policy=ShellPolicy(enabled=True, executables=("python3",), inherit_env=True),
     )
     assert out == "missing kept True", out
 
