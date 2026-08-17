@@ -479,9 +479,14 @@ def test_compatibility_roundtrip_preserves_run_envelope_provenance(tmp_path):
     payload = repo.get(restored).payload()
     assert payload["custom"] == {"kept": True}
     assert payload["manifests"]["code"] == code
-    assert payload["legacy_blob"] == legacy
-    assert payload["migration_map_blob"] == mapping
-    assert payload["legacy_verification"]["integrity"]["ok"] is True
+    # The migration fields are the exception, and deliberately so (round 13): they
+    # attest one exact set of legacy bytes, so only a save that re-attaches those
+    # bytes may restate them. Carried through on a re-save they let a run with
+    # changed events keep publishing a verdict nothing re-checked.
+    assert "legacy_blob" not in payload
+    assert "migration_map_blob" not in payload
+    assert "legacy_verification" not in payload
+    assert "signature_scope" not in payload
 
 
 def test_annotation_import_converges_and_cross_target_versions_fail(tmp_path):

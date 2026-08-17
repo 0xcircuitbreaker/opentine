@@ -185,10 +185,13 @@ def test_inspect_does_not_resolve_the_unredacted_legacy_blob(tmp_path):
 
     inspected = repo.inspect(run_id, resolve_blobs=True)
     assert secret not in json.dumps(inspected)
-    # Other blobs must still resolve, and the legacy bytes stay reachable when
-    # asked for deliberately by their own object id.
+    # Other blobs must still resolve. Fetching the legacy blob by its own object id
+    # renders it too, but scrubbed since round 13: an MCP client names any id it
+    # likes, so that fetch was never the deliberate review it was assumed to be.
+    # Repo.raw, which no MCP tool exposes, still returns the byte-exact artifact.
     assert inspected["resolved_blobs"]
-    assert secret in json.dumps(repo.inspect(inspected["payload"]["legacy_blob"]))
+    assert secret not in json.dumps(repo.inspect(inspected["payload"]["legacy_blob"]))
+    assert secret in repo.raw(inspected["payload"]["legacy_blob"]).decode()
 
 
 def test_mcp_ref_guard_decides_on_the_canonical_name():

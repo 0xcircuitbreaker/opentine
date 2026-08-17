@@ -13,6 +13,7 @@ from opentine._v3_guards import as_mapping, text_field
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
 from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
+    apply_legacy_migration,
     blob_json,
     json_blob,
     put_run_manifest,
@@ -121,16 +122,7 @@ def _put_run(
         "prompt_blob": repo.put("blob", run.user_prompt.encode()),
         "tips": tips,
     }
-    if legacy_blob:
-        payload.update(
-            {
-                "legacy_blob": legacy_blob,
-                "legacy_format": 2,
-                "legacy_verification": legacy_verification or {},
-                "migration_map_blob": migration_map_blob,
-                "signature_scope": "legacy_blob_only",
-            }
-        )
+    apply_legacy_migration(payload, legacy_blob, legacy_verification, migration_map_blob)
     run_id = repo.put("run", json_safe(payload))
     annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:

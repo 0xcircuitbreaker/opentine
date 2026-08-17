@@ -47,11 +47,20 @@ _LINE_ASSIGNMENT = re.compile(
 )
 # No leading \b: it fails between a space and the "-" of a mid-line "--api-key=…"
 # flag, and _NAME's own lookbehind is already the stricter start-boundary gate.
-# Quotes excluded from the value class so a JSON string value ends at its closing
-# quote. Consuming it produced '{"note": "the api_key: [REDACTED], "user": "bob"}'
-# — no longer parseable, so every downstream reader fell back to treating the whole
-# blob as opaque text.
-_ASSIGNMENT = re.compile(rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)([^\r\n,;\"']+)")
+# Quotes excluded from the *unquoted* value class so a JSON string value ends at
+# its closing quote. Consuming it produced '{"note": "the api_key: [REDACTED],
+# "user": "bob"}' — no longer parseable, so every downstream reader fell back to
+# treating the whole blob as opaque text. A quoted value therefore gets its own
+# alternative instead, redacted *inside* the quotes by _assignment below: with only
+# the unquoted class, 'the password: "hunter2" is old' backtracked the separator's
+# trailing \s* and matched the lone space, writing 'password:[REDACTED]"hunter2"'
+# — a false [REDACTED] marker with the secret still beside it. The unquoted class
+# starts with a non-space character for that reason, and the closing quote is
+# optional so a truncated 'api_key: "abc' is still redacted rather than skipped.
+_ASSIGNMENT = re.compile(
+    rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)"
+    rb"(\"[^\"\r\n]*\"?|'[^'\r\n]*'?|[^\s\r\n,;\"'][^\r\n,;\"']*)"
+)
 _QUOTED_FIELD = re.compile(
     rb"(?i)([\"'](?:"
     + _NAME
@@ -114,6 +123,12 @@ def _assignment(match: re.Match[bytes]) -> bytes:
     first = candidate.split()[0].lower() if candidate.split() else candidate.lower()
     if b":" in separator and first in _PROSE_VALUES:
         return match.group(0)
+    quote = candidate[:1]
+    if quote in (b'"', b"'"):
+        # The quotes are the value's delimiters, not part of it: keeping them keeps
+        # a JSON object parseable, exactly as _quoted_fields does for '"key": "…"'.
+        closing = quote if len(candidate) > 1 and candidate.endswith(quote) else b""
+        return match.group(1) + separator + quote + b"[REDACTED]" + closing
     return match.group(1) + separator + b"[REDACTED]"
 
 
