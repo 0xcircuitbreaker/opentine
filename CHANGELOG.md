@@ -1,5 +1,72 @@
 # Changelog
 
+## 0.7.1 — 2026-08-17
+
+The Hardening Release. A codebase health audit — every finding verified against
+the working tree — surfaced two credential leaks, two false-attestation paths,
+and three silent data-loss paths: the exact failure classes a provenance tool
+cannot ship. All are fixed, and a new round-trip parity gate guards the recurring
+writer/reader-asymmetry shape they shared. Stored data stays readable: every
+artifact and repository written by 0.3.0 through 0.7.0 still loads, and every
+genuine `tine-sig/1` signature still verifies byte-identically.
+
+### Fixed
+
+- **Redaction no longer leaks a quoted credential.** A quoted secret
+  (`api_key: "…"`, `password = '…'`) walked out from under the `[REDACTED]`
+  marker into the content-addressed store, remotes, and MCP responses. Quoted
+  values are now redacted inside their quotes (a JSON body stays parseable), and
+  the scan stays linear.
+- **`inspect` / MCP no longer serves the unredacted legacy blob.** The one body
+  stored `redact=False` — the v2 migration blob, which may still hold
+  credentials — was rendered verbatim to any model that named its object id,
+  directly or aliased under another `*_blob` key. Every served body is scrubbed
+  now; `Repo.raw`, which no MCP tool exposes, still yields byte-exact bytes for
+  deliberate review.
+- **A re-saved migrated run drops its stale legacy attestation.** `_put_run`
+  carried the five v2-migration fields forward from a run's stored payload, so a
+  loaded-then-modified run kept claiming `legacy_verification.signature` over
+  bytes it no longer matched. Both writers now share one field list and drop it
+  unless the save re-attaches the legacy bytes.
+- **Signatures now cover metadata tags (`tine-sig/2`).** Under `tine-sig/1` a
+  signed artifact's `metadata.tags` (and any metadata key outside the allowlist)
+  could be rewritten and the signature still verified. New signatures are written
+  at `tine-sig/2`, which signs every metadata key except `integrity`.
+  `tine-sig/1` is verified unchanged, so every 0.3.0–0.7.0 signature keeps
+  verifying. Narrowing the integrity digest's metadata exclusion is deferred to a
+  future format-version bump (the digest is a consistency check, not an
+  authenticity claim — authenticity now comes from the signature).
+- **`tine export` refuses rather than truncating deep content.** Export reused
+  the import-path depth coercion, silently replacing content past a depth bound
+  with `[MAX_DEPTH]`/`[CIRCULAR]` and exiting 0. It now serializes faithfully up
+  to the format's legal depth and exits non-zero — writing no file — beyond it.
+  The lenient truncation stays on the untrusted-import path only.
+- **OTel import keeps the structured conversation.** A span carrying both classic
+  `gen_ai.prompt`/`completion` scalars and 1.36 structured `*.messages` dropped
+  the conversation (system prompt and full turn list) when the scalar won. The
+  modern content is now preserved and an import warning is recorded when the two
+  shapes disagree; this package's own export stays a round-trip fixed point.
+- **`causal_ids` survive a `.tine` round trip.** A v3 repository run exported to
+  `.tine` and reloaded dropped its causal edges, silently shrinking every later
+  fork slice. `causal_ids` now round-trips (additive — emitted only when
+  present, so pre-existing artifacts are byte-identical and older files load with
+  none).
+- **The shell tool stops leaking credentials to a subprocess.** With
+  `inherit_env`, the shell tool handed the whole environment — API keys included
+  — to the subprocess and its output back into model context. It now scrubs
+  `KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH` names from the same shared helper
+  the python tool has always used.
+- **`tine run --save` no longer silently overwrites.** `tine run` gains
+  `--force` and refuses an existing `--save` destination without it, like every
+  other artifact-writing verb. The run-id-keyed default location stays unguarded.
+
+### Added
+
+- **Round-trip parity gate.** A permanent release test asserting full-fidelity
+  `repo → .tine → repo` and `export → import` round trips on a run exercising
+  every step kind, a fork, distinct causal edges, usage/billing, and
+  tags/metadata — the standing catcher for the writer/reader-asymmetry bug class.
+
 ## 0.7.0 — 2026-08-16
 
 The Interop & Adoption Release. OpenTine stops being a silo: a recorded run now
