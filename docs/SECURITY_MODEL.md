@@ -70,29 +70,24 @@ legacy blobs as sensitive and do not push them before review.
 
 The digest covers the redacted artifact body outside the `metadata` object. It detects accidental corruption and many body edits, but it is **not** tamper-proof: anyone who can edit the file can recompute the digest. For tamper-evidence against an adversary, sign the artifact.
 
-## Signing (`tine-sig/1`)
+## Signing (`tine-sig/2`)
 
-`tine sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. The signed boundary (see `TINE_FORMAT.md`) covers the whole body plus an **allowlist** of exactly ten metadata keys: `model_info`, `system_prompt`, `user_prompt`, `forked_from`, `fork_point`, `warnings`, `replay`, `context`, `next_harness`, and `migration`.
+`tine sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. Which parts of the artifact that view covers is the **scheme**, recorded in the signature block:
 
-**Every other metadata key is unauthenticated.** Mutable and derived fields
-(`tags`, `budget_state`, `autosave`) sit outside the allowlist deliberately, so
-that changing one of them cannot turn a valid signature into a *mismatch* — but
-so does every other key the allowlist does not name, including any key an
-application sets and `fork_reason`, which OpenTine's own MCP fork tool writes.
-The integrity digest does not cover them either: it excludes the whole
-`metadata` object. A metadata key outside the allowlist is therefore protected by
-neither mechanism, and editing one leaves both `Run.verify_integrity` and
-`Run.verify_signature` reporting success. Application data that has to be
-authenticated belongs in the artifact body — a step record or `manifest` — not in
-a bare `metadata` key.
+- **`tine-sig/2`** (0.7.1+, what new signatures use): the whole body, the signature header, and **every `metadata` key except `metadata.integrity`** — including `tags`, `fork_reason`, and any key an application sets. `integrity` is excluded because it holds the signature block itself.
+- **`tine-sig/1`** (0.3.0–0.7.0): the whole body, the header, and an **allowlist** of eleven metadata keys — `model_info`, `system_prompt`, `user_prompt`, `forked_from`, `fork_point`, `warnings`, `replay`, `context`, `next_harness`, `migration`, `fork`. Everything else in `metadata`, `tags` included, was unauthenticated: it could be rewritten and the signature still verified.
 
-The `tags` exclusion is about verification, not persistence. Signing is always an explicit act: any plain re-save — including `tine tag`, which rewrites the artifact — **removes** the signature block rather than re-attaching a signature the current writer did not produce. `tine tag` says so when it does this. Re-run `tine sign` afterwards, and treat "no signature" as a state to check for, not merely "mismatch".
+This build still verifies `tine-sig/1` blocks, unchanged and under their own narrower view. That scope is frozen rather than corrected: re-scoping it would flip genuine already-published signatures to a false *mismatch*. So a v1-signed artifact keeps its original guarantee — **re-sign it to gain v2's metadata coverage**. An older OpenTine reading a v2 artifact reports `unsupported signature scheme` rather than guessing.
+
+The **integrity digest is unchanged and still excludes the whole `metadata` object.** That is not a hole in authenticity: the digest is unkeyed, so anyone who can edit the file can recompute it — it means "consistent", not "genuine". Authenticity of metadata comes from the v2 signature. On an *unsigned* artifact, a metadata edit still leaves `Run.verify_integrity` reporting success, exactly as a body edit with a recomputed digest does.
+
+Signing is always an explicit act: any plain re-save — including `tine tag`, which rewrites the artifact — **removes** the signature block rather than re-attaching a signature the current writer did not produce. `tine tag` says so when it does this. Under v2 a re-tag is also a real content change, so an out-of-band edit to `tags` now reports *mismatch*: re-run `tine sign` afterwards, and treat "no signature" as a state to check for, not merely "mismatch".
 
 - **HMAC-SHA256** (stdlib, no extra dependency): shared-secret authenticity. Keys shorter than 16 bytes are refused. Keys come from `--key-env` or `--key-file`; they are never written into the artifact.
 - **Ed25519**: public-key signatures. Verifying against the artifact's own embedded key is reported as `verified-tofu` (trust-on-first-use) — the key is self-asserted, not authenticated.
 - `tine verify` is **fail-closed**: supplying any key (`--key-env`/`--key-file`/`--pubkey`), `--trust-embedded-key`, or `--require-signature` makes an unsigned, unsupported, or mismatched artifact exit non-zero. `--trust-embedded-key` is itself a request to check authenticity, so it arms the check exactly as a supplied key does.
 
-What a valid signature **does** prove: the signed body + allowlisted metadata have not changed since signing by a holder of the key.
+What a valid signature **does** prove: the signed view for the block's own scheme — the body plus all metadata under `tine-sig/2`, the body plus the allowlist under `tine-sig/1` — has not changed since signing by a holder of the key.
 
 What it does **not** prove:
 - HMAC is symmetric — it gives intra-group authenticity, **not** non-repudiation; anyone with the shared key could have produced it.
@@ -322,7 +317,7 @@ the host process has.
 
 - OpenTine does not sandbox arbitrary third-party CLI agents by itself.
 - OpenTine does not guarantee that model output is safe to execute.
-- OpenTine does not provide key distribution, identity binding, revocation, or multi-signature (`tine-sig/1` is single-signature).
+- OpenTine does not provide key distribution, identity binding, revocation, or multi-signature (`tine-sig/2` is single-signature).
 - OpenTine does not currently provide encrypted `.tine` artifacts.
 - The reference remote is not a hosted control plane, payment system, or a
   turnkey high-availability deployment.

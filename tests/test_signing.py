@@ -1,9 +1,12 @@
-"""HMAC / Ed25519 signing coverage (the tine-sig/1 trust boundary)."""
+"""HMAC / Ed25519 signing coverage (the tine-sig/1 and tine-sig/2 trust boundary)."""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -11,6 +14,7 @@ import opentine.signing as signing
 from opentine import Run, StepKind
 from opentine._canon import _integrity_digest
 from opentine._signing_keys import MAX_SIGNING_KEY_BYTES, hmac_key_from_file
+from opentine._signing_view import signed_message
 from opentine.core import RunStatus
 from opentine.signing import SignatureError, generate_ed25519
 
@@ -22,6 +26,24 @@ def _terminal_run(run_id: str = "x", *, user_prompt: str = "ask", tags=()) -> Ru
     run.add_step(StepKind.done, {"text": "hi"}, cost=0.1)
     run.status = RunStatus.completed
     return run
+
+
+def _sign_v1(data: dict[str, Any], key: bytes) -> dict[str, Any]:
+    """A bare tine-sig/1 block, built the way 0.3.0-0.7.0 (and the golden compat
+    fixtures) built one: no key_id/signer/signed_at, HMAC over the v1 view."""
+    header = {
+        "alg": "hmac-sha256",
+        "key_id": None,
+        "scheme": signing.SCHEME_V1,
+        "signed_at": None,
+        "signer": None,
+    }
+    message = signed_message(data, header)
+    return {
+        "alg": "hmac-sha256",
+        "scheme": signing.SCHEME_V1,
+        "value": hmac.new(key, message, hashlib.sha256).hexdigest(),
+    }
 
 
 # --- HMAC -------------------------------------------------------------------
@@ -75,17 +97,86 @@ def test_allowlisted_metadata_tamper_breaks_signature(tmp_path: Path):
     assert not Run.verify_signature(p, hmac_key=KEY).ok  # but inside the signature
 
 
-def test_tags_and_budget_state_edits_do_not_break_signature(tmp_path: Path):
-    run = _terminal_run(tags=["a"])
+# --- tine-sig/2 metadata coverage -------------------------------------------
+#
+# Through 0.7.0 the signed view took a curated allowlist of metadata keys, so a
+# holder could rewrite the rest — tags most of all — and the signature still
+# verified: "draft-only" became "production-approved" under someone else's name.
+# tine-sig/2 signs every metadata key but ``integrity`` (the block's own home).
+
+
+def test_tag_edit_breaks_a_tine_sig_2_signature(tmp_path: Path):
+    p = _terminal_run(tags=["draft-only"]).save(tmp_path / "a.tine", sign_key=KEY)
+    block = json.loads(p.read_text())["metadata"]["integrity"]["signature"]
+    assert block["scheme"] == signing.SCHEME_V2  # signing defaults to v2
+    assert Run.verify_signature(p, hmac_key=KEY).ok
+
+    data = json.loads(p.read_text())
+    data["metadata"]["tags"] = ["production-approved"]  # the promoted claim
+    p.write_text(json.dumps(data), encoding="utf-8")
+
+    res = Run.verify_signature(p, hmac_key=KEY)
+    assert not res.ok and res.state == "mismatch"
+
+
+def test_unallowlisted_metadata_edit_breaks_a_tine_sig_2_signature(tmp_path: Path):
+    run = _terminal_run()
     run.metadata["budget_state"] = {"breached": False}
+    run.metadata["review"] = {"approver": "alice"}  # an application-added key
     p = run.save(tmp_path / "a.tine", sign_key=KEY)
     assert Run.verify_signature(p, hmac_key=KEY).ok
 
     data = json.loads(p.read_text())
-    data["metadata"]["tags"] = ["a", "b", "c"]  # mutable label, outside the signature
     data["metadata"]["budget_state"] = {"breached": True, "dimension": "cost"}
     p.write_text(json.dumps(data), encoding="utf-8")
-    assert Run.verify_signature(p, hmac_key=KEY).ok  # re-tagging never re-signs
+    assert Run.verify_signature(p, hmac_key=KEY).state == "mismatch"
+
+    data = json.loads(p.read_text())
+    data["metadata"]["budget_state"] = {"breached": False}  # restored
+    data["metadata"]["review"] = {"approver": "mallory"}
+    p.write_text(json.dumps(data), encoding="utf-8")
+    assert Run.verify_signature(p, hmac_key=KEY).state == "mismatch"
+
+
+def test_v1_signature_scope_is_preserved(tmp_path: Path):
+    # The other half of the fix: v1's narrower scope is frozen, not corrected.
+    # Re-scoping it would flip genuine published 0.3.0-0.7.0 signatures over
+    # tagged runs to a false 'mismatch', so a v1 block keeps verifying — tags and
+    # all — and only new (v2) signatures cover them.
+    p = _terminal_run(tags=["draft-only"]).save(tmp_path / "a.tine")
+    data = json.loads(p.read_text())
+    data["metadata"]["integrity"]["signature"] = _sign_v1(data, KEY)
+    p.write_text(json.dumps(data), encoding="utf-8")
+    assert Run.verify_signature(p, hmac_key=KEY).state == "verified"
+
+    data["metadata"]["tags"] = ["production-approved"]
+    p.write_text(json.dumps(data), encoding="utf-8")
+    assert Run.verify_signature(p, hmac_key=KEY).state == "verified"
+
+
+def test_unknown_scheme_is_still_refused(tmp_path: Path):
+    p = _terminal_run().save(tmp_path / "a.tine", sign_key=KEY)
+    data = json.loads(p.read_text())
+    data["metadata"]["integrity"]["signature"]["scheme"] = "tine-sig/3"
+    p.write_text(json.dumps(data), encoding="utf-8")
+
+    res = Run.verify_signature(p, hmac_key=KEY)
+    assert not res.ok and res.state == "error"
+    assert res.reason == "unsupported signature scheme"
+
+
+def test_default_scheme_round_trips_under_hmac(tmp_path: Path):
+    p = _terminal_run(tags=["t"]).save(tmp_path / "a.tine", sign_key=KEY, key_id="k1")
+    assert Run.verify_signature(p, hmac_key=KEY).state == "verified"
+
+
+@pytest.mark.skipif(not signing.HAS_ED25519, reason="requires the ed25519 extra")
+def test_default_scheme_round_trips_under_ed25519(tmp_path: Path):
+    seed, pub = generate_ed25519()
+    p = _terminal_run(tags=["t"]).save(tmp_path / "a.tine", sign_key=seed, sign_algorithm="ed25519")
+    block = json.loads(p.read_text())["metadata"]["integrity"]["signature"]
+    assert block["scheme"] == signing.SCHEME_V2
+    assert Run.verify_signature(p, public_key=pub).state == "verified"
 
 
 def test_key_id_is_not_redacted(tmp_path: Path):

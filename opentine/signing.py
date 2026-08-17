@@ -1,4 +1,9 @@
-"""Authenticity signatures for legacy .tine artifacts (tine-sig/1)."""
+"""Authenticity signatures for legacy .tine artifacts (tine-sig/1, tine-sig/2).
+
+New signatures are written at ``tine-sig/2``, which signs every ``metadata`` key
+except ``integrity``; ``tine-sig/1`` signed only a curated metadata allowlist and
+is still verified unchanged. See ``_signing_view`` for what each scheme covers.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +12,6 @@ import hmac
 from dataclasses import dataclass
 from typing import Any
 
-from opentine._canon import _canonical_bytes
 from opentine._signing_keys import (
     HAS_ED25519,
     Ed25519PublicKey,
@@ -27,27 +31,19 @@ from opentine._signing_keys import (
 from opentine._signing_keys import (
     load_ed25519_private as _load_ed25519_private,
 )
-
-SCHEME = "tine-sig/1"
-DOMAIN_PREFIX = b"opentine.signature.v1:"
-MIN_HMAC_KEY_BYTES = 16
-_SIGNED_METADATA_KEYS = (
-    "model_info",
-    "system_prompt",
-    "user_prompt",
-    "forked_from",
-    "fork_point",
-    "warnings",
-    "replay",
-    "context",
-    "next_harness",
-    "migration",
-    # "fork" (the 0.4.0 fork-identity record) is safe to sign: 0.3.0 never wrote
-    # metadata["fork"], so it changes no existing signature. "fork_reason" is NOT
-    # added here — 0.3.0 emits it (the MCP fork reason) but did not sign it, so
-    # signing it now would flip genuine 0.3.0 signatures to a false mismatch.
-    "fork",
+from opentine._signing_view import (
+    DOMAIN_PREFIX,
+    SCHEME_V1,
+    SCHEME_V2,
+    SCHEMES,
 )
+from opentine._signing_view import (
+    signed_message as _message,
+)
+
+#: Kept as the pre-0.7.1 spelling of the v1 constant; new signatures use SCHEME_V2.
+SCHEME = SCHEME_V1
+MIN_HMAC_KEY_BYTES = 16
 
 
 @dataclass(frozen=True)
@@ -59,27 +55,6 @@ class SignatureResult:
     signer: str | None
     signed_at: str | None
     reason: str
-
-
-def _signed_view(data: dict[str, Any], header: dict[str, Any]) -> dict[str, Any]:
-    metadata = data.get("metadata") or {}
-    if not isinstance(metadata, dict):
-        raise SignatureError("artifact metadata must be an object")
-    return {
-        "body": {key: value for key, value in data.items() if key != "metadata"},
-        "header": {
-            "alg": header.get("alg"),
-            "key_id": header.get("key_id"),
-            "scheme": header.get("scheme"),
-            "signed_at": header.get("signed_at"),
-            "signer": header.get("signer"),
-        },
-        "metadata": {key: metadata.get(key) for key in _SIGNED_METADATA_KEYS if key in metadata},
-    }
-
-
-def _message(data: dict[str, Any], header: dict[str, Any]) -> bytes:
-    return DOMAIN_PREFIX + _canonical_bytes(_signed_view(data, header))
 
 
 def _require_strong_hmac_key(key: bytes) -> None:
@@ -112,7 +87,7 @@ def sign_artifact(
     header = {
         "alg": algorithm,
         "key_id": key_id,
-        "scheme": SCHEME,
+        "scheme": SCHEME_V2,
         "signed_at": signed_at,
         "signer": signer,
     }
@@ -167,7 +142,9 @@ def verify_artifact(
     def result(ok: bool, state: str, reason: str) -> SignatureResult:
         return SignatureResult(ok, state, *details, reason)
 
-    if block.get("scheme") != SCHEME:
+    # Each block is verified under the scheme it names: a v1 signature keeps its
+    # (narrower) v1 signed view forever, and only a v2 block gets v2's coverage.
+    if block.get("scheme") not in SCHEMES:
         return result(False, "error", "unsupported signature scheme")
     if not isinstance(algorithm, str) or any(
         item is not None and not isinstance(item, str) for item in raw_optional
@@ -232,7 +209,11 @@ def verify_artifact(
 
 
 __all__ = [
+    "DOMAIN_PREFIX",
     "HAS_ED25519",
+    "SCHEMES",
+    "SCHEME_V1",
+    "SCHEME_V2",
     "SignatureError",
     "SignatureResult",
     "ed25519_private_from_file",

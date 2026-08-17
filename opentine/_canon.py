@@ -98,6 +98,15 @@ def _integrity_digest(data: dict[str, Any]) -> str:
     the digest live *inside* ``metadata.integrity`` without self-reference. Every
     other top-level key (``format_version``, ``graph``, ``manifest``, ``draft``,
     ...) is covered.
+
+    That boundary is a *known* one: metadata can be rewritten and this digest
+    still matches. It is not a hole in authenticity, because this digest never
+    provided authenticity — it is unkeyed, so any editor can recompute it, and it
+    means "consistent", not "genuine". Authenticity of metadata comes from the
+    ``tine-sig/2`` signature (``opentine.signing``), which signs every metadata
+    key but ``integrity``. Narrowing the exclusion here would change the stored
+    digest of every artifact ever written and break the backwards-compat gate, so
+    it is deferred to a future ``FORMAT_VERSION`` bump.
     """
     digest_payload = {k: v for k, v in data.items() if k != "metadata"}
     return hashlib.sha256(_canonical_bytes(digest_payload)).hexdigest()
