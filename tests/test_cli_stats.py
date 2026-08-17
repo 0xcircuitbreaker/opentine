@@ -349,9 +349,13 @@ def test_group_rows_histogram_spans_format_versions():
 
 
 def test_stats_over_a_mixed_release_runs_directory(runs_dir: Path, capsys):
-    """Artifacts written by three published releases aggregate as one population."""
+    """Artifacts written by every published release aggregate as one population."""
     releases = sorted(path for path in COMPAT.iterdir() if path.is_dir())
-    assert [path.name for path in releases] == ["v0_3_0", "v0_4_0", "v0_5_0"]
+    # Every release from 0.3.0 on ships a golden set and the list grows each
+    # release, so assert the floor, not a frozen enumeration that a new fixture
+    # (v0_6_0, v0_7_0, ...) would break.
+    assert {path.name for path in releases} >= {"v0_3_0", "v0_4_0", "v0_5_0"}
+    assert len(releases) >= 3
     copied = 0
     for release in releases:
         for artifact in sorted(release.glob("*.tine")):
