@@ -118,6 +118,13 @@ def _validate_step_record(record: dict[str, Any], step_id: str) -> None:
             raise ValueError(f"artifact step {step_id!r} parent_id must be a string")
     elif not isinstance(parents, list) or any(not isinstance(item, str) for item in parents):
         raise ValueError(f"artifact step {step_id!r} parent_ids must be a list of strings")
+    # Optional, and absent in every artifact written before 0.7.1 — but a present
+    # one is read back into the fork slice, so it gets the same shape check.
+    causal = record.get("causal_ids")
+    if causal is not None and (
+        not isinstance(causal, list) or any(not isinstance(item, str) for item in causal)
+    ):
+        raise ValueError(f"artifact step {step_id!r} causal_ids must be a list of strings")
     for field in ("inputs", "outputs", "tool_info", "error", "usage", "billing"):
         value = record.get(field)
         if value is not None and not isinstance(value, dict):

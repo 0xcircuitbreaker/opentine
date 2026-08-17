@@ -73,7 +73,9 @@ def _put_run(
         input_blob = json_blob(repo, step.inputs)
         output_blob = json_blob(repo, step.outputs)
         raw_kind = step.v3_kind or step.kind.value
-        causal = causal_map.get(step.id) or ()
+        # The step's own edges are the fallback: a repository run exported to
+        # .tine and reloaded carries them there, with no _v3_causal_ids map.
+        causal = causal_map.get(step.id) or step.causal_ids
         payload = {
             "billing": _redact(step.billing),
             "causal_ids": [event_map[item] for item in causal],
@@ -201,6 +203,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 cost=compatibility_float(event.get("cost") or 0, "event cost"),
                 usage=as_mapping(event.get("usage")),
                 billing=as_mapping(event.get("billing")),
+                causal_ids=list(causal_ids[event_id]),
                 v3_kind=raw_kind,
             )
         )

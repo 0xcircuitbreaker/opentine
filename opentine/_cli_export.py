@@ -232,12 +232,16 @@ def cmd_export(args: argparse.Namespace) -> None:
     try:
         run = Run.load(path)
         document = to_otel_genai_document(run, service_name=args.service_name)
+        # The write and the push are inside the same guard as the conversion:
+        # ``serialize`` refuses a document it cannot render faithfully (nesting
+        # past the format bound, or a cycle) rather than writing a truncation
+        # marker, and that refusal has to exit 1 with a message like any other.
+        if endpoint is None:
+            _write(document, output)
+        else:
+            _push(document, endpoint, args.allow_insecure)
     # KernelError subclasses ValueError, so a refusing artifact reads as a
     # refusal here rather than as an interpreter traceback.
     except (OSError, RecursionError, TypeError, ValueError) as exc:
         console.print(f"[red]Export failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc
-    if endpoint is None:
-        _write(document, output)
-        return
-    _push(document, endpoint, args.allow_insecure)

@@ -74,6 +74,10 @@ class Step:
     cost: float = 0.0
     usage: dict[str, int | float] = field(default_factory=dict)
     billing: dict[str, Any] = field(default_factory=dict)
+    #: Non-parent ancestors this step causally required (v3 ``causal_ids``). Not
+    #: part of ``step_id``: it names what a fork slice must keep, not what the
+    #: step *is*, and hashing it would change every legacy id.
+    causal_ids: list[str] = field(default_factory=list)
     v3_kind: str | None = None
 
     def __post_init__(self) -> None:

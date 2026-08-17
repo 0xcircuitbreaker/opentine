@@ -4,9 +4,9 @@
 1.27-era ``gen_ai.prompt`` / ``gen_ai.completion`` attributes. Exporters in the
 wild have moved on, and a span carrying content in any newer shape used to
 import with empty ``inputs``/``outputs``. This module holds the readers for
-those shapes. :func:`span_content` applies them strictly as a *fallback*: a span
-that still carries the classic attributes never reaches them, so it imports
-byte-identically to before this module existed.
+those shapes. :func:`opentine.trace._otel_content.span_content` applies them
+strictly as a *fallback*: a span that still carries the classic attributes never
+reaches them, so it imports byte-identically to before this module existed.
 
 Shapes read, in the order they are tried (per side, so a span carrying its
 prompt as events and its completion as attributes still gets both):
@@ -37,7 +37,6 @@ import json
 from typing import Any
 
 from opentine.trace import _genai_semconv as semconv
-from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._otel_values import any_value
 from opentine.trace._otel_values import attributes as _decode_attributes
 
@@ -47,28 +46,6 @@ from opentine.trace._otel_values import attributes as _decode_attributes
 MAX_MESSAGES = 10_000
 
 Messages = list[dict[str, Any]]
-
-
-def span_content(
-    span: dict[str, Any], attributes: dict[str, Any]
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Return the ``(inputs, outputs)`` an OTLP GenAI span carries: classic
-    ``gen_ai.prompt``/``gen_ai.completion`` content wins, and the 1.36 message
-    attributes are *consumed* so an exported span re-imports to its event — but a
-    popped value that yields no content (e.g. a malformed string) is restored to
-    ``attributes``, never silently dropped.
-    """
-    structured = {key: attributes.pop(key, None) for key, _ in semconv.MESSAGE_ATTRIBUTES}
-    inputs = _mapping(span.get("inputs") or attributes.get(semconv.PROMPT))
-    outputs = _mapping(span.get("outputs") or attributes.get(semconv.COMPLETION))
-    if not (inputs and outputs):
-        modern_inputs, modern_outputs = message_content(span, {**attributes, **structured})
-        inputs, outputs = inputs or modern_inputs, outputs or modern_outputs
-    filled = {"user": bool(inputs), "assistant": bool(outputs)}
-    for key, side in semconv.MESSAGE_ATTRIBUTES:
-        if structured.get(key) is not None and not filled[side]:
-            attributes[key] = structured[key]
-    return inputs, outputs
 
 
 def message_content(
@@ -145,6 +122,15 @@ def _choice(source: dict[str, Any]) -> dict[str, Any] | None:
     if message is not None and reason is not None:
         message.setdefault("finish_reason", reason)
     return message
+
+
+def structured_messages(values: dict[str, Any]) -> tuple[Messages, Messages]:
+    """Read *only* the 1.36 message attributes, for the precedence policy.
+
+    :func:`message_content` blends three shapes; deciding what happens to a
+    popped ``gen_ai.*.messages`` value needs that one shape's reading alone.
+    """
+    return _from_structured({}, values)
 
 
 def _from_structured(_span: dict[str, Any], values: dict[str, Any]) -> tuple[Messages, Messages]:

@@ -308,8 +308,10 @@ def test_modern_content_survives_a_re_export_round_trip():
 
 def test_a_span_carrying_both_generations_imports_its_content_once():
     """An OpenTine export carries 1.27 and 1.36 content side by side. The
-    classic keys still win, and the message attributes are consumed rather than
-    left behind as a second copy of what is now inputs/outputs."""
+    classic keys still win, and a message attribute is consumed rather than left
+    behind as a second copy of what is now inputs/outputs — but only when it
+    *is* that copy. Here the two shapes disagree on the user side ("hello"
+    against "hi"), so that one is kept and flagged instead of dropped."""
     span = {
         "traceId": "trace",
         "spanId": "both",
@@ -330,7 +332,14 @@ def test_a_span_carrying_both_generations_imports_its_content_once():
     event = otel_genai_events([span])[0]
     assert event.inputs == {"value": "hello"}, "the classic attribute still wins"
     assert event.outputs == {"messages": [{"role": "assistant", "content": "yo"}]}
-    assert semconv.INPUT_MESSAGES not in event.attributes
+    # The user side lost outright to the classic scalar, so its conversation was
+    # neither used nor put back; round 13 found it vanishing from inputs,
+    # outputs and attributes at once. It stays, with the disagreement noted.
+    assert event.attributes[semconv.INPUT_MESSAGES] == [{"role": "user", "content": "hi"}]
+    assert event.attributes["opentine.import_warnings"] == [
+        f"span carries both a classic scalar and {semconv.INPUT_MESSAGES}"
+    ]
+    # The assistant side *became* the outputs, so its attribute is consumed.
     assert semconv.OUTPUT_MESSAGES not in event.attributes
     assert event.attributes[semconv.PROMPT] == "hello", "the 1.27 attribute is untouched"
 

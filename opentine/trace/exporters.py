@@ -39,7 +39,7 @@ import json
 from collections.abc import Iterable
 from typing import Any, Protocol, runtime_checkable
 
-from opentine._jsonsafe import json_safe as _safe
+from opentine._jsonsafe import json_exact as _safe
 from opentine._version import __version__
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace._import_helpers import event_kind

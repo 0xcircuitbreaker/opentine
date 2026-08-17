@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from opentine._jsonsafe import json_exact as _exact
 from opentine._jsonsafe import json_safe as _safe
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace._import_helpers import (
@@ -31,7 +32,7 @@ from opentine.trace._import_helpers import (
 from opentine.trace._import_helpers import (
     timestamp as _timestamp,
 )
-from opentine.trace._otel_logs import span_content as _span_content
+from opentine.trace._otel_content import span_content as _span_content
 from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
 
@@ -73,11 +74,7 @@ def native_events(run) -> list[TraceEvent]:
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
         total = _consume(total, (step.inputs, step.outputs, step.usage, step.billing))
-        kind = "model"
-        if step.kind.value == "tool":
-            kind = "tool"
-        elif step.kind.value == "error":
-            kind = "error"
+        kind = step.kind.value if step.kind.value in ("tool", "error") else "model"
         events.append(
             TraceEvent(
                 kind=kind,
@@ -92,10 +89,13 @@ def native_events(run) -> list[TraceEvent]:
                 model=step.model_info,
                 cost=step.cost,
                 duration=step.duration,
-                inputs=_safe(step.inputs),
-                outputs=_safe(step.outputs),
-                usage=_safe(step.usage),
-                billing=_safe(step.billing),
+                # _exact, not _safe: this is the *export* adapter (only
+                # to_otel_genai consumes it), and a run that loaded fine must not
+                # leave as a document holding "[MAX_DEPTH]" where content was.
+                inputs=_exact(step.inputs),
+                outputs=_exact(step.outputs),
+                usage=_exact(step.usage),
+                billing=_exact(step.billing),
                 attributes={"index": index, "legacy_kind": step.kind.value},
             )
         )
