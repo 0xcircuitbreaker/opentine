@@ -15,13 +15,15 @@ repository -> ``load_run``; (c) run -> OTel GenAI document -> importer.
 The run is built to hit every asymmetry a carrier could have: all five
 ``StepKind`` values, a diamond whose causal ancestor is unreachable through
 parents, a fork whose retained slice depends on that causal edge, tags,
-metadata, usage, billing, and deeply nested inputs and outputs.  Each test names
-the asymmetry it guards; a fix reverted upstream fails here, not in an archive.
+metadata, usage, a priced cost with its billing, and deeply nested inputs and
+outputs.  Each test names the asymmetry it guards; a fix reverted upstream fails
+here, not in an archive.
 """
 
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -30,6 +32,7 @@ from opentine._cli_json import serialize
 from opentine._graph_analysis import retained_closure
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace import otel_genai_events, to_otel_genai, to_otel_genai_document
+from opentine.trace.recorder import Recorder
 
 #: Positions in the representative run, which every carrier must preserve in
 #: order.  ``DIAMOND_TIP`` is the step whose ``causal_ids`` name ``CAUSAL_EDGE``,
@@ -129,6 +132,27 @@ def _shape(run) -> list[dict]:
     ]
 
 
+def _money(run) -> list[tuple[str, str, str]]:
+    """Every priced step as ``(payload, cost, billing)``, sorted.
+
+    Keyed by content rather than by position or id: the OTel leg rebuilds the run
+    in a *fresh* repository, which re-addresses every step and may order siblings
+    differently, so only the payload identifies a step across that carrier.
+    Amounts compare as ``Decimal`` because money crosses OTel as an exact decimal
+    *string* -- the conventions have no cost attribute to type it -- and
+    ``"0.0042" != 0.0042`` while the amount is the same.
+    """
+    return sorted(
+        (
+            json.dumps(step.inputs, sort_keys=True, default=str),
+            str(Decimal(str(step.cost or 0))),
+            json.dumps(step.billing, sort_keys=True, default=str),
+        )
+        for step in run.steps
+        if Decimal(str(step.cost or 0)) or step.billing
+    )
+
+
 @pytest.fixture
 def source(tmp_path) -> Run:
     """The representative run as a repository read it back: the writer side."""
@@ -224,6 +248,44 @@ def test_the_otel_round_trip_returns_every_input_and_output_verbatim(source):
         assert event.outputs == step.outputs, step.kind
         assert event.span_id == step.id
     assert "[MAX_DEPTH]" not in str(events) and "[CIRCULAR]" not in str(events)
+
+
+def test_the_otel_round_trip_returns_every_cost_and_billing_amount(source):
+    """Guards Gap B: export wrote the money down and import walked straight past.
+
+    ``opentine.cost_usd`` and ``opentine.billing`` are the two attributes export
+    has always carried the money in -- the GenAI conventions name neither -- and
+    the importer's ``TraceEvent`` had no ``cost=`` or ``billing=`` argument, so
+    every span came back unpriced and ``_record_event`` then defaulted the cost
+    to ``0``.  Reverted, a natively priced run exported to OTel reports $0.00
+    with its rate card gone, at exit 0: metering, lost on one hop.
+    """
+    events = otel_genai_events(json.loads(serialize(to_otel_genai_document(source))))
+    by_span = {event.span_id: event for event in events}
+    for step in source.steps:
+        event = by_span[step.id]
+        assert Decimal(str(event.cost or 0)) == Decimal(str(step.cost or 0)), step.kind
+        assert event.billing == step.billing, step.kind
+    charged = [event for event in events if Decimal(str(event.cost or 0))]
+    assert charged, "a parity gate run over an unpriced run would prove nothing"
+    assert [event.billing.get("rate_card") for event in charged] == ["r3"]
+
+
+def test_an_otel_document_rebuilds_a_priced_run_into_a_repository_still_priced(source, tmp_path):
+    """The same money over the carrier a user runs: ``tine export | tine import``.
+
+    The import half is where an unpriced event becomes a durable ``cost: 0`` --
+    ``put_trace_event`` defaults it while writing the run -- so the loss is in
+    the store the moment the document lands, not just in an in-memory event.
+    Rebuilt through the same ``Recorder`` the import command drives.
+    """
+    events = otel_genai_events(json.loads(serialize(to_otel_genai_document(source))))
+    recorder = Recorder.start(Repo.init(tmp_path / "priced"), ref="heads/main", capture=False)
+    recorder.import_events(events)
+    rebuilt = recorder.repo.load_run(recorder.finalize())
+
+    assert _money(source), "the representative run is priced"
+    assert _money(rebuilt) == _money(source)
 
 
 def test_a_rewritten_classic_scalar_does_not_delete_the_structured_conversation(source):

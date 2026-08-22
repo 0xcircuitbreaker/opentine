@@ -22,9 +22,9 @@ Known lossy edges, all outside the GenAI conventions:
   beyond float64's 53-bit mantissa (roughly microseconds at a 2020s epoch) is
   already gone by the time an event exists, so re-exported nanos may differ in
   the last digits from the ones originally imported.
-* ``cost`` and ``billing`` have no GenAI convention. They are emitted under
-  ``opentine.*`` so no data is dropped, but the importer does not read them
-  back into :class:`~opentine.trace.schema.TraceEvent` fields.
+* ``cost`` and ``billing`` have no GenAI convention, so they ride under
+  ``opentine.*``; the importer reads both back, a cost as the exact decimal
+  string written here rather than as the float it may have started as.
 * Usage dimensions outside the token counters GenAI names (an ``eval_seconds``,
   say) have no attribute to ride in, so they do not survive the round trip.
 * Attributes whose value is ``None`` are dropped; OTLP has no null ``AnyValue``.
@@ -54,11 +54,11 @@ MAX_EXPORTED_MESSAGES = 10_000
 SCOPE_NAME = "opentine"
 SCHEMA_URL = semconv.SCHEMA_URL
 KIND_ATTRIBUTE = semconv.KIND_ATTRIBUTE
-#: Cost and billing stay OpenTine-namespaced on purpose: the GenAI conventions
-#: have no cost attribute, and inventing a ``gen_ai.*`` one would collide with
-#: whatever the working group standardizes. Named here, so one key finds them.
-COST_ATTRIBUTE = "opentine.cost_usd"
-BILLING_ATTRIBUTE = "opentine.billing"
+#: Cost and billing stay OpenTine-namespaced on purpose (see the semconv module,
+#: which spells both keys for the reader half too — a key only one direction
+#: knows is how the money went missing across a round trip in the first place).
+COST_ATTRIBUTE = semconv.COST_ATTRIBUTE
+BILLING_ATTRIBUTE = semconv.BILLING_ATTRIBUTE
 _CLIENT_SPAN = "SPAN_KIND_CLIENT"
 _INTERNAL_SPAN = "SPAN_KIND_INTERNAL"
 #: Event kind -> OTLP span kind: a model step leaves the process for a provider

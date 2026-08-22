@@ -119,6 +119,8 @@ async def test_xai_stream_emits_only_final_cumulative_usage():
 
 
 def test_openai_gpt56_requires_reported_cache_write_dimension_and_tier():
+    # Amounts track the current bundled gpt-5.6-sol card ($4 input / $5 cache write,
+    # doubled here because 1M input tokens crosses the 272k long-context threshold).
     transport = ResponsesTransport(model="gpt-5.6", service_tier="priority")
     base = SimpleNamespace(input_tokens=1_000_000, output_tokens=0)
     missing = transport.meter(SimpleNamespace(model="gpt-5.6", usage=base))
@@ -128,8 +130,8 @@ def test_openai_gpt56_requires_reported_cache_write_dimension_and_tier():
     assert "cache_write_5m" in missing["billing"]["calculation"]["missing_usage_dimensions"]
     calculation = missing["billing"]["calculation"]
     assert calculation["components_usd"] == {}
-    assert calculation["candidate_components_usd"] == {"input": "20"}
-    assert calculation["candidate_known_subtotal_usd"] == "20"
+    assert calculation["candidate_components_usd"] == {"input": "16"}
+    assert calculation["candidate_known_subtotal_usd"] == "16"
     chat_missing = ChatCompletions("gpt-5.6", provider="openai")._meter(
         _usage(
             prompt_tokens=1_000_000,
@@ -154,7 +156,7 @@ def test_openai_gpt56_requires_reported_cache_write_dimension_and_tier():
         )
     )
     assert observed["billing"]["status"] == "complete"
-    assert Decimal(observed["billing"]["amount_usd"]) == Decimal("10")
+    assert Decimal(observed["billing"]["amount_usd"]) == Decimal("8")
     written = ResponsesTransport(model="gpt-5.6").meter(
         SimpleNamespace(
             model="gpt-5.6",
@@ -165,7 +167,7 @@ def test_openai_gpt56_requires_reported_cache_write_dimension_and_tier():
             ),
         )
     )
-    assert Decimal(written["billing"]["amount_usd"]) == Decimal("10.5")
+    assert Decimal(written["billing"]["amount_usd"]) == Decimal("8.4")
 
 
 def test_catalog_aliases_preserve_explicit_override_scope():

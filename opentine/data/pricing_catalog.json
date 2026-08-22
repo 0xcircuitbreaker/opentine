@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/1",
-  "generated_at": "2026-07-20T00:00:00Z",
-  "verified_at": "2026-07-20",
+  "generated_at": "2026-08-17T00:00:00Z",
+  "verified_at": "2026-08-17",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -9,11 +9,26 @@
       "model": "gpt-5.6-sol",
       "aliases": ["gpt-5.6"],
       "effective_from": "2026-07-09",
+      "effective_until": "2026-08-20",
       "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "6.25", "output": "30", "reasoning": "30"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models/gpt-5.6-sol"],
-      "verified_at": "2026-07-16"
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "Priority processing was renamed Fast mode on 2026-07-30; the API accepts both service_tier values at the same 2x rate."}
+    },
+    {
+      "id": "openai:gpt-5.6-sol:2026-08-21",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "aliases": ["gpt-5.6"],
+      "effective_from": "2026-08-21",
+      "rates": {"input": "4", "cache_read": "0.40", "cache_write_5m": "5", "cache_write_1h": "5", "output": "20", "reasoning": "20"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17",
+      "metadata": {"promotional": true, "guaranteed_through": "2026-11-21"}
     },
     {
       "id": "openai:gpt-5.6-terra:2026-07-09",
@@ -21,11 +36,24 @@
       "model": "gpt-5.6-terra",
       "aliases": [],
       "effective_from": "2026-07-09",
+      "effective_until": "2026-07-29",
       "rates": {"input": "2.50", "cache_read": "0.25", "cache_write_5m": "3.125", "cache_write_1h": "3.125", "output": "15", "reasoning": "15"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "openai:gpt-5.6-terra:2026-07-30",
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "aliases": [],
+      "effective_from": "2026-07-30",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "12", "reasoning": "12"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17"
     },
     {
       "id": "openai:gpt-5.6-luna:2026-07-09",
@@ -33,11 +61,37 @@
       "model": "gpt-5.6-luna",
       "aliases": [],
       "effective_from": "2026-07-09",
+      "effective_until": "2026-07-29",
       "rates": {"input": "1", "cache_read": "0.10", "cache_write_5m": "1.25", "cache_write_1h": "1.25", "output": "6", "reasoning": "6"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
       "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
-      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "openai:gpt-5.6-luna:2026-07-30",
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "aliases": [],
+      "effective_from": "2026-07-30",
+      "rates": {"input": "0.20", "cache_read": "0.02", "cache_write_5m": "0.25", "cache_write_1h": "0.25", "output": "1.20", "reasoning": "1.20"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-luna", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "openai:gpt-5.6-cyber:2026-08-17",
+      "provider": "openai",
+      "model": "gpt-5.6-cyber",
+      "aliases": [],
+      "effective_from": "2026-08-17",
+      "rates": {"input": "12.50", "cache_read": "1.25", "cache_write_5m": "15.625", "cache_write_1h": "15.625", "output": "75", "reasoning": "75"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-cyber"],
+      "verified_at": "2026-08-17",
+      "metadata": {"access": "approval-gated", "note": "OpenAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price."}
     },
     {
       "id": "openai:gpt-5:2025-08-07",
@@ -175,28 +229,38 @@
       "verified_at": "2026-07-16"
     },
     {
+      "id": "anthropic:claude-opus-5:2026-07-24",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "aliases": [],
+      "effective_from": "2026-07-24",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "fast": "2", "fast_us": "2.2", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-opus-5", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "anthropic:claude-haiku-4.5:2025-10-15",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "aliases": ["claude-haiku-4-5"],
+      "effective_from": "2025-10-15",
+      "rates": {"input": "1", "cache_read": "0.10", "cache_write_5m": "1.25", "cache_write_1h": "2", "output": "5", "reasoning": "5"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-haiku-4-5", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-08-17"
+    },
+    {
       "id": "anthropic:claude-sonnet-5:intro",
       "provider": "anthropic",
       "model": "claude-sonnet-5",
       "aliases": [],
       "effective_from": "2026-06-30",
-      "effective_until": "2026-08-31",
       "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
       "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
       "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-sonnet-5"],
-      "verified_at": "2026-07-16",
-      "metadata": {"introductory": true}
-    },
-    {
-      "id": "anthropic:claude-sonnet-5:standard",
-      "provider": "anthropic",
-      "model": "claude-sonnet-5",
-      "aliases": [],
-      "effective_from": "2026-09-01",
-      "rates": {"input": "3", "cache_read": "0.30", "cache_write_5m": "3.75", "cache_write_1h": "6", "output": "15", "reasoning": "15"},
-      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
-      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-sonnet-5"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-08-17",
+      "metadata": {"introductory": true, "now_standard": true, "note": "Anthropic made the $2/$10 launch price permanent; the scheduled 2026-09-01 rise to $3/$15 was cancelled, so the previously catalogued standard card was removed before it could take effect."}
     },
     {
       "id": "anthropic:claude-sonnet-4.5:2025-09-29",
@@ -264,9 +328,11 @@
       "provider": "deepseek",
       "model": "deepseek-v4-pro",
       "effective_from": "2026-07-14",
+      "effective_until": "2026-08-15",
       "rates": {"input": "0.435", "cache_read": "0.003625", "output": "0.87", "reasoning": "0.87"},
-      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-17",
+      "metadata": {"closed_reason": "schema-cannot-represent", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16; opentine-pricing/1 has no time-of-day dimension, so this card is closed at 2026-08-15 and later runs report cost=unknown instead of a wrong flat price. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
     },
     {
       "id": "deepseek:deepseek-v4-flash:2026-07-14",
@@ -274,9 +340,11 @@
       "model": "deepseek-v4-flash",
       "aliases": ["deepseek-chat", "deepseek-reasoner"],
       "effective_from": "2026-07-14",
+      "effective_until": "2026-08-15",
       "rates": {"input": "0.14", "cache_read": "0.0028", "output": "0.28", "reasoning": "0.28"},
-      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-17",
+      "metadata": {"closed_reason": "schema-cannot-represent", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16; opentine-pricing/1 has no time-of-day dimension, so this card is closed at 2026-08-15 and later runs report cost=unknown instead of a wrong flat price. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
     },
     {
       "id": "deepseek:deepseek-chat:legacy-2026-07",
@@ -289,6 +357,63 @@
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260424/"],
       "verified_at": "2026-07-20",
       "metadata": {"superseded_by": "deepseek-v4-flash"}
+    },
+    {
+      "id": "google:gemini-3.7-flash:2026-08-13",
+      "provider": "google",
+      "model": "gemini-3.7-flash",
+      "effective_from": "2026-08-13",
+      "effective_until": "2026-12-31",
+      "rates": {"input": "0.75", "cache_read": "0.075", "output": "3.75", "reasoning": "3.75"},
+      "service_rates": {
+        "batch": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "flex": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "priority": {"input": "1.35", "cache_read": "0.135", "output": "6.75", "reasoning": "6.75"}
+      },
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/latest-model", "https://ai.google.dev/gemini-api/docs/changelog"],
+      "verified_at": "2026-08-17",
+      "metadata": {"introductory": true, "note": "Introductory pricing expires 2026-12-31; Google publishes $1.50/$7.50 from 2027-01-01 but that card is deliberately not written ahead of time, so runs after the window report cost=unknown until the catalog is re-verified."}
+    },
+    {
+      "id": "google:gemini-3.6-flash:2026-07-21",
+      "provider": "google",
+      "model": "gemini-3.6-flash",
+      "effective_from": "2026-07-21",
+      "effective_until": "2026-08-12",
+      "rates": {"input": "1.50", "cache_read": "0.15", "output": "7.50", "reasoning": "7.50"},
+      "source_urls": ["https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber/", "https://ai.google.dev/gemini-api/docs/pricing"],
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "Launch-window standard pricing. Google published only the standard input/output/cache rates for this window, so no batch/flex/priority tiers are carded and tiered runs report cost=unknown."}
+    },
+    {
+      "id": "google:gemini-3.6-flash:2026-08-13",
+      "provider": "google",
+      "model": "gemini-3.6-flash",
+      "effective_from": "2026-08-13",
+      "effective_until": "2026-12-31",
+      "rates": {"input": "0.75", "cache_read": "0.075", "output": "3.75", "reasoning": "3.75"},
+      "service_rates": {
+        "batch": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "flex": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "priority": {"input": "1.35", "cache_read": "0.135", "output": "6.75", "reasoning": "6.75"}
+      },
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/latest-model"],
+      "verified_at": "2026-08-17",
+      "metadata": {"introductory": true, "note": "Google applied the Gemini 3.7 Flash introductory rate to 3.6 Flash when 3.7 went GA on 2026-08-13; it expires 2026-12-31 and no successor card is written ahead of time."}
+    },
+    {
+      "id": "google:gemini-3.5-flash-lite:2026-07-21",
+      "provider": "google",
+      "model": "gemini-3.5-flash-lite",
+      "effective_from": "2026-07-21",
+      "rates": {"input": "0.30", "input_audio": "0.30", "cache_read": "0.03", "cache_read_audio": "0.03", "output": "2.50", "reasoning": "2.50"},
+      "service_rates": {
+        "batch": {"input": "0.15", "input_audio": "0.15", "cache_read": "0.02", "cache_read_audio": "0.02", "output": "1.25", "reasoning": "1.25"},
+        "flex": {"input": "0.15", "input_audio": "0.15", "cache_read": "0.02", "cache_read_audio": "0.02", "output": "1.25", "reasoning": "1.25"},
+        "priority": {"input": "0.54", "input_audio": "0.54", "cache_read": "0.05", "cache_read_audio": "0.05", "output": "4.50", "reasoning": "4.50"}
+      },
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber/"],
+      "verified_at": "2026-08-17"
     },
     {
       "id": "google:gemini-3.5-flash:2026-07-15",
@@ -374,6 +499,19 @@
       "verified_at": "2026-08-16"
     },
     {
+      "id": "xai:grok-build-0.1:2026-08-17",
+      "provider": "xai",
+      "model": "grok-build-0.1",
+      "aliases": [],
+      "effective_from": "2026-08-17",
+      "rates": {"input": "1", "cache_read": "0.20", "output": "2", "reasoning": "2"},
+      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "service_modifiers": {"priority": "2"},
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-build-0.1"],
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "xAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. The xAI batch discount does not cover grok-build-0.1."}
+    },
+    {
       "id": "xai:grok-4.3:2026-05-15",
       "provider": "xai",
       "model": "grok-4.3",
@@ -454,6 +592,19 @@
       "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
       "verified_at": "2026-07-16",
       "metadata": {"free_api_tier": true}
+    },
+    {
+      "id": "qwen:qwen3.8-max:international-2026-08-03",
+      "provider": "qwen",
+      "model": "qwen3.8-max",
+      "effective_from": "2026-08-03",
+      "rates": {"input": "2", "cache_read": "0.25", "cache_write_5m": "2.50", "output": "6", "reasoning": "6"},
+      "service_rates": {
+        "explicit_cache": {"cache_read": "0.17"}
+      },
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-max", "https://www.alibabacloud.com/en/press-room/alibaba-unveils-qwen3-8-max"],
+      "verified_at": "2026-08-17",
+      "metadata": {"region": "international"}
     },
     {
       "id": "qwen:qwen3.7-max:international-promo-2026-05",
@@ -629,6 +780,39 @@
       "verified_at": "2026-07-20"
     },
     {
+      "id": "mistral:ministral-8b-2512:2025-12-02",
+      "provider": "mistral",
+      "model": "ministral-8b-2512",
+      "aliases": ["ministral-8b-latest"],
+      "effective_from": "2025-12-02",
+      "rates": {"input": "0.15", "cache_read": "0.015", "output": "0.15", "reasoning": "0.15"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/ministral-3-8b-25-12", "https://docs.mistral.ai/inference/pricing"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "mistral:ministral-3b-2512:2025-12-02",
+      "provider": "mistral",
+      "model": "ministral-3b-2512",
+      "aliases": ["ministral-3b-latest"],
+      "effective_from": "2025-12-02",
+      "rates": {"input": "0.10", "cache_read": "0.01", "output": "0.10", "reasoning": "0.10"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/ministral-3-3b-25-12", "https://docs.mistral.ai/inference/pricing"],
+      "verified_at": "2026-08-17"
+    },
+    {
+      "id": "mistral:codestral-2508:2025-07-30",
+      "provider": "mistral",
+      "model": "codestral-2508",
+      "aliases": ["codestral", "codestral-latest"],
+      "effective_from": "2025-07-30",
+      "rates": {"input": "0.30", "cache_read": "0.03", "output": "0.90", "reasoning": "0.90"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://docs.mistral.ai/models/model-cards/codestral-25-08", "https://docs.mistral.ai/inference/pricing"],
+      "verified_at": "2026-08-17"
+    },
+    {
       "id": "mistral:ministral-14b-2512:2025-12-02",
       "provider": "mistral",
       "model": "ministral-14b-2512",
@@ -661,10 +845,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:a1781a621a06345546a70de7d5c34c95c68a3ce0709b7f61224a7bcc91abc558",
+  "catalog_id": "sha256:91b54f07381a4af51edf235ddd330de977b51a83dc90d8b955f584106f7ddfa5",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "1D5TPilcTzEbRCYk5C7gxfhonyh0sATcJb0cGwTDoJikx6Td7+eXmlsp7D2VM05EfpvZmS6m1/SpiHRk3d4hDw=="
+    "value": "qF+MCgfB4NLnH8yDP64qs4q7pQ7g/Y0tQGG4iVZuBI77eSJGd8N8OLtLae6/bKIW4X33qepWPuE5wCVla3uLAA=="
   }
 }

@@ -146,3 +146,12 @@ FLATTENED_OUTPUTS: tuple[tuple[str, str], ...] = (
 #: and drops it, so a natively recorded run round-trips through OTel with its
 #: tool/think/error kinds intact instead of collapsing every step to "model".
 KIND_ATTRIBUTE = "opentine.trace.kind"
+
+#: The other two OpenTine-namespaced keys, for the money a run cost: the GenAI
+#: conventions have no cost attribute and no billing shape, and inventing a
+#: ``gen_ai.*`` one would collide with whatever the working group standardizes.
+#: Spelled here with every other shared key, because both halves must agree —
+#: export wrote them from the start while import ignored them, and a priced run
+#: exported to OTel and read back reported $0.00 with its billing gone.
+COST_ATTRIBUTE = "opentine.cost_usd"
+BILLING_ATTRIBUTE = "opentine.billing"

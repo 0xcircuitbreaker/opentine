@@ -62,7 +62,8 @@ def test_reported_model_controls_pricing_and_invalid_identity_is_ignored():
     usage = Usage(input=1_000, output=1_000)
     terra = metered_response("openai", "gpt-5.6", usage, reported_model="gpt-5.6-terra")
     assert terra["billing"]["rate_card_id"].startswith("openai:gpt-5.6-terra")
-    assert Decimal(terra["billing"]["amount_usd"]) == Decimal("0.0175")
+    # Current bundled gpt-5.6-terra card: $2 input / $12 output per MTok.
+    assert Decimal(terra["billing"]["amount_usd"]) == Decimal("0.014")
     invalid = metered_response("openai", "gpt-5.6", usage, reported_model=["bad"])
     assert invalid["billing"]["status"] == "unknown"
     assert invalid["billing"]["known_subtotal_usd"] == "0"

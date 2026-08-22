@@ -20,18 +20,11 @@ from opentine.trace._import_helpers import (
     otel_spans,
     otel_usage,
 )
-from opentine.trace._import_helpers import (
-    first as _first,
-)
-from opentine.trace._import_helpers import (
-    integer as _int,
-)
-from opentine.trace._import_helpers import (
-    mapping as _mapping,
-)
-from opentine.trace._import_helpers import (
-    timestamp as _timestamp,
-)
+from opentine.trace._import_helpers import first as _first
+from opentine.trace._import_helpers import integer as _int
+from opentine.trace._import_helpers import mapping as _mapping
+from opentine.trace._import_helpers import timestamp as _timestamp
+from opentine.trace._otel_accounting import otel_accounting
 from opentine.trace._otel_content import span_content as _span_content
 from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
@@ -169,6 +162,9 @@ def otel_genai_events(
         # name cannot carry it; read it back (and drop it) so export->import
         # restores tool/think/error instead of collapsing them to "model".
         kind = str(attributes.pop(semconv.KIND_ATTRIBUTE, "")) or event_kind(operation)
+        # Money rides in OpenTine attributes for the same reason; read it back
+        # too, or a priced run re-imports at $0.00 with its billing dropped.
+        cost, billing = otel_accounting(attributes)
         nanos = _int(_first(span, "startTimeUnixNano", "start_time_unix_nano", default=0))
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
@@ -183,10 +179,12 @@ def otel_genai_events(
                 causal_span_ids=link_span_ids(span),
                 actor=operation,
                 model=str(model or ""),
+                cost=cost,
                 duration=max(0, _timestamp(end_nanos - nanos)) / 1_000_000_000,
                 inputs=_safe(inputs),
                 outputs=_safe(outputs),
                 usage=usage,
+                billing=_safe(billing),
                 attributes=_safe(attributes),
             )
         )
