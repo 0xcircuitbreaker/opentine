@@ -439,7 +439,8 @@ once in `opentine.trace._genai_semconv` so import and export cannot drift.
 Import and export are inverses: re-importing exported spans yields the events
 they came from, usage included. Cost has no GenAI convention, so it travels
 under the one documented `opentine.cost_usd` attribute (billing under
-`opentine.billing`); the importer leaves both as attributes. Export is read-only
+`opentine.billing`); the importer reads both back onto the event, so a priced run
+comes home priced — the amount as the exact decimal string. Export is read-only
 over provenance and writes nothing. The same document is one command away from a
 terminal or a CI job: see `tine export` in the CLI reference.
 Search, minimal causal context slices, semantic diff, fork/resume, evaluation,

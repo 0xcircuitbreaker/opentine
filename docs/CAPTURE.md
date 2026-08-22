@@ -224,7 +224,8 @@ structured `gen_ai.input.messages` / `gen_ai.output.messages` arrays that
 current backends such as Arize Phoenix and Langfuse render, with the scope's
 `schemaUrl` naming the v1.36.0 conventions. Cost has no GenAI convention, so it
 travels under the one documented `opentine.cost_usd` attribute (billing under
-`opentine.billing`).
+`opentine.billing`), and the importer reads both back: a run exported priced
+imports priced, with the amount carried as the exact decimal string.
 
 Practical notes for a real backend:
 

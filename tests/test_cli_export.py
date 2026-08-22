@@ -9,8 +9,9 @@ the structure ``native_events`` produced from the run that went in — every spa
 id, parent, causal edge, payload, token counter and cost. A shape assertion
 would pass on a document that dropped the causal edges, the usage counters, or
 the error status; this one cannot. The one edge the mapping is documented to
-move rather than keep — cost, which has no GenAI attribute — is pinned by its
-own test, so the normalization cannot grow to cover a real loss.
+move rather than keep — cost, which has no GenAI attribute and therefore crosses
+as an ``opentine.*`` decimal string — is pinned by its own test, so the
+normalization cannot grow to cover a real loss.
 
 The push half is exercised against a real ``httpx`` client wired to a
 ``MockTransport``, so the URL, the method, the ``Content-Type`` and the body are
@@ -23,6 +24,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import fields
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -45,10 +47,10 @@ def _structure(event) -> dict:
 
     One documented edge is *normalized*, never ignored, and the loss test below
     proves it is the only one: ``cost`` has no GenAI convention so it rides in
-    ``opentine.cost_usd``, which the importer leaves as an attribute. Usage is
-    compared as recorded — every dimension OpenTine meters now has a
-    ``gen_ai.usage.*`` counter, and a step that metered nothing imports empty
-    rather than as invented zeros.
+    ``opentine.cost_usd`` and comes back as the exact decimal string written
+    there, not as the float it left as. Usage is compared as recorded — every
+    dimension OpenTine meters now has a ``gen_ai.usage.*`` counter, and a step
+    that metered nothing imports empty rather than as invented zeros.
     """
     recorded = event.cost if event.cost is not None else event.attributes.get(COST_ATTRIBUTE, 0.0)
     return {
@@ -173,7 +175,9 @@ def test_the_round_trip_loses_nothing_but_the_one_documented_edge(workspace, mon
 
     ``usage`` used to sit in this set: export emitted input/output only and the
     importer zero-filled what a span never reported. Both are fixed, so the set
-    is one field smaller and stays pinned at that.
+    is one field smaller and stays pinned at that. ``cost`` stays in it only as a
+    *spelling* difference — the amount is equal, as a decimal string — because
+    the importer used to skip the attribute entirely and price the run at zero.
     """
     run = Run.load(workspace / "source.tine")
     _, out = _invoke(monkeypatch, capsys, "export", "source.tine")
@@ -187,7 +191,8 @@ def test_the_round_trip_loses_nothing_but_the_one_documented_edge(workspace, mon
             if getattr(source, field.name) != getattr(returned, field.name)
         }
         assert differing <= {"cost", "attributes"}, differing
-        assert returned.attributes[COST_ATTRIBUTE] == str(source.cost), "cost rides in an attribute"
+        assert Decimal(str(returned.cost)) == Decimal(str(source.cost)), "the amount came back"
+        assert COST_ATTRIBUTE not in returned.attributes, "read into the field, not left behind"
         assert returned.usage == source.usage, "every metered dimension came back"
         assert source.attributes.items() <= returned.attributes.items(), "attributes only grew"
 
@@ -212,7 +217,9 @@ def test_the_round_trip_carries_structure_costs_and_failure(workspace, monkeypat
         "cache_write_5m": 5,
         "reasoning": 21,
     }
-    assert priced.attributes[COST_ATTRIBUTE] == "0.0125", "cost has no GenAI key of its own"
+    # Cost has no GenAI key of its own, so it travels in an OpenTine attribute
+    # and is read back onto the field: a priced run stays priced end to end.
+    assert priced.cost == "0.0125" and COST_ATTRIBUTE not in priced.attributes
     assert priced.outputs == {"text": "an answer"}
 
 
