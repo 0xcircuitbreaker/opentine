@@ -346,16 +346,54 @@ def test_groq_service_tiers_and_scoped_public_lifecycle(catalog: PricingCatalog)
     assert card.metadata["enterprise_committed_spend_exempt"] is True
 
 
-def test_sonnet_5_introductory_rate_transition(catalog: PricingCatalog):
+def test_sonnet_5_introductory_rate_became_permanent(catalog: PricingCatalog):
+    # Anthropic cancelled the 2026-09-01 rise to $3/$15 and made the $2/$10 launch
+    # price standard, so the catalog carries one open-ended card. A scheduled-but-
+    # cancelled future card would have overcharged every run from 2026-09-01 on.
     usage = Usage(input=1_000_000, output=1_000_000)
     intro = bill("anthropic", "claude-sonnet-5", usage, catalog=catalog, effective_at="2026-08-31")
-    standard = bill(
-        "anthropic", "claude-sonnet-5", usage, catalog=catalog, effective_at="2026-09-01"
-    )
+    after = bill("anthropic", "claude-sonnet-5", usage, catalog=catalog, effective_at="2026-09-01")
     assert intro.rate_card_id == "anthropic:claude-sonnet-5:intro"
     assert intro.amount_usd == Decimal("12")
-    assert standard.rate_card_id == "anthropic:claude-sonnet-5:standard"
-    assert standard.amount_usd == Decimal("18")
+    assert after.rate_card_id == "anthropic:claude-sonnet-5:intro"
+    assert after.amount_usd == Decimal("12")
+
+
+def test_gpt_56_repricings_are_date_scoped(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+
+    def sol(when: str) -> tuple[str | None, Decimal | None]:
+        result = bill("openai", "gpt-5.6-sol", usage, catalog=catalog, effective_at=when)
+        return result.rate_card_id, result.amount_usd
+
+    # Long-context multipliers apply: 2M input tokens crosses the 272k threshold.
+    assert sol("2026-08-20") == ("openai:gpt-5.6-sol:2026-07-09", Decimal("55"))
+    assert sol("2026-08-21") == ("openai:gpt-5.6-sol:2026-08-21", Decimal("38"))
+    luna = bill("openai", "gpt-5.6-luna", usage, catalog=catalog, effective_at="2026-07-30")
+    assert luna.rate_card_id == "openai:gpt-5.6-luna:2026-07-30"
+    assert luna.amount_usd == Decimal("2.20")
+    # Fast mode replaced priority processing on 2026-07-30 at the same 2x rate.
+    fast = bill(
+        "openai",
+        "gpt-5.6-terra",
+        Usage(input=100_000),
+        catalog=catalog,
+        effective_at="2026-08-21",
+        service_tier="fast",
+    )
+    assert fast.amount_usd == Decimal("0.4")
+
+
+def test_deepseek_v4_cards_close_at_the_time_of_day_billing_cutover(catalog: PricingCatalog):
+    # DeepSeek moved to peak/off-peak billing on 2026-08-16, which
+    # opentine-pricing/1 cannot express; the flat cards are closed rather than
+    # left in place to report a stale price.
+    usage = Usage(input=1_000_000, output=1_000_000)
+    flat = bill("deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-15")
+    after = bill("deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-16")
+    assert flat.rate_card_id == "deepseek:deepseek-v4-pro:2026-07-14"
+    assert flat.amount_usd == Decimal("1.305")
+    assert after.status == "unknown" and after.rate_card_id is None
 
 
 @pytest.mark.parametrize(

@@ -119,6 +119,8 @@ def test_reasoning_read_from_completion_details_when_output_details_present():
 
 
 def test_gpt56_bills_cache_partition_when_both_detail_objects_present():
+    # Amounts track the current bundled gpt-5.6-sol card ($4 input / $5 cache write /
+    # $0.40 cache read), doubled by the 272k long-context threshold.
     written = chat_meter(
         "openai",
         "gpt-5.6",
@@ -133,7 +135,7 @@ def test_gpt56_bills_cache_partition_when_both_detail_objects_present():
         "gpt-5.6",
     )
     assert written["billing"]["status"] == "complete"
-    assert Decimal(written["billing"]["amount_usd"]) == Decimal("10.50")
+    assert Decimal(written["billing"]["amount_usd"]) == Decimal("8.40")
     assert written["usage"]["cache_write_5m"] == 200_000
     read = chat_meter(
         "openai",
@@ -149,5 +151,5 @@ def test_gpt56_bills_cache_partition_when_both_detail_objects_present():
         "gpt-5.6",
     )
     assert read["billing"]["status"] == "complete"
-    assert Decimal(read["billing"]["amount_usd"]) == Decimal("2.80")
+    assert Decimal(read["billing"]["amount_usd"]) == Decimal("2.24")
     assert read["usage"]["cache_read"] == 800_000
