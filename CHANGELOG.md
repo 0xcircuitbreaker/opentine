@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.2 — 2026-08-17
+
+The catalog &amp; trace patch. Source-confirmed pricing refresh, and the last OTel
+round-trip data-loss path closed.
+
+### Fixed
+
+- **OTel round-trip preserves cost and billing.** A natively-priced run exported
+  to OpenTelemetry and re-imported reported `$0.00` — the importer dropped the
+  typed cost/billing the exporter had written (a writer/reader asymmetry). Both
+  now round-trip exactly, the amount as its exact decimal string; a foreign span
+  without them imports unpriced (never a fabricated amount), and unusable values
+  stay visible in attributes. Guarded by the round-trip parity gate.
+
+### Changed
+
+- **Pricing catalog refreshed (61 → 75 cards), every rate confirmed from the
+  vendor's official page.** Added `claude-opus-5` (the current flagship, before
+  now uncarded), `claude-haiku-4.5`, `qwen3.8-max`, `gemini-3.7`/`3.6-flash`
+  (promo-scoped), `gemini-3.5-flash-lite`, `ministral-3b`/`8b`, `codestral`,
+  `gpt-5.6-cyber`, and `grok-build-0.1`. Repriced (date-scoped) the three
+  `gpt-5.6-*` models. Removed the future-dated `claude-sonnet-5` card after
+  Anthropic cancelled the scheduled September 1 increase — `$2/$10` is now
+  permanent. Closed the DeepSeek V4 cards, which moved to a time-of-day peak/
+  off-peak schedule the `opentine-pricing/1` schema cannot represent; those runs
+  report `unknown` until a future release adds the dimension. No guessed prices;
+  `qwen3.8-27b` and `glm-5.3` are held for lack of a published per-token price.
+
 ## 0.7.1 — 2026-08-17
 
 The Hardening Release. A codebase health audit — every finding verified against
