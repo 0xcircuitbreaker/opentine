@@ -31,6 +31,7 @@ class RuntimeLoopMixin:
                 model_info=self.model.name,
                 usage=partial.get("usage"),
                 billing=partial.get("billing"),
+                provider=partial.get("provider") or "",
                 error={"message": str(exc), "type": type(exc).__name__},
             )
             self._pin_billing(run, step.id, partial.get("billing") or {})
@@ -92,6 +93,9 @@ class RuntimeLoopMixin:
             model_info=response.get("model") or self.model.name,
             usage=response.get("usage"),
             billing=billing,
+            # The adapter names who served the call; recorded beside the usage it
+            # was billed from, so cost is a function of the record alone.
+            provider=response.get("provider") or "",
             error={"message": str(refusal), "type": "ModelRefusal"} if refusal else None,
         )
         self._pin_billing(run, step.id, billing)

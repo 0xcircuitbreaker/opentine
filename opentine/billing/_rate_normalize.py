@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from opentine.billing._immutable import freeze
+from opentine.billing._schedule import normalize_schedule
 from opentine.billing._values import decimal
 
 
@@ -43,5 +44,6 @@ def normalize_rate_card(card: Any) -> None:
             raise ValueError("rate-card service rates must contain objects")
         rates[tier] = {name: decimal(rate) for name, rate in values.items()}
     object.__setattr__(card, "service_rates", freeze(rates))
+    object.__setattr__(card, "schedule", normalize_schedule(card.schedule))
     object.__setattr__(card, "currency_to_usd", decimal(card.currency_to_usd))
     object.__setattr__(card, "metadata", freeze(card.metadata))

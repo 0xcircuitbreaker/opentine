@@ -13,13 +13,15 @@ understand.
 | LangChain / LangGraph | `OpenTineCallbackHandler` | **live** |
 | An agent CLI (codex, claude-code, …) | `tine run --harness <name>` | **live** |
 | A single model call | `tine run --model <provider>[:model]` | **live** |
+| A local OpenAI-compatible server | `tine run --model vllm\|lmstudio\|sglang\|…` | **live** |
 | Getting it back out | `tine export` | — |
 
 ## 1. OpenTelemetry GenAI: the universal path
 
-This is the one that generalizes. OpenTine reads the OpenTelemetry GenAI
-semantic conventions directly, so a producer of GenAI spans is a supported
-source with OpenTine never present at runtime:
+This is the one that generalizes, and it is the model-agnostic on-ramp: it needs
+no OpenTine adapter, no provider key, and no rate card. OpenTine reads the
+OpenTelemetry GenAI semantic conventions directly, so a producer of GenAI spans
+is a supported source with OpenTine never present at runtime:
 
 - native OpenTelemetry GenAI instrumentation,
 - **OpenLLMetry** (Traceloop) instrumentations,
@@ -57,8 +59,11 @@ being dropped.
 The importer also accepts camelCase and snake_case span keys and decodes typed
 `AnyValue` attributes. Every `gen_ai.usage.*` counter is preserved — input,
 output, cache read, both cache-write TTLs, reasoning, and total — so a cached,
-reasoning step keeps its numbers. Span links become causal edges; `parentSpanId`
-becomes the parent edge.
+reasoning step keeps its numbers. `gen_ai.system` / `gen_ai.provider.name` is
+read onto the step as its `provider`, so an imported trace carries the identity
+half of its cost and can be priced afterwards — `--price` on the import, or
+`tine price <run>` at any later date. Span links become causal edges;
+`parentSpanId` becomes the parent edge.
 
 `SOURCE` may be `-` to read stdin, so a collector export can be piped straight
 in:
@@ -201,6 +206,23 @@ For one call with no framework at all:
 tine run --model anthropic --prompt "Explain the current branch"
 tine run --model openai:gpt-5.6 --prompt "…" --save run.tine
 ```
+
+Any OpenAI-compatible server you already run locally is one `tine run --model`
+away — no key, no Python, no rate card:
+
+```bash
+tine run --model vllm:served-model --prompt "…"   # http://localhost:8000/v1
+tine run --model lmstudio --prompt "…"            # http://localhost:1234/v1
+tine run --model ollama:llama3.1:8b --prompt "…"  # native adapter
+```
+
+`jan`, `koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`,
+`localai`, `mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`,
+and `vllm` each resolve to the localhost URL their server conventionally listens
+on; a server on a different port or an exact nonstandard prefix is the Python
+`LocalOpenAICompatible(host=…)`/`base_url=…` form instead. Local API usage is
+recorded `unmetered`, so these runs are captured, verified, and diffed like any
+other — they just carry no dollar figure.
 
 See [GETTING_STARTED.md](GETTING_STARTED.md#2-your-first-captured-run-with-no-code)
 for the provider list and the exclusivity rules.

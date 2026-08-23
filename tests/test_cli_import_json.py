@@ -331,6 +331,7 @@ def test_show_json_carries_the_documented_fields(workspace, capsys):
         "short_id",
         "kind",
         "parent_ids",
+        "provider",
         "model",
         "cost",
         "duration",

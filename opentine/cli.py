@@ -24,7 +24,7 @@ from opentine._cli_common import (
     _step_label,
     console,
 )
-from opentine._cli_execute import cmd_cost, cmd_run, cmd_run_harness, cmd_show
+from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_export import cmd_export
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_import import cmd_import
@@ -64,6 +64,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "keygen": cmd_keygen,
     "ls": cmd_ls,
     "migrate": cmd_migrate,
+    "price": cmd_price,
     "pricing": lambda namespace: cmd_pricing(namespace, console),
     "reindex": cmd_reindex,
     "replay": cmd_replay,
@@ -134,6 +135,7 @@ __all__ = [
     "cmd_keygen",
     "cmd_ls",
     "cmd_migrate",
+    "cmd_price",
     "cmd_reindex",
     "cmd_replay",
     "cmd_resume",

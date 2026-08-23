@@ -21,6 +21,11 @@ unconditionally and take no ``--json`` flag. Their bytes predate this writer and
 are pinned by tests, so they keep their own ``json.dumps`` — changing them would
 break scripts that already parse them.
 
+The schema below is this module's; the two row shapes more than one command
+renders — a step and a legacy index entry — are *built* in
+:mod:`opentine._cli_json_rows` so ``show`` and ``repo-show``, ``ls`` and
+``search``, cannot drift apart on their key sets.
+
 A failure that stops the command from producing a result is *not* JSON: a run
 ``show`` or ``cost`` cannot find, an unreadable key file, or a bad filter prints
 a human message and exits non-zero, so a script must check the exit status. A
@@ -37,8 +42,11 @@ exits 1.
                  of str), ``user_prompt``, ``system_prompt``
     ``steps``    array — one object per step in recorded order: ``id``,
                  ``short_id``, ``kind``, ``parent_ids`` (list of str),
-                 ``model``, ``cost``, ``duration``, ``timestamp``, ``inputs``,
-                 ``outputs``, ``usage``, ``billing``, ``error``, ``tool``
+                 ``provider``, ``model``, ``cost``, ``duration``,
+                 ``timestamp``, ``inputs``, ``outputs``, ``usage``,
+                 ``billing``, ``error``, ``tool``.  ``provider`` is the recorded
+                 provider string, ``""`` for a step captured before 0.8.0 or by
+                 a source that never named one
 
 ``tine verify RUN --json``
     ``command``    ``"verify"``
@@ -87,6 +95,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine._cli_json_rows import _entry, _step
 from opentine._jsonsafe import json_exact
 from opentine.core import Run, short_id
 
@@ -116,25 +125,6 @@ def emit(payload: dict[str, Any]) -> None:
     wrapped, coloured, or have square brackets read as markup.
     """
     print(serialize(payload))
-
-
-def _step(step: Any) -> dict[str, Any]:
-    return {
-        "id": step.id,
-        "short_id": step.short_id,
-        "kind": step.kind.value,
-        "parent_ids": list(step.parent_ids),
-        "model": step.model_info,
-        "cost": step.cost,
-        "duration": step.duration,
-        "timestamp": step.timestamp,
-        "inputs": step.inputs,
-        "outputs": step.outputs,
-        "usage": step.usage,
-        "billing": step.billing,
-        "error": step.error,
-        "tool": step.tool_info,
-    }
 
 
 def emit_show(run: Run, path: str | Path) -> None:
@@ -186,23 +176,6 @@ def emit_verify(target: str | Path, integrity: Any, signature: Any) -> None:
             },
         }
     )
-
-
-def _entry(entry: Any) -> dict[str, Any]:
-    return {
-        "run_id": entry.run_id,
-        "short_id": short_id(entry.run_id),
-        "status": entry.status,
-        "model": entry.model,
-        "steps": entry.steps,
-        "cost": entry.cost,
-        "created_at": entry.created_at,
-        "mtime": entry.mtime,
-        "format_version": entry.format_version,
-        "tags": list(entry.tags),
-        "file": entry.file,
-        "unreadable": bool(entry.unreadable),
-    }
 
 
 def emit_entries(command: str, entries: list[Any], *, query: str | None = None) -> None:

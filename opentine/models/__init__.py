@@ -5,6 +5,14 @@ caller holding only text — ``tine run --model openai:gpt-5.6`` — never has t
 import an adapter class by hand.  Nothing here imports a provider SDK: each
 adapter lazy-imports its own inside ``_get_client``, and this module imports an
 adapter module only once its provider has actually been named.
+
+Three families answer to a name: the four native adapters, the hosted
+OpenAI-compatible ones, and the concrete local presets (``vllm``, ``lmstudio``,
+``sglang`` …), each of which knows the localhost URL its runtime conventionally
+listens on.  A local preset carries no rate card, so — exactly like ``ollama``
+— its runs record usage with the API cost unmetered (except ``litellm``, which
+proxies possibly-paid backends and so reports ``unknown``); naming it here buys
+the same one-command capture, not a price.
 """
 
 from __future__ import annotations
@@ -42,9 +50,35 @@ def _hosted() -> dict[str, type]:
     }
 
 
+def _local() -> dict[str, type]:
+    """The concrete local presets, keyed by the ``provider`` string they record.
+
+    A preset qualifies by being *concrete*: it names its own provider and the
+    host its runtime listens on, which is what lets ``resolve_model`` build it
+    from a model id alone.  The two bases are deliberately excluded — they exist
+    to be pointed at an arbitrary endpoint, so a CLI word for them would either
+    have to invent a URL or answer to ``local``, and neither is a provider a run
+    should be recorded under.
+    """
+    from opentine.models import _compat_local, _compat_local_presets
+    from opentine.models._compat_local import LocalOpenAICompatible, OpenAICompatible
+
+    return {
+        value.provider.casefold(): value
+        for module in (_compat_local, _compat_local_presets)
+        for value in vars(module).values()
+        if isinstance(value, type)
+        and issubclass(value, LocalOpenAICompatible)
+        and value not in (OpenAICompatible, LocalOpenAICompatible)
+        and isinstance(getattr(value, "provider", None), str)
+        and value.provider
+        and getattr(value, "default_host", "")
+    }
+
+
 def provider_names() -> list[str]:
     """Every provider ``resolve_model`` accepts, in the order errors list them."""
-    return sorted({*_NATIVE, *_hosted()})
+    return sorted({*_NATIVE, *_hosted(), *_local()})
 
 
 def model_class(provider: str) -> type:
@@ -53,9 +87,10 @@ def model_class(provider: str) -> type:
     if name in _NATIVE:
         module = importlib.import_module(f"opentine.models.{name}")
         return getattr(module, _NATIVE[name])
-    hosted = _hosted()
-    if name in hosted:
-        return hosted[name]
+    for registry in (_hosted, _local):
+        found = registry().get(name)
+        if found is not None:
+            return found
     raise UnknownProvider(
         f"Unknown provider {provider!r}. Valid providers: {', '.join(provider_names())}"
     )

@@ -108,7 +108,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from opentine._cli_json import _step, emit
+from opentine._cli_json import emit
+from opentine._cli_json_rows import _step
 from opentine._repo_cli_render import entry_kind
 
 

@@ -80,6 +80,7 @@ def native_events(run) -> list[TraceEvent]:
                 causal_span_ids=tuple(step.parent_ids[:-1]),
                 actor=step.tool_info.get("name", "model"),
                 model=step.model_info,
+                provider=step.provider,
                 cost=step.cost,
                 duration=step.duration,
                 # _exact, not _safe: this is the *export* adapter (only
@@ -131,6 +132,7 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
                 else (),
                 actor=str(item.get("actor", "")),
                 model=str(item.get("model", "")),
+                provider=str(item.get("provider") or ""),
                 cost=_safe(item.get("cost")),
                 duration=max(0, _timestamp(item.get("duration", item.get("latency", 0)))),
                 inputs=_safe(_mapping(_first(item, "inputs", "input"))),
@@ -179,6 +181,7 @@ def otel_genai_events(
                 causal_span_ids=link_span_ids(span),
                 actor=operation,
                 model=str(model or ""),
+                provider=str(_first(attributes, *semconv.PROVIDER_KEYS, default="")),
                 cost=cost,
                 duration=max(0, _timestamp(end_nanos - nanos)) / 1_000_000_000,
                 inputs=_safe(inputs),

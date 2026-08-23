@@ -60,6 +60,52 @@ catalog must have its own matching `catalog_id` hash; it may be unsigned so an
 enterprise can express negotiated discounts or infrastructure costs without
 altering the signed upstream snapshot.
 
+### Time-of-day pricing (peak / off-peak)
+
+`opentine-pricing/2` adds one optional field to a rate card, `schedule`: an
+ordered list of windows, each naming the UTC hour ranges it covers, the days it
+covers (`all`, `weekday`, or `weekend`), and the rates that replace the card's
+base rates inside it. The first window covering a billing moment wins, ranges
+are half-open (`01:00`–`04:00` excludes 04:00), and a range whose start is later
+than its end wraps past midnight. A window's rates override only the dimensions
+they name.
+
+```json
+"rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98"},
+"schedule": [
+  {
+    "id": "peak",
+    "days": "weekday",
+    "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+    "rates": {"input": "1.32", "cache_read": "0.044", "output": "3.96"}
+  }
+]
+```
+
+The base `rates` are therefore the *out-of-window* price — for DeepSeek, the
+off-peak one. Two defaults follow, and both are deliberate:
+
+* A card with **no** `schedule` prices from `rates` at every hour, which is what
+  every `opentine-pricing/1` card already meant. The field is additive by
+  absence; no existing price moves.
+* A scheduled card priced from a **date** with no time of day also prices from
+  base rates. A day is not an instant, so there is no moment to place in a
+  window.
+
+The billing moment splits in two: its *date* selects the rate card
+(`effective_from`/`effective_until`), its *time of day* selects the window.
+`bill()` and `calculate()` accept a `datetime` for `effective_at`, and native
+capture passes the capture instant. `tine price --at DATE` pins the
+card-selection date for the whole run — "what would this run cost under the
+cards effective on DATE" — while each step's window still comes from that step's
+own recorded `timestamp`, so a run spanning peak and off-peak is priced at both
+rates rather than at one. Without `--at`, a step is carded on the day it was
+recorded, falling back to today when a record carries no timestamp.
+
+Both schemas load: the loader accepts `opentine-pricing/1` and
+`opentine-pricing/2`, and an unsigned `/1` overlay still layers over the bundled
+`/2` snapshot.
+
 ### Streamed calls and reported usage
 
 Every price on this page is applied to usage the provider reports. An

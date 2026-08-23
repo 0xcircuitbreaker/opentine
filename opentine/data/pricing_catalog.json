@@ -1,5 +1,5 @@
 {
-  "schema": "opentine-pricing/1",
+  "schema": "opentine-pricing/2",
   "generated_at": "2026-08-17T00:00:00Z",
   "verified_at": "2026-08-17",
   "cards": [
@@ -332,7 +332,7 @@
       "rates": {"input": "0.435", "cache_read": "0.003625", "output": "0.87", "reasoning": "0.87"},
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
       "verified_at": "2026-08-17",
-      "metadata": {"closed_reason": "schema-cannot-represent", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16; opentine-pricing/1 has no time-of-day dimension, so this card is closed at 2026-08-15 and later runs report cost=unknown instead of a wrong flat price. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
+      "metadata": {"closed_reason": "superseded-by-scheduled-card", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16. This flat card ends at 2026-08-15; opentine-pricing/2 carries the schedule from 2026-08-16 on. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
     },
     {
       "id": "deepseek:deepseek-v4-flash:2026-07-14",
@@ -344,7 +344,83 @@
       "rates": {"input": "0.14", "cache_read": "0.0028", "output": "0.28", "reasoning": "0.28"},
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
       "verified_at": "2026-08-17",
-      "metadata": {"closed_reason": "schema-cannot-represent", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16; opentine-pricing/1 has no time-of-day dimension, so this card is closed at 2026-08-15 and later runs report cost=unknown instead of a wrong flat price. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
+      "metadata": {"closed_reason": "superseded-by-scheduled-card", "note": "DeepSeek moved to peak/off-peak (time-of-day) billing at 16:00 UTC on 2026-08-16. This flat card ends at 2026-08-15; opentine-pricing/2 carries the schedule from 2026-08-16 on. Requests between 00:00 and 16:00 UTC on 2026-08-16 were still billed at this flat rate but fall outside the day-granular window."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-08-16",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-08-16",
+      "effective_until": "2026-08-22",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "all",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "1.32", "cache_read": "0.044", "output": "3.96", "reasoning": "3.96"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260813", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-22",
+      "metadata": {"note": "Base rates are the off-peak price; the peak window carries the 2x price. Peak/off-peak began at 16:00 UTC on 2026-08-16, so requests between 00:00 and 16:00 UTC that day were still billed flat and fall outside this day-granular window. Peak applied every day of the week until the weekend rule below."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-08-23",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-08-23",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "1.32", "cache_read": "0.044", "output": "3.96", "reasoning": "3.96"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-22",
+      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-flash:2026-08-16",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "aliases": ["deepseek-chat", "deepseek-reasoner"],
+      "effective_from": "2026-08-16",
+      "effective_until": "2026-08-22",
+      "rates": {"input": "0.22", "cache_read": "0.007", "output": "0.66", "reasoning": "0.66"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "all",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.44", "cache_read": "0.014", "output": "1.32", "reasoning": "1.32"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260813", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-22",
+      "metadata": {"note": "Base rates are the off-peak price; the peak window carries the 2x price. Peak/off-peak began at 16:00 UTC on 2026-08-16, so requests between 00:00 and 16:00 UTC that day were still billed flat and fall outside this day-granular window. Peak applied every day of the week until the weekend rule below."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-flash:2026-08-23",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "aliases": ["deepseek-chat", "deepseek-reasoner"],
+      "effective_from": "2026-08-23",
+      "rates": {"input": "0.22", "cache_read": "0.007", "output": "0.66", "reasoning": "0.66"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.44", "cache_read": "0.014", "output": "1.32", "reasoning": "1.32"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
+      "verified_at": "2026-08-22",
+      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour."}
     },
     {
       "id": "deepseek:deepseek-chat:legacy-2026-07",
@@ -845,10 +921,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:91b54f07381a4af51edf235ddd330de977b51a83dc90d8b955f584106f7ddfa5",
+  "catalog_id": "sha256:7e32f57e95ba0de55d0978bf085f95170b8175650d881f1e2988699f2a85d313",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "qF+MCgfB4NLnH8yDP64qs4q7pQ7g/Y0tQGG4iVZuBI77eSJGd8N8OLtLae6/bKIW4X33qepWPuE5wCVla3uLAA=="
+    "value": "+KKZz4NGWJYgq2M/ln4TRgL39Rk3UKEpWf0MpI2vIMrUse6S7ISY7B0LMo1GKn8U3XNyS/qEomBATKaOS1eLDw=="
   }
 }

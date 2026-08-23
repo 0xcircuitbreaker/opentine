@@ -9,6 +9,7 @@ from enum import StrEnum
 from typing import Any
 
 from opentine._canon import _canonical_bytes
+from opentine._step_usage import _usage_value as _usage_value  # re-exported: one usage rule
 
 
 class StepKind(StrEnum):
@@ -27,36 +28,6 @@ class RunStatus(StrEnum):
 
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
-_TOKEN_USAGE = {
-    "input",
-    "output",
-    "cache_read",
-    "cache_write_5m",
-    "cache_write_1h",
-    "reasoning",
-    "total",
-}
-
-
-def _usage_value(name: str, value: Any) -> int | float:
-    error = f"step usage.{name} must be a finite, non-negative safe number"
-    if not isinstance(name, str) or not name:
-        raise ValueError("step usage names must be non-empty strings")
-    if isinstance(value, bool) or type(value) not in {int, float}:
-        raise ValueError(error)
-    if isinstance(value, int):
-        if value < 0 or value > _MAX_SAFE_INTEGER:
-            raise ValueError(error)
-        return value
-    if not math.isfinite(value) or value < 0:
-        raise ValueError(error)
-    if name in _TOKEN_USAGE and not value.is_integer():
-        raise ValueError(f"step usage.{name} must be an integer token count")
-    if value.is_integer() and value <= _MAX_SAFE_INTEGER:
-        return int(value)
-    if name in _TOKEN_USAGE:
-        raise ValueError(error)
-    return value
 
 
 @dataclass(frozen=True)
@@ -78,6 +49,12 @@ class Step:
     #: part of ``step_id``: it names what a fork slice must keep, not what the
     #: step *is*, and hashing it would change every legacy id.
     causal_ids: list[str] = field(default_factory=list)
+    #: Who served the call ("anthropic", "glm-cn", ...). Recorded content, never
+    #: read by verify/fork/replay and never part of an id: it is the identity
+    #: half of ``model_info``, so cost stays a post-hoc function of the record
+    #: instead of of the adapter. ``tine diff`` reports a change in it the way
+    #: it reports any other recorded field.
+    provider: str = ""
     v3_kind: str | None = None
 
     def __post_init__(self) -> None:

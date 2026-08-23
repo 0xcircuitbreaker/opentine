@@ -204,7 +204,7 @@ class Anthropic:
                 if callable(final):
                     response = await final()
                     result = self._result(response)
-                    metered = {key: result[key] for key in ("billing", "cost", "usage")}
+                    metered = {key: result[key] for key in ("billing", "cost", "provider", "usage")}
                     yield {"type": "usage", **metered}
                     if (
                         result["tool_calls"]

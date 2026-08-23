@@ -125,6 +125,29 @@ def _build_parser() -> argparse.ArgumentParser:
     cost = sub.add_parser("cost", help="Show cost and budget state")
     cost.add_argument("run_id")
 
+    # The other half of the cost story, and deliberately a separate verb: `cost`
+    # sums the price each step RECORDED at capture, `price` recomputes it from
+    # the catalog, so an imported or uncosted run is priced at all and any run
+    # can be re-priced under a corrected or past catalog. Read-only, both ways.
+    price = sub.add_parser(
+        "price",
+        help="Re-price a run from the pricing catalog (tine cost sums recorded cost)",
+        description=(
+            "Recompute a run's cost post-hoc from its recorded (provider, model, usage) "
+            "against the pricing catalog, and report it without writing anything. "
+            "Distinct from `tine cost`, which sums the cost recorded at capture: this "
+            "prices imported and uncosted runs too, and a step no rate card covers is "
+            "reported unknown rather than as free."
+        ),
+    )
+    price.add_argument("run_id")
+    price.add_argument(
+        "--at",
+        metavar="DATE",
+        default=None,
+        help="Price against the catalog effective on this ISO date (default: today)",
+    )
+
     fork = sub.add_parser("fork", help="Fork a legacy run")
     fork.add_argument("run_id")
     fork.add_argument("--from-step", required=True)
@@ -177,8 +200,9 @@ def _build_parser() -> argparse.ArgumentParser:
     # reads; a plain replay's output is the artifact it writes. `import` writes an
     # artifact too, but its result is the run id a caller must then address, and
     # `tag` earns it on its listing mode alone (see cmd_tag).
-    for readable in (show, verify, listing, search, stats, cost, replay, diff, importer, tag):
-        readable.add_argument(
+    readable = (show, verify, listing, search, stats, cost, price, replay, diff, importer, tag)
+    for command in readable:
+        command.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
 

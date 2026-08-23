@@ -14,7 +14,7 @@ def validate_rate_card_data(data: Any) -> None:
     for field in ("rates", "service_modifiers", "service_rates", "metadata"):
         if field in data and not isinstance(data[field], dict):
             raise ValueError(f"rate-card {field} must be an object")
-    for field in ("aliases", "context_thresholds", "source_urls"):
+    for field in ("aliases", "context_thresholds", "schedule", "source_urls"):
         if field in data and not isinstance(data[field], list):
             raise ValueError(f"rate-card {field} must be a list")
     for field in ("effective_from", "effective_until", "verified_at"):

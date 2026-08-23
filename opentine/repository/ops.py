@@ -131,6 +131,7 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
             name
             for name in (
                 "kind",
+                "provider",
                 "model",
                 "cost",
                 "duration",

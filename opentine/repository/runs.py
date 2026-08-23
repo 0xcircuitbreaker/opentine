@@ -92,6 +92,11 @@ def _put_run(
             "tool": _redact(step.tool_info),
             "usage": _redact(step.usage),
         }
+        # Written only when the run knows it, exactly like the .tine side: an
+        # unconditional key would re-address (and so duplicate) every event a
+        # pre-0.8.0 run ever stored, for a field that would always be empty.
+        if step.provider:
+            payload["provider"] = step.provider
         event_id = repo.put("event", json_safe(payload))
         event_map[step.id] = event_id
         events.append(event_id)
@@ -204,6 +209,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 usage=as_mapping(event.get("usage")),
                 billing=as_mapping(event.get("billing")),
                 causal_ids=list(causal_ids[event_id]),
+                provider=text_field(event.get("provider")),
                 v3_kind=raw_kind,
             )
         )
