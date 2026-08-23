@@ -73,6 +73,10 @@ def put_trace_event(
         "trace_id": str(event.trace_id),
         "usage": _redact(json_safe(event.usage)),
     }
+    # Only when the span named one, exactly as the compatibility writer does: an
+    # always-present key would re-address every event imported without a provider.
+    if event.provider:
+        payload["provider"] = str(event.provider)
     if unresolved_parent or unresolved_causal:
         payload["unresolved_span_refs"] = {
             "causal": unresolved_causal,

@@ -122,6 +122,11 @@ def metered_response(
         )
         compatibility_cost = 0.0
     return {
+        # Top-level, beside usage: who served the call is recorded identity, not a
+        # cost artifact. Every adapter merges this dict into its response, so the
+        # runtime records it on the step and pricing stays post-hoc — reading it
+        # back out of billing.calculation made identity depend on the meter.
+        "provider": provider,
         "usage": usage.to_dict(),
         "billing": billing,
         "cost": 0.0

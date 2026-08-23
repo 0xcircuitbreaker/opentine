@@ -43,6 +43,9 @@ class TraceEvent:
     causal_span_ids: tuple[str, ...] = ()
     actor: str = ""
     model: str = ""
+    #: Who served the call (``gen_ai.system``). Recorded beside the model, so an
+    #: imported span can be priced at all: the importer used to drop it.
+    provider: str = ""
     cost: float | str | None = None
     duration: float = 0
     inputs: dict[str, Any] = field(default_factory=dict)
@@ -116,6 +119,7 @@ class TraceEvent:
             "model": self.model,
             "outputs": self.outputs,
             "parent_span_id": self.parent_span_id,
+            "provider": self.provider,
             "span_id": self.span_id,
             "timestamp": self.timestamp,
             "trace_id": self.trace_id,

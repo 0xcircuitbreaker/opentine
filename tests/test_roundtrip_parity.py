@@ -15,9 +15,9 @@ repository -> ``load_run``; (c) run -> OTel GenAI document -> importer.
 The run is built to hit every asymmetry a carrier could have: all five
 ``StepKind`` values, a diamond whose causal ancestor is unreachable through
 parents, a fork whose retained slice depends on that causal edge, tags,
-metadata, usage, a priced cost with its billing, and deeply nested inputs and
-outputs.  Each test names the asymmetry it guards; a fix reverted upstream fails
-here, not in an archive.
+metadata, usage, a priced cost with its billing and the provider that served it,
+and deeply nested inputs and outputs.  Each test names the asymmetry it guards;
+a fix reverted upstream fails here, not in an archive.
 """
 
 from __future__ import annotations
@@ -73,6 +73,9 @@ def _representative_run() -> Run:
         billing={"known_subtotal_usd": "0.0042", "rate_card": "r3"},
         cost=0.0042,
         duration=1.5,
+        # The identity half of the model: recorded, carried by every carrier, and
+        # what makes the priced step above re-priceable from the record alone.
+        provider="anthropic",
     )
     b = run.add_step(
         StepKind.tool,
@@ -122,6 +125,7 @@ def _shape(run) -> list[dict]:
             "usage": step.usage,
             "billing": step.billing,
             "model_info": step.model_info,
+            "provider": step.provider,
             "tool_info": step.tool_info,
             "error": step.error,
             "timestamp": step.timestamp,
@@ -286,6 +290,27 @@ def test_an_otel_document_rebuilds_a_priced_run_into_a_repository_still_priced(s
 
     assert _money(source), "the representative run is priced"
     assert _money(rebuilt) == _money(source)
+
+
+def test_the_otel_round_trip_returns_the_provider_that_served_each_step(source, tmp_path):
+    """Guards Gap A: the importer read the model keys and dropped the provider.
+
+    Model without provider is half an identity -- a rate card is looked up by
+    both -- so an imported run that kept only ``gen_ai.response.model`` could
+    never be priced afterwards, however complete its usage was.  Asserted on both
+    legs the money is: the events straight off the document, and the run those
+    events rebuild in a fresh repository, which is what ``tine import`` stores.
+    """
+    events = otel_genai_events(json.loads(serialize(to_otel_genai_document(source))))
+    by_span = {event.span_id: event for event in events}
+    assert {step.provider for step in source.steps} == {"anthropic", ""}
+    for step in source.steps:
+        assert by_span[step.id].provider == step.provider, step.kind
+
+    recorder = Recorder.start(Repo.init(tmp_path / "provider"), ref="heads/main", capture=False)
+    recorder.import_events(events)
+    rebuilt = recorder.repo.load_run(recorder.finalize())
+    assert [step.provider for step in rebuilt.steps] == [step.provider for step in source.steps]
 
 
 def test_a_rewritten_classic_scalar_does_not_delete_the_structured_conversation(source):

@@ -176,6 +176,8 @@ def _attributes(event: TraceEvent) -> dict[str, Any]:
         attributes[semconv.OPERATION_NAME] = event.actor
     if event.model and not any(key in attributes for key in semconv.MODEL_KEYS):
         attributes[semconv.RESPONSE_MODEL] = event.model
+    if event.provider and not any(key in attributes for key in semconv.PROVIDER_KEYS):
+        attributes[semconv.SYSTEM] = event.provider
     for key, payload in ((semconv.PROMPT, event.inputs), (semconv.COMPLETION, event.outputs)):
         if payload and key not in attributes:
             attributes[key] = _safe(payload)

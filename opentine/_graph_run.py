@@ -117,6 +117,7 @@ class RunBase:
         ref: str = "main",
         usage: dict[str, int | float] | None = None,
         billing: dict[str, Any] | None = None,
+        provider: str = "",
     ) -> Step:
         parents = parent_ids if parent_ids is not None else ([parent_id] if parent_id else [])
         if not parents and self.refs.get(ref):
@@ -146,6 +147,9 @@ class RunBase:
             cost=cost,
             usage=_usage(usage),
             billing=_jsonable(billing or {}),
+            # Recorded, not hashed: provider is content the same way billing is,
+            # and putting it in step_id would re-address every existing step.
+            provider=str(provider or ""),
         )
         self.graph.add(step)
         self.refs[ref] = identifier

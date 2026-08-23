@@ -80,6 +80,18 @@ USAGE_BY_DIMENSION: dict[str, str] = {
 #: Model attributes in importer preference order (response wins over request).
 MODEL_KEYS: tuple[str, ...] = (RESPONSE_MODEL, REQUEST_MODEL)
 
+#: Who served the call. ``gen_ai.system`` is the 1.27 spelling every deployed
+#: instrumentation still emits; 1.36 renamed it ``gen_ai.provider.name`` and both
+#: are in the wild, so import reads either. Export writes ``gen_ai.system``,
+#: because a span nothing can read is not interoperability.
+SYSTEM = "gen_ai.system"
+PROVIDER_NAME = "gen_ai.provider.name"
+
+#: Provider attributes in importer preference order, spelled once so the two
+#: directions cannot disagree about which key carries the provider — the way the
+#: importer came to drop it entirely while export never wrote it at all.
+PROVIDER_KEYS: tuple[str, ...] = (SYSTEM, PROVIDER_NAME)
+
 #: Structured message attributes (semconv >= 1.36): arrays of
 #: ``{role, parts: [{type, content}]}`` or ``{role, content}``.
 INPUT_MESSAGES = "gen_ai.input.messages"
