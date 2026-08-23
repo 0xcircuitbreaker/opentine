@@ -8,7 +8,8 @@ from decimal import Decimal
 from typing import Any
 
 from opentine.billing._context import billing_context
-from opentine.billing.types import BillingResult, RateCard, Usage, as_date, decimal
+from opentine.billing._schedule import window_rates
+from opentine.billing.types import BillingResult, RateCard, Usage, billing_moment, decimal
 
 _MILLION = Decimal(1_000_000)
 
@@ -49,10 +50,15 @@ def _calculate(
     catalog_id: str | None = None,
     catalog_hash: str | None = None,
     effective_at: date | datetime | str | None = None,
+    billed_at: date | datetime | str | None = None,
     service_tier: str | None = None,
     catalog_provenance: tuple[dict[str, Any], ...] = (),
 ) -> BillingResult:
-    when = as_date(effective_at)
+    when, moment = billing_moment(effective_at)
+    if billed_at is not None:
+        # ``tine price --at DATE`` pins the card-selection date while each step
+        # keeps its own recorded instant for the time-of-day window.
+        moment = billing_moment(billed_at)[1]
     iso_when = when.isoformat()
     calculation: dict[str, Any] = {
         "usage": _calculation_usage(usage),
@@ -111,6 +117,10 @@ def _calculate(
             catalog_provenance,
         )
     rates = dict(card.rates)
+    # Time of day first, then the service tier: an explicitly tiered rate is the
+    # more specific statement, and a card with neither is untouched by both.
+    window, scheduled = window_rates(card.schedule, moment)
+    rates.update(scheduled)
     service_rates = card.service_rates.get(requested_tier, {})
     rates.update(service_rates)
     rates, threshold_rules = _threshold_rates(card, usage, rates)
@@ -163,6 +173,11 @@ def _calculate(
             "currency_to_usd": str(card.currency_to_usd),
         }
     )
+    if card.schedule:
+        # Only for scheduled cards: an unscheduled card's calculation record is
+        # byte-for-byte what it was before time-of-day pricing existed.
+        calculation["schedule_window"] = window or "base"
+        calculation["billed_at"] = moment.isoformat() if moment is not None else None
     positive = any(decimal(value) > 0 for value in usage.dimensions().values())
     if not rates:
         status = "unknown"
@@ -194,10 +209,17 @@ def calculate(
     catalog_id: str | None = None,
     catalog_hash: str | None = None,
     effective_at: date | datetime | str | None = None,
+    billed_at: date | datetime | str | None = None,
     service_tier: str | None = None,
     catalog_provenance: tuple[dict[str, Any], ...] = (),
 ) -> BillingResult:
-    """Calculate under a fixed context, independent of caller precision or traps."""
+    """Calculate under a fixed context, independent of caller precision or traps.
+
+    ``effective_at`` is the billing moment: its date selects the rate card, and
+    its time of day (when it has one) selects the card's schedule window. Pass
+    ``billed_at`` only to drive the window from a different instant than the one
+    the card was selected on.
+    """
     with billing_context():
         return _calculate(
             usage,
@@ -205,6 +227,7 @@ def calculate(
             catalog_id=catalog_id,
             catalog_hash=catalog_hash,
             effective_at=effective_at,
+            billed_at=billed_at,
             service_tier=service_tier,
             catalog_provenance=catalog_provenance,
         )

@@ -9,7 +9,7 @@ from typing import Any
 
 from opentine.billing.catalog import PricingCatalog, load_catalogs
 from opentine.billing.engine import calculate
-from opentine.billing.types import BillingResult, RateCard, Usage, as_date, decimal
+from opentine.billing.types import BillingResult, RateCard, Usage, billing_moment, decimal
 
 
 def override_card(
@@ -36,15 +36,23 @@ def bill(
     usage: Usage | dict[str, Any],
     *,
     effective_at: date | datetime | str | None = None,
+    billed_at: date | datetime | str | None = None,
     service_tier: str | None = None,
     rate_override: dict[str, Any] | None = None,
     unmetered: bool = False,
     catalog: PricingCatalog | None = None,
     catalog_paths: Iterable[str | Path] | None = None,
 ) -> BillingResult:
+    """Price usage against the catalog card effective at ``effective_at``.
+
+    ``effective_at`` may carry a time of day: its *date* selects the rate card,
+    its *time* selects that card's time-of-day window when it has a schedule. A
+    plain date selects the card and prices from base rates. ``billed_at`` splits
+    the two, for callers that pin the card date but keep a recorded instant.
+    """
     normalized = usage if isinstance(usage, Usage) else Usage.from_dict(usage)
     selected = catalog or load_catalogs(catalog_paths)
-    when = as_date(effective_at)
+    when, moment = billing_moment(effective_at)
     card = (
         override_card(provider, model, rate_override or {}, unmetered=unmetered)
         if rate_override is not None or unmetered
@@ -55,7 +63,8 @@ def bill(
         card,
         catalog_id=selected.id,
         catalog_hash=selected.hash,
-        effective_at=when,
+        effective_at=moment if moment is not None else when,
+        billed_at=billed_at,
         service_tier=service_tier,
         catalog_provenance=selected.provenance,
     )

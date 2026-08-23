@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
 
 from opentine.billing import PricingCatalog, Usage, bill, known_cost, load_catalogs
-from opentine.billing.types import as_date
+from opentine.billing.types import billing_moment
 from opentine.models._provider_meta import equivalent_model, model_name
 
 
@@ -18,7 +19,7 @@ def metered_response(
     rate_override: dict[str, Any] | None = None,
     service_tier: str | None = None,
     unmetered: bool = False,
-    effective_at: str | None = None,
+    effective_at: date | datetime | str | None = None,
     usage_reported: bool = True,
     missing_usage: tuple[str, ...] = (),
     partitioned_usage_incomplete: bool = False,
@@ -33,7 +34,9 @@ def metered_response(
         "__invalid_reported_model__" if invalid_reported_model else reported_model or model
     )
     selected = catalog or load_catalogs()
-    when = as_date(effective_at)
+    # The capture *instant*, not just its date: a live call is billed at the
+    # time of day it was made, which is what a scheduled card prices from.
+    when, moment = billing_moment(effective_at)
     same_model = not invalid_reported_model and equivalent_model(
         selected, provider, model, reported_model, when
     )
@@ -45,7 +48,7 @@ def metered_response(
         rate_override=(rate_override if unmetered or same_model else None),
         service_tier=service_tier,
         unmetered=unmetered,
-        effective_at=when,
+        effective_at=moment if moment is not None else when,
     )
     billing = result.to_dict()
     compatibility_cost = known_cost(result)

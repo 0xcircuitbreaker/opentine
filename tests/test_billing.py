@@ -384,16 +384,70 @@ def test_gpt_56_repricings_are_date_scoped(catalog: PricingCatalog):
     assert fast.amount_usd == Decimal("0.4")
 
 
-def test_deepseek_v4_cards_close_at_the_time_of_day_billing_cutover(catalog: PricingCatalog):
-    # DeepSeek moved to peak/off-peak billing on 2026-08-16, which
-    # opentine-pricing/1 cannot express; the flat cards are closed rather than
-    # left in place to report a stale price.
+def test_deepseek_v4_flat_card_hands_over_to_the_scheduled_card(catalog: PricingCatalog):
+    # DeepSeek moved to peak/off-peak billing at 16:00 UTC on 2026-08-16, which
+    # opentine-pricing/1 could not express, so the flat cards were closed at
+    # 2026-08-15. /2 carries a schedule, so the day after is priced again.
     usage = Usage(input=1_000_000, output=1_000_000)
     flat = bill("deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-15")
-    after = bill("deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-16")
+    after = bill(
+        "deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-16T02:00:00Z"
+    )
     assert flat.rate_card_id == "deepseek:deepseek-v4-pro:2026-07-14"
     assert flat.amount_usd == Decimal("1.305")
-    assert after.status == "unknown" and after.rate_card_id is None
+    assert flat.calculation.get("schedule_window") is None
+    assert after.rate_card_id == "deepseek:deepseek-v4-pro:2026-08-16"
+    assert after.status == "complete" and after.amount_usd == Decimal("5.28")
+
+
+@pytest.mark.parametrize(
+    ("moment", "card", "window", "pro", "flash"),
+    [
+        # 2026-08-24 is a Monday: 02:30 UTC is inside peak 01:00-04:00, 07:00
+        # inside peak 06:00-10:00, and 04:00/12:00 are off-peak (half price).
+        ("2026-08-24T02:30:00Z", "2026-08-23", "peak", "5.28", "1.76"),
+        ("2026-08-24T07:00:00Z", "2026-08-23", "peak", "5.28", "1.76"),
+        ("2026-08-24T04:00:00Z", "2026-08-23", "base", "2.64", "0.88"),
+        ("2026-08-24T12:00:00Z", "2026-08-23", "base", "2.64", "0.88"),
+        # Saturday 2026-08-29: off-peak all day under the weekend rule.
+        ("2026-08-29T02:30:00Z", "2026-08-23", "base", "2.64", "0.88"),
+        # The same clock time one week earlier, before the weekend rule took
+        # effect, was still peak: that card scopes its window to every day.
+        ("2026-08-22T02:30:00Z", "2026-08-16", "peak", "5.28", "1.76"),
+    ],
+)
+def test_deepseek_peak_and_off_peak_rates_by_time_of_day(
+    catalog: PricingCatalog, moment: str, card: str, window: str, pro: str, flash: str
+):
+    # Hand-computed from the published per-1M rates on a 1M-in/1M-out call:
+    # pro peak 1.32 + 3.96, pro off-peak 0.66 + 1.98; flash peak 0.44 + 1.32,
+    # flash off-peak 0.22 + 0.66.
+    usage = Usage(input=1_000_000, output=1_000_000)
+    for model, expected in (("deepseek-v4-pro", pro), ("deepseek-v4-flash", flash)):
+        result = bill("deepseek", model, usage, catalog=catalog, effective_at=moment)
+        assert result.rate_card_id == f"deepseek:{model}:{card}"
+        assert result.amount_usd == Decimal(expected)
+        assert result.calculation["schedule_window"] == window
+        assert result.calculation["billed_at"] == moment.replace("Z", "+00:00")
+
+
+def test_deepseek_scheduled_card_priced_from_a_bare_date_uses_base_rates(catalog: PricingCatalog):
+    # A day is not an instant: with no time of day there is no window to select,
+    # so the documented fallback is the card's base (off-peak) rates.
+    usage = Usage(input=1_000_000, output=1_000_000)
+    result = bill("deepseek", "deepseek-v4-pro", usage, catalog=catalog, effective_at="2026-08-24")
+    assert result.rate_card_id == "deepseek:deepseek-v4-pro:2026-08-23"
+    assert result.amount_usd == Decimal("2.64")
+    assert result.calculation["schedule_window"] == "base"
+    assert result.calculation["billed_at"] is None
+
+
+def test_deepseek_aliases_reach_the_scheduled_flash_card(catalog: PricingCatalog):
+    usage = Usage(input=1_000_000, output=1_000_000)
+    for alias in ("deepseek-chat", "deepseek-reasoner"):
+        peak = bill("deepseek", alias, usage, catalog=catalog, effective_at="2026-08-24T02:30:00Z")
+        assert peak.rate_card_id == "deepseek:deepseek-v4-flash:2026-08-23"
+        assert peak.amount_usd == Decimal("1.76")
 
 
 @pytest.mark.parametrize(

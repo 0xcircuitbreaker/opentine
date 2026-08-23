@@ -31,8 +31,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from opentine.billing import PricingCatalog, Usage, bill, load_catalogs
-from opentine.billing._billing_result import BillingResult
+from opentine._pricing_record import bill_record, read_record, record_moment
+from opentine.billing import PricingCatalog, load_catalogs
 from opentine.billing._context import billing_context
 from opentine.billing.types import as_date
 
@@ -109,44 +109,17 @@ class RunPricing:
         }
 
 
-def _record(step: Any) -> tuple[str, str, str, dict[str, Any], str]:
-    """Read ``(kind, provider, model, usage, id)`` off a ``Step`` or a ``TraceEvent``.
+def _card_date(when: date, moment: datetime | None, pinned: bool) -> date:
+    """Which day's rate card prices this step.
 
-    The two carriers of the same recorded facts spell two of them differently
-    (``model_info``/``model``, ``id``/``span_id``); reading both here is what
-    lets ``tine price`` and ``tine import --price`` share one pass.
+    ``tine price --at DATE`` pins it for the whole run ("what would this cost
+    under the cards effective on DATE"). Unpinned, a step is carded on the day it
+    was actually recorded, falling back to the pass's as-of date when the record
+    carries no timestamp. Either way the *window* within the card comes from the
+    step's own instant, so a run spanning peak and off-peak prices each step at
+    the rate it was really billed.
     """
-    kind = getattr(step, "kind", "")
-    model = getattr(step, "model_info", None)
-    identifier = getattr(step, "id", None) or getattr(step, "span_id", "")
-    return (
-        str(getattr(kind, "value", kind) or ""),
-        str(getattr(step, "provider", "") or ""),
-        str((model if model is not None else getattr(step, "model", "")) or ""),
-        dict(getattr(step, "usage", None) or {}),
-        str(identifier),
-    )
-
-
-def _bill_record(
-    provider: str, model: str, usage: dict[str, Any], *, catalog: PricingCatalog, when: date
-) -> BillingResult:
-    # No usage recorded at all (streamed/errored spans often carry none) is
-    # "unknown", not a $0 bill — billing an empty dict fabricates a "complete" $0.
-    if usage:
-        try:
-            return bill(provider, model, Usage.from_dict(usage), catalog=catalog, effective_at=when)
-        except (TypeError, ValueError):
-            pass
-    return BillingResult(
-        UNKNOWN,
-        None,
-        Decimal("0"),
-        catalog.id,
-        catalog.hash,
-        effective_at=when.isoformat(),
-        warnings=("no billable usage recorded; price is unknown",),
-    )
+    return when if pinned or moment is None else moment.date()
 
 
 def price_steps(
@@ -158,6 +131,7 @@ def price_steps(
     """Price every model step from the catalog; report, never write."""
     selected = catalog or load_catalogs()
     when = as_date(effective_at)
+    pinned = effective_at is not None
     prices: list[StepPrice] = []
     by_model: dict[str, Decimal] = {}
     by_provider: dict[str, Decimal] = {}
@@ -166,10 +140,18 @@ def price_steps(
     total = Decimal("0")
     with billing_context():
         for step in steps:
-            kind, provider, model, usage, identifier = _record(step)
+            kind, provider, model, usage, identifier = read_record(step)
             if kind not in PRICEABLE_KINDS:
                 continue
-            result = _bill_record(provider, model, usage, catalog=selected, when=when)
+            moment = record_moment(step)
+            result = bill_record(
+                provider,
+                model,
+                usage,
+                catalog=selected,
+                when=_card_date(when, moment, pinned),
+                billed_at=moment,
+            )
             known = Decimal(str(result.known_subtotal_usd))
             prices.append(
                 StepPrice(
@@ -231,13 +213,22 @@ def price_events(
     """
     selected = catalog or load_catalogs()
     when = as_date(effective_at)
+    pinned = effective_at is not None
     priced: list[Any] = []
     for event in events:
-        kind, provider, model, usage, _ = _record(event)
+        kind, provider, model, usage, _ = read_record(event)
         if kind not in PRICEABLE_KINDS:
             priced.append(event)
             continue
-        result = _bill_record(provider, model, usage, catalog=selected, when=when)
+        moment = record_moment(event)
+        result = bill_record(
+            provider,
+            model,
+            usage,
+            catalog=selected,
+            when=_card_date(when, moment, pinned),
+            billed_at=moment,
+        )
         if result.status in PRICED_STATUSES:
             priced.append(
                 replace(event, cost=float(result.known_subtotal_usd), billing=result.to_dict())

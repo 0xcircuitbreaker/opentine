@@ -14,7 +14,10 @@ from opentine.billing._context import billing_context
 from opentine.billing._immutable import freeze, thaw
 from opentine.billing._rate_normalize import normalize_rate_card
 from opentine.billing._rate_validation import validate_rate_card, validate_rate_card_data
+from opentine.billing._schedule import schedule_to_json
 from opentine.billing._values import as_date as as_date
+from opentine.billing._values import as_datetime as as_datetime
+from opentine.billing._values import billing_moment as billing_moment
 from opentine.billing._values import decimal as decimal
 
 Number = int | float | Decimal
@@ -134,11 +137,16 @@ class RateCard:
     verified_at: date | None = None
     unmetered: bool = False
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    #: Optional time-of-day rate windows (``opentine-pricing/2``). Last, so no
+    #: positional construction of the /1 fields shifts. Empty means "price from
+    #: ``rates`` at every hour", which is what every /1 card means.
+    schedule: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         normalize_rate_card(self)
         validate_rate_card(self)
         groups = [self.rates, *self.service_rates.values()]
+        groups.extend(window["rates"] for window in self.schedule)
         scalars = [self.currency_to_usd]
         for modifier in self.service_modifiers.values():
             groups.append(modifier) if isinstance(modifier, Mapping) else scalars.append(modifier)
@@ -163,7 +171,11 @@ class RateCard:
         }
 
     def to_dict(self) -> dict[str, Any]:
+        # ``schedule`` is emitted only when the card has one, so every existing
+        # (unscheduled) card serializes byte-identically to what /1 produced.
+        scheduled = {"schedule": schedule_to_json(self.schedule)} if self.schedule else {}
         return {
+            **scheduled,
             "id": self.id,
             "provider": self.provider,
             "model": self.model,
@@ -228,4 +240,5 @@ class RateCard:
             verified_at=as_date(data["verified_at"]) if data.get("verified_at") else None,
             unmetered=bool(data.get("unmetered", False)),
             metadata=dict(data.get("metadata") or {}),
+            schedule=tuple(data.get("schedule") or ()),
         )
