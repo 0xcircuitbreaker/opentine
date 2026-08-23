@@ -1,4 +1,4 @@
-"""Run, show, and cost commands."""
+"""Run, show, cost, and post-hoc price commands."""
 
 from __future__ import annotations
 
@@ -26,8 +26,10 @@ from opentine._cli_flags import (
     refuse_unhonoured,
 )
 from opentine._cli_json import emit_cost, emit_show
+from opentine._cli_json_pricing import emit_price
 from opentine._cli_render import _budget_str, _print_run_tree, _save_run_receipt
 from opentine._cli_run_model import cmd_run_model
+from opentine._pricing_pass import price_run
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
@@ -122,12 +124,17 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
     _save_run_receipt(run, args.save, force=True)
 
 
-def cmd_show(args: argparse.Namespace) -> None:
-    path = _find_run(args.run_id)
+def _loaded_run(run_id: str) -> tuple[Path, Run]:
+    """Resolve a run reference to its artifact, or refuse with the one message."""
+    path = _find_run(run_id)
     if not path:
-        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
+        console.print(f"[red]Run not found: {_terminal(run_id)}[/]")
         raise SystemExit(1)
-    run = Run.load(path)
+    return path, Run.load(path)
+
+
+def cmd_show(args: argparse.Namespace) -> None:
+    path, run = _loaded_run(args.run_id)
     if getattr(args, "json", False):
         emit_show(run, path)
         return
@@ -135,11 +142,7 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 
 def cmd_cost(args: argparse.Namespace) -> None:
-    path = _find_run(args.run_id)
-    if not path:
-        console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
-        raise SystemExit(1)
-    run = Run.load(path)
+    _, run = _loaded_run(args.run_id)
     if getattr(args, "json", False):
         # Same exit status as the human path: a breached budget is a failure.
         if emit_cost(run):
@@ -170,3 +173,42 @@ def cmd_cost(args: argparse.Namespace) -> None:
             f"{_terminal(state.get('incurred'))} > {_terminal(state.get('limit'))}"
         )
         raise SystemExit(1)
+
+
+def cmd_price(args: argparse.Namespace) -> None:
+    """Re-price a recorded run from the catalog, without touching the artifact.
+
+    The sibling of ``tine cost``, not a duplicate of it: ``cost`` sums the price
+    each step *recorded at capture*, so an imported or uncosted run sums to
+    $0.00; ``price`` recomputes from (provider, model, usage) and therefore also
+    prices imported runs, and re-prices any run under a corrected or past
+    catalog. A step no rate card covers is reported unknown, never as free.
+    """
+    _, run = _loaded_run(args.run_id)
+    try:
+        pricing = price_run(run, effective_at=getattr(args, "at", None))
+    except ValueError as exc:
+        console.print(f"[red]Cannot price:[/] {_terminal(exc)}")
+        raise SystemExit(1) from exc
+    if getattr(args, "json", False):
+        emit_price(run, pricing)
+        return
+    console.print(
+        f"[{BRAND}]# Price[/] {_terminal(short_id(run.id))} "
+        f"total={_cost_str(pricing.total_cost)} "
+        f"priced={pricing.priced_steps} unknown={pricing.unknown_steps} "
+        f"[{BRAND_DIM}]at[/] {_terminal(pricing.effective_at)}"
+    )
+    if pricing.by_model:
+        table = Table(title="By model (post-hoc)", border_style=BRAND_DIM)
+        table.add_column("Model")
+        table.add_column("Cost", justify="right")
+        for name, cost in sorted(pricing.by_model.items(), key=lambda item: item[1], reverse=True):
+            table.add_row(_terminal(name or "-"), _cost_str(cost))
+        console.print(table)
+    if pricing.unknown_models:
+        console.print(
+            f"[yellow]Unpriced:[/] {_terminal(', '.join(pricing.unknown_models))} "
+            f"[{BRAND_DIM}](no rate card; unknown, not free)[/]"
+        )
+    console.print(f"[{BRAND_DIM}]Catalog:[/] {_terminal(pricing.catalog_id)}")

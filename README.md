@@ -561,7 +561,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.7.2
 
 ## CLI Reference
 
-`tine` ships 38 subcommands. Each one prints its own `--help`, which is
+`tine` ships 39 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted.
 
 Portable `.tine` artifacts:
@@ -571,7 +571,8 @@ tine run <script.py>                  Execute a Python script and save the Run i
 tine run --model anthropic --prompt P Call a bundled model adapter directly, no script
 tine run --harness codex --prompt P   Record an external CLI agent as a run
 tine show <run>                       Pretty-print a run tree
-tine cost <run>                       Show cost, tokens, and budget state
+tine cost <run>                       Show cost, tokens, and budget state as recorded
+tine price <run> --at 2026-07-15      Re-price a run from the catalog (also prices imports)
 tine verify <run>                     Verify integrity, and authenticity when a key is given
 tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
 tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
@@ -593,6 +594,7 @@ Interoperability:
 tine import <trace> --format otel-json --save run.tine
 tine import - --format jsonl --repo . --ref heads/main
 tine import agent.log --format langchain --save run.tine
+tine import <trace> --format otel-json --price --save run.tine   # price it from the catalog
 tine export <run> > spans.json
 tine export <run> --output spans.json
 tine export <run> --endpoint http://127.0.0.1:4318          # local OTLP collector
@@ -629,10 +631,10 @@ Exporting is read-only: the artifact is never rewritten.
 Machine-readable output:
 
 ```text
-tine show|verify|ls|search|stats|cost ... --json
+tine show|verify|ls|search|stats|cost|price ... --json
 tine replay <run> --verify --json
 tine diff <run_a> <run_b> [--json] [--exit-code]
-tine import <trace> --format FMT [--save PATH] [--repo PATH] --json
+tine import <trace> --format FMT [--save PATH] [--repo PATH] [--price] --json
 tine tag <run> [--list] --json
 tine pricing list|show|check|update ... --json
 tine repo-log|repo-show|repo-diff|repo-search|context ... --json

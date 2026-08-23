@@ -30,36 +30,42 @@ behind that the user did not ask for. Environment and code capture is off: the
 provenance of an imported trace belongs to the machine that produced it, not to
 the one running ``tine import``.
 
+Pricing
+-------
+``--price``        run the post-hoc pricing pass (:mod:`opentine._pricing_pass`)
+                   over the parsed events before any of them is written, so the
+                   model steps land carrying the catalog's cost and billing
+                   record. A step no rate card covers is recorded ``unknown``,
+                   not ``$0.00``, and a cost the source itself reported is kept.
+                   Without the flag import behaviour is unchanged.
+
 With ``--json`` the human lines are replaced by one object naming the run and
 both targets; its schema is documented in :mod:`opentine._cli_json_surface`.
+
+Reading and routing ``SOURCE`` lives in :mod:`opentine._cli_import_read`, whose
+``read_events`` is re-exported here as the entry point it has always been.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
-import sys
 import tempfile
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
+from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spelling of "-"
+from opentine._cli_import_read import read_events as read_events  # re-exported entry point
 from opentine._cli_json_surface import emit_import
+from opentine._pricing_pass import price_events
 from opentine.core import Run
 from opentine.repo import Repo
-from opentine.trace.importers import (
-    MAX_TRACE_IMPORT_BYTES,
-    framework_events,
-    jsonl_events,
-    otel_genai_events,
-)
 from opentine.trace.recorder import Recorder
 from opentine.trace.schema import TraceEvent
 
 FRAMEWORK_FORMATS = ("langchain", "llamaindex", "autogen", "crewai", "openai-agents")
 IMPORT_FORMATS = ("otel-json", "otel-spans", "jsonl", *FRAMEWORK_FORMATS)
 DEFAULT_REF = "heads/main"
-STDIN = "-"
 
 
 def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
@@ -80,6 +86,11 @@ def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
     )
     parser.add_argument(
         "--force", action="store_true", help="Replace an existing --save destination"
+    )
+    parser.add_argument(
+        "--price",
+        action="store_true",
+        help="Price the imported model steps from the catalog before the run is written",
     )
     return parser
 
@@ -107,61 +118,6 @@ def _refuse_unusable_flags(args: argparse.Namespace) -> None:
             mode="without --save",
             hint="--force replaces an existing artifact; a repository import advances a ref.",
         )
-
-
-def _read_text(source: str) -> str:
-    """Read the whole source, refusing more than one importer payload's worth."""
-    if source == STDIN:
-        # .buffer for a real pipe; a text stream (a redirect, or a host that
-        # substituted stdin) is read as text instead of raising AttributeError.
-        data = getattr(sys.stdin, "buffer", sys.stdin).read(MAX_TRACE_IMPORT_BYTES + 1)
-    else:
-        path = Path(source)
-        if path.stat().st_size > MAX_TRACE_IMPORT_BYTES:
-            raise ValueError("trace import exceeds aggregate payload limit")
-        data = path.read_bytes()
-    if len(data) > MAX_TRACE_IMPORT_BYTES:
-        raise ValueError("trace import exceeds aggregate payload limit")
-    return data.decode("utf-8", "replace") if isinstance(data, bytes) else data
-
-
-def _records(text: str) -> list:
-    """Decode a JSON array, a single JSON object, or one JSON object per line.
-
-    Whole-document parsing is tried first, so a pretty-printed array spanning
-    many lines is not mistaken for JSONL; JSONL only reaches the per-line path
-    because the concatenation is not itself valid JSON.
-    """
-    try:
-        decoded = json.loads(text)
-    except ValueError:
-        pass
-    else:
-        return decoded if isinstance(decoded, list) else [decoded]
-    records = []
-    for number, line in enumerate(text.splitlines(), start=1):
-        if not line.strip():
-            continue
-        try:
-            records.append(json.loads(line))
-        # The decoder counts lines within the fragment it was handed, so on its
-        # own it reports "line 1" for every bad record in the file.
-        except ValueError as exc:
-            raise ValueError(f"line {number} is not valid JSON: {exc}") from exc
-    return records
-
-
-def read_events(source: str, source_format: str) -> list[TraceEvent]:
-    """Route *source* to the importer named by *source_format*."""
-    if source_format == "jsonl":
-        # The JSONL importer does its own bounded, streaming read of a path.
-        return jsonl_events(sys.stdin if source == STDIN else source)
-    text = _read_text(source)
-    if source_format == "otel-json":
-        return otel_genai_events(json.loads(text))
-    if source_format == "otel-spans":
-        return otel_genai_events(_records(text))
-    return framework_events(_records(text), source_format)
 
 
 def _record(repo: Repo, events: list[TraceEvent], ref: str) -> str:
@@ -207,6 +163,14 @@ def cmd_import(args: argparse.Namespace) -> None:
             f"as --format {_terminal(args.format)}.[/]"
         )
         raise SystemExit(1)
+    if getattr(args, "price", False):
+        # Before the first blob is written, on records no store has seen: the
+        # price lands as part of the initial recording of these steps, never as
+        # a rewrite of a stored, content-addressed event.
+        try:
+            events = price_events(events)
+        except (OSError, ValueError) as exc:
+            raise _refused(exc) from exc
     try:
         if args.repo:
             repo = Repo.open(args.repo)
