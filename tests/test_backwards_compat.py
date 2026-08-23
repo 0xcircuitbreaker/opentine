@@ -106,6 +106,27 @@ GOLDEN = (
         repo_fork_oid="run:sha256:781737c53337a95bc8a91525b85c99dd7d0f2f4660f0f41c0b5bad2a63434ea9",
         fork_records_identity=True,
     ),
+    Golden(
+        version="v0_7_1",
+        fork_id="77162e5ac24b8ba07e8a006fb3299dc8ed1360aaf59a5ea63aa526a1e57f2614",
+        repo_main_oid="run:sha256:cb5b1c0cbc5de2ccf8ef7c1f9a473d9173dbc435ac3a47a0423f8fc4fe9970b5",
+        repo_fork_oid="run:sha256:0e65536b7b0823559876d3581fca115f3aa7e9d3594cc5854e3fde559ba2208c",
+        fork_records_identity=True,
+    ),
+    Golden(
+        version="v0_7_2",
+        fork_id="bdc70c75c76c731f879dd3458584d865583e4d5f3a41f2675fcc0abbbc4519ed",
+        repo_main_oid="run:sha256:bd3dc5e4fa71df5cf84cd7e7ad45df967935f51f05d8aa7ed54d3fb8d7675919",
+        repo_fork_oid="run:sha256:bc06d701d123562dcff173c948f708b6f4788ae571eb23a27b83e921ea0e45ae",
+        fork_records_identity=True,
+    ),
+    Golden(
+        version="v0_8_0",
+        fork_id="22777ff6385df790d0b44a1c76b0cd89c994211f9f636bdda78e4b5ef7ade188",
+        repo_main_oid="run:sha256:6714cfc5fdb3ec5d670663cf7383b86778d67072abb8dea6feb3e308027292e2",
+        repo_fork_oid="run:sha256:20bd3d1f21bda6d1289cd6653722fa38af7e0dcf07069668b1c2b3494967016a",
+        fork_records_identity=True,
+    ),
 )
 
 VERSIONED = pytest.mark.parametrize("golden", GOLDEN, ids=[item.version for item in GOLDEN])

@@ -1,0 +1,96 @@
+{
+  "cache": {},
+  "created_at": 1767225600.0,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "203c1250b2daa7d5497a4f6712a2abf9e91fc7517b249518dadc3501bca9e2fb",
+      "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99"
+    ],
+    "steps": {
+      "203c1250b2daa7d5497a4f6712a2abf9e91fc7517b249518dadc3501bca9e2fb": {
+        "cost": 0.012,
+        "duration": 0.0,
+        "error": {},
+        "id": "203c1250b2daa7d5497a4f6712a2abf9e91fc7517b249518dadc3501bca9e2fb",
+        "inputs": {
+          "text": "draft the summary"
+        },
+        "kind": "model",
+        "model_info": "anthropic/claude-sonnet-5",
+        "outputs": {
+          "text": "v0.8.0 shipped a golden compatibility fixture"
+        },
+        "parent_ids": [],
+        "timestamp": 1767225600.0,
+        "tool_info": {},
+        "usage": {
+          "input": 120,
+          "output": 60
+        }
+      },
+      "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99",
+        "inputs": {
+          "query": "changelog lookup"
+        },
+        "kind": "tool",
+        "model_info": "",
+        "outputs": {
+          "result": "release notes"
+        },
+        "parent_ids": [
+          "203c1250b2daa7d5497a4f6712a2abf9e91fc7517b249518dadc3501bca9e2fb"
+        ],
+        "timestamp": 1767225601.0,
+        "tool_info": {
+          "arguments": {
+            "q": "changelog"
+          },
+          "name": "search"
+        }
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "fork": {
+      "branch": "main",
+      "intent": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "nonce": "",
+      "point": "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99",
+      "slice": "502a913c922706c25ccd5d7100d8f368db1b01b0c8af7a64eee35d8a34e5a7db",
+      "slice_size": 2,
+      "source": "compat-fork-source-v0_8_0",
+      "source_digest": "3f8c8f8d0f84dbfaa4a6ba008c3386fafc2cc4ba96b7823141d92ea124be1835",
+      "version": 1
+    },
+    "fork_point": "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99",
+    "forked_from": "compat-fork-source-v0_8_0",
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "30403d841a5667c3ef032555d61e3c243eb927156ecb738275b8f8597347f0f6"
+    },
+    "model_info": "anthropic/claude-sonnet-5",
+    "note": "golden 0.8.0 cross-version fixture",
+    "project": "opentine",
+    "system_prompt": "You are a careful release assistant.",
+    "user_prompt": "Summarize what shipped in this release."
+  },
+  "policies": {},
+  "refs": {
+    "fork_point": "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99",
+    "main": "828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99"
+  },
+  "run_id": "22777ff6385df790d0b44a1c76b0cd89c994211f9f636bdda78e4b5ef7ade188",
+  "status": "running",
+  "transcript": [
+    {
+      "content": "Summarize what shipped in this release.",
+      "role": "user"
+    }
+  ]
+}
