@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.8.0 — 2026-08-22
+
+The Model-Agnostic Core. OpenTine records `(provider, model, usage)` as opaque
+data, and cost is now a **post-hoc function of that record** — a signed catalog
+turns it into dollars, after the fact, for any run, native or imported. The model
+layer is an optional capture convenience; the OpenTelemetry importer is the
+universal, model-agnostic on-ramp that needs no adapter and no rate card. Stored
+data stays readable: every artifact and repository written by 0.3.0 through 0.7.2
+still loads.
+
+### Added
+
+- **`provider` is a recorded field.** Every step records its provider alongside
+  model and usage; imported OTel runs read it from `gen_ai.system` /
+  `gen_ai.provider.name`, so a run's identity survives independent of how it was
+  captured. It is opaque recorded content — verify, fork, diff, and replay never
+  branch on it — and additive: pre-0.8.0 artifacts load with an empty provider and
+  re-serialize byte-identically.
+- **`tine price` — cost after the fact.** Recompute a run's cost from the catalog
+  (optionally as of a past date with `--at`), distinct from `tine cost`, which
+  sums the cost recorded at capture. It prices imported and uncosted runs that
+  `tine cost` shows as `$0`, carrying the catalog's status through verbatim — an
+  uncarded step, a step with no provider, and a step that recorded no usage each
+  report `unknown`, never a fabricated `$0`. `tine import --price` bakes catalog
+  prices into an OTel import before anything is written.
+- **Time-of-day pricing (`opentine-pricing/2`).** Rate cards can carry a
+  peak/off-peak schedule (UTC hour windows + a weekday/weekend scope); DeepSeek V4
+  is priced correctly again after it moved to peak/off-peak billing. Additive —
+  every other card prices identically, and `/1` catalogs and overlays still load.
+- **Local model servers are one command away.** vLLM, LM Studio, SGLang, TGI,
+  LiteLLM, MLX-LM, NVIDIA NIM, TensorRT-LLM, KoboldCpp, Jan, LocalAI, Unsloth, and
+  llama.cpp are now `tine run --model <name>`-nameable (16 → 30 providers), each
+  at its conventional localhost URL, recorded unmetered like Ollama.
+
+### Changed
+
+- `provider` is surfaced in `--json` step views and `tine diff`. The README and
+  concepts docs state the model-agnostic core outright and document `models/` as
+  the optional capture convenience beside OTel as the universal on-ramp.
+
 ## 0.7.2 — 2026-08-17
 
 The catalog &amp; trace patch. Source-confirmed pricing refresh, and the last OTel
