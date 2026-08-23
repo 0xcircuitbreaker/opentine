@@ -1,0 +1,129 @@
+{
+  "cache": {},
+  "created_at": 1767225600.0,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "cf63265513419d5144cda90719ae0f27b749951c277fddcf364b438ff1389571",
+      "9685f63f51ca48d4c145b2d5b9788bac63a4b8f7865322e9def2a7bd76c0458b",
+      "9c761e26281317e3888b29fdf382f94d41e8a0ce4f4bfda68afb8be9f8ad1ec9",
+      "7f66ef871bfc40f6550f80f4ddc385905e8f5964c1ce3d925bf7268257508d56"
+    ],
+    "steps": {
+      "7f66ef871bfc40f6550f80f4ddc385905e8f5964c1ce3d925bf7268257508d56": {
+        "cost": 0.004,
+        "duration": 0.0,
+        "error": {},
+        "id": "7f66ef871bfc40f6550f80f4ddc385905e8f5964c1ce3d925bf7268257508d56",
+        "inputs": {
+          "text": "final summary"
+        },
+        "kind": "done",
+        "model_info": "",
+        "outputs": {
+          "text": "Summary complete."
+        },
+        "parent_ids": [
+          "9c761e26281317e3888b29fdf382f94d41e8a0ce4f4bfda68afb8be9f8ad1ec9"
+        ],
+        "timestamp": 1767225603.0,
+        "tool_info": {},
+        "usage": {
+          "input": 30,
+          "output": 15
+        }
+      },
+      "9685f63f51ca48d4c145b2d5b9788bac63a4b8f7865322e9def2a7bd76c0458b": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "9685f63f51ca48d4c145b2d5b9788bac63a4b8f7865322e9def2a7bd76c0458b",
+        "inputs": {
+          "query": "changelog lookup"
+        },
+        "kind": "tool",
+        "model_info": "",
+        "outputs": {
+          "result": "release notes"
+        },
+        "parent_ids": [
+          "cf63265513419d5144cda90719ae0f27b749951c277fddcf364b438ff1389571"
+        ],
+        "timestamp": 1767225601.0,
+        "tool_info": {
+          "arguments": {
+            "q": "changelog"
+          },
+          "name": "search"
+        }
+      },
+      "9c761e26281317e3888b29fdf382f94d41e8a0ce4f4bfda68afb8be9f8ad1ec9": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "9c761e26281317e3888b29fdf382f94d41e8a0ce4f4bfda68afb8be9f8ad1ec9",
+        "inputs": {
+          "text": "reconcile the notes"
+        },
+        "kind": "think",
+        "model_info": "",
+        "outputs": {},
+        "parent_ids": [
+          "9685f63f51ca48d4c145b2d5b9788bac63a4b8f7865322e9def2a7bd76c0458b"
+        ],
+        "timestamp": 1767225602.0,
+        "tool_info": {}
+      },
+      "cf63265513419d5144cda90719ae0f27b749951c277fddcf364b438ff1389571": {
+        "cost": 0.012,
+        "duration": 0.0,
+        "error": {},
+        "id": "cf63265513419d5144cda90719ae0f27b749951c277fddcf364b438ff1389571",
+        "inputs": {
+          "text": "draft the summary"
+        },
+        "kind": "model",
+        "model_info": "anthropic/claude-sonnet-5",
+        "outputs": {
+          "text": "v0.7.2 shipped a golden compatibility fixture"
+        },
+        "parent_ids": [],
+        "timestamp": 1767225600.0,
+        "tool_info": {},
+        "usage": {
+          "input": 120,
+          "output": 60
+        }
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "2aa18b24e2cd1115001092f80b319c8b8e6093cb4ad9891eb97cc06b61bb349d"
+    },
+    "model_info": "",
+    "note": "golden 0.7.2 cross-version fixture",
+    "project": "opentine",
+    "system_prompt": "You are a careful release assistant.",
+    "tags": [
+      "compat",
+      "golden",
+      "release"
+    ],
+    "user_prompt": "Summarize what shipped in this release."
+  },
+  "policies": {},
+  "refs": {
+    "main": "7f66ef871bfc40f6550f80f4ddc385905e8f5964c1ce3d925bf7268257508d56"
+  },
+  "run_id": "compat-artifact-v0_7_2",
+  "status": "completed",
+  "transcript": [
+    {
+      "content": "Summarize what shipped in this release.",
+      "role": "user"
+    }
+  ]
+}
