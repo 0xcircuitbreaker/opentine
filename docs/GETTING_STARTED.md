@@ -63,9 +63,13 @@ tine run --model openai:gpt-5.6 --prompt "Explain the current branch" --save fir
 ```
 
 The providers `--model` accepts are `anthropic`, `google`, `ollama`, and
-`openai` plus the hosted OpenAI-compatible adapters `deepseek`, `glm`, `grok`,
+`openai`; the hosted OpenAI-compatible adapters `deepseek`, `glm`, `grok`,
 `groq`, `hermes`, `kimi`, `ministral`, `mistral`, `openrouter`, `qwen`,
-`together`, and `zai`. A name outside that set is refused with the full list
+`together`, and `zai`; and the local OpenAI-compatible runtimes `jan`,
+`koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`, `localai`,
+`mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`, and `vllm`,
+each of which needs no key and points at the localhost URL its server
+conventionally listens on. A name outside that set is refused with the full list
 rather than guessed at.
 
 Without `--save` the run is written to `.tine_runs/<run-id>.tine` and the id is
@@ -93,8 +97,14 @@ run.save("first.tine")
 ```bash
 tine show first.tine       # the run tree: model steps, tool calls, outcomes
 tine cost first.tine       # cost, tokens, and budget state
+tine price first.tine      # re-derive the cost now, from what was recorded
 tine verify first.tine     # recompute the integrity digest
 ```
+
+`tine cost` reports the cost recorded at capture; `tine price` recomputes it
+post-hoc from the run's `(provider, model, usage)` against the pricing catalog —
+`--at YYYY-MM-DD` prices against the catalog effective that day — and writes
+nothing. That is how a run imported from somebody else's trace gets a price.
 
 `tine verify` checks the integrity digest only until you ask for more. It fails
 closed the moment any of `--key-env`, `--key-file`, `--pubkey`,

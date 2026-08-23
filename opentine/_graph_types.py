@@ -50,8 +50,10 @@ class Step:
     #: step *is*, and hashing it would change every legacy id.
     causal_ids: list[str] = field(default_factory=list)
     #: Who served the call ("anthropic", "glm-cn", ...). Recorded content, never
-    #: read by verify/fork/diff/replay: it is the identity half of ``model_info``,
-    #: so cost stays a post-hoc function of the record instead of of the adapter.
+    #: read by verify/fork/replay and never part of an id: it is the identity
+    #: half of ``model_info``, so cost stays a post-hoc function of the record
+    #: instead of of the adapter. ``tine diff`` reports a change in it the way
+    #: it reports any other recorded field.
     provider: str = ""
     v3_kind: str | None = None
 

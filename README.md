@@ -101,10 +101,24 @@ tine run --model openai:gpt-5.6 --prompt "Explain the current branch" --save res
 
 `--model` takes `provider` or `provider:model`; without a model id the adapter
 keeps its own default. Valid providers are `anthropic`, `openai`, `google`, and
-`ollama` plus every hosted OpenAI-compatible adapter — `deepseek`, `glm`/`zai`,
+`ollama`; every hosted OpenAI-compatible adapter — `deepseek`, `glm`/`zai`,
 `grok`, `groq`, `hermes`, `kimi`, `ministral`, `mistral`, `openrouter`, `qwen`,
-and `together`. A name outside that list is reported with the full list. The
-mode is exclusive with a script argument and with `--harness`.
+and `together`; and every local OpenAI-compatible runtime — `jan`, `koboldcpp`,
+`litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`, `localai`, `mlx-lm`,
+`nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`, and `vllm`, each of
+which resolves to the localhost URL its server conventionally listens on:
+
+```bash
+tine run --model vllm:served-model --prompt "Explain the current branch"
+tine run --model lmstudio --prompt "Explain the current branch"
+```
+
+A local runtime has no rate card, so its runs record usage with the API cost
+`unmetered` — the same treatment `ollama` gets; naming one buys capture, not a
+price. (`litellm` is the exception: it proxies possibly-paid backends, so it
+reports `unknown` cost rather than `unmetered`.) A name outside the list is
+reported with the full list. The mode is exclusive with a script argument and
+with `--harness`.
 
 For anything with tools, a budget, or more than one prompt, build the agent
 yourself:
@@ -130,6 +144,34 @@ tine diff result.tine retry.tine
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
 fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.7.2/docs/TINE_FORMAT.md).
+
+## The model-agnostic core
+
+OpenTine records `(provider, model, usage)` on every step as **opaque data**. It
+does not have to recognize the provider, the model id, or the shape of the usage
+dictionary to store them, and nothing in the kernel — verify, fork, diff, replay
+— reads them. Dollars are applied afterwards, by a separate signed catalog:
+
+```bash
+tine cost run.tine                    # the cost recorded at capture time
+tine price run.tine                   # re-derive it now from (provider, model, usage)
+tine price run.tine --at 2026-07-15   # …against the catalog effective that day
+tine import trace.json --format otel-json --price --save run.tine
+```
+
+`tine cost` sums what was recorded when the run happened; `tine price` computes
+the cost post-hoc from the record and writes nothing, so an imported or uncosted
+run can be priced too, and a step no card covers is reported `unknown` rather
+than as free. A provider OpenTine has never heard of still produces a complete,
+verifiable, diffable, forkable run — and becomes priceable the day someone
+writes a card for it, with no new release and no adapter.
+
+So `opentine.models` is a **capture convenience**, not the boundary of what
+OpenTine supports: it is there so a first run costs one command, not because a
+run has to come from it. The universal, model-agnostic on-ramp is
+OpenTelemetry GenAI — `tine import --format otel-json` needs no adapter, no key,
+and no rate card, and prices the result afterwards if you ask it to. See
+[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.7.2/docs/CAPTURE.md).
 
 ## Universal usage and billing
 
@@ -229,7 +271,15 @@ Ollama retains token counts plus load/evaluation timing.
 
 OpenTine has native Ollama support and one exact-base OpenAI-compatible surface
 for the broader local ecosystem. The named presets are conveniences, not
-separate protocol forks:
+separate protocol forks — and each one is also a `tine run --model` word, so a
+server already listening on localhost is one command away with no Python:
+
+```bash
+tine run --model sglang:served-model --prompt "…"   # http://localhost:30000/v1
+```
+
+The CLI word is the preset's own recorded `provider` string, and the same
+adapters are available in Python:
 
 ```python
 from opentine.models.compat import LMStudio, LocalOpenAICompatible, OpenAICompatible, SGLang
@@ -283,6 +333,13 @@ Common compatible endpoints are:
 | KoboldCpp | `http://localhost:5001/v1` | `KoboldCpp` |
 | text-generation-webui | `http://localhost:5000/v1` | `LocalOpenAICompatible` |
 | MLC-LLM and llama-swap | configured server base, usually `/v1` | `LocalOpenAICompatible` |
+
+Every row above that names a preset class is also a CLI provider word —
+`jan`, `koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`,
+`localai`, `mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`,
+`vllm` — resolving to exactly the base above. The rows answered by
+`LocalOpenAICompatible` or an exact `base_url` stay Python-only: there is no
+conventional host for `tine run --model` to assume.
 
 Model IDs, tool calling, reasoning fields, multimodal input, and usage reporting
 depend on the loaded model, chat template, runtime version, and server flags.

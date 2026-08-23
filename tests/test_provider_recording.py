@@ -173,3 +173,59 @@ def test_an_imported_provider_reaches_the_recorded_step(tmp_path):
     run = recorder.repo.load_run(recorder.finalize())
 
     assert [step.provider for step in run.steps] == ["openai"]
+
+
+# --- WS6: the two CLI contracts that surface it --------------------------------
+
+
+def _one_step_run(run_id: str, *, provider: str = "", model: str = "some-model") -> Run:
+    run = Run(id=run_id, model_info=model)
+    run.add_step(
+        StepKind.model, {"text": "hi"}, {"text": "yo"}, model_info=model, provider=provider
+    )
+    return run
+
+
+def test_the_json_step_view_carries_the_provider(tmp_path, capsys):
+    """``tine show --json`` is the machine view of a step; identity belongs in it."""
+    from opentine import cli
+
+    run = _one_step_run("provider-json", provider="glm-cn")
+    run.add_step(StepKind.tool, {"text": "grep"}, tool_info={"name": "grep"})
+    path = run.save(tmp_path / "run.tine")
+
+    cli.main(["show", str(path), "--json"])
+
+    steps = json.loads(capsys.readouterr().out)["steps"]
+    # Additive: the step that never named a provider reports ``""``, not a
+    # missing key, so a reader can rely on the field being there.
+    assert [step["provider"] for step in steps] == ["glm-cn", ""]
+
+
+def test_repo_diff_reports_a_changed_provider(tmp_path, capsys):
+    """The same model id served by someone else is a difference worth naming."""
+    from opentine import cli
+
+    repo = Repo.init(tmp_path / "repo")
+    repo.put_run(_one_step_run("served-here", provider="deepseek"), ref="heads/main")
+    repo.put_run(_one_step_run("served-there", provider="openrouter"), ref="heads/other")
+
+    cli.main(["repo-diff", "heads/main", "heads/other", "--repo", str(tmp_path / "repo"), "--json"])
+
+    changed = json.loads(capsys.readouterr().out)["changed"]
+    assert [change["fields"] for change in changed] == [["provider"]]
+
+
+def test_two_runs_with_no_provider_do_not_diff_on_it(tmp_path, capsys):
+    """The compatibility half: ``""`` against ``""`` is not a change, and a run
+    that differs elsewhere must not grow a spurious ``provider`` field."""
+    from opentine import cli
+
+    repo = Repo.init(tmp_path / "repo")
+    repo.put_run(_one_step_run("no-provider-left", model="one"), ref="heads/main")
+    repo.put_run(_one_step_run("no-provider-right", model="two"), ref="heads/other")
+
+    cli.main(["repo-diff", "heads/main", "heads/other", "--repo", str(tmp_path / "repo"), "--json"])
+
+    changed = json.loads(capsys.readouterr().out)["changed"]
+    assert [change["fields"] for change in changed] == [["model"]]

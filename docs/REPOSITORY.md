@@ -191,7 +191,7 @@ and the human rendering is the default.
 | | `ref` | str | the ref or run oid as the caller spelled it |
 | | `run_object_id` | str | the `run:sha256:…` oid `ref` resolved to |
 | | `run` | object | `id`, `status`, `model`, `created_at`, `total_cost`, `step_count`, `tags`, `user_prompt`, `system_prompt` |
-| | `steps` | array | the `tine show --json` step shape — `id`, `kind`, `parent_ids`, `model`, `cost`, `duration`, `timestamp`, `inputs`, `outputs`, `usage`, `billing`, `error`, `tool` — where `id` is the event's v3 oid |
+| | `steps` | array | the `tine show --json` step shape — `id`, `kind`, `parent_ids`, `provider`, `model`, `cost`, `duration`, `timestamp`, `inputs`, `outputs`, `usage`, `billing`, `error`, `tool` — where `id` is the event's v3 oid |
 | `context` | `command` | str | `"context"` |
 | | `repo` | str | repository the slice was read from |
 | | `event` | str | the event oid the slice was requested for |

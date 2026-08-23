@@ -15,7 +15,8 @@ the details rather than restating them.
 9. [Diff](#diff)
 10. [Attest, evaluate, promote](#attest-evaluate-promote)
 11. [Cost](#cost)
-12. [Vocabulary](#vocabulary)
+12. [The model-agnostic core](#the-model-agnostic-core)
+13. [Vocabulary](#vocabulary)
 
 ## A run is a graph, not a transcript
 
@@ -180,8 +181,10 @@ and the two artifacts compared, which is how a nondeterministic agent is caught.
 
 Diff is semantic, not textual. It reports the events the two runs share, the
 events only one side has, and — for divergent events at the same position — the
-fields that changed, alongside cost, latency, tool path, usage, billing,
-artifacts, and evaluation scores.
+fields that changed (kind, provider, model, cost, duration, usage, billing,
+inputs, outputs, artifacts, tool), alongside cost, latency, tool path, usage,
+billing, artifacts, and evaluation scores. The same prompt served by a different
+provider is a difference the diff names, not one it has to be told about.
 
 The exact common/only sets use object identity. The `changed` pairs are a
 sequence-position comparison of divergent events, not a causal merge alignment.
@@ -237,6 +240,39 @@ invoice, so a total is an estimate tied to the catalog it was read from — whic
 is why every `tine pricing … --json` payload names the `catalog_id` and
 `catalog_hash` it answered from. See [PRICING.md](PRICING.md).
 
+## The model-agnostic core
+
+A run records `(provider, model, usage)` on every node as **opaque data**.
+OpenTine does not have to recognize the provider string, the model id, or the
+keys of the usage dictionary in order to store, hash, verify, fork, diff, or
+replay them — nothing in the kernel reads them. They are recorded content, like
+a prompt.
+
+Dollars come afterwards, from a separate signed catalog:
+
+| Command | Question it answers |
+|---|---|
+| `tine cost <run>` | what did this run record as its cost when it happened? |
+| `tine price <run> [--at DATE]` | what does that record cost against the catalog (effective on `DATE`)? |
+| `tine import <trace> --price` | price a trace from somewhere else as it arrives |
+
+`tine price` writes nothing and needs no adapter: it re-derives cost from the
+record, so a run imported from someone else's trace — which never had a cost —
+can be priced, and a step no card covers is reported `unknown` rather than as
+free. A provider OpenTine has never heard of still produces a complete,
+verifiable, diffable, forkable run, and becomes priceable the day a card exists
+for it, with no new release.
+
+That is why `opentine.models` is a **capture convenience** rather than the
+boundary of what OpenTine supports. The adapters exist so a first run costs one
+command — including the local OpenAI-compatible runtimes (`vllm`, `lmstudio`,
+`sglang`, `tgi`, `llamacpp`, `jan`, `localai`, `unsloth`, `mlx-lm`,
+`nvidia-nim`, `tensorrt-llm`, `koboldcpp`, `litellm`, `llama-cpp-python`), which
+need no key and no card. The **universal** on-ramp is OpenTelemetry GenAI:
+`tine import --format otel-json` needs no adapter, no key, and no rate card, and
+is how a run reaches OpenTine from a stack it has never met. See
+[CAPTURE.md](CAPTURE.md).
+
 ## Vocabulary
 
 | Term | Meaning |
@@ -244,6 +280,7 @@ is why every `tine pricing … --json` payload names the `catalog_id` and
 | **tine** | a prong of a fork; the file extension and the CLI command |
 | **run** | one agent execution, as a DAG |
 | **step** | a v2 node: `think`, `tool`, `model`, `done`, `error` |
+| **provider** | who served a call (`anthropic`, `glm-cn`, `vllm`, …); recorded, never interpreted |
 | **event** | a v3 node: `model`, `tool`, `human`, `policy`, `approval`, `subagent`, `error` |
 | **object** | an immutable v3 record: `blob`, `event`, `run`, `attestation`, `annotation` |
 | **oid** | an object id, `TYPE:sha256:HEX` |
