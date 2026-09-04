@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.0 (unreleased) — Spec & Trust
+
+### Added
+
+- **Signed v3 attestations (`tine-attest/1`).** An attestation's `signer` was a
+  self-asserted label — anyone who could write to a repository could write
+  `signer: security-team`. `tine attest` / `tine evaluate` now take `tine sign`'s
+  key flags (`--key-env` / `--key-file` / `--ed25519-key-file`, `--key-id`) and
+  bind that label to a key with HMAC-SHA256 or Ed25519, over a canonical signed
+  view covering the `target_id`, `claim`, `signer`, `evidence_ids` and the
+  signature header. `Repo.attest(..., key=...)` and
+  `opentine.attest_signing.sign_attestation` are the API halves.
+- **`tine repo-verify`.** Checks one `attestation:sha256:…` oid, or every
+  attestation targeting a run ref/oid, and reports `tine verify`'s own verdicts
+  (`verified`, `verified-tofu`, `unsigned`, `no-key`, `mismatch`, `error`). Same
+  key flags, same fail-closed rule: any key, `--trust-embedded-key`, or
+  `--require-signature` arms the check and exits non-zero unless everything
+  verified. `Repo.verify_attestation` is the API half. MCP has no equivalent —
+  signing and key material stay operator-only.
+
+### Compatibility
+
+- Signing is **opt-in and additive**. An attestation written without a key is
+  byte-identical to what 0.3.0–0.8.1 wrote (`"signature": null`), keeps its
+  object id, loads out of every released repository, `fsck`s clean, and verifies
+  as `unsigned` — never as `verified`.
+
 ## 0.8.3 — 2026-10-09
 
 A hardening release: one security fix, and the capture and model-rule debts the

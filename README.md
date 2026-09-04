@@ -522,10 +522,12 @@ person at the terminal is authenticated by having the shell, a model reached
 over MCP is not.
 
 ```bash
-tine attest heads/main --signer release-manager --claim '{"kind":"approval"}'
+tine attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
+    --key-file ~/.keys/release.hmac --key-id release-2026   # signs the claim
 tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
 tine promote heads/main --name production            # creates the release gate
 tine promote <run-oid> --name production --expected-old <current-oid>   # moves it
+tine repo-verify heads/main --key-file ~/.keys/release.hmac --require-signature
 ```
 
 Each takes a ref name or a run oid, resolves it, and makes one engine call, so a
@@ -534,9 +536,18 @@ CLI-written attestation is byte-identical to the MCP one. `promote` defaults to
 `--expected-old` naming the value being replaced, and there is no `--force`.
 Adding the CLI verb does not widen the MCP surface — `allow_promotion` stays
 `False` — it just stops the operator having to write Python to do their job.
-Evaluation/approval attestations are content-addressed but their `signer` label
-is self-asserted unless the caller attaches and independently verifies a
-signature, and the CLI has no flag that claims otherwise; it prints `unsigned`.
+Attestations are content-addressed, and from 0.9.0 they can also be **signed**:
+give `attest`/`evaluate` a key (`--key-env`/`--key-file`/`--ed25519-key-file`,
+exactly as `tine sign` takes one) and the signer label is bound to that key at
+`tine-attest/1`, covering the target run, the claim, the signer, and the
+evidence. `tine repo-verify` checks one attestation or every attestation on a
+run, with `tine verify`'s own verdicts (`verified`, `unsigned`, `no-key`,
+`mismatch`, `error`) and the same fail-closed rule — `--require-signature` makes
+an unsigned or mismatched approval exit non-zero, which is how CI gates on it.
+Without a key nothing changes: the object written is byte-identical to what
+0.3.0-0.8.1 wrote, the label is self-asserted, and the receipt prints
+`unsigned`. MCP `attest_run` has no key options, deliberately — untrusted run
+content must not be able to sign as an operator.
 
 ## Self-hosted remote
 
@@ -623,7 +634,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.8.3
 
 ## CLI Reference
 
-`tine` ships 39 subcommands. Each one prints its own `--help`, which is
+`tine` ships 40 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted.
 
 Portable `.tine` artifacts:
@@ -757,15 +768,20 @@ tine context <event-oid> --repo . [--depth N] [--json]
 tine repo-fork <ref-or-run-oid> --from-event <oid> --ref REF \
     [--model M] [--prompt P] [--policy JSON] [--repo .] [--json]
 tine repo-resume <ref-or-run-oid> --ref REF [--repo .] [--json]
-tine attest <ref-or-run-oid> --signer NAME (--claim JSON | --claim-file PATH) [--json]
-tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... [--json]
+tine attest <ref-or-run-oid> --signer NAME (--claim JSON | --claim-file PATH) \
+    [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
+tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
+    [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
 tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
+tine repo-verify <attestation-oid|ref-or-run-oid> --repo . \
+    [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
+    [--require-signature] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
 
 A v3 verb takes a `repo-` prefix only where a legacy v2 verb already owns the
-plain name — `show`, `search`, `diff`, `fork`, `resume`. `context`, `attest`,
+plain name — `show`, `search`, `diff`, `fork`, `resume`, `verify`. `context`, `attest`,
 `evaluate`, and `promote` have no v2 namesake and stay unprefixed. The two
 families are different stores: `tine fork` branches a `.tine` file, `tine
 repo-fork` branches a run object and moves a repository ref.

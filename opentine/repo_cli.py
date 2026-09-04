@@ -31,6 +31,7 @@ from opentine._repo_cli_plumbing import (
     cmd_repo_show,
 )
 from opentine._repo_cli_porcelain import cmd_repo_fork, cmd_repo_resume
+from opentine._repo_cli_verify import cmd_repo_verify
 from opentine._repo_cli_write import cmd_attest, cmd_evaluate, cmd_promote
 from opentine._signing_keys import SignatureError
 
@@ -59,6 +60,7 @@ REPO_COMMANDS: dict[str, RepoHandler] = {
     "repo-resume": cmd_repo_resume,
     "repo-search": cmd_repo_search,
     "repo-show": cmd_repo_show,
+    "repo-verify": cmd_repo_verify,
 }
 
 

@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+import opentine._signing_verify as _signing_verify
 import opentine.signing as signing
 from opentine import Run, StepKind
 from opentine._canon import _integrity_digest
@@ -246,7 +247,9 @@ def test_ed25519_roundtrip_and_tofu(tmp_path: Path):
 def test_ed25519_missing_crypto_reports_error(tmp_path: Path, monkeypatch):
     seed, _ = generate_ed25519()
     p = _terminal_run().save(tmp_path / "a.tine", sign_key=seed, sign_algorithm="ed25519")
-    monkeypatch.setattr(signing, "HAS_ED25519", False)
+    # 0.9.0 moved the shared verify half (and this gate) into _signing_verify, where
+    # attestation signing reads it too; signing.HAS_ED25519 is now a re-export.
+    monkeypatch.setattr(_signing_verify, "HAS_ED25519", False)
     res = Run.verify_signature(p, trust_embedded=True)
     assert res.state == "error" and "cryptography" in res.reason
 

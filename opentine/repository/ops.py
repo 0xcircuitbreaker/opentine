@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from opentine.kernel import parse_oid, validate_links
 from opentine.repository._access import get_object as _get
 from opentine.repository._associations import evaluations as _evaluations
+from opentine.repository._attest import attest as _attest
 from opentine.repository._context import ContextBudget
 from opentine.repository._diff_budget import DiffBudget
 from opentine.repository._fork_state import fork_payload
@@ -221,25 +222,9 @@ def fork_run(
     return run_id
 
 
-def attest(
-    repo: Repo,
-    target_id: str,
-    claim: dict[str, Any],
-    *,
-    signer: str,
-    signature: dict[str, Any] | None = None,
-    evidence_ids: list[str] | None = None,
-) -> str:
-    return repo.put(
-        "attestation",
-        {
-            "claim": claim,
-            "evidence_ids": evidence_ids or [],
-            "signature": signature,
-            "signer": signer,
-            "target_id": target_id,
-        },
-    )
+#: ``attest`` grew signing rules of its own, so it lives in ``_attest`` beside
+#: them and is re-exported here, where callers have imported it since 0.3.0.
+attest = _attest
 
 
 def promote(repo: Repo, run_id: str, name: str, *, expected_old: str | None = None) -> None:

@@ -64,6 +64,7 @@ def test_repo_commands_are_all_callable_handlers() -> None:
         "repo-resume",
         "repo-search",
         "repo-show",
+        "repo-verify",
     }
     assert all(callable(handler) for handler in REPO_COMMANDS.values())
 

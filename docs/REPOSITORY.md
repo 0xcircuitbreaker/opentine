@@ -12,7 +12,7 @@ The immutable object types are:
 | `blob` | raw prompts, outputs, patches, tool results, artifacts, and manifests |
 | `event` | normalized model, tool, human, policy, approval, error, or subagent activity |
 | `run` | event roots/tips plus code, environment, policy, budget, and pricing manifests |
-| `attestation` | signatures, evaluations, approvals, and provenance claims |
+| `attestation` | signatures, evaluations, approvals, and provenance claims; optionally signed at `tine-attest/1` |
 | `annotation` | separately versioned mutable human/system metadata |
 
 An object ID is `TYPE:sha256:HEX`, computed over the type, schema version, and
@@ -233,9 +233,14 @@ the terminal already holds the repository.
 
 ```bash
 tine attest <run-ref-or-oid> --signer NAME (--claim JSON | --claim-file PATH) \
-    [--evidence OID]... [--repo .] [--json]
-tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... [--json]
+    [--evidence OID]... [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] \
+    [--key-id ID] [--repo .] [--json]
+tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... \
+    [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
 tine promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
+tine repo-verify <attestation-oid | run-ref-or-oid> \
+    [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
+    [--require-signature] [--repo .] [--json]
 ```
 
 Each accepts a ref name or a `run:sha256:…` oid and **resolves it first**. That
@@ -260,9 +265,30 @@ evaluation claim shape in the format; a second would be scores no reader could
 see. Each `--score` must be a finite number, and a repeated name is refused
 rather than silently resolved.
 
-There is no `--sign`/`--signature` flag. v3 ships no attestation signing helper,
-so a `signer` is a self-asserted label, and the human output says `unsigned`
-rather than implying a binding that does not exist.
+**Signing an attestation.** Given a key — `--key-env`/`--key-file` for HMAC-SHA256,
+`--ed25519-key-file` for Ed25519, plus an optional `--key-id` recorded inside the
+block — `attest` and `evaluate` bind the signer label to that key at
+`tine-attest/1`. The algorithm is inferred from which flag names the key, so
+there is no `--algorithm` to disagree with it, and two key flags are refused
+rather than resolved by precedence. Given **no** key the verb writes the
+byte-identical unsigned object every release since 0.3.0 wrote, and the receipt
+still says `unsigned`: the label is then self-asserted, and saying otherwise
+would be the lie signing exists to remove. The signed view, the verdicts, and
+what a signature does and does not prove are in
+[docs/SECURITY_MODEL.md](SECURITY_MODEL.md#attestation-signing-tine-attest1).
+
+`tine repo-verify` reads it back. It takes an `attestation:sha256:…` oid, or a run
+ref/oid — in which case it checks **every** attestation targeting that run, which
+is the release question ("is this approved, and by whom?") a promotion gate
+scripts. It reports `tine verify`'s own verdicts (`verified`, `verified-tofu`,
+`unsigned`, `no-key`, `mismatch`, `error`; only the first two pass) and is
+fail-closed the same way: any key, `--trust-embedded-key`, or
+`--require-signature` arms the check and exits 1 unless every attestation
+verified, and `--require-signature` also refuses a run with no attestation at
+all. Unarmed, it is a report that exits 0. MCP has no equivalent tool: checking a
+signature needs the operator's key material, and `attest_run` has no signing
+options for the same reason — run content must not be able to sign as an
+operator.
 
 `promote` compare-and-swaps `promotions/<name>`. **`--expected-old` omitted means
 expect no existing ref**, so creating a promotion is the default and *moving* one
@@ -288,18 +314,33 @@ argparse's 2, which these verbs never emit themselves.
 | | `signer` | str | the self-asserted signer label |
 | | `claim` | object | the claim as stored |
 | | `evidence_ids` | array | supporting object ids, empty by default |
-| | `signed` | bool | always `false` — no signing helper exists yet |
+| | `signed` | bool | whether the stored attestation carries a signature |
+| | `signature` | object or null | the stored `tine-attest/1` block verbatim (`alg`, `key_id`, `scheme`, `signer`, `value`, and `public_key` for Ed25519) |
 | `evaluate` | `command` | str | `"evaluate"` |
 | | `repo`, `target`, `run_id`, `attestation_id` | str | as above |
 | | `evaluator` | str | stored as the attestation's `signer` |
 | | `scores` | object | the finite scores as stored |
-| | `signed` | bool | always `false` |
+| | `signed` | bool | whether the stored attestation carries a signature |
+| | `signature` | object or null | as above |
 | `promote` | `command` | str | `"promote"` |
 | | `repo`, `target`, `run_id` | str | as above |
 | | `name` | str | the promotion name |
 | | `ref` | str | always `"promotions/<name>"` |
 | | `expected_old` | str or null | the compare-and-swap value as given |
 | | `created` | bool | true exactly when `expected_old` was null |
+| `repo-verify` | `command` | str | `"repo-verify"` |
+| | `repo`, `target` | str | as above |
+| | `target_id` | str | the attestation or run oid `target` resolved to |
+| | `require_signature` | bool | whether `--require-signature` was passed |
+| | `count` | int | attestations checked (1 for an attestation target) |
+| | `verified` | int | how many reported a passing state |
+| | `ok` | bool | the exit predicate: every row passed, and not `--require-signature` with nothing to check |
+| | `attestations` | array | per attestation: `attestation_id`, `target_id`, `signer` (the claimed label; bound only when `state` is verified), `state`, `ok`, `algorithm`, `key_id`, `signed_at`, `scheme`, `reason` |
+
+`repo-verify` is a read verb, so unlike the three above its `--json` object is
+emitted whether or not the check passed — `ok` and the exit code carry that. Only
+a refusal (an unresolvable target, an unreadable key, two key flags) stays a
+single stderr line with no JSON.
 
 Appending to a repository written by an older release is a release gate, tested
 the same way reading one is: every verb runs against a copy of every committed
@@ -445,8 +486,10 @@ object pack-negotiation ceiling.
 Local search retrieves successful runs and evaluation scores. `context_slice`
 walks only parent and causal links needed for an event. Forking can replace
 model, prompt, or policy from the last good event. Evaluations and approvals
-are content-addressed, tamper-evident attestations (the `signer` is self-asserted
-unless a signature is attached); promotion is a CAS ref update.
+are content-addressed, tamper-evident attestations; the `signer` is self-asserted
+unless the attestation is signed at `tine-attest/1`, which an operator does with
+`tine attest --key-file …` and checks with `tine repo-verify`. Promotion is a CAS
+ref update.
 
 When an MCP server starts inside a repository, it adds `search_runs`,
 `inspect_object`, `context_slice`, `semantic_diff`, `fork_run_v3`,
