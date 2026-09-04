@@ -261,7 +261,15 @@ def test_m2_timeout_kills_descendants_and_keeps_bounded_diagnostics():
         assert len(rendered) <= 180 and "critical-error" in rendered
         for _ in range(40):
             state = Path(f"/proc/{child_pid}/stat")
-            if not state.exists() or state.read_text().split()[2] == "Z":
+            # read_text directly, not exists()-then-read: the descendant can die
+            # between the two, and a vanished /proc entry means it is gone -- which
+            # is exactly what we are waiting for -- not a test failure. (The sibling
+            # test below already reads it this way; this one raced FileNotFoundError.)
+            try:
+                stopped = state.read_text().split()[2] == "Z"
+            except (FileNotFoundError, ProcessLookupError):
+                stopped = True
+            if stopped:
                 break
             time.sleep(0.05)
         else:

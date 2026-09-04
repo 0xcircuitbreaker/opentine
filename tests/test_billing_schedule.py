@@ -74,7 +74,7 @@ def test_every_bundled_card_without_a_schedule_prices_identically_at_every_hour(
     # today": for each one, the day and any instant within it agree, and no
     # schedule key appears in the calculation record at all.
     unscheduled = [card for card in catalog.cards if not card.schedule]
-    assert len(unscheduled) == len(catalog.cards) - 4  # only the DeepSeek v4 cards are scheduled
+    assert len(unscheduled) == len(catalog.cards) - 6  # only the DeepSeek v4 cards are scheduled
     for card in unscheduled:
         day = max(card.effective_from, date(2026, 8, 24))
         baseline = calculate(MILLION, card, effective_at=day)
@@ -328,7 +328,7 @@ def test_bundled_catalog_is_schema_2_and_verifies(catalog):
     assert raw["schema"] == "opentine-pricing/2"
     assert raw["signature"]["key_id"] == "opentine-release-2026-07-r3"
     assert catalog.signed and catalog.id == f"sha256:{catalog.hash}"
-    assert len(catalog.cards) == 79
+    assert len(catalog.cards) == 85
 
 
 @pytest.mark.parametrize("schema", ["opentine-pricing/1", "opentine-pricing/2"])
@@ -454,3 +454,72 @@ def test_a_catalog_carrying_a_malformed_schedule_fails_to_load(tmp_path):
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(CatalogError, match="invalid pricing rate card"):
         PricingCatalog.load(path, require_signature=False)
+
+
+# --------------------------------------------------------------------------- #
+# 0.8.1: deepseek-v4-flash-vision-exp, carded at V4-Flash rates on its schedule
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("moment", "expected"),
+    [
+        # Off-peak: 0.22 in + 0.66 out on a 1M/1M call.
+        (f"{MONDAY}T00:30:00Z", "0.88"),
+        (f"{MONDAY}T12:00:00Z", "0.88"),
+        # Peak (weekday 01:00-04:00 and 06:00-10:00 UTC): both rates double.
+        (f"{MONDAY}T02:30:00Z", "1.76"),
+        (f"{MONDAY}T07:00:00Z", "1.76"),
+        # Beijing-time weekends are off-peak all day.
+        (f"{SATURDAY}T02:30:00Z", "0.88"),
+    ],
+)
+def test_flash_vision_exp_prices_exactly_like_flash_on_the_same_windows(catalog, moment, expected):
+    vision = bill(
+        "deepseek", "deepseek-v4-flash-vision-exp", MILLION, catalog=catalog, effective_at=moment
+    )
+    flash = bill("deepseek", "deepseek-v4-flash", MILLION, catalog=catalog, effective_at=moment)
+    assert vision.status == "complete"
+    assert vision.amount_usd == Decimal(expected)
+    assert vision.amount_usd == flash.amount_usd
+    assert vision.calculation["rates_per_million"] == flash.calculation["rates_per_million"]
+
+
+def test_flash_vision_exp_is_priced_from_its_release_day_and_unknown_before_it():
+    # Released 2026-08-21; peak still applied every day until the 2026-08-23
+    # weekend rule, so the model's first Saturday keeps the all-days card.
+    catalog = load_catalogs([BUNDLED_CATALOG])
+    model = "deepseek-v4-flash-vision-exp"
+    assert catalog.lookup("deepseek", model, effective_at="2026-08-20") is None
+    assert bill("deepseek", model, MILLION, catalog=catalog, effective_at="2026-08-20").status == (
+        "unknown"
+    )
+    first_day = catalog.lookup("deepseek", model, effective_at="2026-08-21")
+    assert first_day is not None and first_day.schedule[0]["days"] == "all"
+    saturday = bill(
+        "deepseek", model, MILLION, catalog=catalog, effective_at="2026-08-22T02:30:00Z"
+    )
+    assert saturday.amount_usd == Decimal("1.76")  # all-days peak, before the weekend rule
+    assert catalog.lookup("deepseek", model, effective_at="2026-08-23").schedule[0]["days"] == (
+        "weekday"
+    )
+
+
+def test_flash_vision_exp_cache_reads_bill_at_the_flash_cache_rate(catalog):
+    usage = Usage(input=0, cache_read=1_000_000, output=0)
+    off_peak = bill(
+        "deepseek",
+        "deepseek-v4-flash-vision-exp",
+        usage,
+        catalog=catalog,
+        effective_at=f"{MONDAY}T12:00:00Z",
+    )
+    peak = bill(
+        "deepseek",
+        "deepseek-v4-flash-vision-exp",
+        usage,
+        catalog=catalog,
+        effective_at=f"{MONDAY}T02:30:00Z",
+    )
+    assert off_peak.amount_usd == Decimal("0.007")
+    assert peak.amount_usd == Decimal("0.014")

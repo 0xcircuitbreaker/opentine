@@ -665,3 +665,210 @@ def test_run_manifest_pins_catalog_signature_and_calculation():
     assert pricing["invocations"][0]["catalog_hash"] == pricing["catalog_hash"]
     assert pricing["rate_cards"]
     assert pricing["invocations"][0]["calculation"]["usage"]["input"] == 10
+
+
+# --------------------------------------------------------------------------- #
+# 0.8.1: the GLM China endpoint is unpriced, and now says so
+# --------------------------------------------------------------------------- #
+
+
+def test_glm_cn_miss_names_the_reason_and_the_remedy(catalog: PricingCatalog):
+    # The catalog cards the international z.ai endpoint only, and its USD rates
+    # are deliberately not reused for the China endpoint. The miss must not read
+    # as a catalog gap: it has to name the endpoint and point at the overlay.
+    result = bill("glm-cn", "glm-5.2", Usage(input=1_000, output=1_000), catalog=catalog)
+    assert result.status == "unknown"
+    assert result.amount_usd is None
+    assert result.rate_card_id is None
+    note = next(warning for warning in result.warnings if "glm-cn" in warning)
+    assert "open.bigmodel.cn" in note
+    assert "deliberately not applied" in note
+    assert "overlay" in note
+    # And the international provider is unaffected: it still prices exactly.
+    priced = bill("glm", "glm-5.2", Usage(input=1_000_000, output=1_000_000), catalog=catalog)
+    assert priced.status == "complete"
+    assert priced.amount_usd == Decimal("5.80")
+    assert not any("glm-cn" in warning for warning in priced.warnings)
+
+
+def test_glm_cn_note_is_dropped_once_a_local_overlay_prices_the_run(catalog: PricingCatalog):
+    # The note is advice about a missing card, so an overlay (or an explicit
+    # rate override, its in-process equivalent) must silence it rather than
+    # nag over a price the operator has supplied.
+    result = bill(
+        "glm-cn",
+        "glm-5.2",
+        Usage(input=1_000_000, output=1_000_000),
+        catalog=catalog,
+        rate_override={"input": "1.40", "output": "4.40"},
+    )
+    assert result.status == "complete"
+    assert result.amount_usd == Decimal("5.80")
+    assert not any("glm-cn" in warning for warning in result.warnings)
+
+
+def test_a_china_region_glm_run_records_the_unpriced_note():
+    # End to end through the adapter that chooses the provider string: a JWT
+    # key routes to open.bigmodel.cn as provider "glm-cn".
+    from opentine.models._compat_hosted import GLM
+
+    adapter = GLM(api_key="id.secret")
+    assert adapter._provider == "glm-cn"
+    billing = metered_response(adapter._provider, "glm-5.2", Usage(input=1_000, output=1_000))[
+        "billing"
+    ]
+    assert billing["status"] == "unknown" and billing["amount_usd"] is None
+    assert any("glm-cn" in warning and "overlay" in warning for warning in billing["warnings"])
+
+
+# --------------------------------------------------------------------------- #
+# 0.8.1: Claude Fable 5.1, GPT-6 Astra, and the Qwen3.8 hosted pair
+# --------------------------------------------------------------------------- #
+
+
+def test_fable_5_1_cache_reads_use_the_model_specific_rate_not_the_family_rule(
+    catalog: PricingCatalog,
+):
+    # Anthropic prices cache hits at 0.1x base input on every model EXCEPT
+    # Fable 5.1 and Mythos 5.1, which are 0.025x. A family-wide 0.1x rule would
+    # bill $1/MTok here; the card's published literal is $0.25/MTok and must win.
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        cache_write_1h=1_000_000,
+        output=1_000_000,
+    )
+    new = bill("anthropic", "claude-fable-5-1", usage, catalog=catalog, effective_at="2026-09-01")
+    old = bill("anthropic", "claude-fable-5", usage, catalog=catalog, effective_at="2026-09-01")
+    assert new.status == "complete"
+    assert new.calculation["rates_per_million"]["cache_read"] == "0.25"
+    assert old.calculation["rates_per_million"]["cache_read"] == "1"
+    # Every other dimension is identical to Fable 5, so the whole difference is
+    # the cache read: $93.50 - $0.75.
+    assert new.amount_usd == Decimal("92.75")
+    assert old.amount_usd == Decimal("93.50")
+    assert new.amount_usd == old.amount_usd - Decimal("0.75")
+
+
+def test_fable_5_1_has_batch_and_us_tiers_but_no_fast_mode(catalog: PricingCatalog):
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        cache_write_1h=1_000_000,
+        output=1_000_000,
+    )
+    kwargs = {"catalog": catalog, "effective_at": "2026-09-01"}
+    assert bill("anthropic", "claude-fable-5-1", usage, service_tier="batch", **kwargs).amount_usd
+    assert bill(
+        "anthropic", "claude-fable-5-1", usage, service_tier="batch", **kwargs
+    ).amount_usd == Decimal("46.375")
+    assert bill(
+        "anthropic", "claude-fable-5-1", usage, service_tier="us", **kwargs
+    ).amount_usd == Decimal("102.025")
+    # Fast mode covers Claude Opus 5 and Opus 4.8 only. Opus 5 prices it; Fable
+    # 5.1 must stay visibly unknown rather than borrow the 2x.
+    fast = bill("anthropic", "claude-fable-5-1", usage, service_tier="fast", **kwargs)
+    assert fast.status == "unknown" and fast.amount_usd is None
+    assert bill("anthropic", "claude-opus-5", usage, service_tier="fast", **kwargs).status == (
+        "complete"
+    )
+    # Released 2026-09-01; nothing earlier is priced.
+    assert (
+        bill(
+            "anthropic", "claude-fable-5-1", usage, catalog=catalog, effective_at="2026-08-31"
+        ).status
+        == "unknown"
+    )
+
+
+def test_gpt_6_astra_272k_threshold_reprices_the_whole_request(catalog: PricingCatalog):
+    # "Prompts with more than 272K input tokens are priced at 2x input and cache
+    # rates and 1.5x output for the full request" -- request-scoped, so the
+    # multiplier applies to every token, not only to the ones above the line.
+    at = {"catalog": catalog, "effective_at": "2026-09-03"}
+    short = bill("openai", "gpt-6-astra", Usage(input=272_000, output=1_000_000), **at)
+    long = bill("openai", "gpt-6-astra", Usage(input=273_000, output=1_000_000), **at)
+    assert short.amount_usd == Decimal("52.72")  # 0.272 * 10 + 1 * 50
+    assert short.calculation["context_rules"] == []
+    # Not 52.72 + 1000 tokens at 2x: the whole 273K bills at $20 and the whole
+    # 1M output at $75.
+    assert long.amount_usd == Decimal("80.46")
+    assert long.calculation["context_rules"] == ["over-272k"]
+    # Compare numerically: the engine renders a multiplied rate as its Decimal
+    # result, so 50 * 1.5 is "75.0" while 10 * 2 is "20" -- string equality here
+    # pins a formatting artifact, not the price.
+    assert Decimal(long.calculation["rates_per_million"]["input"]) == Decimal("20")
+    assert Decimal(long.calculation["rates_per_million"]["output"]) == Decimal("75")
+
+
+def test_gpt_6_astra_cache_dimensions_and_published_service_tiers(catalog: PricingCatalog):
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        cache_write_1h=1_000_000,
+        output=1_000_000,
+    )
+    at = {"catalog": catalog, "effective_at": "2026-09-03"}
+    # 4M prompt tokens crosses 272K, so every rate is the long-context one:
+    # 20 + 2 + 25 + 25 + 75.
+    assert bill("openai", "gpt-6-astra", usage, **at).amount_usd == Decimal("147")
+    small = Usage(input=100_000, output=100_000)
+    base = bill("openai", "gpt-6-astra", small, **at)
+    assert base.amount_usd == Decimal("6")  # 0.1 * 10 + 0.1 * 50
+    assert bill("openai", "gpt-6-astra", small, service_tier="batch", **at).amount_usd == (
+        Decimal("3")
+    )
+    assert bill("openai", "gpt-6-astra", small, service_tier="flex", **at).amount_usd == (
+        Decimal("3")
+    )
+    assert bill("openai", "gpt-6-astra", small, service_tier="fast", **at).amount_usd == (
+        Decimal("12")
+    )
+    # OpenAI publishes no priority price for this model, so it is not carded.
+    priority = bill("openai", "gpt-6-astra", small, service_tier="priority", **at)
+    assert priority.status == "unknown" and priority.amount_usd is None
+    assert (
+        bill("openai", "gpt-6-astra", small, catalog=catalog, effective_at="2026-09-02").status
+        == "unknown"
+    )
+
+
+@pytest.mark.parametrize(
+    ("model", "implicit", "explicit"),
+    [
+        ("qwen3.8-max", "10.75", "10.67"),
+        ("qwen3.8-27b", "4.225", "4.175"),
+        ("qwen3.8-flash", "0.836", "0.836"),
+    ],
+)
+def test_qwen38_hosted_cards_keep_implicit_and_explicit_cache_tiers(
+    catalog: PricingCatalog, model: str, implicit: str, explicit: str
+):
+    usage = Usage(
+        input=1_000_000,
+        cache_read=1_000_000,
+        cache_write_5m=1_000_000,
+        output=1_000_000,
+    )
+    at = {"catalog": catalog, "effective_at": "2026-09-04"}
+    assert bill("qwen", model, usage, **at).amount_usd == Decimal(implicit)
+    tiered = bill("qwen", model, usage, service_tier="explicit_cache", **at)
+    assert tiered.amount_usd == Decimal(explicit)
+
+
+def test_qwen38_flash_next_is_held_and_never_aliased_onto_flash(catalog: PricingCatalog):
+    # qwencloud.com/models/qwen3.8-flash-next is a 404 and the model is
+    # open-weight only; qwen3.8-flash is a distinct, hosted, priced model.
+    usage = Usage(input=1_000_000, output=1_000_000)
+    at = {"catalog": catalog, "effective_at": "2026-09-04"}
+    held = bill("qwen", "qwen3.8-flash-next", usage, **at)
+    assert held.status == "unknown"
+    assert held.amount_usd is None
+    assert held.rate_card_id is None
+    priced = bill("qwen", "qwen3.8-flash", usage, **at)
+    assert priced.status == "complete"
+    assert priced.amount_usd == Decimal("0.62")  # 0.15 in + 0.47 out
+    assert "flash-next" not in (priced.rate_card_id or "")

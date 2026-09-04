@@ -227,13 +227,30 @@ cards (USD per million tokens):
 
 | Family | Input | Cache read | Output | Other rules |
 |---|---:|---:|---:|---|
+| GPT-6 Astra | 10.00 | 1.00 | 50.00 | cache writes 12.50; >272K input multipliers (whole request); batch/flex 0.5x; fast 2x |
 | GPT-5.6 Sol (`gpt-5.6`) | 5.00 | 0.50 | 30.00 | cache writes; >272K input multipliers; batch/flex/priority |
 | GPT-5.6 Terra | 2.50 | 0.25 | 15.00 | same dimensions and threshold rules |
 | GPT-5.6 Luna | 1.00 | 0.10 | 6.00 | same dimensions and threshold rules |
+| Claude Fable 5.1 | 10.00 | **0.25** | 50.00 | 5m write 12.50; 1h write 20.00; US inference 1.1x; no fast mode |
 | Claude Fable 5 | 10.00 | 1.00 | 50.00 | 5m write 12.50; 1h write 20.00; US inference 1.1x |
 | Claude Opus 4.5–4.8 | 5.00 | 0.50 | 25.00 | exact model IDs; 5m write 6.25; 1h write 10.00; 4.6+ US inference 1.1x |
-| Claude Sonnet 5 | 2.00 | 0.20 | 10.00 | introductory through 2026-08-31; US inference 1.1x |
-| Claude Sonnet 5 | 3.00 | 0.30 | 15.00 | effective 2026-09-01; US inference 1.1x |
+| Claude Sonnet 5 | 2.00 | 0.20 | 10.00 | launch price, now standard; US inference 1.1x |
+
+Claude Sonnet 5's scheduled 2026-09-01 rise to $3/$15 was cancelled by Anthropic
+and never entered the catalog; the $2/$10 card runs from 2026-06-30 with no end.
+
+Claude Fable 5.1 and Claude Mythos 5.1 are the only models whose cache hits cost
+0.025x base input rather than the family-wide 0.1x. Every card states
+`cache_read` outright and nothing derives it from `input`, so the published
+$0.25/MTok is what bills; no family rule can override it. Fable 5.1 has no fast
+mode (that tier covers Claude Opus 5 and Opus 4.8), so no `fast` modifier is
+carded and a fast-tier request stays visibly unknown.
+
+GPT-6 Astra's >272K threshold is request-scoped upstream — "priced at 2x input and
+cache rates and 1.5x output for the full request" — and `context_thresholds` are
+applied the same way: crossing the line replaces the base rates for every
+dimension of the whole call, not just for the tokens above it. No priority-tier
+price is published for Astra, so that tier is left uncarded rather than guessed.
 
 The catalog also contains provider-scoped cards for current defaults and
 frontier families from Kimi, DeepSeek, Google Gemini, Grok/xAI, GLM/Z.AI, Qwen,
@@ -253,10 +270,27 @@ not aliased to the distinct `qwen3.6-27b` card; it remains visibly unpriced unti
 its region-, context-, and thinking-mode-dependent rates are represented.
 Qwen3.7-Max's pay-as-you-go promotion is effective-dated through 2026-07-23;
 explicit 5-minute cache writes/hits and automatic implicit-cache hits retain
-their distinct provider rates.
+their distinct provider rates. Qwen3.8-Max, Qwen3.8-27B, and Qwen3.8-Flash carry
+the same two-tier cache shape: the base `cache_read` is the automatic implicit
+hit and the `explicit_cache` service tier carries the explicit hit rate (equal to
+the implicit rate on Qwen3.8-Flash, which the vendor prices identically).
+Alibaba publishes no availability date for the Qwen3.8-27B and Qwen3.8-Flash
+hosted prices, so those cards begin on the day the price was confirmed rather
+than being backdated over an unsourced window.
+
+`qwen3.8-flash-next` is deliberately **held** — not carded and not aliased.
+`qwencloud.com/models/qwen3.8-flash-next` returns HTTP 404 and the model is
+open-weight only; the hosted, priced model is the distinct `qwen3.8-flash`
+("Qwen3.8-Flash is the official version based on Qwen3.8-Flash-Next with more
+production features"). Aliasing the two would attach a hosted price to a model
+that has none, so a `qwen3.8-flash-next` run reports cost `unknown` until a local
+overlay supplies a price.
 The direct GLM adapter prices the Z.AI global endpoint; a China-region key uses
 provider identity `glm-cn` and remains visibly unpriced unless a regional local
-overlay is supplied.
+overlay is supplied. That miss now carries a warning naming the endpoint and the
+overlay remedy, so it reads as a deliberate hold rather than a stale catalog; the
+status stays `unknown` and no amount is invented, so completeness gates are
+unaffected. Supplying an overlay or an explicit rate override silences it.
 
 Anthropic's adapter sends an explicit `inference_geo` when configured and uses
 the geography reported in response usage for billing. US-only inference on
