@@ -11,6 +11,20 @@ from opentine.billing.catalog import PricingCatalog, load_catalogs
 from opentine.billing.engine import calculate
 from opentine.billing.types import BillingResult, RateCard, Usage, billing_moment, decimal
 
+#: Providers a catalog miss can never be a catalog *gap* for: the public catalog
+#: deliberately carries no card, so every run against them is unknown until the
+#: operator installs a local overlay. Naming the reason turns a bare "price is
+#: unknown" — which reads as "opentine is behind on the catalog" — into the one
+#: fact the operator can act on. Keyed by the provider string adapters record.
+UNPRICED_PROVIDERS: dict[str, str] = {
+    "glm-cn": (
+        "glm-cn is the GLM China endpoint (open.bigmodel.cn), which the public "
+        "catalog does not card: only the international z.ai provider 'glm' is "
+        "priced, and its USD rates are deliberately not applied to this endpoint. "
+        "Install a local pricing overlay to price these runs."
+    ),
+}
+
 
 def override_card(
     provider: str,
@@ -58,7 +72,7 @@ def bill(
         if rate_override is not None or unmetered
         else selected.lookup(provider, model, effective_at=when, service_tier=service_tier)
     )
-    return calculate(
+    result = calculate(
         normalized,
         card,
         catalog_id=selected.id,
@@ -67,6 +81,24 @@ def bill(
         billed_at=billed_at,
         service_tier=service_tier,
         catalog_provenance=selected.provenance,
+    )
+    note = UNPRICED_PROVIDERS.get(provider.strip().casefold()) if card is None else None
+    if note is None:
+        return result
+    # Only the warning line changes: status stays "unknown" and no amount is
+    # invented, so an unpriced run still fails a completeness gate exactly as
+    # before — it just says why.
+    return BillingResult(
+        result.status,
+        result.amount_usd,
+        result.known_subtotal_usd,
+        result.catalog_id,
+        result.catalog_hash,
+        result.rate_card_id,
+        result.effective_at,
+        (*result.warnings, note),
+        result.calculation,
+        result.catalog_provenance,
     )
 
 

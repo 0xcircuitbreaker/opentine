@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Catalog refresh (source-confirmed), 79 -> 85 cards.** `claude-fable-5-1`
+  (input $10, cache read **$0.25**, 5m write $12.50, 1h write $20, output $50;
+  batch 0.5x, US inference 1.1x, no fast mode), `gpt-6-astra` (input $10, cached
+  input $1, cache writes $12.50, output $50; >272K input reprices the whole
+  request at 2x input/cache and 1.5x output; batch/flex 0.5x, fast 2x),
+  `qwen3.8-27b` and `qwen3.8-flash` on the Model Studio international endpoint
+  (both with implicit and explicit cache tiers), and two `deepseek-v4-flash-vision-exp`
+  cards carrying the V4-Flash rates and the platform peak/off-peak schedule
+  across the 2026-08-23 weekend-rule change. `qwen3.8-max` re-verified unchanged.
+- **`glm-cn` misses say why they are unpriced.** A billing miss on the GLM China
+  endpoint now warns that the public catalog cards only the international z.ai
+  provider and points at a local overlay. Status stays `unknown` and no amount is
+  invented, so completeness gates behave exactly as before.
+
+### Held
+
+- **`qwen3.8-flash-next` is not carded and not aliased.** Its QwenCloud model page
+  returns HTTP 404 and the model is open-weight only; the hosted, priced model is
+  the distinct `qwen3.8-flash`. Runs against it report cost `unknown` until a
+  local overlay supplies a price.
+
 ## 0.8.0 — 2026-08-22
 
 The Model-Agnostic Core. OpenTine records `(provider, model, usage)` as opaque

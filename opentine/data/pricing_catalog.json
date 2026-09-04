@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/2",
-  "generated_at": "2026-08-17T00:00:00Z",
-  "verified_at": "2026-08-17",
+  "generated_at": "2026-09-04T00:00:00Z",
+  "verified_at": "2026-09-04",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -29,6 +29,19 @@
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-08-17",
       "metadata": {"promotional": true, "guaranteed_through": "2026-11-21"}
+    },
+    {
+      "id": "openai:gpt-6-astra:2026-09-03",
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "aliases": [],
+      "effective_from": "2026-09-03",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "12.50", "output": "50", "reasoning": "50"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-astra"],
+      "verified_at": "2026-09-04",
+      "metadata": {"note": "The threshold is request-scoped, and so is opentine's application of it: 'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.' A context_thresholds rule fires on total prompt input (input + cache reads + cache writes) and its multipliers replace the base rates for every dimension of the whole call, so no tokens-above-the-line split is implied and the card needs no caveat. OpenAI publishes a single 'cache writes' price ($12.50/MTok), carded on both the 5m and 1h write dimensions. 'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No priority-tier price is published for this model, so no 'priority' modifier is carded and a priority request stays visibly unknown."}
     },
     {
       "id": "openai:gpt-5.6-terra:2026-07-09",
@@ -175,6 +188,18 @@
       "service_modifiers": {"batch": "0.5"},
       "source_urls": ["https://openai.com/index/api-prompt-caching/", "https://developers.openai.com/api/docs/models/gpt-4o"],
       "verified_at": "2026-07-16"
+    },
+    {
+      "id": "anthropic:claude-fable-5-1:2026-09-01",
+      "provider": "anthropic",
+      "model": "claude-fable-5-1",
+      "aliases": [],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "0.25", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/fable-5-1/overview"],
+      "verified_at": "2026-09-04",
+      "metadata": {"note": "cache_read is the published literal $0.25/MTok, not a family-rule derivation: the pricing page footnotes 'Cache hits and refreshes on Claude Fable 5.1 and Claude Mythos 5.1 are priced at 0.025x the base input price. All other models use the standard 0.1x multiplier.' Every opentine card states cache_read outright and nothing in the engine derives it from input, so the model-specific rate cannot be overwritten by the family rule. No 'fast' modifier: fast mode is 'for Claude Opus 5 and Claude Opus 4.8' only, so a fast-tier request on this card stays visibly unknown rather than borrowing another model's 2x. No context threshold: 'Claude 4.6 and later models ... include the full 1M token context window at standard pricing.' batch_us is the documented composition of the 0.5 Batch discount with the 1.1x US data-residency multiplier, which the page states stack."}
     },
     {
       "id": "anthropic:claude-fable-5:2026-06-09",
@@ -421,6 +446,43 @@
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
       "verified_at": "2026-08-22",
       "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-flash-vision-exp:2026-08-21",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash-vision-exp",
+      "effective_from": "2026-08-21",
+      "effective_until": "2026-08-22",
+      "rates": {"input": "0.22", "cache_read": "0.007", "output": "0.66", "reasoning": "0.66"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "all",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.44", "cache_read": "0.014", "output": "1.32", "reasoning": "1.32"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260821/", "https://api-docs.deepseek.com/news/news260813"],
+      "verified_at": "2026-08-30",
+      "metadata": {"note": "Released 2026-08-21 at V4-Flash pricing (release note: 'Images are tokenized for billing: up to 384 tokens each, at V4-Flash pricing'); images bill as input tokens. Rates and the peak/off-peak windows are identical to deepseek-v4-flash, which the pricing page confirms as a single platform-wide schedule. This card covers the model's first two days, when peak still applied every day; the weekend rule below took effect 2026-08-23."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-flash-vision-exp:2026-08-23",
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash-vision-exp",
+      "effective_from": "2026-08-23",
+      "rates": {"input": "0.22", "cache_read": "0.007", "output": "0.66", "reasoning": "0.66"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.44", "cache_read": "0.014", "output": "1.32", "reasoning": "1.32"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260821/"],
+      "verified_at": "2026-08-30",
+      "metadata": {"note": "The pricing page lists deepseek-v4-flash-vision-exp at exactly the deepseek-v4-flash rates -- off-peak 0.22 in / 0.007 cache hit / 0.66 out, peak 2x -- under the same platform-wide window: 'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday'. Weekday scoping in UTC is equivalent to the published Beijing-time weekday rule, as for deepseek-v4-flash."}
     },
     {
       "id": "deepseek:deepseek-chat:legacy-2026-07",
@@ -679,8 +741,34 @@
         "explicit_cache": {"cache_read": "0.17"}
       },
       "source_urls": ["https://www.qwencloud.com/models/qwen3.8-max", "https://www.alibabacloud.com/en/press-room/alibaba-unveils-qwen3-8-max"],
-      "verified_at": "2026-08-17",
+      "verified_at": "2026-09-04",
       "metadata": {"region": "international"}
+    },
+    {
+      "id": "qwen:qwen3.8-27b:international-2026-09-04",
+      "provider": "qwen",
+      "model": "qwen3.8-27b",
+      "effective_from": "2026-09-04",
+      "rates": {"input": "0.5", "cache_read": "0.1", "cache_write_5m": "0.625", "output": "3", "reasoning": "3"},
+      "service_rates": {
+        "explicit_cache": {"cache_read": "0.05"}
+      },
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-27b", "https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
+      "verified_at": "2026-09-04",
+      "metadata": {"region": "international", "note": "Model Studio international (Singapore, dashscope-intl) USD list price: input $0.5, output $3, Input(Implicit Cache) $0.1, Explicit Cache Creation $0.625, Explicit Cache Read $0.05 per 1M tokens. Base cache_read is the automatic implicit-cache hit; the explicit_cache service tier carries the explicit hit rate, mirroring the qwen3.8-max card. Neither vendor page publishes an availability date for this model, so the card is effective from the day its price was confirmed rather than backdated; runs before it stay unpriced. The model had no hosted price until this card and was previously held."}
+    },
+    {
+      "id": "qwen:qwen3.8-flash:international-2026-09-04",
+      "provider": "qwen",
+      "model": "qwen3.8-flash",
+      "effective_from": "2026-09-04",
+      "rates": {"input": "0.15", "cache_read": "0.016", "cache_write_5m": "0.2", "output": "0.47", "reasoning": "0.47"},
+      "service_rates": {
+        "explicit_cache": {"cache_read": "0.016"}
+      },
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-flash", "https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
+      "verified_at": "2026-09-04",
+      "metadata": {"region": "international", "note": "Model Studio international (Singapore, dashscope-intl) USD list price: input $0.15, output $0.47, Input(Implicit Cache) $0.016, Explicit Cache Creation $0.2, Explicit Cache Read $0.016 per 1M tokens. The vendor publishes the same rate for implicit and explicit cache hits on this model, so the explicit_cache tier restates $0.016 rather than discounting further. No availability date is published, so the card is effective from the day its price was confirmed rather than backdated. Distinct from the open-weight-only qwen3.8-flash-next, which has no hosted price and is deliberately not carded or aliased here."}
     },
     {
       "id": "qwen:qwen3.7-max:international-promo-2026-05",
@@ -921,10 +1009,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:7e32f57e95ba0de55d0978bf085f95170b8175650d881f1e2988699f2a85d313",
+  "catalog_id": "sha256:1178a6858a01c7bfced364760748a72c9b74de768cd8d1dc1f823e02eeb8a14f",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "+KKZz4NGWJYgq2M/ln4TRgL39Rk3UKEpWf0MpI2vIMrUse6S7ISY7B0LMo1GKn8U3XNyS/qEomBATKaOS1eLDw=="
+    "value": "CsxGt8ENlKSflARErh25yywKdAx4+0RqLcobuleBJwxSJvruaQQiI9shWounbKH4EckrKxDB033A/OP99a1sCA=="
   }
 }
