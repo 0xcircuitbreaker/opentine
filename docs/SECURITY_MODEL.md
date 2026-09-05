@@ -1,5 +1,9 @@
 # OpenTine Security Model
 
+> The byte-level rules behind everything below — the signed views, domain
+> prefixes, verdict vocabulary, and both canonical forms — are specified in
+> **[SPEC.md](SPEC.md)**.
+
 OpenTine is local-first provenance tooling. It records agent activity and can invoke tools or external harnesses, but those execution paths are intentionally gated by explicit policies.
 
 ## Default Posture

@@ -19,6 +19,27 @@
   `--require-signature` arms the check and exits non-zero unless everything
   verified. `Repo.verify_attestation` is the API half. MCP has no equivalent —
   signing and key material stay operator-only.
+- **`docs/SPEC.md` — the format, published as a specification.** The v3 wire
+  format was previously code-only: envelope framing, oid derivation, the
+  `TINEPACK3` pack layout, the ref/reflog byte formats and `config.json` existed
+  nowhere an outside implementer could build against, and v2 canonicalization
+  was not reproducible from docs. All of it is now normative and citable —
+  written for someone implementing a reader, writer or verifier in another
+  language — including both canonical JSON forms rule by rule, the complete
+  rejection table of every bound that can refuse an object, all three signature
+  schemes with their domain prefixes and signed views, and executable test
+  vectors for oid derivation, the v2 integrity digest and a `tine-attest/1`
+  signature. Two documented **⚠ Hazards** an implementer would otherwise get
+  wrong: v2 orders object keys by code point while v3 orders them by UTF-16
+  code unit (they disagree on non-BMP keys, and unifying them would invalidate
+  every stored digest and signature), and `tine-attest/1` signs a *v3* object
+  using the *v2* canonicalizer.
+- **`tests/test_format_spec_drift.py`.** The spec is pinned to the code it
+  specifies: object types, the oid and ref-name regexes, every bound in the
+  rejection table, the three domain prefixes, the frozen `tine-sig/1` metadata
+  allowlist, the verdict vocabulary (read out of `_signing_verify`'s AST rather
+  than restated), and the crypto test vectors, which are recomputed rather than
+  quoted. Change a constant without updating the spec and the suite fails.
 
 ### Compatibility
 

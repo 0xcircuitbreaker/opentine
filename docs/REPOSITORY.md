@@ -1,5 +1,11 @@
 # V3 repository and remote protocol
 
+> **Implementing OpenTine in another language?** This document is format
+> *policy* and history. The normative, byte-level specification — envelope
+> framing, oid derivation, both canonicalizations, the repository layout, the
+> TINEPACK3 pack format, and all three signature schemes — is
+> **[SPEC.md](SPEC.md)**.
+
 OpenTine 0.3.0 stores agent history under `.tine/` using Git-shaped concepts,
 while retaining portable `*.tine` v2 compatibility files.
 
