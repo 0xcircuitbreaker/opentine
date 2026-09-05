@@ -1,0 +1,313 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.blob.assignment",
+      "input": {
+        "bytes_b64": "YXBpX2tleT1zay1wcm9qLTAxMjM0NTY3ODlhYmNkZWYK",
+        "sha256": "8ad5a5d9ffc37c0e8a27677f081a006ed65530bec33ae7cf5eb275b5c27381e2"
+      },
+      "intent": "a credential-shaped assignment in free text is scrubbed to the literal [REDACTED]",
+      "op": "redact.blob",
+      "output": {
+        "bytes_b64": "YXBpX2tleT1bUkVEQUNURURdCg=="
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "api_key=sk-proj-0123456789abcdef\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.blob.bearer-token",
+      "input": {
+        "bytes_b64": "QXV0aG9yaXphdGlvbjogQmVhcmVyIHNrLWFiY2RlZmdoaWprbG1ub3AK",
+        "sha256": "967abf59896ac91aa6d3d43ad3159449cf7787a47afd6d5d5edf7b68616d8560"
+      },
+      "intent": "redaction runs BEFORE canonicalization and hashing, so the oid names the redacted bytes every reader will see and no secret enters a digest",
+      "op": "redact.blob",
+      "output": {
+        "bytes_b64": "QXV0aG9yaXphdGlvbjogW1JFREFDVEVEXQo="
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "Authorization: Bearer sk-abcdefghijklmnop\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.blob.binary-passthrough",
+      "input": {
+        "bytes_b64": "AAEC//4=",
+        "sha256": "aa5cd9acfab25f643fb1cedb67f8770417ac9ce0b02cfe72a62fa1ec20e9f60a"
+      },
+      "intent": "bytes that are not UTF-8 are opaque and are returned unchanged",
+      "op": "redact.blob",
+      "output": {
+        "bytes_b64": "AAEC//4="
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "\\x00\\x01\\x02\\xff\\xfe",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.blob.pem-private-key",
+      "input": {
+        "bytes_b64": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUJWUUlCQURBTgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==",
+        "sha256": "c6017400756119eb6afd7daacad6b46f69455235def25b0b5bcb2362214652fa"
+      },
+      "intent": "a PEM private key block is one of the known shapes",
+      "op": "redact.blob",
+      "output": {
+        "bytes_b64": "W1JFREFDVEVEIFBSSVZBVEUgS0VZXQo="
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "-----BEGIN PRIVATE KEY-----\\nMIIBVQIBADAN\\n-----END PRIVATE KEY-----\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "type": "blob"
+      },
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.put.blob-bearer-token",
+      "input": {
+        "bytes_b64": "QXV0aG9yaXphdGlvbjogQmVhcmVyIHNrLWFiY2RlZmdoaWprbG1ub3AK",
+        "sha256": "967abf59896ac91aa6d3d43ad3159449cf7787a47afd6d5d5edf7b68616d8560"
+      },
+      "intent": "a blob takes the byte-level scrubber on the same path, so the blob oid names the redacted bytes too",
+      "op": "object.put",
+      "output": {
+        "body_b64": "QXV0aG9yaXphdGlvbjogW1JFREFDVEVEXQo=",
+        "oid": "blob:sha256:d59f30a53b0d5b806d70764184f315cbd415b7f09257420ffc8241a8740c1ad6"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "Authorization: Bearer sk-abcdefghijklmnop\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "type": "blob"
+      },
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.put.blob-pem-private-key",
+      "input": {
+        "bytes_b64": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUJWUUlCQURBTgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==",
+        "sha256": "c6017400756119eb6afd7daacad6b46f69455235def25b0b5bcb2362214652fa"
+      },
+      "intent": "and a PEM private key block, the last of the shapes SPEC 1.4 names",
+      "op": "object.put",
+      "output": {
+        "body_b64": "W1JFREFDVEVEIFBSSVZBVEUgS0VZXQo=",
+        "oid": "blob:sha256:1c8743e48186ec334d930405eb1f9d4ccc70ab87a24db91e10880af3babd08f9"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "-----BEGIN PRIVATE KEY-----\\nMIIBVQIBADAN\\n-----END PRIVATE KEY-----\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "type": "event"
+      },
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.put.event-already-scrubbed",
+      "input": {
+        "value": {
+          "cost": {
+            "$i": "0"
+          },
+          "kind": "model",
+          "metadata": {
+            "api_key": "[REDACTED]"
+          },
+          "parent_ids": []
+        }
+      },
+      "intent": "the discriminating half: the same payload with the credential already scrubbed must produce the same body and the SAME oid, which it does only if redaction ran before the digest rather than after it",
+      "must_differ": false,
+      "op": "object.put",
+      "output": {
+        "body_b64": "eyJjb3N0IjowLCJraW5kIjoibW9kZWwiLCJtZXRhZGF0YSI6eyJhcGlfa2V5IjoiW1JFREFDVEVEXSJ9LCJwYXJlbnRfaWRzIjpbXX0=",
+        "oid": "event:sha256:ad7a49dbd1d894f335314cfc5a47b948ea0dd72ba2a0f718f1bc1b19d81669e0"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "twin": "redact.put.event-credential-is-scrubbed-before-hashing",
+      "x_display": "{\"cost\": {\"$i\": \"0\"}, \"kind\": \"model\", \"metadata\": {\"api_key\": \"[REDACTED]\"}, \"parent_ids\": []}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "type": "event"
+      },
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.put.event-credential-is-scrubbed-before-hashing",
+      "input": {
+        "value": {
+          "cost": {
+            "$i": "0"
+          },
+          "kind": "model",
+          "metadata": {
+            "api_key": "sk-live-0123456789abcdefghij"
+          },
+          "parent_ids": []
+        }
+      },
+      "intent": "SPEC 1.4 in the only place it can be checked: a *writer* redacting, then hashing. The stored body carries [REDACTED] and the oid names those bytes",
+      "must_differ": false,
+      "op": "object.put",
+      "output": {
+        "body_b64": "eyJjb3N0IjowLCJraW5kIjoibW9kZWwiLCJtZXRhZGF0YSI6eyJhcGlfa2V5IjoiW1JFREFDVEVEXSJ9LCJwYXJlbnRfaWRzIjpbXX0=",
+        "oid": "event:sha256:ad7a49dbd1d894f335314cfc5a47b948ea0dd72ba2a0f718f1bc1b19d81669e0"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "twin": "redact.put.event-already-scrubbed",
+      "x_display": "{\"cost\": {\"$i\": \"0\"}, \"kind\": \"model\", \"metadata\": {\"api_key\": \"sk-live-0123456789abcdefghij\"}, \"parent_ids\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.value.credential-field",
+      "input": {
+        "value": {
+          "api_key": "sk-live-0123456789",
+          "model": "demo"
+        }
+      },
+      "intent": "the value walk replaces a credential-named field outright, without descending",
+      "op": "redact.value",
+      "output": {
+        "bytes_b64": "eyJhcGlfa2V5IjoiW1JFREFDVEVEXSIsIm1vZGVsIjoiZGVtbyJ9"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "{\"api_key\": \"sk-live-0123456789\", \"model\": \"demo\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.value.header-name-value-pair",
+      "input": {
+        "value": {
+          "name": "Authorization",
+          "value": "Bearer sk-abcdef"
+        }
+      },
+      "intent": "a {name, value} header pair whose name is a credential has its value scrubbed",
+      "op": "redact.value",
+      "output": {
+        "bytes_b64": "eyJuYW1lIjoiQXV0aG9yaXphdGlvbiIsInZhbHVlIjoiW1JFREFDVEVEXSJ9"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "{\"name\": \"Authorization\", \"value\": \"Bearer sk-abcdef\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.value.nested",
+      "input": {
+        "value": {
+          "outer": {
+            "inner": {
+              "password": "hunter2",
+              "user": "ada"
+            }
+          }
+        }
+      },
+      "intent": "and it applies at every depth",
+      "op": "redact.value",
+      "output": {
+        "bytes_b64": "eyJvdXRlciI6eyJpbm5lciI6eyJwYXNzd29yZCI6IltSRURBQ1RFRF0iLCJ1c2VyIjoiYWRhIn19fQ=="
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "{\"outer\": {\"inner\": {\"password\": \"hunter2\", \"user\": \"ada\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "accept",
+      "id": "redact.value.numeric-token-counter-survives",
+      "input": {
+        "value": {
+          "token": {
+            "$i": "42"
+          },
+          "usage": {
+            "input": {
+              "$i": "10"
+            }
+          }
+        }
+      },
+      "intent": "bare \"token\" is not a credential name when its value is numeric: usage counters must survive redaction or every cost report becomes wrong",
+      "op": "redact.value",
+      "output": {
+        "bytes_b64": "eyJ0b2tlbiI6NDIsInVzYWdlIjp7ImlucHV0IjoxMH19"
+      },
+      "profile": "writer",
+      "section": "1.4",
+      "tier": "core",
+      "x_display": "{\"token\": {\"$i\": \"42\"}, \"usage\": {\"input\": {\"$i\": \"10\"}}}",
+      "x_reference": null
+    }
+  ],
+  "family": "redaction",
+  "section": "1.4",
+  "suite_version": 1
+}

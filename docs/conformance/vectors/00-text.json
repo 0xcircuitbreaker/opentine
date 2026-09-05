@@ -1,0 +1,367 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        1,
+        2
+      ],
+      "expect": "reject",
+      "id": "text.blob.cesu8-json-body-refused",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiayI6Iu2ggCJ9",
+        "sha256": "0db69cf45758b24d8e3473fb0bca3319f4bc0a5b75bc675f736758616479be80"
+      },
+      "intent": "the exception is for blobs only: the same bytes inside a json body refuse",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "canon.unencodable-text",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "twin": "text.blob.cesu8-stores-unchanged",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"k\":\"\\xed\\xa0\\x80\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting or Unicode key is invalid"
+      }
+    },
+    {
+      "checklist": [
+        1,
+        9
+      ],
+      "expect": "accept",
+      "id": "text.blob.cesu8-stores-unchanged",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQrtoIA=",
+        "sha256": "b2e5bb80b2549122c3693a6a353734f8b8bf46f7425f525b0162afdf15058f81"
+      },
+      "intent": "the one exception: a blob is a byte string, so CESU-8 bytes store unchanged",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "7aCA",
+        "encoding": "raw",
+        "oid": "blob:sha256:d486bc72e4d8e9b6d0cba1b6de0e42924f8edb8381b6f5224c9973c32e02a297",
+        "schema": 1,
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\n\\xed\\xa0\\x80",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1,
+        9
+      ],
+      "expect": "accept",
+      "id": "text.blob.raw-invalid-utf8",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQr//gAK",
+        "sha256": "f5bee8428b29d769ce4cc45450f6fa9a4cd86a0328300a37e1be5ded78e38679"
+      },
+      "intent": "a raw blob body is opaque: bytes that are not UTF-8 at all store unchanged",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "//4ACg==",
+        "encoding": "raw",
+        "oid": "blob:sha256:ae66d9c576553ec3526093d5c011e68bba3bf078f39f79e458f6090417f34fb7",
+        "schema": 1,
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\n\\xff\\xfe\\x00\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "accept",
+      "id": "text.boundary.u-d7ff",
+      "input": {
+        "bytes_b64": "eyJrIjoi7Z+/In0=",
+        "sha256": "0a43bd4e38c195feff702c70ffba45d3023ae0c9c9aaa831b04339792cbf203a"
+      },
+      "intent": "ED 9F BF is U+D7FF, ordinary text one code point below the surrogate range",
+      "op": "text.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\xed\\x9f\\xbf\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "accept",
+      "id": "text.boundary.u-e000",
+      "input": {
+        "bytes_b64": "eyJrIjoi7oCAIn0=",
+        "sha256": "658ffcca973b73d81aa82586d5133e597af87739a0f07a73fa0ea7b19a61e244"
+      },
+      "intent": "EE 80 80 is U+E000, ordinary text one code point above the surrogate range",
+      "op": "text.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\xee\\x80\\x80\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "accept",
+      "id": "text.pair.escaped-emoji",
+      "input": {
+        "bytes_b64": "eyJrIjoiXHVkODNkXHVkZTAwIn0=",
+        "sha256": "ca90fe6f2acf0d4917b1724ebe76ca894184a6d72c4558deac8cef498f289365"
+      },
+      "intent": "a correctly paired escape denotes U+1F600, a scalar value, and is ordinary text",
+      "op": "text.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\ud83d\\\\ude00\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "accept",
+      "id": "text.pair.raw-emoji",
+      "input": {
+        "bytes_b64": "eyJrIjoi8J+YgCJ9",
+        "sha256": "f073f1f05c0a1e01bf604e8ec5f389a64fdeb334e00f9456008269e852b1ff4a"
+      },
+      "intent": "the same character spelled as raw UTF-8 is the same ordinary text",
+      "op": "text.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\xf0\\x9f\\x98\\x80\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.key-escape",
+      "input": {
+        "bytes_b64": "eyJcdWQ4MDAiOjF9",
+        "sha256": "02724f63cc02840d4a3eaa7063b83466eb5a385438138fdbdd235c86874d8ff7"
+      },
+      "intent": "the same rule applies to an object key, which no UTF-8 encoder can spell",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"\\\\ud800\":1}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at \\ud800 (object key); .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.key-raw-cesu8",
+      "input": {
+        "bytes_b64": "eyLtoIAiOjF9",
+        "sha256": "c814d2b2154330953ba6828072cead66c18f38a05af170d5e8d299f8ed274bec"
+      },
+      "intent": "raw CESU-8 surrogate bytes in a key are refused exactly as the escape spelling is",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"\\xed\\xa0\\x80\":1}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at \\ud800 (object key); .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.low-escape",
+      "input": {
+        "bytes_b64": "eyJrIjoiXHVkZmZmIn0=",
+        "sha256": "87a496fabd54e895639a71809d37d07c9d0094d814fccd5d4337f8190eca4816"
+      },
+      "intent": "a lone LOW surrogate is refused too; the rule is the whole D800-DFFF range",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\udfff\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.low-raw-cesu8",
+      "input": {
+        "bytes_b64": "eyJrIjoi7b+/In0=",
+        "sha256": "44a0ca9e1c7f1c9b2ae6b9dec28c4ecae8fb82caf4d5708968dd3ae986bade6e"
+      },
+      "intent": "ED BF BF is the raw spelling of U+DFFF and is refused with its escape twin",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\xed\\xbf\\xbf\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.mixed-with-valid",
+      "input": {
+        "bytes_b64": "eyJvayI6ImZpbmUiLCJiYWQiOiJhXHVkYzAwYiJ9",
+        "sha256": "d1f9a0e7e06c4ab87bed0cd802f3879d44534151c8717155d3dc76bc9bb85a25"
+      },
+      "intent": "one bad string refuses the whole document; valid siblings do not rescue it",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"ok\":\"fine\",\"bad\":\"a\\\\udc00b\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at bad; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.nested-in-array",
+      "input": {
+        "bytes_b64": "eyJrIjpbeyJkZWVwIjoiXHVkYmZmIn1dfQ==",
+        "sha256": "8f20b234b72ccd9263c4098cb4b3c0e45696f61594aacc4fb9f926c5f8f1090a"
+      },
+      "intent": "the rule is over every string in the document, not only top-level values",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":[{\"deep\":\"\\\\udbff\"}]}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k[0].deep; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.split-emoji-high",
+      "input": {
+        "bytes_b64": "eyJrIjoiXHVkODNkIn0=",
+        "sha256": "f3a634605fec17c1de7b9627e2b8aaa52d57166393e4aa1b37cc6fcb723f39dc"
+      },
+      "intent": "the lead half of a mid-emoji slice, the shape a streamed JSON producer emits",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\ud83d\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.value-escape",
+      "input": {
+        "bytes_b64": "eyJrIjoiXHVkODAwIn0=",
+        "sha256": "d6b17f36548f28d623847997546200dd6e58c682c7cba09be743ca7926d7fe7e"
+      },
+      "intent": "a lone high surrogate as a \\uXXXX escape in a string value is not a scalar value",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\ud800\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        1
+      ],
+      "expect": "reject",
+      "id": "text.surrogate.value-raw-cesu8",
+      "input": {
+        "bytes_b64": "eyJrIjoi7aCAIn0=",
+        "sha256": "c7e7834ed7932e48ec878ada48e79d6c5f1f9d886a2b244c71675bcf24ad05ba"
+      },
+      "intent": "raw CESU-8 bytes ED A0 80 decode to the same lone code unit without any escape",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\xed\\xa0\\x80\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    }
+  ],
+  "family": "text",
+  "section": "0.1",
+  "suite_version": 1
+}

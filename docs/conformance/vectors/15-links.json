@@ -1,0 +1,976 @@
+{
+  "cases": [
+    {
+      "args": {
+        "objects": []
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "chain.previous-unavailable",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwicHJldmlvdXNfaWQiOiJhbm5vdGF0aW9uOnNoYTI1NjozNTNiZGNmY2I2ZTNmNGJmNWM5MzhhZWRhYzk0MmRkNjQzZWJiMzczOTJjMmMyNmNmZDEyOGVmMDA3ZWRmYjA3IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiLCJiIl19fQ==",
+        "sha256": "26eb5e7451f57ab2c4254709c791525911b53e23911094e5e3a51eb8dcde3b10"
+      },
+      "intent": "an unreadable predecessor is a refusal, not a chain root",
+      "op": "annotation.chain",
+      "profile": "reader",
+      "reason": "chain.previous-unavailable",
+      "repair_temptation": "treat an unreadable predecessor as the start of the chain",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"compatibility\":\"run-metadata-v1\",\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\",\"value\":{\"metadata\":{},\"tags\":[\"a\",\"b\"]}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "annotation previous object is unavailable: annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiXX19"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "chain.same-target",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwicHJldmlvdXNfaWQiOiJhbm5vdGF0aW9uOnNoYTI1NjozNTNiZGNmY2I2ZTNmNGJmNWM5MzhhZWRhYzk0MmRkNjQzZWJiMzczOTJjMmMyNmNmZDEyOGVmMDA3ZWRmYjA3IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiLCJiIl19fQ==",
+        "sha256": "26eb5e7451f57ab2c4254709c791525911b53e23911094e5e3a51eb8dcde3b10"
+      },
+      "intent": "a chained annotation must carry the same target_id as its predecessor",
+      "op": "annotation.chain",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"compatibility\":\"run-metadata-v1\",\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\",\"value\":{\"metadata\":{},\"tags\":[\"a\",\"b\"]}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiXX19"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "chain.target-changed",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJwcmV2aW91c19pZCI6ImFubm90YXRpb246c2hhMjU2OjM1M2JkY2ZjYjZlM2Y0YmY1YzkzOGFlZGFjOTQyZGQ2NDNlYmIzNzM5MmMyYzI2Y2ZkMTI4ZWYwMDdlZGZiMDciLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIifQ==",
+        "sha256": "ced273bb9c64b48fa35083771cdc73cba3082f2c9cdf6234ff6c3580c95b9b20"
+      },
+      "intent": "a chain may not re-target midway: both versions describe one object",
+      "op": "annotation.chain",
+      "profile": "reader",
+      "reason": "chain.target-changed",
+      "repair_temptation": "let the later version's target win",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "annotation versions must target the same object"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07",
+          "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.annotation.previous-annotation",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwicHJldmlvdXNfaWQiOiJhbm5vdGF0aW9uOnNoYTI1NjozNTNiZGNmY2I2ZTNmNGJmNWM5MzhhZWRhYzk0MmRkNjQzZWJiMzczOTJjMmMyNmNmZDEyOGVmMDA3ZWRmYjA3IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiLCJiIl19fQ==",
+        "sha256": "26eb5e7451f57ab2c4254709c791525911b53e23911094e5e3a51eb8dcde3b10"
+      },
+      "intent": "a truthy previous_id must be an annotation oid, and is a link",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07",
+          "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"compatibility\":\"run-metadata-v1\",\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\",\"value\":{\"metadata\":{},\"tags\":[\"a\",\"b\"]}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.annotation.previous-not-an-annotation",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJwcmV2aW91c19pZCI6InJ1bjpzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInRhcmdldF9pZCI6InJ1bjpzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9",
+        "sha256": "e416cb52229e083d145e1fc5e44bc246b64c1627c2be3475ae2f0d170dfee473"
+      },
+      "intent": "a truthy previous_id must be an annotation oid",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.annotation-previous-not-annotation",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"previous_id\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"target_id\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "previous_id must contain an annotation id"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.annotation.target-absent",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJ2YWx1ZSI6eyJ0YWdzIjpbXX19",
+        "sha256": "62f1771b60ea3f3bd3ea059a453eede715d9de0c44f6527890bb7d139d860dfe"
+      },
+      "intent": "and an annotation's target_id may be absent entirely",
+      "op": "links.extract",
+      "output": {
+        "links": []
+      },
+      "profile": "reader",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"value\":{\"tags\":[]}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "present": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.annotation.target-any-type",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJ0YXJnZXRfaWQiOiJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJ9",
+        "sha256": "98e4e6846ed11b34eb1fb611956590839d627231fc40a0a0d81b31d3922ca846"
+      },
+      "intent": "unlike an attestation, an annotation may target any object type",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"target_id\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "present": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ],
+        "shallow": [
+          "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.attestation.evidence-any-type",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9CnsiZXZpZGVuY2VfaWRzIjpbImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiLCJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzaWduZXIiOiJ4IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0=",
+        "sha256": "83fd3e1d833db9dbc2feb9a1f116ba24480f485aea83a308bcfe46202b9c3106"
+      },
+      "intent": "an evidence_ids entry may be an oid of any type",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.4",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"attestation\"}\\n{\"evidence_ids\":[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\",\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"signer\":\"x\",\"target_id\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.attestation.evidence-not-a-list",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9CnsiZXZpZGVuY2VfaWRzIjp7ImEiOjF9LCJzaWduZXIiOiJ4IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0=",
+        "sha256": "5dc2e8f3761d324b91de7b3552043d78eac8cac907492eafedd20400d472afd7"
+      },
+      "intent": "a non-list evidence_ids is refused; the reference reports the oid error for the None it substitutes, which is exactly the conflation x_reference exposes",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.evidence-not-list",
+      "repair_temptation": "wrap a single oid in a list",
+      "section": "1.5.4",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"attestation\"}\\n{\"evidence_ids\":{\"a\":1},\"signer\":\"x\",\"target_id\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: None"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.attestation.target-absent",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9CnsiY2xhaW0iOnt9LCJzaWduZXIiOiJ4In0=",
+        "sha256": "c5d92776b2faad638be8a945ebfe223cdc02043c2814803855e39ff4454d720e"
+      },
+      "intent": "target_id is REQUIRED for an attestation",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.attestation-target-not-run",
+      "section": "1.5.4",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"attestation\"}\\n{\"claim\":{},\"signer\":\"x\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: ''"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.attestation.target-not-a-run",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9Cnsic2lnbmVyIjoieCIsInRhcmdldF9pZCI6ImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3In0=",
+        "sha256": "f96d9cc36b583dce514507b3c8fc7ea7784b1b30794c008bbe5b8dfbc0310606"
+      },
+      "intent": "and it must be a run oid, never an event or a blob",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.attestation-target-not-run",
+      "section": "1.5.4",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"attestation\"}\\n{\"signer\":\"x\",\"target_id\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "attestation target_id must contain a run id"
+      }
+    },
+    {
+      "args": {
+        "shallow": [
+          "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.attestation.target-run",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9CnsiY2xhaW0iOnsicmVzdWx0IjoicGFzcyJ9LCJldmlkZW5jZV9pZHMiOltdLCJzaWduYXR1cmUiOm51bGwsInNpZ25lciI6InJlbGVhc2UtYm90IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0=",
+        "sha256": "0808f23b7a21775bfd5f5a5835bb7fe4635aa2741706ac8b9da8a0575ac5f630"
+      },
+      "intent": "an attestation's target_id is REQUIRED and MUST be a run oid",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.4",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"attestation\"}\\n{\"claim\":{\"result\":\"pass\"},\"evidence_ids\":[],\"signature\":null,\"signer\":\"release-bot\",\"target_id\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.blob.has-no-links",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "a blob is opaque: it has no structure and therefore no links",
+      "op": "links.extract",
+      "output": {
+        "links": []
+      },
+      "profile": "reader",
+      "section": "1.5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.artifact-blob-is-a-run",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYXJ0aWZhY3RfYmxvYiI6InJ1bjpzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "3e53810fa3713d322d0bd1f3cd4833c93a2ae8850a0734aa10e18198a070a78a"
+      },
+      "intent": "the reserved field is type-checked exactly like the two written ones",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.event-blob-not-blob",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"artifact_blob\":\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "artifact_blob must contain a blob id"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.artifact-blob-reserved",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYXJ0aWZhY3RfYmxvYiI6ImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiLCJraW5kIjoibW9kZWwifQ==",
+        "sha256": "ee45e1e320f217d7c1417d51c6fb86331a4e40e4e3020d121e66a23fc7b3dddc"
+      },
+      "intent": "artifact_blob is validated though no writer emits it: a reserved link field",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"artifact_blob\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\",\"kind\":\"model\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "present": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.causal-ids",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJraW5kIjoidG9vbCJ9",
+        "sha256": "2a2a2f8a8a3f7e1dfe8b688247166e9390fd7cfafe9881ee91d09664ee2246aa"
+      },
+      "intent": "causal_ids carries the same rule as parent_ids",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"causal_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"kind\":\"tool\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.empty-payload",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnt9",
+        "sha256": "da71d76267334bcf8a30394f97f7e2e53129d0c984d378655454c6a2ad2fe8ad"
+      },
+      "intent": "parent_ids and causal_ids default to [], so an empty event has no links",
+      "op": "links.extract",
+      "output": {
+        "links": []
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.falsy-blob-not-a-link",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiaW5wdXRfYmxvYiI6IiIsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "24620276dde274baffcddb0df3604dd0834f9707761e63430ab3da649fe90d6c"
+      },
+      "intent": "an empty input_blob is falsy, so it is not a link and is not type-checked",
+      "op": "links.extract",
+      "output": {
+        "links": []
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"input_blob\":\"\",\"kind\":\"model\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "present": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.input-and-output-blob",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwiaW5wdXRfYmxvYiI6ImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiLCJraW5kIjoibW9kZWwiLCJvdXRwdXRfYmxvYiI6ImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiLCJwYXJlbnRfaWRzIjpbXX0=",
+        "sha256": "01d5e0f6bda620130641117b0e94cbd846d8cf45225bdbd398d19f027a244f2c"
+      },
+      "intent": "a truthy input_blob/output_blob must be a blob oid, and is a link",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"input_blob\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\",\"kind\":\"model\",\"output_blob\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\",\"parent_ids\":[]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.input-blob-is-an-event",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiaW5wdXRfYmxvYiI6ImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Iiwia2luZCI6Im1vZGVsIn0=",
+        "sha256": "aa58ba588dc1f1d69f28e787bcdc6de6e3e667d920fe39a7829add005f52cfc9"
+      },
+      "intent": "a truthy input_blob must be a *blob* oid",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.event-blob-not-blob",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"input_blob\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "input_blob must contain a blob id"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.output-blob-is-an-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwib3V0cHV0X2Jsb2IiOnsiYSI6MX19",
+        "sha256": "7e2af6d6134fecf50e983d138488d4bf7b4d4a48fadc4a4f69791539d5824c97"
+      },
+      "intent": "a truthy output_blob that is not even a string is refused; note that the reference reports the *oid* error here, which is what x_reference exists to show",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.event-blob-not-blob",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"output_blob\":{\"a\":1}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: {'a': 1}"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.parent-ids-duplicate",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "f01e61eb9bd09547c5f7df20bb5060c4b94caa86d9fe251d1985388ff12393a4"
+      },
+      "intent": "duplicates are refused rather than de-duplicated",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.parent-ids-duplicate",
+      "repair_temptation": "de-duplicate the list",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "parent_ids must contain event ids; unique event ids are required"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.parent-ids-not-a-list",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6ImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3In0=",
+        "sha256": "a552d2f139add2468cdf112d2b89aaced06a265f0c9a787205948e951fde8d75"
+      },
+      "intent": "a non-list parent_ids is refused, not wrapped",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.parent-ids-not-events",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"parent_ids\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "parent_ids must contain event ids; unique event ids are required"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.parent-ids-present",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "parent_ids is a duplicate-free list of event oids, and each must resolve",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "shallow": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.event.parent-ids-shallow",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "SPEC 1.5.6 is satisfied by the shallow boundary as well as by a local object",
+      "must_differ": false,
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.6",
+      "tier": "core",
+      "twin": "links.event.parent-ids-present",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.event.parent-not-an-event",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6WyJibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4Il19",
+        "sha256": "8f49950fa0615454982d395da3e35cd542c59e69b5a0072f8a93e4f0d209d0d2"
+      },
+      "intent": "every parent_ids entry must be an *event* oid, not merely a valid oid",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.parent-ids-not-events",
+      "repair_temptation": "filter the offending entry out and keep the rest",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"parent_ids\":[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "parent_ids must contain event ids; unique event ids are required"
+      }
+    },
+    {
+      "args": {
+        "present": []
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.missing-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "SPEC 1.5.6: a link must resolve locally or appear in the shallow boundary",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.missing-object",
+      "repair_temptation": "treat an unresolvable link as absent and continue",
+      "section": "1.5.6",
+      "tier": "core",
+      "twin": "links.event.parent-ids-present",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "missing linked object: event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.events-duplicate",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c768970e4e7cc38e8a543125861b611768d7a6348cca8f35a1f5e028dd12ec8a"
+      },
+      "intent": "and it must be duplicate-free",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-events-invalid",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "events must contain unique event ids"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.events-not-event-ids",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4Il19",
+        "sha256": "163edc01f12d23b33d867ad529c20bb7d7275bdf9c1824311a3492a46b79b3cd"
+      },
+      "intent": "a run's events list holds event oids only",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-events-invalid",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "events must contain unique event ids"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.run.events-roots-tips",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19",
+        "sha256": "9af0806ffa4f8718017756787a50737940519801c5f6374583ef549fa835eead"
+      },
+      "intent": "events is duplicate-free, and roots and tips are subsets of it",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"manifests\":{\"transcript\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"},\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f563171481...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.manifests-not-an-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7Im1hbmlmZXN0cyI6W1sidHJhbnNjcmlwdCIsImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiXV19",
+        "sha256": "196fb792a3b9a99f119f57c537e3395b7c9bc394a301c3356d1ecf31af46194d"
+      },
+      "intent": "manifests must be an object, not a list of pairs",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-manifests-not-object",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"manifests\":[[\"transcript\",\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "manifests must be an object"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.manifests-value-not-a-blob",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7Im1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiZXZlbnQ6c2hhMjU2OjQ5NTAxMDYyZTIxODI1NDQ3YWEyMGVlZjM0YmNiM2FkMzkxMTAyZGI5MmQ3NmY1NjMxNzE0ODEzYmY2YzQzYTcifX0=",
+        "sha256": "0c17a46b54a5f597508d49f7fd97c5fadc35fad6ca8a7209ee2b585e10f9407e"
+      },
+      "intent": "every manifests value must be a blob oid",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-blob-not-blob",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"manifests\":{\"transcript\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run blob fields must contain blob ids"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.run.manifests-values-are-blobs",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7Im1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9fQ==",
+        "sha256": "43a4551d27986ef06b94a65c47fbde8b36820f9d690186b732a462dd0cefccaa"
+      },
+      "intent": "manifests is an object whose *values* are blob oids",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"manifests\":{\"transcript\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.run.patch-blob-empty-string",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7InBhdGNoX2Jsb2IiOiIifQ==",
+        "sha256": "76ceba476be640381ee5dbc0f2f131415aeacede2b630f491ff4b0a12e5eaeb6"
+      },
+      "intent": "the rule applies only to a *truthy* value, so an empty patch_blob is not a link",
+      "op": "links.extract",
+      "output": {
+        "links": []
+      },
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"patch_blob\":\"\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.patch-blob-is-an-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7InBhdGNoX2Jsb2IiOnsiYSI6MX19",
+        "sha256": "c5ee5a39102313ea5189463dd2841bcb0ceffe6445dc445b2967fcd958bac951"
+      },
+      "intent": "the open-ended suffix rule refuses a patch_blob holding an object",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-blob-not-blob",
+      "repair_temptation": "apply the _blob rule only to a fixed list of known field names",
+      "section": "1.5.3",
+      "tier": "core",
+      "twin": "links.run.patch-blob-suffix-rule",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"patch_blob\":{\"a\":1}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: {'a': 1}"
+      }
+    },
+    {
+      "args": {
+        "present": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "checklist": [
+        4
+      ],
+      "expect": "accept",
+      "id": "links.run.patch-blob-suffix-rule",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7InBhdGNoX2Jsb2IiOiJibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4In0=",
+        "sha256": "b031de5219d2ee46057bfe5fa65433465b57b7cdaa55476699e03c3147358968"
+      },
+      "intent": "the _blob suffix rule is open-ended: a writer adding patch_blob inherits it",
+      "op": "links.extract",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "twin": "links.run.patch-blob-is-an-object",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"patch_blob\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.roots-not-subset",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJyb290cyI6WyJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCJdfQ==",
+        "sha256": "7e5c183e423ec20dd5504d45d06811561ad920810de49b00317298244ebd7962"
+      },
+      "intent": "roots must be a subset of events",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-roots-tips-not-subset",
+      "repair_temptation": "add the stray entry to events",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"roots\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "roots must be a subset of events"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.tips-not-event-ids",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7InRpcHMiOlsiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJdfQ==",
+        "sha256": "61da91b03de09edcc3c9aa99fa1cca3e576f696a6dac1d4800f76d4178b06354"
+      },
+      "intent": "a tips entry that is not an event oid fails before the subset check",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-roots-tips-invalid",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"tips\":[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "tips must contain unique events from the run"
+      }
+    },
+    {
+      "checklist": [
+        4
+      ],
+      "expect": "reject",
+      "id": "links.run.tips-not-subset",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19",
+        "sha256": "b7648192a0299bf0baef58d402703b031bcbe544fcc476d70297e432579c68cf"
+      },
+      "intent": "and so must tips",
+      "op": "links.extract",
+      "profile": "reader",
+      "reason": "link.run-roots-tips-not-subset",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "tips must be a subset of events"
+      }
+    }
+  ],
+  "family": "links",
+  "section": "1.5",
+  "suite_version": 1
+}

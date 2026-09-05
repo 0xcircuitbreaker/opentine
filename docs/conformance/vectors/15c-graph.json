@@ -1,0 +1,451 @@
+{
+  "cases": [
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJraW5kIjoidG9vbCJ9"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.causal-outside-graph",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6OGM1Yzg2ZWQ3NWFjN2U2NDBlZjc1NmNiMWJiNzNhMzUzM2JhMGJjNTQ1YTZlYmQ2ODQ2OGRiNDg1N2YwY2QzZSJdLCJyb290cyI6W10sInRpcHMiOltdfQ==",
+        "sha256": "198499f9fb922f2b97a7c02ebb83d61b52fd92d3a3e96517b3bc39cbe30c9dc2"
+      },
+      "intent": "the same rule for a causal link",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.causal-outside-graph",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:8c5c86ed75ac7e640ef756cb1bb73a3533ba0bc545a6ebd68468db4857f0cd3e\"],\"roots\":[],\"tips\":[]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run event has a causal link outside its event graph: event:sha256:8c5c86ed75ac7e640ef756cb1bb73a3533ba0bc545a6ebd68468db4857f0cd3e"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.causal.in-order",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "5286b589f600acf16ed38d001d0546b3d816a9dfbb9ad93e9231f9079834737e"
+      },
+      "intent": "causal_ids are ordered by the same rule as parent_ids",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.empty-events",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6W119",
+        "sha256": "a538f9691aaf888d47a672cd64b626aedcbf3c22a633afd8977a8dbdb7fb5cda"
+      },
+      "intent": "a run with no events is a valid run",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.legacy-refs.not-an-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sImxlZ2FjeV9yZWZzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "4b6af46d7a90a54a0b1c2cb5103760ae1ef8657aab9a8bd460cdba77be7983fe"
+      },
+      "intent": "and legacy_refs itself must be an object of string keys",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.legacy-refs-invalid",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"legacy_refs\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "legacy_refs must map names to events in the run"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.legacy-refs.target-outside-run",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sImxlZ2FjeV9yZWZzIjp7InN0ZXAtMSI6ImV2ZW50OnNoYTI1Njo0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0In0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "cceee8a1587c5bd5ae1522020a5a4b7773dca245d48914c5a9b2167e7295250b"
+      },
+      "intent": "a legacy ref must name an event inside this run",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.legacy-refs-invalid",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"legacy_refs\":{\"step-1\":\"event:sha256:4444444444444444444444444444444444444444444444444444444444444444\"},\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "legacy_refs must map names to events in the run"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.legacy-refs.valid",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sImxlZ2FjeV9yZWZzIjp7InN0ZXAtMSI6ImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3In0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "6c2c6998e487d5c899dea886e0fe322b64c3c450fb96dfe96aa147ba5145196f"
+      },
+      "intent": "legacy_refs maps string names to events inside the run",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"legacy_refs\":{\"step-1\":\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"},\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.order.child-before-parent",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCIsImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "90f5231c46126771bcad0bb3c1a9690ea2a34aa2e22b7a2c9bfd282a0c0e017b"
+      },
+      "intent": "a parent at a later index than its child is refused, not re-sorted",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.order-not-topological",
+      "repair_temptation": "topologically sort events on read",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\",\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run events must be in parent-before-child/dependency order"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.order.parent-before-child",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "369aff51c96be773312f5ae3f90b9b455eb3b50834a02efaf24f2ac7a2f7c530"
+      },
+      "intent": "every parent must appear at a strictly earlier index than its child",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"status\":\"completed\",\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a657...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.parent-outside-graph",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCJdLCJyb290cyI6W10sInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "6c04a904d176890849978fed0c32554d2612e393579bf46843610123797a573a"
+      },
+      "intent": "a present event whose parent is not in events breaks graph closure",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.parent-outside-graph",
+      "repair_temptation": "add the missing parent to events",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run event has a parent outside its event graph: event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.roots-tips.exact-when-complete",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "369aff51c96be773312f5ae3f90b9b455eb3b50834a02efaf24f2ac7a2f7c530"
+      },
+      "intent": "with every event present, roots must be exactly the parentless events and tips exactly the leaves",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "twin": "graph.roots.mismatch",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"status\":\"completed\",\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a657...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.roots.mismatch",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbXSwic3RhdHVzIjoiY29tcGxldGVkIiwidGlwcyI6WyJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCJdfQ==",
+        "sha256": "a26cf74ef8dfd6b6d528f7098f4889c815534f764457aa13f46a6ac377b29164"
+      },
+      "intent": "roots must equal the parentless set exactly, not merely be a subset of it",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.roots-mismatch",
+      "repair_temptation": "recompute roots and ignore the stored value",
+      "section": "1.5.3",
+      "tier": "core",
+      "twin": "graph.roots-tips.exact-when-complete",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[],\"status\":\"completed\",\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run roots do not match parentless events"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.shallow.exactness-skipped-when-incomplete",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbXSwic3RhdHVzIjoiY29tcGxldGVkIiwidGlwcyI6W119",
+        "sha256": "3780b2c6302b5cdcce5b58f04dafe23832c1e988429a66cf7bf4a992df7548c5"
+      },
+      "intent": "when any event is missing -- a shallow fetch -- both exactness checks are skipped, so a partial run is readable rather than corrupt",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "twin": "graph.roots.mismatch",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[],\"status\":\"completed\",\"tips\":[]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.status.absent-defaults-to-running",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "5286b589f600acf16ed38d001d0546b3d816a9dfbb9ad93e9231f9079834737e"
+      },
+      "intent": "an absent status means running",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "graph.status.completed",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "369aff51c96be773312f5ae3f90b9b455eb3b50834a02efaf24f2ac7a2f7c530"
+      },
+      "intent": "one of the four run statuses",
+      "op": "run.graph",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"status\":\"completed\",\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a657...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.status.unknown",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNhbmNlbGxlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QiXX0=",
+        "sha256": "70a1fcfc748af32eedf0ce4b814614c156ae567db90409c6bec0d418c731cd8c"
+      },
+      "intent": "an unrecognised status is refused, never defaulted",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.status-invalid",
+      "repair_temptation": "default an unknown status to running",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"status\":\"cancelled\",\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a657...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run status is invalid"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19"
+        ]
+      },
+      "checklist": [
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "graph.tips.mismatch",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il0sInN0YXR1cyI6ImNvbXBsZXRlZCIsInRpcHMiOlsiZXZlbnQ6c2hhMjU2OjQ5NTAxMDYyZTIxODI1NDQ3YWEyMGVlZjM0YmNiM2FkMzkxMTAyZGI5MmQ3NmY1NjMxNzE0ODEzYmY2YzQzYTciLCJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCJdfQ==",
+        "sha256": "38bc8b2ba5b14be27bd8e8d94380627b191e43118b81c22d1bc666ecae351bd9"
+      },
+      "intent": "and tips must equal the leaf set exactly",
+      "op": "run.graph",
+      "profile": "reader",
+      "reason": "graph.tips-mismatch",
+      "section": "1.5.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"],\"status\":\"completed\",\"tips\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f56317...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run tips do not match event-graph leaves"
+      }
+    }
+  ],
+  "family": "graph",
+  "section": "1.5.3",
+  "suite_version": 1
+}

@@ -34,12 +34,65 @@
   code unit (they disagree on non-BMP keys, and unifying them would invalidate
   every stored digest and signature), and `tine-attest/1` signs a *v3* object
   using the *v2* canonicalizer.
+- **`docs/conformance/` — the specification, as runnable evidence.** A prose
+  spec lets nobody *prove* an implementation correct: before this, `SPEC.md`
+  carried four inline worked vectors and an implementer's only recourse was to
+  read Python. The format now ships **523 conformance vectors** across 25 families,
+  language-neutral (SHA-256, HMAC-SHA256, base64 and a JSON parser; zlib inflate
+  and Ed25519 flagged skippable), with a stdlib-only runner
+  (`docs/conformance/run_conformance.py`, which imports no opentine) that speaks
+  line-delimited JSON to an ~80-line adapter. `scripts/conformance_adapter.py`
+  is the worked example. `MANIFEST.json` is the single machine-parsed entry
+  point: 33 ops with their input/output shapes, per-file digests, alias groups,
+  and which row of §1.6 each vector covers.
+- **Negative vectors are the point.** 195 of the 523 refuse input, because
+  "reject" is normative here — an implementation that silently repairs a
+  document changes a digest claiming fidelity to recorded model output.
+  `99-repair.json` goes further: each of its fourteen cases carries the exact
+  answer a *repairing* reader returns, so producing it is scored `REPAIRED`
+  rather than as a plain failure. Scoring has three columns and the second is
+  the load-bearing one — `pairs` (both halves of every twinned case), on which a
+  blanket rejecter scores near zero. `04-divergence.json` makes §0.4's
+  canonicalization hazard checkable: each half of a pair carries the *other*
+  canonicalizer's bytes as `forbidden`, and `sig.attest.hazard.nonbmp-1e20`
+  exists because §4.5's own worked vector is all-ASCII, so both canonicalizers
+  coincide on it and a JCS-using implementer passes §4.5 and fails only there.
+- **`scripts/gen_conformance_vectors.py`, and why the vectors can be trusted.**
+  Every expected byte string, oid, digest and verdict is generated from the
+  reference implementation, never transcribed; each case's *disposition* is
+  declared by hand in `tests/conformance/cases_*.py` and the generator **exits
+  without writing** when observation disagrees with the declaration. Making
+  opentine accept what it used to reject therefore costs one hand-edited line
+  that reads exactly that. Regeneration is byte-identical, and the suite is
+  gated four ways: through the low-level functions, through the public
+  `Repo`/`Run` API, through the neutral runner and reference adapter, and by 28
+  drift gates (no suite file is git-ignored, every §1.6 row is vectored or has
+  written prose saying why it cannot be, every reason code is used and
+  registered with its bound's *live* value, every twin resolves and flips, every
+  `spec_note` has a mandatory resolution).
+- **`docs/conformance/compat/index.json`.** The eight golden fixture sets are
+  exposed as spec artifacts rather than duplicated: the index points at
+  `tests/fixtures/compat/` by path and SHA-256 and copies zero bytes, because
+  those bytes ARE the evidence for §5.1's read guarantee and a second copy could
+  drift from them. Reflog rows are deliberately excluded — they embed a
+  wall-clock timestamp and are the one non-reproducible part of a fixture.
 - **`tests/test_format_spec_drift.py`.** The spec is pinned to the code it
   specifies: object types, the oid and ref-name regexes, every bound in the
   rejection table, the three domain prefixes, the frozen `tine-sig/1` metadata
   allowlist, the verdict vocabulary (read out of `_signing_verify`'s AST rather
   than restated), and the crypto test vectors, which are recomputed rather than
   quoted. Change a constant without updating the spec and the suite fails.
+
+- **`docs/SPEC.md` prose amendments found by building the vectors.** §0.2 rule
+  10 said nesting is rejected "at or beyond 512 levels"; the encoder accepts 512
+  nested containers and rejects 513, and the rule now says so. §0.1 said both
+  formats reject a lone surrogate "at write and at read" without naming where —
+  `_canon._canonical_bytes` alone accepts one and emits the escape, so the
+  section now names `parse_artifact_json`, `assert_loadable` and
+  `guarded_redaction` as the enforcement points. §2.7 described the shallow file
+  as "Sorted" with "the last line terminated"; the reader enforces neither, so
+  both are now stated as **writer** properties. Every such finding is recorded
+  in `docs/conformance/SPEC_NOTES.md` with a mandatory resolution.
 
 ### Compatibility
 

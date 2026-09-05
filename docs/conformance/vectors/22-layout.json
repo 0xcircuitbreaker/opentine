@@ -1,0 +1,256 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.config.canonical",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicmVwb3NpdG9yeSI6Im9wZW50aW5lIiwidmVyc2lvbiI6MX0K",
+        "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+      },
+      "intent": "the descriptor is exactly four key/value pairs, canonical, LF-terminated",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.config.format-2",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjIsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicmVwb3NpdG9yeSI6Im9wZW50aW5lIiwidmVyc2lvbiI6MX0K",
+        "sha256": "7431a871c43377fd92acaaac703e311c761d8223af27546c9e477b3e24d7cbb5"
+      },
+      "intent": "format MUST be 3; a v2 sidecar directory is not a v3 repository",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.incompatible",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"format\":2,\"object_hash\":\"sha256\",\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is incompatible"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.config.missing-object-hash",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjMsInJlcG9zaXRvcnkiOiJvcGVudGluZSIsInZlcnNpb24iOjF9Cg==",
+        "sha256": "96caec65cdf1dc2b169cc143e240b6cf1edbb92de426de9a13e5b25033a354b0"
+      },
+      "intent": "all four pairs must be present and equal, not merely compatible",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.incompatible",
+      "repair_temptation": "default a missing object_hash to sha256",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"format\":3,\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is incompatible"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.config.non-canonical-formatting-accepted",
+      "input": {
+        "bytes_b64": "ewogICJyZXBvc2l0b3J5IjogIm9wZW50aW5lIiwKICAiZm9ybWF0IjogMywKICAidmVyc2lvbiI6IDEsCiAgIm9iamVjdF9oYXNoIjogInNoYTI1NiIKfQ==",
+        "sha256": "d31f2f541aa888ef38ffa7b12b2f28a3400f2b832373c4affe52a5b51f1a0dea"
+      },
+      "intent": "the same wart for formatting: the file need not be canonical or newline-terminated",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\\n  \"repository\": \"opentine\",\\n  \"format\": 3,\\n  \"version\": 1,\\n  \"object_hash\": \"sha256\"\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.config.not-an-object",
+      "input": {
+        "bytes_b64": "WzMsInNoYTI1NiJd",
+        "sha256": "82cc803f3c895c5a88d418ed18fd75817e83bcdff9a110d2aef317858af6364f"
+      },
+      "intent": "and a JSON array is not a descriptor",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.incompatible",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "[3,\"sha256\"]",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is incompatible"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.config.not-json",
+      "input": {
+        "bytes_b64": "cmVwb3NpdG9yeSA9IG9wZW50aW5lCg==",
+        "sha256": "728ad69f5ebc48accd86e7c7df245981435b18ffb11cd64081fe08ff491b3b42"
+      },
+      "intent": "a descriptor that will not parse is a refusal, not a fallback to defaults",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.malformed",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "repository = opentine\\n",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is malformed"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.config.unknown-key-accepted",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjMsImZ1dHVyZSI6dHJ1ZSwib2JqZWN0X2hhc2giOiJzaGEyNTYiLCJyZXBvc2l0b3J5Ijoib3BlbnRpbmUiLCJ2ZXJzaW9uIjoxfQo=",
+        "sha256": "5de106c4bafc43b2b53d94321e92b7e57c3cb355f86f8453486ff556b4b0cba5"
+      },
+      "intent": "a documented wart: validation checks only that the four required pairs match, so an unknown key passes",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"format\":3,\"future\":true,\"object_hash\":\"sha256\",\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.path.blob",
+      "input": {
+        "value": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "intent": "a loose object lives at objects/<type>/<2 hex>/<62 hex>",
+      "op": "object.path",
+      "output": {
+        "path": "objects/blob/c5/251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "2.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.path.event",
+      "input": {
+        "value": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "intent": "the type is a real directory level, so two types never share a fan-out bucket",
+      "op": "object.path",
+      "output": {
+        "path": "objects/event/49/501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "profile": "reader",
+      "section": "2.3",
+      "tier": "core",
+      "x_display": "\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.path.not-an-oid",
+      "input": {
+        "value": "../../etc/passwd"
+      },
+      "intent": "a path is derived from a parsed oid, never from raw string slicing",
+      "op": "object.path",
+      "profile": "reader",
+      "reason": "path.invalid-oid",
+      "repair_temptation": "slice the string and build a path out of whatever it holds",
+      "section": "2.3",
+      "tier": "core",
+      "x_display": "\"../../etc/passwd\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: '../../etc/passwd'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.path.run",
+      "input": {
+        "value": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "intent": "the split is 2 and 62, not 2 and 64",
+      "op": "object.path",
+      "output": {
+        "path": "objects/run/e8/8fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "profile": "reader",
+      "section": "2.3",
+      "tier": "core",
+      "x_display": "\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.path.uppercase-hex",
+      "input": {
+        "value": "blob:sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "intent": "an uppercase digest is not an oid, so it names no path",
+      "op": "object.path",
+      "profile": "reader",
+      "reason": "path.invalid-oid",
+      "section": "2.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+      }
+    }
+  ],
+  "family": "layout",
+  "section": "2.2",
+  "suite_version": 1
+}

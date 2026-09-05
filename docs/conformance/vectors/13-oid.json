@@ -1,0 +1,395 @@
+{
+  "cases": [
+    {
+      "args": {
+        "expected_oid": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.decode.expected-oid-matches",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+        "sha256": "ac4fb1e09f4646fdb8fd4bf4976ceb2d92de1d3bbb5853a15b6eff45128f0a2f"
+      },
+      "intent": "decoding under the right name re-derives that name from the bytes",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "eyJjb3N0IjowLCJraW5kIjoibW9kZWwiLCJwYXJlbnRfaWRzIjpbXX0=",
+        "encoding": "json",
+        "oid": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+        "schema": 1,
+        "type": "event"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"model\",\"parent_ids\":[]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "blob:sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.decode.oid-mismatch",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "bytes fetched under a name that is not their own digest are refused",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.oid-mismatch",
+      "repair_temptation": "trust the name the bytes were filed under",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "object id mismatch"
+      }
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.blob-worked-vector",
+      "input": {
+        "bytes_b64": "aGVsbG8K",
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+      },
+      "intent": "SPEC 1.3's first worked vector: TYPE 0x00 SCHEMA 0x00 BODY, hashed",
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "hello\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.body-with-nul",
+      "input": {
+        "bytes_b64": "YQBi",
+        "sha256": "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138"
+      },
+      "intent": "the separators are literal 0x00 bytes and a body may contain them too",
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:09df7170dbd63851afda2f2fbb428afe0af69d33dc7bf7b84fa4f43352bfc2ad"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "a\\x00b",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.empty-body",
+      "input": {
+        "bytes_b64": "",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "intent": "an empty body is legal and hashes the two NUL separators plus nothing",
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:f128706786d3c82721361a84fd00ac242f8a165ef34d7ae4a2e565c4d7f2d2b3"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "event"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.event-worked-vector",
+      "input": {
+        "bytes_b64": "eyJjb3N0IjowLCJraW5kIjoibW9kZWwiLCJwYXJlbnRfaWRzIjpbXX0=",
+        "sha256": "8de09b6ec610decaa4a80f6329aa9d70c02d28fe3473f47a1bc9de2839676d8c"
+      },
+      "intent": "SPEC 1.3's second worked vector, over a canonical event body",
+      "op": "oid.derive",
+      "output": {
+        "oid": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "{\"cost\":0,\"kind\":\"model\",\"parent_ids\":[]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 2,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.schema-is-inside-the-hash",
+      "input": {
+        "bytes_b64": "aGVsbG8K",
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+      },
+      "intent": "the same body at schema 2 is a different object, because SCHEMA is framed in",
+      "must_differ": true,
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:7fcae5de5de6e407d4aef7c39fd39002d6aa936cfb4804152ee8fe10f1bdf8b6"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "twin": "oid.derive.blob-worked-vector",
+      "x_display": "hello\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "annotation"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.derive.type-is-inside-the-hash",
+      "input": {
+        "bytes_b64": "e30=",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "intent": "so is TYPE: the same bytes as an annotation are a different object",
+      "op": "oid.derive",
+      "output": {
+        "oid": "annotation:sha256:de2015c2c6cba07c7d999d92410905c6814a9d6a6d8c8ba5166d1319efc5d12d"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.parse.annotation",
+      "input": {
+        "value": "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+      },
+      "intent": "the annotation spelling",
+      "op": "oid.parse",
+      "output": {
+        "digest": "353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07",
+        "type": "annotation"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.parse.blob",
+      "input": {
+        "value": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "intent": "OID_RE accepts each of the five types",
+      "op": "oid.parse",
+      "output": {
+        "digest": "c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.parse.missing-algorithm",
+      "input": {
+        "value": "blob:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "intent": "the literal ':sha256:' is part of the grammar",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"blob:1111111111111111111111111111111111111111111111111111111111111111\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:1111111111111111111111111111111111111111111111111111111111111111'"
+      }
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "oid.parse.run",
+      "input": {
+        "value": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "intent": "the run spelling",
+      "op": "oid.parse",
+      "output": {
+        "digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "type": "run"
+      },
+      "profile": "reader",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.parse.short-digest",
+      "input": {
+        "value": "blob:sha256:c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5"
+      },
+      "intent": "the digest is exactly 64 hex characters",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5'"
+      }
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.parse.trailing-newline",
+      "input": {
+        "value": "blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\n"
+      },
+      "intent": "fullmatch: a trailing newline makes it a different string",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "repair_temptation": "strip surrounding whitespace before matching",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\\n\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\\n'"
+      }
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.parse.unknown-type",
+      "input": {
+        "value": "widget:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "intent": "the type must be one of the five",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"widget:sha256:1111111111111111111111111111111111111111111111111111111111111111\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'widget:sha256:1111111111111111111111111111111111111111111111111111111111111111'"
+      }
+    },
+    {
+      "checklist": [
+        3
+      ],
+      "expect": "reject",
+      "id": "oid.parse.uppercase-hex",
+      "input": {
+        "value": "blob:sha256:C5251CF4C201EDE74C8E3564DC6D02E597CBC20FBD91A84704A91179757BD008"
+      },
+      "intent": "hex digits are lowercase only; an uppercase spelling is not a valid oid",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "repair_temptation": "lowercase the digest and continue",
+      "section": "1.3",
+      "tier": "core",
+      "x_display": "\"blob:sha256:C5251CF4C201EDE74C8E3564DC6D02E597CBC20FBD91A84704A91179757BD008\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:C5251CF4C201EDE74C8E3564DC6D02E597CBC20FBD91A84704A91179757BD008'"
+      }
+    }
+  ],
+  "family": "oid",
+  "section": "1.3",
+  "suite_version": 1
+}

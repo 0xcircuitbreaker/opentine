@@ -1,0 +1,311 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.depth.at-512",
+      "input": {
+        "gen": {
+          "close": "]",
+          "depth": 512,
+          "inner": "0",
+          "kind": "nest",
+          "open": "["
+        },
+        "sha256": "8ffc0a1c6c684d5a33431fd2d1cd8295423335157134c42b1ee0be9ab57b36eb"
+      },
+      "intent": "the running bracket depth may reach 512 but not exceed it",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "twin": "shape.depth.at-513",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.depth.at-512-objects",
+      "input": {
+        "gen": {
+          "close": "}",
+          "depth": 512,
+          "inner": "",
+          "kind": "nest",
+          "open": "{"
+        },
+        "sha256": "a06b3a950a206c198761e7493f19eb4caeae2986bcc2d1b885f627b211204afa"
+      },
+      "intent": "{ and } count exactly as [ and ] do",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.depth.at-513",
+      "input": {
+        "gen": {
+          "close": "]",
+          "depth": 513,
+          "inner": "0",
+          "kind": "nest",
+          "open": "["
+        },
+        "sha256": "2755a3d42cecfe819923ad47e99c120dd28fdd9ef0418af7ee4764477f3a725f"
+      },
+      "intent": "the 513th open bracket exceeds MAX_JSON_DEPTH",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.depth-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "twin": "shape.depth.at-512",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.depth.at-513-objects",
+      "input": {
+        "gen": {
+          "close": "}",
+          "depth": 513,
+          "inner": "",
+          "kind": "nest",
+          "open": "{"
+        },
+        "sha256": "fc72f963f211ae32c43e27d891acd4ab30b0dcd08a6a37143c4d5cc9c9a359c5"
+      },
+      "intent": "the object spelling of the same bound",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.depth-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.depth.mixed-containers",
+      "input": {
+        "gen": {
+          "close": "]",
+          "depth": 600,
+          "inner": "0",
+          "kind": "nest",
+          "open": "["
+        },
+        "sha256": "250f8f81de72fe62fb3c3202430524b7a6938c02969b8be425e8b265d6899eea"
+      },
+      "intent": "depth counts both container kinds together, not one bound each",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.depth-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.negative-depth-tolerated",
+      "input": {
+        "bytes_b64": "fV19XQ==",
+        "sha256": "1fab006126aa547151e7ce0257dc37fe9c0643c41575e3817ee5214b9921350c"
+      },
+      "intent": "this is a byte scanner, not a parser: unbalanced closers drive depth negative and are not its business; the grammar error surfaces from the later parse",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "}]}]",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "max_tokens": 4
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.string.brackets-ignored",
+      "input": {
+        "bytes_b64": "eyJrIjoiW1tbW1tbW1tbWyJ9",
+        "sha256": "2d473d9765f30cc8cc4fa23a0562fc892b6050daf27956baa419ec9c88eab8f2"
+      },
+      "intent": "characters inside a string literal are skipped, so brackets in a value are free",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "{\"k\":\"[[[[[[[[[[\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "max_tokens": 4
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.string.escaped-quote",
+      "input": {
+        "bytes_b64": "eyJrIjoiXCJbW1tbIn0=",
+        "sha256": "e028915985df3c74577a01f93d645131cada9c25a6d22588ac49c705a006d05b"
+      },
+      "intent": "a backslash-escaped quote does not end the string, so its brackets stay skipped",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\\"[[[[\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "max_tokens": 8
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "shape.tokens.at-budget",
+      "input": {
+        "bytes_b64": "W1tbW11dXV0=",
+        "sha256": "de3132b0660d0664c7c64bf3062ed48af77370bab34b0bd5067b183c6d0395b2"
+      },
+      "intent": "[ { , : ] } each count one; a document exactly at the budget is accepted",
+      "op": "shape.scan",
+      "output": {},
+      "profile": "reader",
+      "section": "0.5",
+      "tier": "core",
+      "twin": "shape.tokens.one-over-budget",
+      "x_display": "[[[[]]]]",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "max_tokens": 10000
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.tokens.config-budget",
+      "input": {
+        "gen": {
+          "count": 4000,
+          "kind": "repeat",
+          "prefix_b64": "Ww==",
+          "suffix_b64": "W11d",
+          "unit_b64": "W10s"
+        },
+        "sha256": "4864d64817b465a4278157e266c3ff453eaaef9386eb912bbe27acc611a374ec"
+      },
+      "intent": "the config call site's budget is 10 000 tokens, and it is a real refusal",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.tokens-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "args": {
+        "max_tokens": 1
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.tokens.minimal-budget",
+      "input": {
+        "bytes_b64": "e30=",
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "intent": "an empty object already costs two structural tokens",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.tokens-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "x_display": "{}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "args": {
+        "max_tokens": 7
+      },
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "shape.tokens.one-over-budget",
+      "input": {
+        "bytes_b64": "W1tbW11dXV0=",
+        "sha256": "de3132b0660d0664c7c64bf3062ed48af77370bab34b0bd5067b183c6d0395b2"
+      },
+      "intent": "one structural token past the caller's budget refuses the whole document",
+      "op": "shape.scan",
+      "profile": "reader",
+      "reason": "shape.tokens-exceeded",
+      "section": "0.5",
+      "tier": "core",
+      "twin": "shape.tokens.at-budget",
+      "x_display": "[[[[]]]]",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    }
+  ],
+  "family": "shape",
+  "section": "0.5",
+  "suite_version": 1
+}

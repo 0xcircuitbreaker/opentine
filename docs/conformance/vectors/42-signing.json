@@ -1,0 +1,1845 @@
+{
+  "cases": [
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.bare-header-nulls",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": null,
+            "scheme": "tine-attest/1",
+            "signed_at": null,
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the signed header always has all five keys, with null for any not supplied; the stored block drops the nulls, which is what makes an absent key_id unforgeable",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjpudWxsLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjpudWxsLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "twin": "sig.attest.header-keys-omitted",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": null, \"scheme\": \"tine-attest/1\", \"signed_at\": null, \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.claim-changed",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "fail"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the claim is covered: changing what is asserted changes the message",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6ImZhaWwifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"fail\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sig.attest.document-not-an-object",
+      "input": {
+        "value": {
+          "document": [
+            {
+              "$i": "1"
+            },
+            {
+              "$i": "2"
+            },
+            {
+              "$i": "3"
+            }
+          ],
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the signed view is a projection of an *object*; a list has no body to project",
+      "op": "sig.message",
+      "profile": "verifier",
+      "reason": "sig.payload-not-object",
+      "section": "4.5",
+      "tier": "core",
+      "x_display": "{\"document\": [{\"$i\": \"1\"}, {\"$i\": \"2\"}, {\"$i\": \"3\"}], \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": {
+        "exception": "SignatureError",
+        "message": "attestation payload must be an object"
+      }
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.domain-prefix",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the message begins with the literal bytes opentine.attestation.v1:, which is what stops an artifact signature ever being lifted into the attestation family",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.2",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.evidence-added",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [
+              "blob:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "evidence_ids is covered: what backs the claim is inside the signature",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbImJsb2I6c2hhMjU2OmFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEiXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [\"blob:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.extra-field-added",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "reviewed_by": "qa",
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "and so is any field a later writer adds, without needing a new scheme",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwicmV2aWV3ZWRfYnkiOiJxYSIsInNpZ25lciI6InJlbGVhc2UtYm90IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1hdHRlc3QvMSIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifX0="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"reviewed_by\": \"qa\", \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.header-keys-omitted",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "scheme": "tine-attest/1",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "SPEC 4.1's rebuild MUST, from the other side: this header OMITS key_id and signed_at rather than spelling them null, and the message is byte-identical to its twin's -- an implementation that canonicalizes the keys it was handed signs a three-key header and reports mismatch on a legitimately signed block",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjpudWxsLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjpudWxsLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "repair_temptation": "canonicalize the keys the block carries instead of the five-key header the scheme defines",
+      "section": "4.1",
+      "tier": "core",
+      "twin": "sig.attest.bare-header-nulls",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"scheme\": \"tine-attest/1\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.header.alg-ed25519",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "ed25519",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "alg is inside the signed header, so the algorithm cannot be downgraded after the fact",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImVkMjU1MTkiLCJrZXlfaWQiOiJkZW1vLWtleSIsInNjaGVtZSI6InRpbmUtYXR0ZXN0LzEiLCJzaWduZWRfYXQiOiIyMDI2LTA5LTA1VDAwOjAwOjAwWiIsInNpZ25lciI6InJlbGVhc2UtYm90In19"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"ed25519\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.header.key-id-absent",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": null,
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "an absent key_id is signed as null, so adding one later changes the message",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjpudWxsLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": null, \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.header.scheme-attest-only",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the scheme string is one of the five header keys, so no message can be lifted between schemes even over identical content",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.header.signed-at-moved",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2027-01-01T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "signed_at is covered, so the timestamp cannot be moved after the fact",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNy0wMS0wMVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2027-01-01T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_floor",
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.hmac-with-floor-key",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "a 16-byte key is exactly MIN_HMAC_KEY_BYTES and produces a real value",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ==",
+        "value": "2cb02031511063da00e28199fcd129fd0a35e3927406e6b41d7d95d1142a79df"
+      },
+      "profile": "verifier",
+      "section": "4.6",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_b",
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.hmac-with-second-key",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the same message under a different key is a different value -- the whole content of a mismatch verdict",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ==",
+        "value": "e55f611c3cec1bc5557290d250a2fc0aae466e07c40565d77ae7765fe318bdfc"
+      },
+      "profile": "verifier",
+      "section": "4.6",
+      "tier": "core",
+      "twin": "sig.attest.spec-4-5-worked-vector",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.non-bmp-claim-key",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "\ue000": {
+                "$i": "2"
+              },
+              "\ud800\udc00": {
+                "$i": "1"
+              }
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "a non-BMP key in a claim is escaped as a surrogate pair by the v2 canonicalizer, and ordered by code point -- the divergence, inside a signature",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7Ilx1ZTAwMCI6MiwiXHVkODAwXHVkYzAwIjoxfSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"\\ue000\": {\"$i\": \"2\"}, \"\\ud800\\udc00\": {\"$i\": \"1\"}}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sig.attest.non-finite-in-claim",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "n": {
+                "$f": "inf"
+              }
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "content the v2 canonicalizer refuses has no message, so there is nothing to sign",
+      "op": "sig.message",
+      "profile": "verifier",
+      "reason": "canon.non-finite",
+      "section": "4.2",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"n\": {\"$f\": \"inf\"}}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ]
+      },
+      "checklist": [
+        8,
+        9
+      ],
+      "expect": "accept",
+      "id": "sig.attest.sign-covers-the-stored-claim",
+      "input": {
+        "value": {
+          "claim": {
+            "api_key": "sk-live-0123456789abcdefghij",
+            "result": "pass"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        }
+      },
+      "intent": "SPEC 4.5's ordering rule, which sig.message cannot express because it is handed a document someone has already decided to store: the claim carries a credential, Repo.put scrubs it, and the signature covers the scrubbed body",
+      "must_differ": false,
+      "op": "attest.sign",
+      "output": {
+        "body_b64": "eyJjbGFpbSI6eyJhcGlfa2V5IjoiW1JFREFDVEVEXSIsInJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmF0dXJlIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwic2NoZW1lIjoidGluZS1hdHRlc3QvMSIsInNpZ25lciI6InJlbGVhc2UtYm90IiwidmFsdWUiOiJkNmJmODc1MGNmNGU2MDk0MWRlNzVmMmNjN2RjZjk0ZTNiNGY4YTgzZWRhMjIyNWExNjgzY2EwOWNhZjE5NGM1In0sInNpZ25lciI6InJlbGVhc2UtYm90IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2In0=",
+        "oid": "attestation:sha256:4e57f9127298339041dd84b4286010faedfd83236b520196337f481b1e5d8315",
+        "signature": {
+          "alg": "hmac-sha256",
+          "scheme": "tine-attest/1",
+          "signer": "release-bot",
+          "value": "d6bf8750cf4e60941de75f2cc7dcf94e3b4f8a83eda2225a1683ca09caf194c5"
+        }
+      },
+      "profile": "writer",
+      "repair_temptation": "sign the caller's claim and store the redacted one, which signs bytes no reader ever sees and verifies as mismatch everywhere",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.sign-over-an-already-scrubbed-claim",
+      "x_display": "{\"claim\": {\"api_key\": \"sk-live-0123456789abcdefghij\", \"result\": \"pass\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ]
+      },
+      "checklist": [
+        8,
+        9
+      ],
+      "expect": "accept",
+      "id": "sig.attest.sign-over-an-already-scrubbed-claim",
+      "input": {
+        "value": {
+          "claim": {
+            "api_key": "[REDACTED]",
+            "result": "pass"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        }
+      },
+      "intent": "the discriminating half: the same claim with the credential already scrubbed must produce the identical stored body, oid and signature value -- which it does only for a writer that redacts before it signs",
+      "must_differ": false,
+      "op": "attest.sign",
+      "output": {
+        "body_b64": "eyJjbGFpbSI6eyJhcGlfa2V5IjoiW1JFREFDVEVEXSIsInJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmF0dXJlIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwic2NoZW1lIjoidGluZS1hdHRlc3QvMSIsInNpZ25lciI6InJlbGVhc2UtYm90IiwidmFsdWUiOiJkNmJmODc1MGNmNGU2MDk0MWRlNzVmMmNjN2RjZjk0ZTNiNGY4YTgzZWRhMjIyNWExNjgzY2EwOWNhZjE5NGM1In0sInNpZ25lciI6InJlbGVhc2UtYm90IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2In0=",
+        "oid": "attestation:sha256:4e57f9127298339041dd84b4286010faedfd83236b520196337f481b1e5d8315",
+        "signature": {
+          "alg": "hmac-sha256",
+          "scheme": "tine-attest/1",
+          "signer": "release-bot",
+          "value": "d6bf8750cf4e60941de75f2cc7dcf94e3b4f8a83eda2225a1683ca09caf194c5"
+        }
+      },
+      "profile": "writer",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.sign-covers-the-stored-claim",
+      "x_display": "{\"claim\": {\"api_key\": \"[REDACTED]\", \"result\": \"pass\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.signature-key-excluded",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signature": {
+              "alg": "hmac-sha256",
+              "value": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the signature key itself is outside the view -- it is the value being computed -- so a payload carrying one produces the same message as one without",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"value\": \"0000000000000000000000000000000000000000000000000000000000000000\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-0...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.signer-changed",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "someone-else",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the signer is covered, and it is read off the payload rather than accepted separately",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoic29tZW9uZS1lbHNlIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1hdHRlc3QvMSIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifX0="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"someone-else\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.spec-4-5-worked-vector",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "SPEC 4.5's own worked vector, message and HMAC value",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ==",
+        "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.target-changed",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the target is covered: the same claim about a different run is a different message",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.attest.unsigned-slot-excluded",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signature": null,
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the same holds for the literal \"signature\": null 0.3.0-0.8.1 already wrote",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLWF0dGVzdC8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.5",
+      "tier": "core",
+      "twin": "sig.attest.domain-prefix",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": null, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.and-v2-differ-over-the-same-artifact",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the two schemes share one domain prefix and are separated by the scheme string inside the signed header, so their messages already differ",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.2",
+      "tier": "core",
+      "twin": "sig.v2.artifact-base",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"complet...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.application-metadata-is-not-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "other",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "and neither is application-added metadata, which v2 does cover",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "twin": "sig.v2.application-metadata-is-covered",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"other\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"completed\"...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.artifact-base",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "tine-sig/1 covers the body, the header, and only the frozen metadata allowlist",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"complet...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.fork-reason-is-not-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "something else",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "fork_reason is absent for the same reason: 0.3.0 wrote it but did not sign it, and adding it now would retroactively falsify genuine older signatures",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "twin": "sig.v1.artifact-base",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"something else\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"completed\", ...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.fork-record-is-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork": {
+                "point": "b",
+                "source": "a"
+              },
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "fork was safe to add to the frozen list in 0.4.0 precisely because 0.3.0 never wrote metadata.fork, so it changed no existing signature",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrIjp7InBvaW50IjoiYiIsInNvdXJjZSI6ImEifSwibW9kZWxfaW5mbyI6ImFudGhyb3BpYy9jbGF1ZGUtc29ubmV0LTUiLCJzeXN0ZW1fcHJvbXB0IjoiYmUgY2FyZWZ1bCIsInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19"
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork\": {\"point\": \"b\", \"source\": \"a\"}, \"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.model-info-is-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "other/model",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "model_info is on the allowlist, so changing it does change the v1 message",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoib3RoZXIvbW9kZWwiLCJzeXN0ZW1fcHJvbXB0IjoiYmUgY2FyZWZ1bCIsInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19"
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"other/model\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"completed\", \"transcri...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v1.tags-are-not-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release",
+                "extra"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "metadata.tags is absent from the frozen allowlist, which is why re-tagging never broke a v1 signature -- the message is unchanged",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8xIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.3",
+      "tier": "core",
+      "twin": "sig.v1.artifact-base",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\", \"extra\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\":...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.application-metadata-is-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "other",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "so is any application-added metadata key",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8yIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrX3JlYXNvbiI6ImV4cGxvcmVkIGFwcHJvYWNoIEEiLCJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInByb2plY3QiOiJvdGhlciIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidGFncyI6WyJyZWxlYXNlIl0sInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19"
+      },
+      "profile": "verifier",
+      "section": "4.4",
+      "tier": "core",
+      "twin": "sig.v2.artifact-base",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"other\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"completed\"...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.artifact-base",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "tine-sig/2 covers the body, the five-key header, and every metadata key but integrity",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8yIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrX3JlYXNvbiI6ImV4cGxvcmVkIGFwcHJvYWNoIEEiLCJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInByb2plY3QiOiJvcGVudGluZSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidGFncyI6WyJyZWxlYXNlIl0sInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19"
+      },
+      "profile": "verifier",
+      "section": "4.4",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"complet...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.body-is-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "other",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "every top-level key except metadata is the body, and a body edit changes it",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoib3RoZXIiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0cmFuc2NyaXB0IjpbXX0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1zaWcvMiIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifSwibWV0YWRhdGEiOnsiZm9ya19yZWFzb24iOiJleHBsb3JlZCBhcHByb2FjaCBBIiwibW9kZWxfaW5mbyI6ImFudGhyb3BpYy9jbGF1ZGUtc29ubmV0LTUiLCJwcm9qZWN0Ijoib3BlbnRpbmUiLCJzeXN0ZW1fcHJvbXB0IjoiYmUgY2FyZWZ1bCIsInRhZ3MiOlsicmVsZWFzZSJdLCJ1c2VyX3Byb21wdCI6InN1bW1hcml6ZSJ9fQ=="
+      },
+      "profile": "verifier",
+      "section": "4.4",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"other\", \"status\": \"comple...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.hmac-value",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the keyed half over the same message",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8yIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrX3JlYXNvbiI6ImV4cGxvcmVkIGFwcHJvYWNoIEEiLCJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInByb2plY3QiOiJvcGVudGluZSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidGFncyI6WyJyZWxlYXNlIl0sInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19",
+        "value": "8fa96b29e652b02fd9f5b2cf753e8b9778138bcd2280cb2a68bbb02ce98249ae"
+      },
+      "profile": "verifier",
+      "section": "4.6",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"complet...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.integrity-is-excluded",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "integrity": {
+                "algorithm": "sha256",
+                "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "integrity is excluded because it holds the block being computed, alongside the unkeyed digest which is itself taken over body keys this view already covers",
+      "must_differ": false,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8yIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrX3JlYXNvbiI6ImV4cGxvcmVkIGFwcHJvYWNoIEEiLCJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInByb2plY3QiOiJvcGVudGluZSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidGFncyI6WyJyZWxlYXNlIl0sInVzZXJfcHJvbXB0Ijoic3VtbWFyaXplIn19"
+      },
+      "profile": "verifier",
+      "section": "4.4",
+      "tier": "core",
+      "twin": "sig.v2.artifact-base",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"integrity\": {\"algorithm\": \"sha256\", \"digest\": \"0000000000000000000000000000000000000000000000000000000000000000\"}, \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\"...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sig.v2.metadata-not-an-object",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": [
+              {
+                "$i": "1"
+              },
+              {
+                "$i": "2"
+              }
+            ],
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the artifact view refuses a non-object metadata rather than coercing it",
+      "op": "sig.message",
+      "profile": "verifier",
+      "reason": "sig.payload-not-object",
+      "section": "4.4",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": [{\"$i\": \"1\"}, {\"$i\": \"2\"}], \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"completed\", \"transcript\": []}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-sig/2\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release...",
+      "x_reference": {
+        "exception": "SignatureError",
+        "message": "artifact metadata must be an object"
+      }
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sig.v2.non-finite-in-body",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$f": "nan"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the same rule in the artifact family",
+      "op": "sig.message",
+      "profile": "verifier",
+      "reason": "canon.non-finite",
+      "section": "4.2",
+      "tier": "core",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$f\": \"nan\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\": \"compl...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig.v2.tags-are-covered",
+      "input": {
+        "value": {
+          "document": {
+            "cache": {},
+            "created_at": {
+              "$i": "0"
+            },
+            "format_version": {
+              "$i": "2"
+            },
+            "graph": {
+              "order": [],
+              "steps": {}
+            },
+            "manifest": {},
+            "metadata": {
+              "fork_reason": "explored approach A",
+              "model_info": "anthropic/claude-sonnet-5",
+              "project": "opentine",
+              "system_prompt": "be careful",
+              "tags": [
+                "release",
+                "extra"
+              ],
+              "user_prompt": "summarize"
+            },
+            "policies": {},
+            "refs": {},
+            "run_id": "demo",
+            "status": "completed",
+            "transcript": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "metadata.tags is inside a v2 signature, which it never was under v1",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJjYWNoZSI6e30sImNyZWF0ZWRfYXQiOjAsImZvcm1hdF92ZXJzaW9uIjoyLCJncmFwaCI6eyJvcmRlciI6W10sInN0ZXBzIjp7fX0sIm1hbmlmZXN0Ijp7fSwicG9saWNpZXMiOnt9LCJyZWZzIjp7fSwicnVuX2lkIjoiZGVtbyIsInN0YXR1cyI6ImNvbXBsZXRlZCIsInRyYW5zY3JpcHQiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8yIiwic2lnbmVkX2F0IjoiMjAyNi0wOS0wNVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJtZXRhZGF0YSI6eyJmb3JrX3JlYXNvbiI6ImV4cGxvcmVkIGFwcHJvYWNoIEEiLCJtb2RlbF9pbmZvIjoiYW50aHJvcGljL2NsYXVkZS1zb25uZXQtNSIsInByb2plY3QiOiJvcGVudGluZSIsInN5c3RlbV9wcm9tcHQiOiJiZSBjYXJlZnVsIiwidGFncyI6WyJyZWxlYXNlIiwiZXh0cmEiXSwidXNlcl9wcm9tcHQiOiJzdW1tYXJpemUifX0="
+      },
+      "profile": "verifier",
+      "section": "4.4",
+      "tier": "core",
+      "twin": "sig.v1.tags-are-not-covered",
+      "x_display": "{\"document\": {\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"model_info\": \"anthropic/claude-sonnet-5\", \"project\": \"opentine\", \"system_prompt\": \"be careful\", \"tags\": [\"release\", \"extra\"], \"user_prompt\": \"summarize\"}, \"policies\": {}, \"refs\": {}, \"run_id\": \"demo\", \"status\":...",
+      "x_reference": null
+    }
+  ],
+  "family": "signing",
+  "section": "4.2",
+  "suite_version": 1
+}

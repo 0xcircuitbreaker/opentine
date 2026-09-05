@@ -1,0 +1,667 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.blob.arbitrary-bytes",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQphCmIAY/8=",
+        "sha256": "d34dbea856816486ce5cb0a33b3216e5797c619715cfcc9444df8b5c131304e2"
+      },
+      "intent": "a raw body is opaque: LF, NUL and 0xFF are all ordinary blob content",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "YQpiAGP/",
+        "encoding": "raw",
+        "oid": "blob:sha256:d31114dc6dfacde97f3109d9fc902d07b87dbde1509f62b62b6077fe6c16ed9e",
+        "schema": 1,
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\na\\nb\\x00c\\xff",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.body.empty-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnt9",
+        "sha256": "da71d76267334bcf8a30394f97f7e2e53129d0c984d378655454c6a2ad2fe8ad"
+      },
+      "intent": "no field is required: an event with an empty payload is a valid stored object",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "e30=",
+        "encoding": "json",
+        "oid": "event:sha256:050b676006c12f36aca255649bd3bf3d6ffa2dcfb0652bc9fdef0b06aaaea1b0",
+        "schema": 1,
+        "type": "event"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.body.malformed-json",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYSI6",
+        "sha256": "e8229348f5f1aa8720e036b38bbac88f38f0d419bc53574373d33a1078e2bfec"
+      },
+      "intent": "a json body that will not parse is refused before canonicality is considered",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.body-malformed-json",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"a\":",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "malformed object JSON"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.body.non-ascii-literal",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsibm90ZSI6IsOp4piDIn0=",
+        "sha256": "ec10455ce946c26b62b483a88db7190b4b32e49d0b31120e06204e1e52788b6e"
+      },
+      "intent": "a json body carries non-ASCII literally, as SPEC 0.2 rule 1 requires",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "eyJub3RlIjoiw6nimIMifQ==",
+        "encoding": "json",
+        "oid": "event:sha256:4dcde2e75224c8a65d152c655b41bee177ad503009bd666d2108623271026a82",
+        "schema": 1,
+        "type": "event"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"note\":\"\\xc3\\xa9\\xe2\\x98\\x83\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.body.non-canonical-order",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYiI6MSwiYSI6Mn0=",
+        "sha256": "dc7716a32d74cfd8f310fc4d65f9a4562be07c84e580d1e015e962aa54f8c0d9"
+      },
+      "intent": "a json body must be byte-identical to the canonical encoding of its own value",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.body-non-canonical",
+      "repair_temptation": "re-serialize the body canonically, which renames the object",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"b\":1,\"a\":2}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object body"
+      }
+    },
+    {
+      "args": {
+        "expected_oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.decode.expected-oid-matches",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "a reader that knows the name it fetched under re-derives it from the bytes",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "aGVsbG8K",
+        "encoding": "raw",
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+        "schema": 1,
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.encode.blob",
+      "input": {
+        "bytes_b64": "aGVsbG8K",
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+      },
+      "intent": "the writer side of the same framing, over opaque bytes",
+      "op": "envelope.encode",
+      "output": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "writer",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "hello\\n",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "event"
+        }
+      },
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.encode.event",
+      "input": {
+        "value": {
+          "cost": {
+            "$i": "0"
+          },
+          "kind": "model",
+          "parent_ids": []
+        }
+      },
+      "intent": "the writer side over a JSON payload: canonicalize, then frame",
+      "op": "envelope.encode",
+      "output": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+        "oid": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "profile": "writer",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"cost\": {\"$i\": \"0\"}, \"kind\": \"model\", \"parent_ids\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.encoding.blob-says-json",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJibG9iIn0KaGVsbG8K",
+        "sha256": "e1f8fe488f1c24d11524318d1882fc734fdf2e6fd3a0c4eae3d68ab947f51863"
+      },
+      "intent": "encoding MUST be \"raw\" if and only if the type is \"blob\"",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.encoding-mismatch",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "unknown object type or encoding/type mismatch"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.header.canonical",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "the three-key header, canonicalized, names the object whose body follows the LF",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "aGVsbG8K",
+        "encoding": "raw",
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+        "schema": 1,
+        "type": "blob"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "twin": "env.header.reordered",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.header.extra-key",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsImV4dHJhIjoxLCJzY2hlbWEiOjEsInR5cGUiOiJibG9iIn0KaGVsbG8K",
+        "sha256": "20cf31527de3250c573a7d7c94b357269c4e1308c26795278eb5b575fe1a05f2"
+      },
+      "intent": "the header has exactly three keys; a fourth is not an extension point",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-key-count",
+      "repair_temptation": "ignore the unknown key and read the three you understand",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"extra\":1,\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.header.maximal-66-bytes",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjkwMDcxOTkyNTQ3NDA5OTEsInR5cGUiOiJhdHRlc3RhdGlvbiJ9Cnt9",
+        "sha256": "0cf3e064ac47d33cecce4da823d1254c3ca75a115ba08162100afc56a8961e7a"
+      },
+      "intent": "the largest header the canonical form can produce is 66 bytes, far under the 256-byte bound, which is why that bound has no accepting twin",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "e30=",
+        "encoding": "json",
+        "oid": "attestation:sha256:983c7635b8c31e143dc52eb4e29bc66233cef8b04318abf67640eafdb60183b1",
+        "schema": 9007199254740991,
+        "type": "attestation"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "twin": "env.header.oversized",
+      "x_display": "{\"encoding\":\"json\",\"schema\":9007199254740991,\"type\":\"attestation\"}\\n{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.header.missing-key",
+      "input": {
+        "bytes_b64": "eyJzY2hlbWEiOjEsInR5cGUiOiJibG9iIn0KaGVsbG8K",
+        "sha256": "4cb9e574285109925e04c5e1ee89386e17994184f0b767b6bc9fda4746eaed03"
+      },
+      "intent": "and not fewer: a two-key header is refused rather than defaulted",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-key-count",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.header.no-lf",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQ==",
+        "sha256": "308b3f7e6924f9a1ee6c8f0271af04f388d2b4e8e32f9861dcc8f89f0160bc04"
+      },
+      "intent": "the header is split off at the first LF; with no LF there is no body",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.malformed",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "malformed object envelope"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.header.not-json",
+      "input": {
+        "bytes_b64": "bm90IGEgaGVhZGVyCmhlbGxvCg==",
+        "sha256": "b4be60c3fda38978567cb3ec5bafd1f8802ef8ebf3978f64d330ed33833ae181"
+      },
+      "intent": "bytes before the first LF that are not JSON are not a header",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.malformed",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "not a header\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "malformed object envelope"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.header.oversized",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInBhZCI6Inl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eSIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "38bf6eaa65c33d3b61ea589ff0d253e2003fe8485ca7136ca2b773bd9972ab69"
+      },
+      "intent": "a header past 256 bytes is refused inside the framing try, so it reports a framing error rather than a size error -- the reason code names the rule",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reachable": false,
+      "reason": "envelope.malformed",
+      "section": "1.2",
+      "tier": "core",
+      "twin": "env.header.maximal-66-bytes",
+      "x_display": "{\"encoding\":\"raw\",\"pad\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "malformed object envelope"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "id": "env.header.reordered",
+      "input": {
+        "bytes_b64": "eyJzY2hlbWEiOjEsImVuY29kaW5nIjoicmF3IiwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "f898ce610dd84ec7de9c56a7c3da37e177126d86d4ab38c36fbef854df36438c"
+      },
+      "intent": "SPEC 0.2 rule 3 fixes the key order, so a re-ordered header names no object",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-non-canonical",
+      "repair_temptation": "parse the header, re-serialize it canonically and continue, which silently renames the object",
+      "section": "1.2",
+      "tier": "core",
+      "twin": "env.header.canonical",
+      "x_display": "{\"schema\":1,\"encoding\":\"raw\",\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "id": "env.header.whitespace-padded",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6ICJyYXciLCAic2NoZW1hIjogMSwgInR5cGUiOiAiYmxvYiJ9CmhlbGxvCg==",
+        "sha256": "d9b35bd3d75de063697142c5c18cc94d35800244a2320bebebedd41e73207f93"
+      },
+      "intent": "canonical means byte-identical: one space after a colon is a different header",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-non-canonical",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\": \"raw\", \"schema\": 1, \"type\": \"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.at-2-53",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6OTAwNzE5OTI1NDc0MDk5MiwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "9632261c9973d52dcf374c75b3347a205d28d041598bdd5d5c2078064c8a92b3"
+      },
+      "intent": "a schema of 2**53 breaks two rules at once -- SPEC 0.2 rule 7 and SPEC 1.2's 1 <= schema < 2**53 -- and which one a reader reports depends on whether it applies the 0.2 integer demotion to the three-key header as well as to bodies",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason_any": [
+        "canon.integer-overflow",
+        "envelope.schema-not-integer",
+        "envelope.schema-out-of-range"
+      ],
+      "section": "1.2",
+      "spec_note": "SPEC 0.2's hazard says 'every kernel reader' demotes an integer literal past 2**53-1; ObjectEnvelope.decode's header parse is the one that does not, so the reference reports the integer bound here where a reader that demotes uniformly reports the schema type or range.",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":9007199254740992,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.boolean-true",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6dHJ1ZSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "314d89923b1e61f4fee2c79ddf550f1bc76d9c43bb1c889a99c3ee04ca4030b3"
+      },
+      "intent": "type(schema) is not int refuses True, which Python would otherwise equal 1",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.schema-not-integer",
+      "repair_temptation": "read true as 1 because it compares equal",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":true,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid object schema"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.float-one-point-zero",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MS4wLCJ0eXBlIjoiYmxvYiJ9CmhlbGxvCg==",
+        "sha256": "7b8103c62bfe573bb7bf26741cd51b280a74023ffb28bee4fed81a767ec00e3f"
+      },
+      "intent": "1.0 never survives canonicalization as an integer, so the header is refused as non-canonical *before* any schema check runs",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-non-canonical",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1.0,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.negative",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6LTEsInR5cGUiOiJibG9iIn0KaGVsbG8K",
+        "sha256": "6ad7e19e6f034c35ffaa8ea3fc7df1a3e6030300521415af3bfc37b4709e72d4"
+      },
+      "intent": "the lower bound is 1, not 0 and not -1",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.schema-out-of-range",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":-1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid object schema"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "accept",
+      "id": "env.schema.seven-accepts",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjcsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+        "sha256": "a678042758784665bab00a6390275c50426bc00dcf8a61af01084c2b788a28a6"
+      },
+      "intent": "a reader MUST accept any schema in range and treat a different schema as a different object, even though this build only ever writes 1",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "eyJjb3N0IjowLCJraW5kIjoibW9kZWwiLCJwYXJlbnRfaWRzIjpbXX0=",
+        "encoding": "json",
+        "oid": "event:sha256:f2ed23e588e7aa75b114a780c95b0cf83e218d6749267dbcaf6fbb86b4e302f8",
+        "schema": 7,
+        "type": "event"
+      },
+      "profile": "reader",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":7,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"model\",\"parent_ids\":[]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.string",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6IjEiLCJ0eXBlIjoiYmxvYiJ9CmhlbGxvCg==",
+        "sha256": "bbe9889cf90706a176b70cbf3bdc88f1d87268f4b459467881f102cb6b9b8e6e"
+      },
+      "intent": "a string schema is refused, not parsed",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.schema-not-integer",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":\"1\",\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid object schema"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.schema.zero",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MCwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "0e52d83731a5395a73085bdf82af71861bb59dbec53bb3b5d1b4915c9abef544"
+      },
+      "intent": "schema must satisfy 1 <= schema < 2**53",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.schema-out-of-range",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":0,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid object schema"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        9
+      ],
+      "expect": "reject",
+      "id": "env.type.unknown-widget",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJ3aWRnZXQifQp7fQ==",
+        "sha256": "5518a7e177d27b21e96abfe7836ab709182d7ad616e5fe60996f0f0167a03560"
+      },
+      "intent": "OBJECT_TYPES has no extension point",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.unknown-type",
+      "repair_temptation": "store an unknown type opaquely for forward compatibility",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"widget\"}\\n{}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "unknown object type or encoding/type mismatch"
+      }
+    }
+  ],
+  "family": "envelope",
+  "section": "1.2",
+  "suite_version": 1
+}

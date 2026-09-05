@@ -1,0 +1,576 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.divergence.ascii-agreement.v2",
+      "input": {
+        "value": {
+          "a": {
+            "$i": "1"
+          },
+          "b": "x",
+          "c": [
+            {
+              "$i": "1"
+            },
+            {
+              "$i": "2"
+            }
+          ]
+        }
+      },
+      "intent": "the control: an implementation cannot pass by always returning two answers",
+      "must_differ": false,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJhIjoxLCJiIjoieCIsImMiOlsxLDJdfQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.ascii-agreement.v3",
+      "x_display": "{\"a\": {\"$i\": \"1\"}, \"b\": \"x\", \"c\": [{\"$i\": \"1\"}, {\"$i\": \"2\"}]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.divergence.ascii-agreement.v3",
+      "input": {
+        "value": {
+          "a": {
+            "$i": "1"
+          },
+          "b": "x",
+          "c": [
+            {
+              "$i": "1"
+            },
+            {
+              "$i": "2"
+            }
+          ]
+        }
+      },
+      "intent": "with ASCII keys, integer values and no floats the two forms coincide",
+      "must_differ": false,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJhIjoxLCJiIjoieCIsImMiOlsxLDJdfQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.ascii-agreement.v2",
+      "x_display": "{\"a\": {\"$i\": \"1\"}, \"b\": \"x\", \"c\": [{\"$i\": \"1\"}, {\"$i\": \"2\"}]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJuIjoxfQ=="
+      },
+      "id": "canon.divergence.float-integral.v2",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0"
+          }
+        }
+      },
+      "intent": "v2 keeps repr()'s .0 suffix, so the same double is two different byte strings",
+      "must_differ": true,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxLjB9"
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.float-integral.v3",
+      "x_display": "{\"n\": {\"$f\": \"1.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJuIjoxLjB9"
+      },
+      "id": "canon.divergence.float-integral.v3",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0"
+          }
+        }
+      },
+      "intent": "v3 renders an integral double as a bare integer literal",
+      "must_differ": true,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.float-integral.v2",
+      "x_display": "{\"n\": {\"$f\": \"1.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "id": "canon.divergence.negative-zero.v2",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-0.0"
+          }
+        }
+      },
+      "intent": "v2 preserves it",
+      "must_differ": true,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjotMC4wfQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.negative-zero.v3",
+      "x_display": "{\"n\": {\"$f\": \"-0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJuIjotMC4wfQ=="
+      },
+      "id": "canon.divergence.negative-zero.v3",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-0.0"
+          }
+        }
+      },
+      "intent": "v3 discards the sign of zero",
+      "must_differ": true,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.negative-zero.v2",
+      "x_display": "{\"n\": {\"$f\": \"-0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.divergence.nested-agreement.v2",
+      "input": {
+        "value": {
+          "outer": {
+            "inner": [
+              {
+                "k": null
+              },
+              true,
+              false
+            ]
+          }
+        }
+      },
+      "intent": "the second control, over containers rather than scalars",
+      "must_differ": false,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJvdXRlciI6eyJpbm5lciI6W3siayI6bnVsbH0sdHJ1ZSxmYWxzZV19fQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.nested-agreement.v3",
+      "x_display": "{\"outer\": {\"inner\": [{\"k\": null}, true, false]}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.divergence.nested-agreement.v3",
+      "input": {
+        "value": {
+          "outer": {
+            "inner": [
+              {
+                "k": null
+              },
+              true,
+              false
+            ]
+          }
+        }
+      },
+      "intent": "structure alone does not diverge; only numbers, non-ASCII and non-BMP keys do",
+      "must_differ": false,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJvdXRlciI6eyJpbm5lciI6W3siayI6bnVsbH0sdHJ1ZSxmYWxzZV19fQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.nested-agreement.v2",
+      "x_display": "{\"outer\": {\"inner\": [{\"k\": null}, true, false]}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJrIjoiw6kifQ=="
+      },
+      "id": "canon.divergence.non-ascii-value.v2",
+      "input": {
+        "value": {
+          "k": "\u00e9"
+        }
+      },
+      "intent": "v2 escapes it as \\u00e9, so the byte streams differ even for one BMP character",
+      "must_differ": true,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJrIjoiXHUwMGU5In0="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.non-ascii-value.v3",
+      "x_display": "{\"k\": \"\\u00e9\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJrIjoiXHUwMGU5In0="
+      },
+      "id": "canon.divergence.non-ascii-value.v3",
+      "input": {
+        "value": {
+          "k": "\u00e9"
+        }
+      },
+      "intent": "v3 emits non-ASCII literally as UTF-8",
+      "must_differ": true,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJrIjoiw6kifQ=="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.non-ascii-value.v2",
+      "x_display": "{\"k\": \"\\u00e9\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyLwkICAIjoyLCLugIAiOjF9"
+      },
+      "id": "canon.divergence.nonbmp-key.v2",
+      "input": {
+        "value": {
+          "\ue000": {
+            "$i": "1"
+          },
+          "\ud800\udc00": {
+            "$i": "2"
+          }
+        }
+      },
+      "intent": "v2 orders members by code point, so U+E000 comes first -- the same input, the opposite order",
+      "must_differ": true,
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJcdWUwMDAiOjEsIlx1ZDgwMFx1ZGMwMCI6Mn0="
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.nonbmp-key.v3",
+      "x_display": "{\"\\ue000\": {\"$i\": \"1\"}, \"\\ud800\\udc00\": {\"$i\": \"2\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "bytes_b64": "eyJcdWUwMDAiOjEsIlx1ZDgwMFx1ZGMwMCI6Mn0="
+      },
+      "id": "canon.divergence.nonbmp-key.v3",
+      "input": {
+        "value": {
+          "\ue000": {
+            "$i": "1"
+          },
+          "\ud800\udc00": {
+            "$i": "2"
+          }
+        }
+      },
+      "intent": "v3 orders members by UTF-16BE code unit, so U+10000's lead surrogate sorts below U+E000 and the non-BMP key comes first",
+      "must_differ": true,
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyLwkICAIjoyLCLugIAiOjF9"
+      },
+      "profile": "reader",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "canon.divergence.nonbmp-key.v2",
+      "x_display": "{\"\\ue000\": {\"$i\": \"1\"}, \"\\ud800\\udc00\": {\"$i\": \"2\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-sig/1"
+      },
+      "checklist": [
+        2,
+        8
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJuIjoxMDAwMDAwMDAwMDAwMDAwMDAwMDAsIvCQgIAiOjEsIu6AgCI6Mn0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1zaWcvMSIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifSwibWV0YWRhdGEiOnt9fQ==",
+        "value": "7b51751f2b499c0a944d747e5320d954e54e6067e1de65e979ec0646990fbfe4"
+      },
+      "id": "sig.artifact.hazard.nonbmp-1e20.v1",
+      "input": {
+        "value": {
+          "document": {
+            "n": {
+              "$f": "1e+20"
+            },
+            "\ue000": {
+              "$i": "2"
+            },
+            "\ud800\udc00": {
+              "$i": "1"
+            }
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "tine-sig/1 signs a .tine document under the SPEC 0.3 canonicalizer, the same as tine-attest/1 does -- all three schemes share one canonical form. This body carries a non-BMP key and a float the two forms disagree about, so a signer that reaches for the v3 canonicalizer it already wrote for object ids answers with different bytes",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJuIjoxZSsyMCwiXHVlMDAwIjoyLCJcdWQ4MDBcdWRjMDAiOjF9LCJoZWFkZXIiOnsiYWxnIjoiaG1hYy1zaGEyNTYiLCJrZXlfaWQiOiJkZW1vLWtleSIsInNjaGVtZSI6InRpbmUtc2lnLzEiLCJzaWduZWRfYXQiOiIyMDI2LTA5LTA1VDAwOjAwOjAwWiIsInNpZ25lciI6InJlbGVhc2UtYm90In0sIm1ldGFkYXRhIjp7fX0=",
+        "value": "97e57ee7957b770f85d845b92868518c3b80923bd2f08ee4683596245601c4c1"
+      },
+      "profile": "verifier",
+      "repair_temptation": "canonicalize a .tine signature under SPEC 0.2 because the repository objects beside it are canonicalized that way",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "sig.artifact.hazard.nonbmp-1e20.v2",
+      "x_display": "{\"document\": {\"n\": {\"$f\": \"1e+20\"}, \"\\ue000\": {\"$i\": \"2\"}, \"\\ud800\\udc00\": {\"$i\": \"1\"}}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-sig/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-sig/2"
+      },
+      "checklist": [
+        2,
+        8
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJuIjoxMDAwMDAwMDAwMDAwMDAwMDAwMDAsIvCQgIAiOjEsIu6AgCI6Mn0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1zaWcvMiIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifSwibWV0YWRhdGEiOnt9fQ==",
+        "value": "891c70adf9008639081d87c737dbfa71faf08c50d111662e85028f2bd2b58043"
+      },
+      "id": "sig.artifact.hazard.nonbmp-1e20.v2",
+      "input": {
+        "value": {
+          "document": {
+            "n": {
+              "$f": "1e+20"
+            },
+            "\ue000": {
+              "$i": "2"
+            },
+            "\ud800\udc00": {
+              "$i": "1"
+            }
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "tine-sig/2 signs a .tine document under the SPEC 0.3 canonicalizer, the same as tine-attest/1 does -- all three schemes share one canonical form. This body carries a non-BMP key and a float the two forms disagree about, so a signer that reaches for the v3 canonicalizer it already wrote for object ids answers with different bytes",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYxOnsiYm9keSI6eyJuIjoxZSsyMCwiXHVlMDAwIjoyLCJcdWQ4MDBcdWRjMDAiOjF9LCJoZWFkZXIiOnsiYWxnIjoiaG1hYy1zaGEyNTYiLCJrZXlfaWQiOiJkZW1vLWtleSIsInNjaGVtZSI6InRpbmUtc2lnLzIiLCJzaWduZWRfYXQiOiIyMDI2LTA5LTA1VDAwOjAwOjAwWiIsInNpZ25lciI6InJlbGVhc2UtYm90In0sIm1ldGFkYXRhIjp7fX0=",
+        "value": "720341575d11f1e96ba54297cb93dbfbc49fd8ed12a093643d0ae9492a0b2308"
+      },
+      "profile": "verifier",
+      "repair_temptation": "canonicalize a .tine signature under SPEC 0.2 because the repository objects beside it are canonicalized that way",
+      "section": "0.4",
+      "tier": "core",
+      "twin": "sig.artifact.hazard.nonbmp-1e20.v1",
+      "x_display": "{\"document\": {\"n\": {\"$f\": \"1e+20\"}, \"\\ue000\": {\"$i\": \"2\"}, \"\\ud800\\udc00\": {\"$i\": \"1\"}}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-sig/2\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        2,
+        8
+      ],
+      "expect": "reject",
+      "id": "sig.attest.hazard.non-finite-claim",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "n": {
+                "$f": "inf"
+              }
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the divergence is about spelling, not about what is signable: both forms refuse a non-finite claim value, so no message exists to sign",
+      "op": "sig.message",
+      "profile": "verifier",
+      "reason": "canon.non-finite",
+      "section": "0.4",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"n\": {\"$f\": \"inf\"}}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-attest/1"
+      },
+      "checklist": [
+        2,
+        8
+      ],
+      "expect": "accept",
+      "forbidden": {
+        "value": "ca6405314787e2da526fcd73062e3237d487631495e0cad01486ce7faa4293cf"
+      },
+      "id": "sig.attest.hazard.nonbmp-1e20",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "n": {
+                "$f": "1e+20"
+              },
+              "\ue000": {
+                "$i": "2"
+              },
+              "\ud800\udc00": {
+                "$i": "1"
+              }
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "tine-attest/1 signs a v3 object using the v2 canonicalizer: the same payload that is *stored* under 0.2 is *signed* under 0.3, and this input is chosen so the two disagree on both the float spelling and the key order",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjE6eyJib2R5Ijp7ImNsYWltIjp7Im4iOjFlKzIwLCJcdWUwMDAiOjIsIlx1ZDgwMFx1ZGMwMCI6MX0sImV2aWRlbmNlX2lkcyI6W10sInNpZ25lciI6InJlbGVhc2UtYm90IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIn0sImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1hdHRlc3QvMSIsInNpZ25lZF9hdCI6IjIwMjYtMDktMDVUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifX0=",
+        "value": "cec6f3a441e7bfdf2f4ea8aafffcd11a13eec8bef940561b95b3ce9d04e78678"
+      },
+      "profile": "verifier",
+      "repair_temptation": "reach for JCS because the object is v3, producing a different message and a signature that verifies nowhere",
+      "section": "0.4",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"n\": {\"$f\": \"1e+20\"}, \"\\ue000\": {\"$i\": \"2\"}, \"\\ud800\\udc00\": {\"$i\": \"1\"}}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\"}}",
+      "x_reference": null
+    }
+  ],
+  "family": "divergence",
+  "section": "0.4",
+  "suite_version": 1
+}

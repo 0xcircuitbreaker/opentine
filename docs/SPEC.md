@@ -51,7 +51,15 @@ value. It has no UTF-8 spelling, so:
   digest computed over the value), serde refuses.
 
 Both formats therefore **reject** a string containing one, at write and at
-read, naming the offending field path. This includes the byte spelling: raw
+read, naming the offending field path. The rejection lives at the *format*
+boundary, not in either canonicalizer: `_artifact_io.parse_artifact_json` and
+`_artifact_io.assert_loadable` enforce it for `.tine` artifacts, and
+`_v3_guards.guarded_redaction` enforces it for v3 objects, while
+`kernel.canonical_json` fails on one only because UTF-8 cannot encode it and
+`_canon._canonical_bytes` **accepts** it, emitting the `\udXXX` escape.
+An implementation that partitions its code the way this one does must put the
+check where these two do, not inside its canonicalizer. (Conformance vectors
+`canon.v2.surrogate.value-accepts` / `canon.v3.surrogate.value`.) This includes the byte spelling: raw
 CESU-8 / WTF-8 surrogate bytes `ED A0 80`–`ED BF BF` decode to the same code
 unit without ever appearing as a `\uXXXX` escape and are rejected identically.
 `ED 80 80`–`ED 9F BF` is ordinary U+D000–U+D7FF text and is unaffected. A
@@ -94,18 +102,31 @@ out completely, because an implementer cannot derive it from "JCS" alone:
      stripped of trailing zeros and `.`, and the exponent always carrying an
      explicit sign and no leading zeros — `1e21` → `1e+21`, `1e-7` → `1e-7`.
 9. **Arrays** keep their given order. Canonicalization never sorts an array.
-10. **Depth**: encoding rejects nesting at or beyond `kernel.MAX_JSON_DEPTH`
-    = **512** levels.
+10. **Depth**: encoding rejects a container nested at depth
+    `kernel.MAX_JSON_DEPTH` = **512** or beyond, counting the outermost
+    container as depth 0 — so **at most 512 nested containers**: 512 accept,
+    513 reject. (Conformance vectors `canon.v3.depth.at-512` /
+    `canon.v3.depth.at-513`.)
 
 > **⚠ Hazard — a float can canonicalize to an integer literal.** By rule 8, any
 > finite float with `2**53 <= |v| < 1e21` renders as a bare integer literal, so
 > `1e20` is stored as `100000000000000000000`. Parsing that back with a plain
 > JSON parser yields an *integer* larger than 2⁵³−1, which rule 7 then refuses
 > to re-encode — turning a legitimately written object into one your reader
-> calls corrupt. A conformant reader MUST demote an integer literal whose value
-> exceeds 2⁵³−1 back to the float it came from (`float(literal)`). This is
+> calls corrupt. When parsing a **canonicalized body** — a `json`-encoded object
+> body (§1.2), a `.tine` document, or any value about to be recanonicalized — a
+> conformant reader MUST demote an integer literal whose value exceeds 2⁵³−1
+> back to the float it came from (`float(literal)`). This is
 > `kernel._parse_int`, and it is what makes the canonical form a genuine
-> fixpoint. Every kernel reader passes it.
+> fixpoint.
+>
+> The **three-key envelope header** is the one place the reference parses
+> without it (`ObjectEnvelope.decode`): §1.2 bounds `schema` at
+> `1 <= schema < 2**53`, so a header integer past 2⁵³−1 is already invalid and
+> demoting it could only turn one rejection into another. An input at exactly
+> `2**53` therefore breaks two rules at once and either answer is conformant.
+> (Conformance vector `env.schema.at-2-53`, which accepts the integer code and
+> both schema codes.)
 
 ## 0.3 v2 canonical JSON (`_canon._canonical_bytes`)
 
@@ -651,11 +672,17 @@ Optional file `.tine/shallow`, listing oids that a depth-limited fetch
 deliberately cut away, so a reader can distinguish "absent by design" (stop
 there, as `git log` does on a shallow clone) from "absent and broken".
 
-* ASCII only; LF separators; no CR anywhere; the last line is terminated (the
-  file is empty when the set is empty).
-* Sorted, unique, each a syntactically valid oid.
+* ASCII only; LF separators; no CR anywhere.
+* Unique, each a syntactically valid oid.
 * At most 10 000 entries and 1 048 576 bytes.
 * MUST be a regular file with link count exactly 1.
+
+A **writer** MUST additionally emit the set sorted and terminate the last line
+(the file is empty when the set is empty). Both are writer properties: the
+reader enforces uniqueness, ASCII and line shape only, and accepts an unsorted
+or unterminated file. Inventing a rejection the code does not perform would
+make a conformance suite lie about the format. (Conformance vectors
+`shallow.unsorted-accepts`, `shallow.unterminated-accepts`.)
 
 A link to an oid in this set satisfies §1.5.6 without the object being present.
 Updates are serialized by `shallow.lock` (`O_CREAT|O_EXCL`).
@@ -1180,3 +1207,71 @@ Every value in this document is pinned against the code by
 `tests/test_format_spec_drift.py`. If you change a constant, a name, a scheme, a
 domain prefix or a verdict, that test fails until this document is updated with
 it. That is the mechanism by which the spec stays true — not review discipline.
+
+---
+
+# Part 7 — Proving conformance
+
+Everything above is prose. Prose does not let anyone *prove* an implementation
+correct, so this specification ships a machine-readable vector suite alongside
+it: **[`docs/conformance/`](conformance/README.md)**, 523 vectors covering the
+nine checklist items of Part 6, runnable from any language against a
+standard-library harness.
+
+## What is there
+
+| Path | What it is |
+|---|---|
+| [`conformance/README.md`](conformance/README.md) | how to run it, what it scores, and what a passing scorecard does **not** certify |
+| [`conformance/PROTOCOL.md`](conformance/PROTOCOL.md) | the line-delimited-JSON adapter contract, and the tagged value encoding the inputs use |
+| [`conformance/REASON_CODES.md`](conformance/REASON_CODES.md) | every rejection reason, anchored to a section of this document, with the live value of the bound it enforces and the repair it forbids |
+| [`conformance/SPEC_NOTES.md`](conformance/SPEC_NOTES.md) | every place building a vector found this document and the code not lining up, each with a **mandatory** resolution |
+| [`conformance/MANIFEST.json`](conformance/MANIFEST.json) | the single machine-parsed entry point: the op table, the alias groups, per-family counts, per-file digests, and which §1.6 row each vector covers |
+| `conformance/vectors/` | 25 files, one per area of this document |
+| `conformance/compat/index.json` | a pointer index into `tests/fixtures/compat/` — §5.1's read guarantee, over bytes eight published releases wrote |
+| `conformance/run_conformance.py` | the neutral runner: standard library only, imports no opentine |
+
+## The procedure, honestly
+
+1. **Implement the tagged value reader** (`PROTOCOL.md`, about a dozen lines) and
+   run `vectors/01-selftest.json`. Until it passes, no other result means
+   anything.
+2. **Write an adapter** — about eighty lines, one JSON object in and one out.
+   `scripts/conformance_adapter.py` is the worked example.
+3. **Run the suite.** Start with the `reader` profile; `canon.v3` +
+   `envelope.decode` + `oid.derive` alone already produce a real table, because
+   an op you have not implemented is reported *unimplemented* rather than
+   failed.
+4. **Read the three-column score.** `passed` alone is defeatable by an
+   implementation that refuses everything, so `pairs` — both halves of every
+   twinned case — is reported separately, and a blanket rejecter scores near
+   zero there. `reason_agreement` is informational at Level 1 and required at
+   Level 2.
+5. **Run the compat family last.** It reads the golden fixtures directly, so
+   passing it means your reader reaches this build's verdicts on artifacts and
+   repositories written by opentine 0.3.0 through 0.8.0.
+
+## What the vectors are, and are not
+
+Every expected value in the suite is **generated** from the reference
+implementation and **checked in**, and the generator refuses to emit when an
+observation disagrees with the disposition its author declared. That makes the
+numbers machine-true and makes a behaviour change visible as a one-line diff in
+`tests/conformance/cases_*.py` rather than as a silent re-baselining.
+
+It does not make them a second specification. The generator and the self-gate
+share a codebase, so a shared misconception would produce vectors that confirm
+it; running them from two different entry points and requiring byte-stable
+regeneration narrows that and cannot close it.
+
+> **This document is normative. The vectors are evidence about it.** If a vector
+> and this document disagree, follow this document — and file the disagreement,
+> because one of the two is wrong.
+
+Well over a third of the vectors are **negative**: inputs this format requires be
+refused. That is deliberate, and `vectors/99-repair.json` goes further — its
+fourteen cases each carry the exact answer a *repairing* implementation returns,
+so accepting one of them is reported as `REPAIRED` rather than as a plain
+failure. Part 6 item 9 is the one rule a suite of accepts cannot check, and it
+is the rule that decides whether a digest over recorded model output means
+anything.
