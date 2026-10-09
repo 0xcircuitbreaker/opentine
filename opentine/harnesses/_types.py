@@ -124,6 +124,11 @@ class HarnessStep:
     model_info: str | None = None
     cost: float = 0.0
     duration: float = 0.0
+    #: Token counts the harness reported for this step, in OpenTine's exclusive
+    #: buckets, and who served it -- what makes a harness run priceable after the
+    #: fact (``tine price``) instead of carrying only the CLI's name.
+    usage: dict[str, int] = field(default_factory=dict)
+    provider: str = ""
 
     def __post_init__(self) -> None:
         self.cost = _meter(self.cost, "cost")

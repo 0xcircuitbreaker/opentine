@@ -49,7 +49,8 @@ class OpenAI(ChatCompletions):
             provider=resolved_provider,
             api_key=resolved_key,
             base_url=resolved_base,
-            omit_temperature=omit_temperature or omits_temperature(model),
+            omit_temperature=omit_temperature
+            or omits_temperature(model, native=resolved_provider == "openai" and not resolved_base),
             input_cost_per_mtok=input_cost_per_mtok,
             output_cost_per_mtok=output_cost_per_mtok,
             rates=rates,

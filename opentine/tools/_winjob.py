@@ -9,6 +9,12 @@ from typing import Any
 _KILL_ON_JOB_CLOSE = 0x00002000
 _EXTENDED_LIMIT_INFORMATION = 9
 
+#: ``CreateProcess`` flag. A child created running can spawn a grandchild before
+#: ``AssignProcessToJobObject`` reaches it, and that grandchild is outside the
+#: job: it survives the kill-on-close. Created suspended, the child cannot run a
+#: single instruction until it is already in the job.
+CREATE_SUSPENDED = 0x00000004
+
 
 class _BasicLimitInformation(ctypes.Structure):
     _fields_ = (
@@ -80,14 +86,26 @@ def _kernel32() -> Any:
     kernel.AssignProcessToJobObject.restype = wintypes.BOOL
     kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
     kernel.CloseHandle.restype = wintypes.BOOL
+    kernel.TerminateProcess.argtypes = (wintypes.HANDLE, wintypes.UINT)
+    kernel.TerminateProcess.restype = wintypes.BOOL
     return kernel
 
 
-def try_attach_kill_job(process: Any) -> KillJob | None:
+def _ntdll() -> Any:
+    # NtResumeProcess: the process-wide resume psutil's Process.resume() uses.
+    # subprocess.Popen closes the primary thread's handle, so ResumeThread is
+    # not available to us.
+    ntdll = ctypes.WinDLL("ntdll")
+    ntdll.NtResumeProcess.argtypes = (wintypes.HANDLE,)
+    ntdll.NtResumeProcess.restype = ctypes.c_long
+    return ntdll
+
+
+def try_attach_kill_job(process: Any, *, kernel: Any = None) -> KillJob | None:
     """Attach ``process`` to a kill-on-close job, or permit the safe fallback."""
-    kernel = handle = None
+    handle = None
     try:
-        kernel = _kernel32()
+        kernel = kernel if kernel is not None else _kernel32()
         handle = kernel.CreateJobObjectW(None, None)
         if not handle:
             raise ctypes.WinError(ctypes.get_last_error())
@@ -107,3 +125,29 @@ def try_attach_kill_job(process: Any) -> KillJob | None:
         if kernel is not None and handle:
             kernel.CloseHandle(handle)
         return None
+
+
+def contain_suspended(process: Any, *, kernel: Any = None, ntdll: Any = None) -> KillJob | None:
+    """Put a ``CREATE_SUSPENDED`` process in a kill-on-close job, then let it run.
+
+    The child is resumed whether or not the job could be attached -- a job is a
+    best effort (the caller keeps its taskkill fallback), but a child left
+    suspended would hang the caller until its timeout. If it cannot be resumed it
+    is terminated and the error raised, never left half-started.
+    """
+    try:
+        kernel = kernel if kernel is not None else _kernel32()
+        ntdll = ntdll if ntdll is not None else _ntdll()
+    except (AttributeError, OSError):
+        process.kill()
+        raise
+    job = try_attach_kill_job(process, kernel=kernel)
+    handle = wintypes.HANDLE(int(process._handle))
+    status = ntdll.NtResumeProcess(handle)
+    if status != 0:
+        kernel.TerminateProcess(handle, 1)
+        if job is not None:
+            job.close()
+        code = status & 0xFFFFFFFF
+        raise OSError(f"could not resume the contained process (NTSTATUS {code:#010x})")
+    return job

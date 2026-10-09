@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import math
 import os
-import subprocess
 import time
 from collections.abc import Mapping, Sequence
 from io import StringIO
@@ -14,7 +13,7 @@ from typing import Any
 
 from opentine.core import StepKind
 from opentine.harnesses._types import HarnessStep, StepCallback
-from opentine.tools._process import _attach_kill_job, _cleanup_owned
+from opentine.tools._process import _attach_kill_job, _cleanup_owned, _group_flags
 
 DEFAULT_TIMEOUT_SECONDS = 3_600.0
 DEFAULT_MAX_OUTPUT_CHARS = 4_000_000
@@ -26,6 +25,9 @@ class ProcessHarness:
     name = "process"
     default_command: tuple[str, ...] = ()
     login_env_keys: tuple[str, ...] = ()
+    #: Kind of the step recording the launch; a harness that reports its real
+    #: model calls makes it a non-model record so pricing does not see a phantom.
+    invocation_kind: StepKind = StepKind.model
 
     def __init__(
         self,
@@ -92,16 +94,11 @@ class ProcessHarness:
         if step_callback:
             step_callback(
                 HarnessStep(
-                    kind=StepKind.model,
+                    kind=self.invocation_kind,
                     inputs={"command": command, "cwd": str(self.cwd or Path.cwd())},
                     model_info=self.model_info,
                 )
             )
-        group = (
-            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-            if os.name == "nt"
-            else {"start_new_session": True}
-        )
         process = await asyncio.create_subprocess_exec(
             *command,
             cwd=str(self.cwd) if self.cwd else None,
@@ -109,10 +106,15 @@ class ProcessHarness:
             stderr=asyncio.subprocess.STDOUT,
             env=self.build_env(),
             limit=self.max_line_bytes,
-            **group,
+            **_group_flags(),
         )
         transport = getattr(process, "_transport", None)
         native = transport.get_extra_info("subprocess") if os.name == "nt" and transport else None
+        if os.name == "nt" and native is None:
+            # Started suspended: without its Popen it can be neither contained nor
+            # resumed, and would hang until the timeout. Never leave it half-started.
+            process.kill()
+            raise RuntimeError(f"{self.name} subprocess handle is unavailable")
         job = _attach_kill_job(native) if native is not None else None
         output_buffer = StringIO()
         output_chars = events = 0
@@ -145,14 +147,15 @@ class ProcessHarness:
                 output_buffer.write(line)
                 saw_line = True
                 parsed = self.parse_line(line)
-                if parsed:
+                # One output line can carry several steps (parallel tool results).
+                for step in parsed if isinstance(parsed, list) else [parsed] if parsed else []:
                     events += 1
                     if events > self.max_events:
                         raise RuntimeError(
                             f"{self.name} emitted more than {self.max_events} events"
                         )
                     if step_callback:
-                        step_callback(parsed)
+                        step_callback(step)
 
         cleaned = False
 
@@ -242,5 +245,5 @@ class ProcessHarness:
         built.update(self.env)
         return built
 
-    def parse_line(self, line: str) -> HarnessStep | None:
+    def parse_line(self, line: str) -> HarnessStep | list[HarnessStep] | None:
         return HarnessStep.from_line(line, model_info=self.model_info) if line else None

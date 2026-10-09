@@ -54,7 +54,7 @@ class OpentineHarness:
     ) -> Run:
         run = self._ensure_run(task, context)
         root = self.record_step(
-            StepKind.model,
+            getattr(self.harness, "invocation_kind", StepKind.model),
             inputs={"context": context or {}, "harness": self.harness.name, "task": task},
         )
         started = time.monotonic()
@@ -138,11 +138,14 @@ class OpentineHarness:
         cost: float = 0.0,
         duration: float = 0.0,
     ) -> str:
+        usage: dict[str, int] = {}
+        provider = ""
         if isinstance(kind, HarnessStep):
             event = kind
             normalized = _coerce_kind(event.kind)
             inputs, outputs, parent_id = event.inputs, event.outputs, event.parent_id
             model_info, cost, duration = event.model_info, event.cost, event.duration
+            usage, provider = dict(event.usage), event.provider
         else:
             normalized = _coerce_kind(kind)
         cost = _meter(cost, "cost")
@@ -158,6 +161,8 @@ class OpentineHarness:
             parent_id=parent_id or self._last_step_id,
             cost=cost,
             duration=duration,
+            usage=usage or None,
+            provider=provider,
         )
         run.model_info = original_model
         self._last_step_id = added.id

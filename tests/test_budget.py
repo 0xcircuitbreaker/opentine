@@ -291,21 +291,23 @@ def test_duration_budget_includes_tool_latency_before_next_model_call():
 
     async def slow() -> str:
         """Wait long enough to exceed the wall-duration budget."""
-        await asyncio.sleep(0.03)
+        await asyncio.sleep(0.4)
         return "ok"
 
     model.complete = complete
+    # Margins well above Windows' ~15.6 ms timer tick: a 10 ms budget could be
+    # spent on a loaded runner before the tool step even started.
     run = Agent(
         model=model,
         tools=[slow],
         max_steps=3,
-        budget=Budget(max_duration=0.01),
+        budget=Budget(max_duration=0.15),
     ).run_sync("go")
 
     assert model.calls == 1
     assert run.status == RunStatus.failed
     assert run.metadata["budget_state"]["dimension"] == "duration"
-    assert next(step for step in run.steps if step.kind == StepKind.tool).duration >= 0.01
+    assert next(step for step in run.steps if step.kind == StepKind.tool).duration >= 0.15
 
 
 @pytest.mark.parametrize(

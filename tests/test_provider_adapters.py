@@ -58,7 +58,7 @@ async def test_openai_stream_payload_includes_tools_and_transcript(monkeypatch: 
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(completions=FakeCompletions()),
     )
-    adapter = OpenAI("gpt-test")
+    adapter = OpenAI("gpt-4o")
     client_calls = []
 
     def get_client():
@@ -95,7 +95,7 @@ async def test_openai_stream_payload_includes_tools_and_transcript(monkeypatch: 
     assert chunks[0] == {"type": "text_delta", "text": "ok"}
     assert chunks[1]["type"] == "usage"
     assert chunks[1]["billing"]["status"] == "unknown"
-    assert seen["model"] == "gpt-test"
+    assert seen["model"] == "gpt-4o"
     assert seen["temperature"] == 0.2
     assert seen["stream"] is True
     assert seen["messages"][0] == {"role": "system", "content": "Answer briefly."}
@@ -162,7 +162,7 @@ async def test_anthropic_stream_payload_includes_tools_and_transcript(
             return FakeStream()
 
     fake_client = SimpleNamespace(messages=FakeMessages())
-    adapter = Anthropic("claude-test")
+    adapter = Anthropic("claude-sonnet-4-5")
     monkeypatch.setattr(adapter, "_get_client", lambda: fake_client)
 
     chunks = [
@@ -194,7 +194,7 @@ async def test_anthropic_stream_payload_includes_tools_and_transcript(
     assert chunks[-1]["type"] == "response"
     assert "without a final message" in chunks[-1]["refusal"]
     assert chunks[-1]["billing"]["status"] == "unknown"
-    assert seen["model"] == "claude-test"
+    assert seen["model"] == "claude-sonnet-4-5"
     assert seen["temperature"] == 0.2
     assert seen["system"] == "Answer briefly."
     assert seen["tools"][0]["name"] == "get_weather"
