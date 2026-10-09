@@ -6,7 +6,8 @@ a symlink to ``/etc`` or ``.git`` and the open followed it. Where the platform
 can (POSIX ``dir_fd`` + ``O_NOFOLLOW``), the resolved path is reached from the
 root one component at a time, refusing any symlink, so what opens is what was
 checked. Elsewhere (Windows), the opened handle must be the file the path still
-names, and a write truncates only after that check.
+names, and a write truncates only after that check; a directory is listed
+through its handle (``_fs_windows``).
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from __future__ import annotations
 import errno
 import os
 import stat
+from itertools import islice
 from pathlib import Path
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
@@ -50,11 +52,22 @@ def open_file(root: Path, resolved: Path, *, write: bool = False) -> int:
     return fd
 
 
-def open_directory(root: Path, resolved: Path) -> int | None:
-    """A descriptor for the directory, or ``None`` where scandir needs a path."""
-    if not WALKS or os.scandir not in os.supports_fd:
-        return None
-    return _open(root, resolved, os.O_RDONLY | _DIRECTORY, make_parents=False)
+def list_entries(root: Path, resolved: Path, limit: int) -> list[tuple[bool, str]]:
+    """Up to ``limit + 1`` ``(is_dir, name)`` entries of the directory that was checked."""
+    if os.name == "nt":
+        from opentine.tools._fs_windows import list_directory
+
+        return list_directory(resolved, limit)
+    fd = None
+    if WALKS and os.scandir in os.supports_fd:
+        fd = _open(root, resolved, os.O_RDONLY | _DIRECTORY, make_parents=False)
+    try:
+        with os.scandir(resolved if fd is None else fd) as listing:
+            found = list(islice(listing, limit + 1))
+            return [(entry.is_dir(follow_symlinks=True), entry.name) for entry in found]
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 def _open(root: Path, resolved: Path, flags: int, *, make_parents: bool) -> int:

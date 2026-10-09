@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import os
-from itertools import islice
 from pathlib import Path
 
 from opentine.policies import FilesystemPolicy
-from opentine.tools._fs_open import open_directory, open_file
+from opentine.tools._fs_open import list_entries, open_file
 
 MAX_LIST_ENTRIES = 1_000
 
@@ -170,14 +169,7 @@ def ls(path: str = ".", sandbox: str | None = None, policy: FilesystemPolicy | N
     if not p.is_dir():
         missing = FileNotFoundError if not p.exists() else NotADirectoryError
         raise missing(f"Not a directory: {path}")
-    fd = open_directory(root, p)
-    try:
-        with os.scandir(p if fd is None else fd) as listing:
-            found = list(islice(listing, MAX_LIST_ENTRIES + 1))
-            entries = [(entry.is_dir(follow_symlinks=True), entry.name) for entry in found]
-    finally:
-        if fd is not None:
-            os.close(fd)
+    entries = list_entries(root, p, MAX_LIST_ENTRIES)
     truncated = len(entries) > MAX_LIST_ENTRIES
     entries = sorted(entries[:MAX_LIST_ENTRIES], key=lambda e: (not e[0], e[1]))
     lines = []

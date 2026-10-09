@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import struct
 import threading
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -25,7 +26,7 @@ from opentine.cli import main
 from opentine.graph import StepKind
 from opentine.policies import FilesystemPolicy, PythonPolicy
 from opentine.repository import Repo
-from opentine.tools import _fs_open, fs
+from opentine.tools import _fs_open, _fs_windows, fs
 from opentine.tools.python import execute
 
 # -- tine --version ------------------------------------------------------------
@@ -225,6 +226,54 @@ def test_fs_ls_refuses_a_directory_swapped_for_a_symlink(tmp_path, monkeypatch):
     _swap_after_check(monkeypatch, _symlink_swap(root, outside))
     with pytest.raises(PermissionError, match="changed while it was opened"):
         fs.ls("sub", policy=policy)
+
+
+def _junction_swap(root: Path, outside: Path):
+    import _winapi  # junctions need no privilege on Windows, unlike symlinks
+
+    def swap() -> None:
+        (root / "sub").rename(root / "sub-before")
+        _winapi.CreateJunction(str(outside), str(root / "sub"))
+
+    return swap
+
+
+@pytest.mark.skipif(os.name != "nt", reason="junctions are Windows-only")
+@pytest.mark.parametrize("verb", ["read", "write", "edit", "ls"])
+def test_fs_refuses_a_directory_swapped_for_a_junction_after_the_check(tmp_path, monkeypatch, verb):
+    root, outside, policy = _workspace(tmp_path)
+    _swap_after_check(monkeypatch, _junction_swap(root, outside))
+    with pytest.raises(PermissionError, match="changed while it was opened"):
+        if verb == "read":
+            fs.read("sub/notes.txt", policy=policy)
+        elif verb == "write":
+            fs.write("sub/notes.txt", "overwritten", policy=policy)
+        elif verb == "edit":
+            fs.edit("sub/notes.txt", "victim", "overwritten", policy=policy)
+        else:
+            fs.ls("sub", policy=policy)
+    assert (outside / "notes.txt").read_text(encoding="utf-8") == "victim"
+
+
+def _directory_record(name: str, attributes: int, last: bool, pad: int = 0) -> bytes:
+    encoded = name.encode("utf-16-le")
+    size = 68 + len(encoded) + pad
+    head = struct.pack("<II", 0 if last else size, 0) + bytes(48)
+    return head + struct.pack("<III", attributes, len(encoded), 0) + encoded + bytes(pad)
+
+
+def test_windows_directory_records_parse_into_entries():
+    raw = b"".join(
+        [
+            _directory_record(".", 0x10, False),
+            _directory_record("..", 0x10, False, pad=4),
+            _directory_record("sub", 0x10, False),
+            _directory_record("notes \u00e9.txt", 0x20, True),
+        ]
+    ) + bytes(64)  # stale bytes after the last record are never read
+    assert _fs_windows.parse_entries(raw) == [(True, "sub"), (False, "notes \u00e9.txt")]
+    with pytest.raises(OSError, match="malformed"):
+        _fs_windows.parse_entries(_directory_record("x", 0, True)[:-1])
 
 
 @pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs FIFOs")
