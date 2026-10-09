@@ -26,7 +26,7 @@ class ClaudeCodeHarness(ProcessHarness):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self._stream = ClaudeStream()
+        self._stream = ClaudeStream(env=self.build_env)
 
     @property
     def model_info(self) -> str:
@@ -34,7 +34,7 @@ class ClaudeCodeHarness(ProcessHarness):
 
     def parse_line(self, line: str) -> HarnessStep | list[HarnessStep] | None:
         data = parse_json_event(line)
-        if data and data.get("type") in STREAM_EVENTS:
+        if data and isinstance(data.get("type"), str) and data["type"] in STREAM_EVENTS:
             return self._stream.step(data)
         if data:
             return self._parse_json_event(data)

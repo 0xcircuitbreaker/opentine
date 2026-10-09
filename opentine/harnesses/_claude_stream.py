@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from opentine.core import StepKind
@@ -84,21 +84,24 @@ def _text(content: Any) -> str:
 class ClaudeStream:
     """Per-session state: model, provider, open tool calls, input-side totals."""
 
-    def __init__(self) -> None:
+    def __init__(self, env: Callable[[], Mapping[str, str]] | None = None) -> None:
+        #: The environment the Claude Code subprocess actually receives: a harness
+        #: forwards only an allowlist, so the parent's own variables can disagree.
+        self._env = env or (lambda: os.environ)
+        self.reset()
+
+    def reset(self) -> None:
+        """Start a new session: a harness object may run more than once."""
         self.model = ""
-        self.provider = self._env_provider()
+        self.provider = self._env_provider(self._env())
         self.tools: dict[str, tuple[str, Any]] = {}
         self.messages: set[str] = set()
         self.seen: dict[str, dict[str, int]] = {}
 
-    def reset(self) -> None:
-        """Start a new session: a harness object may run more than once."""
-        self.__init__()
-
     @staticmethod
-    def _env_provider() -> str:
+    def _env_provider(env: Mapping[str, str]) -> str:
         for name, provider in _ENV_PROVIDERS:
-            if os.environ.get(name, "").strip() not in ("", "0", "false"):
+            if str(env.get(name, "")).strip().casefold() not in ("", "0", "false"):
                 return provider
         return "anthropic"
 
@@ -139,7 +142,8 @@ class ClaudeStream:
         totals = self.seen.setdefault(model, {})
         for name, value in usage.items():
             totals[name] = totals.get(name, 0) + value
-        blocks = [b for b in message.get("content") or [] if isinstance(b, Mapping)]
+        content = message.get("content")
+        blocks = [b for b in content if isinstance(b, Mapping)] if isinstance(content, list) else []
         calls = []
         for block in blocks:
             if block.get("type") == "tool_use":
@@ -198,14 +202,21 @@ class ClaudeStream:
             unwritten = (_count(totals.get("cacheCreationInputTokens")) or 0) - written
             if unwritten > 0:
                 usage["cache_write_5m"] = unwritten
-            provider = totals.get("provider")
+            raw_provider = totals.get("provider")
+            provider = _PROVIDERS.get(str(raw_provider), str(raw_provider or self.provider))
+            inputs: dict[str, Any] = {"event": "result-usage", "model": model}
+            if seen and provider != self.provider:
+                # Claude Code can switch to Bedrock/Vertex from its own settings,
+                # which the environment does not show: this model's per-call steps
+                # were recorded under the assumed provider. Say so, never silently.
+                inputs["provider_mismatch"] = {"assumed": self.provider, "reported": provider}
             steps.append(
                 HarnessStep(
                     kind=StepKind.model,
-                    inputs={"event": "result-usage", "model": model},
+                    inputs=inputs,
                     outputs={"reported_cost_usd": totals.get("costUSD")},
                     model_info=str(model),
-                    provider=_PROVIDERS.get(str(provider), str(provider or self.provider)),
+                    provider=provider,
                     usage=usage,
                 )
             )

@@ -135,16 +135,43 @@ def test_parallel_tool_results_in_one_event_become_one_step_each():
     ]
 
 
-def test_a_bedrock_session_is_never_priced_on_anthropic_first_party_cards(monkeypatch):
+def test_the_provider_comes_from_the_environment_claude_code_receives(monkeypatch):
+    # The parent's own variable is not forwarded to the subprocess, so it must
+    # not decide the provider; the harness's explicit env does.
     monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")
-    steps = _steps(ClaudeCodeHarness(), _fixture_lines()[:2])
-    assert steps[-1].provider == "bedrock"
+    assert _steps(ClaudeCodeHarness(), _fixture_lines()[:2])[-1].provider == "anthropic"
+    harness = ClaudeCodeHarness(env={"CLAUDE_CODE_USE_BEDROCK": "1"})
+    assert _steps(harness, _fixture_lines()[:2])[-1].provider == "bedrock"
+
+
+def test_a_provider_the_environment_did_not_show_is_flagged_not_hidden():
+    lines = _fixture_lines()
+    result = json.loads(lines[-1])
+    for totals in result["modelUsage"].values():
+        totals["provider"] = "bedrock"
+    steps = _steps(ClaudeCodeHarness(), [*lines[:-1], json.dumps(result)])
+    usage_step = next(s for s in steps if s.inputs.get("event") == "result-usage")
+    assert usage_step.provider == "bedrock"
+    assert usage_step.inputs["provider_mismatch"] == {"assumed": "anthropic", "reported": "bedrock"}
 
 
 def test_a_malformed_reported_cost_does_not_abort_the_run():
     result = {"type": "result", "subtype": "success", "total_cost_usd": "lots", "duration_ms": -5}
     (done,) = _steps(ClaudeCodeHarness(), [json.dumps(result)])
     assert done.cost == 0.0 and done.duration == 0.0
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"type": ["assistant"]},
+        {"type": "assistant", "message": {"content": 7, "usage": "x"}},
+        {"type": "user", "message": {"content": {"not": "a list"}}},
+        {"type": "result", "modelUsage": ["bad"], "total_cost_usd": None},
+    ],
+)
+def test_a_malformed_event_is_recorded_or_skipped_never_fatal(event):
+    _steps(ClaudeCodeHarness(), [json.dumps(event)])
 
 
 def test_plain_text_output_is_still_recorded():

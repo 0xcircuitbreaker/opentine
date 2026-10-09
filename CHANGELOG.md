@@ -25,9 +25,11 @@
   (an assistant event's `output_tokens` is a message-start placeholder — 16
   and 4 against a true 120 in the live capture this was built from), and
   Claude Code's own cost on the closing step. On that capture the catalog
-  re-prices the run to exactly the $0.100061 Claude Code reported. Bedrock,
-  Vertex and Foundry sessions keep their provider, so first-party cards never
-  price them. The launch and task steps of a harness that reports real model
+  re-prices the run to exactly the $0.100061 Claude Code reported. The provider
+  comes from the environment Claude Code actually receives (Bedrock, Vertex and
+  Foundry keep theirs), and the closing per-model totals always use the provider
+  Claude Code itself reports — flagging a mismatch when Claude Code was switched
+  to another provider through its own settings. The launch and task steps of a harness that reports real model
   calls are no longer recorded as phantom `model` steps.
 - **A new model no longer breaks on day one.** Sampling rules lived in
   per-adapter name lists, and each new family missed one (0.8.2 fixed
