@@ -261,7 +261,11 @@ def test_the_document_a_modern_backend_reads_carries_modern_content_and_kinds(
         {"role": "assistant", "parts": [{"type": "text", "content": '{"text": "an answer"}'}]}
     ]
     assert values[semconv.PROMPT] == {"prompt": "answer"}, "and the 1.27 keys are still there"
-    assert values[semconv.CACHE_READ_TOKENS] == 90 and values[semconv.REASONING_TOKENS] == 21
+    assert values[semconv.CACHE_READ_INPUT_TOKENS] == 90
+    assert values[semconv.REASONING_OUTPUT_TOKENS] == 21
+    # 11 fresh + 90 cached + 5 written: the total a modern backend bills against.
+    assert values[semconv.INPUT_TOKENS] == 106 and values[semconv.OUTPUT_TOKENS] == 28
+    assert semconv.USAGE_ATTRIBUTE not in values, "standard counters carry this usage exactly"
     # Span kind follows the *event* kind, which is what the trace schema knows:
     # think/done steps are model events, a tool call and a failure are not, and
     # those two no longer claim to be remote dependencies.

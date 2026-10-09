@@ -155,16 +155,18 @@ def test_responses_requires_completed_terminal_status():
         assert result["refusal"].startswith("response ")
 
 
-def test_fable_refusal_modifier_uses_reported_model():
+@pytest.mark.parametrize(("category", "subtotal"), [("bio", "5"), (None, "0")])
+def test_refusal_billing_uses_reported_model(category, subtotal):
     response = SimpleNamespace(
         content=[],
         model="claude-opus-4-8",
         stop_reason="refusal",
+        stop_details=SimpleNamespace(category=category),
         usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=0),
     )
     result = Anthropic("claude-fable-5")._result(response)
     assert result["billing"]["rate_card_id"].startswith("anthropic:claude-opus-4.8")
-    assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("5")
+    assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal(subtotal)
 
 
 @pytest.mark.parametrize("reported_model", ["not-fable-5-custom", None])
@@ -191,7 +193,7 @@ def test_google_tool_use_usage_and_actual_service_tier():
     split = google_usage({"promptTokenCount": maximum, "toolUsePromptTokenCount": maximum})
     assert split.input == maximum and split.extra["input_tool_use"] == maximum
 
-    result = Google(service_tier="priority")._result(
+    result = Google("gemini-3.5-flash", service_tier="priority")._result(
         {
             "candidates": [{"content": {"parts": [{"text": "ok"}]}, "finish_reason": "STOP"}],
             "modelVersion": "gemini-3.5-flash",
@@ -203,7 +205,7 @@ def test_google_tool_use_usage_and_actual_service_tier():
     assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("1.5")
 
     usage = {"promptTokenCount": 1_000_000, "candidatesTokenCount": 0}
-    adapter = Google(service_tier="priority")
+    adapter = Google("gemini-3.5-flash", service_tier="priority")
     unobserved = adapter._meter(usage)
     assert unobserved["billing"]["status"] == "unknown"
     assert unobserved["billing"]["known_subtotal_usd"] == "0"

@@ -32,8 +32,10 @@ class ChatCompletions(ChatStreamMixin):
     #: GLM appears twice because it picks its provider string at runtime from whether the
     #: China endpoint is in use.
     _stream_usage_providers = {
+        "deepseek",
         "glm",
         "glm-cn",
+        "kimi",
         "openai",
         "openai-compatible",
         "qwen",
@@ -94,10 +96,12 @@ class ChatCompletions(ChatStreamMixin):
                 "reason",
                 "thinking",
                 "gpt-5",
+                "gpt-6",
                 "grok-4",
                 "kimi-k3",
                 "kimi-k2",
                 "deepseek-v4",
+                "deepseek-flash",
                 "glm-5",
                 "qwen3",
                 "mistral",

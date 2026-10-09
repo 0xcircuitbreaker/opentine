@@ -7,6 +7,7 @@ from typing import Any
 
 from opentine.billing import PricingCatalog
 from opentine.kernel import KernelError, canonical_json
+from opentine.models._chat_billing import requires_cache_write
 from opentine.models._metered import metered_response
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._responses_request import plain as _plain
@@ -83,6 +84,15 @@ def parse_response(response: Any, forced_status: str | None = None) -> dict[str,
     return result
 
 
+#: OpenAI reasoning families reject a custom ``temperature`` at their default
+#: effort ("GPT-6 Astra does not support custom temperature or top_p values").
+_REASONING_PREFIXES = ("gpt-5", "gpt-6", "o1", "o3", "o4")
+
+
+def omits_temperature(model: str) -> bool:
+    return model.lower().startswith(_REASONING_PREFIXES)
+
+
 class ResponsesTransport:
     def __init__(
         self,
@@ -112,8 +122,7 @@ class ResponsesTransport:
         converted_tools = response_tools(tools)
         if converted_tools:
             kwargs["tools"] = converted_tools
-        lowered = self.model.lower()
-        if not lowered.startswith(("gpt-5", "o1", "o3", "o4")):
+        if not omits_temperature(self.model):
             kwargs["temperature"] = temperature
         if self.service_tier:
             kwargs["service_tier"] = self.service_tier
@@ -122,12 +131,12 @@ class ResponsesTransport:
     def meter(self, response: Any) -> dict[str, Any]:
         raw_usage = value(response, "usage")
         reported_model = value(response, "model")
-        normalized_model = model_name(reported_model)
-        actual_model = normalized_model or self.model
         observed_tier = value(response, "service_tier")
         missing = openai_missing_usage(
             raw_usage,
-            require_cache_write=actual_model.casefold().startswith("gpt-5.6"),
+            require_cache_write=requires_cache_write(
+                "openai", self.model, reported_model, self.catalog
+            ),
         )
         return metered_response(
             "openai",

@@ -1,5 +1,145 @@
 # Changelog
 
+## 0.8.2 — 2026-10-08
+
+New models, and the adapter rules they broke. Every price was confirmed against
+the vendor's own pricing page on 2026-10-08; nothing is converted, derived or
+guessed, and anything a vendor does not publish stays `unknown`.
+
+### Fixed
+
+- **Native Claude Opus 5 calls were rejected.** Anthropic returns HTTP 400 for
+  any non-default `temperature`, `top_p` or `top_k` on Fable 5/5.1, Mythos
+  5/5.1, Opus 4.7/4.8/5/5.5, Sonnet 5/5.5 and Haiku 5.5, and the adapter sent
+  `temperature` to `claude-opus-5` because no restriction rule matched it. The
+  rule now covers the whole documented list, including the new Opus 5.5 and
+  Haiku 5.5; Haiku 5.5 is also recognized as a thinking model (Haiku 4.5 is not).
+- **Native GPT-6 calls sent `temperature`.** The Responses path omitted it only
+  for `gpt-5*` and the o-series, and "GPT-6 Astra does not support custom
+  temperature or top_p values". `gpt-6*` is now treated as the reasoning family
+  it is, on the Responses path and on the Chat Completions path a custom
+  `base_url` selects.
+- **Early-refusal billing follows Anthropic's published rule.** A refusal that
+  arrives before any output was non-billable only for exactly `claude-fable-5`.
+  Since 2026-09-24 the rule is model-independent: such a refusal is billed when
+  `stop_details.category` is `bio`, `frontier_llm` or `reasoning_extraction`,
+  and free in any other category or with a null category. The category is now
+  recorded in the step's billing calculation; a malformed category is not
+  treated as evidence of a free refusal.
+- **A missing OpenAI cache-write count is caught for every model that bills
+  one.** The check was keyed on a `gpt-5.6` name prefix, so a `gpt-6-astra`
+  usage block that omitted its cache-write count was priced as `complete` with
+  zero writes. It is now keyed on the card: the count is required exactly when
+  the resolved card prices cache writes.
+- **Grok long-context pricing starts at 200,000 tokens, not after it.** xAI
+  bills "requests whose prompt reaches the listed token threshold" at the higher
+  rate; every xAI card fired only above 200,000, under-billing a prompt of
+  exactly 200,000 tokens. The rule is now `at-least-200k`.
+- **Imported OpenTelemetry traces bill cached tokens at the cache rate.** The
+  current GenAI conventions report `gen_ai.usage.input_tokens` *including* its
+  `cache_read.input_tokens` / `cache_creation.input_tokens` (now
+  `cache_write.input_tokens`) sub-counts, and `output_tokens` including
+  `reasoning.output_tokens`. The importer read none of those keys and treated
+  the inclusive total as fresh input, so a 100k-token call with 90k cached
+  priced at $0.525 instead of $0.12 on Claude Opus 5. The sub-counts are now
+  read and subtracted; the older exclusive spellings (`cache_read_input_tokens`
+  and friends, which every OpenTine export through 0.8.1 wrote) keep their
+  reading, so existing documents import exactly as before. A total smaller than
+  its own sub-counts is kept as reported and flagged on the span.
+- **Imported agent spans no longer double-bill their model calls.** An
+  `invoke_agent` span reports the aggregate usage of the calls beneath it, and
+  was imported as a `model` step, so an agent with two $0.075 calls cost $0.30.
+  Agent operations (`invoke_agent`, `create_agent`, `invoke_workflow`) now import
+  as `subagent` steps that record their usage without being billed, unless no
+  span beneath them reports usage of its own (a remote agent), in which case
+  the agent span is the only record of that spend and is billed. `tine cost`
+  token totals skip the roll-up for the same reason.
+- **A v3 step kind the legacy enum lacks survives a `.tine` save.** `subagent`,
+  `human`, `policy` and `approval` steps loaded as `model` and were written that
+  way, so `tine price` on a saved run would have billed a roll-up a second time.
+  The real kind is now carried as an additive `v3_kind` field (absent for every
+  other step, so existing artifacts re-serialize byte for byte) and is what
+  pricing reads.
+- **DeepSeek peak pricing excludes Chinese public holidays.** "Peak hours are
+  01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese
+  public holidays." The 2026 weekday holidays (09-25 and 10-01 through 10-07)
+  are carved out as flat off-peak cards; every peak hour falls on the same
+  Beijing calendar day, so the split is exact.
+
+### Added
+
+- **Catalog refresh, 85 -> 122 cards.** Anthropic: `claude-opus-5-5` (cache
+  read $0.20, fast mode 2x), `claude-sonnet-5-5` (cache read cut from $0.20 to
+  $0.10 on 2026-10-07, carded as two date-scoped cards), `claude-haiku-5-5`
+  (5x on every dimension for prompts over 100,000 tokens, counting cache reads
+  and writes), `claude-mythos-5-1`, `claude-mythos-5`, and the previously
+  uncarded `claude-sonnet-4-6`. OpenAI: `gpt-6.1-sol` (the whole GPT-6.1 series;
+  cached input 5% of input, Ultrafast 6x), `gpt-6-sol` and `gpt-6-luna`.
+  Google: `gemini-3.8-flash` (introductory price through 2026-12-31). xAI:
+  `grok-4.7`. DeepSeek: `deepseek-flash` (V4.1-Flash, from 04:00 UTC on
+  2026-09-10), which also prices the retired `deepseek-v4-flash` and
+  `deepseek-v4-flash-vision-exp` names ("billed at the Flash price"). Qwen:
+  `qwen3.8-2.4t-a95b`, `qwen3.8-max-0902` (alias `qwen3.8-max-2026-09-02`) and
+  `qwen3.8-omni-flash`. GLM: `glm-5.3`, `glm-5.3-flash` (with its 50% launch
+  promotion through 2026-09-09) and `glm-5.3-flashx`. Together: DeepSeek
+  V4.1-Flash, V4-Pro-0813 and V4-Flash-0731, GLM-5.3 and 5.3-Flash, Kimi-K3,
+  and the 2026-09-22 Qwen3.7-Max price cut. Groq: `qwen/qwen3.8-27b`.
+- **Kimi K3 cache writes.** Kimi now bills cache writes separately (5-minute
+  TTL $3.00, 1-hour $6.00) and reports them as
+  `prompt_tokens_details.cache_write_tokens`; the card had no rate for them, so
+  every K3 call that wrote cache priced as `partial`.
+- **Corrections to existing cards.** Opus 4.8 gains its published fast-mode
+  modifier; GPT-6 Astra gains Ultrafast (6x) and `priority`, which OpenAI
+  renamed to Fast mode and serves as Fast; Grok 4.6 gains its 2x priority
+  modifier; `gemini-3.1-pro-preview-customtools` aliases Gemini 3.1 Pro.
+- **`deepseek-flash` is recognized as a thinking model**, and DeepSeek and Kimi
+  join the providers that request streamed usage; both document
+  `stream_options.include_usage`. The provider-level default set is exactly
+  `deepseek`, `glm`, `glm-cn`, `kimi`, `openai`, `openai-compatible`, `qwen`,
+  and `xai`; membership still requires positive evidence that the endpoint
+  accepts the field.
+
+### Changed
+
+- **OpenTelemetry export speaks the current GenAI conventions.** Spans carry
+  `input_tokens` / `output_tokens` totals that include the
+  `cache_read.input_tokens`, `cache_creation.input_tokens` and
+  `reasoning.output_tokens` sub-counts written beside them, so Langfuse, Phoenix
+  and any other reader see every token a step consumed (the exclusive totals
+  exported through 0.8.1 under-reported a cached call's input), and
+  `gen_ai.provider.name` beside `gen_ai.system`. What no convention spells -- the
+  1-hour cache-write TTL, a dimension like `input_audio` -- rides exactly in an
+  `opentine.usage` attribute, written only when the standard counters cannot
+  carry the usage back. Re-importing an export reproduces its usage exactly, and
+  a span imported from elsewhere still re-exports with the attributes it came
+  with. OpenTine 0.8.1 and earlier read these newer exports' inclusive totals as
+  fresh input.
+- **Adapter defaults move to each vendor's current model**: `OpenAI()` ->
+  `gpt-6.1-sol`, `Anthropic()` -> `claude-sonnet-5-5`, `Google()` ->
+  `gemini-3.8-flash`, `Grok()` -> `grok-4.7`, `GLM()` -> `glm-5.3`, `Qwen()` ->
+  `qwen3.8-max`, `DeepSeek()` -> `deepseek-flash`. Passing a model name
+  explicitly is unaffected.
+
+### Removed
+
+- **Aliases and modifiers a vendor no longer publishes.** `grok-latest` no
+  longer aliases `grok-4.3` (no xAI page maps it there any more, and a run
+  recorded under it now reports `unknown` instead of grok-4.3's rates).
+  `gpt-5.6-cyber` loses its batch, flex, fast and priority modifiers: OpenAI
+  publishes no tier price for it, so a tiered call stays visibly `unknown`.
+  Cards for retired models are closed: `deepseek-v4-flash` and its vision
+  variant (2026-09-09), `kimi-k2.5` (2026-08-31), and the Together listings
+  removed from serverless.
+
+### Held
+
+- **Not carded, deliberately.** `mistral-large-4` (a launch sale with no
+  published end date, and conflicting cache prices), Together's Kimi-K3
+  promotion (undocumented start, conflicting cached rate; that window prices
+  `unknown`), `glm-cn` (bigmodel.cn publishes CNY only), the historical
+  Together Qwen3.7-Max rate, and `gpt-rosalind-research` (trusted access, no
+  published long-context or tier rules).
+
 ## 0.8.1 — 2026-09-04
 
 ### Added

@@ -193,15 +193,37 @@ def test_anthropic_refusal_discards_partial_text_but_retains_billable_usage():
     assert "discarded partial output" in " ".join(result["warnings"])
 
 
-def test_only_fable_early_empty_refusal_is_nonbillable():
+@pytest.mark.parametrize(
+    ("stop_details", "free"),
+    [
+        (None, True),
+        (SimpleNamespace(category=None), True),
+        (SimpleNamespace(category="cyber"), True),
+        (SimpleNamespace(category="bio"), False),
+        (SimpleNamespace(category="frontier_llm"), False),
+        (SimpleNamespace(category="reasoning_extraction"), False),
+        (SimpleNamespace(category=7), False),
+    ],
+)
+def test_early_empty_refusal_billing_follows_the_published_category_rule(stop_details, free):
     response = SimpleNamespace(
         content=[SimpleNamespace(type="refusal", refusal="cannot comply")],
         stop_reason="refusal",
+        stop_details=stop_details,
         usage=SimpleNamespace(input_tokens=1_000, output_tokens=0),
     )
     result = Anthropic("claude-sonnet-5")._result(response)
-    assert result["billing"]["amount_usd"] != "0"
-    assert "refusal_modifier" not in result["billing"]["calculation"]
+    calculation = result["billing"]["calculation"]
+    if free:
+        assert result["billing"]["amount_usd"] == "0"
+        assert calculation["refusal_modifier"] == "0"
+    else:
+        assert result["billing"]["amount_usd"] != "0"
+        assert "refusal_modifier" not in calculation
+    category = getattr(stop_details, "category", None)
+    assert calculation["refusal_category"] == (
+        category if category is None or isinstance(category, str) else "invalid"
+    )
 
 
 @pytest.mark.asyncio
@@ -266,7 +288,7 @@ async def test_qwen_explicit_cache_marker_selects_exact_hit_rate(monkeypatch):
                 ),
             )
 
-    adapter = Qwen()
+    adapter = Qwen("qwen3.7-max")
     client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
     monkeypatch.setattr(adapter, "_get_client", lambda: client)
     result = await adapter.complete(
@@ -307,7 +329,7 @@ async def test_qwen_stream_requests_usage_and_preserves_explicit_cache_tier(monk
             seen.update(kwargs)
             return chunks()
 
-    adapter = Qwen()
+    adapter = Qwen("qwen3.7-max")
     client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
     monkeypatch.setattr(adapter, "_get_client", lambda: client)
     messages = [

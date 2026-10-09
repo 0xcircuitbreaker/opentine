@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._graph_run import _usage
-from opentine._graph_types import Step, StepKind
+from opentine._graph_types import V3_ONLY_KINDS, Step, StepKind
 from opentine._v3_guards import text_field
 
 
@@ -35,6 +35,9 @@ def step_to_dict(step: Step) -> dict[str, Any]:
         # Same contract for the step's provider: recorded when the run knows it,
         # absent otherwise, so every pre-0.8.0 artifact round-trips unchanged.
         **({"provider": step.provider} if step.provider else {}),
+        # And for a v3 kind the legacy enum cannot spell: without it a subagent
+        # roll-up came back as "model" and `tine price` billed it a second time.
+        **({"v3_kind": step.v3_kind} if step.v3_kind in V3_ONLY_KINDS else {}),
     }
     if step.usage:
         data["usage"] = dict(step.usage)
@@ -66,4 +69,5 @@ def step_from_dict(data: dict[str, Any]) -> Step:
         # foreign artifact's non-string provider falls back rather than crashing
         # the load or reaching the writer as a shape it cannot re-emit.
         provider=text_field(data.get("provider")),
+        v3_kind=data["v3_kind"] if data.get("v3_kind") in V3_ONLY_KINDS else None,
     )

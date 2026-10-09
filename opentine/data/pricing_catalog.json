@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/2",
-  "generated_at": "2026-09-04T00:00:00Z",
-  "verified_at": "2026-09-04",
+  "generated_at": "2026-10-08T00:00:00Z",
+  "verified_at": "2026-10-08",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -38,10 +38,10 @@
       "effective_from": "2026-09-03",
       "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "12.50", "output": "50", "reasoning": "50"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-astra"],
-      "verified_at": "2026-09-04",
-      "metadata": {"note": "The threshold is request-scoped, and so is opentine's application of it: 'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.' A context_thresholds rule fires on total prompt input (input + cache reads + cache writes) and its multipliers replace the base rates for every dimension of the whole call, so no tokens-above-the-line split is implied and the card needs no caveat. OpenAI publishes a single 'cache writes' price ($12.50/MTok), carded on both the 5m and 1h write dimensions. 'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No priority-tier price is published for this model, so no 'priority' modifier is carded and a priority request stays visibly unknown."}
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "The threshold is request-scoped, and so is opentine's application of it: 'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.' OpenAI publishes a single 'cache writes' price ($12.50/MTok), carded on both the 5m and 1h write dimensions. 'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' Ultrafast (available from 2026-09-29) is published at 6x ($60/$6/$75/$300). 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
     },
     {
       "id": "openai:gpt-5.6-terra:2026-07-09",
@@ -101,10 +101,9 @@
       "effective_from": "2026-08-17",
       "rates": {"input": "12.50", "cache_read": "1.25", "cache_write_5m": "15.625", "cache_write_1h": "15.625", "output": "75", "reasoning": "75"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-cyber"],
-      "verified_at": "2026-08-17",
-      "metadata": {"access": "approval-gated", "note": "OpenAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price."}
+      "verified_at": "2026-10-08",
+      "metadata": {"access": "approval-gated", "note": "OpenAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. No Batch, Flex, Fast or Priority price is published for this model (the pricing page's tier tables carry no gpt-5.6-cyber row), so no service modifier is carded and a tiered request stays visibly unknown rather than borrowing a sibling's rate."}
     },
     {
       "id": "openai:gpt-5:2025-08-07",
@@ -190,6 +189,45 @@
       "verified_at": "2026-07-16"
     },
     {
+      "id": "openai:gpt-6.1-sol:2026-09-29",
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "aliases": [],
+      "effective_from": "2026-09-29",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "The whole GPT-6.1 series is this one model. 'Cached input tokens are priced at 5% of the uncached input token rate.' OpenAI publishes one cache-write price, carded on both write dimensions. 'Fast mode prices are 2x Standard. Batch and Flex prices are 50% lower than Standard. Ultrafast mode prices are 6x Standard.' Ultrafast became available on 2026-10-08. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+    },
+    {
+      "id": "openai:gpt-6-sol:2026-09-22",
+      "provider": "openai",
+      "model": "gpt-6-sol",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-sol", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+    },
+    {
+      "id": "openai:gpt-6-luna:2026-09-22",
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.125", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-luna", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+    },
+    {
       "id": "anthropic:claude-fable-5-1:2026-09-01",
       "provider": "anthropic",
       "model": "claude-fable-5-1",
@@ -199,7 +237,7 @@
       "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
       "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/fable-5-1/overview"],
       "verified_at": "2026-09-04",
-      "metadata": {"note": "cache_read is the published literal $0.25/MTok, not a family-rule derivation: the pricing page footnotes 'Cache hits and refreshes on Claude Fable 5.1 and Claude Mythos 5.1 are priced at 0.025x the base input price. All other models use the standard 0.1x multiplier.' Every opentine card states cache_read outright and nothing in the engine derives it from input, so the model-specific rate cannot be overwritten by the family rule. No 'fast' modifier: fast mode is 'for Claude Opus 5 and Claude Opus 4.8' only, so a fast-tier request on this card stays visibly unknown rather than borrowing another model's 2x. No context threshold: 'Claude 4.6 and later models ... include the full 1M token context window at standard pricing.' batch_us is the documented composition of the 0.5 Batch discount with the 1.1x US data-residency multiplier, which the page states stack."}
+      "metadata": {"note": "cache_read is the published literal $0.25/MTok, not a family-rule derivation: the pricing page footnotes 'Cache hits and refreshes on Claude Fable 5.1 and Claude Mythos 5.1 are priced at 0.025x the base input price. All other models use the standard 0.1x multiplier.' Every opentine card states cache_read outright and nothing in the engine derives it from input, so the model-specific rate cannot be overwritten by the family rule. No 'fast' modifier: fast mode is for Claude Opus 5.5, Claude Opus 5 and Claude Opus 4.8 only, so a fast-tier request on this card stays visibly unknown rather than borrowing another model's 2x. No context threshold: 'Claude 4.6 and later models ... include the full 1M token context window at standard pricing.' batch_us is the documented composition of the 0.5 Batch discount with the 1.1x US data-residency multiplier, which the page states stack."}
     },
     {
       "id": "anthropic:claude-fable-5:2026-06-09",
@@ -249,9 +287,10 @@
       "model": "claude-opus-4-8",
       "effective_from": "2026-05-28",
       "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
-      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "fast": "2", "fast_us": "2.2", "us": "1.1"},
       "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://www.anthropic.com/news/claude-opus-4-8"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Fast mode: 'Claude Opus 5 / Claude Opus 4.8 | $10 / MTok | $50 / MTok', exactly 2x."}
     },
     {
       "id": "anthropic:claude-opus-5:2026-07-24",
@@ -299,14 +338,101 @@
       "verified_at": "2026-07-16"
     },
     {
+      "id": "anthropic:claude-opus-5-5:2026-09-22",
+      "provider": "anthropic",
+      "model": "claude-opus-5-5",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "4", "cache_read": "0.20", "cache_write_5m": "5", "cache_write_1h": "8", "output": "20", "reasoning": "20"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "fast": "2", "fast_us": "2.2", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/opus-5-5/overview", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "cache_read is the published literal $0.20/MTok: 'Cache hits and refreshes on Claude Opus 5.5 and Claude Sonnet 5.5 are priced at 0.05x the base input price.' Fast mode is $8/$40, exactly 2x ('Claude Opus 5.5 | $8 / MTok | $40 / MTok'); batch $2/$10. No context threshold: 1M context at standard pricing."}
+    },
+    {
+      "id": "anthropic:claude-sonnet-5-5:2026-09-28",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "aliases": [],
+      "effective_from": "2026-09-28",
+      "effective_until": "2026-10-06",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/sonnet-5-5/overview", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Launch price. On 2026-10-07 Anthropic 'lowered the price of prompt cache reads on Claude Sonnet 5.5 from $0.20 USD to $0.10 USD per million tokens ... Cache writes and all other prices are unchanged', so this card closes at 2026-10-06. No fast mode."}
+    },
+    {
+      "id": "anthropic:claude-sonnet-5-5:2026-10-07",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "cache_read is the published literal $0.10/MTok (0.05x base input, footnote 2). Batch $1/$5. No fast mode."}
+    },
+    {
+      "id": "anthropic:claude-haiku-5-5:2026-10-07",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.20", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-100k", "input_tokens": 100000, "multipliers": {"input": "5", "cache_read": "5", "cache_write_5m": "5", "cache_write_1h": "5", "output": "5", "reasoning": "5"}}],
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/haiku-5-5/overview", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Two published price rows: prompts up to 100,000 tokens and prompts over 100,000 tokens ($0.50/$0.625/$1/$0.05/$2.50, exactly 5x every dimension). 'A request's prompt length counts all of its input tokens, including cache reads and cache writes', which is the engine's input_total, and the higher tier applies to the whole request. Batch rows are 0.5x in both tiers."}
+    },
+    {
+      "id": "anthropic:claude-mythos-5-1:2026-09-01",
+      "provider": "anthropic",
+      "model": "claude-mythos-5-1",
+      "aliases": [],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "0.25", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/mythos-5-1/overview", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Limited availability (verified organizations only), publicly priced: 'Cache hits and refreshes on Claude Fable 5.1 and Claude Mythos 5.1 are priced at 0.025x the base input price.' Batch $5/$25. No fast mode."}
+    },
+    {
+      "id": "anthropic:claude-mythos-5:2026-06-09",
+      "provider": "anthropic",
+      "model": "claude-mythos-5",
+      "aliases": [],
+      "effective_from": "2026-06-09",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/models/mythos-5/overview", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Limited availability (verified organizations only), publicly priced at the Claude Fable 5 rates. Batch $5/$25. No fast mode."}
+    },
+    {
+      "id": "anthropic:claude-sonnet-4-6:2026-02-17",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "aliases": [],
+      "effective_from": "2026-02-17",
+      "rates": {"input": "3", "cache_read": "0.30", "cache_write_5m": "3.75", "cache_write_1h": "6", "output": "15", "reasoning": "15"},
+      "service_modifiers": {"batch": "0.5", "batch_us": "0.55", "us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/release-notes/api"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Priced and active but previously uncarded. Batch $1.50/$7.50; inference_geo 'us' applies 1.1x 'for Claude 4.6 and later models'."}
+    },
+    {
       "id": "kimi:kimi-k3:2026-07-16",
       "provider": "kimi",
       "model": "kimi-k3",
       "aliases": [],
       "effective_from": "2026-07-16",
-      "rates": {"input": "3", "cache_read": "0.30", "output": "15", "reasoning": "15"},
-      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat-k3", "https://platform.kimi.ai/docs/guide/kimi-k3-quickstart", "https://www.kimi.com/blog/kimi-k3"],
-      "verified_at": "2026-07-16"
+      "rates": {"input": "3", "cache_read": "0.30", "cache_write_5m": "3", "cache_write_1h": "6", "output": "15", "reasoning": "15"},
+      "source_urls": ["https://platform.kimi.ai/docs/pricing/chat", "https://platform.kimi.ai/docs/guide/context-caching", "https://www.kimi.com/blog/kimi-k3"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Cache Write became a separate billing item in September 2026 (TTL 5min $3.00, TTL 1h $6.00) and the API reports it as prompt_tokens_details.cache_write_tokens. The 5-minute write equals the input price it was previously billed at, so carding it from the start of the card is cost-neutral. Chat Completions does not echo the TTL, so writes are read as 5-minute writes; a caller that opts into the 1h TTL is under-billed by $3/MTok on those writes."}
     },
     {
       "id": "kimi:kimi-k2.7-code:2026-06-25",
@@ -344,9 +470,13 @@
       "model": "kimi-k2.5",
       "effective_from": "2026-01-27",
       "rates": {"input": "0.60", "cache_read": "0.10", "output": "3", "reasoning": "3"},
-      "service_rates": {"batch": {"input": "0.36", "cache_read": "0.06", "output": "1.80", "reasoning": "1.80"}},
+      "service_rates": {
+        "batch": {"input": "0.36", "cache_read": "0.06", "output": "1.80", "reasoning": "1.80"}
+      },
       "source_urls": ["https://www.kimi.com/en/blog/", "https://platform.kimi.ai/docs/pricing/chat-k25", "https://platform.kimi.ai/docs/pricing/batch"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "effective_until": "2026-08-31",
+      "metadata": {"closed_reason": "model-retired", "note": "'kimi-k2.5 was officially discontinued on August 31, 2026'; calls now return 404."}
     },
     {
       "id": "deepseek:deepseek-v4-pro:2026-07-14",
@@ -405,8 +535,9 @@
         }
       ],
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
-      "verified_at": "2026-08-22",
-      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour."}
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour. Peak hours exclude Chinese public holidays; the card is split at the 2026 weekday holidays from 2026-09-25 on.", "closed_reason": "split-for-holiday"},
+      "effective_until": "2026-09-24"
     },
     {
       "id": "deepseek:deepseek-v4-flash:2026-08-16",
@@ -444,8 +575,9 @@
         }
       ],
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://x.com/deepseek_ai/status/2087864589895798968"],
-      "verified_at": "2026-08-22",
-      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour."}
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "From 00:00 Beijing time on 2026-08-23 (16:00 UTC on 2026-08-22) off-peak applies all day on Beijing-time weekends, which the pricing page states as peak 'Monday through Friday'. Every peak-eligible hour (01:00-10:00 UTC) is 09:00-18:00 the same calendar day in Beijing time, so scoping the window to UTC weekdays is exactly equivalent to the published Beijing-time rule. The rule took effect after 2026-08-22's peak windows had already passed, so the day-granular split at 2026-08-23 loses no hour. Retired 2026-09-10: the name is served by DeepSeek-V4.1-Flash 'and billed at the Flash price' (see the deepseek-flash cards, which alias it).", "closed_reason": "model-retired"},
+      "effective_until": "2026-09-09"
     },
     {
       "id": "deepseek:deepseek-v4-flash-vision-exp:2026-08-21",
@@ -481,8 +613,9 @@
         }
       ],
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260821/"],
-      "verified_at": "2026-08-30",
-      "metadata": {"note": "The pricing page lists deepseek-v4-flash-vision-exp at exactly the deepseek-v4-flash rates -- off-peak 0.22 in / 0.007 cache hit / 0.66 out, peak 2x -- under the same platform-wide window: 'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday'. Weekday scoping in UTC is equivalent to the published Beijing-time weekday rule, as for deepseek-v4-flash."}
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "The pricing page lists deepseek-v4-flash-vision-exp at exactly the deepseek-v4-flash rates -- off-peak 0.22 in / 0.007 cache hit / 0.66 out, peak 2x -- under the same platform-wide window: 'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday'. Weekday scoping in UTC is equivalent to the published Beijing-time weekday rule, as for deepseek-v4-flash. Retired 2026-09-10: the name is served by DeepSeek-V4.1-Flash 'and billed at the Flash price' (see the deepseek-flash cards, which alias it).", "closed_reason": "model-retired"},
+      "effective_until": "2026-09-09"
     },
     {
       "id": "deepseek:deepseek-chat:legacy-2026-07",
@@ -495,6 +628,148 @@
       "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/news/news260424/"],
       "verified_at": "2026-07-20",
       "metadata": {"superseded_by": "deepseek-v4-flash"}
+    },
+    {
+      "id": "deepseek:deepseek-flash:2026-09-10",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"],
+      "effective_from": "2026-09-10",
+      "effective_until": "2026-09-24",
+      "rates": {"input": "0.15", "cache_read": "0.003", "output": "0.6", "reasoning": "0.6"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.3", "cache_read": "0.006", "output": "1.2", "reasoning": "1.2"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4.1-Flash", "note": "DeepSeek-V4.1-Flash. 'New pricing takes effect at 04:00 UTC on Sept 10, 2026', so 00:00-04:00 UTC that day was still billed at V4-Flash rates and falls inside this day-granular window. 'The legacy names deepseek-v4-flash and deepseek-v4-flash-vision-exp are still accepted, but the corresponding models have been retired, their requests are served by the DeepSeek-V4.1-Flash model and billed at the Flash price.' deepseek-chat and deepseek-reasoner were discontinued on 2026-07-24 and are not aliased. 'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full.' Every peak hour is 09:00-18:00 the same calendar day in Beijing time, so splitting cards at UTC dates around the State Council's 2026 weekday holidays (09-25; 10-01, 10-02, 10-05, 10-06, 10-07) is exact. The open-ended card must be split again for the next weekday holiday once the 2027 calendar is published."}
+    },
+    {
+      "id": "deepseek:deepseek-flash:2026-09-25-cn-holiday",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"],
+      "effective_from": "2026-09-25",
+      "effective_until": "2026-09-25",
+      "rates": {"input": "0.15", "cache_read": "0.003", "output": "0.6", "reasoning": "0.6"},
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates", "https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4.1-Flash", "note": "Chinese public holiday: off-peak all day ('Chinese public holidays in full'), so no peak schedule applies."}
+    },
+    {
+      "id": "deepseek:deepseek-flash:2026-09-26",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"],
+      "effective_from": "2026-09-26",
+      "effective_until": "2026-09-30",
+      "rates": {"input": "0.15", "cache_read": "0.003", "output": "0.6", "reasoning": "0.6"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.3", "cache_read": "0.006", "output": "1.2", "reasoning": "1.2"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4.1-Flash", "note": "'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full.' Every peak hour is 09:00-18:00 the same calendar day in Beijing time, so splitting cards at UTC dates around the State Council's 2026 weekday holidays (09-25; 10-01, 10-02, 10-05, 10-06, 10-07) is exact. The open-ended card must be split again for the next weekday holiday once the 2027 calendar is published."}
+    },
+    {
+      "id": "deepseek:deepseek-flash:2026-10-01-cn-holiday",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"],
+      "effective_from": "2026-10-01",
+      "effective_until": "2026-10-07",
+      "rates": {"input": "0.15", "cache_read": "0.003", "output": "0.6", "reasoning": "0.6"},
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates", "https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4.1-Flash", "note": "Chinese public holiday: off-peak all day ('Chinese public holidays in full'), so no peak schedule applies."}
+    },
+    {
+      "id": "deepseek:deepseek-flash:2026-10-08",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision-exp"],
+      "effective_from": "2026-10-08",
+      "rates": {"input": "0.15", "cache_read": "0.003", "output": "0.6", "reasoning": "0.6"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "0.3", "cache_read": "0.006", "output": "1.2", "reasoning": "1.2"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4.1-Flash", "note": "'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full.' Every peak hour is 09:00-18:00 the same calendar day in Beijing time, so splitting cards at UTC dates around the State Council's 2026 weekday holidays (09-25; 10-01, 10-02, 10-05, 10-06, 10-07) is exact. The open-ended card must be split again for the next weekday holiday once the 2027 calendar is published."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-09-25-cn-holiday",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-09-25",
+      "effective_until": "2026-09-25",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates", "https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4-Pro-0813", "note": "Chinese public holiday: off-peak all day ('Chinese public holidays in full'), so no peak schedule applies."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-09-26",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-09-26",
+      "effective_until": "2026-09-30",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "1.32", "cache_read": "0.044", "output": "3.96", "reasoning": "3.96"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4-Pro-0813", "note": "'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full.' Every peak hour is 09:00-18:00 the same calendar day in Beijing time, so splitting cards at UTC dates around the State Council's 2026 weekday holidays (09-25; 10-01, 10-02, 10-05, 10-06, 10-07) is exact. The open-ended card must be split again for the next weekday holiday once the 2027 calendar is published."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-10-01-cn-holiday",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-10-01",
+      "effective_until": "2026-10-07",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates", "https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4-Pro-0813", "note": "Chinese public holiday: off-peak all day ('Chinese public holidays in full'), so no peak schedule applies."}
+    },
+    {
+      "id": "deepseek:deepseek-v4-pro:2026-10-08",
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "effective_from": "2026-10-08",
+      "rates": {"input": "0.66", "cache_read": "0.022", "output": "1.98", "reasoning": "1.98"},
+      "schedule": [
+        {
+          "id": "peak",
+          "days": "weekday",
+          "hours": [{"start": "01:00", "end": "04:00"}, {"start": "06:00", "end": "10:00"}],
+          "rates": {"input": "1.32", "cache_read": "0.044", "output": "3.96", "reasoning": "3.96"}
+        }
+      ],
+      "source_urls": ["https://api-docs.deepseek.com/quick_start/pricing/", "https://api-docs.deepseek.com/updates"],
+      "verified_at": "2026-10-08",
+      "metadata": {"model_version": "DeepSeek-V4-Pro-0813", "note": "'Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full.' Every peak hour is 09:00-18:00 the same calendar day in Beijing time, so splitting cards at UTC dates around the State Council's 2026 weekday holidays (09-25; 10-01, 10-02, 10-05, 10-06, 10-07) is exact. The open-ended card must be split again for the next weekday holiday once the 2027 calendar is published."}
     },
     {
       "id": "google:gemini-3.7-flash:2026-08-13",
@@ -571,17 +846,13 @@
       "id": "google:gemini-3.1-pro:2026-02-19",
       "provider": "google",
       "model": "gemini-3.1-pro-preview",
-      "aliases": [],
+      "aliases": ["gemini-3.1-pro-preview-customtools"],
       "effective_from": "2026-02-19",
       "rates": {"input": "2", "input_audio": "2", "cache_read": "0.20", "cache_read_audio": "0.20", "output": "12", "reasoning": "12"},
       "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "input_audio": "2", "cache_read": "2", "cache_read_audio": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {
-        "batch": {"input": "0.5", "input_audio": "0.5", "cache_read": "1", "cache_read_audio": "1", "output": "0.5", "reasoning": "0.5"},
-        "flex": {"input": "0.5", "input_audio": "0.5", "cache_read": "1", "cache_read_audio": "1", "output": "0.5", "reasoning": "0.5"},
-        "priority": "1.8"
-      },
+      "service_modifiers": {"batch": {"input": "0.5", "input_audio": "0.5", "cache_read": "1", "cache_read_audio": "1", "output": "0.5", "reasoning": "0.5"}, "flex": {"input": "0.5", "input_audio": "0.5", "cache_read": "1", "cache_read_audio": "1", "output": "0.5", "reasoning": "0.5"}, "priority": "1.8"},
       "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08"
     },
     {
       "id": "google:gemini-3-flash:2025-12-17",
@@ -614,16 +885,34 @@
       "verified_at": "2026-07-16"
     },
     {
+      "id": "google:gemini-3.8-flash:2026-09-02",
+      "provider": "google",
+      "model": "gemini-3.8-flash",
+      "aliases": [],
+      "effective_from": "2026-09-02",
+      "effective_until": "2026-12-31",
+      "rates": {"input": "0.75", "cache_read": "0.075", "output": "3.75", "reasoning": "3.75"},
+      "service_rates": {
+        "batch": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "flex": {"input": "0.375", "cache_read": "0.0375", "output": "1.875", "reasoning": "1.875"},
+        "priority": {"input": "1.35", "cache_read": "0.135", "output": "6.75", "reasoning": "6.75"}
+      },
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/latest-model", "https://ai.google.dev/gemini-api/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"introductory": true, "note": "Introductory pricing 'through December 31, 2026'; Google publishes $1.50/$7.50 from 2027-01-01 but that card is deliberately not written ahead of time. One flat rate across the context window (no >200k tier). Thinking tokens bill as output."}
+    },
+    {
       "id": "xai:grok-4.5:2026-07-08",
       "provider": "xai",
       "model": "grok-4.5",
       "aliases": ["grok-4.5-latest", "grok-build-latest"],
       "effective_from": "2026-07-08",
       "rates": {"input": "2", "cache_read": "0.30", "output": "6", "reasoning": "6"},
-      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"priority": "2"},
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.5"],
-      "verified_at": "2026-07-20"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000)."}
     },
     {
       "id": "xai:grok-4.6:2026-08-12",
@@ -632,9 +921,11 @@
       "aliases": ["grok-4.6-latest"],
       "effective_from": "2026-08-12",
       "rates": {"input": "2", "cache_read": "0.50", "output": "6", "reasoning": "6"},
-      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/docs/models", "https://x.ai/news/grok-4-6"],
-      "verified_at": "2026-08-16"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000)."},
+      "service_modifiers": {"priority": "2"}
     },
     {
       "id": "xai:grok-build-0.1:2026-08-17",
@@ -643,23 +934,24 @@
       "aliases": [],
       "effective_from": "2026-08-17",
       "rates": {"input": "1", "cache_read": "0.20", "output": "2", "reasoning": "2"},
-      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"priority": "2"},
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-build-0.1"],
-      "verified_at": "2026-08-17",
-      "metadata": {"note": "xAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. The xAI batch discount does not cover grok-build-0.1."}
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "xAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. The xAI batch discount does not cover grok-build-0.1. xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000)."}
     },
     {
       "id": "xai:grok-4.3:2026-05-15",
       "provider": "xai",
       "model": "grok-4.3",
-      "aliases": ["grok-4.3-latest", "grok-latest"],
+      "aliases": ["grok-4.3-latest"],
       "effective_from": "2026-05-15",
       "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
-      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"batch": "0.8", "priority": "2"},
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.3"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000). 'grok-latest' is no longer documented as pointing at grok-4.3, so it is not aliased: a run recorded under it reports cost unknown rather than grok-4.3 rates."}
     },
     {
       "id": "xai:grok-4.20-0309-reasoning:2026-03-09",
@@ -668,10 +960,24 @@
       "aliases": ["grok-4.20", "grok-4.20-reasoning", "grok-4.20-0309", "grok-4.20-reasoning-latest"],
       "effective_from": "2026-03-09",
       "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
-      "context_thresholds": [{"id": "over-200k", "input_tokens": 200000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
       "service_modifiers": {"batch": "0.8", "priority": "2"},
       "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.20-reasoning"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000)."}
+    },
+    {
+      "id": "xai:grok-4.7:2026-09-21",
+      "provider": "xai",
+      "model": "grok-4.7",
+      "aliases": [],
+      "effective_from": "2026-09-21",
+      "rates": {"input": "2", "cache_read": "0.50", "output": "6", "reasoning": "6"},
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "service_modifiers": {"priority": "2"},
+      "source_urls": ["https://docs.x.ai/developers/pricing", "https://docs.x.ai/developers/models/grok-4.7", "https://docs.x.ai/developers/release-notes"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Batch API not supported, so no batch modifier. 'Priority requests are billed at a 2x premium over standard rates.' The US regional endpoint (us.api.x.ai) bills 1.1x and is not distinguishable from the response, so it is not carded. xAI bills 'requests whose prompt reaches the listed token threshold' at the higher rate for every token, and the engine fires a context threshold when total prompt input EXCEEDS input_tokens, so the 200k tier is carded at 199999 (>= 200000)."}
     },
     {
       "id": "glm:glm-5.2:2026-06-16",
@@ -709,7 +1015,8 @@
       "effective_from": "2026-03-15",
       "rates": {"input": "1.20", "cache_read": "0.24", "output": "4", "reasoning": "4"},
       "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "GLM-5-Turbo was removed from the international pricing page and API model list in late August 2026 without a published retirement date, so the card is left open."}
     },
     {
       "id": "glm:glm-4.7:2025-12-22",
@@ -730,6 +1037,51 @@
       "source_urls": ["https://docs.z.ai/guides/overview/pricing"],
       "verified_at": "2026-07-16",
       "metadata": {"free_api_tier": true}
+    },
+    {
+      "id": "glm:glm-5.3:2026-08-18",
+      "provider": "glm",
+      "model": "glm-5.3",
+      "aliases": [],
+      "effective_from": "2026-08-18",
+      "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Same rates as glm-5.2. Reasoning is always on and billed inside completion_tokens. 'Cached Input Storage: Limited-time Free', so no storage charge is carded."}
+    },
+    {
+      "id": "glm:glm-5.3-flash:2026-08-26-promo",
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "aliases": [],
+      "effective_from": "2026-08-26",
+      "effective_until": "2026-09-09",
+      "rates": {"input": "0.075", "cache_read": "0.015", "output": "0.25", "reasoning": "0.25"},
+      "source_urls": ["https://web.archive.org/web/20260902070913/https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-10-08",
+      "metadata": {"promotional": true, "note": "Launch promotion, preserved only in archived copies of the official pricing page: 'GLM-5.3-Flash is available at a 50% discount (strikethrough prices are list prices). The promotion ends at 24:00 on September 9, 2026 (UTC+8, Singapore time).' That is 16:00 UTC, so 16:00-23:59 UTC on 2026-09-09 is priced at the promotional rate by this day-granular card. 'Cached Input Storage: Limited-time Free', so no storage charge is carded."}
+    },
+    {
+      "id": "glm:glm-5.3-flash:2026-09-10",
+      "provider": "glm",
+      "model": "glm-5.3-flash",
+      "aliases": [],
+      "effective_from": "2026-09-10",
+      "rates": {"input": "0.15", "cache_read": "0.03", "output": "0.50", "reasoning": "0.50"},
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/release-notes/new-released"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "List price after the launch promotion. 'Cached Input Storage: Limited-time Free', so no storage charge is carded."}
+    },
+    {
+      "id": "glm:glm-5.3-flashx:2026-09-18",
+      "provider": "glm",
+      "model": "glm-5.3-flashx",
+      "aliases": [],
+      "effective_from": "2026-09-18",
+      "rates": {"input": "0.37", "cache_read": "0.075", "output": "1.25", "reasoning": "1.25"},
+      "source_urls": ["https://docs.z.ai/guides/overview/pricing", "https://docs.z.ai/guides/overview/overview"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "200 tokens/s serving of GLM-5.3-Flash. Z.ai publishes no dated release note; the price row first appears on the official pricing page on 2026-09-18, so earlier runs report cost unknown. 'Cached Input Storage: Limited-time Free', so no storage charge is carded."}
     },
     {
       "id": "qwen:qwen3.8-max:international-2026-08-03",
@@ -815,6 +1167,43 @@
       "metadata": {"region": "international"}
     },
     {
+      "id": "qwen:qwen3.8-2.4t-a95b:international-2026-08-12",
+      "provider": "qwen",
+      "model": "qwen3.8-2.4t-a95b",
+      "effective_from": "2026-08-12",
+      "rates": {"input": "2", "cache_read": "0.25", "cache_write_5m": "2.50", "output": "6", "reasoning": "6"},
+      "service_rates": {
+        "explicit_cache": {"cache_read": "0.17"}
+      },
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-2.4t-a95b", "https://www.alibabacloud.com/help/en/model-studio/model-pricing", "https://www.alibabacloud.com/help/en/model-studio/newly-released-models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"region": "international", "note": "Open-weight flagship, hosted on the international endpoint at the qwen3.8-max rates: implicit cache $0.25, explicit cache creation $2.5, explicit cache read $0.17. Thinking and non-thinking output are priced the same."}
+    },
+    {
+      "id": "qwen:qwen3.8-max-0902:international-2026-09-02",
+      "provider": "qwen",
+      "model": "qwen3.8-max-0902",
+      "aliases": ["qwen3.8-max-2026-09-02"],
+      "effective_from": "2026-09-02",
+      "rates": {"input": "2", "cache_read": "0.25", "cache_write_5m": "2.50", "output": "6", "reasoning": "6"},
+      "service_rates": {
+        "explicit_cache": {"cache_read": "0.17"}
+      },
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-max-0902", "https://www.alibabacloud.com/help/en/model-studio/model-pricing", "https://www.alibabacloud.com/help/en/model-studio/newly-released-models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"region": "international", "note": "Snapshot of qwen3.8-max ('alias qwen3.8-max-2026-09-02') at the same prices."}
+    },
+    {
+      "id": "qwen:qwen3.8-omni-flash:international-2026-09-17",
+      "provider": "qwen",
+      "model": "qwen3.8-omni-flash",
+      "effective_from": "2026-09-17",
+      "rates": {"input": "0.15", "cache_read": "0.016", "output": "0.47", "reasoning": "0.47"},
+      "source_urls": ["https://www.qwencloud.com/models/qwen3.8-omni-flash", "https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
+      "verified_at": "2026-10-08",
+      "metadata": {"region": "international", "note": "One input price for every input modality; text output. Automatic (implicit) caching only, so no cache-write rate."}
+    },
+    {
       "id": "groq:llama-3.3-70b:2026-07",
       "provider": "groq",
       "model": "llama-3.3-70b-versatile",
@@ -836,6 +1225,17 @@
       "source_urls": ["https://groq.com/pricing", "https://console.groq.com/docs/deprecations"],
       "verified_at": "2026-07-16",
       "metadata": {"public_tier_shutdown": "2026-07-17", "enterprise_committed_spend_exempt": true}
+    },
+    {
+      "id": "groq:qwen3.8-27b:2026-10-08",
+      "provider": "groq",
+      "model": "qwen/qwen3.8-27b",
+      "aliases": [],
+      "effective_from": "2026-10-08",
+      "rates": {"input": "0.80", "output": "4.00", "reasoning": "4.00"},
+      "source_urls": ["https://console.groq.com/docs/model/qwen/qwen3.8-27b", "https://console.groq.com/docs/models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"status": "preview", "note": "Groq publishes no launch date, so the card starts on the verification date and earlier runs report cost unknown."}
     },
     {
       "id": "together:llama-3.3-70b:legacy-2026-05",
@@ -863,7 +1263,9 @@
       "effective_from": "2026-01-01",
       "rates": {"input": "1.20", "cache_read": "0.20", "output": "4.50", "reasoning": "4.50"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "effective_until": "2026-08-18",
+      "metadata": {"closed_reason": "model-retired", "note": "Removed from Together serverless (deprecations table)."}
     },
     {
       "id": "together:kimi-k2.7-code:2026-07",
@@ -872,7 +1274,9 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "0.95", "cache_read": "0.19", "output": "4", "reasoning": "4"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "effective_until": "2026-08-26",
+      "metadata": {"closed_reason": "model-retired", "note": "Removed from Together serverless (deprecations table)."}
     },
     {
       "id": "together:glm-5.1:2026-07",
@@ -899,7 +1303,9 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "1.25", "output": "3.75", "reasoning": "3.75"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "effective_until": "2026-09-21",
+      "metadata": {"closed_reason": "repriced", "note": "Together cut Qwen/Qwen3.7-Max to $1.50/$4.50 effective 2026-09-22. Its changelog gives the launch price as $2.50/$7.50, which this card's $1.25/$3.75 does not match; the historical rate is unresolved and left as originally sourced."}
     },
     {
       "id": "together:deepseek-v4-pro:2026-07",
@@ -908,7 +1314,87 @@
       "effective_from": "2026-07-15",
       "rates": {"input": "1.74", "cache_read": "0.20", "output": "3.48", "reasoning": "3.48"},
       "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-08",
+      "effective_until": "2026-08-26",
+      "metadata": {"closed_reason": "model-retired", "note": "Removed from Together serverless ('Use deepseek-ai/DeepSeek-V4-Pro-0813 instead')."}
+    },
+    {
+      "id": "together:deepseek-v4-pro-0813:2026-08-17",
+      "provider": "together",
+      "model": "deepseek-ai/DeepSeek-V4-Pro-0813",
+      "effective_from": "2026-08-17",
+      "rates": {"input": "1.32", "cache_read": "0.13", "output": "3.96", "reasoning": "3.96"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-08"
+    },
+    {
+      "id": "together:deepseek-v4.1-flash:2026-09-11",
+      "provider": "together",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "effective_from": "2026-09-11",
+      "rates": {"input": "0.30", "cache_read": "0.006", "output": "1.20", "reasoning": "1.20"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Flat rate on Together (no time-of-day schedule)."}
+    },
+    {
+      "id": "together:deepseek-v4-flash-0731:2026-08-03",
+      "provider": "together",
+      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "effective_from": "2026-08-03",
+      "rates": {"input": "0.14", "cache_read": "0.03", "output": "0.28", "reasoning": "0.28"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-08"
+    },
+    {
+      "id": "together:qwen3.7-max:2026-09-22",
+      "provider": "together",
+      "model": "Qwen/Qwen3.7-Max",
+      "effective_from": "2026-09-22",
+      "rates": {"input": "1.50", "cache_read": "0.30", "output": "4.50", "reasoning": "4.50"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "'Qwen/Qwen3.7-Max : $2.50 → $1.50 (input), $7.50 → $4.50 (output)', effective September 22, 2026; cached input $0.30 per the pricing page."}
+    },
+    {
+      "id": "together:glm-5.3:2026-08",
+      "provider": "together",
+      "model": "zai-org/GLM-5.3",
+      "effective_from": "2026-08-13",
+      "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
+      "verified_at": "2026-10-08"
+    },
+    {
+      "id": "together:glm-5.3-flash:2026-08",
+      "provider": "together",
+      "model": "zai-org/GLM-5.3-Flash",
+      "effective_from": "2026-08-25",
+      "rates": {"input": "0.15", "cache_read": "0.03", "output": "0.50", "reasoning": "0.50"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "Together did not mirror Z.ai's 50% launch promotion."}
+    },
+    {
+      "id": "together:kimi-k3:2026-07",
+      "provider": "together",
+      "model": "moonshotai/Kimi-K3",
+      "effective_from": "2026-07-27",
+      "effective_until": "2026-10-05",
+      "rates": {"input": "3.00", "cache_read": "0.30", "output": "15.00", "reasoning": "15.00"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "List price. A promotion ('Promotion valid until 10/11/2026') began on 2026-10-06 or 2026-10-07 and Together's pages disagree on its cached rate, so the promotion window is left uncarded (cost unknown) and list pricing resumes on 2026-10-12."}
+    },
+    {
+      "id": "together:kimi-k3:2026-10-12",
+      "provider": "together",
+      "model": "moonshotai/Kimi-K3",
+      "effective_from": "2026-10-12",
+      "rates": {"input": "3.00", "cache_read": "0.30", "output": "15.00", "reasoning": "15.00"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
+      "verified_at": "2026-10-08",
+      "metadata": {"note": "List price after the promotion that is 'valid until 10/11/2026'."}
     },
     {
       "id": "mistral:mistral-medium-3-5:2026-04-28",
@@ -1009,10 +1495,10 @@
       "metadata": {"price": "dynamic; use a local catalog overlay"}
     }
   ],
-  "catalog_id": "sha256:1178a6858a01c7bfced364760748a72c9b74de768cd8d1dc1f823e02eeb8a14f",
+  "catalog_id": "sha256:4a03f53ae5b618811202df17ea2b5330d55abda46a3f56be544299ed3bc85e85",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "CsxGt8ENlKSflARErh25yywKdAx4+0RqLcobuleBJwxSJvruaQQiI9shWounbKH4EckrKxDB033A/OP99a1sCA=="
+    "value": "TLOUHJVOBWxpBksXXmHTwNcCUQEako1405swrnFr1zyZJz47LAjPJIbA4OAcNA8RJ8rfHJuLUKMSwYUQhFn7AA=="
   }
 }

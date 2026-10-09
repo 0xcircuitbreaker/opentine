@@ -18,7 +18,6 @@ from opentine.trace._import_helpers import (
     logical_size,
     optional_string,
     otel_spans,
-    otel_usage,
 )
 from opentine.trace._import_helpers import first as _first
 from opentine.trace._import_helpers import integer as _int
@@ -26,6 +25,7 @@ from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._import_helpers import timestamp as _timestamp
 from opentine.trace._otel_accounting import otel_accounting
 from opentine.trace._otel_content import span_content as _span_content
+from opentine.trace._otel_usage import bill_unreported_agents, otel_usage, span_kind
 from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
 
@@ -149,7 +149,7 @@ def otel_genai_events(
     spans: Iterable[dict[str, Any]] | dict[str, Any],
 ) -> list[TraceEvent]:
     events: list[TraceEvent] = []
-    total = 0
+    total, inferred = 0, set[int]()
     for span in otel_spans(spans):
         if len(events) >= MAX_TRACE_EVENTS:
             raise ValueError("trace import exceeds maximum event count")
@@ -163,7 +163,7 @@ def otel_genai_events(
         # A native run's kind rides in an OpenTine attribute when the operation
         # name cannot carry it; read it back (and drop it) so export->import
         # restores tool/think/error instead of collapsing them to "model".
-        kind = str(attributes.pop(semconv.KIND_ATTRIBUTE, "")) or event_kind(operation)
+        kind = span_kind(attributes, operation, inferred, len(events))
         # Money rides in OpenTine attributes for the same reason; read it back
         # too, or a priced run re-imports at $0.00 with its billing dropped.
         cost, billing = otel_accounting(attributes)
@@ -191,7 +191,7 @@ def otel_genai_events(
                 attributes=_safe(attributes),
             )
         )
-    return events
+    return bill_unreported_agents(events, inferred)
 
 
 _FRAMEWORK_FIELDS = {

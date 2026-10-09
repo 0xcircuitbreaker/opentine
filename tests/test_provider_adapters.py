@@ -329,7 +329,7 @@ def test_custom_openai_base_does_not_forward_ambient_openai_key(
     monkeypatch.setenv("OPENAI_COMPAT_API_KEY", "local-proxy-key")
     assert OpenAI("local", base_url="http://localhost:8000/v1")._api_key == "local-proxy-key"
     assert OpenAI()._api_key == "sk-live-must-not-leak"
-    assert OpenAI()._model == "gpt-5.6"
+    assert OpenAI()._model == "gpt-6.1-sol"
 
 
 def test_kimi_accepts_official_moonshot_environment_names(monkeypatch: pytest.MonkeyPatch):

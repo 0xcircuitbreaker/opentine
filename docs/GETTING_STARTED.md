@@ -59,7 +59,7 @@ tine run --model anthropic --prompt "Explain what a content-addressed object is"
 keeps its own default:
 
 ```bash
-tine run --model openai:gpt-5.6 --prompt "Explain the current branch" --save first.tine
+tine run --model openai:gpt-6.1-sol --prompt "Explain the current branch" --save first.tine
 ```
 
 The providers `--model` accepts are `anthropic`, `google`, `ollama`, and
@@ -88,7 +88,7 @@ Python instead:
 from opentine import Agent
 from opentine.models.anthropic import Anthropic
 
-run = Agent(model=Anthropic("claude-sonnet-5")).run_sync("Explain the current branch")
+run = Agent(model=Anthropic("claude-sonnet-5-5")).run_sync("Explain the current branch")
 run.save("first.tine")
 ```
 

@@ -160,12 +160,16 @@ def test_every_usage_dimension_opentine_meters_is_exported_and_re_imported():
     span = to_otel_genai(TraceEvent("model", 1.0, "t", "s", actor="chat", usage=usage))[0]
 
     values = _by_key(span)
-    assert values[semconv.INPUT_TOKENS] == 12 and values[semconv.OUTPUT_TOKENS] == 5
-    assert values[semconv.CACHE_READ_TOKENS] == 100
-    assert values[semconv.CACHE_WRITE_TOKENS] == 7
-    assert values[semconv.CACHE_WRITE_1H_TOKENS] == 3
-    assert values[semconv.REASONING_TOKENS] == 40
+    # Current-convention totals include their sub-counts, so a reader that sums
+    # nothing still sees all 122 input tokens and all 45 output tokens.
+    assert values[semconv.INPUT_TOKENS] == 122 and values[semconv.OUTPUT_TOKENS] == 45
+    assert values[semconv.CACHE_READ_INPUT_TOKENS] == 100
+    assert values[semconv.CACHE_CREATION_INPUT_TOKENS] == 10
+    assert values[semconv.REASONING_OUTPUT_TOKENS] == 40
     assert values[semconv.TOTAL_TOKENS] == 167
+    # No convention splits cache writes by TTL, so the exact usage rides along.
+    assert values[semconv.USAGE_ATTRIBUTE] == usage
+    assert not {semconv.CACHE_READ_TOKENS, semconv.REASONING_TOKENS} & set(values)
     assert otel_genai_events([span])[0].usage == usage, "every counter came back"
 
     # And a step that metered nothing still gains no invented counters.

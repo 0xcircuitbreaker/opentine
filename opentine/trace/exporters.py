@@ -42,7 +42,7 @@ from typing import Any, Protocol, runtime_checkable
 from opentine._jsonsafe import json_exact as _safe
 from opentine._version import __version__
 from opentine.trace import _genai_semconv as semconv
-from opentine.trace._import_helpers import event_kind
+from opentine.trace._otel_usage import otel_kind, usage_attributes
 from opentine.trace._otel_values import encode_any_value
 from opentine.trace.importers import native_events
 from opentine.trace.schema import TraceEvent
@@ -177,21 +177,19 @@ def _attributes(event: TraceEvent) -> dict[str, Any]:
     if event.model and not any(key in attributes for key in semconv.MODEL_KEYS):
         attributes[semconv.RESPONSE_MODEL] = event.model
     if event.provider and not any(key in attributes for key in semconv.PROVIDER_KEYS):
-        attributes[semconv.SYSTEM] = event.provider
+        # 1.27's spelling for every deployed reader, 1.37's for current ones.
+        attributes[semconv.SYSTEM] = attributes[semconv.PROVIDER_NAME] = event.provider
     for key, payload in ((semconv.PROMPT, event.inputs), (semconv.COMPLETION, event.outputs)):
         if payload and key not in attributes:
             attributes[key] = _safe(payload)
-    for dimension, key in semconv.USAGE_BY_DIMENSION.items():
-        tokens = event.usage.get(dimension)
-        # Every counter the event carries goes out, zero included: the importer
-        # reads back only the counters present, so this is exactly reversible.
-        if key not in attributes and isinstance(tokens, (int, float)) and tokens >= 0:
-            attributes[key] = int(tokens)
+    # Current-convention counters (inclusive totals), plus the exact usage only
+    # when they cannot carry it back; an imported span's own counters travel as-is.
+    attributes.update(usage_attributes(dict(event.usage), attributes))
     operation = str(attributes.get(semconv.OPERATION_NAME, ""))
     # Only when the operation name cannot carry the kind back: the importer
     # derives kind from it, so a repair attribute on every span would be noise
     # that also stopped imported spans from re-exporting byte-identically.
-    if event_kind(operation) != event.kind:
+    if otel_kind(operation) != event.kind:
         attributes[KIND_ATTRIBUTE] = event.kind
     if event.cost is not None:
         attributes[COST_ATTRIBUTE] = str(event.cost)

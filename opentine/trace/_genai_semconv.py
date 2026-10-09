@@ -77,6 +77,38 @@ USAGE_BY_DIMENSION: dict[str, str] = {
     "total": TOTAL_TOKENS,
 }
 
+#: Current-convention usage sub-counters (released in semconv 1.40/1.41, now in
+#: open-telemetry/semantic-conventions-genai). Unlike the deployed spellings
+#: above, each is *included in* its total: "``gen_ai.usage.input_tokens`` ...
+#: SHOULD include all types of input tokens, including cached tokens", and the
+#: reasoning count "SHOULD be included in ``gen_ai.usage.output_tokens``". A span
+#: carrying them therefore reports inclusive totals, which import subtracts back
+#: into OpenTine's exclusive buckets -- reading them the legacy way bills every
+#: cached token at the full input rate. Cache writes were spelled
+#: ``cache_creation`` in the 1.40/1.41 releases and ``cache_write`` since; both
+#: are read, export writes the released one.
+CACHE_READ_INPUT_TOKENS = "gen_ai.usage.cache_read.input_tokens"
+CACHE_CREATION_INPUT_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
+CACHE_WRITE_INPUT_TOKENS = "gen_ai.usage.cache_write.input_tokens"
+REASONING_OUTPUT_TOKENS = "gen_ai.usage.reasoning.output_tokens"
+CACHE_WRITE_KEYS: tuple[str, ...] = (CACHE_WRITE_INPUT_TOKENS, CACHE_CREATION_INPUT_TOKENS)
+STANDARD_USAGE_KEYS: tuple[str, ...] = (
+    CACHE_READ_INPUT_TOKENS,
+    *CACHE_WRITE_KEYS,
+    REASONING_OUTPUT_TOKENS,
+)
+
+#: OpenTine-namespaced: a step's exact usage, written only when the standard
+#: counters cannot carry it back (a 1-hour cache-write split, a dimension no
+#: convention spells), the way the kind attribute is written only when the
+#: operation name cannot carry the kind.
+USAGE_ATTRIBUTE = "opentine.usage"
+
+#: Agent operations (semconv ``gen_ai.operation.name``). Their spans usually
+#: report the *aggregate* usage of the model calls beneath them, so they import
+#: as ``subagent`` steps unless no descendant span reports usage of its own.
+AGENT_OPERATIONS = frozenset({"invoke_agent", "create_agent", "invoke_workflow"})
+
 #: Model attributes in importer preference order (response wins over request).
 MODEL_KEYS: tuple[str, ...] = (RESPONSE_MODEL, REQUEST_MODEL)
 

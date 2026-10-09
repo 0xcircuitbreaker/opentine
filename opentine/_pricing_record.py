@@ -26,7 +26,9 @@ def read_record(step: Any) -> tuple[str, str, str, dict[str, Any], str]:
     ``id``/``span_id``); reading both here is what lets the two commands share
     one pass.
     """
-    kind = getattr(step, "kind", "")
+    # A repository-loaded step keeps a kind the legacy enum lacks in v3_kind
+    # (a subagent roll-up loads as "model"); that is the kind that decides billing.
+    kind = getattr(step, "v3_kind", None) or getattr(step, "kind", "")
     model = getattr(step, "model_info", None)
     identifier = getattr(step, "id", None) or getattr(step, "span_id", "")
     return (

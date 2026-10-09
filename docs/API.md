@@ -24,7 +24,7 @@ This page is a map, one line per name, not generated autodoc. For behaviour, see
 from opentine import Agent, Budget
 from opentine.models.anthropic import Anthropic
 
-agent = Agent(model=Anthropic("claude-sonnet-5"), budget=Budget(max_cost=0.50))
+agent = Agent(model=Anthropic("claude-sonnet-5-5"), budget=Budget(max_cost=0.50))
 run = agent.run_sync("Explain the current branch")
 ```
 

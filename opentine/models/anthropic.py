@@ -8,7 +8,13 @@ from typing import Any
 
 from opentine.billing import PricingCatalog
 from opentine.models._anthropic_request import build_tools, convert_messages
-from opentine.models._anthropic_rules import model_rules, pricing_tier, validate_service_tier
+from opentine.models._anthropic_rules import (
+    early_refusal_is_free,
+    model_rules,
+    pricing_tier,
+    refusal_category,
+    validate_service_tier,
+)
 from opentine.models._client import closing_client
 from opentine.models._metered import metered_response
 from opentine.models._provider_meta import model_name, validated_rates
@@ -27,7 +33,7 @@ class Anthropic:
 
     def __init__(
         self,
-        model: str = "claude-sonnet-5",
+        model: str = "claude-sonnet-5-5",
         api_key: str | None = None,
         *,
         rates: dict[str, Any] | None = None,
@@ -96,7 +102,6 @@ class Anthropic:
     def _meter(self, response: Any, *, early_refusal: bool = False) -> dict[str, Any]:
         raw_usage = value(response, "usage")
         raw_model = value(response, "model")
-        reported_model = model_name(raw_model)
         payload = metered_response(
             "anthropic",
             self._model,
@@ -110,19 +115,17 @@ class Anthropic:
             ),
             reported_model=raw_model,
         )
-        refusal_model = self._model if raw_model is None else reported_model or ""
         billing = payload["billing"]
-        if (
-            early_refusal
-            and refusal_model.casefold() == "claude-fable-5"
-            and billing["rate_card_id"] is not None
-        ):
-            billing["status"] = "complete"
-            billing["amount_usd"] = "0"
-            billing["known_subtotal_usd"] = "0"
-            billing["warnings"].append("early empty refusal is non-billable")
-            billing["calculation"]["refusal_modifier"] = "0"
-            payload["cost"] = 0.0
+        if early_refusal and billing["rate_card_id"] is not None:
+            category = refusal_category(response)
+            billing["calculation"]["refusal_category"] = category
+            if early_refusal_is_free(category):
+                billing["status"] = "complete"
+                billing["amount_usd"] = "0"
+                billing["known_subtotal_usd"] = "0"
+                billing["warnings"].append("early empty refusal is non-billable")
+                billing["calculation"]["refusal_modifier"] = "0"
+                payload["cost"] = 0.0
         return payload
 
     def _result(self, response: Any) -> dict[str, Any]:
