@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import re
 
-_PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY-----")
-_PRIVATE_KEY_END = re.compile(rb"-----END [A-Z ]{0,64}PRIVATE KEY-----")
+# "( BLOCK)?" covers OpenPGP armor ("-----BEGIN PGP PRIVATE KEY BLOCK-----").
+_PRIVATE_KEY_BEGIN = re.compile(rb"-----BEGIN [A-Z ]{0,64}PRIVATE KEY(?: BLOCK)?-----")
+_PRIVATE_KEY_END = re.compile(rb"-----END [A-Z ]{0,64}PRIVATE KEY(?: BLOCK)?-----")
 _PEM_DATA = re.compile(rb"[A-Za-z0-9+/]{4,}={0,2}")
 #: The RFC 1421 headers OpenSSL writes inside a *passphrase-encrypted* private-key
 #: block, which sit between the BEGIN marker and the body and are separated from it

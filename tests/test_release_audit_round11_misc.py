@@ -284,6 +284,8 @@ BINARY_DEPENDENT_TEST_MODULES = {
 #: either by testing for it or by containing the OSError the spawn raises.
 CHECKOUT_AWARE_TEST_MODULES = {
     "tests/test_release_audit_round10_lows.py",
+    # Plants a .git in tmp_path to prove the fs tool refuses writes into one.
+    "tests/test_security_0_9_1.py",
 }
 
 

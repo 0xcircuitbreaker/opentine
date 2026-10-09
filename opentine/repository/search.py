@@ -10,6 +10,7 @@ from opentine.kernel import KernelError, ObjectEnvelope, validate_links
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 from opentine.repository._inspect import inspect as inspect
 from opentine.repository._run_graph import validate_event_metrics
+from opentine.repository._search_scores import best_score, collect_scores
 from opentine.repository._semantic_view import CachedEnvelope
 
 if TYPE_CHECKING:
@@ -58,6 +59,9 @@ class SearchResult:
     latency: float
     models: tuple[str, ...]
     matched_text: str = ""
+    #: Whether a signed evaluation decided ``score`` (None without one); see
+    #: _search_scores. Signed is not verified: search holds no keys.
+    score_signed: bool | None = None
 
 
 def _finite(value: Any, default: float | None = None) -> float | None:
@@ -131,6 +135,7 @@ def search(
     min_score: float | None = None,
     model: str | None = None,
     limit: int = 20,
+    signed_only: bool = False,
 ) -> list[SearchResult]:
     if not isinstance(query, str):
         raise TypeError("search query must be a string")
@@ -141,29 +146,14 @@ def search(
     oids = repo.iter_oids(limit=MAX_SEARCH_OBJECTS)
     object_cache: dict[str, ObjectEnvelope] = {}
     structured_remaining = [MAX_SEARCH_STRUCTURED_SOURCE_BYTES]
-    scores: dict[str, list[float]] = {}
-    for oid in oids:
-        if not oid.startswith("attestation:"):
-            continue
-        try:
-            payload = _get_search_object(repo, oid, object_cache, structured_remaining).payload()
-        except (KernelError, KeyError, OSError):
-            continue
-        claim = payload.get("claim") or {}
-        if not isinstance(claim, dict) or not isinstance(claim.get("scores") or {}, dict):
-            continue
-        if claim.get("kind") != "evaluation":
-            continue
-        values = [
-            number
-            for value in (claim.get("scores") or {}).values()
-            if (number := _finite(value)) is not None
-        ]
-        target = payload.get("target_id")
-        average = _finite(sum(values) / len(values)) if values else None
-        if isinstance(target, str) and average is not None:
-            scores.setdefault(target, []).append(average)
 
+    def attestation_payload(oid: str) -> dict[str, Any] | None:
+        try:
+            return _get_search_object(repo, oid, object_cache, structured_remaining).payload()
+        except (KernelError, KeyError, OSError):
+            return None
+
+    scores = collect_scores(oids, attestation_payload, _finite)
     try:
         # Runs only: a tags/* ref on a big blob otherwise spent the budget and raised.
         candidates = {oid for oid in repo.list_refs().values() if oid.startswith("run:")}
@@ -222,8 +212,7 @@ def search(
             )
             if not matched:
                 continue
-        run_scores = scores.get(run_id) or []
-        score = max(run_scores) if run_scores else None
+        score, score_signed = best_score(scores.get(run_id) or [], signed_only=signed_only)
         if min_score is not None and (score is None or score < min_score):
             continue
         results.append(
@@ -235,13 +224,16 @@ def search(
                 sum(_finite(event.get("duration"), 0) or 0 for event in events),
                 models,
                 matched_text,
+                score_signed,
             )
         )
     # run_id tiebreak: a candidate set iterates in hash order, so equally ranked
     # runs gave a different top-N per process for an unchanged repository.
+    # A signed score outranks any unsigned one: unsigned is anyone's say-so.
     results.sort(
         key=lambda item: (
             0 if item.score is not None else 1,
+            0 if item.score_signed else 1,
             -(item.score or 0),
             item.cost,
             item.run_id,

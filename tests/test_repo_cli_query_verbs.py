@@ -215,6 +215,7 @@ def test_repo_search_json_mirrors_the_mcp_defaults(golden_repo, capsys):
         "latency",
         "models",
         "matched_text",
+        "score_signed",  # 0.9.1: whether a signed evaluation decided the score
     }
     assert payload["results"][0]["status"] == "completed"
 

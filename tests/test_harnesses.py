@@ -91,7 +91,7 @@ def test_opentine_harness_forks_by_index():
 
 
 def test_codex_json_event_parser_extracts_tool_steps():
-    harness = CodexCLIHarness()
+    harness = CodexCLIHarness(command=("codex", "exec", "--json"))
 
     step = harness.parse_line(
         '{"type":"tool_call","name":"shell","arguments":{"cmd":"pytest"},'
@@ -341,7 +341,13 @@ def test_external_json_harness_rejects_invalid_cost_before_callback(cost):
 
 
 @pytest.mark.parametrize(
-    "harness", [GenericHarness(), CodexCLIHarness(), ClaudeCodeHarness(), CursorHarness()]
+    "harness",
+    [
+        GenericHarness(),
+        CodexCLIHarness(command=("codex", "exec", "--json")),
+        ClaudeCodeHarness(),
+        CursorHarness(command=("cursor-agent", "run", "--output-format", "json")),
+    ],
 )
 def test_external_json_harness_treats_null_cost_as_missing(harness):
     step = harness.parse_line('{"type":"message","cost":null,"price":0.25}')

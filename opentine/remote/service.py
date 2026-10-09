@@ -6,10 +6,11 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
+from opentine.kernel import parse_oid, validate_links
 from opentine.remote._admission import AllowAdmission
+from opentine.remote._association_budget import association_targets, check_association_budget
 from opentine.remote._pack_ingest import verified_write_order
-from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
+from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref, validate_ref_listing
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -189,17 +190,12 @@ class RemoteService:
         )
         # Dependency order, not manifest order: any interrupted write prefix
         # must stay link-closed so already-durable objects remain readable.
-        for oid, raw in verified_write_order(tenant, self.objects, packed, shallow):
+        order = verified_write_order(tenant, self.objects, packed, shallow)
+        targets = association_targets(order)
+        check_association_budget(tenant, self.index, targets)
+        for oid, raw in order:
             self.objects.put(tenant, oid, raw)
-            envelope = ObjectEnvelope.decode(raw, oid)
-            payload = envelope.payload()
-            target_id = (
-                payload.get("target_id")
-                if envelope.object_type in {"annotation", "attestation"}
-                and isinstance(payload, dict)
-                else None
-            )
-            self.index.record_object(tenant, oid, len(raw), target_id)
+            self.index.record_object(tenant, oid, len(raw), targets[oid])
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
         return pack_id, len(packed)
 
@@ -220,6 +216,8 @@ class RemoteService:
             raise KeyError(new_oid)
         target = TenantRepo(tenant, self.objects, self.index).get(new_oid)
         validate_ref_target(name, target.object_type, target.payload())
+        if target.object_type == "annotation":
+            admit_annotation_ref(tenant, self.objects, self.index, name, target)
         self.admission.admit(
             identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}
         )

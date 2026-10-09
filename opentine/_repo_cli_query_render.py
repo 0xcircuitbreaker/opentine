@@ -130,12 +130,15 @@ def render_search(console: Any, query: str, results: list[Any]) -> None:
         ("Match", BRAND_DIM, "left"),
     ):
         table.add_column(label, style=style, justify=justify)
+    if any(result.score is not None and not result.score_signed for result in results):
+        # Unsigned evaluations are anyone's say-so; see repository/_search_scores.
+        table.caption = "* score from an unsigned evaluation"
     for result in results:
         score = _number(result.score)
         table.add_row(
             _short_oid(result.run_id),
             f"[{STATUS_COLORS.get(result.status, 'white')}]{_terminal(result.status)}[/]",
-            "-" if score is None else f"{score:.2f}",
+            "-" if score is None else f"{score:.2f}" + ("" if result.score_signed else "*"),
             _cost_str(_number(result.cost) or 0.0),
             _seconds(result.latency),
             _terminal(", ".join(str(model) for model in result.models)[:32]),

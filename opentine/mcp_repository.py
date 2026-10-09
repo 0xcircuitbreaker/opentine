@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict
 from typing import Any
 
+from opentine._mcp_safety import safe_errors
 from opentine.kernel import parse_oid
 from opentine.repo import Repo
 from opentine.repository._refs import normalize_ref
@@ -17,6 +19,16 @@ from opentine.repository._refs import normalize_ref
 #: gates (``promotions/``), labels (``tags/``) and remote-tracking refs stay
 #: operator-only; ``experiments/`` is where forked work belongs.
 _MCP_WRITABLE_REF_NAMESPACE = "experiments/"
+
+#: Bound on an MCP-written evaluation score. Search ranks by score, and the
+#: client writing it is a model reading untrusted run content.
+MAX_MCP_SCORE = 1e6
+
+
+def _finite_score(value: Any) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
+        raise ValueError("evaluation scores must be finite numbers")
+    return float(value)
 
 
 def _writable_ref(ref: str) -> str:
@@ -43,6 +55,7 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
     new one is still an operator decision rather than a model's.
     """
     repo = Repo.open(repo_path)
+    mcp = safe_errors(mcp)
 
     @mcp.tool()
     def search_runs(
@@ -51,8 +64,14 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         min_score: float | None = None,
         model: str | None = None,
         limit: int = 20,
+        signed_only: bool = False,
     ) -> list[dict[str, Any]]:
-        """Search successful v3 runs and evaluation scores."""
+        """Search successful v3 runs and evaluation scores.
+
+        ``score_signed`` says whether a run's score came from a *signed*
+        evaluation; ``signed_only`` ignores unsigned ones. Signed is not
+        verified -- check it with ``tine repo-verify`` and a trusted key.
+        """
         return [
             asdict(result)
             for result in repo.search(
@@ -61,6 +80,7 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
                 min_score=min_score,
                 model=model,
                 limit=limit,
+                signed_only=signed_only,
             )
         ]
 
@@ -115,7 +135,10 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         scores: dict[str, float],
         evaluator: str,
     ) -> dict[str, str]:
-        """Attach immutable evaluation scores to a run."""
+        """Attach immutable evaluation scores to a run (each within +/-1e6)."""
+        # A model wrote this, unsigned; 1.7e308 once ranked a run first in search.
+        if any(abs(_finite_score(value)) > MAX_MCP_SCORE for value in scores.values()):
+            raise ValueError(f"evaluation scores must be finite and within +/-{MAX_MCP_SCORE:g}")
         attestation = repo.attest(
             run_id,
             {"kind": "evaluation", "scores": scores},

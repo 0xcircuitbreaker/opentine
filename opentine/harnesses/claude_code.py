@@ -6,11 +6,12 @@ from typing import Any
 
 from opentine.core import StepKind
 from opentine.harnesses._claude_stream import STREAM_EVENTS, ClaudeStream
+from opentine.harnesses._stdout_trust import StdoutTrust
 from opentine.harnesses._types import meter_value
-from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
+from opentine.harnesses.base import HarnessStep, ProcessHarness
 
 
-class ClaudeCodeHarness(ProcessHarness):
+class ClaudeCodeHarness(StdoutTrust, ProcessHarness):
     """Run Claude Code through its CLI and record observable events.
 
     The default command is ``claude -p --output-format stream-json --verbose
@@ -23,6 +24,8 @@ class ClaudeCodeHarness(ProcessHarness):
     name = "claude-code"
     default_command = ("claude", "-p", "--output-format", "stream-json", "--verbose")
     invocation_kind = StepKind.think
+    # The parser is built on stream-json; a JSON line is Claude Code's own event.
+    structured_stdout = True
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
@@ -33,7 +36,7 @@ class ClaudeCodeHarness(ProcessHarness):
         return self._stream.model or "claude-code"
 
     def parse_line(self, line: str) -> HarnessStep | list[HarnessStep] | None:
-        data = parse_json_event(line)
+        data = self.json_event(line)
         if data and isinstance(data.get("type"), str) and data["type"] in STREAM_EVENTS:
             return self._stream.step(data)
         if data:
@@ -44,20 +47,20 @@ class ClaudeCodeHarness(ProcessHarness):
             return HarnessStep(
                 kind=StepKind.tool,
                 inputs={"name": self._tool_name_from_text(line), "line": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         if "error" in lower or "failed" in lower:
             return HarnessStep(
                 kind=StepKind.error,
                 inputs={"text": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         return HarnessStep(
             kind=StepKind.think,
             inputs={"text": line},
-            cost=cost_from_text(line),
+            cost=self.text_cost(line),
             model_info=self.model_info,
         )
 

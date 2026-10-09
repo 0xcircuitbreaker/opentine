@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 
 from opentine.policies import ShellPolicy
+from opentine.tools._git_guard import hardened as hardened_git
+from opentine.tools._git_guard import is_git
+from opentine.tools._git_guard import refusal as git_refusal
 from opentine.tools._process import clean_env, run_bounded
 
 
@@ -61,6 +64,11 @@ def run(
         return "Error: shell execution disabled by policy"
     if pol.executables and executable not in pol.executables:
         return f"Error: '{executable}' not in allowlist {list(pol.executables)}"
+    if is_git(executable):
+        reason = git_refusal(parts[1:])
+        if reason:
+            return f"Error: {reason}"
+        parts = hardened_git(parts)
 
     cwd_root = Path(pol.cwd_root).resolve()
     try:

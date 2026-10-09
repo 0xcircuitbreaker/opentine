@@ -63,6 +63,12 @@ def attest(
         signature = sign_attestation(
             payload, key, algorithm=algorithm, key_id=key_id, signed_at=signed_at
         )
+        signed = {**payload, "signature": signature}
+        # ``put`` redacts again, now including the signature block: a header
+        # value that looks like a credential (``--key-id api_key=prod``) would be
+        # rewritten after signing and the attestation could never verify.
+        if guarded_redaction(signed, where="v3 'attestation'") != signed:
+            raise ValueError("signature header holds credential-shaped text; choose another key id")
     return repo.put("attestation", {**payload, "signature": signature})
 
 

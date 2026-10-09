@@ -48,9 +48,11 @@ from typing import Any
 
 import httpx
 
+from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
+from opentine._cli_text import without_userinfo as _without_userinfo
 from opentine.core import Run
 from opentine.repository._http import require_secure_remote
 from opentine.trace.exporters import to_otel_genai_document
@@ -156,10 +158,16 @@ def _write(document: dict[str, Any], output: Path | None) -> None:
         # The CLI's one JSON writer: no Rich wrapping or markup on machine output.
         emit(document)
         return
-    output.write_text(serialize(document) + "\n", encoding="utf-8")
+    # Atomic replace, like every other artifact writer: a symlink at the
+    # destination is replaced, never written through.
+    atomic_write_text(output, serialize(document) + "\n")
     console.print(
         f"[{BRAND}]# Exported[/] {len(_spans(document))} span(s) [{BRAND}]to[/] {_terminal(output)}"
     )
+
+
+def _shown(url: str) -> str:
+    return _terminal(_without_userinfo(url))  # never print a URL's credentials
 
 
 def _detail(response: httpx.Response) -> str:
@@ -189,9 +197,7 @@ def _post(url: str, body: bytes) -> tuple[int, str]:
                 return response.status_code, ""
             return response.status_code, _detail(response)
     except httpx.HTTPError as exc:
-        console.print(
-            f"[red]OTLP export failed:[/] {_terminal(url)} is unreachable: {_terminal(exc)}"
-        )
+        console.print(f"[red]OTLP export failed:[/] {_shown(url)} is unreachable: {_terminal(exc)}")
         raise SystemExit(1) from exc
 
 
@@ -201,20 +207,18 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
         require_secure_remote(url, allow_insecure)
     except ValueError as exc:
         console.print(
-            f"[red]Refusing to push run content in cleartext to {_terminal(url)}: "
+            f"[red]Refusing to push run content in cleartext to {_shown(url)}: "
             "a run carries prompts and completions. Use https, or --allow-insecure.[/]"
         )
         raise SystemExit(1) from exc
     status, detail = _post(url, serialize(document, indent=None).encode("utf-8"))
     if not 200 <= status < 300:
         suffix = f": {_terminal(detail)}" if detail else ""
-        console.print(
-            f"[red]OTLP export rejected:[/] {_terminal(url)} returned HTTP {status}{suffix}"
-        )
+        console.print(f"[red]OTLP export rejected:[/] {_shown(url)} returned HTTP {status}{suffix}")
         raise SystemExit(1)
     console.print(
         f"[{BRAND}]# Exported[/] {len(_spans(document))} span(s) [{BRAND}]to[/] "
-        f"{_terminal(url)} [{BRAND}]HTTP[/] {status}"
+        f"{_shown(url)} [{BRAND}]HTTP[/] {status}"
     )
 
 

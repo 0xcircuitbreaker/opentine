@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from opentine.kernel import parse_oid
+
+#: Below SQLite's oldest bound-parameter ceiling (999), with room for the tenant.
+_CHUNK = 500
+
+
+def _chunks(values: Iterable[str]) -> Iterable[list[str]]:
+    ordered = sorted(set(values))
+    for start in range(0, len(ordered), _CHUNK):
+        yield ordered[start : start + _CHUNK]
 
 
 class SQLiteAssociationMixin:
@@ -27,3 +38,35 @@ class SQLiteAssociationMixin:
         if len(rows) > limit:
             raise ValueError("association result exceeds pack object limit")
         return [row[0] for row in rows]
+
+    def recorded_targets(self, tenant: str, oids: Iterable[str]) -> dict[str, str]:
+        """The ``target_id`` each installed annotation/attestation was verified with."""
+        tenant = self.validate_tenant(tenant)
+        found: dict[str, str] = {}
+        with self._connect() as database:
+            for chunk in _chunks(oids):
+                marks = ",".join("?" * len(chunk))
+                rows = database.execute(
+                    "SELECT oid,target_id FROM objects WHERE tenant=? "
+                    f"AND target_id IS NOT NULL AND oid IN ({marks})",
+                    (tenant, *chunk),
+                ).fetchall()
+                found.update((oid, target) for oid, target in rows if isinstance(target, str))
+        return found
+
+    def association_counts(self, tenant: str, targets: Iterable[str]) -> dict[str, int]:
+        """How many installed objects already target each of *targets*."""
+        tenant = self.validate_tenant(tenant)
+        counts: dict[str, int] = {}
+        with self._connect() as database:
+            for chunk in _chunks(targets):
+                counts.update(dict.fromkeys(chunk, 0))
+                marks = ",".join("?" * len(chunk))
+                counts.update(
+                    database.execute(
+                        "SELECT target_id,count(*) FROM objects WHERE tenant=? "
+                        f"AND target_id IN ({marks}) GROUP BY target_id",
+                        (tenant, *chunk),
+                    ).fetchall()
+                )
+        return counts

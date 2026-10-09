@@ -11,8 +11,29 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from opentine._redact_shapes import TOKEN_SHAPES, URL_USERINFO
+
 #: Environment names a tool subprocess never needs and must never be handed.
 _SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
+#: Credential spellings the substring list above missed (audit 0.9.1, D-4):
+#: ``MYSQL_PWD``, ``PGPASS``, ``GH_PAT``, ``SENTRY_DSN``, ``*_WEBHOOK_URL``,
+#: ``*_CONNECTION_STRING``, ``SIGNING_PRIVATE``, ``*_COOKIE``. ``PWD``/``OLDPWD``
+#: themselves are directories, and ``PATH`` is not ``PAT``.
+_SENSITIVE_SUFFIX = re.compile(r"(?:PASS|PASSWD|_PWD|_PAT|_DSN)$", re.IGNORECASE)
+_SENSITIVE_PART = re.compile(
+    r"(?:^|_)(?:PRIVATE|WEBHOOK|COOKIE|CREDS|CONNECTION_STRING|CONN_STR)(?:_|$)", re.IGNORECASE
+)
+
+
+def _sensitive(name: str, value: str) -> bool:
+    if _SENSITIVE_PAT.search(name) or _SENSITIVE_SUFFIX.search(name):
+        return True
+    if _SENSITIVE_PART.search(name):
+        return True
+    # By value, whatever the name: ``DATABASE_URL=postgres://u:pw@db``, a proxy
+    # with credentials, a vendor token or a private key under an innocent name.
+    raw = value.encode("utf-8", "replace")
+    return bool(TOKEN_SHAPES.search(raw) or URL_USERINFO.search(raw) or b"PRIVATE KEY-----" in raw)
 
 
 def clean_env(inherit_env: bool, env_allowlist: Iterable[str]) -> dict[str, str]:
@@ -25,7 +46,7 @@ def clean_env(inherit_env: bool, env_allowlist: Iterable[str]) -> dict[str, str]
     names — a divergence that only exists while the helper is written twice.
     """
     if inherit_env:
-        return {key: value for key, value in os.environ.items() if not _SENSITIVE_PAT.search(key)}
+        return {key: value for key, value in os.environ.items() if not _sensitive(key, value)}
     return {name: os.environ[name] for name in env_allowlist if name in os.environ}
 
 

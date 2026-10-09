@@ -19,15 +19,14 @@ class KernelError(ValueError):
 
 
 def validate_json_shape(raw: bytes | str, *, max_tokens: int = 200_000) -> None:
+    # A UTF-8 scanner: a UTF-16/32 body (always NUL-bearing) evaded its count.
+    if isinstance(raw, bytes | bytearray) and b"\0" in raw:
+        raise KernelError("JSON body is not UTF-8 text")
     depth = tokens = 0
     in_string = escaped = False
     for token in raw if isinstance(raw, bytes | bytearray) else map(ord, raw):
         if in_string:
-            if escaped:
-                escaped = False
-            else:
-                escaped = token == 0x5C
-                in_string = token != 0x22
+            escaped, in_string = (False, True) if escaped else (token == 0x5C, token != 0x22)
             continue
         if token == 0x22:
             in_string = True

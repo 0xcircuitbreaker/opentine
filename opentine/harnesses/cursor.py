@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._stdout_trust import StdoutTrust
 from opentine.harnesses._types import meter_value
-from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
+from opentine.harnesses.base import HarnessStep, ProcessHarness
 
 
-class CursorHarness(ProcessHarness):
+class CursorHarness(StdoutTrust, ProcessHarness):
     """Run a Cursor-compatible agent CLI and capture its events.
 
     Cursor's public automation surfaces vary by environment, so the default
@@ -26,7 +27,7 @@ class CursorHarness(ProcessHarness):
         return "cursor"
 
     def parse_line(self, line: str) -> HarnessStep | None:
-        data = parse_json_event(line)
+        data = self.json_event(line)
         if data:
             return self._parse_json_event(data)
 
@@ -35,20 +36,20 @@ class CursorHarness(ProcessHarness):
             return HarnessStep(
                 kind=StepKind.tool,
                 inputs={"name": self._tool_name_from_text(line), "line": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         if "error" in lower or "failed" in lower:
             return HarnessStep(
                 kind=StepKind.error,
                 inputs={"text": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         return HarnessStep(
             kind=StepKind.think,
             inputs={"text": line},
-            cost=cost_from_text(line),
+            cost=self.text_cost(line),
             model_info=self.model_info,
         )
 

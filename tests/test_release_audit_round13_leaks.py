@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
+from unittest import mock
 
 from opentine import Run, StepKind
 from opentine._v3_guards import guarded_redaction
@@ -50,7 +51,10 @@ def _migrated(tmp_path: Path) -> tuple[Repo, str]:
     source = tmp_path / "legacy.tine"
     run = Run(id="legacy")
     run.add_step(StepKind.tool, {"cmd": "env"}, {"stdout": f"ANTHROPIC_API_KEY is {SECRET}"})
-    run.save(source)
+    # An artifact written before 0.9.1, whose .tine writer did not scrub free
+    # text (it does now), so the legacy bytes really carry the credential.
+    with mock.patch("opentine._graph_serde.redact_value", lambda value: value):
+        run.save(source)
     repo = Repo.init(tmp_path / "repo")
     migrated = repo.migrate_v2(source)
     return repo, migrated.run_id

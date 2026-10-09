@@ -188,7 +188,10 @@ tine pricing show anthropic claude-opus-5
 ```
 
 A workspace overlay at `.tine/pricing.json` takes the same content and outranks
-the user one.
+the user one. It is unsigned and comes from the current directory — a cloned
+checkout can ship one — so from 0.9.1 the CLI announces it on stderr each time
+it is used; set `OPENTINE_TRUST_WORKSPACE_PRICING=1` once you trust its source.
+A rate card's `currency` must be an ISO 4217 code (`USD`, three capitals).
 
 An overlay carries its own `catalog_id`, so recompute it after any edit. The
 stored value is the **`sha256:`-prefixed** digest, not the bare hex that

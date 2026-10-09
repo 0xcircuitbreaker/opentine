@@ -88,6 +88,7 @@ def _bounded_legacy_oids(oids):
 def _legacy_head(repo: Repo, run_id: str) -> str | None:
     from opentine.repository._objects import iter_typed_object_oids
     from opentine.repository._semantic_view import semantic_view
+    from opentine.repository._unadopted import read_unadopted
 
     candidates: dict[str, dict[str, Any]] = {}
     typed = getattr(repo, "iter_typed_oids", None)
@@ -105,9 +106,13 @@ def _legacy_head(repo: Repo, run_id: str) -> str | None:
             oid for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS) if oid.startswith("annotation:")
         )
     view = semantic_view(repo)
+    # A pack's annotations of a run this repository already held (see _unadopted).
+    skipped = read_unadopted(path) if path is not None else frozenset()
     for index, oid in enumerate(_bounded_legacy_oids(oids), 1):
         if index > MAX_LEGACY_OBJECTS:
             raise ValueError("legacy annotation scan exceeds its object limit")
+        if oid in skipped:
+            continue
         payload = view.get(oid).payload()
         if isinstance(payload, dict) and payload.get("target_id") == run_id:
             candidates[oid] = payload

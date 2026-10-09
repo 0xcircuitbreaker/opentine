@@ -46,13 +46,13 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     search.add_argument("query", nargs="?", default="", help="Text matched against run content")
     search.add_argument("--repo", default=".")
-    # successful_only=True and limit=20 are the MCP search_runs defaults, mirrored
-    # exactly: an operator reproducing what an agent searched must get its result set.
+    # successful_only=True and limit=20 mirror MCP search_runs, so results reproduce.
     search.add_argument(
         "--limit", type=int, default=20, help="Maximum runs returned, 1-1000 (default 20)"
     )
     search.add_argument("--min-score", type=float, help="Keep runs scoring at least this")
     search.add_argument("--model", help="Keep runs whose model ids contain this substring")
+    search.add_argument("--signed-only", action="store_true", help="Score by signed evals only")
     search.add_argument(
         "--include-unsuccessful",
         action="store_true",
@@ -171,6 +171,8 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Exit non-zero unless every attestation carries a valid signature",
     )
+    verify.add_argument("--signer", action="append", help="Gate on this signer (repeatable)")
+    verify.add_argument("--claim", help="Gate on claims containing this JSON object")
 
     # No key => the byte-identical unsigned object. No --algorithm either: the
     # flag naming the key already names the algorithm.

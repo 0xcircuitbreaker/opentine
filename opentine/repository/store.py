@@ -10,6 +10,7 @@ from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_o
 from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import validate_config
+from opentine.repository._discovery import find_repository
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
 from opentine.repository._paths import ensure_layout, internal_files, internal_path, linklike
@@ -53,25 +54,7 @@ class Repo:
 
     @classmethod
     def open(cls, path: str | Path = ".") -> Repo:
-        source = Path(path).expanduser()
-        if source.name == ".tine" and linklike(source):
-            raise KernelError("repository root cannot be a symlink")
-        candidate = source.resolve()
-        if candidate.is_file():
-            candidate = candidate.parent
-        for base in (candidate, *candidate.parents):
-            tine = base if base.name == ".tine" else base / ".tine"
-            if (tine / "config.json").exists():
-                # Recreate any structural directory a version-control checkout
-                # dropped while empty, so a committed repository opens intact.
-                # Best-effort: read-only media cannot be healed, but the objects
-                # and refs are still readable there, so opening must not fail.
-                try:
-                    ensure_layout(tine)
-                except OSError:
-                    pass
-                return cls(tine)
-        raise FileNotFoundError(f"no .tine repository from {path}")
+        return cls(find_repository(path))
 
     @property
     def worktree(self) -> Path:

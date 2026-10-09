@@ -62,14 +62,18 @@ def _row_states(text: str) -> set[str]:
 
 
 def _code_states() -> set[str]:
-    """Every ``SignatureResult.state`` value ``_signing_verify`` can return.
+    """Every ``SignatureResult.state`` value the verifier can return.
 
-    Read out of the module's AST rather than restated here: the second argument
+    Read out of the modules' AST rather than restated here: the second argument
     of a ``SignatureResult(...)`` / ``result(...)`` call (following both arms of
-    a conditional), plus anything assigned to a local named ``state``.
+    a conditional), plus anything assigned to a local named ``state``. The block
+    checks live in ``_signing_verify`` and the keyed verdicts in
+    ``_signing_verdicts``, so both are read.
     """
-    source = (ROOT / "opentine" / "_signing_verify.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    tree = ast.Module(body=[], type_ignores=[])
+    for name in ("_signing_verify.py", "_signing_verdicts.py"):
+        source = (ROOT / "opentine" / name).read_text(encoding="utf-8")
+        tree.body.extend(ast.parse(source).body)
     states: set[str] = set()
 
     def collect(node: ast.AST) -> None:

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal
 from typing import Any
+
+_CURRENCY = re.compile(r"[A-Z]{3}")
 
 
 def validate_rate_card_data(data: Any) -> None:
@@ -29,6 +32,10 @@ def validate_rate_card(card: Any) -> None:
         value = getattr(card, field)
         if not isinstance(value, str) or not value or len(value) > 4096:
             raise ValueError(f"rate-card {field} must be a non-empty bounded string")
+    # An ISO 4217 code. Free text here reached `tine pricing show` raw, so an
+    # overlay could carry terminal escape sequences in its currency.
+    if not _CURRENCY.fullmatch(card.currency):
+        raise ValueError("rate-card currency must be a three-letter ISO 4217 code")
     if not isinstance(card.aliases, (tuple, list)) or not all(
         isinstance(value, str) and value for value in card.aliases
     ):

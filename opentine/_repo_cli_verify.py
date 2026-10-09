@@ -21,6 +21,15 @@ pass when the operator asked for a valid signature. With nothing armed the verb
 is a report — it prints each state and exits 0 — because an unarmed check has
 verified nothing and must not look like it has.
 
+**Scope the gate to the claim it is about.** Unscoped, every attestation on
+the run must verify -- so any writer could block a release with one unsigned
+note, and a verified *rejection* passed exactly as an approval did, because the
+check never looked at what was signed. ``--signer NAME`` (repeatable) and
+``--claim JSON`` (the attestation's claim must contain these keys with these
+values) select the attestations the gate is about; it then passes when at least
+one selected attestation verifies, and the rest are reported but neither pass
+nor block it. Either flag arms the check. Each row carries its ``claim``.
+
 **The verdict vocabulary is artifact signing's**, unchanged: ``verified``,
 ``verified-tofu``, ``unsigned``, ``no-key``, ``mismatch``, ``error``. Only the
 first two carry ``ok``.
@@ -33,6 +42,7 @@ from typing import Any
 
 from opentine._cli_common import _terminal
 from opentine._cli_json import emit
+from opentine._repo_cli_claim import parse_claim
 from opentine._repo_cli_keys import verification_armed, verification_keys
 from opentine._repo_cli_render import _short_oid
 from opentine.attest_signing import verify_attestation
@@ -78,33 +88,54 @@ def _row(repo: Repo, oid: str, keys: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("signature"), dict)
         else None,
         "reason": result.reason,
+        "claim": payload.get("claim") if isinstance(payload, dict) else None,
     }
 
 
-def _render(console, rows: list[dict[str, Any]], target: str) -> None:
+def _selects(row: dict[str, Any], signers: list[str], claim: dict[str, Any] | None) -> bool:
+    if signers and row["signer"] not in signers:
+        return False
+    held = row["claim"] if isinstance(row["claim"], dict) else {}
+    return claim is None or all(key in held and held[key] == claim[key] for key in claim)
+
+
+def _render(console, rows: list[dict[str, Any]], target: str, scoped: bool) -> None:
     for row in rows:
         style = _STATE_STYLE.get(row["state"], "red")
+        aside = "" if row["selected"] or not scoped else " [dim](not selected)[/]"
         console.print(
             f"[{style}]{row['state']}[/] {_short_oid(row['attestation_id'])} "
             f"signer={_terminal(row['signer'] or '-')} "
             f"alg={_terminal(row['algorithm'] or '-')} "
-            f"key_id={_terminal(row['key_id'] or '-')}"
+            f"key_id={_terminal(row['key_id'] or '-')}{aside}"
         )
         if not row["ok"]:
             console.print(f"  [dim]{_terminal(row['reason'])}[/]")
     verified = sum(1 for row in rows if row["ok"])
     console.print(f"{verified} of {len(rows)} attestation(s) verified on {_short_oid(target)}")
+    if scoped:
+        chosen = [row for row in rows if row["selected"]]
+        good = sum(1 for row in chosen if row["ok"])
+        console.print(f"{good} of {len(chosen)} selected attestation(s) verified")
 
 
 def cmd_repo_verify(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
     target_id, oids = _targets(repo, args.target)
     keys = verification_keys(args)
+    signers = list(getattr(args, "signer", None) or [])
+    claim = parse_claim(args) if getattr(args, "claim", None) else None
+    scoped = bool(signers) or claim is not None
     rows = [_row(repo, oid, keys) for oid in oids]
+    for row in rows:
+        row["selected"] = _selects(row, signers, claim)
     require = bool(getattr(args, "require_signature", False))
-    # Vacuous truth is not a pass: --require-signature on a run with no
-    # attestation asked for a valid signature and found none.
-    ok = all(row["ok"] for row in rows) and not (require and not rows)
+    if scoped:
+        ok = any(row["ok"] for row in rows if row["selected"])
+    else:
+        # Vacuous truth is not a pass: --require-signature on a run with no
+        # attestation asked for a valid signature and found none.
+        ok = all(row["ok"] for row in rows) and not (require and not rows)
     if getattr(args, "json", False):
         emit(
             {
@@ -113,6 +144,9 @@ def cmd_repo_verify(args: argparse.Namespace, console) -> None:
                 "target": args.target,
                 "target_id": target_id,
                 "require_signature": require,
+                "signers": signers,
+                "claim": claim,
+                "selected": sum(1 for row in rows if row["selected"]),
                 "count": len(rows),
                 "verified": sum(1 for row in rows if row["ok"]),
                 "ok": ok,
@@ -120,10 +154,12 @@ def cmd_repo_verify(args: argparse.Namespace, console) -> None:
             }
         )
     else:
-        _render(console, rows, args.target)
+        _render(console, rows, args.target, scoped)
         if require and not rows:
             console.print("[red]--require-signature[/]: no attestation targets this run")
-    if verification_armed(args) and not ok:
+        if scoped and not ok:
+            console.print("[red]no selected attestation verified[/]")
+    if (verification_armed(args) or scoped) and not ok:
         raise SystemExit(1)
 
 

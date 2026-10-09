@@ -1,6 +1,9 @@
 """Tenant-scoped repository adapter used for pack negotiation."""
 
+from typing import Any
+
 from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
+from opentine.remote._association_budget import recorded_targets
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import IndexBackend, ObjectStore
 from opentine.repository._annotations import validate_annotation_chain
@@ -64,45 +67,70 @@ class PackedTenantRepo(TenantRepo):
         return self._semantic.get(oid)
 
 
+def _decoded_target(tenant: str, objects: ObjectStore, oid: str, spent: int) -> tuple[Any, int]:
+    """Decode one annotation for its ``target_id``, within the listing's byte budget."""
+    size = getattr(objects, "size", None)
+    if callable(size):
+        stored = size(tenant, oid)
+        if type(stored) is not int or stored < 0:
+            raise ValueError("object store returned an invalid object size")
+        if stored > MAX_REF_ANNOTATION_BYTES or spent + stored > MAX_REF_ANNOTATION_TOTAL_BYTES:
+            raise ValueError("ref annotation verification exceeds its byte limit")
+    raw = objects.get(tenant, oid)
+    if len(raw) > MAX_REF_ANNOTATION_BYTES or spent + len(raw) > MAX_REF_ANNOTATION_TOTAL_BYTES:
+        raise ValueError("ref annotation verification exceeds its byte limit")
+    target = ObjectEnvelope.decode(raw, oid)
+    validate_links(target)
+    payload = target.payload()
+    return (payload.get("target_id") if isinstance(payload, dict) else None), spent + len(raw)
+
+
 def validate_ref_listing(
     tenant: str, objects: ObjectStore, index: IndexBackend, refs: dict[str, str]
 ) -> None:
     if not isinstance(refs, dict) or len(refs) > MAX_CONTROL_RESULTS:
         raise ValueError("ref listing exceeds control-plane result limit")
+    # Typed IDs are sufficient for every namespace except annotations, whose ref
+    # suffix is bound to target_id. That binding is read from the index, which
+    # recorded it when install verified the object, rather than by decoding every
+    # annotation here: a decode budget meant one large annotation failed this
+    # listing, and every fetch, clone and push behind it, for the whole tenant.
+    # Only an object the index has no binding for is decoded, under the budget,
+    # and update_ref runs this check before it commits (admit_annotation_ref).
+    # get, fetch, install, and fsck retain full semantic verification.
+    recorded = recorded_targets(
+        index, tenant, {oid for oid in refs.values() if str(oid).startswith("annotation:")}
+    )
     targets: dict[str, tuple[str, object]] = {}
     annotation_bytes = 0
-    size = getattr(objects, "size", None)
     for name, oid in refs.items():
         if oid not in targets:
             if not objects.has(tenant, oid):
                 raise RuntimeError(f"ref {name} targets a missing object")
             object_type, _ = parse_oid(oid)
             ref_payload = None
-            # Typed IDs are sufficient for every namespace except annotations,
-            # whose ref suffix is bound to target_id. Avoid recursively checking
-            # every run graph during this bounded control-plane listing; get,
-            # fetch, install, and fsck retain full semantic verification.
             if object_type == "annotation":
-                if callable(size):
-                    stored = size(tenant, oid)
-                    if type(stored) is not int or stored < 0:
-                        raise ValueError("object store returned an invalid object size")
-                    if (
-                        stored > MAX_REF_ANNOTATION_BYTES
-                        or annotation_bytes + stored > MAX_REF_ANNOTATION_TOTAL_BYTES
-                    ):
-                        raise ValueError("ref annotation verification exceeds its byte limit")
-                raw = objects.get(tenant, oid)
-                if (
-                    len(raw) > MAX_REF_ANNOTATION_BYTES
-                    or annotation_bytes + len(raw) > MAX_REF_ANNOTATION_TOTAL_BYTES
-                ):
-                    raise ValueError("ref annotation verification exceeds its byte limit")
-                annotation_bytes += len(raw)
-                target = ObjectEnvelope.decode(raw, oid)
-                validate_links(target)
-                payload = target.payload()
-                if isinstance(payload, dict):
-                    ref_payload = {"target_id": payload.get("target_id")}
+                target_id = recorded.get(oid)
+                if target_id is None:
+                    target_id, annotation_bytes = _decoded_target(
+                        tenant, objects, oid, annotation_bytes
+                    )
+                ref_payload = {"target_id": target_id}
             targets[oid] = (object_type, ref_payload)
         validate_ref_target(normalize_ref(name), *targets[oid])
+
+
+def admit_annotation_ref(
+    tenant: str, objects: ObjectStore, index: IndexBackend, name: str, target: ObjectEnvelope
+) -> None:
+    """Refuse a ref write the listing could not then validate.
+
+    Records the verified binding first (idempotent; an install interrupted after
+    the object write left none), then checks the listing with *name* moved, so
+    every bound ``GET /refs`` enforces is enforced here too.
+    """
+    payload = target.payload()
+    index.record_object(tenant, target.oid, len(target.encode()), payload.get("target_id"))
+    refs = dict(index.list_refs(tenant))
+    refs[name] = target.oid
+    validate_ref_listing(tenant, objects, index, refs)

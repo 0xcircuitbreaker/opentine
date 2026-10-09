@@ -7,6 +7,8 @@ from itertools import islice
 from pathlib import Path
 from typing import Any
 
+from opentine._mcp_safety import clip as _clip
+from opentine._mcp_safety import safe_errors
 from opentine.core import Run
 
 MAX_MCP_RUN_BYTES = 256 * 1024 * 1024
@@ -30,11 +32,6 @@ def _bounded_text(lines: list[str]) -> str:
         if len(rendered) <= MAX_MCP_TEXT_CHARS
         else rendered[: MAX_MCP_TEXT_CHARS - len(marker)] + marker
     )
-
-
-def _clip(value: Any, limit: int = 240) -> str:
-    text = str(value).replace("\r", "\\r").replace("\n", "\\n")
-    return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def _confined_run(root: Path, candidate: Path) -> Path | None:
@@ -110,7 +107,7 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
                 }
             )
         except Exception:
-            summaries.append({"id": path.stem, "status": "corrupt", "path": str(path)})
+            summaries.append({"id": _clip(path.stem), "status": "corrupt", "path": str(path)})
     if truncated:
         summaries.append({"id": None, "status": "truncated", "limit": MAX_MCP_LIST_RUNS})
     return summaries
@@ -203,7 +200,8 @@ def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "
     except ImportError as exc:  # pragma: no cover - optional integration
         raise RuntimeError("Install the mcp package to run opentine's MCP server.") from exc
 
-    mcp = FastMCP("opentine")
+    server = FastMCP("opentine")
+    mcp = safe_errors(server)  # every tool error reaches the client sanitized
 
     @mcp.tool()
     def list_runs() -> list[dict[str, Any]]:
@@ -237,7 +235,7 @@ def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "
     except FileNotFoundError:
         pass
 
-    return mcp
+    return server
 
 
 def main() -> None:  # pragma: no cover - exercised manually with MCP clients

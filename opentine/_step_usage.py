@@ -23,9 +23,11 @@ _TOKEN_USAGE = {
 
 
 def _usage_value(name: str, value: Any) -> int | float:
-    error = f"step usage.{name} must be a finite, non-negative safe number"
     if not isinstance(name, str) or not name:
         raise ValueError("step usage names must be non-empty strings")
+    # repr, not the raw name: it is read off an untrusted artifact, and this
+    # message reaches terminals and MCP clients (escape sequences included).
+    error = f"step usage.{name!r} must be a finite, non-negative safe number"
     if isinstance(value, bool) or type(value) not in {int, float}:
         raise ValueError(error)
     if isinstance(value, int):
@@ -35,7 +37,7 @@ def _usage_value(name: str, value: Any) -> int | float:
     if not math.isfinite(value) or value < 0:
         raise ValueError(error)
     if name in _TOKEN_USAGE and not value.is_integer():
-        raise ValueError(f"step usage.{name} must be an integer token count")
+        raise ValueError(f"step usage.{name!r} must be an integer token count")
     if value.is_integer() and value <= _MAX_SAFE_INTEGER:
         return int(value)
     if name in _TOKEN_USAGE:

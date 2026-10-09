@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.text import Text
 
+from opentine._cli_text import displayable
 from opentine._graph_analysis import retained_closure
 from opentine.core import Run, StepKind, short_id
 from opentine.harnesses import (
@@ -48,9 +49,6 @@ STEP_ICONS = {
 console = Console()
 RUNS_DIR = Path(".tine_runs")
 MAX_CLI_SCAN_RUNS = 5_000
-_BIDI_FORMATTING = frozenset(
-    {0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)}
-)
 HARNESS_FACTORIES = {
     "claude-code": ClaudeCodeHarness,
     "codex": CodexCLIHarness,
@@ -192,12 +190,11 @@ def _terminal(value, *, multiline: bool = False) -> str:
     raw = str(value).encode("utf-8", "replace").decode("utf-8")
     cleaned: list[str] = []
     for character in raw:
-        codepoint = ord(character)
         if character == "\n" and multiline:
             cleaned.append(character)
         elif character in {"\n", "\t"}:
             cleaned.append(" ")
-        elif codepoint >= 32 and not 127 <= codepoint <= 159 and codepoint not in _BIDI_FORMATTING:
+        elif displayable(character):
             cleaned.append(character)
     return escape("".join(cleaned))
 

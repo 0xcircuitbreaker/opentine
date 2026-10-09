@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._stdout_trust import StdoutTrust
 from opentine.harnesses._types import meter_value
-from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
+from opentine.harnesses.base import HarnessStep, ProcessHarness
 
 
-class CodexCLIHarness(ProcessHarness):
+class CodexCLIHarness(StdoutTrust, ProcessHarness):
     """Run Codex through its CLI and capture JSONL or verbose output.
 
     The default command is ``codex exec <task>``. Pass a custom ``command`` if
@@ -24,7 +25,7 @@ class CodexCLIHarness(ProcessHarness):
         return "codex"
 
     def parse_line(self, line: str) -> HarnessStep | None:
-        data = parse_json_event(line)
+        data = self.json_event(line)
         if data:
             return self._parse_json_event(data)
 
@@ -33,20 +34,20 @@ class CodexCLIHarness(ProcessHarness):
             return HarnessStep(
                 kind=StepKind.tool,
                 inputs={"name": self._tool_name_from_text(line), "line": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         if "error" in lower or "failed" in lower:
             return HarnessStep(
                 kind=StepKind.error,
                 inputs={"text": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         return HarnessStep(
             kind=StepKind.think,
             inputs={"text": line},
-            cost=cost_from_text(line),
+            cost=self.text_cost(line),
             model_info=self.model_info,
         )
 
