@@ -9,6 +9,7 @@ from opentine.billing import PricingCatalog
 from opentine.kernel import KernelError, canonical_json
 from opentine.models._chat_billing import requires_cache_write
 from opentine.models._metered import metered_response
+from opentine.models._model_traits import openai_omits_temperature
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._responses_request import plain as _plain
 from opentine.models._responses_request import response_input, response_tools
@@ -84,13 +85,9 @@ def parse_response(response: Any, forced_status: str | None = None) -> dict[str,
     return result
 
 
-#: OpenAI reasoning families reject a custom ``temperature`` at their default
-#: effort ("GPT-6 Astra does not support custom temperature or top_p values").
-_REASONING_PREFIXES = ("gpt-5", "gpt-6", "o1", "o3", "o4")
-
-
-def omits_temperature(model: str) -> bool:
-    return model.lower().startswith(_REASONING_PREFIXES)
+def omits_temperature(model: str, *, native: bool = True) -> bool:
+    """Whether *model* must not be sent ``temperature``; see _model_traits."""
+    return openai_omits_temperature(model, native=native)
 
 
 class ResponsesTransport:

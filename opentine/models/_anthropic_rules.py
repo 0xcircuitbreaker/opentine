@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine.models._model_traits import claude_rules
 from opentine.models._usage import value
 
 
@@ -21,20 +22,8 @@ BILLED_EARLY_REFUSAL_CATEGORIES = frozenset({"bio", "frontier_llm", "reasoning_e
 
 
 def model_rules(model: str) -> tuple[bool, bool, bool]:
-    name = model.lower().replace(".", "-")
-    # Haiku 4.5 rejects adaptive thinking; the Haiku 5 line has it.
-    supports = any(item in name for item in ("opus", "sonnet", "fable", "mythos", "haiku-5"))
-    explicit_adaptive = any(
-        item in name for item in ("opus-4-6", "opus-4-7", "opus-4-8", "sonnet-4-6")
-    )
-    # Models on which "non-default temperature, top_p, or top_k values return a
-    # 400 error on every request": Fable 5/5.1, Mythos 5/5.1/Preview, Opus 5/5.5,
-    # Opus 4.7/4.8, Sonnet 5/5.5, Haiku 5.5. "opus-5" also matches opus-5-5.
-    restricted_sampling = explicit_adaptive or any(
-        item in name
-        for item in ("fable-5", "mythos-5", "mythos-preview", "sonnet-5", "opus-5", "haiku-5")
-    )
-    return supports, restricted_sampling, explicit_adaptive
+    """``(supports_thinking, restricted_sampling, explicit_adaptive)``; see _model_traits."""
+    return claude_rules(model)
 
 
 def refusal_category(response: Any) -> str | None:

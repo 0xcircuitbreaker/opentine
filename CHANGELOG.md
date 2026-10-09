@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.8.3 — 2026-10-09
+
+A hardening release: one security fix, and the capture and model-rule debts the
+0.8.2 assessment found.
+
+### Security
+
+- **Windows process containment no longer has an escape window.** `run_bounded`
+  (the shell and python tools) and every process harness started the child
+  *running* and attached the kill-on-close Job Object afterwards, so a
+  grandchild spawned in that gap was born outside the job and survived the
+  kill — a tool command's descendants could outlive containment. The child now
+  starts suspended (`CREATE_SUSPENDED`), joins the job, and only then resumes.
+  It is resumed even when no job can be attached (the taskkill fallback
+  remains), and a child that cannot be resumed is terminated rather than left
+  half-started.
+
+### Fixed
+
+- **Claude Code harness runs are priceable.** The `claude-code` harness ran
+  plain `claude -p` and guessed steps from text, recording the CLI's name
+  instead of a model and no usage at all, so `tine price` could not price a
+  harness run. It now reads `--output-format stream-json`: a `model` step per
+  API call with model, provider and exact input-side usage, a `tool` step per
+  call with its result, per-model output totals from the final `result` event
+  (an assistant event's `output_tokens` is a message-start placeholder — 16
+  and 4 against a true 120 in the live capture this was built from), and
+  Claude Code's own cost on the closing step. On that capture the catalog
+  re-prices the run to exactly the $0.100061 Claude Code reported. The provider
+  comes from the environment Claude Code actually receives (Bedrock, Vertex and
+  Foundry keep theirs), and the closing per-model totals always use the provider
+  Claude Code itself reports — flagging a mismatch when Claude Code was switched
+  to another provider through its own settings. The launch and task steps of a harness that reports real model
+  calls are no longer recorded as phantom `model` steps.
+- **A new model no longer breaks on day one.** Sampling rules lived in
+  per-adapter name lists, and each new family missed one (0.8.2 fixed
+  `claude-opus-5` and `gpt-6-*` being sent a `temperature` their APIs reject).
+  They now live in one table with fail-safe defaults: an unlisted `claude-*`
+  model, or an unlisted model on OpenAI's native API, is sent no sampling
+  parameters — omitting one never fails a request, sending one a model rejects
+  fails every request. Every listed model keeps its exact behaviour (pinned for
+  all 56 catalogued Anthropic and OpenAI names); models behind a custom
+  `base_url` are only treated as reasoning models when their name says so.
+
+### Tests
+
+- The Windows duration-budget test used a 10 ms budget against a ~15.6 ms timer
+  tick, so a loaded runner could spend it before the tool step started.
+
 ## 0.8.2 — 2026-10-08
 
 New models, and the adapter rules they broke. Every price was confirmed against

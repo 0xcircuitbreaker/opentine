@@ -94,12 +94,26 @@ def _kill_tree(process: subprocess.Popen[bytes]) -> None:
         pass
 
 
+def _group_flags() -> dict[str, Any]:
+    """Popen arguments that make a child's whole tree killable as one.
+
+    On Windows the child also starts suspended: :func:`_attach_kill_job` puts it
+    in a kill-on-close job and only then resumes it, so nothing it spawns can be
+    born outside the job. Every launcher must pair this with that call.
+    """
+    if os.name != "nt":
+        return {"start_new_session": True}
+    from opentine.tools._winjob import CREATE_SUSPENDED
+
+    return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP | CREATE_SUSPENDED}
+
+
 def _attach_kill_job(process: subprocess.Popen[bytes]) -> Any:
     if os.name != "nt":
         return None
-    from opentine.tools._winjob import try_attach_kill_job
+    from opentine.tools._winjob import contain_suspended
 
-    return try_attach_kill_job(process)
+    return contain_suspended(process)
 
 
 def _cleanup_owned(process: subprocess.Popen[bytes], job: Any) -> None:
@@ -124,18 +138,13 @@ def run_bounded(
     """Run an argv command while draining and discarding output beyond the cap."""
     if timeout <= 0 or max_chars < 1 or (max_bytes is not None and max_bytes < 1):
         raise ValueError("subprocess timeout and output limit must be positive")
-    group = (
-        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-        if os.name == "nt"
-        else {"start_new_session": True}
-    )
     process = subprocess.Popen(
         argv,
         cwd=cwd,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        **group,
+        **_group_flags(),
     )
     job = _attach_kill_job(process)
     byte_limit = max_bytes if max_bytes is not None else max(1024, max_chars * 4)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._claude_stream import STREAM_EVENTS, ClaudeStream
 from opentine.harnesses._types import meter_value
 from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
 
@@ -12,20 +13,29 @@ from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text,
 class ClaudeCodeHarness(ProcessHarness):
     """Run Claude Code through its CLI and record observable events.
 
-    The default command assumes the common non-interactive form:
-    ``claude -p <task>``. Override ``command`` or ``extra_args`` if your local
-    Claude Code installation uses different flags.
+    The default command is ``claude -p --output-format stream-json --verbose
+    <task>``: the structured stream carries the model, each call's token usage,
+    every tool call with its result, and Claude Code's own cost, so the run is
+    priceable afterwards. A plain-text command (``command=("claude", "-p")``)
+    still records, heuristically, without model or usage.
     """
 
     name = "claude-code"
-    default_command = ("claude", "-p")
+    default_command = ("claude", "-p", "--output-format", "stream-json", "--verbose")
+    invocation_kind = StepKind.think
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._stream = ClaudeStream(env=self.build_env)
 
     @property
     def model_info(self) -> str:
-        return "claude-code"
+        return self._stream.model or "claude-code"
 
-    def parse_line(self, line: str) -> HarnessStep | None:
+    def parse_line(self, line: str) -> HarnessStep | list[HarnessStep] | None:
         data = parse_json_event(line)
+        if data and isinstance(data.get("type"), str) and data["type"] in STREAM_EVENTS:
+            return self._stream.step(data)
         if data:
             return self._parse_json_event(data)
 

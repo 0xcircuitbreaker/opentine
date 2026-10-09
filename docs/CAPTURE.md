@@ -193,6 +193,15 @@ The bundled harness names are `claude-code`, `codex`, `cursor`, `gemini`,
 `generic` with `--harness-command` (and repeatable `--harness-arg`) for anything
 not on that list.
 
+`claude-code` runs `claude -p --output-format stream-json --verbose`, so a
+captured run records what Claude Code actually did: one `model` step per API
+call with the model, provider, and exact input-side token usage, one `tool`
+step per tool call carrying its result, the true per-model output totals from
+the final `result` event, and Claude Code's own reported cost on the closing
+step. That makes the run priceable afterwards — `tine price <run>` re-prices it
+from the signed catalog, independently of Claude Code's figure. The other agent
+CLIs are still recorded from their text output, without model or usage.
+
 Process harnesses default to a one-hour wall timeout, a 4-million-character
 total output ceiling, and 10,000 parsed events; override them with
 `--harness-timeout`, `--harness-max-output`, `--harness-max-events`, and
