@@ -23,7 +23,7 @@ from __future__ import annotations
 import threading
 from collections import Counter
 from collections.abc import Iterator
-from contextlib import AbstractContextManager, contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext
 from typing import Any
 
 from opentine.kernel import ObjectEnvelope
@@ -87,17 +87,23 @@ def check_association_budget(tenant: str, index: Any, targets: dict[str, str | N
             _refuse(target)
 
 
-def association_guard(targets: dict[str, str | None]) -> AbstractContextManager:
+@contextmanager
+def association_guard(targets: dict[str, str | None], index: Any = None) -> Iterator[None]:
     """Serialize installs that add associations, from budget check to last record.
 
     Two installs (the server runs two at once) could each pass the check against
     the same count and together overshoot a target's budget by a pack. Installs
-    without associations -- most of a push -- never wait. The lock is per
-    process: one server process per store, as the reference server runs.
+    without associations -- most of a push -- never wait. The in-process lock is
+    joined by the index's cross-process one when it has one (the reference
+    SQLite index locks a file beside its database), so several server processes
+    -- or workers of one WSGI deployment -- sharing a store serialize too.
     """
-    if any(target is not None for target in targets.values()):
-        return _ASSOCIATION_INSTALLS
-    return nullcontext()
+    if not any(target is not None for target in targets.values()):
+        yield
+        return
+    shared = getattr(index, "association_lock", None)
+    with _ASSOCIATION_INSTALLS, shared() if callable(shared) else nullcontext():
+        yield
 
 
 @contextmanager
@@ -106,6 +112,6 @@ def admitted_associations(
 ) -> Iterator[dict[str, str | None]]:
     """Check *order* against the budget and hold the guard while it is installed."""
     targets = association_targets(order)
-    with association_guard(targets):
+    with association_guard(targets, index):
         check_association_budget(tenant, index, targets)
         yield targets

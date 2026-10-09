@@ -62,6 +62,10 @@ def run_request(
 
 def require_secure_remote(base: str, allow_insecure: bool) -> None:
     parsed = urlparse(base)
+    # Only the two schemes the transport speaks: the loopback exemption below used
+    # to wave through ``ftp://127.0.0.1`` (refused later, by httpx, by accident).
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("remote URL must be https:// (or http:// to a loopback address)")
     try:
         literal_loopback = ipaddress.ip_address(parsed.hostname or "").is_loopback
     except ValueError:

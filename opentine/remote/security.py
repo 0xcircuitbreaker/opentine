@@ -9,6 +9,7 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+from opentine.remote._sealed import SEALED, seal_with, tenant_key, unseal_with
 from opentine.remote.interfaces import Identity
 
 
@@ -98,6 +99,12 @@ class OIDCIdentityProvider:
         tenant = claims.get(self.tenant_claim)
         if not isinstance(subject, str) or not subject or not isinstance(tenant, str) or not tenant:
             raise AuthenticationError("OIDC token lacks subject or tenant")
+        from opentine.remote.backend import valid_tenant
+
+        try:  # "Acme Corp" would only fail later, where its denial could not be audited
+            valid_tenant(tenant)
+        except ValueError as exc:
+            raise AuthenticationError("OIDC tenant claim is not a valid tenant name") from exc
         roles = claims[self.roles_claim] if self.roles_claim in claims else self.default_roles
         if isinstance(roles, str):
             roles = roles.split()
@@ -110,6 +117,9 @@ class OIDCIdentityProvider:
 
 
 class RoleAuthorizationPolicy:
+    """Roles to actions. ``promote``/``retag`` (``_ref_policy``) are admin-only unless
+    ``writer_promotes`` hands them to writers too."""
+
     _actions = {
         "reader": {"capabilities", "fetch", "negotiate", "read_ref", "search"},
         "writer": {
@@ -124,10 +134,15 @@ class RoleAuthorizationPolicy:
         "admin": {"*"},
     }
 
+    def __init__(self, *, writer_promotes: bool = False):
+        self.writer_promotes = writer_promotes
+
     def authorize(self, identity: Identity, action: str, tenant: str) -> bool:
         if identity.tenant != tenant:
             return False
         allowed = set().union(*(self._actions.get(role, set()) for role in identity.roles))
+        if self.writer_promotes and "writer" in identity.roles:
+            allowed |= {"promote", "retag"}
         return "*" in allowed or action in allowed
 
 
@@ -153,10 +168,17 @@ class LocalKeyProvider:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         nonce = os.urandom(12)
-        key = hmac.new(
-            self.key, b"opentine.tenant-key.v1\0" + tenant.encode(), hashlib.sha256
-        ).digest()
+        key = tenant_key(self.key, tenant)
         return b"TINEAES2" + nonce + AESGCM(key).encrypt(nonce, plaintext, tenant.encode())
+
+    def seal(self, purpose: str, tenant: str, context: str, plaintext: bytes) -> bytes:
+        """``TINEAES3``: also bound to what the ciphertext is (``_sealed``)."""
+        return seal_with(self.key, purpose, tenant, context, plaintext)
+
+    def unseal(self, purpose: str, tenant: str, context: str, ciphertext: bytes) -> bytes:
+        if ciphertext.startswith(SEALED):
+            return unseal_with(self.key, purpose, tenant, context, ciphertext)
+        return self.decrypt(tenant, ciphertext)  # written before 0.9.2
 
     def derive_audit_key(self) -> bytes:
         return hmac.new(self.key, b"opentine.audit-chain-key.v1\0", hashlib.sha256).digest()
@@ -167,11 +189,7 @@ class LocalKeyProvider:
         if not ciphertext.startswith((b"TINEAES1", b"TINEAES2")):
             raise ValueError("invalid encrypted object header")
         nonce, body = ciphertext[8:20], ciphertext[20:]
-        key = self.key
-        if ciphertext.startswith(b"TINEAES2"):
-            key = hmac.new(
-                self.key, b"opentine.tenant-key.v1\0" + tenant.encode(), hashlib.sha256
-            ).digest()
+        key = tenant_key(self.key, tenant) if ciphertext.startswith(b"TINEAES2") else self.key
         return AESGCM(key).decrypt(nonce, body, tenant.encode())
 
 

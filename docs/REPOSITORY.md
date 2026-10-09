@@ -254,7 +254,8 @@ tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... \
 tine promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid | run-ref-or-oid> \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
-    [--require-signature] [--signer NAME]... [--claim JSON] [--repo .] [--json]
+    [--pin FINGERPRINT]... [--require-signature] [--signer NAME]... [--claim JSON] \
+    [--repo .] [--json]
 ```
 
 Each accepts a ref name or a `run:sha256:…` oid and **resolves it first**. That
@@ -305,7 +306,10 @@ contain those keys with those values: the gate then passes when at least one
 *selected* attestation verifies, and unselected ones (an unsigned note, a signed
 evaluation that is not the approval) neither pass nor block it. Unscoped, a
 verified rejection passed like an approval and any writer's unsigned note
-blocked the release. Either flag arms the check. MCP has no equivalent tool: checking a
+blocked the release. Either flag arms the check. Each Ed25519 row reports its
+`key_fingerprint`, and `--pin FINGERPRINT` (repeatable, the full `sha256:`
+digest; alone it implies the embedded key) passes only attestations signed by a
+pinned key, as `verified`. MCP has no equivalent tool: checking a
 signature needs the operator's key material, and `attest_run` has no signing
 options for the same reason — run content must not be able to sign as an
 operator.
@@ -463,6 +467,10 @@ not a terminal, and a consumer must see the bytes as recorded.
 tine init .
 tine migrate-v3 legacy.tine --repo . --ref heads/imported
 ```
+
+With a key flag (`--key-env`/`--key-file`/`--pubkey`/`--trust-embedded-key`/`--pin`)
+the source's signature must verify, or the import is refused unless
+`--allow-unverified`.
 
 Migration:
 
@@ -652,6 +660,10 @@ each keeps and refuses.
 A fetch response may carry `Opentine-Associations-Omitted: N` — N runs whose
 annotations or attestations did not all fit in the pack. Clients that predate
 it ignore it; `tine fetch` reports it as `associations_omitted`.
+
+`POST /search` returns `{"objects": [...], "truncated": bool}` — at most 1,000
+objects, newest first. `GET /audit/verify` returns `{"ok", "status",
+"warnings"}` (no chain head). A busy server answers `503`; retry.
 
 The 0.3.0 scope is an enterprise repository foundation. The bundled bounded
 WSGI server targets development and small self-hosted deployments, not turnkey

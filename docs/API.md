@@ -152,6 +152,8 @@ but is **deliberately absent from the package root**: it is a configuration API
 rather than a data type, and promoting it is a larger commitment than the
 0.6.0 re-export batch made. `tests/test_public_surface.py` pins both halves of
 that decision.
+`Agent(policies=PolicySet(...))` records the set on every run it makes; its
+`RedactionPolicy.extra_secret_keys` then applies to every save of that run.
 
 ## Next
 

@@ -59,7 +59,10 @@ def scan(objects: FilesystemObjectStore, index: SQLiteBackend, tenant: str) -> O
     """Decode every stored object; anything the index records from now on is newer."""
     graph = ObjectGraph(objects, tenant)
     graph.since = index.clock()
-    graph.listed = set(objects.list(tenant))
+    # Streamed: the request-path listing stops at 100k objects, and a tenant that
+    # outgrew it is exactly the one that needs a purge.
+    stream = getattr(objects, "iter", None)
+    graph.listed = set(stream(tenant) if callable(stream) else objects.list(tenant))
     for oid in sorted(graph.listed):
         graph.load(oid)
     return graph

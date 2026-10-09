@@ -22,6 +22,7 @@ from opentine.remote._jwks import (
     KeySet,
     OIDCError,
 )
+from opentine.remote._jwt_claims import validate_claims
 
 #: ``typ`` values an access or ID token may carry (RFC 7519, RFC 9068). Absent is
 #: accepted too. Anything else -- ``dpop+jwt``, ``logout+jwt``, ``secevent+jwt`` --
@@ -133,7 +134,12 @@ class JWTVerifier:
         refresh_interval: float = DEFAULT_REFRESH_INTERVAL,
         max_key_age: float = DEFAULT_MAX_KEY_AGE,
         clock: Callable[[], float] = time.monotonic,
+        authorized_parties: tuple[str, ...] = (),
     ):
+        #: Client ids (``azp``) accepted besides the audience itself (_jwt_claims).
+        if not all(isinstance(party, str) and party for party in authorized_parties):
+            raise OIDCError("authorized parties must be non-empty client id strings")
+        self.authorized_parties = frozenset(authorized_parties)
         self._key_set = KeySet(
             jwks,
             fetch=jwks_fetch,
@@ -210,38 +216,5 @@ class JWTVerifier:
             raise OIDCError("no JWKS key matches the token 'kid'")
         _verify_signature(alg, jwk, f"{header_b64}.{payload_b64}".encode(), _b64url(sig_b64))
         claims = _json_object(payload_b64, "payload")
-        self._validate(claims)
+        validate_claims(self, claims)
         return claims
-
-    def _validate(self, claims: dict[str, Any]) -> None:
-        if claims.get("iss") != self.issuer:
-            raise OIDCError("JWT issuer mismatch")
-        audience = claims.get("aud")
-        allowed = audience if isinstance(audience, list) else [audience]
-        if not all(isinstance(item, str) for item in allowed):
-            raise OIDCError("JWT audience must be a string or list of strings")
-        if self.audience not in allowed:
-            raise OIDCError("JWT audience mismatch")
-        authorized_party = claims.get("azp")
-        if (len(allowed) > 1 or authorized_party is not None) and authorized_party != self.audience:
-            raise OIDCError("JWT authorized party mismatch")
-        now = self.now()
-        if isinstance(now, bool) or not isinstance(now, (int, float)) or not math.isfinite(now):
-            raise OIDCError("JWT verifier clock is invalid")
-        expiry = claims.get("exp")
-        if (
-            isinstance(expiry, bool)
-            or not isinstance(expiry, (int, float))
-            or not math.isfinite(expiry)
-            or now >= expiry + self.leeway
-        ):
-            raise OIDCError("JWT is expired or missing 'exp'")
-        not_before = claims.get("nbf")
-        if not_before is not None:
-            if (
-                isinstance(not_before, bool)
-                or not isinstance(not_before, (int, float))
-                or not math.isfinite(not_before)
-                or now < not_before - self.leeway
-            ):
-                raise OIDCError("JWT is not yet valid")

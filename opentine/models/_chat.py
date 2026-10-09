@@ -10,6 +10,7 @@ from opentine.models._chat_billing import chat_meter
 from opentine.models._chat_request import build_messages, build_tools
 from opentine.models._chat_stream import ChatStreamMixin
 from opentine.models._client import closing_client
+from opentine.models._endpoint_security import require_key_transport
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._stream_content import chat_content
 from opentine.models._terminal import chat_terminal
@@ -57,7 +58,13 @@ class ChatCompletions(ChatStreamMixin):
         service_tier: str | None = None,
         unmetered: bool = False,
         include_usage: bool | None = None,
+        allow_insecure: bool = False,
     ):
+        # A local server's own default key is a placeholder, not a secret.
+        placeholder = api_key == getattr(type(self), "default_key", None)
+        require_key_transport(
+            base_url, api_key, placeholder=placeholder, allow_insecure=allow_insecure
+        )
         self._model = model
         self._provider = provider
         self._api_key = api_key

@@ -201,7 +201,8 @@ def test_keygen_refuses_force_when_it_writes_no_file(workspace, monkeypatch, cap
 
 
 def test_keygen_without_force_still_prints_a_keypair(workspace, monkeypatch, capsys):
-    code, out = _invoke(monkeypatch, capsys, "keygen")
+    # 0.9.2: printing the private seed takes an explicit --stdout (CI logs keep stdout).
+    code, out = _invoke(monkeypatch, capsys, "keygen", "--stdout")
     assert code == 0 and "private (seed hex)" in out and "public (hex)" in out
 
 
@@ -405,6 +406,8 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "signed.tine"], ["--require-signature"], "honoured"),
     (["verify", "ed.tine"], ["--pubkey", "ed.pub"], "honoured"),
     (["verify", "ed.tine"], ["--trust-embedded-key"], "honoured"),
+    (["verify", "ed.tine"], ["--pin", "sha256:" + "0" * 64], "honoured"),
+    (["verify", "signed.tine", "--key-env", KEY_ENV], ["--pin", "sha256:" + "0" * 64], "refused"),
     # v0.5.0 D2: --json replaces the human rendering with one machine-readable object.
     (["verify", "source.tine"], ["--json"], "honoured"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--key-file", "hmac.key"], "refused"),
@@ -414,8 +417,12 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),
-    (["keygen"], ["--pub", "k.pub"], "honoured"),
+    (["keygen", "--stdout"], ["--pub", "k.pub"], "honoured"),
     (["keygen", "--out", "k.hex"], ["--pub", "k.hex"], "refused"),
+    (["keygen"], ["--stdout"], "honoured"),
+    (["keygen", "--out", "k.hex"], ["--stdout"], "refused"),
+    (["keygen", "--out", "k.hex"], ["--hmac"], "honoured"),
+    (["keygen", "--out", "k.hex", "--hmac"], ["--pub", "k.pub"], "refused"),
     # tine migrate
     (["migrate", "legacy.tine"], ["--save", "out.tine"], "honoured"),
     (["migrate", "legacy.tine"], ["--in-place"], "honoured"),

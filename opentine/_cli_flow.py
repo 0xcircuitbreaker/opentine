@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from opentine._artifact_io import artifact_integrity, read_artifact_json
 from opentine._cli_common import (
     BRAND,
     _find_run,
@@ -125,4 +126,13 @@ def cmd_resume(args: argparse.Namespace) -> None:
         f"({len(resumed.steps)} steps)"
     )
     _print_run_tree(resumed)
+    # Resume rewrites the artifact in place, and a plain save drops any signature
+    # (re-signing is an explicit act). Say so, as ``tine tag`` does.
+    signed = Path(path).is_file() and bool(
+        (artifact_integrity(read_artifact_json(path)) or {}).get("signature")
+    )
     resumed.save(path)
+    if signed:
+        console.print(
+            "[yellow]Signature removed[/] by this resume; re-run [bold]tine sign[/] to restore it."
+        )

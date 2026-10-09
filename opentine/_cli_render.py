@@ -26,18 +26,20 @@ STATUS_COLORS = {"completed": "green", "failed": "red", "paused": "yellow", "run
 
 
 def _budget_str(budget) -> str:
+    # Every value comes from the artifact's manifest: Budget accepts a numeric
+    # *string* padded with whatever str.strip() removes, NEL (U+0085) included.
     parts = []
     if budget.max_cost is not None:
-        parts.append(f"cost<=${budget.max_cost}")
+        parts.append(f"cost<=${_terminal(budget.max_cost)}")
     if budget.max_usage is not None:
-        parts.append(f"tokens<={budget.max_usage}")
+        parts.append(f"tokens<={_terminal(budget.max_usage)}")
     if budget.max_steps is not None:
-        parts.append(f"steps<={budget.max_steps}")
+        parts.append(f"steps<={_terminal(budget.max_steps)}")
     if budget.max_duration is not None:
-        parts.append(f"duration<={budget.max_duration}s")
+        parts.append(f"duration<={_terminal(budget.max_duration)}s")
     if budget.strict_cost:
         parts.append("strict_cost=true")
-    parts.append(f"on_breach={budget.on_breach}")
+    parts.append(f"on_breach={_terminal(budget.on_breach)}")
     return ", ".join(parts)
 
 
@@ -183,8 +185,10 @@ def _print_diff_table(left: Run, right: Run) -> None:
             label = _terminal(delta.name + keys)
             table.add_row(
                 "",
-                f"[red]- {label}: {_terminal(_display_value(delta.before))[:48]}[/]",
-                f"[green]+ {label}: {_terminal(_display_value(delta.after))[:48]}[/]",
+                # Clip, then escape: clipping escaped markup can strand the
+                # backslash that escapes a "[" and so swallow the closing "[/]".
+                f"[red]- {label}: {_terminal(_display_value(delta.before)[:48])}[/]",
+                f"[green]+ {label}: {_terminal(_display_value(delta.after)[:48])}[/]",
                 "",
             )
     console.print(table)

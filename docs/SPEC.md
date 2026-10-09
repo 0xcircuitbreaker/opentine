@@ -554,7 +554,10 @@ walks upward from the given path looking for `<dir>/config.json` or
 
 > **⚠ Wart — unknown keys are accepted, and so is any formatting.** Validation
 > checks only that the four required pairs match; extra keys pass, and the
-> file need not be canonical or newline-terminated on read.
+> file need not be canonical or newline-terminated on read. Since 0.9.2 the
+> reference reader refuses a key that appears twice and a JSON boolean where a
+> number is required (`true` is not `1`), and requires UTF-8 (a leading BOM is
+> tolerated).
 
 ## 2.3 `objects/`
 
@@ -664,10 +667,13 @@ Append-only, one **canonical JSON object (§0.2) followed by LF** per row:
 | `ref` | string | the normalized ref name |
 | `time_ns` | **string** | nanoseconds since the Unix epoch, **decimal digits in a JSON string** — because canonical JSON (§0.2 rule 7) rejects integers beyond 2⁵³−1 |
 
-> **⚠ Wart — the reflog row is appended *after* the ref is replaced,** and the
-> file has no size bound or rotation. A crash in that window leaves a moved ref
-> with no log row. The reflog is history, not authority: never derive a ref's
-> current value from it.
+> **⚠ Wart — the reflog row is appended *after* the ref is replaced.** A crash
+> in that window leaves a moved ref with no log row. The reflog is history, not
+> authority: never derive a ref's current value from it. Since 0.9.2 each file
+> is bounded at 1 MiB: when an append would pass the bound, the writer
+> atomically replaces the file with its newest whole rows (about half the
+> bound) plus the new row, so the oldest history is dropped. A reader MUST NOT
+> assume a log reaches back to a ref's first row.
 
 ## 2.7 `shallow`
 

@@ -522,6 +522,7 @@ person at the terminal is authenticated by having the shell, a model reached
 over MCP is not.
 
 ```bash
+tine keygen --hmac --out ~/.keys/release.hmac            # a strong shared secret
 tine attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
     --key-file ~/.keys/release.hmac --key-id release-2026   # signs the claim
 tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
@@ -565,7 +566,8 @@ export TINE_KMS_KEY="$(openssl rand -base64 32)"
 tine serve --root /srv/opentine --cert cert.pem --key key.pem
 ```
 
-TLS is mandatory unless `--insecure-dev` is explicit. Static bearer tokens are
+TLS is mandatory unless `--insecure-dev` is explicit, and `--insecure-dev`
+binds a loopback `--host` only (`--insecure-dev-any-host` to override). Static bearer tokens are
 for development; OIDC, reader/writer/admin RBAC, tenant namespaces, KMS key
 providers, authorization, retention, audit, and admission-policy interfaces are
 pluggable. The repository and extension seams are the enterprise foundation;
@@ -652,7 +654,8 @@ tine cost <run>                       Show cost, tokens, and budget state as rec
 tine price <run> --at 2026-07-15      Re-price a run from the catalog (also prices imports)
 tine verify <run>                     Verify integrity, and authenticity when a key is given
 tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
-tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
+tine keygen --out key --pub key.pub   Generate an Ed25519 keypair (private key 0600)
+tine keygen --hmac --out release.hmac Generate a 32-byte HMAC key
 tine fork <run> --from-step 3         Branch from a step and continue there
 tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
 tine replay <run> --verify            Check the replay reproduces the run: exit 0/1
@@ -762,7 +765,8 @@ V3 repository:
 
 ```text
 tine init [path] [--bare]
-tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified]
+tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified] \
+    [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] [--pin FINGERPRINT]...
 tine fsck --repo . [--shallow]
 tine repo-log [ref] --repo . [--limit N] [--json]
 tine repo-show <ref-or-run-oid> --repo . [--json]
@@ -779,7 +783,7 @@ tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
 tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid|ref-or-run-oid> --repo . \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
-    [--require-signature] [--signer NAME]... [--claim JSON] [--json]
+    [--pin FINGERPRINT]... [--require-signature] [--signer NAME]... [--claim JSON] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
@@ -793,13 +797,13 @@ repo-fork` branches a run object and moves a repository ref.
 Self-hosted remote:
 
 ```text
-tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev]
+tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev] [--writer-promotes]
 tine serve --root DIR [--tenant T] refs | delete-ref NAME [--expect OID] | associations OID
 tine serve --root DIR [--tenant T] delete-objects OID... [--from FILE|-] [--dry-run]
 tine serve --root DIR [--tenant T] purge [--grace-seconds N] [--dry-run]
-tine fetch <remote> --repo . [--tenant T] [--ref R] [--depth N]
-tine push <remote> --repo . [--tenant T] [--ref R] [--remote-ref R]
-tine clone <remote> <path> [--tenant T] [--ref R] [--depth N]
+tine fetch <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--depth N]
+tine push <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--remote-ref R]
+tine clone <remote> <path> [--tenant T] [--token-file PATH] [--ref R] [--depth N]
 ```
 
 Flag details that are easy to get wrong:
@@ -827,8 +831,9 @@ Flag details that are easy to get wrong:
   separate `--force` waives the pre-sign integrity refusal, so it can produce a
   valid signature over a body that already failed verification.
 - `tine verify` fails closed as soon as any of `--key-env`, `--key-file`,
-  `--pubkey`, `--require-signature`, or `--trust-embedded-key` is present.
-  With none of them it checks the integrity digest only.
+  `--pubkey`, `--require-signature`, `--trust-embedded-key` or `--pin` is
+  present. With none of them it checks the integrity digest only, and says so
+  when the artifact is signed.
 - `tine search` understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
   `before:` predicates plus free text. `model:` matches a substring of the model
   id, `status:` is exact, and `cost:` accepts `>`, `>=`, `<`, `<=`, and

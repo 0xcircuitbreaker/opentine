@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from opentine._repo_cli_json import (
     emit_repo_search,
     emit_repo_show,
 )
+from opentine._repo_cli_migrate import migration_keys
 from opentine._repo_cli_query_render import render_diff, render_search
 from opentine._repo_cli_render import render_context, render_log, render_repo_show
 from opentine.repo import Repo
@@ -29,6 +31,34 @@ from opentine.repo import Repo
 # ids ``repo-diff --json`` reports must be the objects semantic_diff compared.
 from opentine.repository.ops import resolve_target
 from opentine.repository.store import _atomic_bytes
+
+#: A bearer token file is one line; anything larger is not a token.
+MAX_TOKEN_FILE_BYTES = 8192
+
+
+def _token(args: argparse.Namespace) -> str | None:
+    """The bearer token for a remote verb, from the least visible source given.
+
+    ``--token`` puts the secret in argv, where ``ps``, ``/proc`` and shell
+    history see it: it still works, with a warning. ``--token-file`` and
+    ``TINE_REMOTE_TOKEN`` (read later when neither flag is given) do not.
+    """
+    token, path = args.token, getattr(args, "token_file", None)
+    if token and path:
+        raise ValueError("pass --token or --token-file, not both")
+    if path:
+        with open(path, "rb") as handle:
+            raw = handle.read(MAX_TOKEN_FILE_BYTES + 1)
+        secret = raw.decode("utf-8", "strict").strip() if len(raw) <= MAX_TOKEN_FILE_BYTES else ""
+        if not secret or any(character.isspace() for character in secret):
+            raise ValueError("--token-file must hold exactly one token")
+        return secret
+    if token:
+        sys.stderr.write(
+            "warning: --token exposes the bearer token to the process list and shell "
+            "history; set TINE_REMOTE_TOKEN or use --token-file instead\n"
+        )
+    return token
 
 
 def cmd_init(args: argparse.Namespace, console) -> None:
@@ -45,7 +75,7 @@ def cmd_clone(args: argparse.Namespace, console) -> None:
         args.remote,
         args.path,
         tenant=args.tenant,
-        token=args.token,
+        token=_token(args),
         ref=args.ref,
         depth=args.depth,
         allow_insecure=args.allow_insecure,
@@ -172,7 +202,8 @@ def cmd_pack(args: argparse.Namespace, console) -> None:
 
 def cmd_migrate_v3(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
-    result = repo.migrate_v2(args.source, ref=args.ref, strict=not args.allow_unverified)
+    keys = migration_keys(args)  # the source's signature, when a key flag asks for it
+    result = repo.migrate_v2(args.source, ref=args.ref, strict=not args.allow_unverified, **keys)
     print(json.dumps(asdict(result), indent=2))
 
 
@@ -181,7 +212,7 @@ def cmd_fetch(args: argparse.Namespace, console) -> None:
     result = repo.fetch(
         args.remote,
         tenant=args.tenant,
-        token=args.token,
+        token=_token(args),
         ref=args.ref,
         depth=args.depth,
         allow_insecure=args.allow_insecure,
@@ -194,7 +225,7 @@ def cmd_push(args: argparse.Namespace, console) -> None:
     result = repo.push(
         args.remote,
         tenant=args.tenant,
-        token=args.token,
+        token=_token(args),
         ref=args.ref,
         remote_ref=args.remote_ref,
         allow_insecure=args.allow_insecure,

@@ -9,10 +9,13 @@ from typing import Any
 from opentine.kernel import parse_oid, validate_links
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
+from opentine.remote._audit_verify import audit_report
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
+from opentine.remote._ref_policy import ref_permission
+from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
 from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref, validate_ref_listing
-from opentine.remote.backend import valid_tenant
+from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
     AuditEvent,
@@ -66,10 +69,11 @@ class RemoteService:
     def _authorize(self, identity: Identity, action: str, tenant: str) -> None:
         valid_tenant(tenant)
         if not self.authorization.authorize(identity, action, tenant):
-            self._audit(
-                identity, identity.tenant, action, "denied", {"requested_tenant": tenant},
-            )  # fmt: skip
-            raise PermissionError(f"not authorized for {action} in {tenant}")
+            # Under the identity's tenant when it names one, else the one it asked
+            # for: an invalid tenant claim used to make the denial unwritable.
+            where = audit_tenant(identity.tenant, tenant)
+            self._audit(identity, where, action, "denied", {"requested_tenant": tenant})
+            raise AuthorizationDenied(f"not authorized for {action} in {tenant}")
 
     def _audit(
         self,
@@ -100,36 +104,7 @@ class RemoteService:
 
     def verify_audit_chain(self, identity: Identity, tenant: str) -> dict[str, Any]:
         self._authorize(identity, "audit", tenant)
-        verify = getattr(self.audit, "verify_audit_chain", None)
-        status_method = getattr(self.audit, "audit_status", None)
-        head = getattr(self.audit, "audit_head", None)
-        warnings = getattr(self.audit, "audit_warnings", None)
-        if not all(callable(item) for item in (verify, head, warnings)):
-            raise RuntimeError("configured AuditSink does not expose chain verification")
-        if callable(status_method):
-            # Head read first and passed in on purpose: the status is bound to the
-            # head reported, so a caller never gets "verified" for a head that was
-            # never verified. A concurrent append yields "invalid" rather than a
-            # stale assurance — a false alarm, the safe direction here.
-            verified_head = head()
-            status = status_method(expected_head=verified_head)
-            warning_list = warnings() if status == "legacy-unverified" else []
-        else:
-            warning_list = warnings()
-            verified_head = head()
-            valid = verify()
-            valid = valid and head() == verified_head
-            status = (
-                "verified"
-                if valid and not warning_list
-                else ("legacy-unverified" if valid else "invalid")
-            )
-        return {
-            "head": verified_head,
-            "ok": status == "verified",
-            "status": status,
-            "warnings": warning_list,
-        }
+        return audit_report(self.audit)
 
     def negotiate(
         self,
@@ -215,6 +190,9 @@ class RemoteService:
     ) -> bool:
         self._authorize(identity, "update_ref", tenant)
         name = normalize_ref(name)
+        extra = ref_permission(name, expected_old)
+        if extra:  # promotions/*, or moving an existing tags/* ref (_ref_policy)
+            self._authorize(identity, extra, tenant)
         parse_oid(new_oid)
         if expected_old is not None:
             parse_oid(expected_old)
@@ -237,8 +215,15 @@ class RemoteService:
         )
         return changed
 
-    def search(self, identity: Identity, tenant: str, query: dict[str, Any]) -> list[str]:
+    def search(
+        self, identity: Identity, tenant: str, query: dict[str, Any], *, truncated=None
+    ) -> list[str]:
+        """Newest first, at most ``MAX_CONTROL_RESULTS``; *truncated* gets ``True`` if cut."""
         self._authorize(identity, "search", tenant)
-        results = self.index.search(tenant, query)
-        self._audit(identity, tenant, "search", "ok", {"results": len(results)})
+        results = list(self.index.search(tenant, query))
+        cut = len(results) > MAX_CONTROL_RESULTS
+        results = results[:MAX_CONTROL_RESULTS]
+        if cut and truncated is not None:
+            truncated.append(True)
+        self._audit(identity, tenant, "search", "ok", {"results": len(results), "truncated": cut})
         return results

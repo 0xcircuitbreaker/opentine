@@ -376,6 +376,7 @@ def test_verify_json_reports_integrity_and_signature(workspace, capsys, monkeypa
         "key_id",
         "signer",
         "signed_at",
+        "key_fingerprint",  # 0.9.2: the Ed25519 key a verdict rests on; null for HMAC
         "reason",
     }
 

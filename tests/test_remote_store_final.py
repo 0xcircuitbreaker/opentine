@@ -53,8 +53,8 @@ def test_audit_verification_status_is_bound_to_the_returned_head():
     result = service.verify_audit_chain(Identity("admin", "acme", ("admin",)), "acme")
 
     assert audit.expected == "a" * 64
+    # No head in the report: the chain is server-wide (0.9.2, cross-tenant timing).
     assert result == {
-        "head": "a" * 64,
         "ok": False,
         "status": "invalid",
         "warnings": [],

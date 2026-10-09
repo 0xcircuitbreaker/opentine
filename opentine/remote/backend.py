@@ -7,6 +7,7 @@ import re
 import sqlite3
 import tempfile
 import threading
+from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
@@ -19,9 +20,10 @@ from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anch
 from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._db import open_db
 from opentine.remote._object_file import object_file_size, read_object_file
-from opentine.remote._object_list import list_objects
+from opentine.remote._object_list import iter_objects, list_objects
 from opentine.remote._ref_backend import SQLiteRefMixin
 from opentine.remote._schema import initialize
+from opentine.remote._sealed import OBJECT, seal, unseal
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 from opentine.repository._refs import normalize_ref
 
@@ -75,7 +77,7 @@ class FilesystemObjectStore:
             encrypted = read_object_file(self._path(tenant, oid))
         except FileNotFoundError as exc:
             raise KeyError(oid) from exc
-        raw = self.keys.decrypt(tenant, encrypted)
+        raw = unseal(self.keys, OBJECT, tenant, oid, encrypted)
         ObjectEnvelope.decode(raw, oid)
         return raw
 
@@ -94,7 +96,7 @@ class FilesystemObjectStore:
         fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
         try:
             with os.fdopen(fd, "wb") as handle:
-                handle.write(self.keys.encrypt(tenant, data))
+                handle.write(seal(self.keys, OBJECT, tenant, oid, data))
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
@@ -125,6 +127,10 @@ class FilesystemObjectStore:
         root = self.root / valid_tenant(tenant)
         return list_objects(root, limit=limit, truncate=truncate)
 
+    def iter(self, tenant: str) -> Iterator[str]:
+        """Every stored oid, streamed and unbounded (operator maintenance only)."""
+        return iter_objects(self.root / valid_tenant(tenant))
+
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
@@ -153,6 +159,8 @@ class SQLiteBackend(SQLiteRefMixin, SQLiteAdminMixin, SQLiteAssociationMixin, SQ
         self._audit_lock_path = Path(str(self.path) + ".audit-lock")
         self._audit_key, _ = load_key(self._key_path, audit_key)
         self._audit_lock = threading.Lock()
+        self._verify_lock = threading.Lock()
+        self._verified_point: tuple[int, str, float] | None = None
         if reanchor_audit_head is not None and not re.fullmatch(
             r"[0-9a-f]{64}", reanchor_audit_head
         ):
@@ -200,12 +208,12 @@ class SQLiteBackend(SQLiteRefMixin, SQLiteAdminMixin, SQLiteAssociationMixin, SQ
         prefix = str(query.get("type") or "")
         if prefix and prefix not in OBJECT_TYPES:
             raise ValueError("invalid object type filter")
+        # One past the bound, newest first with a total order: the service cuts
+        # it and says so. Refusing instead let any writer disable search.
         with self._connect() as database:
             rows = database.execute(
                 "SELECT oid FROM objects WHERE tenant=? AND oid LIKE ? "
-                "ORDER BY created_at DESC LIMIT ?",
+                "ORDER BY created_at DESC, oid LIMIT ?",
                 (valid_tenant(tenant), f"{prefix}%", MAX_CONTROL_RESULTS + 1),
             ).fetchall()
-        if len(rows) > MAX_CONTROL_RESULTS:
-            raise ValueError("search exceeds control-plane result limit")
         return [row[0] for row in rows]

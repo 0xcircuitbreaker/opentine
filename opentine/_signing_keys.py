@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from opentine._ed25519_order import weak_public_key
+
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import (
         Ed25519PrivateKey,
@@ -75,17 +77,27 @@ def load_ed25519_private(key: Any):
 
 
 def coerce_ed25519_public(key: Any):
+    """A trusted Ed25519 public key, refusing one no honest signer could hold.
+
+    A small-order or non-canonically encoded key verifies a crafted signature
+    over any message (``_ed25519_order``), so it is never a key to trust.
+    """
     _require_crypto()
     if isinstance(key, Ed25519PublicKey):
-        return key
-    if isinstance(key, str):
-        key = key.strip()
-        if is_hex(key) and len(key) == 64:
-            return Ed25519PublicKey.from_public_bytes(bytes.fromhex(key))
-        key = key.encode()
-    if isinstance(key, (bytes, bytearray)) and len(key) == 32:
-        return Ed25519PublicKey.from_public_bytes(bytes(key))
-    raise SignatureError("ed25519 public key must be a 32-byte key or 64-char hex")
+        public = key
+    elif isinstance(key, str) and is_hex(key.strip()) and len(key.strip()) == 64:
+        public = Ed25519PublicKey.from_public_bytes(bytes.fromhex(key.strip()))
+    elif isinstance(key, (str, bytes, bytearray)) and len(raw := _raw(key)) == 32:
+        public = Ed25519PublicKey.from_public_bytes(raw)
+    else:
+        raise SignatureError("ed25519 public key must be a 32-byte key or 64-char hex")
+    if weak_public_key(public.public_bytes_raw()):
+        raise SignatureError("ed25519 public key has small order or a non-canonical encoding")
+    return public
+
+
+def _raw(key: str | bytes | bytearray) -> bytes:
+    return key.strip().encode() if isinstance(key, str) else bytes(key)
 
 
 def ed25519_private_from_file(path: str | Path):
