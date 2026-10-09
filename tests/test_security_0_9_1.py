@@ -123,6 +123,7 @@ def test_f3_v3_store_scrubs_vendor_shapes_but_keeps_counters(tmp_path: Path):
 def test_b3_foreign_ancestor_repository_is_refused(tmp_path: Path, monkeypatch):
     if not hasattr(os, "geteuid"):
         pytest.skip("ownership is POSIX-only")
+    tmp_path = tmp_path.resolve()  # macOS: /var is a symlink to /private/var
     Repo.init(tmp_path)
     nested = tmp_path / "project" / "sub"
     nested.mkdir(parents=True)
@@ -137,6 +138,7 @@ def test_b3_foreign_ancestor_repository_is_refused(tmp_path: Path, monkeypatch):
 
 
 def test_b3_bare_repository_opens_at_its_own_path(tmp_path: Path):
+    tmp_path = tmp_path.resolve()
     Repo.init(tmp_path)
     bare = tmp_path / "remote.git"
     Repo.init(bare, bare=True)
