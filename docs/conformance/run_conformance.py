@@ -19,6 +19,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import shlex
 import subprocess
 import sys
@@ -129,8 +130,11 @@ def reason_ok(actual: Any, case: dict[str, Any], groups: list[list[str]]) -> boo
 
 class Adapter:
     def __init__(self, command: str) -> None:
+        # POSIX shell-word rules would read every backslash in a Windows path
+        # ("D:\\a\\python.exe") as an escape, so on Windows the command is the
+        # native command line it already is, parsed by CreateProcess itself.
         self.process = subprocess.Popen(
-            shlex.split(command),
+            command if os.name == "nt" else shlex.split(command),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             text=True,

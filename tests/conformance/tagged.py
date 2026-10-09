@@ -76,14 +76,26 @@ def encode(value: Any) -> Any:
         return {"$i": str(value)}
     if isinstance(value, float):
         return {"$f": _float_literal(value)}
+    # Recursion below uses plain loops, never comprehensions: on Python 3.11 a
+    # comprehension is its own frame, so each nesting level cost two frames and
+    # the 512-deep vectors overflowed the default recursion limit (3.12+ inlines
+    # comprehensions, PEP 709, which is why only 3.11 failed).
     if isinstance(value, (list, tuple)):
-        return [encode(item) for item in value]
+        items = []
+        for item in value:
+            items.append(encode(item))
+        return items
     if isinstance(value, dict):
         if not all(isinstance(key, str) for key in value):
             raise TypeError("a non-string object key cannot be spelled in a tagged tree")
         if any(needs_code_units(key) for key in value):
-            return {"$obj": [[encode(key), encode(item)] for key, item in value.items()]}
-        body = {key: encode(item) for key, item in value.items()}
+            pairs = []
+            for key, item in value.items():
+                pairs.append([encode(key), encode(item)])
+            return {"$obj": pairs}
+        body = {}
+        for key, item in value.items():
+            body[key] = encode(item)
         if len(body) == 1 and next(iter(body)).startswith("$"):
             return {"$obj": body}
         return body
@@ -93,7 +105,10 @@ def encode(value: Any) -> Any:
 def decode(node: Any) -> Any:
     """Tagged JSON spelling -> the Python value it denotes."""
     if isinstance(node, list):
-        return [decode(item) for item in node]
+        items = []
+        for item in node:
+            items.append(decode(item))
+        return items
     if not isinstance(node, dict):
         return node
     if len(node) == 1:
@@ -105,10 +120,14 @@ def decode(node: Any) -> Any:
         if tag == "$u":
             return _from_code_units(payload)
         if tag == "$obj":
-            if isinstance(payload, list):
-                return {decode(key): decode(item) for key, item in payload}
-            return {key: decode(item) for key, item in payload.items()}
-    return {key: decode(item) for key, item in node.items()}
+            decoded = {}
+            for key, item in payload if isinstance(payload, list) else payload.items():
+                decoded[decode(key) if isinstance(payload, list) else key] = decode(item)
+            return decoded
+    body = {}
+    for key, item in node.items():
+        body[key] = decode(item)
+    return body
 
 
 def contains_bare_number(node: Any) -> bool:

@@ -558,7 +558,7 @@
     "frames/ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d.pack": "ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d",
     "keys.json": "54132bd22d00a6b10de054fdd37ff82a27135fa0237289591af01cb3a28edb65",
     "report.schema.json": "f2440b4314f7b2e308b952342cd180528d275120cf8106619aa235a5707e1e70",
-    "run_conformance.py": "9f65900bd554b7d4755ebae9ce713e9ed5f9a556e6df15570fcd1d32af4f44b2",
+    "run_conformance.py": "f6a61589c4a02c6121b7fd86edaf54009778ca7186fc042eda0fd7ffad67c47d",
     "tests/fixtures/compat/v0_3_0/artifact.tine": "7c1d108de35c1c3cb7deff7d22b56b8550f095904f6ccd5ad730eee879a6c9d9",
     "tests/fixtures/compat/v0_3_0/artifact_signed.tine": "a8a4b35a117e9bbb5e96706fdc70828667d6df050e217db76dcba5f01522cee6",
     "tests/fixtures/compat/v0_3_0/artifact_signed_fork_reason.tine": "8c6bb6d46b30a6248ce3b11b02709ec1f1e59feb90b63297258e1a6dbdd15b9f",
