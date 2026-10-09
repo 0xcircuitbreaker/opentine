@@ -17,6 +17,7 @@ from typing import Any
 
 from opentine.kernel import ObjectEnvelope, canonical_json
 from opentine.repository.pack import MAGIC
+from tests.conformance.frames import stable_frame
 
 #: A fixed run oid used wherever a case needs a syntactically valid target.
 RUN_ID = "run:sha256:" + "11" * 32
@@ -63,12 +64,14 @@ def pack_frame(objects: list[bytes], shallow: list[str], *, version: Any = 1) ->
         {"data": base64.b64encode(raw).decode("ascii"), "id": oid_of(raw)} for raw in objects
     ]
     body = canonical_json({"objects": entries, "shallow": shallow, "version": version})
-    return MAGIC + hashlib.sha256(body).digest() + zlib.compress(body, level=9)
+    return stable_frame(MAGIC + hashlib.sha256(body).digest() + zlib.compress(body, level=9))
 
 
 def pack_frame_from_body(body: bytes, *, digest: bytes | None = None) -> bytes:
     """A frame over arbitrary manifest bytes, for the malformed-manifest cases."""
-    return MAGIC + (digest or hashlib.sha256(body).digest()) + zlib.compress(body, level=9)
+    return stable_frame(
+        MAGIC + (digest or hashlib.sha256(body).digest()) + zlib.compress(body, level=9)
+    )
 
 
 # --- the objects every family reuses ---------------------------------------- #
