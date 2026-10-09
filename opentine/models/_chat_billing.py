@@ -5,7 +5,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from opentine.billing import PricingCatalog
+from opentine.billing import PricingCatalog, load_catalogs
 from opentine.billing._context import billing_context
 from opentine.models._metered import metered_response
 from opentine.models._provider_meta import model_name
@@ -16,9 +16,22 @@ _MISSING = object()
 _USD_TICKS = 10_000_000_000
 
 
-def _requires_cache_write(provider: str, requested: str, reported: Any) -> bool:
+def requires_cache_write(
+    provider: str, requested: str, reported: Any, catalog: PricingCatalog | None
+) -> bool:
+    """An OpenAI cache-write count is required usage exactly when the card prices one.
+
+    Keyed on the card rather than a model-name prefix, so a new model that bills
+    cache writes (gpt-6-astra did, and matched no ``gpt-5.6`` prefix) cannot have
+    an omitted count silently billed as zero writes.
+    """
+    if provider != "openai":
+        return False
     actual = model_name(reported) or requested
-    return provider == "openai" and actual.casefold().startswith("gpt-5.6")
+    card = (catalog or load_catalogs()).lookup(provider, actual)
+    return card is not None and any(
+        Decimal(str(card.rates.get(name, 0))) > 0 for name in ("cache_write_5m", "cache_write_1h")
+    )
 
 
 def _reported_cost(value_: Any) -> Decimal | None:
@@ -121,7 +134,7 @@ def chat_meter(
 ) -> dict[str, Any]:
     missing = openai_missing_usage(
         raw_usage,
-        require_cache_write=_requires_cache_write(provider, model, reported_model),
+        require_cache_write=requires_cache_write(provider, model, reported_model, catalog),
     )
     result = metered_response(
         provider,

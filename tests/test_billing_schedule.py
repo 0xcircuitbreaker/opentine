@@ -74,7 +74,10 @@ def test_every_bundled_card_without_a_schedule_prices_identically_at_every_hour(
     # today": for each one, the day and any instant within it agree, and no
     # schedule key appears in the calculation record at all.
     unscheduled = [card for card in catalog.cards if not card.schedule]
-    assert len(unscheduled) == len(catalog.cards) - 6  # only the DeepSeek v4 cards are scheduled
+    # Only DeepSeek cards are scheduled: 6 through 0.8.1, plus 5 from the 0.8.2
+    # V4.1-Flash cards and the holiday split of V4-Pro.
+    assert len(unscheduled) == len(catalog.cards) - 11
+    assert {card.provider for card in catalog.cards if card.schedule} == {"deepseek"}
     for card in unscheduled:
         day = max(card.effective_from, date(2026, 8, 24))
         baseline = calculate(MILLION, card, effective_at=day)
@@ -328,7 +331,7 @@ def test_bundled_catalog_is_schema_2_and_verifies(catalog):
     assert raw["schema"] == "opentine-pricing/2"
     assert raw["signature"]["key_id"] == "opentine-release-2026-07-r3"
     assert catalog.signed and catalog.id == f"sha256:{catalog.hash}"
-    assert len(catalog.cards) == 85
+    assert len(catalog.cards) == 122
 
 
 @pytest.mark.parametrize("schema", ["opentine-pricing/1", "opentine-pricing/2"])

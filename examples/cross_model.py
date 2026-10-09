@@ -17,17 +17,17 @@ models = []
 if os.environ.get("ANTHROPIC_API_KEY"):
     from opentine.models.anthropic import Anthropic
 
-    models.append(("anthropic", Anthropic("claude-sonnet-5")))
+    models.append(("anthropic", Anthropic("claude-sonnet-5-5")))
 
 if os.environ.get("OPENAI_API_KEY"):
     from opentine.models.openai import OpenAI
 
-    models.append(("openai", OpenAI("gpt-5.6")))
+    models.append(("openai", OpenAI("gpt-6.1-sol")))
 
 if os.environ.get("GOOGLE_API_KEY"):
     from opentine.models.google import Google
 
-    models.append(("google", Google("gemini-3.5-flash")))
+    models.append(("google", Google("gemini-3.8-flash")))
 
 if os.environ.get("OLLAMA_HOST"):
     try:

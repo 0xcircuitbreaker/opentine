@@ -204,7 +204,7 @@ For one call with no framework at all:
 
 ```bash
 tine run --model anthropic --prompt "Explain the current branch"
-tine run --model openai:gpt-5.6 --prompt "…" --save run.tine
+tine run --model openai:gpt-6.1-sol --prompt "…" --save run.tine
 ```
 
 Any OpenAI-compatible server you already run locally is one `tine run --model`

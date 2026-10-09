@@ -68,7 +68,7 @@ class Kimi(ChatCompletions):
 
 
 class DeepSeek(ChatCompletions):
-    def __init__(self, model: str = "deepseek-v4-flash", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "deepseek-flash", api_key: str | None = None, **kwargs: Any):
         kwargs.setdefault("include_usage", True)
         _base(
             self,
@@ -82,7 +82,7 @@ class DeepSeek(ChatCompletions):
 
 
 class Qwen(ChatCompletions):
-    def __init__(self, model: str = "qwen3.7-max", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "qwen3.8-max", api_key: str | None = None, **kwargs: Any):
         _base(
             self,
             model,
@@ -105,7 +105,7 @@ class Qwen(ChatCompletions):
 
 
 class GLM(ChatCompletions):
-    def __init__(self, model: str = "glm-5.2", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "glm-5.3", api_key: str | None = None, **kwargs: Any):
         kwargs.setdefault("omit_temperature", True)
         raw_key = api_key or env_key("GLM_API_KEY")
         configured_region = os.environ.get("GLM_REGION")
@@ -129,7 +129,7 @@ ZAI = GLM
 
 
 class Grok(ChatCompletions):
-    def __init__(self, model: str = "grok-4.6", api_key: str | None = None, **kwargs: Any):
+    def __init__(self, model: str = "grok-4.7", api_key: str | None = None, **kwargs: Any):
         _base(
             self,
             model,

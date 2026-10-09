@@ -195,30 +195,32 @@ def test_unsupported_provider_aliases_remain_unpriced(
 @pytest.mark.parametrize(
     ("model", "short_total", "long_total"),
     [
-        ("grok-4.5", Decimal("6.83"), Decimal("13.660004")),
-        ("grok-4.3", Decimal("2.895"), Decimal("5.79000250")),
-        ("grok-4.20", Decimal("2.895"), Decimal("5.79000250")),
+        ("grok-4.5", Decimal("6.829998"), Decimal("13.66")),
+        ("grok-4.3", Decimal("2.89499875"), Decimal("5.79")),
+        ("grok-4.20", Decimal("2.89499875"), Decimal("5.79")),
     ],
 )
-def test_grok_long_context_rates_start_above_200k(
+def test_grok_long_context_rates_start_when_the_prompt_reaches_200k(
     catalog: PricingCatalog,
     model: str,
     short_total: Decimal,
     long_total: Decimal,
 ):
-    usage = Usage(input=100_000, cache_read=100_000, output=1_000_000, reasoning=100_000)
+    # xAI bills "requests whose prompt reaches the listed token threshold" at the
+    # higher rate, so a 200,000-token prompt (input + cache reads) is already long.
+    usage = Usage(input=99_999, cache_read=100_000, output=1_000_000, reasoning=100_000)
     short = bill("xai", model, usage, catalog=catalog, effective_at="2026-07-16")
     long = bill(
         "xai",
         model,
-        Usage(input=100_001, cache_read=100_000, output=1_000_000, reasoning=100_000),
+        Usage(input=100_000, cache_read=100_000, output=1_000_000, reasoning=100_000),
         catalog=catalog,
         effective_at="2026-07-16",
     )
     assert short.amount_usd == short_total
     assert short.calculation["context_rules"] == []
     assert long.amount_usd == long_total
-    assert long.calculation["context_rules"] == ["over-200k"]
+    assert long.calculation["context_rules"] == ["at-least-200k"]
     assert all(
         Decimal(long.calculation["rates_per_million"][dimension])
         == Decimal(short.calculation["rates_per_million"][dimension]) * 2
@@ -571,7 +573,7 @@ def test_google_service_rates_and_audio_dimensions_are_exact(catalog: PricingCat
 
 
 def test_google_generate_content_rejects_unimplemented_service_transport():
-    assert Google().name == "gemini-3.5-flash"
+    assert Google().name == "gemini-3.8-flash"
     with pytest.raises(ValueError, match="standard, flex, or priority"):
         Google(service_tier="batch")
 
@@ -827,9 +829,12 @@ def test_gpt_6_astra_cache_dimensions_and_published_service_tiers(catalog: Prici
     assert bill("openai", "gpt-6-astra", small, service_tier="fast", **at).amount_usd == (
         Decimal("12")
     )
-    # OpenAI publishes no priority price for this model, so it is not carded.
+    # "Priority processing was renamed Fast mode", and priority requests are served
+    # as Fast, so a response reporting the old tier name prices as Fast.
     priority = bill("openai", "gpt-6-astra", small, service_tier="priority", **at)
-    assert priority.status == "unknown" and priority.amount_usd is None
+    assert priority.amount_usd == Decimal("12")
+    ultrafast = bill("openai", "gpt-6-astra", small, service_tier="ultrafast", **at)
+    assert ultrafast.amount_usd == Decimal("36")
     assert (
         bill("openai", "gpt-6-astra", small, catalog=catalog, effective_at="2026-09-02").status
         == "unknown"

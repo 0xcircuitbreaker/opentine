@@ -9,7 +9,7 @@ from typing import Any
 from opentine.billing import PricingCatalog
 from opentine.models._chat import ChatCompletions
 from opentine.models._client import closing_client
-from opentine.models._responses import ResponsesTransport
+from opentine.models._responses import ResponsesTransport, omits_temperature
 
 
 class OpenAI(ChatCompletions):
@@ -17,7 +17,7 @@ class OpenAI(ChatCompletions):
 
     def __init__(
         self,
-        model: str = "gpt-5.6",
+        model: str = "gpt-6.1-sol",
         api_key: str | None = None,
         base_url: str | None = None,
         *,
@@ -49,7 +49,7 @@ class OpenAI(ChatCompletions):
             provider=resolved_provider,
             api_key=resolved_key,
             base_url=resolved_base,
-            omit_temperature=omit_temperature,
+            omit_temperature=omit_temperature or omits_temperature(model),
             input_cost_per_mtok=input_cost_per_mtok,
             output_cost_per_mtok=output_cost_per_mtok,
             rates=rates,

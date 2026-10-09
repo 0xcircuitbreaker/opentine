@@ -22,7 +22,7 @@ from opentine.models._usage import value
 class Google:
     def __init__(
         self,
-        model: str = "gemini-3.5-flash",
+        model: str = "gemini-3.8-flash",
         api_key: str | None = None,
         *,
         rates: dict[str, Any] | None = None,
