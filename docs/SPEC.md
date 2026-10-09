@@ -800,12 +800,18 @@ Always emitted: `cost`, `duration`, `error`, `id`, `inputs`, `kind`,
 `model_info`, `outputs`, `parent_ids`, `timestamp`, `tool_info`.
 
 Emitted **only when non-empty** (§6.2): `causal_ids`, `provider`, `usage`,
-`billing`.
+`billing`, and `v3_kind`. `v3_kind` (since 0.8.2) carries a step's v3 event kind
+when the v2 `kind` enum cannot spell it — exactly `human`, `policy`, `approval`
+or `subagent` — and is never written for any other step, whose `kind` already
+says it. Without it a `subagent` roll-up saved to v2 read back as `model`, and a
+pricing pass billed it a second time; readers that price steps MUST prefer
+`v3_kind` over `kind` when it is present.
 
 On read, `parent_ids` falls back to a single-element list built from a legacy
 `parent_id`; `duration` and `cost` fall back to `0` only for an explicit
 `null`; `provider` falls back to `""` for any non-string value rather than
-failing the load.
+failing the load; `v3_kind` is ignored unless it is one of the four values
+above.
 
 ## 3.4 `metadata`
 
@@ -1141,6 +1147,7 @@ This rule has governed every field added since 0.3.0:
 | `signature` | v3 attestation | *always present* — but as the literal `null` that 0.3.0–0.8.1 already wrote, so unsigned attestation bytes are unchanged |
 | `tags` | v2 `metadata` | the run has tags |
 | `usage`, `billing` | v2 step record | non-empty |
+| `v3_kind` | v2 step record | the step's v3 kind has no v2 `kind` member (since 0.8.2) |
 | `draft` | v2 top level | autosave checkpoints only |
 
 The `signature` row is the interesting one: the slot already existed and was
