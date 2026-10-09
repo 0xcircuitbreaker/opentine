@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.8.3 (unreleased) — Hardening
+## 0.8.3 — 2026-10-09
+
+A hardening release: one security fix, and the capture and model-rule debts the
+0.8.2 assessment found.
 
 ### Security
 
