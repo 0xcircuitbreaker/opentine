@@ -83,16 +83,27 @@ they go through the same ``emit`` and follow every rule above.
     it; ``run_id`` str — the ``run:sha256:…`` oid it resolved to;
     ``attestation_id`` str — the new ``attestation:sha256:…`` oid; ``signer``
     str; ``claim`` object — verbatim as stored; ``evidence_ids`` array;
-    ``signed`` bool — always ``false``, because v3 has no attestation signing
-    helper yet, so the ``signer`` label is self-asserted.
+    ``signed`` bool — whether the stored attestation carries a ``tine-attest/1``
+    signature, i.e. exactly when a key flag was given; ``signature`` object or
+    null — that block verbatim as stored.
 
 ``tine evaluate TARGET --json``
     ``command`` ``"evaluate"``; ``repo``; ``target``; ``run_id``;
     ``attestation_id``; ``evaluator`` str — stored as the attestation's
-    ``signer``; ``scores`` object of finite floats; ``signed`` bool — always
-    ``false``. The object written is an ``attest`` with the claim fixed to
-    ``{"kind": "evaluation", "scores": …}``, the one shape ``repo-search`` and
-    ``repo-diff``'s ``summary.evaluations`` read back.
+    ``signer``; ``scores`` object of finite floats; ``signed`` and ``signature``
+    as for ``attest``. The object written is an ``attest`` with the claim fixed
+    to ``{"kind": "evaluation", "scores": …}``, the one shape ``repo-search``
+    and ``repo-diff``'s ``summary.evaluations`` read back.
+
+``tine repo-verify TARGET --json`` (a *read* verb: emitted whether or not the
+check passed — ``ok`` and the exit code carry that; only a refusal is
+stderr-and-exit-1 with no JSON)
+    ``command`` ``"repo-verify"``; ``repo``; ``target``; ``target_id`` str — the
+    attestation or run oid it resolved to; ``require_signature`` bool; ``count``
+    int; ``verified`` int; ``ok`` bool — the exit predicate; ``attestations``
+    array — per attestation: ``attestation_id``, ``target_id``, ``signer`` (the
+    *claimed* label, bound only when the state is verified), ``state``, ``ok``,
+    ``algorithm``, ``key_id``, ``signed_at``, ``scheme``, ``reason``.
 
 ``tine promote TARGET --json``
     ``command`` ``"promote"``; ``repo``; ``target``; ``run_id``; ``name`` str;

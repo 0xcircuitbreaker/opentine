@@ -1,0 +1,760 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.file.cr-only",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA0=",
+        "sha256": "62ec09b132bbc2cb161fd93728556bda8d784a203ca9ed05577efd927462f296"
+      },
+      "intent": "a bare CR is not one of the two accepted terminators",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-not-canonical",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\x0d",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref is not canonically encoded"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.file.internal-space",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCAK",
+        "sha256": "0e8ed28143d8fab40da7110cae8d573a81733e5872185d954029f4580f966b14"
+      },
+      "intent": "no internal whitespace: a ref file is one token",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-not-canonical",
+      "repair_temptation": "strip surrounding whitespace and take what is left",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008 \\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref is not canonically encoded"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.file.not-an-oid",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6bm90LWhleAo=",
+        "sha256": "ff42d6f5e1cb3ce4dfb41ff53d0a2903e6ef3b574c6c2a9396eaca887fca390a"
+      },
+      "intent": "the content must parse as an oid, not merely look like one",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:not-hex\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:not-hex'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.file.not-ascii",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6w6kK",
+        "sha256": "99d21d2173a89c3023c922d367b2a66963adfe6e2341a2a7d3a9556ee8076f33"
+      },
+      "intent": "a ref file is ASCII; there is nothing in an oid that is not",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-not-ascii",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:\\xc3\\xa9\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref is not ASCII"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.file.oid-bare",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA==",
+        "sha256": "ecba30ea8f31dc727e160a01e72d87b6b5d94adeee3cae9641f60a9fbab50b8f"
+      },
+      "intent": "and so is a file with no terminator at all",
+      "op": "ref.file",
+      "output": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.file.oid-crlf",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA0K",
+        "sha256": "085998eba791e2869aa15b576773f6684d730e4958c0d82ef3367ba0521d391c"
+      },
+      "intent": "a CRLF terminator is accepted too, because a Windows checkout produces one",
+      "must_differ": false,
+      "op": "ref.file",
+      "output": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "twin": "ref.file.oid-lf",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\x0d\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.file.oid-lf",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAo=",
+        "sha256": "d7a2a284a1d3c7ac31254a19a381fa54f1b5321e7d30dd3b0cc632b519214c14"
+      },
+      "intent": "writers emit <oid> LF, and that is what readers expect",
+      "op": "ref.file",
+      "output": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.file.trailing-garbage",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApzdGFsZQo=",
+        "sha256": "b137544450a725161291a0fb019194e47562f6cceca0a675ca5206e6d8937aaa"
+      },
+      "intent": "and no trailing bytes other than one LF or one CRLF",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-not-canonical",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nstale\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref is not canonically encoded"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.annotations-digest",
+      "input": {
+        "value": "annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "intent": "an annotations ref is named for the run digest its annotation targets",
+      "op": "ref.name",
+      "output": {
+        "name": "annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.at-sign",
+      "input": {
+        "value": "heads/a@b"
+      },
+      "intent": "so is an @, a +, or anything else outside [a-z0-9._/-]",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-charset",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/a@b\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/a@b'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.component-dot",
+      "input": {
+        "value": "heads/./main"
+      },
+      "intent": "a . component is refused",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/./main\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/./main'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.component-dotdot",
+      "input": {
+        "value": "heads/../main"
+      },
+      "intent": "so is a .. component",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/../main\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/../main'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.dots-and-dashes",
+      "input": {
+        "value": "heads/feature.a-b"
+      },
+      "intent": "the character class is [a-z0-9._/-]; dots and dashes inside a component are fine",
+      "op": "ref.name",
+      "output": {
+        "name": "heads/feature.a-b"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/feature.a-b\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.embedded-dotdot",
+      "input": {
+        "value": "heads/a..b"
+      },
+      "intent": "and so is .. anywhere inside a component, not only as the whole component",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/a..b\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/a..b'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.experiments",
+      "input": {
+        "value": "experiments/alpha"
+      },
+      "intent": "each namespace of the regex",
+      "op": "ref.name",
+      "output": {
+        "name": "experiments/alpha"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"experiments/alpha\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.heads-main",
+      "input": {
+        "value": "heads/main"
+      },
+      "intent": "the ordinary case",
+      "op": "ref.name",
+      "output": {
+        "name": "heads/main"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/main\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.lock-suffix",
+      "input": {
+        "value": "heads/main.lock"
+      },
+      "intent": "a .lock suffix is the guard-lock spelling and can never be a ref",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/main.lock\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/main.lock'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.non-ascii",
+      "input": {
+        "value": "heads/na\u00efve"
+      },
+      "intent": "and so is any non-ASCII character, even one that case-folds to itself",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-charset",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/na\\u00efve\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/na\u00efve'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.remotes",
+      "input": {
+        "value": "remotes/origin/main"
+      },
+      "intent": "including the untyped ones",
+      "op": "ref.name",
+      "output": {
+        "name": "remotes/origin/main"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"remotes/origin/main\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.space",
+      "input": {
+        "value": "heads/my ref"
+      },
+      "intent": "a space is outside the character class",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-charset",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/my ref\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/my ref'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.strips-refs-prefix",
+      "input": {
+        "value": "refs/heads/main"
+      },
+      "intent": "a leading refs/ is removed before matching, so both spellings normalize alike",
+      "must_differ": false,
+      "op": "ref.name",
+      "output": {
+        "name": "heads/main"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "twin": "ref.name.heads-main",
+      "x_display": "\"refs/heads/main\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.name.tags-nested",
+      "input": {
+        "value": "tags/release/2026-09"
+      },
+      "intent": "a name may carry more than one component",
+      "op": "ref.name",
+      "output": {
+        "name": "tags/release/2026-09"
+      },
+      "profile": "reader",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"tags/release/2026-09\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.trailing-dot",
+      "input": {
+        "value": "heads/main."
+      },
+      "intent": "a component ending in a dot is refused, which is what makes <ref>..lock safe",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/main.\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/main.'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.trailing-space",
+      "input": {
+        "value": "heads/main "
+      },
+      "intent": "a trailing space is refused for the same reason (and by the character class)",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-charset",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/main \"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/main '"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.unknown-namespace",
+      "input": {
+        "value": "branches/main"
+      },
+      "intent": "the namespace set is closed; there is no fallback namespace",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-namespace",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"branches/main\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'branches/main'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.uppercase-letter",
+      "input": {
+        "value": "heads/Main"
+      },
+      "intent": "a name must equal its own case-fold, and the class excludes A-Z anyway",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-not-casefolded",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/Main\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/Main'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.name.windows-device-con",
+      "input": {
+        "value": "heads/con"
+      },
+      "intent": "a component whose pre-dot prefix is a Windows device name cannot be a filename on every supported platform, so it is refused on all of them",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-windows-device",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "\"heads/con\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/con'"
+      }
+    },
+    {
+      "args": {
+        "name": "annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiXX19"
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.target.annotations-name-matches-run",
+      "input": {
+        "value": "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+      },
+      "intent": "annotations/<digest> is the only legal name for an annotation of that run",
+      "op": "ref.target",
+      "output": {},
+      "profile": "reader",
+      "section": "2.5",
+      "tier": "core",
+      "x_display": "\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\"",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "name": "annotations/0000000000000000000000000000000000000000000000000000000000000000",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiXX19"
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.target.annotations-name-mismatch",
+      "input": {
+        "value": "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+      },
+      "intent": "the name after annotations/ MUST equal the target run's 64-hex digest",
+      "op": "ref.target",
+      "profile": "reader",
+      "reason": "ref.annotation-name-mismatch",
+      "repair_temptation": "rename the ref to match the annotation it found",
+      "section": "2.5",
+      "tier": "core",
+      "twin": "ref.target.annotations-name-matches-run",
+      "x_display": "\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "annotation ref name must match its target run"
+      }
+    },
+    {
+      "args": {
+        "name": "annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.target.annotations-points-at-a-run",
+      "input": {
+        "value": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "intent": "annotations/ requires an annotation, not the run it describes",
+      "op": "ref.target",
+      "profile": "reader",
+      "reason": "ref.target-type",
+      "section": "2.5",
+      "tier": "core",
+      "x_display": "\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "annotations refs require annotation objects, got run"
+      }
+    },
+    {
+      "args": {
+        "name": "experiments/alpha",
+        "objects": [
+          "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo="
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.target.experiments-points-at-a-blob",
+      "input": {
+        "value": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "intent": "experiments/ requires a run too",
+      "op": "ref.target",
+      "profile": "reader",
+      "reason": "ref.target-type",
+      "section": "2.5",
+      "tier": "core",
+      "x_display": "\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "experiments refs require run objects, got blob"
+      }
+    },
+    {
+      "args": {
+        "name": "heads/main",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "ref.target.heads-points-at-a-run",
+      "input": {
+        "value": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "intent": "heads/ is a typed namespace and requires a run",
+      "op": "ref.target",
+      "output": {},
+      "profile": "reader",
+      "section": "2.5",
+      "tier": "core",
+      "x_display": "\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\"",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "name": "heads/main",
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119"
+        ]
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.target.heads-points-at-an-event",
+      "input": {
+        "value": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      },
+      "intent": "heads/ requires a run; a syntactically valid event oid is still wrong",
+      "op": "ref.target",
+      "profile": "reader",
+      "reason": "ref.target-type",
+      "section": "2.5",
+      "tier": "core",
+      "twin": "ref.target.heads-points-at-a-run",
+      "x_display": "\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "heads refs require run objects, got event"
+      }
+    },
+    {
+      "args": {
+        "name": "tags/release"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "ref.target.tags-untyped-still-parses",
+      "input": {
+        "value": "tags/not-an-oid"
+      },
+      "intent": "tags/ is unconstrained by type, but the target oid must still be an oid",
+      "op": "ref.target",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "2.5",
+      "tier": "core",
+      "x_display": "\"tags/not-an-oid\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'tags/not-an-oid'"
+      }
+    }
+  ],
+  "family": "refs",
+  "section": "2.4",
+  "suite_version": 1
+}

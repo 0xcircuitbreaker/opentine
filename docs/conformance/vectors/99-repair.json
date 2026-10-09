@@ -1,0 +1,400 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "top_level_keys": [
+          "format_version",
+          "run_id"
+        ]
+      },
+      "id": "repair.artifact-duplicate-key-last-wins",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAiYSIsICJydW5faWQiOiAiYiJ9",
+        "sha256": "f93dc31185ac90e0322efda35bc414fa078d525bd64582aca57900d60a0fec66"
+      },
+      "intent": "last-wins is what every unguarded JSON parser does, and it is exactly how two readers come to disagree about a document they both accepted",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.duplicate-key",
+      "repair_temptation": "keep the last value, as the JSON spec permits",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"a\", \"run_id\": \"b\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "duplicate .tine object key: 'run_id'"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "top_level_keys": [
+          "cost",
+          "format_version"
+        ]
+      },
+      "id": "repair.artifact-nan-literal-to-null",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJjb3N0IjogTmFOfQ==",
+        "sha256": "57a46d4766e7bdc8dc10459b7815f8e3d6e9a576c37bbbb64c953c23dd0b7cca"
+      },
+      "intent": "the same substitution at the .tine layer, where the value is a recorded cost",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.non-finite",
+      "repair_temptation": "accept the Python/JavaScript extension literals",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"cost\": NaN}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "non-finite number in .tine artifact: NaN"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "top_level_keys": [
+          "format_version",
+          "run_id"
+        ]
+      },
+      "id": "repair.artifact-nul-stripped",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAiYQBiIn0=",
+        "sha256": "0235d57754fe5d9d2b0bf9f361cc3be197c9684c0ae1f20a10a1eb02ecc31e5f"
+      },
+      "intent": "a NUL is a parser differential: strip it and your reader and the next one hold different strings while both report success",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.nul-byte",
+      "repair_temptation": "strip control characters before parsing",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"a\\x00b\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifacts must use UTF-8 JSON"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "id": "repair.header-reserialized-canonically",
+      "input": {
+        "bytes_b64": "eyJzY2hlbWEiOjEsImVuY29kaW5nIjoicmF3IiwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "f898ce610dd84ec7de9c56a7c3da37e177126d86d4ab38c36fbef854df36438c"
+      },
+      "intent": "re-serializing a non-canonical header and continuing gives two byte strings one object id -- content addressing stops meaning anything",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-non-canonical",
+      "repair_temptation": "parse, re-serialize, and carry on",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"schema\":1,\"encoding\":\"raw\",\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "id": "repair.header-unknown-key-dropped",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsImV4dHJhIjoxLCJzY2hlbWEiOjEsInR5cGUiOiJibG9iIn0KaGVsbG8K",
+        "sha256": "20cf31527de3250c573a7d7c94b357269c4e1308c26795278eb5b575fe1a05f2"
+      },
+      "intent": "an unknown header key is not a forward-compatibility slot: dropping it lands on the id of a *different*, legitimate object",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "envelope.header-key-count",
+      "repair_temptation": "ignore keys you do not recognise",
+      "section": "1.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"extra\":1,\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical object header"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "bytes_b64": "eyJuIjo5MDA3MTk5MjU0NzQwOTkyfQ=="
+      },
+      "id": "repair.integer-rounded-to-a-double",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "9007199254740992"
+          }
+        }
+      },
+      "intent": "rounding 2**53 to the nearest double loses the exact value the writer recorded, and the canonical bytes then name a number nobody wrote",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.integer-overflow",
+      "repair_temptation": "round to the nearest representable double",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"9007199254740992\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "bytes_b64": "eyJuIjpudWxsfQ=="
+      },
+      "id": "repair.nan-to-null",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "nan"
+          }
+        }
+      },
+      "intent": "mapping NaN to null turns a measurement that failed into a measurement that was not taken",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "repair_temptation": "emit null for anything that will not serialize",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"nan\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "objects": [
+          "event:sha256:caf08d2a763207de229c0791833cb7bd446ee3e2492dd390ec57456770db5361"
+        ],
+        "pack_id": "sha256:4173d6df8ff125574ea7596754fe88d928f0b057ecdda8075d00a917ed1864bd",
+        "shallow": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "id": "repair.pack-base64-whitespace-stripped",
+      "input": {
+        "bytes_b64": "VElORVBBQ0szAEFz1t+P8SVXTqdZZ1T+iNko8LBX7N2oB10AqRftGGS9eNrFkctupDAQRX9l5HUWtrExRprFiEQt0EBrEIQ2URb4QTDPKHSgmyj/PrCZX5hVlapK517d+gKTbI26zsB/+QK6ulbAB+Ye9XJIlh/lqf8s76EbDu+bxMT+DqJN4KaXxZM9t09zOKZUnXJ7tlGvh+dPHUQ8GGcrMN90ELpxsNqqoKu+pLUYbouwByuaJQ5dhZsmbnN8HmK015vAAootXOPiuSsztfdNH285Tk5pmwx/1njI0TnTrRjie3wqbfnY3UT2BpPtFxRZd4szRZMtd8Rx+/h2eP3YtbuwnawseFcW6zFbdi//y88qLnuwY1pXRbqF7bu8XOBP8ACsPkJfzHj156bC1PVVVUNP44q5DoZMG4y5gowjz3GUZFIT4hrjGEw41trh0CjKCHUZg1pSx0Xg+/UB7Ky+n9b9s0D2k/zHppgiVROFITLaMKI841CXaOVqiA3lTMl9V0vNUeURBknFEWKc0V0YQg/s6MV8zHYagY++/wIMyru1",
+        "sha256": "4db1a51f1b45d3b3c6ceceddb936fc39fdc1ddfe9039fcf567da098b9a6b1d9f"
+      },
+      "intent": "base64 in a pack is strictly validated: silently stripping whitespace accepts a manifest whose bytes are not the bytes the pack id covers",
+      "op": "pack.inspect",
+      "profile": "reader",
+      "reason": "pack.entry-base64",
+      "repair_temptation": "use a lenient base64 decoder",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEPACK3\\x00As\\xd6\\xdf\\x8f\\xf1%WN\\xa7YgT\\xfe\\x88\\xd9(\\xf0\\xb0W\\xec\\xdd\\xa8\\x07]\\x00\\xa9\\x17\\xed\\x18d\\xbdx\\xda\\xc5\\x91\\xcbn\\xa40\\x10E\\x7fe\\xe4u\\x16\\xb6\\xb11F\\x9a\\xc5\\x88D-\\xd0@k\\x10\\x846Q\\x16\\xf8A0\\xcf(t\\xa0\\x9b(\\xff>\\xb0\\x99_\\x98U\\x95\\xaaJ\\xe7^\\xdd\\xfa\\x02\\x93l\\x8d\\xba\\xce\\xc0\\x7f\\xf9\\x02\\xba\\xbaV\\xc0\\x07\\xe6\\x1e\\xf5rH\\x96\\x1f\\xe5\\xa9\\xff,\\xef\\xa1\\x1b\\x0e\\xef\\x9b\\xc4\\xc4\\xfe\\x0e\\xa2M\\xe0\\xa6\\x97\\xc5\\x93=\\xb7Os8\\xa6T\\x9dr{\\xb6Q\\xaf\\x87\\xe7O\\x1dD<\\x18g+0\\xdft\\x10\\xbaq\\xb0\\xda\\xaa\\xa0\\xab\\xbe\\xa4\\xb5\\x18n\\x8b\\xb0\\x07+\\x9a%\\x0e]\\x85\\x9b&ns|\\x1eb\\xb4\\xd7\\x9b\\xc0\\x02\\x8a-\\\\\\xe3\\xe2\\xb9+3\\xb5\\xf7M\\x1fo9NNi\\x9b\\x0c\\x7f\\xd6x\\xc8\\xd19\\xd3\\xad\\x18\\xe2{|*m\\xf9\\xd8\\xddD\\xf6\\x06\\x93\\xed\\x17\\x14Yw\\x8b3E\\x93-w\\xc4q\\xfb\\xf8vx\\xfd\\xd8\\xb5\\xbb\\xb0\\x9d\\xac,xW\\x16\\xeb1[v/\\xff\\xcb\\xcf*.{\\xb0cZWE\\xba\\x85\\xed\\xbb\\xbc\\\\\\xe0O\\xf0\\x00\\xac>B_\\xccx\\xf5\\xe7\\xa6\\xc2\\xd4\\xf5UUCO\\xe3\\x8a\\xb9\\x0e\\x86L\\x1b\\x8c\\xb9\\x82\\x8c#\\xcfq\\x94dR\\x13\\xe2\\x1a\\xe3\\x18L8\\xd6\\xda\\xe1\\xd0(\\xca\\x08u\\x19\\x83ZR\\xc7E\\xe0\\xfb\\xf5\\x01\\xec\\xac\\xbe\\x9f\\xd6\\xfd\\xb3@\\xf6\\x93\\xfc\\xc7\\xa6\\x98\"U\\x13\\x85!2\\xda0\\xa2<\\xe3P\\x97h\\xe5j\\x88\\x0d\\xe5L\\xc9}WK\\xcdQ\\xe5\\x11\\x06I\\xc5\\x11b\\x9c\\xd1...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid packed object"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "objects": [],
+        "pack_id": "sha256:a3ee6af344b90b0340dc27c8ce5ff99f8b83ac3244035fae1ac77fc69ecb3028",
+        "shallow": []
+      },
+      "id": "repair.pack-unknown-top-level-key-dropped",
+      "input": {
+        "bytes_b64": "VElORVBBQ0szAFuoM3xqyKYiMAKDWXfHSwLRFKWhG3ipwjzTCuyY3a6teNolxzEKgDAMBdC7/LkdXHMVcajy0UptIAl2EO/u4Nveg52dVkINAteL2pnZnJ6H1aAhQdeTWzhkXhL8KK3p+HPTvGqHTO8H6VoaFA==",
+        "sha256": "5aac17e634c9fda7b0f5322eb50f7c9d04dfb8771294c6d0c4c924f5c11e575e"
+      },
+      "intent": "dropping an unknown manifest key and continuing computes the pack id of a manifest that was never transmitted",
+      "op": "pack.inspect",
+      "profile": "reader",
+      "reason": "pack.manifest-key-set",
+      "repair_temptation": "ignore unknown keys for forward compatibility",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEPACK3\\x00[\\xa83|j\\xc8\\xa6\"0\\x02\\x83Yw\\xc7K\\x02\\xd1\\x14\\xa5\\xa1\\x1bx\\xa9\\xc2<\\xd3\\n\\xec\\x98\\xdd\\xae\\xadx\\xda%\\xc71\\n\\x800\\x0c\\x05\\xd0\\xbb\\xfc\\xb9\\x1d\\\\s\\x15q\\xa8\\xf2\\xd1Jm \\x09v\\x10\\xef\\xee\\xe0\\xdb\\xde\\x83\\x9d\\x9dVB\\x0d\\x02\\xd7\\x8b\\xda\\x99\\xd9\\x9c\\x9e\\x87\\xd5\\xa0!A\\xd7\\x93[8d^\\x12\\xfc(\\xad\\xe9\\xf8s\\xd3\\xbcj\\x87L\\xef\\x07\\xe9Z\\x1a\\x14",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "non-canonical or unsupported pack"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "id": "repair.ref-carriage-return-stripped",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA0=",
+        "sha256": "62ec09b132bbc2cb161fd93728556bda8d784a203ca9ed05577efd927462f296"
+      },
+      "intent": "a bare CR is not one of the two accepted terminators, and stripping whitespace accepts a ref file that no other reader will read the same way",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-not-canonical",
+      "repair_temptation": "call .strip() on the file's contents",
+      "section": "2.4",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\x0d",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref is not canonically encoded"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "id": "repair.shallow-crlf-normalised",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA0K",
+        "sha256": "085998eba791e2869aa15b576773f6684d730e4958c0d82ef3367ba0521d391c"
+      },
+      "intent": "normalizing CRLF makes a corrupted boundary file look healthy, and the boundary is what tells a reader 'absent by design' from 'absent and broken'",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.carriage-return",
+      "repair_temptation": "normalize line endings on read",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\x0d\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state has invalid line endings"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "id": "repair.shallow-duplicate-collapsed",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4Cg==",
+        "sha256": "c877166e24652f1f6c9005b14a02dd9a41348d7e86a13ce5226e2554da0ad81f"
+      },
+      "intent": "de-duplicating on read hides a writer that is producing a file no reader agrees with; the writer de-duplicates, the reader refuses",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.duplicate",
+      "repair_temptation": "collect the lines into a set",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nblob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state contains duplicate object ids"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {},
+      "id": "repair.surrogate-to-replacement-character",
+      "input": {
+        "bytes_b64": "eyJrIjoiXHVkODAwIn0=",
+        "sha256": "d6b17f36548f28d623847997546200dd6e58c682c7cba09be743ca7926d7fe7e"
+      },
+      "intent": "substituting U+FFFD rewrites recorded model output under a digest that claims fidelity to it; Go does this by default, which is why the rule is explicit",
+      "op": "text.validate",
+      "profile": "reader",
+      "reason": "text.lone-surrogate",
+      "repair_temptation": "decode with a lossy UTF-8 codec",
+      "section": "0.1",
+      "tier": "core",
+      "x_display": "{\"k\":\"\\\\ud800\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "conformance input holds an unpaired UTF-16 surrogate at k; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        9
+      ],
+      "expect": "reject",
+      "forbidden": {},
+      "id": "repair.usage-string-coerced-to-a-number",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOiI1In19",
+        "sha256": "5f205ce7ea2d5c2315af765f1fa6837f2ee8bf42c40de5730ad52e9f0c2f66dd"
+      },
+      "intent": "cost and duration accept a numeric string; usage values do not. Coercing one makes a token count that was never recorded look recorded",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.usage-value-not-numeric",
+      "repair_temptation": "parse any numeric-looking string",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":\"5\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be numeric"
+      }
+    }
+  ],
+  "family": "repair",
+  "section": "6",
+  "suite_version": 1
+}

@@ -1,5 +1,9 @@
 # OpenTine Security Model
 
+> The byte-level rules behind everything below — the signed views, domain
+> prefixes, verdict vocabulary, and both canonical forms — are specified in
+> **[SPEC.md](SPEC.md)**.
+
 OpenTine is local-first provenance tooling. It records agent activity and can invoke tools or external harnesses, but those execution paths are intentionally gated by explicit policies.
 
 ## Default Posture
@@ -95,6 +99,25 @@ What it does **not** prove:
 - A *stripped* signature is byte-indistinguishable from a never-signed artifact, so the file alone cannot prove it *should* be signed — establish that expectation out of band.
 - It does not prove the artifact was integrity-clean when it was signed. `tine sign` refuses an artifact whose stored digest does not match its body, but `--force` waives that refusal, so a signature records what the signer accepted rather than that the signer checked it.
 - Signing provides no confidentiality (artifacts are not encrypted).
+
+## Attestation signing (`tine-attest/1`)
+
+A v3 `attestation` is the object that says *someone approved this run*. Through 0.8.1 its `signer` was a bare label: anyone who could write to the repository could write `signer: security-team`, and nothing could tell. From 0.9.0 an attestation can be **signed**, with the same algorithms, key flags and verdicts as artifact signing.
+
+`tine attest` / `tine evaluate` / `Repo.attest(..., key=...)` store a signature block at the attestation payload's `signature` key. The block commits to a canonical *signed view* of the attestation, recomputed from the stored object at verification time:
+
+- **covered:** every payload key except `signature` — `target_id` (which run), `claim` (what is asserted), `signer` (whose assertion), `evidence_ids` (what backs it), and any field a later writer adds — plus the signature header (`alg`, `key_id`, `scheme`, `signed_at`, `signer`). Editing the claim, retargeting the approval at another run, renaming the signer, adding or dropping evidence, or downgrading the algorithm all report **mismatch**.
+- **excluded:** the signature `value` itself (it is what is being computed; the rest of the block is inside the view), and the object id and envelope. The oid is the digest of the stored payload *including* the signature, so it cannot be signed — and needs no coverage, because content addressing already makes payload → oid tamper-evident and the payload is signed in full.
+- The body signed is the payload **as stored**, i.e. after `Repo.put`'s credential redaction, so a claim containing an `api_key` field is signed in the redacted form every reader sees.
+- The domain-separation prefix (`opentine.attestation.v1:`) differs from the artifact prefix (`opentine.signature.v1:`), so no signature can be lifted between the two families, and the scheme string is inside the signed header, so a future `tine-attest/2` cannot be confused with a v1 message.
+
+`tine repo-verify <attestation-oid | run-ref-or-oid>` checks one attestation, or every attestation targeting a run. It reports the **same verdicts** as `tine verify`: `verified`, `verified-tofu` (Ed25519 trust-on-first-use against the block's own embedded key — self-asserted, not authenticated), `unsigned`, `no-key`, `mismatch`, `error`. Only the first two are a pass. It is fail-closed in the same way: supplying any key (`--key-env`/`--key-file`/`--pubkey`), `--trust-embedded-key`, or `--require-signature` arms the check and exits non-zero unless every attestation verified; `--require-signature` also refuses a run carrying *no* attestation, because "nothing to check" is not a valid signature. With nothing armed the verb is a report and exits 0 — an unarmed check has verified nothing and must not look like it has.
+
+Signing is **opt-in and additive**, and that is a compatibility guarantee, not a default: an attestation written without a key is byte-identical to what 0.3.0–0.8.1 wrote (`"signature": null`), keeps its object id, loads out of any released repository, `fsck`s clean, and verifies as **`unsigned`** — never as `verified`. `signed_at` is not auto-stamped: an attestation's oid stays a function of its content, so a timestamp is supplied deliberately (`Repo.attest(..., signed_at=...)`) rather than making every re-attestation a new object.
+
+What a valid attestation signature proves: the target, claim, signer, evidence and header have not changed since a holder of the key signed them. What it does **not** prove is what artifact signing does not prove either — HMAC is symmetric (intra-group authenticity, not non-repudiation), the `signer` label and an embedded Ed25519 key are self-asserted with no key→identity binding, revocation or PKI, and a *stripped* signature is indistinguishable from a never-signed attestation, so "this repository's approvals must be signed" is an expectation to enforce out of band (`tine repo-verify --require-signature` is how you enforce it in CI).
+
+MCP's `attest_run` and `evaluate_run` deliberately take **no** key options: an MCP client is acting on run content it just read, and untrusted text must not be able to sign as an operator. Signing is an operator-surface capability only.
 
 ## Fork identity (v2)
 

@@ -56,8 +56,18 @@ class Repo(ObjectDatabase):
         signer: str,
         signature: dict[str, Any] | None = None,
         evidence_ids: list[str] | None = None,
+        key: Any | None = None,
+        algorithm: str = "hmac-sha256",
+        key_id: str | None = None,
+        signed_at: str | None = None,
     ) -> str:
-        from opentine.repository.ops import attest
+        """Write an attestation, signed at ``tine-attest/1`` when ``key`` is given.
+
+        Without ``key`` (and without a prepared ``signature``) this writes the
+        byte-identical unsigned object every release since 0.3.0 wrote, and
+        ``verify_attestation`` reports it as ``unsigned``.
+        """
+        from opentine.repository._attest import attest
 
         return attest(
             self,
@@ -66,7 +76,41 @@ class Repo(ObjectDatabase):
             signer=signer,
             signature=signature,
             evidence_ids=evidence_ids,
+            key=key,
+            algorithm=algorithm,
+            key_id=key_id,
+            signed_at=signed_at,
         )
+
+    def verify_attestation(
+        self,
+        oid: str,
+        *,
+        hmac_key: bytes | None = None,
+        public_key: Any | None = None,
+        trust_embedded: bool = False,
+    ):
+        """Verify one attestation's signature, returning a ``SignatureResult``.
+
+        Fail-closed and never raising a verdict: ``unsigned`` when the object
+        carries no signature, ``no-key`` when it carries one this caller holds no
+        key for, ``mismatch`` when a key disagrees, ``verified`` only otherwise.
+        """
+        from opentine.repository._attest import verify_attestation_object
+
+        return verify_attestation_object(
+            self,
+            oid,
+            hmac_key=hmac_key,
+            public_key=public_key,
+            trust_embedded=trust_embedded,
+        )
+
+    def attestations_for(self, run_id: str) -> tuple[str, ...]:
+        """The attestation ids targeting *run_id*, sorted."""
+        from opentine.repository._attest import attestations_for
+
+        return attestations_for(self, run_id)
 
     def promote(self, run_id: str, name: str, *, expected_old: str | None = None) -> None:
         from opentine.repository.ops import promote

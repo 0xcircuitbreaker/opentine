@@ -110,17 +110,23 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """The three mutating verbs. Each takes a ref *or* a run oid as its target.
+    """The three mutating verbs plus ``repo-verify``, the reader of what they sign.
 
-    ``promote`` deliberately has no ``--force``: ``--expected-old`` is the only way
-    to move an existing promotion, so replacing a release gate always states which
-    value is being replaced.
+    Each takes a ref *or* a run oid as its target. ``promote`` deliberately has no
+    ``--force``: ``--expected-old`` is the only way to move an existing promotion,
+    so replacing a release gate always states which value is being replaced.
     """
     target = "A ref name such as heads/main, or a run:sha256:… oid"
 
-    attest = subparsers.add_parser("attest", help="Attach a signed-by-label claim to a run")
+    attest = subparsers.add_parser(
+        "attest", help="Attach a claim to a run, signed when a key is given"
+    )
     attest.add_argument("target", help=target)
-    attest.add_argument("--signer", required=True, help="Self-asserted signer label")
+    attest.add_argument(
+        "--signer",
+        required=True,
+        help="Signer label; self-asserted unless a signing key binds it",
+    )
     claim = attest.add_mutually_exclusive_group(required=True)
     claim.add_argument("--claim", help="The claim as a JSON object")
     claim.add_argument("--claim-file", help="Read the JSON object claim from this file")
@@ -133,7 +139,11 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     evaluate = subparsers.add_parser("evaluate", help="Attach immutable evaluation scores to a run")
     evaluate.add_argument("target", help=target)
-    evaluate.add_argument("--evaluator", required=True, help="Self-asserted evaluator label")
+    evaluate.add_argument(
+        "--evaluator",
+        required=True,
+        help="Evaluator label; self-asserted unless a signing key binds it",
+    )
     evaluate.add_argument(
         "--score",
         action="append",
@@ -150,12 +160,49 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
         help="The oid promotions/<name> currently holds; required to move an existing promotion",
     )
 
-    for writable in (attest, evaluate, promote):
-        writable.add_argument("--repo", default=".")
-        # Emitted only after the write succeeds; a refusal stays human text + exit 1.
-        writable.add_argument(
+    # The reader of what the two verbs above sign. Prefixed because ``verify`` is a
+    # legacy .tine verb; fail-closed on any key, --trust-embedded-key, or this flag.
+    verify = subparsers.add_parser(
+        "repo-verify", help="Verify the signatures on a run's attestations"
+    )
+    verify.add_argument("target", help=f"An attestation:sha256:… oid, or a {target[2:]}")
+    verify.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="Exit non-zero unless every attestation carries a valid signature",
+    )
+
+    # No key => the byte-identical unsigned object. No --algorithm either: the
+    # flag naming the key already names the algorithm.
+    for signable in (attest, evaluate):
+        _key_args(signable, signing=True)
+    _key_args(verify, signing=False)
+
+    for repo_arg in (attest, evaluate, promote, verify):
+        repo_arg.add_argument("--repo", default=".")
+        # On a write verb, emitted only after it succeeds; a refusal stays human
+        # text on stderr with exit 1, and prints no JSON at all.
+        repo_arg.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
+
+
+def _key_args(parser: argparse.ArgumentParser, *, signing: bool) -> None:
+    """``tine sign``'s or ``tine verify``'s key flags, spelled exactly as they are."""
+    parser.add_argument("--key-env", help="Environment variable holding the HMAC key")
+    parser.add_argument("--key-file", help="File holding the HMAC key")
+    if signing:
+        parser.add_argument(
+            "--ed25519-key-file", help="File holding an Ed25519 private key (seed or hex)"
+        )
+        parser.add_argument("--key-id", help="Key identifier recorded inside the signature")
+        return
+    parser.add_argument("--pubkey", help="File holding a trusted Ed25519 public key")
+    parser.add_argument(
+        "--trust-embedded-key",
+        action="store_true",
+        help="Trust the signature's own Ed25519 key (TOFU; the key is self-asserted)",
+    )
 
 
 def _add_porcelain_parsers(subparsers: argparse._SubParsersAction) -> None:

@@ -1,0 +1,335 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.carriage-return",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOA0K",
+        "sha256": "085998eba791e2869aa15b576773f6684d730e4958c0d82ef3367ba0521d391c"
+      },
+      "intent": "no CR anywhere -- CRLF normalization would change the file's meaning silently",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.carriage-return",
+      "repair_temptation": "normalize CRLF to LF",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\x0d\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state has invalid line endings"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.duplicate-entry",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4Cg==",
+        "sha256": "c877166e24652f1f6c9005b14a02dd9a41348d7e86a13ce5226e2554da0ad81f"
+      },
+      "intent": "a duplicate oid is refused rather than de-duplicated on read",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.duplicate",
+      "repair_temptation": "de-duplicate the set on read",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nblob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state contains duplicate object ids"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.empty-file",
+      "input": {
+        "bytes_b64": "",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "intent": "the file is empty when the boundary set is empty",
+      "op": "shallow.parse",
+      "output": {
+        "oids": []
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.empty-line",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAoKZXZlbnQ6c2hhMjU2OjQ5NTAxMDYyZTIxODI1NDQ3YWEyMGVlZjM0YmNiM2FkMzkxMTAyZGI5MmQ3NmY1NjMxNzE0ODEzYmY2YzQzYTcK",
+        "sha256": "8c105cd734a7e576c4c55c1f6d24271bb807d75b62f9437ab58a78e89490e974"
+      },
+      "intent": "a blank line is an empty object id, not a separator to skip",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.empty-line",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n\\nevent:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state contains an empty object id"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.encode-empty-set",
+      "input": {
+        "value": []
+      },
+      "intent": "an empty set writes an empty file, not a lone LF",
+      "op": "shallow.encode",
+      "output": {
+        "bytes_b64": ""
+      },
+      "profile": "writer",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "[]",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.encode-not-an-oid",
+      "input": {
+        "value": [
+          "HEAD"
+        ]
+      },
+      "intent": "the writer refuses the same input the reader would",
+      "op": "shallow.encode",
+      "profile": "writer",
+      "reason": "oid.malformed",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "[\"HEAD\"]",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'HEAD'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.encode-sorts-and-terminates",
+      "input": {
+        "value": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "intent": "the writer side sorts and terminates, which is why the reader need not",
+      "op": "shallow.encode",
+      "output": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNwo="
+      },
+      "profile": "writer",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\", \"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.mixed-types",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNwpydW46c2hhMjU2OmU4OGZhODY3MjM4MTA5YzExZDI5NDA1YWIwZjA4NjE3YWM0NjBiMmM2YTVlM2IwN2Q4ZWVlNjViMGIwYTQ1YzYK",
+        "sha256": "40f1062b5be587186f83595e8e6045b9464a41f8e56d0ccf845496f763771934"
+      },
+      "intent": "a boundary entry may be an oid of any type",
+      "op": "shallow.parse",
+      "output": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        ]
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nevent:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\\nrun:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.non-ascii",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6w6kK",
+        "sha256": "99d21d2173a89c3023c922d367b2a66963adfe6e2341a2a7d3a9556ee8076f33"
+      },
+      "intent": "the file is ASCII; an oid has no non-ASCII spelling",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.not-ascii",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:\\xc3\\xa9\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state must be ASCII"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "shallow.not-an-oid",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6c2hvcnQK",
+        "sha256": "e8c1f278beaf6b076cb0342791c68fb366e1c921df1ab29d1d41972fe5e4db26"
+      },
+      "intent": "every line must parse as an oid",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:short\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:short'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.single-entry",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAo=",
+        "sha256": "d7a2a284a1d3c7ac31254a19a381fa54f1b5321e7d30dd3b0cc632b519214c14"
+      },
+      "intent": "one oid and one LF",
+      "op": "shallow.parse",
+      "output": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.sorted-terminated",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNwpldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZAo=",
+        "sha256": "1984db048227bccba03c2236c441c2938bd3bf5738ba21f15a0414d8f78f65bc"
+      },
+      "intent": "the shape a writer emits: sorted, unique, one LF per line including the last",
+      "op": "shallow.parse",
+      "output": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+        ]
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "tier": "core",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nevent:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\\nevent:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.unsorted-accepts",
+      "input": {
+        "bytes_b64": "ZXZlbnQ6c2hhMjU2OmU1ZGU3MGMzMGQwMDJlNjgzZGExMGRlNTZiYzBhZmQ4M2E5ZGYyODI1NDEzOTIwYTY1NzVmNWRmZWRkNGM1N2QKZXZlbnQ6c2hhMjU2OjQ5NTAxMDYyZTIxODI1NDQ3YWEyMGVlZjM0YmNiM2FkMzkxMTAyZGI5MmQ3NmY1NjMxNzE0ODEzYmY2YzQzYTcKYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAo=",
+        "sha256": "debc699b7fe5842d59473bb41c6f50bab728f95b52841feca578b63a7742e34d"
+      },
+      "intent": "the reader enforces uniqueness, ASCII and line shape -- not order",
+      "must_differ": false,
+      "op": "shallow.parse",
+      "output": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+        ]
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "spec_note": "SPEC 2.7 describes the shallow file as 'Sorted', but the reader enforces uniqueness, ASCII and line shape only -- an unsorted file is accepted.",
+      "tier": "core",
+      "twin": "shallow.sorted-terminated",
+      "x_display": "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\\nevent:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\\nblob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "shallow.unterminated-accepts",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNwpldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZA==",
+        "sha256": "92d7361c983310ade397154670413549c89aeb4cee89815c5e3570bc5ff4a748"
+      },
+      "intent": "and it accepts a file whose last line has no LF",
+      "must_differ": false,
+      "op": "shallow.parse",
+      "output": {
+        "oids": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+        ]
+      },
+      "profile": "reader",
+      "section": "2.7",
+      "spec_note": "SPEC 2.7 says 'the last line is terminated', but the reader accepts a shallow file with no trailing LF.",
+      "tier": "core",
+      "twin": "shallow.sorted-terminated",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\nevent:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\\nevent:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+      "x_reference": null
+    }
+  ],
+  "family": "shallow",
+  "section": "2.7",
+  "suite_version": 1
+}

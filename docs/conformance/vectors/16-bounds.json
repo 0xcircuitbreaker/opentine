@@ -1,0 +1,764 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.artifact.tokens-over-budget",
+      "input": {
+        "gen": {
+          "count": 66666,
+          "kind": "repeat",
+          "prefix_b64": "Ww==",
+          "suffix_b64": "W11d",
+          "unit_b64": "W10s"
+        },
+        "sha256": "fc36bd3d2286a8d63d5d2f1b6cebbfdf0cbcba19fc69202ffc89658b38dbf771"
+      },
+      "intent": "one token past the floor refuses the artifact",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.structure-excessive",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.artifact.tokens-under-budget",
+      "x_display": "[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifact nesting exceeds the parser limit or structure is excessive"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.artifact.tokens-under-budget",
+      "input": {
+        "gen": {
+          "count": 66665,
+          "kind": "repeat",
+          "prefix_b64": "Ww==",
+          "suffix_b64": "W11d",
+          "unit_b64": "W10s"
+        },
+        "sha256": "c5eef629c4a537753d008986ce0b10b3af394918c7e55e9cbc90b3ccb5be0c24"
+      },
+      "intent": "a .tine artifact's budget is min(16M, max(200 000, len//4)), so a small dense file gets the 200 000 floor",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": []
+      },
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.artifact.tokens-over-budget",
+      "x_display": "[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.config.at-65536-bytes",
+      "input": {
+        "gen": {
+          "count": 65456,
+          "kind": "repeat",
+          "prefix_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicGFkIjoi",
+          "suffix_b64": "IiwicmVwb3NpdG9yeSI6Im9wZW50aW5lIiwidmVyc2lvbiI6MX0=",
+          "unit_b64": "eA=="
+        },
+        "sha256": "559fb06190814ea1a7eb8f02576d3c84022713e66cab8a21e835207ab7b92073"
+      },
+      "intent": "MAX_CONFIG_BYTES is 65 536, and a config of exactly that size still validates",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.config.at-65537-bytes",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"pad\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.config.at-65537-bytes",
+      "input": {
+        "gen": {
+          "count": 65457,
+          "kind": "repeat",
+          "prefix_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicGFkIjoi",
+          "suffix_b64": "IiwicmVwb3NpdG9yeSI6Im9wZW50aW5lIiwidmVyc2lvbiI6MX0=",
+          "unit_b64": "eA=="
+        },
+        "sha256": "67b0d60073ecbf5bccc22855c73b71e5b3337753009fb3c06ebbdd4c9d7745d1"
+      },
+      "intent": "65 537 is one past it, and the refusal comes before any parse",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.oversized",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.config.at-65536-bytes",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"pad\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config exceeds maximum size"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.config.minimal",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicmVwb3NpdG9yeSI6Im9wZW50aW5lIiwidmVyc2lvbiI6MX0K",
+        "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+      },
+      "intent": "the four required pairs, canonically, are the whole descriptor",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.config.tokens-over-budget",
+      "input": {
+        "gen": {
+          "count": 3400,
+          "kind": "repeat",
+          "prefix_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicGFkIjpb",
+          "suffix_b64": "W11dLCJyZXBvc2l0b3J5Ijoib3BlbnRpbmUiLCJ2ZXJzaW9uIjoxfQ==",
+          "unit_b64": "W10s"
+        },
+        "sha256": "c3171c02850108b82e6bc31d3152a2ff83e936dc7d3066bc52af62ff54665cfe"
+      },
+      "intent": "and a denser descriptor is refused rather than parsed",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "shape.tokens-exceeded",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.config.tokens-under-budget",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"pad\":[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is malformed"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.config.tokens-under-budget",
+      "input": {
+        "gen": {
+          "count": 3000,
+          "kind": "repeat",
+          "prefix_b64": "eyJmb3JtYXQiOjMsIm9iamVjdF9oYXNoIjoic2hhMjU2IiwicGFkIjpb",
+          "suffix_b64": "W11dLCJyZXBvc2l0b3J5Ijoib3BlbnRpbmUiLCJ2ZXJzaW9uIjoxfQ==",
+          "unit_b64": "W10s"
+        },
+        "sha256": "3c48b2d49cbab400ed0f5a28f20a70e6f89cb29114c3713db37a9f395b0eb4f9"
+      },
+      "intent": "the config call site scans with max_tokens = 10 000",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.config.tokens-over-budget",
+      "x_display": "{\"format\":3,\"object_hash\":\"sha256\",\"pad\":[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.envelope-body.tokens-over-200000",
+      "input": {
+        "gen": {
+          "count": 66666,
+          "kind": "repeat",
+          "prefix_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cls=",
+          "suffix_b64": "W11d",
+          "unit_b64": "W10s"
+        },
+        "sha256": "a809d3cf5db62c76a38f80d330996de87fdbb972af184c464d71f0abe59d5b2c"
+      },
+      "intent": "and a body past that budget is refused before it is parsed",
+      "op": "envelope.decode",
+      "profile": "reader",
+      "reason": "shape.tokens-exceeded",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.envelope-body.tokens-under-200000",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "JSON structure exceeds semantic parser limits"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.envelope-body.tokens-under-200000",
+      "input": {
+        "gen": {
+          "count": 66665,
+          "kind": "repeat",
+          "prefix_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cls=",
+          "suffix_b64": "W11d",
+          "unit_b64": "W10s"
+        },
+        "sha256": "a2130f63d0fce3518e5be079ceb293f21949a657993641aeb8c58eb55f25e8e0"
+      },
+      "intent": "a v3 JSON body is scanned with the default 200 000-token budget",
+      "op": "envelope.decode",
+      "output_sha256": "f2a8c1925efd9350ee34061c77c0e6633f70d5fca51416d08b1f760931d4e131",
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.envelope-body.tokens-over-200000",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.oid.digest-63-hex",
+      "input": {
+        "value": "blob:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "intent": "the digest is exactly 64 hex characters, not at least 64",
+      "op": "oid.parse",
+      "profile": "reader",
+      "reason": "oid.malformed",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "\"blob:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'blob:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.pack.magic-truncated",
+      "input": {
+        "bytes_b64": "VElORVBBQ0szAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "sha256": "a79401040dd3c061410a49ba0fd8984b5583850e61e6c996833534cb6f741a48"
+      },
+      "intent": "a frame shorter than 42 bytes cannot carry a magic and a digest",
+      "op": "pack.inspect",
+      "profile": "reader",
+      "reason": "pack.bad-magic",
+      "requires": [
+        "zlib"
+      ],
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "TINEPACK3\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid pack header"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.pack.over-256-mib",
+      "input": {
+        "gen": {
+          "count": 268435415,
+          "kind": "repeat",
+          "prefix_b64": "VElORVBBQ0szAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "unit_b64": "AA=="
+        },
+        "sha256": "501048c9b745997eab2ef665fdac9d1514368028889b2f0c06d6fc4c3952dd95"
+      },
+      "intent": "MAX_PACK_BYTES refuses a frame one byte past the cap. The frame carries a real TINEPACK3 magic and a 32-byte digest field, so the size bound is the only rule it breaks and a reader that checks the magic first still answers pack.oversized",
+      "op": "pack.inspect",
+      "profile": "reader",
+      "reason": "pack.oversized",
+      "requires": [
+        "zlib"
+      ],
+      "section": "1.6",
+      "tier": "stress",
+      "x_display": "TINEPACK3\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack exceeds maximum transfer size"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.pack.shallow-at-10000",
+      "input": {
+        "blob": "frames/1254a597c372e57fb8859f6e28765284e88f5b50dc94cee9d5d1a4ca1b010eb9.pack",
+        "sha256": "1254a597c372e57fb8859f6e28765284e88f5b50dc94cee9d5d1a4ca1b010eb9"
+      },
+      "intent": "MAX_PACK_OBJECTS is 10 000, shared with MAX_TRAVERSAL_OBJECTS",
+      "op": "pack.inspect",
+      "output_sha256": "75a50a3296ab2d3f2a9b3cb1e0c095346b36cf1504499847f1c1ce06170ac41d",
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.pack.shallow-at-10001",
+      "x_display": "TINEPACK3\\x00L\\x03\\x0eV\\x94\\x85\\xd30\\xe0Gw\\xc6\\xcc\\xf2\\xf3\\x13\\xa07\\x85L\\x0c\\x93\\x00/\\xe7C\\xd6\\x00\\x9f&\\xa4\\x11x\\xda\\xac\\xdc+\\x8e\\x18F\\x14E\\xc1\\xbd\\x0c6p\\xff\\xbb\\xbd\\x95(\\xa0\\xbf\\x8a\\xa2\\x91\\x068R@6\\x1f\\xef\\xc1\\xf5\\xd8#\\x17\\x1eX\\xff}|\\xad\\xbf\\xef\\xfe\\xe7\\xe7\\xc7\\x8f?\\xfe\\xfc\\xf6\\xf1\\xf3\\xaf\\xf9\\xf9\\xf9\\xf5\\xef\\xaf\\xe7c}~\\xad\\x1f\\xbf\\xfeX\\xea\\x8f\\xef\\xbfy\\x1f\\xdf\\xe4\\\\\\xb0s\\xd1\\xce%;\\x97\\xed\\\\\\xb1s\\xd5\\xce5;\\xd7\\xed\\xdc\\xb0s\\xd3\\xce-;\\xb7\\xed\\xdc\\xb1s\\xd7\\xce=:\\x17l\\xef\\x82\\xed]\\xb0\\xbd\\x0b\\xb6w\\xc1\\xf6.\\xd8\\xde\\x05\\xdb\\xbb`{\\x17l\\xef\\x82\\xed]\\xb0\\xbd\\x0b\\xb6w\\xc1\\xf6.\\xd8\\xde\\x05\\xdb\\xbb`{\\x17m\\xef\\xa2\\xed]\\xb4\\xbd\\x8b\\xb6w\\xd1\\xf6.\\xda\\xdeE\\xdb\\xbbh{\\x17m\\xef\\xa2\\xed]\\xb4\\xbd\\x8b\\xb6w\\xd1\\xf6.\\xda\\xdeE\\xdb\\xbbh{\\x97l\\xef\\x92\\xed]\\xb2\\xbdK\\xb6w\\xc9\\xf6.\\xd9\\xde%\\xdb\\xbbd{\\x97l\\xef\\x92\\xed]\\xb2\\xbdK\\xb6w\\xc9\\xf6.\\xd9\\xde%\\xdb\\xbbd{\\x97m\\xef\\xb2\\xed]\\xb6\\xbd\\xcb\\xb6w\\xd9\\xf6.\\xdb\\xdee\\xdb\\xbbl{\\x97m\\xef\\xb2\\xed]\\xb6\\xbd\\xcb\\xb6w\\xd9\\xf6.\\xdb\\xdee\\xdb\\xbbl{Wl\\xef\\x8a\\xed]\\xb1\\xbd+\\xb6w\\xc5\\xf6\\xae\\xd8\\xde\\x15\\xdb\\xbbb{Wl\\xef\\x8a\\xed]\\xb1\\xbd+\\xb6w\\xc5\\xf6\\xae\\xd8\\xde\\x15\\xdb\\xbbb{Wm\\xef\\xaa\\xed]\\xb5\\xbd\\xab\\xb6w\\xd5\\xf6\\xae\\xda\\xdeU\\xdb\\xbbj{Wm\\xef\\xaa\\xed]\\xb5\\xbd\\xab\\xb6w\\xd5\\xf6...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.pack.shallow-at-10001",
+      "input": {
+        "blob": "frames/2c57261f4ca69bb1c862f777949cddee3af342f269732cf96aa466881a7c0521.pack",
+        "sha256": "2c57261f4ca69bb1c862f777949cddee3af342f269732cf96aa466881a7c0521"
+      },
+      "intent": "10 001 shallow entries is one past it",
+      "op": "pack.inspect",
+      "profile": "reader",
+      "reason": "pack.too-many-objects",
+      "requires": [
+        "zlib"
+      ],
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.pack.shallow-at-10000",
+      "x_display": "TINEPACK3\\x00\\x99\\xfb\\xaf\\x81~|9\\x0c=E\\xa6\\xc7o|\\x1b\\xe3{\\xe7rQ\\xe9\\xf7\\x0b\\xf3\\x19\\xba\\xdaL\\xe5l:\\xeex\\xda\\xac\\xdc+\\x8e\\x18F\\x14E\\xc1\\xbd\\x0c6p\\xff\\xbb\\xbd\\x95(\\xa0\\xbf\\x8a\\xa2\\x91\\x068R@6\\x1f\\xef\\xc1\\xf5\\xd8#\\x17\\x1eX\\xff}|\\xad\\xbf\\xef\\xfe\\xe7\\xe7\\xc7\\x8f?\\xfe\\xfc\\xf6\\xf1\\xf3\\xaf\\xf9\\xf9\\xf9\\xf5\\xef\\xaf\\xe7c}~\\xad\\x1f\\xbf\\xfeX\\xea\\x8f\\xef\\xbfy\\x1f\\xdf\\xe4\\\\\\xb0s\\xd1\\xce%;\\x97\\xed\\\\\\xb1s\\xd5\\xce5;\\xd7\\xed\\xdc\\xb0s\\xd3\\xce-;\\xb7\\xed\\xdc\\xb1s\\xd7\\xce=:\\x17l\\xef\\x82\\xed]\\xb0\\xbd\\x0b\\xb6w\\xc1\\xf6.\\xd8\\xde\\x05\\xdb\\xbb`{\\x17l\\xef\\x82\\xed]\\xb0\\xbd\\x0b\\xb6w\\xc1\\xf6.\\xd8\\xde\\x05\\xdb\\xbb`{\\x17m\\xef\\xa2\\xed]\\xb4\\xbd\\x8b\\xb6w\\xd1\\xf6.\\xda\\xdeE\\xdb\\xbbh{\\x17m\\xef\\xa2\\xed]\\xb4\\xbd\\x8b\\xb6w\\xd1\\xf6.\\xda\\xdeE\\xdb\\xbbh{\\x97l\\xef\\x92\\xed]\\xb2\\xbdK\\xb6w\\xc9\\xf6.\\xd9\\xde%\\xdb\\xbbd{\\x97l\\xef\\x92\\xed]\\xb2\\xbdK\\xb6w\\xc9\\xf6.\\xd9\\xde%\\xdb\\xbbd{\\x97m\\xef\\xb2\\xed]\\xb6\\xbd\\xcb\\xb6w\\xd9\\xf6.\\xdb\\xdee\\xdb\\xbbl{\\x97m\\xef\\xb2\\xed]\\xb6\\xbd\\xcb\\xb6w\\xd9\\xf6.\\xdb\\xdee\\xdb\\xbbl{Wl\\xef\\x8a\\xed]\\xb1\\xbd+\\xb6w\\xc5\\xf6\\xae\\xd8\\xde\\x15\\xdb\\xbbb{Wl\\xef\\x8a\\xed]\\xb1\\xbd+\\xb6w\\xc5\\xf6\\xae\\xd8\\xde\\x15\\xdb\\xbbb{Wm\\xef\\xaa\\xed]\\xb5\\xbd\\xab\\xb6w\\xd5\\xf6\\xae\\xda\\xdeU\\xdb\\xbbj{Wm\\xef\\xaa\\xed]\\xb5\\xbd\\xab\\xb6w\\xd5\\xf6...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack exceeds maximum object count"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.ref-component.at-240-bytes",
+      "input": {
+        "value": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "intent": "a single component may be exactly MAX_REF_COMPONENT_BYTES",
+      "op": "ref.name",
+      "output": {
+        "name": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-component.at-241-bytes",
+      "x_display": "\"heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.ref-component.at-241-bytes",
+      "input": {
+        "value": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "intent": "241 bytes is one past the per-component bound",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-too-long",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-component.at-240-bytes",
+      "x_display": "\"heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.ref-file.at-257-bytes",
+      "input": {
+        "gen": {
+          "byte": 97,
+          "count": 257,
+          "kind": "fill"
+        },
+        "sha256": "e8d95cc2b4bc198c54b40bd214df958afb65f5e73d2c2eafe0593cf5c635c1f0"
+      },
+      "intent": "257 bytes is one past MAX_REF_BYTES; the reader never looks further",
+      "op": "ref.file",
+      "profile": "reader",
+      "reason": "ref.file-oversized",
+      "repair_temptation": "read the first line and ignore the rest",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-file.canonical",
+      "x_display": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "repository ref exceeds its size limit"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.ref-file.canonical",
+      "input": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAo=",
+        "sha256": "d7a2a284a1d3c7ac31254a19a381fa54f1b5321e7d30dd3b0cc632b519214c14"
+      },
+      "intent": "a ref file is one oid and one LF, well inside MAX_REF_BYTES",
+      "op": "ref.file",
+      "output": {
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-file.at-257-bytes",
+      "x_display": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.ref-name.at-512-bytes",
+      "input": {
+        "value": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccc"
+      },
+      "intent": "a ref name may be exactly 512 bytes in total",
+      "op": "ref.name",
+      "output": {
+        "name": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccc"
+      },
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-name.at-513-bytes",
+      "x_display": "\"heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.ref-name.at-513-bytes",
+      "input": {
+        "value": "heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/ccccccccccccccccccccccccd"
+      },
+      "intent": "513 bytes is one past the total-length bound",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.name-too-long",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.ref-name.at-512-bytes",
+      "x_display": "\"heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.ref-name.empty-component",
+      "input": {
+        "value": "heads//main"
+      },
+      "intent": "an empty component is not, so a doubled slash is refused",
+      "op": "ref.name",
+      "profile": "reader",
+      "reason": "ref.component-reserved",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "\"heads//main\"",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid ref name: 'heads//main'"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.ref-name.single-character-component",
+      "input": {
+        "value": "heads/a"
+      },
+      "intent": "the lower end of the same rule: one character is a legal component",
+      "op": "ref.name",
+      "output": {
+        "name": "heads/a"
+      },
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "\"heads/a\"",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.reflog-actor.at-4096-chars",
+      "input": {
+        "value": {
+          "actor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "new": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "1757030400000000000"
+        }
+      },
+      "intent": "the reflog actor bound is 4096 characters, and 4096 is inside it",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEiLCJuZXciOiJibG9iOnNoYTI1NjpjNTI1MWNmNGMyMDFlZGU3NGM4ZTM1NjRkYzZkMDJlNTk3Y2JjMjBmYmQ5MWE4NDcwNGE5MTE3OTc1N2JkMDA4Iiwib2xkIjpudWxsLCJyZWYiOiJoZWFkcy9tYWluIiwidGltZV9ucyI6IjE3NTcwMzA0MDAwMDAwMDAwMDAifQo="
+      },
+      "profile": "writer",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.reflog-actor.at-4097-chars",
+      "x_display": "{\"actor\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.reflog-actor.at-4097-chars",
+      "input": {
+        "value": {
+          "actor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "new": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "1757030400000000000"
+        }
+      },
+      "intent": "4097 is one past it",
+      "op": "reflog.row",
+      "profile": "writer",
+      "reason": "reflog.actor-too-long",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "bounds.reflog-actor.at-4096-chars",
+      "x_display": "{\"actor\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "reflog actor exceeds its size limit"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.reflog-actor.empty",
+      "input": {
+        "value": {
+          "actor": "",
+          "new": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "0"
+        }
+      },
+      "intent": "the bound has no floor: an empty actor is a legal row",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6IiIsIm5ldyI6ImJsb2I6c2hhMjU2OmM1MjUxY2Y0YzIwMWVkZTc0YzhlMzU2NGRjNmQwMmU1OTdjYmMyMGZiZDkxYTg0NzA0YTkxMTc5NzU3YmQwMDgiLCJvbGQiOm51bGwsInJlZiI6ImhlYWRzL21haW4iLCJ0aW1lX25zIjoiMCJ9Cg=="
+      },
+      "profile": "writer",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"\", \"new\": \"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": \"0\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.shallow.at-10000-entries",
+      "input": {
+        "gen": {
+          "count": 10000,
+          "kind": "oids",
+          "object_type": "blob",
+          "start": 0
+        },
+        "sha256": "fd266e688f830f8a405aaa5f9d498a780cc6608b9334417195f0e0eb157f7946"
+      },
+      "intent": "MAX_SHALLOW_OBJECTS is 10 000 entries",
+      "op": "shallow.parse",
+      "output_sha256": "728dedb7ec25e89c8f5baaaf73a33e64e7fdd789ccdd14fe0c8b7bc64f442fab",
+      "profile": "reader",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.shallow.at-10001-entries",
+      "x_display": "blob:sha256:0000000000000000000000000000000000000000000000000000000000000000\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000001\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000002\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000003\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000004\\nblob:sha256:000...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.shallow.at-10001-entries",
+      "input": {
+        "gen": {
+          "count": 10001,
+          "kind": "oids",
+          "object_type": "blob",
+          "start": 0
+        },
+        "sha256": "ddb406d6524454df9b7670f55e72173941a04e40128916c2b296685fe1da33dc"
+      },
+      "intent": "10 001 is one past it",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason": "shallow.too-many",
+      "repair_temptation": "keep the first 10 000",
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.shallow.at-10000-entries",
+      "x_display": "blob:sha256:0000000000000000000000000000000000000000000000000000000000000000\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000001\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000002\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000003\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000004\\nblob:sha256:000...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state exceeds its object limit"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.shallow.encode-deduplicates",
+      "input": {
+        "value": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "intent": "the writer de-duplicates by construction; the *reader* refuses a duplicate",
+      "op": "shallow.encode",
+      "output": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOAo="
+      },
+      "profile": "writer",
+      "section": "1.6",
+      "tier": "core",
+      "twin": "shallow.duplicate-entry",
+      "x_display": "[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\", \"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"]",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "bounds.shallow.encode-sorts-and-terminates",
+      "input": {
+        "value": [
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "intent": "the writer side: sorted, unique, one LF per line including the last",
+      "op": "shallow.encode",
+      "output": {
+        "bytes_b64": "YmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOApldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNwpldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZAo="
+      },
+      "profile": "writer",
+      "section": "1.6",
+      "tier": "core",
+      "x_display": "[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\", \"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\", \"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "bounds.shallow.over-1-mib",
+      "input": {
+        "gen": {
+          "count": 14000,
+          "kind": "oids",
+          "object_type": "blob",
+          "start": 0
+        },
+        "sha256": "7913d7f87129f735591fe9e70f5f083460fb5e9325b77e079a43e3aa66d8c872"
+      },
+      "intent": "the two shallow bounds are inseparable for a fixed-width line format: a 77-byte line means 1 MiB needs 13 618 entries and 10 000 entries is only 770 000 bytes, so either bound is a conformant answer and neither order is normative",
+      "op": "shallow.parse",
+      "profile": "reader",
+      "reason_any": [
+        "shallow.oversized",
+        "shallow.too-many"
+      ],
+      "section": "1.6",
+      "tier": "stress",
+      "twin": "bounds.shallow.at-10000-entries",
+      "x_display": "blob:sha256:0000000000000000000000000000000000000000000000000000000000000000\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000001\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000002\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000003\\nblob:sha256:0000000000000000000000000000000000000000000000000000000000000004\\nblob:sha256:000...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "shallow boundary state exceeds its byte limit"
+      }
+    }
+  ],
+  "family": "bounds",
+  "section": "1.6",
+  "suite_version": 1
+}

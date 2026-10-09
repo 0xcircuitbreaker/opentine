@@ -1,0 +1,296 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "accept",
+      "id": "integrity.digest.crlf-file",
+      "input": {
+        "bytes_b64": "ew0KICAiY2FjaGUiOiB7fSwNCiAgImNyZWF0ZWRfYXQiOiAwLA0KICAiZm9ybWF0X3ZlcnNpb24iOiAyLA0KICAiZ3JhcGgiOiB7DQogICAgIm9yZGVyIjogW10sDQogICAgInN0ZXBzIjoge30NCiAgfSwNCiAgIm1hbmlmZXN0Ijoge30sDQogICJtZXRhZGF0YSI6IHt9LA0KICAicG9saWNpZXMiOiB7fSwNCiAgInJlZnMiOiB7fSwNCiAgInJ1bl9pZCI6ICJkZW1vIiwNCiAgInN0YXR1cyI6ICJjb21wbGV0ZWQiLA0KICAidHJhbnNjcmlwdCI6IFtdDQp9",
+        "sha256": "f9830f23512ad0cd35fd7ec0a5d37f5c3b9b10fa181044b76e56d717a1606018"
+      },
+      "intent": "so the same artifact written on Windows, with CRLF on disk, has the same digest -- an implementation that digests the file's bytes passes every other vector and fails this one",
+      "must_differ": false,
+      "op": "integrity.digest",
+      "output": {
+        "digest": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30"
+      },
+      "profile": "reader",
+      "repair_temptation": "hash the file's bytes instead of the parsed document",
+      "section": "3.5",
+      "tier": "core",
+      "twin": "integrity.digest.lf-file",
+      "x_display": "{\\x0d\\n  \"cache\": {},\\x0d\\n  \"created_at\": 0,\\x0d\\n  \"format_version\": 2,\\x0d\\n  \"graph\": {\\x0d\\n    \"order\": [],\\x0d\\n    \"steps\": {}\\x0d\\n  },\\x0d\\n  \"manifest\": {},\\x0d\\n  \"metadata\": {},\\x0d\\n  \"policies\": {},\\x0d\\n  \"refs\": {},\\x0d\\n  \"run_id\": \"demo\",\\x0d\\n  \"status\": \"completed\",\\x0d\\n  \"transcript\": []\\x0d\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "accept",
+      "id": "integrity.digest.indentation-is-not-canonical",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vMiIsCiAgInN0YXR1cyI6ICJjb21wbGV0ZWQiLAogICJ0cmFuc2NyaXB0IjogW10KfQ==",
+        "sha256": "1545759a7e34106508f3d271b1121eaba1cd3ddcab059b14919075549e11ce9e"
+      },
+      "intent": "the file itself is indented and therefore not canonical: the digest input must be recanonicalized, never taken from the file bytes",
+      "op": "integrity.digest",
+      "output": {
+        "digest": "32b03b674c776f381708c3f4fa79b5c33e6791e8128c270f80066548b1fde36e"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo2\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "accept",
+      "id": "integrity.digest.lf-file",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "6788b640e0280216b9cf8f93decdefbe47ad3100c0877295e7083b6e0671884b"
+      },
+      "intent": "the digest is over the *parsed* document",
+      "must_differ": false,
+      "op": "integrity.digest",
+      "output": {
+        "digest": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "twin": "integrity.digest.crlf-file",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "accept",
+      "id": "integrity.digest.metadata-excluded-wholesale",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJhbnl0aGluZyI6IFsKICAgICAgMSwKICAgICAgMiwKICAgICAgMwogICAgXSwKICAgICJ0YWdzIjogWwogICAgICAieCIKICAgIF0KICB9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "fb6d1e35fcae03533b34c86083b3606b30a2aa8b9c01e71be80762f8bcc3de8d"
+      },
+      "intent": "metadata is excluded in full, which is what lets the digest live inside metadata.integrity without self-reference -- and is a documented boundary",
+      "must_differ": false,
+      "op": "integrity.digest",
+      "output": {
+        "digest": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "twin": "integrity.digest.spec-worked-vector",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"anything\": [\\n      1,\\n      2,\\n      3\\n    ],\\n    \"tags\": [\\n      \"x\"\\n    ]\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "accept",
+      "id": "integrity.digest.spec-worked-vector",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "6788b640e0280216b9cf8f93decdefbe47ad3100c0877295e7083b6e0671884b"
+      },
+      "intent": "SPEC 3.5's own worked vector: SHA-256 over the v2 canonical form of every top-level key except metadata",
+      "op": "integrity.digest",
+      "output": {
+        "digest": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.body-edited-and-digest-rewritten",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJpbnRlZ3JpdHkiOiB7CiAgICAgICJhbGdvcml0aG0iOiAic2hhMjU2IiwKICAgICAgImRpZ2VzdCI6ICIxMDdhMGRiMTgxNDZlZTE4N2FiZDFiMWRiMWRiMGRjYTQ1NmNkZDY5NDlkYzdhMjhjNzVkOWY2N2NmZmMwNTFmIgogICAgfQogIH0sCiAgInBvbGljaWVzIjoge30sCiAgInJlZnMiOiB7fSwKICAicnVuX2lkIjogInRhbXBlcmVkIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "cb1ec49aae726d8f9ea1cdb986566ed2e5bb430d33d66161beceb26dde6f543a"
+      },
+      "intent": "SPEC Part 6 item 7: an unkeyed digest is a CONSISTENCY check. Anyone who can edit the file can recompute it, so an edited body with a rewritten digest verifies -- and reporting that as authenticity is the error this pair exists for",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "107a0db18146ee187abd1b1db1db0dca456cdd6949dc7a28c75d9f67cffc051f",
+        "algorithm": "sha256",
+        "expected": "107a0db18146ee187abd1b1db1db0dca456cdd6949dc7a28c75d9f67cffc051f",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "repair_temptation": "report a matching digest as proof the file is genuine",
+      "section": "3.5",
+      "tier": "core",
+      "twin": "verdict.artifact.consistent-but-not-authentic",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"sha256\",\\n      \"digest\": \"107a0db18146ee187abd1b1db1db0dca456cdd6949dc7a28c75d9f67cffc051f\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"tampered\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.malformed-digest",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJpbnRlZ3JpdHkiOiB7CiAgICAgICJhbGdvcml0aG0iOiAic2hhMjU2IiwKICAgICAgImRpZ2VzdCI6ICJ6eiIKICAgIH0KICB9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "1cb405974fa62a2ab05c08b6164dbc8d1962177a315fcd89868cac97126dd1c0"
+      },
+      "intent": "a digest that is not 64 hex characters",
+      "op": "integrity.verify",
+      "output": {
+        "actual": null,
+        "algorithm": "sha256",
+        "expected": "zz",
+        "ok": false,
+        "reason": "malformed digest"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"sha256\",\\n      \"digest\": \"zz\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.mismatch",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJpbnRlZ3JpdHkiOiB7CiAgICAgICJhbGdvcml0aG0iOiAic2hhMjU2IiwKICAgICAgImRpZ2VzdCI6ICIzYTkzMjFhMzUxYjg5NmZkNDFjNWJlOWVhYmUxYjMwNDJkYTVjMWExNWU3Mjk2ODA2NmJjMDRmMTFjZDkwZTMwIgogICAgfQogIH0sCiAgInBvbGljaWVzIjoge30sCiAgInJlZnMiOiB7fSwKICAicnVuX2lkIjogIm5vcGUiLAogICJzdGF0dXMiOiAiY29tcGxldGVkIiwKICAidHJhbnNjcmlwdCI6IFtdCn0=",
+        "sha256": "31af57b1256c926b885bd648d91141cacfbbbba4476a11fc0951af476403545b"
+      },
+      "intent": "a body edited without rewriting the digest",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "eda38ce61566550b884fd627e8c4e20f6b6dbf512cf7406d81b45ba50eb25b2c",
+        "algorithm": "sha256",
+        "expected": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30",
+        "ok": false,
+        "reason": "digest mismatch"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"sha256\",\\n      \"digest\": \"3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"nope\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.missing-integrity",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "6788b640e0280216b9cf8f93decdefbe47ad3100c0877295e7083b6e0671884b"
+      },
+      "intent": "no integrity block at all is ok=false with a reason, never an exception",
+      "op": "integrity.verify",
+      "output": {
+        "actual": null,
+        "algorithm": null,
+        "expected": null,
+        "ok": false,
+        "reason": "missing integrity digest"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.ok",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJpbnRlZ3JpdHkiOiB7CiAgICAgICJhbGdvcml0aG0iOiAic2hhMjU2IiwKICAgICAgImRpZ2VzdCI6ICIzYTkzMjFhMzUxYjg5NmZkNDFjNWJlOWVhYmUxYjMwNDJkYTVjMWExNWU3Mjk2ODA2NmJjMDRmMTFjZDkwZTMwIgogICAgfQogIH0sCiAgInBvbGljaWVzIjoge30sCiAgInJlZnMiOiB7fSwKICAicnVuX2lkIjogImRlbW8iLAogICJzdGF0dXMiOiAiY29tcGxldGVkIiwKICAidHJhbnNjcmlwdCI6IFtdCn0=",
+        "sha256": "c151b7c5106ce122e17a08384f3918e65fd449b3114ce83bc0c93fed3397885e"
+      },
+      "intent": "a stored digest that matches the recomputed one",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30",
+        "algorithm": "sha256",
+        "expected": "3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"sha256\",\\n      \"digest\": \"3a9321a351b896fd41c5be9eabe1b3042da5c1a15e72968066bc04f11cd90e30\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.written-by-a-newer-opentine",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiA5OSwKICAiZ3JhcGgiOiB7CiAgICAib3JkZXIiOiBbXSwKICAgICJzdGVwcyI6IHt9CiAgfSwKICAibWFuaWZlc3QiOiB7fSwKICAibWV0YWRhdGEiOiB7CiAgICAiaW50ZWdyaXR5IjogewogICAgICAiYWxnb3JpdGhtIjogInNoYTI1NiIsCiAgICAgICJkaWdlc3QiOiAiNDVmZmQ3ZDJhYWU2ZmVmYWNhNDYwZjAzZTY4Y2I0ZTM3NTkxZTU0NjczZWE0MjQxZTgxNmI0MDA2NzQ3MmU0OCIKICAgIH0KICB9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "e0c41c48a2754df216ccb04e565b2875d2f11ead38261bf30f05797eb6cc1693"
+      },
+      "intent": "a future format_version gets its own reason, distinct from an unsupported old one",
+      "op": "integrity.verify",
+      "output": {
+        "actual": null,
+        "algorithm": null,
+        "expected": null,
+        "ok": false,
+        "reason": "unsupported .tine format_version=99; written by a newer opentine"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 99,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"sha256\",\\n      \"digest\": \"45ffd7d2aae6fefaca460f03e68cb4e37591e54673ea4241e816b40067472e48\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "integrity.verify.wrong-algorithm",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHsKICAgICJpbnRlZ3JpdHkiOiB7CiAgICAgICJhbGdvcml0aG0iOiAibWQ1IiwKICAgICAgImRpZ2VzdCI6ICIwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIKICAgIH0KICB9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "ceb6c0488c154bc45e790bab373e7612bd1a10f487ea27917f98bb8ca524c614"
+      },
+      "intent": "an algorithm other than sha256",
+      "op": "integrity.verify",
+      "output": {
+        "actual": null,
+        "algorithm": "md5",
+        "expected": "00000000000000000000000000000000",
+        "ok": false,
+        "reason": "unsupported algorithm"
+      },
+      "profile": "reader",
+      "section": "3.5",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {\\n    \"integrity\": {\\n      \"algorithm\": \"md5\",\\n      \"digest\": \"00000000000000000000000000000000\"\\n    }\\n  },\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    }
+  ],
+  "family": "integrity",
+  "section": "3.5",
+  "suite_version": 1
+}

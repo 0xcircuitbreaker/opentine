@@ -1,0 +1,309 @@
+{
+  "cases": [
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiXX19",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "load.annotation-chain",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwicHJldmlvdXNfaWQiOiJhbm5vdGF0aW9uOnNoYTI1NjozNTNiZGNmY2I2ZTNmNGJmNWM5MzhhZWRhYzk0MmRkNjQzZWJiMzczOTJjMmMyNmNmZDEyOGVmMDA3ZWRmYjA3IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiLCJiIl19fQ==",
+        "sha256": "26eb5e7451f57ab2c4254709c791525911b53e23911094e5e3a51eb8dcde3b10"
+      },
+      "intent": "an annotation read additionally runs the chain validator",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07",
+          "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+        ],
+        "oid": "annotation:sha256:60d0b0fcff89307774e931d1bd1b57e4658a5b1fd4cbefa53ad7b3fb091ce8b7"
+      },
+      "profile": "reader",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"compatibility\":\"run-metadata-v1\",\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\",\"value\":{\"metadata\":{},\"tags\":[\"a\",\"b\"]}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19"
+        ],
+        "present": [
+          "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "load.annotation-chain-broken",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJhbm5vdGF0aW9uIn0KeyJjb21wYXRpYmlsaXR5IjoicnVuLW1ldGFkYXRhLXYxIiwicHJldmlvdXNfaWQiOiJhbm5vdGF0aW9uOnNoYTI1NjozNTNiZGNmY2I2ZTNmNGJmNWM5MzhhZWRhYzk0MmRkNjQzZWJiMzczOTJjMmMyNmNmZDEyOGVmMDA3ZWRmYjA3IiwidGFyZ2V0X2lkIjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2IiwidmFsdWUiOnsibWV0YWRhdGEiOnt9LCJ0YWdzIjpbImEiLCJiIl19fQ==",
+        "sha256": "26eb5e7451f57ab2c4254709c791525911b53e23911094e5e3a51eb8dcde3b10"
+      },
+      "intent": "and so is the annotation chain",
+      "op": "object.load",
+      "profile": "reader",
+      "reason": "chain.previous-unavailable",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"annotation\"}\\n{\"compatibility\":\"run-metadata-v1\",\"previous_id\":\"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\",\"target_id\":\"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\",\"value\":{\"metadata\":{},\"tags\":[\"a\",\"b\"]}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "annotation previous object is unavailable: annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07"
+      }
+    },
+    {
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "load.blob",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "the simplest full read: framing, oid, and no links",
+      "op": "object.load",
+      "output": {
+        "links": [],
+        "oid": "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+      },
+      "profile": "reader",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "load.event-bad-metrics",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6LTEsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "8a49d1ee3bc3848b5e2ed90c9153e838a0c069b505b2429d1cb1cfd93f3d8d04"
+      },
+      "intent": "metric validation is part of a full read, not a separate optional pass",
+      "op": "object.load",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":-1,\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event cost must be finite and non-negative"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+          "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo="
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "load.event-links-present",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "framing, oid, link types, link existence and metrics, in one answer",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ],
+        "oid": "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+      },
+      "profile": "reader",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "shallow": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "load.event-links-shallow",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "the shallow boundary satisfies existence without the object being present",
+      "must_differ": false,
+      "op": "object.load",
+      "output": {
+        "links": [
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+        ],
+        "oid": "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+      },
+      "profile": "reader",
+      "section": "1.5",
+      "tier": "core",
+      "twin": "load.event-links-present",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "objects": []
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "load.missing-link",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+        "sha256": "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+      },
+      "intent": "a link neither present nor declared shallow refuses the read",
+      "op": "object.load",
+      "profile": "reader",
+      "reason": "link.missing-object",
+      "section": "1.5",
+      "tier": "core",
+      "twin": "load.event-links-present",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":0,\"kind\":\"tool\",\"parent_ids\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "missing linked object: event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7"
+      }
+    },
+    {
+      "args": {
+        "expected_oid": "blob:sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "load.oid-mismatch",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo=",
+        "sha256": "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+      },
+      "intent": "a full read verifies the name it fetched under before anything else",
+      "op": "object.load",
+      "profile": "reader",
+      "reason": "envelope.oid-mismatch",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"raw\",\"schema\":1,\"type\":\"blob\"}\\nhello\\n",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "object id mismatch"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+          "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo="
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "reject",
+      "id": "load.run-bad-graph",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sInJvb3RzIjpbXSwidGlwcyI6WyJldmVudDpzaGEyNTY6ZTVkZTcwYzMwZDAwMmU2ODNkYTEwZGU1NmJjMGFmZDgzYTlkZjI4MjU0MTM5MjBhNjU3NWY1ZGZlZGQ0YzU3ZCJdfQ==",
+        "sha256": "d007489d73581a1fafd4f41f1d44d360c09bcb5e40877bac2df440b0e2040f2e"
+      },
+      "intent": "and so is graph validation",
+      "op": "object.load",
+      "profile": "reader",
+      "reason": "graph.roots-mismatch",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"roots\":[],\"tips\":[\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "run roots do not match parentless events"
+      }
+    },
+    {
+      "args": {
+        "objects": [
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6Im1vZGVsIiwicGFyZW50X2lkcyI6W119",
+          "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbImV2ZW50OnNoYTI1Njo0OTUwMTA2MmUyMTgyNTQ0N2FhMjBlZWYzNGJjYjNhZDM5MTEwMmRiOTJkNzZmNTYzMTcxNDgxM2JmNmM0M2E3Il19",
+          "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpoZWxsbwo="
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "load.run-complete",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyIsImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl0sIm1hbmlmZXN0cyI6eyJ0cmFuc2NyaXB0IjoiYmxvYjpzaGEyNTY6YzUyNTFjZjRjMjAxZWRlNzRjOGUzNTY0ZGM2ZDAyZTU5N2NiYzIwZmJkOTFhODQ3MDRhOTExNzk3NTdiZDAwOCJ9LCJyb290cyI6WyJldmVudDpzaGEyNTY6NDk1MDEwNjJlMjE4MjU0NDdhYTIwZWVmMzRiY2IzYWQzOTExMDJkYjkyZDc2ZjU2MzE3MTQ4MTNiZjZjNDNhNyJdLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjplNWRlNzBjMzBkMDAyZTY4M2RhMTBkZTU2YmMwYWZkODNhOWRmMjgyNTQxMzkyMGE2NTc1ZjVkZmVkZDRjNTdkIl19",
+        "sha256": "9af0806ffa4f8718017756787a50737940519801c5f6374583ef549fa835eead"
+      },
+      "intent": "a run read additionally runs graph validation",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+          "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d"
+        ],
+        "oid": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6"
+      },
+      "profile": "reader",
+      "section": "1.5",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"events\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\",\"event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d\"],\"manifests\":{\"transcript\":\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"},\"roots\":[\"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f563171481...",
+      "x_reference": null
+    }
+  ],
+  "family": "load",
+  "section": "1.5",
+  "suite_version": 1
+}

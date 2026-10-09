@@ -1,0 +1,220 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.annotations-ref",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07",
+          "old": null,
+          "ref": "annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "time_ns": "1757030400000000000"
+        }
+      },
+      "intent": "the ref field carries the normalized name, including its namespace",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImxvY2FsIiwibmV3IjoiYW5ub3RhdGlvbjpzaGEyNTY6MzUzYmRjZmNiNmUzZjRiZjVjOTM4YWVkYWM5NDJkZDY0M2ViYjM3MzkyYzJjMjZjZmQxMjhlZjAwN2VkZmIwNyIsIm9sZCI6bnVsbCwicmVmIjoiYW5ub3RhdGlvbnMvZTg4ZmE4NjcyMzgxMDljMTFkMjk0MDVhYjBmMDg2MTdhYzQ2MGIyYzZhNWUzYjA3ZDhlZWU2NWIwYjBhNDVjNiIsInRpbWVfbnMiOiIxNzU3MDMwNDAwMDAwMDAwMDAwIn0K"
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"annotation:sha256:353bdcfcb6e3f4bf5c938aedac942dd643ebb37392c2c26cfd128ef007edfb07\", \"old\": null, \"ref\": \"annotations/e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"time_ns\": \"1757030400000000000\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.field-order-is-canonical",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "1"
+        }
+      },
+      "intent": "the row is canonical JSON, so the five keys are emitted in one fixed order whatever order the writer held them in",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImxvY2FsIiwibmV3IjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2Iiwib2xkIjpudWxsLCJyZWYiOiJoZWFkcy9tYWluIiwidGltZV9ucyI6IjEifQo="
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": \"1\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.first",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "1757030400000000000"
+        }
+      },
+      "intent": "a ref's first row carries old = null",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImxvY2FsIiwibmV3IjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2Iiwib2xkIjpudWxsLCJyZWYiOiJoZWFkcy9tYWluIiwidGltZV9ucyI6IjE3NTcwMzA0MDAwMDAwMDAwMDAifQo="
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": \"1757030400000000000\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "reflog.row.new-not-an-oid",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "HEAD",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "1"
+        }
+      },
+      "intent": "the new value is an oid, and a row naming a non-oid is not history",
+      "op": "reflog.row",
+      "profile": "writer",
+      "reason": "oid.malformed",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"HEAD\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": \"1\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "invalid typed object id: 'HEAD'"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.subsequent",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+          "ref": "heads/main",
+          "time_ns": "1757030400000000001"
+        }
+      },
+      "intent": "and every later row carries the previous value",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImxvY2FsIiwibmV3IjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2Iiwib2xkIjoiZXZlbnQ6c2hhMjU2OjQ5NTAxMDYyZTIxODI1NDQ3YWEyMGVlZjM0YmNiM2FkMzkxMTAyZGI5MmQ3NmY1NjMxNzE0ODEzYmY2YzQzYTciLCJyZWYiOiJoZWFkcy9tYWluIiwidGltZV9ucyI6IjE3NTcwMzA0MDAwMDAwMDAwMDEifQo="
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": \"event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7\", \"ref\": \"heads/main\", \"time_ns\": \"1757030400000000001\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "reflog.row.time-ns-as-a-number",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": {
+            "$i": "1757030400000000000"
+          }
+        }
+      },
+      "intent": "a JSON number for time_ns is exactly the mistake the string spelling exists to prevent: the value does not survive canonicalization",
+      "op": "reflog.row",
+      "profile": "writer",
+      "reason": "reflog.time-not-string",
+      "repair_temptation": "emit the nanosecond timestamp as a JSON number",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": {\"$i\": \"1757030400000000000\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "reflog time_ns must be decimal digits in a JSON string"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.time-ns-beyond-2-53",
+      "input": {
+        "value": {
+          "actor": "local",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": null,
+          "ref": "heads/main",
+          "time_ns": "9007199254740993"
+        }
+      },
+      "intent": "time_ns is a *string* precisely because canonical JSON rejects integers beyond 2**53-1, and a nanosecond epoch timestamp is far past it",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImxvY2FsIiwibmV3IjoicnVuOnNoYTI1NjplODhmYTg2NzIzODEwOWMxMWQyOTQwNWFiMGYwODYxN2FjNDYwYjJjNmE1ZTNiMDdkOGVlZTY1YjBiMGE0NWM2Iiwib2xkIjpudWxsLCJyZWYiOiJoZWFkcy9tYWluIiwidGltZV9ucyI6IjkwMDcxOTkyNTQ3NDA5OTMifQo="
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"local\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": null, \"ref\": \"heads/main\", \"time_ns\": \"9007199254740993\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "reflog.row.trailing-lf",
+      "input": {
+        "value": {
+          "actor": "ci-bot",
+          "new": "run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6",
+          "old": null,
+          "ref": "tags/v1",
+          "time_ns": "1757030400000000000"
+        }
+      },
+      "intent": "each row is one canonical object followed by exactly one LF",
+      "op": "reflog.row",
+      "output": {
+        "bytes_b64": "eyJhY3RvciI6ImNpLWJvdCIsIm5ldyI6InJ1bjpzaGEyNTY6ZTg4ZmE4NjcyMzgxMDljMTFkMjk0MDVhYjBmMDg2MTdhYzQ2MGIyYzZhNWUzYjA3ZDhlZWU2NWIwYjBhNDVjNiIsIm9sZCI6bnVsbCwicmVmIjoidGFncy92MSIsInRpbWVfbnMiOiIxNzU3MDMwNDAwMDAwMDAwMDAwIn0K"
+      },
+      "profile": "writer",
+      "section": "2.6",
+      "tier": "core",
+      "x_display": "{\"actor\": \"ci-bot\", \"new\": \"run:sha256:e88fa867238109c11d29405ab0f08617ac460b2c6a5e3b07d8eee65b0b0a45c6\", \"old\": null, \"ref\": \"tags/v1\", \"time_ns\": \"1757030400000000000\"}",
+      "x_reference": null
+    }
+  ],
+  "family": "reflog",
+  "section": "2.6",
+  "suite_version": 1
+}

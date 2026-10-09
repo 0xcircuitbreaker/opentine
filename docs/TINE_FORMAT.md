@@ -1,5 +1,11 @@
 # OpenTine format policy
 
+> **Implementing OpenTine in another language?** This document is format
+> *policy* and history. The normative, byte-level specification — envelope
+> framing, oid derivation, both canonicalizations, the repository layout, the
+> TINEPACK3 pack format, and all three signature schemes — is
+> **[SPEC.md](SPEC.md)**.
+
 There are two distinct current formats:
 
 - Portable `*.tine` compatibility files use `format_version == 2`; supported

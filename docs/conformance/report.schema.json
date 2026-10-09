@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/conformance/report.schema.json",
+  "title": "OpenTine conformance report",
+  "description": "What docs/conformance/run_conformance.py writes with --report, and the shape a third-party runner should emit if it writes its own. A report is a claim about one implementation against one suite version; it is not a certification, and README.md lists what a passing report does NOT cover.",
+  "type": "object",
+  "required": ["suite_version", "spec_version", "implementation", "level", "profiles", "totals", "pairs", "reason_agreement", "results"],
+  "additionalProperties": true,
+  "properties": {
+    "suite_version": {"type": "integer", "minimum": 1},
+    "spec_version": {"type": "string"},
+    "implementation": {
+      "type": "object",
+      "required": ["name", "version", "language"],
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "language": {"type": "string"}
+      }
+    },
+    "level": {"type": "integer", "enum": [1, 2]},
+    "profiles": {"type": "array", "items": {"enum": ["reader", "writer", "verifier"]}},
+    "tiers": {"type": "array", "items": {"enum": ["core", "stress"]}},
+    "totals": {
+      "type": "object",
+      "required": ["pass", "fail", "repaired", "skip", "unsupported"],
+      "properties": {
+        "pass": {"type": "integer", "minimum": 0},
+        "fail": {"type": "integer", "minimum": 0},
+        "repaired": {"type": "integer", "minimum": 0},
+        "skip": {"type": "integer", "minimum": 0},
+        "unsupported": {"type": "integer", "minimum": 0}
+      }
+    },
+    "pairs": {
+      "type": "object",
+      "description": "Both halves of every twin correct. Reported separately because `passed` alone is defeatable by an implementation that refuses everything: a blanket rejecter scores 100% on negatives and 0% here.",
+      "required": ["total", "passed"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "passed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "reason_agreement": {
+      "type": "object",
+      "description": "Informational at Level 1, required at Level 2. A code is agreed when it is the vector's reason or any other member of that reason's alias group in MANIFEST.alias_groups.",
+      "required": ["total", "agreed"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "agreed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "op", "section", "status", "expected"],
+        "properties": {
+          "id": {"type": "string"},
+          "op": {"type": "string"},
+          "section": {"type": "string", "description": "The docs/SPEC.md section this case cites, so a failure row is already a pinpoint."},
+          "status": {"enum": ["pass", "fail", "repaired", "skip", "unsupported"]},
+          "expected": {"enum": ["accept", "reject", "verdict"]},
+          "actual": {"type": ["string", "null"], "enum": ["accept", "reject", null]},
+          "reason_expected": {"type": ["string", "null"]},
+          "reason_actual": {"type": ["string", "null"]},
+          "detail": {"type": "string"}
+        }
+      }
+    }
+  }
+}

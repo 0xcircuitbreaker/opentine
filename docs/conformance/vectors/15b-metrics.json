@@ -1,0 +1,467 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.cost.absent-defaults-to-zero",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIn0=",
+        "sha256": "4542b05c55ec7edad26188ab82136736b68e8a36fc981027c650957224c36c3f"
+      },
+      "intent": "cost and duration default to 0 when absent",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.cost.negative",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6LTEsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "8a49d1ee3bc3848b5e2ed90c9153e838a0c069b505b2429d1cb1cfd93f3d8d04"
+      },
+      "intent": "cost must be non-negative",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "repair_temptation": "clamp a negative meter to zero",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":-1,\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event cost must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.cost.numeric-string",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6IjEuNSIsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "50a1c2443d96774f17d0222f6173524e84e6c657b46d8d04c81cc15c4cd11b04"
+      },
+      "intent": "a documented hazard: cost is validated by Decimal(str(value)), so the *string* \"1.5\" is accepted and stored -- a reader MUST NOT assume these are JSON numbers",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":\"1.5\",\"kind\":\"model\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.duration.negative",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiZHVyYXRpb24iOi0wLjUsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "28e7fd8c8b5d0a80fe38e3b1f159a93ce730ca03bbba29641547bc0ab71a6689"
+      },
+      "intent": "so must duration",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"duration\":-0.5,\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event duration must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.duration.numeric-string-at-128-chars",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiZHVyYXRpb24iOiIxLjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsImtpbmQiOiJtb2RlbCJ9",
+        "sha256": "33bc37d54a545b24ab2d53cf74b0c7e5a5711567d0a6f0aa5021a7efd1488521"
+      },
+      "intent": "the numeric-meter string bound is 128 characters, and 128 is inside it",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.meter.string-at-129-chars",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"duration\":\"1.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"kind\":\"model\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.meter.decimal-finite-but-not-a-double",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY29zdCI6IjFlOTk5OTk5OTk5Iiwia2luZCI6Im1vZGVsIn0=",
+        "sha256": "3b5d867954fdea4332e5fc7591a084a9dacb121f75344208e665642854f1f165"
+      },
+      "intent": "Decimal(\"1e999999999\") is finite but float() of it is not; this bound exists because such a value passed validation, was hashed in, and broke every later read",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"cost\":\"1e999999999\",\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event cost must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.meter.string-at-129-chars",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiZHVyYXRpb24iOiIxLjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJraW5kIjoibW9kZWwifQ==",
+        "sha256": "b0510470185e1c27443db2cdbf2d8c85e79cde6f661de1b8e3ccf331a6ae3472"
+      },
+      "intent": "129 characters is one past the numeric-meter string bound",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-too-long",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.duration.numeric-string-at-128-chars",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"duration\":\"1.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"kind\":\"model\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event duration must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.time-unix.negative",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidGltZV91bml4IjotMX0=",
+        "sha256": "b485b852aff549040eb97d01ca7c0bc316b687c4cc4e0349473a293783f9add7"
+      },
+      "intent": "time_unix is the one meter that may be negative: a pre-epoch timestamp is data",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"time_unix\":-1}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.time-unix.not-numeric",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidGltZV91bml4IjoibGF0ZXIifQ==",
+        "sha256": "89046e1fb2bc479230de83d7fce1b0c6abe1c3ba8007837db1feacf696bc37d9"
+      },
+      "intent": "time_unix may be negative but must still be a finite number",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"time_unix\":\"later\"}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event time_unix must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.falsy-empty-list",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOltdfQ==",
+        "sha256": "78720168c9691720fa007e6118f5ba1c1e06cebb7c2702b75687b1c525d62e67"
+      },
+      "intent": "the same for an empty list, which is not even a mapping",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":[]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.falsy-empty-string",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOiIifQ==",
+        "sha256": "e6371d239017190a6665558701e294c99cc0845257938b8ccfeb34eccac425f4"
+      },
+      "intent": "the same for an empty string",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":\"\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.falsy-false",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOmZhbHNlfQ==",
+        "sha256": "62f766d25c33cdbb0a9a7eabfdbe7e773b6f4c9ffd9d443a119c05f97d19890a"
+      },
+      "intent": "the same for false",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":false}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.falsy-null",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOm51bGx9",
+        "sha256": "e80f6ddb63e149694037cfed8575696d064c49182ba3e8f800afc01e8536b623"
+      },
+      "intent": "and the same for null",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":null}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.falsy-zero",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOjB9",
+        "sha256": "225954ff43378aa0c3ad8beec002e9f9acf4140b01cfd8fc4f2258ebff393974"
+      },
+      "intent": "a documented hazard: usage is read as payload.get(\"usage\") or {}, so 0 passes validation as 'no usage'",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":0}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.non-token-dimension-fractional",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsibGF0ZW5jeV9tcyI6MS41fX0=",
+        "sha256": "4c5d113578573d0d72a1e42253d827e3e9aeba6f4bac4ceef3b41643ca79a590"
+      },
+      "intent": "the integrality rule applies only to the seven known token dimensions",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.usage.token-dimension-fractional",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"latency_ms\":1.5}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.token-dimension-at-2-53",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOjkwMDcxOTkyNTQ3NDA5OTJ9fQ==",
+        "sha256": "83bb1f8233b8bbd9b38ae0efeda0f0dd363047e7213e6818de60ac619c207e99"
+      },
+      "intent": "and at most 2**53-1",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.token-dimension-unsafe",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.usage.token-dimension-at-max-safe",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":9007199254740992}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be a safe integer token count"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "accept",
+      "id": "metrics.usage.token-dimension-at-max-safe",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOjkwMDcxOTkyNTQ3NDA5OTF9fQ==",
+        "sha256": "0ef47a9e23c9e04b24935d5b25954ec9638fe8a5e1115bc4257e0624c6774e87"
+      },
+      "intent": "a known token dimension may be exactly 2**53-1",
+      "op": "event.metrics",
+      "output": {},
+      "profile": "reader",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.usage.token-dimension-at-2-53",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":9007199254740991}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.token-dimension-fractional",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOjEuNX19",
+        "sha256": "381f71995d6116058d3e5268cbb344de4f76aa9e75e9a3aa602d636b6617e3a8"
+      },
+      "intent": "a known token dimension must be integral",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.token-dimension-unsafe",
+      "repair_temptation": "round a fractional token count",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":1.5}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be a safe integer token count"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.truthy-non-object",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOjV9",
+        "sha256": "5e38670ee909548348114804e16b983e951fbc9a19a2aa8fec7c16b6a3256851"
+      },
+      "intent": "a *truthy* non-object usage is refused; only the falsy ones pass as absent",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.usage-not-object",
+      "section": "1.5.2",
+      "tier": "core",
+      "twin": "metrics.usage.falsy-zero",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":5}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage must be a mapping"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.value-boolean",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOnRydWV9fQ==",
+        "sha256": "8328539ce89b6c4df0aadffc873fa2d3974e94584becc9f0b029faa0911ef6da"
+      },
+      "intent": "a usage value must be exactly an int or a float; a bool is not numeric here",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.usage-value-not-numeric",
+      "repair_temptation": "read true as 1",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":true}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be numeric"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.value-negative",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOi0xfX0=",
+        "sha256": "a6036428c8a6423b70e820d95f4e9c763690bab5c7cbca29643b6ac46843effa"
+      },
+      "intent": "a usage value must be non-negative",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.meter-not-finite",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":-1}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be finite and non-negative"
+      }
+    },
+    {
+      "checklist": [
+        5
+      ],
+      "expect": "reject",
+      "id": "metrics.usage.value-string",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9Cnsia2luZCI6Im1vZGVsIiwidXNhZ2UiOnsiaW5wdXQiOiI1In19",
+        "sha256": "5f205ce7ea2d5c2315af765f1fa6837f2ee8bf42c40de5730ad52e9f0c2f66dd"
+      },
+      "intent": "and a numeric *string* is refused inside usage, unlike cost and duration",
+      "op": "event.metrics",
+      "profile": "reader",
+      "reason": "metrics.usage-value-not-numeric",
+      "section": "1.5.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"kind\":\"model\",\"usage\":{\"input\":\"5\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "event usage.input must be numeric"
+      }
+    }
+  ],
+  "family": "metrics",
+  "section": "1.5.2",
+  "suite_version": 1
+}

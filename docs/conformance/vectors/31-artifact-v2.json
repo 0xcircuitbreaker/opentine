@@ -1,0 +1,561 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.crlf-line-endings",
+      "input": {
+        "bytes_b64": "ew0KICAiY2FjaGUiOiB7fSwNCiAgImNyZWF0ZWRfYXQiOiAwLA0KICAiZm9ybWF0X3ZlcnNpb24iOiAyLA0KICAiZ3JhcGgiOiB7DQogICAgIm9yZGVyIjogW10sDQogICAgInN0ZXBzIjoge30NCiAgfSwNCiAgIm1hbmlmZXN0Ijoge30sDQogICJtZXRhZGF0YSI6IHt9LA0KICAicG9saWNpZXMiOiB7fSwNCiAgInJlZnMiOiB7fSwNCiAgInJ1bl9pZCI6ICJkZW1vIiwNCiAgInN0YXR1cyI6ICJjb21wbGV0ZWQiLA0KICAidHJhbnNjcmlwdCI6IFtdDQp9",
+        "sha256": "f9830f23512ad0cd35fd7ec0a5d37f5c3b9b10fa181044b76e56d717a1606018"
+      },
+      "intent": "the file is written in text mode, so a Windows checkout has CRLF on disk; the reader parses a document, not a byte count",
+      "must_differ": false,
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.minimal-v2",
+      "x_display": "{\\x0d\\n  \"cache\": {},\\x0d\\n  \"created_at\": 0,\\x0d\\n  \"format_version\": 2,\\x0d\\n  \"graph\": {\\x0d\\n    \"order\": [],\\x0d\\n    \"steps\": {}\\x0d\\n  },\\x0d\\n  \"manifest\": {},\\x0d\\n  \"metadata\": {},\\x0d\\n  \"policies\": {},\\x0d\\n  \"refs\": {},\\x0d\\n  \"run_id\": \"demo\",\\x0d\\n  \"status\": \"completed\",\\x0d\\n  \"transcript\": []\\x0d\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.deep-but-legal",
+      "input": {
+        "gen": {
+          "close": "]",
+          "depth": 512,
+          "inner": "0",
+          "kind": "nest",
+          "open": "["
+        },
+        "sha256": "8ffc0a1c6c684d5a33431fd2d1cd8295423335157134c42b1ee0be9ab57b36eb"
+      },
+      "intent": "nesting is bounded at 512, and an ordinary structured tool result is far under it",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": []
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.depth-over-512",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.depth-over-512",
+      "input": {
+        "gen": {
+          "close": "]",
+          "depth": 513,
+          "inner": "0",
+          "kind": "nest",
+          "open": "["
+        },
+        "sha256": "2755a3d42cecfe819923ad47e99c120dd28fdd9ef0418af7ee4764477f3a725f"
+      },
+      "intent": "513 nested containers exceeds the nesting bound",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.structure-excessive",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.deep-but-legal",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifact nesting exceeds the parser limit or structure is excessive"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.digits-inside-a-string",
+      "input": {
+        "blob": "blobs/d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24.bin",
+        "sha256": "d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24"
+      },
+      "intent": "the bound is on number *literals*: a long digit run inside a string must save and load, which is why a byte-level regex could not enforce it",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "format_version",
+          "n"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"n\": \"999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.duplicate-key",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAiYSIsICJydW5faWQiOiAiYiJ9",
+        "sha256": "f93dc31185ac90e0322efda35bc414fa078d525bd64582aca57900d60a0fec66"
+      },
+      "intent": "a duplicate object key is a parser differential: last-wins would mean two readers disagree about the document they are both 'reading successfully'",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.duplicate-key",
+      "repair_temptation": "apply last-wins, which is what every unguarded parser does",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"a\", \"run_id\": \"b\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "duplicate .tine object key: 'run_id'"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.float-values",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMS41LAogICJmb3JtYXRfdmVyc2lvbiI6IDIsCiAgImdyYXBoIjogewogICAgIm9yZGVyIjogW10sCiAgICAic3RlcHMiOiB7fQogIH0sCiAgIm1hbmlmZXN0Ijoge30sCiAgIm1ldGFkYXRhIjoge30sCiAgInBvbGljaWVzIjoge30sCiAgInJlZnMiOiB7fSwKICAicnVuX2lkIjogImRlbW8iLAogICJzdGF0dXMiOiAiY29tcGxldGVkIiwKICAidHJhbnNjcmlwdCI6IFtdCn0=",
+        "sha256": "50ac105cca23d162d40ea3bc18d93983b2b1cdeb9f26e3a89c1572013b270210"
+      },
+      "intent": "ordinary finite floats round-trip; only NaN and Infinity are refused",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1.5,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.infinity-literal",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJjb3N0IjogSW5maW5pdHl9",
+        "sha256": "bf6cd32519a6bcf1514e58a93d0ed58e5a70b821beea77b9589b39b610a5efc6"
+      },
+      "intent": "and neither is Infinity",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.non-finite",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"cost\": Infinity}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "non-finite number in .tine artifact: Infinity"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.integer.4096-digits",
+      "input": {
+        "blob": "blobs/9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350.bin",
+        "sha256": "9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350"
+      },
+      "intent": "MAX_TINE_INTEGER_DIGITS is 4096, and 4096 digits is inside it",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "format_version",
+          "n"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.integer.4097-digits",
+      "x_display": "{\"format_version\": 2, \"n\": 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.integer.4097-digits",
+      "input": {
+        "blob": "blobs/3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee.bin",
+        "sha256": "3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee"
+      },
+      "intent": "4097 digits is one past the bound, and the value is refused, not floated",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.integer-too-many-digits",
+      "repair_temptation": "parse it as a float, losing every digit past the 17th",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.integer.4096-digits",
+      "x_display": "{\"format_version\": 2, \"n\": 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "integer in .tine artifact exceeds the parser limit"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.lone-surrogate",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAiXHVkODAwIn0=",
+        "sha256": "f521ac4e05f82e2985d1739b3ec39c674b196820902b248435289024c784b3f0"
+      },
+      "intent": "an unpaired escape yields a str no other implementation reconstructs, and that neither the digest nor the v3 canonical form can be computed over",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.lone-surrogate",
+      "repair_temptation": "substitute U+FFFD",
+      "section": "3.7",
+      "tier": "core",
+      "twin": "artifact.paired-surrogate-escape",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"\\\\ud800\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifact holds an unpaired UTF-16 surrogate at run_id; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.malformed-json",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOg==",
+        "sha256": "0c3fe563cfe5c705f826db9afbd64db1f47266970e98863f941444a3050d536f"
+      },
+      "intent": "bytes that are not JSON are refused whole; no prefix is recovered",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.malformed-json",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\":",
+      "x_reference": {
+        "exception": "JSONDecodeError",
+        "message": "Expecting value: line 1 column 32 (char 31)"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.minimal-v2",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "6788b640e0280216b9cf8f93decdefbe47ad3100c0877295e7083b6e0671884b"
+      },
+      "intent": "a .tine file is one JSON object, two-space indented, keys in code-point order",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.nan-literal",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJjb3N0IjogTmFOfQ==",
+        "sha256": "57a46d4766e7bdc8dc10459b7815f8e3d6e9a576c37bbbb64c953c23dd0b7cca"
+      },
+      "intent": "NaN is not JSON, and mapping it to null would rewrite recorded data",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.non-finite",
+      "repair_temptation": "map it to null",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"cost\": NaN}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "non-finite number in .tine artifact: NaN"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.negative-infinity-literal",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJjb3N0IjogLUluZmluaXR5fQ==",
+        "sha256": "c8ef196631b15215421440c78a7ee6e855d1a232187c9b3b6b356a882e979ebb"
+      },
+      "intent": "or -Infinity",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.non-finite",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"cost\": -Infinity}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "non-finite number in .tine artifact: -Infinity"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.non-ascii-escaped",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkXHUwMGU5bW8tXHUyNjAzIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "15c7ff56762698e515fd3f5a2531da9a67aa7b01b9a45a3a419099090d29535c"
+      },
+      "intent": "json.dumps escapes non-ASCII, so the file is ASCII even for a Unicode run id",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"d\\\\u00e9mo-\\\\u2603\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.nul-byte",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAiYQBiIn0=",
+        "sha256": "0235d57754fe5d9d2b0bf9f361cc3be197c9684c0ae1f20a10a1eb02ecc31e5f"
+      },
+      "intent": "a NUL anywhere in the bytes refuses the file before any parse",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.nul-byte",
+      "repair_temptation": "strip the NUL and parse the rest",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"a\\x00b\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifacts must use UTF-8 JSON"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.overflowing-float-literal",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJjb3N0IjogMWU0MDB9",
+        "sha256": "d8fa53215f05066adb538f4bda22339f6277e73a5dc16c6525bb63795c62a416"
+      },
+      "intent": "a decimal literal that overflows to infinity is refused with the same rule",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.non-finite",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"cost\": 1e400}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "non-finite number in .tine artifact: 1e400"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.paired-surrogate-escape",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAyLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJcdWQ4M2RcdWRlMDAiLAogICJzdGF0dXMiOiAiY29tcGxldGVkIiwKICAidHJhbnNjcmlwdCI6IFtdCn0=",
+        "sha256": "c337e9002f5315a2a13bf239cf8277de7ac65fa6106cbddd75911c9b2bf17e8c"
+      },
+      "intent": "a correctly paired escape is an ordinary scalar value and parses",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "twin": "artifact.lone-surrogate",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"\\\\ud83d\\\\ude00\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "reject",
+      "id": "artifact.raw-cesu8-surrogate",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXRfdmVyc2lvbiI6IDIsICJydW5faWQiOiAi7aCAIn0=",
+        "sha256": "7b4baaabde82429550383ee395cc133ce1bfd9d8b24a9f3625c110a1b15b15d1"
+      },
+      "intent": "the raw byte spelling of the same code unit is refused identically",
+      "op": "artifact.parse",
+      "profile": "reader",
+      "reason": "artifact.lone-surrogate",
+      "section": "3.7",
+      "tier": "core",
+      "x_display": "{\"format_version\": 2, \"run_id\": \"\\xed\\xa0\\x80\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": ".tine artifact holds an unpaired UTF-16 surrogate at run_id; .tine artifacts and v3 objects are UTF-8 JSON, which cannot represent one. Repair it at the source: a truncated \\udXXX escape (a mid-emoji slice in a streamed model or tool response) or CESU-8 surrogate bytes from a non-UTF-8 producer. opentine will not substitute a replacement character on your behalf"
+      }
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "artifact.v1-still-parses",
+      "input": {
+        "bytes_b64": "ewogICJjYWNoZSI6IHt9LAogICJjcmVhdGVkX2F0IjogMCwKICAiZm9ybWF0X3ZlcnNpb24iOiAxLAogICJncmFwaCI6IHsKICAgICJvcmRlciI6IFtdLAogICAgInN0ZXBzIjoge30KICB9LAogICJtYW5pZmVzdCI6IHt9LAogICJtZXRhZGF0YSI6IHt9LAogICJwb2xpY2llcyI6IHt9LAogICJyZWZzIjoge30sCiAgInJ1bl9pZCI6ICJkZW1vIiwKICAic3RhdHVzIjogImNvbXBsZXRlZCIsCiAgInRyYW5zY3JpcHQiOiBbXQp9",
+        "sha256": "2bdc23b9fa1002790fae8f793038a9fd427794ac3521ffe44ee47d8bd360ad5b"
+      },
+      "intent": "SUPPORTED_VERSIONS is (1, 2): a v1 file still loads and is migrated in memory",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "3.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 0,\\n  \"format_version\": 1,\\n  \"graph\": {\\n    \"order\": [],\\n    \"steps\": {}\\n  },\\n  \"manifest\": {},\\n  \"metadata\": {},\\n  \"policies\": {},\\n  \"refs\": {},\\n  \"run_id\": \"demo\",\\n  \"status\": \"completed\",\\n  \"transcript\": []\\n}",
+      "x_reference": null
+    }
+  ],
+  "family": "artifact",
+  "section": "3.1",
+  "suite_version": 1
+}

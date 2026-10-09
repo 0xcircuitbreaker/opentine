@@ -1,0 +1,922 @@
+{
+  "cases": [
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.artifact.consistent-but-not-authentic",
+      "input": {
+        "value": {
+          "cache": {},
+          "created_at": {
+            "$i": "0"
+          },
+          "format_version": {
+            "$i": "2"
+          },
+          "graph": {
+            "order": [],
+            "steps": {}
+          },
+          "manifest": {},
+          "metadata": {
+            "fork_reason": "explored approach A",
+            "integrity": {
+              "algorithm": "sha256",
+              "digest": "0000000000000000000000000000000000000000000000000000000000000000",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "demo-key",
+                "scheme": "tine-sig/2",
+                "signed_at": "2026-09-05T00:00:00Z",
+                "signer": "release-bot",
+                "value": "8fa96b29e652b02fd9f5b2cf753e8b9778138bcd2280cb2a68bbb02ce98249ae"
+              }
+            },
+            "model_info": "anthropic/claude-sonnet-5",
+            "project": "opentine",
+            "system_prompt": "be careful",
+            "tags": [
+              "release"
+            ],
+            "user_prompt": "summarize"
+          },
+          "policies": {},
+          "refs": {},
+          "run_id": "tampered",
+          "status": "completed",
+          "transcript": []
+        }
+      },
+      "intent": "SPEC Part 6 item 7, the other half: this document's integrity digest was rewritten to match its edited body and verifies -- and its tine-sig/2 signature does not, because a signature is recomputed from content, not read from the file",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "twin": "integrity.verify.body-edited-and-digest-rewritten",
+      "x_display": "{\"cache\": {}, \"created_at\": {\"$i\": \"0\"}, \"format_version\": {\"$i\": \"2\"}, \"graph\": {\"order\": [], \"steps\": {}}, \"manifest\": {}, \"metadata\": {\"fork_reason\": \"explored approach A\", \"integrity\": {\"algorithm\": \"sha256\", \"digest\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-sig/2\", \"signed_at\": \"2026-09-05T00...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-block-not-an-object",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": "0000000000000000000000000000000000000000000000000000000000000000",
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a signature slot holding something that is not an object is an error, not unsigned",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "attestation signature is not an object",
+        "signed_at": null,
+        "signer": null,
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "twin": "verdict.attest.unsigned-null-slot",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_short"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-hmac-key-too-short",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a key below MIN_HMAC_KEY_BYTES is refused at verify as well as at sign, and the refusal is a returned error rather than a raised exception",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "HMAC key too short (15 bytes); use at least 16",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-non-string-key-id",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": {
+              "$i": "7"
+            },
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "an optional header value that is present but not a string is malformed",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": false,
+        "reason": "malformed signature header",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": {\"$i\": \"7\"}, \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-scheme-is-checked-before-alg",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "md5",
+            "key_id": "demo-key",
+            "scheme": "nope",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "the reference's check order is fixed: a block with BOTH a bad scheme and a bad algorithm reports the scheme, which is why every other vector violates one rule",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "md5",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "unsupported signature scheme",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"md5\", \"key_id\": \"demo-key\", \"scheme\": \"nope\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-unknown-algorithm",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "md5",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "an algorithm outside {hmac-sha256, ed25519}",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "md5",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "unsupported signature algorithm",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"md5\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-unsupported-scheme",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a block is verified under the scheme it names, and an unknown scheme is an error",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "unsupported signature scheme",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-value-not-hex",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "and it is hex",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "malformed signature value",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.error-value-wrong-length",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "abababababababababababababababab"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "an HMAC value is exactly 64 hex characters",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "malformed signature value",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"abababababababababababababababab\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.mismatch-edited-claim",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "fail"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "the claim is inside the signature, so editing it flips the verdict",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "twin": "verdict.attest.verified",
+      "x_display": "{\"claim\": {\"result\": \"fail\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.mismatch-edited-target",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      },
+      "intent": "so is the target run",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.mismatch-key-id-added",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "someone-elses-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "an absent header value is signed as null, so adding a key_id afterwards is a mismatch rather than a silently accepted improvement",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "someone-elses-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"someone-elses-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.mismatch-signed-at-moved",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2027-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "and so is moving the timestamp",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2027-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2027-01-01T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_b"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.mismatch-wrong-key",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a key was applied and disagreed: the tamper verdict",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "twin": "verdict.attest.verified",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.no-key",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a block is present but the caller supplied no key, so nothing was checked; ok is false, because 'not checked' is never 'verified'",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "HMAC signature present but no key supplied",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "no-key"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.unsigned-absent-slot",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "and so does a payload with no signature key at all",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "no signature present",
+        "signed_at": null,
+        "signer": null,
+        "state": "unsigned"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.unsigned-null-slot",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": null,
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "the literal \"signature\": null 0.3.0-0.8.1 wrote verifies as unsigned -- never an error, never verified",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "no signature present",
+        "signed_at": null,
+        "signer": null,
+        "state": "unsigned"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": null, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.verified",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a key the caller supplied was applied and agreed: the only ok=true state for HMAC",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_floor"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.attest.verified-with-floor-key",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "key_id": "floor",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "99dd20b987b3eb7e7c5a371df9562e7f9ecbcb2fe30a1896871668771d8ff137"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "a 16-byte key is exactly MIN_HMAC_KEY_BYTES and must verify",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "floor",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"floor\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"99dd20b987b3eb7e7c5a371df9562e7f9ecbcb2fe30a1896871668771d8ff137\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "trust_embedded": true
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "verdict.ed25519.verified-tofu",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "ed25519",
+            "key_id": "ed-demo",
+            "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+            "scheme": "tine-attest/1",
+            "signed_at": "2026-09-05T00:00:00Z",
+            "signer": "release-bot",
+            "value": "6a9fcd4ac3b13101a3c2cbc31e02e7e8d68582ac8132d5384ec36a688471588d9241eec37a92959dd9898d24b824ee0cd90177a71b08c80f41b911abb0d9af0e"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "trust on first use: verified against the public key embedded in the block, which the signature does not cover. It proves the block is internally consistent, not that the key is anyone's -- and it requires an explicit opt-in",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": "ed-demo",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-09-05T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"ed-demo\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-attest/1\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6a9fcd4ac3b13101a3c2cbc31e02e7e8d68582ac8132d5384ec36a688471588d9241eec37a92959dd9898d24b824ee0cd90177a71b08c80f41b9...",
+      "x_reference": null
+    }
+  ],
+  "family": "verdict",
+  "section": "4.7",
+  "suite_version": 1
+}

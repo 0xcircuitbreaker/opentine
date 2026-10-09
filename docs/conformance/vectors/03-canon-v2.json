@@ -1,0 +1,659 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.array.order-preserved",
+      "input": {
+        "value": {
+          "a": [
+            {
+              "$i": "3"
+            },
+            {
+              "$i": "1"
+            },
+            {
+              "$i": "2"
+            }
+          ]
+        }
+      },
+      "intent": "rule 2/3: sort_keys orders object members and never touches an array",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJhIjpbMywxLDJdfQ=="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"a\": [{\"$i\": \"3\"}, {\"$i\": \"1\"}, {\"$i\": \"2\"}]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.escaping.non-ascii",
+      "input": {
+        "value": {
+          "k": "\u00e9\u2603"
+        }
+      },
+      "intent": "rule 1: ensure_ascii is on, so every non-ASCII character becomes a \\uXXXX escape",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJrIjoiXHUwMGU5XHUyNjAzIn0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"k\": \"\\u00e9\\u2603\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.escaping.non-bmp-surrogate-pair",
+      "input": {
+        "value": {
+          "k": "\ud83d\ude00"
+        }
+      },
+      "intent": "rule 1: a non-BMP character is escaped as its UTF-16 surrogate *pair*",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJrIjoiXHVkODNkXHVkZTAwIn0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"k\": \"\\ud83d\\ude00\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e-5",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-05"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZS0wNX0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-05\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e-6",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-06"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZS0wNn0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-06\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e-7",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-07"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZS0wN30="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-07\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e16",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+16"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsxNn0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+16\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e20",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+20"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsyMH0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+20\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e21",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+21"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsyMX0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+21\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.1e308",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+308"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSszMDh9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+308\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v2.float.nan",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "nan"
+          }
+        }
+      },
+      "intent": "rule 5: NaN is refused by the explicit check in _jsonable",
+      "op": "canon.v2",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "0.3",
+      "tier": "core",
+      "twin": "canon.v3.float.nan",
+      "x_display": "{\"n\": {\"$f\": \"nan\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v2.float.negative-infinity",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-inf"
+          }
+        }
+      },
+      "intent": "rule 5: -Infinity is refused",
+      "op": "canon.v2",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-inf\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.negative-zero",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-0.0"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjotMC4wfQ=="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.one",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxLjB9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v2.float.positive-infinity",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "inf"
+          }
+        }
+      },
+      "intent": "rule 5: +Infinity is refused",
+      "op": "canon.v2",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"inf\"}}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.small-positional",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "0.0001"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjowLjAwMDF9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"0.0001\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.float.zero",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "0.0"
+          }
+        }
+      },
+      "intent": "rule 5: CPython repr() spelling -- an integral value keeps .0, the sign of zero is preserved, and the exponent carries a sign and two digits",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjowLjB9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.integer.4097-digits-accepts",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+          }
+        }
+      },
+      "intent": "rule 4's 4096-digit bound belongs to the .tine layer, not to this canonicalizer",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjo5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OX0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "spec_note": "SPEC 0.3 rule 4's 4096-digit bound is enforced at the .tine layer (_artifact_io), not by _canonical_bytes; this op accepts a 4097-digit integer that artifact.parse refuses.",
+      "tier": "core",
+      "twin": "artifact.integer.4097-digits",
+      "x_display": "{\"n\": {\"$i\": \"99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.integer.at-2-53",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "9007199254740992"
+          }
+        }
+      },
+      "intent": "rule 4: v2 has no 2**53 rule, so the one input the two forms disagree about *accepting* is an integer at 2**53",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjo5MDA3MTk5MjU0NzQwOTkyfQ=="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "twin": "canon.v3.integer.at-2-53",
+      "x_display": "{\"n\": {\"$i\": \"9007199254740992\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.key.empty-string",
+      "input": {
+        "value": {
+          "": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "the empty string is a legal key here too",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyIiOjF9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.key.order-code-point",
+      "input": {
+        "value": {
+          "a": {
+            "$i": "2"
+          },
+          "b": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "rule 3: members are ordered by the key's Unicode code points",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJhIjoyLCJiIjoxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"a\": {\"$i\": \"2\"}, \"b\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.literals.null-true-false",
+      "input": {
+        "value": {
+          "f": false,
+          "n": null,
+          "t": true
+        }
+      },
+      "intent": "the three literals are spelled exactly as JSON requires",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJmIjpmYWxzZSwibiI6bnVsbCwidCI6dHJ1ZX0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"f\": false, \"n\": null, \"t\": true}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.object.empty",
+      "input": {
+        "value": {}
+      },
+      "intent": "an empty object renders as two bytes",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "e30="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.string.escapes",
+      "input": {
+        "value": {
+          "k": "\"\\\b\f\n\r\t\u001f"
+        }
+      },
+      "intent": "the same seven named escapes, and \\u00XX below U+0020",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJrIjoiXCJcXFxiXGZcblxyXHRcdTAwMWYifQ=="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"k\": \"\\\"\\\\\\b\\f\\n\\r\\t\\u001f\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.surrogate.key-accepts",
+      "input": {
+        "value": {
+          "$obj": [
+            [
+              {
+                "$u": [
+                  "d800"
+                ]
+              },
+              {
+                "$i": "1"
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "the same for an object key: the escape is emitted, and the refusal is elsewhere",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJcdWQ4MDAiOjF9"
+      },
+      "profile": "reader",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "0.3",
+      "tier": "core",
+      "twin": "canon.v3.surrogate.key",
+      "x_display": "{\"$obj\": [[{\"$u\": [\"d800\"]}, {\"$i\": \"1\"}]]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v2.surrogate.value-accepts",
+      "input": {
+        "value": {
+          "k": {
+            "$u": [
+              "d800"
+            ]
+          }
+        }
+      },
+      "intent": "the v2 canonicalizer alone does not refuse a lone surrogate: it escapes it",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJrIjoiXHVkODAwIn0="
+      },
+      "profile": "reader",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "0.3",
+      "spec_note": "SPEC 0.1 says both formats reject a lone surrogate at write and at read; _canonical_bytes alone does not -- the refusal lives in _artifact_io.parse_artifact_json and _v3_guards.guarded_redaction.",
+      "tier": "core",
+      "twin": "canon.v3.surrogate.value",
+      "x_display": "{\"k\": {\"$u\": [\"d800\"]}}",
+      "x_reference": null
+    }
+  ],
+  "family": "canon-v2",
+  "section": "0.3",
+  "suite_version": 1
+}

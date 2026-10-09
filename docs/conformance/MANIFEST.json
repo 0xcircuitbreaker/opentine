@@ -1,0 +1,1359 @@
+{
+  "alias_groups": [
+    [
+      "shape.depth-exceeded",
+      "shape.tokens-exceeded"
+    ],
+    [
+      "envelope.header-non-canonical",
+      "envelope.header-key-count"
+    ],
+    [
+      "envelope.unknown-type",
+      "envelope.encoding-mismatch"
+    ],
+    [
+      "link.parent-ids-not-events",
+      "link.parent-ids-duplicate"
+    ],
+    [
+      "link.run-events-invalid",
+      "link.run-roots-tips-invalid"
+    ],
+    [
+      "link.evidence-not-list",
+      "oid.malformed",
+      "path.invalid-oid",
+      "pack.shallow-invalid-oid",
+      "link.attestation-target-not-run"
+    ],
+    [
+      "link.event-blob-not-blob",
+      "link.run-blob-not-blob",
+      "oid.malformed"
+    ],
+    [
+      "envelope.schema-not-integer",
+      "envelope.schema-out-of-range"
+    ],
+    [
+      "pack.arrays-invalid",
+      "pack.manifest-malformed"
+    ],
+    [
+      "pack.manifest-non-canonical",
+      "pack.manifest-key-set",
+      "pack.version-unsupported"
+    ],
+    [
+      "pack.entry-shape",
+      "pack.entry-base64",
+      "pack.entry-oid-mismatch"
+    ],
+    [
+      "ref.name-namespace",
+      "ref.name-charset",
+      "ref.name-not-casefolded",
+      "ref.name-too-long",
+      "ref.component-too-long",
+      "ref.component-reserved",
+      "ref.component-windows-device"
+    ],
+    [
+      "metrics.meter-not-finite",
+      "metrics.meter-too-long"
+    ],
+    [
+      "config.malformed",
+      "shape.tokens-exceeded"
+    ],
+    [
+      "chain.target-changed",
+      "chain.previous-unavailable"
+    ],
+    [
+      "text.lone-surrogate",
+      "canon.unencodable-text",
+      "artifact.lone-surrogate"
+    ]
+  ],
+  "bound_coverage": {
+    "HMAC key floor": [
+      "verdict.attest.verified-with-floor-key",
+      "verdict.attest.error-hmac-key-too-short"
+    ],
+    "JSON nesting depth": [
+      "shape.depth.at-512",
+      "shape.depth.at-513"
+    ],
+    "`.tine` artifact size": [
+      "NOT_VECTORED:_artifact_io.MAX_TINE_ARTIFACT_BYTES"
+    ],
+    "`.tine` integer digits": [
+      "artifact.integer.4096-digits",
+      "artifact.integer.4097-digits"
+    ],
+    "association scan": [
+      "NOT_VECTORED:_associations.MAX_ASSOCIATION_SCAN"
+    ],
+    "canonical integer magnitude": [
+      "canon.v3.integer.max-safe",
+      "canon.v3.integer.at-2-53"
+    ],
+    "config size": [
+      "bounds.config.at-65536-bytes",
+      "bounds.config.at-65537-bytes"
+    ],
+    "config structural tokens": [
+      "bounds.config.tokens-under-budget",
+      "bounds.config.tokens-over-budget"
+    ],
+    "envelope header size": [
+      "NOT_VECTORED:envelope header 256 bytes"
+    ],
+    "envelope schema range": [
+      "env.schema.seven-accepts",
+      "env.schema.zero"
+    ],
+    "graph traversal": [
+      "NOT_VECTORED:_traversal.MAX_TRAVERSAL_OBJECTS"
+    ],
+    "legacy annotation scan": [
+      "NOT_VECTORED:_annotations.MAX_LEGACY_OBJECTS"
+    ],
+    "numeric-meter string length": [
+      "metrics.duration.numeric-string-at-128-chars",
+      "metrics.meter.string-at-129-chars"
+    ],
+    "objects per pack": [
+      "bounds.pack.shallow-at-10000",
+      "bounds.pack.shallow-at-10001"
+    ],
+    "pack manifest size": [
+      "NOT_VECTORED:pack.MAX_PACK_BODY_BYTES"
+    ],
+    "pack transfer size": [
+      "bounds.pack.over-256-mib"
+    ],
+    "ref file size": [
+      "bounds.ref-file.canonical",
+      "bounds.ref-file.at-257-bytes"
+    ],
+    "ref name, per component": [
+      "bounds.ref-component.at-240-bytes",
+      "bounds.ref-component.at-241-bytes"
+    ],
+    "ref name, total": [
+      "bounds.ref-name.at-512-bytes",
+      "bounds.ref-name.at-513-bytes"
+    ],
+    "reflog actor": [
+      "bounds.reflog-actor.at-4096-chars",
+      "bounds.reflog-actor.at-4097-chars"
+    ],
+    "shallow entries": [
+      "bounds.shallow.at-10000-entries",
+      "bounds.shallow.at-10001-entries"
+    ],
+    "shallow file size": [
+      "bounds.shallow.over-1-mib"
+    ],
+    "structural tokens, object body": [
+      "bounds.envelope-body.tokens-under-200000",
+      "bounds.envelope-body.tokens-over-200000"
+    ],
+    "token-count dimensions": [
+      "metrics.usage.token-dimension-at-max-safe",
+      "metrics.usage.token-dimension-at-2-53"
+    ],
+    "typed object scan": [
+      "NOT_VECTORED:_objects.MAX_TYPED_OBJECT_SCAN"
+    ],
+    "write-side walk depth": [
+      "NOT_VECTORED:_canon_redact.MAX_CANONICAL_DEPTH"
+    ]
+  },
+  "families": [
+    {
+      "core": 16,
+      "count": 16,
+      "file": "vectors/00-text.json",
+      "name": "text",
+      "ops": [
+        "envelope.decode",
+        "text.validate"
+      ],
+      "reject": 10,
+      "section": "0.1",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 7,
+      "count": 7,
+      "file": "vectors/01-selftest.json",
+      "name": "selftest",
+      "ops": [
+        "canon.v2",
+        "canon.v3"
+      ],
+      "reject": 0,
+      "section": "0.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 34,
+      "count": 34,
+      "file": "vectors/02-canon-v3.json",
+      "name": "canon-v3",
+      "ops": [
+        "canon.v3",
+        "envelope.decode"
+      ],
+      "reject": 8,
+      "section": "0.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 26,
+      "count": 26,
+      "file": "vectors/03-canon-v2.json",
+      "name": "canon-v2",
+      "ops": [
+        "canon.v2"
+      ],
+      "reject": 3,
+      "section": "0.3",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 16,
+      "count": 16,
+      "file": "vectors/04-divergence.json",
+      "name": "divergence",
+      "ops": [
+        "canon.v2",
+        "canon.v3",
+        "sig.message"
+      ],
+      "reject": 1,
+      "section": "0.4",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/05-shape.json",
+      "name": "shape",
+      "ops": [
+        "shape.scan"
+      ],
+      "reject": 6,
+      "section": "0.5",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 26,
+      "count": 26,
+      "file": "vectors/12-envelope.json",
+      "name": "envelope",
+      "ops": [
+        "envelope.decode",
+        "envelope.encode"
+      ],
+      "reject": 17,
+      "section": "1.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 16,
+      "count": 16,
+      "file": "vectors/13-oid.json",
+      "name": "oid",
+      "ops": [
+        "envelope.decode",
+        "oid.derive",
+        "oid.parse"
+      ],
+      "reject": 6,
+      "section": "1.3",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/14-redaction.json",
+      "name": "redaction",
+      "ops": [
+        "object.put",
+        "redact.blob",
+        "redact.value"
+      ],
+      "reject": 0,
+      "section": "1.4",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 39,
+      "count": 39,
+      "file": "vectors/15-links.json",
+      "name": "links",
+      "ops": [
+        "annotation.chain",
+        "links.extract"
+      ],
+      "reject": 21,
+      "section": "1.5",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 22,
+      "count": 22,
+      "file": "vectors/15b-metrics.json",
+      "name": "metrics",
+      "ops": [
+        "event.metrics"
+      ],
+      "reject": 11,
+      "section": "1.5.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 16,
+      "count": 16,
+      "file": "vectors/15c-graph.json",
+      "name": "graph",
+      "ops": [
+        "run.graph"
+      ],
+      "reject": 8,
+      "section": "1.5.3",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 10,
+      "count": 10,
+      "file": "vectors/15d-load.json",
+      "name": "load",
+      "ops": [
+        "object.load"
+      ],
+      "reject": 5,
+      "section": "1.5",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 20,
+      "count": 30,
+      "file": "vectors/16-bounds.json",
+      "name": "bounds",
+      "ops": [
+        "artifact.parse",
+        "config.validate",
+        "envelope.decode",
+        "oid.parse",
+        "pack.inspect",
+        "ref.file",
+        "ref.name",
+        "reflog.row",
+        "shallow.encode",
+        "shallow.parse"
+      ],
+      "reject": 15,
+      "section": "1.6",
+      "stress": 10,
+      "verdict": 0
+    },
+    {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/22-layout.json",
+      "name": "layout",
+      "ops": [
+        "config.validate",
+        "object.path"
+      ],
+      "reject": 6,
+      "section": "2.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 34,
+      "count": 34,
+      "file": "vectors/24-refs.json",
+      "name": "refs",
+      "ops": [
+        "ref.file",
+        "ref.name",
+        "ref.target"
+      ],
+      "reject": 22,
+      "section": "2.4",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 8,
+      "count": 8,
+      "file": "vectors/26-reflog.json",
+      "name": "reflog",
+      "ops": [
+        "reflog.row"
+      ],
+      "reject": 2,
+      "section": "2.6",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 14,
+      "count": 14,
+      "file": "vectors/27-shallow.json",
+      "name": "shallow",
+      "ops": [
+        "shallow.encode",
+        "shallow.parse"
+      ],
+      "reject": 6,
+      "section": "2.7",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 30,
+      "count": 30,
+      "file": "vectors/28-pack.json",
+      "name": "pack",
+      "ops": [
+        "pack.inspect",
+        "pack.install",
+        "pack.manifest"
+      ],
+      "reject": 19,
+      "section": "2.8",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 20,
+      "count": 20,
+      "file": "vectors/31-artifact-v2.json",
+      "name": "artifact",
+      "ops": [
+        "artifact.parse"
+      ],
+      "reject": 11,
+      "section": "3.1",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/35-integrity.json",
+      "name": "integrity",
+      "ops": [
+        "integrity.digest",
+        "integrity.verify"
+      ],
+      "reject": 0,
+      "section": "3.5",
+      "stress": 0,
+      "verdict": 7
+    },
+    {
+      "core": 37,
+      "count": 37,
+      "file": "vectors/42-signing.json",
+      "name": "signing",
+      "ops": [
+        "attest.sign",
+        "sig.message"
+      ],
+      "reject": 4,
+      "section": "4.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 20,
+      "count": 20,
+      "file": "vectors/47-verdict.json",
+      "name": "verdict",
+      "ops": [
+        "sig.verify"
+      ],
+      "reject": 0,
+      "section": "4.7",
+      "stress": 0,
+      "verdict": 20
+    },
+    {
+      "core": 40,
+      "count": 40,
+      "file": "vectors/51-compat.json",
+      "name": "compat",
+      "ops": [
+        "artifact.parse",
+        "integrity.verify",
+        "object.load",
+        "sig.verify"
+      ],
+      "reject": 0,
+      "section": "5.1",
+      "stress": 0,
+      "verdict": 24
+    },
+    {
+      "core": 14,
+      "count": 14,
+      "file": "vectors/99-repair.json",
+      "name": "repair",
+      "ops": [
+        "artifact.parse",
+        "canon.v3",
+        "envelope.decode",
+        "event.metrics",
+        "pack.inspect",
+        "ref.file",
+        "shallow.parse",
+        "text.validate"
+      ],
+      "reject": 14,
+      "section": "6",
+      "stress": 0,
+      "verdict": 0
+    }
+  ],
+  "files": {
+    "PROTOCOL.md": "e4f35c370c7f188e21102530a47f52393cd6fd72c7fdea9275fe95e8657ef4cf",
+    "README.md": "9a9bc87c16b18a3fafee6cd4c08027881785e994bdc5bbbfb95544e59d4cff84",
+    "REASON_CODES.md": "c132417dc8878dd12f752e14f5a0987c6d6ca0f3d2e9f63918ae13f435e45b1b",
+    "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
+    "blobs/3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee.bin": "3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee",
+    "blobs/9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350.bin": "9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350",
+    "blobs/d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24.bin": "d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24",
+    "compat/index.json": "8fb38d4fbba78f248a6bdf6d311770ee05a6e16327ef28a1948ea925e3c4c2a9",
+    "frames/1254a597c372e57fb8859f6e28765284e88f5b50dc94cee9d5d1a4ca1b010eb9.pack": "1254a597c372e57fb8859f6e28765284e88f5b50dc94cee9d5d1a4ca1b010eb9",
+    "frames/27abf482ac4355bd6ddf97c5f7e0ed349741303ac09e7062161092a6102970a5.pack": "27abf482ac4355bd6ddf97c5f7e0ed349741303ac09e7062161092a6102970a5",
+    "frames/2c57261f4ca69bb1c862f777949cddee3af342f269732cf96aa466881a7c0521.pack": "2c57261f4ca69bb1c862f777949cddee3af342f269732cf96aa466881a7c0521",
+    "frames/442aa9654d524e7f5a126361fae7e655e03a6f2a79dae292432b2927bd99f516.pack": "442aa9654d524e7f5a126361fae7e655e03a6f2a79dae292432b2927bd99f516",
+    "frames/54ee043f9130d8279bb0f8cd55bbcbdaa0c81a738a36ac01e35dda98738cf395.pack": "54ee043f9130d8279bb0f8cd55bbcbdaa0c81a738a36ac01e35dda98738cf395",
+    "frames/9724cd40119a69e273f004b49750c92a081c9737df597557ecd598d14a84c42d.pack": "9724cd40119a69e273f004b49750c92a081c9737df597557ecd598d14a84c42d",
+    "frames/b07314af0d7a0e748b59d5dc2cc847a4a8a30c95178947b716f1bcac3a394b24.pack": "b07314af0d7a0e748b59d5dc2cc847a4a8a30c95178947b716f1bcac3a394b24",
+    "frames/bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1.pack": "bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1",
+    "frames/ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d.pack": "ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d",
+    "keys.json": "54132bd22d00a6b10de054fdd37ff82a27135fa0237289591af01cb3a28edb65",
+    "report.schema.json": "f2440b4314f7b2e308b952342cd180528d275120cf8106619aa235a5707e1e70",
+    "run_conformance.py": "f6a61589c4a02c6121b7fd86edaf54009778ca7186fc042eda0fd7ffad67c47d",
+    "tests/fixtures/compat/v0_3_0/artifact.tine": "7c1d108de35c1c3cb7deff7d22b56b8550f095904f6ccd5ad730eee879a6c9d9",
+    "tests/fixtures/compat/v0_3_0/artifact_signed.tine": "a8a4b35a117e9bbb5e96706fdc70828667d6df050e217db76dcba5f01522cee6",
+    "tests/fixtures/compat/v0_3_0/artifact_signed_fork_reason.tine": "8c6bb6d46b30a6248ce3b11b02709ec1f1e59feb90b63297258e1a6dbdd15b9f",
+    "tests/fixtures/compat/v0_3_0/fork.tine": "3d0190989a3b32b31f6e40c7c92ccb424200540f4a04dfbde27eccd367e7acc6",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/annotation/37/af589af5afc6cf3b6e105359da123e588a3d49677b9a7e27bbc5241428d781": "6f60653b28f50ee3139df517be5014f1c55cfff9f73919fe3e62db49b1262183",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/e7/b1ac591eaebd4104719dfd3ddc50cf7e1b540b2a569949d20b80cf59addbb6": "8b4be4349f9b59f296d9c199452190b9ad4a8012601a72a574eb07423cbabdb5",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/event/38/50bb18efa0b5e0f8fafb780e8cca96192745b40296c841b4445e460a757012": "49dfa2b9f38f5860d79848c32b0351fa09af55c415fa7ac1097a384a6aaed1c5",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/event/71/06c045ca7eebcbedc80f089b9d775398575c6c734e012b30c6b8339bbb965f": "121dac28cb405a1a5394785a1f7a8e61eff37cfa7fc6afff8685f1c3c2909dfc",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/event/d4/85f9b906d1e2470ff5ac6dd7faf9b92692b3f8fc00f92e4a2005c14f9bdfa4": "5e440635a0b305ac64cc9d47b945c4dcd634c83e640b58064c5ddb1b0527781c",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/event/da/2f217b9f443b1ea469f2c3fa799b6545f96bc43cf587cfe420c8cf55b8a659": "1d6fd9eb91ca16d54830ec9523a17db1012971eb5c70d4cdeab2397f437f2b75",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/run/09/c0db642a45c642da4dc2577edd2b66f40b9c7126f7be64d9f5f5ec2786dbf9": "318927cd0bc2a668c0d74e294ef57a40fd5ad8bd0aa2b4f5bfdc62844aef558b",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/objects/run/52/3ad46b326fdf1857d74ab1ab482b835a5e39de0accfd6e6ff43497c7dd899d": "5e2a81c4ccb501c0310886c65b93250863a758883acb7cc6ad6b82d244344e9c",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/refs/annotations/523ad46b326fdf1857d74ab1ab482b835a5e39de0accfd6e6ff43497c7dd899d": "57b9811e4c009f834a3663f78e0346f78957d8ce2778498465e4084824edd9b9",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/refs/heads/experiment": "2ab99d5c4a42c0e17e3ca79813aa88c37c719bb7fdc51c0cac10febeec0077cc",
+    "tests/fixtures/compat/v0_3_0/repo/.tine/refs/heads/main": "a5a95fbfdf7f3c482128914b7fbed1436d3577e049d04148d6347173ae875b73",
+    "tests/fixtures/compat/v0_4_0/artifact.tine": "aaeaa38a496edee91edaf368e84fb48cdd0b380cb0747d9e1dd9ebab4419ba61",
+    "tests/fixtures/compat/v0_4_0/artifact_signed.tine": "ff7884b2ba89e8d590ce63f617c10b6cf0fc0e9bcc1a5f7350d5c81e5dac8cc7",
+    "tests/fixtures/compat/v0_4_0/artifact_signed_fork_reason.tine": "4a80ab77673cc52abcc7f3539d984031806682f8f5bbaffc7e57df123b0fabf6",
+    "tests/fixtures/compat/v0_4_0/fork.tine": "5d891cf4ef1a1ee156585e5d95316367ef39a81183db3e4d8458961eca07019f",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/annotation/16/f3be0e31001e22ce19df3c727e7c5453e50bf37705c0b2179bf8f0111860ca": "bae7e84a69c0385fe9d854bb4892f261d18da08095d5ab3edb2c8ca40c756f26",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/d2/0297587c80dad01b133af87a97c077d83d764ac285ab7cb486ebe75a22d06e": "ed40897977e79702dd5bceb517e97a69d5f26024e4b79838c1f8c56194a55a4f",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/event/3e/9d84ef5c1bdc078d93b18d6067e955e38d925afd77f570de54ea11042865f0": "ee8dce79f6d241707e2db609418aaf04ab74368b36e770b9ab919c7667e6fd41",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/event/3f/b680bb201992275b2a92a1d1600e45f0278d0183ec30557988b0ff237a0215": "cf83fa40605ad03c13a51221be7c39267ddd427a82bb0d3eea74ba7306683615",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/event/d2/92dbb7031901037d8caf471bc380bb948ae2ff2bd62615609d1e52e5df291b": "9b778a27fc3abc89b8d78ff6adf5ecbc3235b09da616c46db6bea4dc47f7ec40",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/event/f7/ac943c0bef0f447699817f94d80f0d78fed84904d81808fd20560165d6d034": "b6768518b6a3160142c1d6c43c47501211fe71937230d7c461b793a7e3c104ce",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/run/66/a3d94df92a40849582687a188a76706b3083e71332364b542eee167961cdef": "2328a0631b32893ff4b9ca29755d95898debea28fa8d224f20b20a30b947f0dc",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/objects/run/dd/c55f274d55b56272a64e1417ec277c4598010410b8b4321d11005129c93a90": "460ccdd8a82d888d395e7042818932ae77c3bd6032732bbcc95147cd9217c587",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/refs/annotations/66a3d94df92a40849582687a188a76706b3083e71332364b542eee167961cdef": "1881e44bc937445e3fde71703cf484e0a7f05085e2c2e441a467d994665be4af",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/refs/heads/experiment": "e95ad4ce0847a06b5a9015d5ac3ee38e56a22b480cd62310f1f817eba162f6c7",
+    "tests/fixtures/compat/v0_4_0/repo/.tine/refs/heads/main": "d4e92e7c866f3d058038a57d0614382de200d8e1f8d9a63800b843610efbdced",
+    "tests/fixtures/compat/v0_5_0/artifact.tine": "a8dab714c2764203c4aa9b780000e8119f294d4b03234e0b044059e479ac23de",
+    "tests/fixtures/compat/v0_5_0/artifact_signed.tine": "eecde65f8cf95babdbef34f4822013bf6d6f62a0a080c8d3c3092d8292b15c87",
+    "tests/fixtures/compat/v0_5_0/artifact_signed_fork_reason.tine": "42ed7c603b6579b716c26c7348391665bf4cfd33578ea3fd7bf09d4787a52b62",
+    "tests/fixtures/compat/v0_5_0/fork.tine": "dcaf85a4f6791d25525b8969b26bd11447f33192789ab2004ec645d0df367f08",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/annotation/4e/f8efb67184581c0ea2253b9094515b3324b9b439f728cc653cab7c7fb16c84": "7cd6b2971932c1752002ea74d4499ff2e169f187f4f3199a306cce86ff87b37c",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/0b/9cef22bef8df7dc599e7dd3e9b7e7ac98a1d7ae2992bd3deb07204be07cffb": "264bf0084a0f29386e8841b3dcfa15436f680453a6315db11ebb675eea4a1e43",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/event/49/1da297936131beaddb74e164fc61d66500dfda249cd295a10d6fc8739ee794": "e46fbb768b35ed8b54b56b096b013a76fe22732a63a20f699d8c57f319ddd3db",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/event/6d/c1725e0e6fafee882214a92946453481af791810e4b8cc3cea6417d21cbe1f": "a85ec8c59f091fe80115f324ff0972a28443c883250b42819ffb0cad48945dec",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/event/7d/0e3fc4d4fd88e9bce46120c4e41531356825db790db1954da465316e93abd5": "482cc78aa0e25e7d41b477f8230e702e5f2b5b0597cb5766b4d4e70c6e404253",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/event/9b/20997803c57efb8a2c01b0edf77232fb08e04292a1164cb28e067b0328a13a": "5eceefad7d5af417cc4ff90acf86b4bc23de7be57c1d6e55679f14ed10f63e41",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/run/38/820f030c6cb27f0a456f9effb39d95eb341644ae3dc83a18eb047ad22b79db": "d678f11e975be435cea3b4540285d87c25b7511d6b35f2de9e091b8dc6044847",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/objects/run/be/292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36": "a8ea9fde20c78e337b991e9e01d1c07aa05c10794f06147d7aec2bc968f672b8",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/refs/annotations/be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36": "c269a11efa3b91d42a5043bb4d102c53a8b7c320b3a09343e18faf6ea0ee8d1d",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/refs/heads/experiment": "cd14f9ef12ed8600bea9703344037717907f2857ac62f431ff3792dbd4b04966",
+    "tests/fixtures/compat/v0_5_0/repo/.tine/refs/heads/main": "73dbe6c9a61d55423966bd3bbf15e9dd6b991e67083cb5a6fce0619981b7a69b",
+    "tests/fixtures/compat/v0_6_0/artifact.tine": "783d677455938f525a6400f1c6a93941b49faa549aa835e7ae02192bdb5531ab",
+    "tests/fixtures/compat/v0_6_0/artifact_signed.tine": "fb63103925bdd4d151ec2ca66a845de7c4510282b98c0a2b2529a5de3ab4a7d7",
+    "tests/fixtures/compat/v0_6_0/artifact_signed_fork_reason.tine": "ffcf91509fad11b9f718c10e63312b06879b3bbc964281cf4b101340778278a4",
+    "tests/fixtures/compat/v0_6_0/fork.tine": "3b9655caf48e7a86c031c878b4b529e5aafd66e627bf48011d939bfd294d2a3a",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/annotation/50/df62cae62c5fbe055e19ac46918ce67fb62717d327d242cb09796b7515bbfd": "84b07d9368d413989979e6fc0f546b1e2c3fe419b3eb95999a26cee0251979fe",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/4c/32e932aed16d7ce5f5e04ca734db3b7dbbb4408b365ad2c10f6de92f76872c": "09afc4fc9c9450ef625a2ecb9664eec63cc1a993dc4727bb00316c4fad7e23b8",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/event/32/c86c5c929840c15dc3e72fedbf752a4964ca1859afff3936b12a61f2138859": "cd9323c892d19b5498995e5522e45f26fa371e9a4a20fec01fd864bfc36a6748",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/event/48/148f8db9b913a4531d7da183bbf72c3e7bc23309b911df0dadc34568a04592": "4456b00de4fc1ebe26fe885fe374251c149057868ad9877655e287cb3e94d460",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/event/ab/c06c30b3def49fc61fd69784ccad5bed166612c4073bcb791d65052b00d56b": "098d65e6f3971dd7122e2c381c3fe960fa37d4989df851fa74cb40835eac026b",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/event/b9/cae5507ec644f3c18c00c38e48861eaf29cddde52de0eff2deb5e07ed811ac": "e2d36ff9704216e7f5adfde6e5ddec93ad54df70884a0cf54cfba6d0e2da2555",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/run/53/daa707bc18cbc49c784a7df10ad22cfa5695fc9dd3b4323e3decb8bb88f92b": "15b335771bad68294294138e928c21143c19d8390447543e0f77e29a57a27a44",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/objects/run/af/36065da5539df15217b153cd55f94ca02d24c084770aecf34d2fd4d112c35e": "199c0df3bf9db45267587b0c808ef63ddbaa31fa296d6b07c0c18ec91454cecb",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/refs/annotations/53daa707bc18cbc49c784a7df10ad22cfa5695fc9dd3b4323e3decb8bb88f92b": "1c1ea0e34a2cef55e7b0678d1ea34949a7563159c11c6559997dea4786a9e15e",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/refs/heads/experiment": "3521f3f059f5c68b74cce4493da13835d794bba67b356f65005a1e426fdd4ab5",
+    "tests/fixtures/compat/v0_6_0/repo/.tine/refs/heads/main": "f0a5c1e21b37b01af05fb3f448c867fcdac07fe4d74954029807a9a0b341f937",
+    "tests/fixtures/compat/v0_7_0/artifact.tine": "9ea1e865834b020bb1b128e6605dc2f5943a3fcf31bf5eba8f98761375497444",
+    "tests/fixtures/compat/v0_7_0/artifact_signed.tine": "001f1ef29eb8b2b75c0e6494fe1e816bd1730b020e3f3643746cce42ad0fc862",
+    "tests/fixtures/compat/v0_7_0/artifact_signed_fork_reason.tine": "4aaf60f8bf42ee27c266676e505a41931ee03d32ea0653c55860324a317f9366",
+    "tests/fixtures/compat/v0_7_0/fork.tine": "c5a6a2f21f9eda01a7e1bd45aea309c56351c4bcc3dc9a78443374595d7ed31d",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/annotation/04/e7a4341a83a23d879c92920780f177805d7837a873a329810ae22641751022": "6b8c966e67ba5fe8a503e22ec829084e9e158f6c792a3c25fef1d81370fc89e8",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/6a/b4b34d71d34a299f379316bb07524f21bef3b8bca8675191dc5ad3383a5fea": "e9c30863ff40b33bea6460e6177861e1ebffb663d205b59fc44ebe0321700bf0",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/event/1c/35210f90942c012e3127034e69a9c3d9b7393eca0ec060f285ae6ff5a51c26": "edbe993dc51a175661946de494385a8063c0be7b96e595f8a282810881082a13",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/event/6c/9eb91f3023ea06c58987275164897e382e052d507fccd94a581bef83e44d9b": "d2fd54b9c9a15fa59cfc83ab324175a0b18a1e29869d707e56e54f8bf530d218",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/event/af/b0f212ec64eedfe2519db7233e139f0e47172cafb7c443ed79c187b5afdfe5": "707285aec0e5faf287115fe71f6a9023600751ef50e82e2d6acb9462269631c9",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/event/ea/67e40b8b566c17b095dc31b2b5854c568271f9d5e2fdd888e7efc67f87ecfc": "a2eed2a3e1fb78005c250e7579f2dccb9d55a7944e68dc1ff2dac765a9183cfe",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/run/24/a7f681b2214c0178861ddce142bd3e3e93ecab5c9971355192053f4c309a1d": "bdb3e0cd2793a08130533ccbf8ace1954448f43174c328091a9015fc7d0eabaf",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/objects/run/78/1737c53337a95bc8a91525b85c99dd7d0f2f4660f0f41c0b5bad2a63434ea9": "34c52fb4e460761ca77f42a90d289ee4624122a9c4763e1226eaf4d0717f11ba",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/refs/annotations/24a7f681b2214c0178861ddce142bd3e3e93ecab5c9971355192053f4c309a1d": "21b49653cd9f047bb80a14ffae46bc3464a0b9dfe01506285b54914b4c325fd2",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/refs/heads/experiment": "0cbd13bc3f9ecb8029d710d07999234f9a65d8182c487edb15b13b87321f7873",
+    "tests/fixtures/compat/v0_7_0/repo/.tine/refs/heads/main": "bef84b3a5a130ec4338ab86044369132c9f4ca194b37d09d8e9e65799bed12fd",
+    "tests/fixtures/compat/v0_7_1/artifact.tine": "2d6b30fc108186ba016ed856eb243d3a11a84cfe04acb59d30c607bc512a8a61",
+    "tests/fixtures/compat/v0_7_1/artifact_signed.tine": "5d1c17ccea2cf5d7ec87fdf6d06b28f33e61200f5d7ad6efb17585e190c48d8d",
+    "tests/fixtures/compat/v0_7_1/artifact_signed_fork_reason.tine": "1d5f49d0b962bc76e040dcb1bf3fb5dfa3383388fd812c3e04c2aec92d8dc9e2",
+    "tests/fixtures/compat/v0_7_1/fork.tine": "2bd62edbbe3ade8c9843e3f76dd79e68f968435c68f90453bd0227b3debb703b",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/annotation/59/fe5eb7a6ed00d83a9f7b523942332e724923c29d9031c012773a4970747838": "8af0f6852e4d1f9b13f041a9afc2cb209d3f524cfcbe9657f6f0337a5acbc035",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/77/c3db788ce56d9f890804eb03bf9dd1c75f4cab753504980c41853a38f5bb68": "08274910a07c0ea8c32aaaef84ec87afb6c8642c7a4c158aea1203df393764a7",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/event/61/5cffc2f234969af9efde666811063a257ff34c12c214f296829f14a864ae15": "79c6b67a62d956bbafe3638b5c01e72182c90b43dd18e7032d319fd9bb17b3d0",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/event/d8/67fc2679f5fb008cac8fec4a90a139eaccaa1ae4d20d539e75d42f7aca653b": "1f53136e892d50f6bfb116c6969fc6b5710cd71caa0ef9d907918fe13b82ed7f",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/event/de/aeaa6683c1760c52e03918c89d174682214c0ced3f9cacec1feaabffed620d": "a775261d29992e4cd84d7658f11eadd4c28dc449cb5a6ea12d1982d08ed938d9",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/event/f1/a5d71959dc8f3dd26223958e0972510e5d2215921700addd47ead0cd5d6e12": "b3879390677739fe921e63955751477f5a7a6e69a401f5e56c42c5f4e77dae60",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/run/0e/65536b7b0823559876d3581fca115f3aa7e9d3594cc5854e3fde559ba2208c": "250554718a335c25268507c819d05b288fc178365b7577e597d7733902e8b4ba",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/objects/run/cb/5b1c0cbc5de2ccf8ef7c1f9a473d9173dbc435ac3a47a0423f8fc4fe9970b5": "d4ae3bbe06468ff4af753ad456df187ae5c62bc32216624e3163f1c7a6407dca",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/refs/annotations/cb5b1c0cbc5de2ccf8ef7c1f9a473d9173dbc435ac3a47a0423f8fc4fe9970b5": "3acaa1b37e725aa2698e54fbf37423c762b89f4fba60bf3fdd736e5037fc493b",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/refs/heads/experiment": "9b9d3283ce0d2d638e7c525376529df4a65faa8a656247344dac52b236c973cd",
+    "tests/fixtures/compat/v0_7_1/repo/.tine/refs/heads/main": "21395d792d2dd85e1b4ffaa3bce92f54475b1f9bc272c605d8f6367f91c9d1da",
+    "tests/fixtures/compat/v0_7_2/artifact.tine": "898222934e78434ba1b6d2126c7894db2cddd340ad430fde22e3e96d65b464af",
+    "tests/fixtures/compat/v0_7_2/artifact_signed.tine": "f8837aa625be2a5107d56e95a9613f7ff1de369c93b929d0ffb89c41fadf1b91",
+    "tests/fixtures/compat/v0_7_2/artifact_signed_fork_reason.tine": "8f4247e8417a3b858289ecbcd9571db015be06145459a087941356d4b27753eb",
+    "tests/fixtures/compat/v0_7_2/fork.tine": "048eaf415589e27c587920da0c504625c965c685aaacce4dbd41336a30d59606",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/annotation/a3/590e09d0cdd09826d37917f30c3624e736aa8aa29f7a763d3efdea1ccea6fc": "47c61a90e5b114ae0ab596cafb8d4a357092d338cf0d63d24abf975b77a2d453",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/f1/ac6604f03edbed2cc41fa37c7c50be7a177d973ab515589ea367521fd1af36": "75d6c7f629e08dec753bb7d8acd62beeacdff04e43014ee573b86ce08766e200",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/event/1e/c8238b286ca3c4565a14c3142c6b748660b55c17fd7ac406213efae8c52cd7": "f0b2dd2b6567553d688ef93b17bb328714cfc447e40f8a99f39aed4dccb2a609",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/event/23/378af09b6c19b5db0cefefc505ac2365d34ce2fde1c11cea846b7390dc4cf4": "612036b971a9a3028066d08231209063b303412cb3e5a4349f61ae84d81be797",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/event/b6/f0f84966fcb506d830a44a707969309fef0aeac3bba3272edb1943811f8ce8": "7e3c59d267d4f47f2cc9dcf98f043ed35f416e5f0d8250a6efb278ca3bba3836",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/event/fd/ae675aa5f91b32d7fa6aea466f0173b8e9bbcb63fcb2b67bf63d475ed20d84": "8b24c732d3a3aa76138156a717434fb8f72fff352497e7cc90be46482397abd7",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/run/bc/06d701d123562dcff173c948f708b6f4788ae571eb23a27b83e921ea0e45ae": "58d6f5d13b9a8c44204507e7a6477f903b32137c45544456de52a2ba8fb86233",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/objects/run/bd/3dc5e4fa71df5cf84cd7e7ad45df967935f51f05d8aa7ed54d3fb8d7675919": "53357eb488d4c730160f5c2fc4c58b76a12d182b234f1dc5ce6775fa93fa708b",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/refs/annotations/bd3dc5e4fa71df5cf84cd7e7ad45df967935f51f05d8aa7ed54d3fb8d7675919": "c8ae005b27ba4992ad49205ae2676f0c4c275b756e21f50d19e903dfe140a4e2",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/refs/heads/experiment": "4dbf9a2bfc522e851c9ce77570406d358865e374c332e7a51189458e1db4265c",
+    "tests/fixtures/compat/v0_7_2/repo/.tine/refs/heads/main": "7853927fa4291ec32d97abd6cc0a27ae0f8b2bcdebf4d7e9adabfc33d468f9a2",
+    "tests/fixtures/compat/v0_8_0/artifact.tine": "c63b1dab538201f3f9390bc56ed4c014ca13ec2795d10d960873b53b3609f0d4",
+    "tests/fixtures/compat/v0_8_0/artifact_signed.tine": "cc087b36b283c2c97744e1b6f4ea656a337396146ea4a08481f680cfd7abcded",
+    "tests/fixtures/compat/v0_8_0/artifact_signed_fork_reason.tine": "2997f88a18d303f5042d2f7cc830e388cb9d53b40ee4e0025b60056492349e5c",
+    "tests/fixtures/compat/v0_8_0/fork.tine": "bc253916efd10b67c865750b46b11902cea79ffeea0d8f013e63c88f2a90b2e9",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/config.json": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/annotation/90/469390618e4f7b51de3b8d2702cc7fcad9655a5202b5d93e26d474040367e7": "8b4f19a63dbcb69b7b1aed77214a0d2d402c46c3b97ea5dc0499c30b287f63e7",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/aa/9f0fe2aef8b2dfeefe2985e782417379c9631d03194ab456f03fd37ca1b079": "4db598b2dc9968bb153661b1857fb7bcf6bf84bdba10e1d94cd915e5e0e450d0",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/event/23/6f44747a97057a27abccf118971e8b30c29219391d24c2b5412f2db52811e8": "c349af0b3e8875a20363b97824488027068eb3e112bf5050af4a768d7dbacef3",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/event/68/147cc53ffcde063416d7f98a8ab2fdc24e1f5da055794fbfb58d57f735ec62": "d84273a347a27a92d16dff1235601ab9573445c1cc7eb187fca03b5a039bd47c",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/event/76/e20fbfdaf66ad18e386e0b5f291b1246796db0e59d2cb587251f4c1259a315": "8d7513ef395837ba73d32a77aecc0222233e46cfec7f18887102a17bc1b3f17f",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/event/77/19a91f4c97154bcfdef1b747554505195ad8392c441bdd77df0ea0ce58bdfa": "286f485f03f41d5d075b8aaf241c65301eff0ba1b123154a93d8ead042766936",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/run/20/bd3d1f21bda6d1289cd6653722fa38af7e0dcf07069668b1c2b3494967016a": "6b843bbc39c128d5b78668094cdd4b0966f8af0ae2034d595cf2d4a16192169f",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/objects/run/67/14cfc5fdb3ec5d670663cf7383b86778d67072abb8dea6feb3e308027292e2": "7a834dee5484c0e97fb38a5a0bebc80cd8fe38cf78f7b6b66e2beb0977ffc6eb",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/refs/annotations/6714cfc5fdb3ec5d670663cf7383b86778d67072abb8dea6feb3e308027292e2": "17cee8a4c8525a72887b117653964c42a29593bf65d611c9891bb863d49abbc9",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/refs/heads/experiment": "78252bc627592270d342a96d69a19c883268e28e0ee2028379fa6ad2b3d79cc5",
+    "tests/fixtures/compat/v0_8_0/repo/.tine/refs/heads/main": "34d5b3ef46cc3e4d3b2bbc234381e190b8df50295b5dd2d60b7b158739297d3a",
+    "vectors/00-text.json": "4499880271fb070b5bb3d369b78c13adf1af6389f940dfbe52339387b45a841a",
+    "vectors/01-selftest.json": "118de8f099948207d24ad09df75287deff23ccc4dd4abc30c3fe044e9da7b413",
+    "vectors/02-canon-v3.json": "44a8ad92e7c615af35b477a8b34b2d59252281482b5baf01844b4ade24aae33d",
+    "vectors/03-canon-v2.json": "887f32c69a21e49c27096c13a5a7a35b801cee912c9e6c953a17d5b5bb491ff0",
+    "vectors/04-divergence.json": "7d983c98baf305020d198028403256c557ad672fe3f1d12a2ad028cdde7ac166",
+    "vectors/05-shape.json": "323e60b6f349e5d832a154a001a59f44b671867f376c0934d27aa727f174a317",
+    "vectors/12-envelope.json": "f10df52ad7691b75c778bde100ad239ff952267fdab1fa81fd71bbead0540a6c",
+    "vectors/13-oid.json": "5cc593518ac044be19b487fb50392fc1b6bd9879686e0d17cacc6878eb3f7036",
+    "vectors/14-redaction.json": "ffbf9758c056471fc7ba1eb1c553883bab21bcd6933662527a88eaca6ce2624d",
+    "vectors/15-links.json": "cd42da9f62e590c385e49477d150b92be337378d11af0793d52c2eb1e479108d",
+    "vectors/15b-metrics.json": "8152343b50cd49435b995c526ea39a2cc9d1788fbcccc6c7d2e51d6de8eec853",
+    "vectors/15c-graph.json": "eb596311bee1dec0d73f2f9e1fa1efcd93f79c0c180ee0c16ffd23338649e376",
+    "vectors/15d-load.json": "5d29d5efc51dc7a3a53d33f852017b4be3b41bd31283ce69820f429be6b45bbe",
+    "vectors/16-bounds.json": "79dc94acfc3500d165b2e88ce4323cd331cc16d42e2dc16128dcb7de3b68f91c",
+    "vectors/22-layout.json": "deeabfa672cafcca7f2d872e9d8d7dd433eb4d6073a7d5cb164e6995d2900d1d",
+    "vectors/24-refs.json": "4bdc4719bff3b08287cc9ad23095e92031559ee2b2443164ec270f9fef8f9c68",
+    "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
+    "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
+    "vectors/28-pack.json": "73bc8ca9efdbc8c1372ea24938c60b4f403f333cfc51368e35fae77259ec1fc1",
+    "vectors/31-artifact-v2.json": "f83c46167d41a9e0e319fed34d4faebc428dc7abbf787869a6bab837a84c7f83",
+    "vectors/35-integrity.json": "c31947dc24bbad8d0da04edaedf672dc8e56a6b030e6a6744b27ee9dc4d6ef3e",
+    "vectors/42-signing.json": "128ac717112ba02ca80832bcec73967ecf757486bac49e04313b1f9479456079",
+    "vectors/47-verdict.json": "56a625428e03c1d8c61669425811f2c08fb7c179d70713388b5154b715478a95",
+    "vectors/51-compat.json": "f5b4183d90b30fa646dd64978a8a17b71c4adf32f7b73f0006335159cb2fc4d8",
+    "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
+  },
+  "generated_by": "opentine 0.9.0",
+  "levels": {
+    "1": "reject-parity: every accept produces the exact output, every reject is refused",
+    "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
+  },
+  "not_vectored": {
+    "0.2 rule 4 non-string keys / rule 8 unsupported types": "A non-string object key and a non-JSON value are unreachable from a JSON document: the tagged value tree cannot spell either, and a byte-level input carrying one is not JSON, so the correct answer becomes 'not parseable' rather than 'not canonicalizable'. An implementation whose parser refuses the input has already conformed; asking for a WTF-8-capable string type to run a canonicalization vector is a barrier with no payoff.",
+    "1.5.3 events entry resolving to a non-event": "The oid's type prefix is inside the hash (SPEC 1.3), so an event: oid can never address a stored run or blob. The reference's check is defence in depth against a repository whose object store already lied, which no single input can express.",
+    "1.5.5 previous_id resolving to a non-annotation": "The oid's type prefix is inside the hash (SPEC 1.3) and ObjectEnvelope.decode(raw, expected_oid) refuses bytes whose derived oid is not the one they were fetched under, so an annotation: previous_id can never return a run or an event. A vector aimed at the type branch is answered by the predecessor availability check instead, which chain.previous-unavailable already vectors -- so the case was retired rather than left pinning a duplicate. The half of the rule a single input CAN reach is the oid's own type prefix, vectored as links.annotation.previous-not-an-annotation.",
+    "1.5.6 self-link": "SPEC 1.5.6's 'an object MUST NOT link to itself' is checked as link == envelope.oid, where envelope.oid is SHA-256 over the body containing that link. Constructing such an object is a SHA-256 preimage attack. The reference implementation has no test for it either (grep finds no use of 'cannot link to itself' under tests/), and no reason code is registered for a rule no input can trigger.",
+    "2.3 skip-not-error enumeration": "'A stray objects/ entry is skipped, not an error' is a directory-listing property. The compat family, which opens eight real published repositories, is its evidence.",
+    "2.4/2.7 filesystem rules": "Hard-linked refs, st_nlink, symlink/junction confinement and the .lock/..lock CAS protocol are storage-layer rules with no byte-level input. The reference's own tests and scripts/win_fs_sim.py cover them; a passing conformance scorecard does not certify the storage layer, and the README says so.",
+    "2.9 fsck / 5.4 migration / remote / CLI / replay / pricing": "Out of scope for 0.9.0. fsck is a repository walk, migration is a writer pipeline, and the remote protocol, the CLI JSON contract, replay and pricing are not the stored format at all. The README states this so the badge cannot overclaim.",
+    "3.6 v2 step-id derivation": "SPEC 3.6 documents v2 step identity as a known-broken claim retained for compatibility. Encoding it as a conformance requirement would ask third parties to reproduce a defect on purpose.",
+    "_annotations.MAX_LEGACY_OBJECTS": "100 000 bounds the legacy-annotation directory scan; again an enumeration bound, not a property of any single input.",
+    "_artifact_io.MAX_TINE_ARTIFACT_BYTES": "268 435 456 bytes, enforced by read_artifact_bytes against a file's stat() before any byte is read. The op contract has no file: every input is a byte string a runner already holds, so the bound has nothing to refuse.",
+    "_associations.MAX_ASSOCIATION_SCAN": "100 000 bounds the same kind of directory enumeration as MAX_TYPED_OBJECT_SCAN: the walk that finds every annotation and attestation associated with a run. A single input cannot express a directory with 100 001 entries in it.",
+    "_canon_redact.MAX_CANONICAL_DEPTH": "768 bounds a Python-object walk, not a format. validate_json_shape refuses byte depth over 512 before any parse and canonical_json refuses container depth at 512, so no JSON document can reach 768: a 600-deep artifact is refused by parse_artifact_json at the shape scan and never reaches _jsonable. The accept half of an at/over pair is impossible, so neither half is vectored.",
+    "_objects.MAX_TYPED_OBJECT_SCAN": "100 000 bounds a directory enumeration. A conformance vector is one input and one answer; a filesystem with 100 001 entries is neither.",
+    "_traversal.MAX_TRAVERSAL_OBJECTS": "10 000 objects bounds a repository *graph walk*, which is not a stateless op over one input. The pack family carries the same number as MAX_PACK_OBJECTS, where it is reachable from a single manifest.",
+    "envelope header 256 bytes": "Reject-only: the maximal *canonical* three-key header is 66 bytes ({\"encoding\":\"json\",\"schema\":9007199254740991,\"type\":\"attestation\"}), so there is no accepting input at 256 bytes to pair with. The 66-byte case is vectored as the twin instead, and the oversized case reports envelope.malformed because ObjectEnvelope.decode runs the size check inside the framing try.",
+    "pack.MAX_PACK_BODY_BYTES": "268 435 456 bytes of *inflated* manifest. Expressing it needs a frame whose compressed bytes are zlib-version-dependent, and the suite's determinism rule forbids pinning compressor output -- pack frames are reader inputs generated once, never a writer expectation. MAX_PACK_BYTES, which is checked against the frame length before anything is inflated, IS vectored (bounds.pack.over-256-mib)."
+  },
+  "ops": {
+    "annotation.chain": {
+      "args": [
+        "present",
+        "objects"
+      ],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.5.5 previous_id chain rules",
+      "unordered": []
+    },
+    "artifact.parse": {
+      "args": [],
+      "input": [
+        "blob",
+        "bytes_b64",
+        "gen",
+        "path"
+      ],
+      "output": [
+        "top_level_keys"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 3.1/3.7 .tine reader, including the parser differentials",
+      "unordered": []
+    },
+    "attest.sign": {
+      "args": [
+        "algorithm",
+        "key",
+        "key_id",
+        "objects",
+        "signed_at"
+      ],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "oid",
+        "body_b64",
+        "signature"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 4.5: the signature covers the payload as stored, after redaction",
+      "unordered": []
+    },
+    "canon.v2": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 0.3 canonical bytes of a value",
+      "unordered": []
+    },
+    "canon.v3": {
+      "args": [],
+      "input": [
+        "gen",
+        "value"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 0.2 canonical bytes of a value",
+      "unordered": []
+    },
+    "config.validate": {
+      "args": [],
+      "input": [
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.2 repository descriptor",
+      "unordered": []
+    },
+    "envelope.decode": {
+      "args": [
+        "expected_oid"
+      ],
+      "input": [
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [
+        "oid",
+        "type",
+        "schema",
+        "encoding",
+        "body_b64"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.2 framing plus SPEC 1.3 oid derivation",
+      "unordered": []
+    },
+    "envelope.encode": {
+      "args": [
+        "header"
+      ],
+      "input": [
+        "bytes_b64",
+        "value"
+      ],
+      "output": [
+        "bytes_b64",
+        "oid"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "the stored envelope bytes for a type, schema and payload",
+      "unordered": []
+    },
+    "event.metrics": {
+      "args": [],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
+      "unordered": []
+    },
+    "integrity.digest": {
+      "args": [],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [
+        "digest"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 3.5 digest over the parsed document minus metadata",
+      "unordered": []
+    },
+    "integrity.verify": {
+      "args": [],
+      "input": [
+        "bytes_b64",
+        "path"
+      ],
+      "output": [
+        "ok",
+        "algorithm",
+        "expected",
+        "actual",
+        "reason"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 3.5 consistency verdict -- never an authenticity claim",
+      "unordered": []
+    },
+    "links.extract": {
+      "args": [
+        "present",
+        "objects",
+        "shallow"
+      ],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [
+        "links"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.5 link fields, their type rules, and their existence",
+      "unordered": [
+        "links"
+      ]
+    },
+    "object.load": {
+      "args": [
+        "expected_oid",
+        "present",
+        "objects",
+        "shallow"
+      ],
+      "input": [
+        "bytes_b64",
+        "path"
+      ],
+      "output": [
+        "oid",
+        "links"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "one full local read: decode, links, metrics, graph and chain together",
+      "unordered": [
+        "links"
+      ]
+    },
+    "object.path": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "path"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.3 loose-object path derivation",
+      "unordered": []
+    },
+    "object.put": {
+      "args": [
+        "objects",
+        "schema",
+        "type"
+      ],
+      "input": [
+        "bytes_b64",
+        "value"
+      ],
+      "output": [
+        "oid",
+        "body_b64"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 1.4 before SPEC 1.3: redaction runs, then the oid names the result",
+      "unordered": []
+    },
+    "oid.derive": {
+      "args": [
+        "header"
+      ],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [
+        "oid"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.3 framing: TYPE 0x00 SCHEMA 0x00 BODY, hashed",
+      "unordered": []
+    },
+    "oid.parse": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "type",
+        "digest"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.3 OID_RE",
+      "unordered": []
+    },
+    "pack.inspect": {
+      "args": [],
+      "input": [
+        "blob",
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [
+        "pack_id",
+        "objects",
+        "shallow"
+      ],
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "summary": "SPEC 2.8 TINEPACK3 frame and manifest",
+      "unordered": [
+        "objects",
+        "shallow"
+      ]
+    },
+    "pack.install": {
+      "args": [
+        "objects",
+        "shallow"
+      ],
+      "input": [
+        "blob"
+      ],
+      "output": [
+        "pack_id",
+        "objects"
+      ],
+      "profile": "writer",
+      "requires": [
+        "zlib"
+      ],
+      "summary": "SPEC 2.8 installation: link resolution and shallow-closure equality",
+      "unordered": [
+        "objects"
+      ]
+    },
+    "pack.manifest": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "manifest_body_b64",
+        "pack_id"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 2.8 writer side: the decompressed manifest and its id",
+      "unordered": []
+    },
+    "redact.blob": {
+      "args": [],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 1.4 credential redaction over raw blob bytes (optional)",
+      "unordered": []
+    },
+    "redact.value": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 1.4 credential redaction over decoded JSON (optional)",
+      "unordered": []
+    },
+    "ref.file": {
+      "args": [],
+      "input": [
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [
+        "oid"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.4 ref file bytes",
+      "unordered": []
+    },
+    "ref.name": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "name"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.4 ref-name normalization and its bounds",
+      "unordered": []
+    },
+    "ref.target": {
+      "args": [
+        "name",
+        "objects"
+      ],
+      "input": [
+        "value"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.5 typed-namespace target rules",
+      "unordered": []
+    },
+    "reflog.row": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 2.6 one canonical reflog row plus its LF",
+      "unordered": []
+    },
+    "run.graph": {
+      "args": [
+        "present",
+        "objects"
+      ],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 1.5.3 status, ordering, legacy_refs, and exact roots/tips",
+      "unordered": []
+    },
+    "shallow.encode": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "bytes_b64"
+      ],
+      "profile": "writer",
+      "requires": [],
+      "summary": "SPEC 2.7 writer side: sorted, unique, LF-terminated",
+      "unordered": []
+    },
+    "shallow.parse": {
+      "args": [],
+      "input": [
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [
+        "oids"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 2.7 shallow-boundary file",
+      "unordered": [
+        "oids"
+      ]
+    },
+    "shape.scan": {
+      "args": [
+        "max_tokens"
+      ],
+      "input": [
+        "bytes_b64",
+        "gen"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "the SPEC 0.5 byte scanner: depth and structural-token bounds",
+      "unordered": []
+    },
+    "sig.message": {
+      "args": [
+        "scheme",
+        "key"
+      ],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "message_b64",
+        "value"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.2 signed message under one of the three schemes",
+      "unordered": []
+    },
+    "sig.verify": {
+      "args": [
+        "family",
+        "key",
+        "public_key",
+        "trust_embedded"
+      ],
+      "input": [
+        "path",
+        "value"
+      ],
+      "output": [
+        "ok",
+        "state",
+        "algorithm",
+        "key_id",
+        "signer",
+        "signed_at",
+        "reason"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.7 fail-closed verdict; raising is a failure",
+      "unordered": []
+    },
+    "text.validate": {
+      "args": [],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [],
+      "profile": "reader",
+      "requires": [],
+      "summary": "refuse a document whose text holds an unpaired UTF-16 surrogate",
+      "unordered": []
+    }
+  },
+  "profiles": [
+    "reader",
+    "writer",
+    "verifier"
+  ],
+  "retired_ids": [
+    "chain.previous-not-an-annotation"
+  ],
+  "spec_version": "0.9.0",
+  "suite_version": 1,
+  "totals": {
+    "cases": 523,
+    "core": 513,
+    "families": 25,
+    "ops": 33,
+    "reason_codes": 95,
+    "reject": 195,
+    "stress": 10,
+    "verdict": 51
+  }
+}

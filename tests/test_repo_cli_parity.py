@@ -70,6 +70,11 @@ TOOL_TO_VERB = {
 #: ``inspect_object`` and ``context_slice``; a rendered tree would only cost it
 #: tokens. These two are why "every MCP tool has a CLI verb" is not symmetric.
 #:
+#: *Key holding* — ``repo-verify``. Checking a ``tine-attest/1`` signature needs
+#: the operator's key material (``--key-env``/``--key-file``/``--pubkey``), and
+#: an MCP tool acting on run content it just read must not be handed keys — the
+#: same reason ``attest_run`` has no signing options while ``tine attest`` does.
+#:
 #: Listing them keeps "the CLI has a verb MCP lacks" from being a silent,
 #: growing category: a new one must be added here, with a reason.
 CLI_ONLY_VERBS = {
@@ -82,6 +87,7 @@ CLI_ONLY_VERBS = {
     "push",
     "repo-log",
     "repo-show",
+    "repo-verify",
 }
 
 #: The one prefix that predates the naming rule. ``repo-log`` shipped in 0.3.0 and

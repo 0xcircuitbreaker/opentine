@@ -1,0 +1,874 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.array.empty",
+      "input": {
+        "value": []
+      },
+      "intent": "an empty array renders as two bytes",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "W10="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "[]",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.array.order-preserved",
+      "input": {
+        "value": {
+          "a": [
+            {
+              "$i": "3"
+            },
+            {
+              "$i": "1"
+            },
+            {
+              "$i": "2"
+            }
+          ]
+        }
+      },
+      "intent": "rule 9: canonicalization never sorts an array",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJhIjpbMywxLDJdfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"a\": [{\"$i\": \"3\"}, {\"$i\": \"1\"}, {\"$i\": \"2\"}]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2,
+        3
+      ],
+      "expect": "accept",
+      "id": "canon.v3.demotion.fixpoint",
+      "input": {
+        "bytes_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsibiI6MTAwMDAwMDAwMDAwMDAwMDAwMDAwfQ==",
+        "sha256": "cf3e5ec53b032f0e6eb32d867db420f6b44ac5e435cb26e0ce59d147e2c4bf9b"
+      },
+      "intent": "the integer-literal demotion hazard: a body holding 1e20's canonical spelling must re-encode to itself, which is impossible without demoting the literal back to the float it came from",
+      "op": "envelope.decode",
+      "output": {
+        "body_b64": "eyJuIjoxMDAwMDAwMDAwMDAwMDAwMDAwMDB9",
+        "encoding": "json",
+        "oid": "event:sha256:865af97c2988897db62a64bdbc43b0e1655750fb0cb32982dd230007cd9bbf0c",
+        "schema": 1,
+        "type": "event"
+      },
+      "profile": "reader",
+      "repair_temptation": "read 100000000000000000000 as an integer, then refuse to re-encode it as one, calling a legitimately written object corrupt",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"event\"}\\n{\"n\":100000000000000000000}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.depth.at-512",
+      "input": {
+        "gen": {
+          "container": "array",
+          "depth": 512,
+          "inner": {
+            "$i": "0"
+          },
+          "kind": "nest-value"
+        }
+      },
+      "intent": "rule 10: 512 nested containers is the deepest value the encoder will render",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "W1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1swXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "spec_note": "SPEC 0.2 rule 10 says nesting is rejected 'at or beyond 512 levels'; the encoder accepts 512 nested containers and rejects 513.",
+      "tier": "core",
+      "twin": "canon.v3.depth.at-513",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.depth.at-513",
+      "input": {
+        "gen": {
+          "container": "array",
+          "depth": 513,
+          "inner": {
+            "$i": "0"
+          },
+          "kind": "nest-value"
+        }
+      },
+      "intent": "rule 10: the 513th nested container is refused",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.depth-exceeded",
+      "section": "0.2",
+      "tier": "core",
+      "twin": "canon.v3.depth.at-512",
+      "x_display": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting exceeds 512 levels"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e-5",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-05"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowLjAwMDAxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-05\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e-6",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-06"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowLjAwMDAwMX0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-06\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e-7",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-07"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxZS03fQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-07\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e16",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+16"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxMDAwMDAwMDAwMDAwMDAwMH0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+16\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e20",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+20"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxMDAwMDAwMDAwMDAwMDAwMDAwMDB9"
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+20\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e21",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+21"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsyMX0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+21\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.1e308",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+308"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSszMDh9"
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+308\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.float.nan",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "nan"
+          }
+        }
+      },
+      "intent": "rule 8: NaN has no canonical JSON spelling and is refused, never mapped to null",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "repair_temptation": "emit null, or the JavaScript literal NaN",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"nan\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.float.negative-infinity",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-inf"
+          }
+        }
+      },
+      "intent": "rule 8: -Infinity is refused for the same reason",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-inf\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.negative-zero",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-0.0"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.one",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.float.positive-infinity",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "inf"
+          }
+        }
+      },
+      "intent": "rule 8: +Infinity is refused for the same reason",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"inf\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.float.zero",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "0.0"
+          }
+        }
+      },
+      "intent": "rule 8: the shortest round-tripping decimal, positional inside [1e-6, 1e21) and exponential outside it",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.integer.at-2-53",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "9007199254740992"
+          }
+        }
+      },
+      "intent": "rule 7: 2**53 exceeds the bound and is refused, not rounded",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.integer-overflow",
+      "repair_temptation": "round to the nearest double, losing the exact value",
+      "section": "0.2",
+      "tier": "core",
+      "twin": "canon.v2.integer.at-2-53",
+      "x_display": "{\"n\": {\"$i\": \"9007199254740992\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.integer.max-safe",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "9007199254740991"
+          }
+        }
+      },
+      "intent": "rule 7: 2**53-1 is the largest integer the v3 form will render",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5MDA3MTk5MjU0NzQwOTkxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"9007199254740991\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.integer.min-safe",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "-9007199254740991"
+          }
+        }
+      },
+      "intent": "rule 7 is symmetric: -(2**53-1) renders with a leading minus and no padding",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjotOTAwNzE5OTI1NDc0MDk5MX0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"-9007199254740991\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.integer.negative-2-53",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "-9007199254740992"
+          }
+        }
+      },
+      "intent": "rule 7 is symmetric: -2**53 is refused as well",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.integer-overflow",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"-9007199254740992\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.integer.zero",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "0"
+          }
+        }
+      },
+      "intent": "rule 7: the integer zero renders as a bare 0",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.key.empty-string",
+      "input": {
+        "value": {
+          "": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "rule 4: the empty string is a legal key",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyIiOjF9"
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.key.order-bmp",
+      "input": {
+        "value": {
+          "a": {
+            "$i": "2"
+          },
+          "b": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "rule 3: members are ordered by the key's UTF-16BE code units, so a sorts before b",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJhIjoyLCJiIjoxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"a\": {\"$i\": \"2\"}, \"b\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.key.order-bmp-boundary",
+      "input": {
+        "value": {
+          "\u00ff": {
+            "$i": "2"
+          },
+          "\u0100": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "rule 3: for BMP keys UTF-16BE order equals code-point order",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyLDvyI6MiwixIAiOjF9"
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"\\u00ff\": {\"$i\": \"2\"}, \"\\u0100\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.literals.null-true-false",
+      "input": {
+        "value": {
+          "f": false,
+          "n": null,
+          "t": true
+        }
+      },
+      "intent": "rule 6: the three literals are spelled exactly null, true and false",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJmIjpmYWxzZSwibiI6bnVsbCwidCI6dHJ1ZX0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"f\": false, \"n\": null, \"t\": true}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.object.empty",
+      "input": {
+        "value": {}
+      },
+      "intent": "an empty object renders as two bytes",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "e30="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.separators.no-whitespace",
+      "input": {
+        "value": {
+          "a": [
+            {
+              "$i": "1"
+            },
+            {
+              "b": {
+                "$i": "2"
+              }
+            }
+          ],
+          "c": {}
+        }
+      },
+      "intent": "rule 2: , and : carry no whitespace anywhere, and there is no trailing newline",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJhIjpbMSx7ImIiOjJ9XSwiYyI6e319"
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"a\": [{\"$i\": \"1\"}, {\"b\": {\"$i\": \"2\"}}], \"c\": {}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.string.escapes",
+      "input": {
+        "value": {
+          "k": "\"\\\b\f\n\r\t\u001f"
+        }
+      },
+      "intent": "rule 5: only the seven named escapes and \\u00XX below U+0020 are escaped",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJrIjoiXCJcXFxiXGZcblxyXHRcdTAwMWYifQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"k\": \"\\\"\\\\\\b\\f\\n\\r\\t\\u001f\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.string.non-ascii-literal",
+      "input": {
+        "value": {
+          "k": "\u00e9\u2603"
+        }
+      },
+      "intent": "rule 1: non-ASCII is emitted literally as UTF-8, never as a \\uXXXX escape",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJrIjoiw6nimIMifQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"k\": \"\\u00e9\\u2603\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v3.string.solidus-and-del",
+      "input": {
+        "value": {
+          "k": "/\u007f"
+        }
+      },
+      "intent": "rule 5: / and DEL (U+007F) go through literally; neither is escaped",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJrIjoiL38ifQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"k\": \"/\\u007f\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.surrogate.key",
+      "input": {
+        "value": {
+          "$obj": [
+            [
+              {
+                "$u": [
+                  "d800"
+                ]
+              },
+              {
+                "$i": "1"
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "the same rule over an object key",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.unencodable-text",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"$obj\": [[{\"$u\": [\"d800\"]}, {\"$i\": \"1\"}]]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting or Unicode key is invalid"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v3.surrogate.value",
+      "input": {
+        "value": {
+          "k": {
+            "$u": [
+              "d800"
+            ]
+          }
+        }
+      },
+      "intent": "rule 1: a lone surrogate has no UTF-8 spelling, so the v3 form cannot encode it",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.unencodable-text",
+      "repair_temptation": "substitute U+FFFD, which rewrites recorded output under a fidelity digest",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "0.2",
+      "tier": "core",
+      "twin": "canon.v2.surrogate.value-accepts",
+      "x_display": "{\"k\": {\"$u\": [\"d800\"]}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting or Unicode key is invalid"
+      }
+    }
+  ],
+  "family": "canon-v3",
+  "section": "0.2",
+  "suite_version": 1
+}

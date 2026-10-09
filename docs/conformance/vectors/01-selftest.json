@@ -1,0 +1,204 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.tag.code-units-and-keys",
+      "input": {
+        "value": {
+          "$obj": [
+            [
+              {
+                "$u": [
+                  "d800"
+                ]
+              },
+              {
+                "$i": "1"
+              }
+            ],
+            [
+              "a",
+              {
+                "$i": "2"
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "{\"$u\":[\"d800\"]} is a string given as its UTF-16 code units, and {\"$obj\":[[key,value],...]} carries a key that needs that spelling; both exist so a vector file never has to contain a lone surrogate itself",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJhIjoyLCJcdWQ4MDAiOjF9"
+      },
+      "profile": "reader",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"$obj\": [[{\"$u\": [\"d800\"]}, {\"$i\": \"1\"}], [\"a\", {\"$i\": \"2\"}]]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.tag.dollar-object-escape",
+      "input": {
+        "value": {
+          "$obj": {
+            "$i": "x"
+          }
+        }
+      },
+      "intent": "{\"$obj\":{\"$i\":\"x\"}} denotes a real object whose sole key is the string $i",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyIkaSI6IngifQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"$obj\": {\"$i\": \"x\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.tag.float-integral",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0"
+          }
+        }
+      },
+      "intent": "{\"$f\":\"1.0\"} is a double, not an integer, and v2 keeps its .0 suffix",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxLjB9"
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.tag.integer",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "1"
+          }
+        }
+      },
+      "intent": "{\"$i\":\"1\"} denotes the integer 1, which v3 renders as the literal 1",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxfQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.tag.integer-beyond-double",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "12345678901234567890123456789"
+          }
+        }
+      },
+      "intent": "$i carries an integer no IEEE-754 double can hold; v2 has no magnitude bound",
+      "op": "canon.v2",
+      "output": {
+        "bytes_b64": "eyJuIjoxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OX0="
+      },
+      "profile": "reader",
+      "section": "0.3",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"12345678901234567890123456789\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.untagged.arrays-and-objects",
+      "input": {
+        "value": {
+          "a": [
+            {
+              "$i": "1"
+            },
+            "x",
+            null
+          ],
+          "b": {
+            "$i": "1",
+            "other": {
+              "$i": "2"
+            }
+          }
+        }
+      },
+      "intent": "arrays and multi-key objects are literal; only a single $-key object escapes",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJhIjpbMSwieCIsbnVsbF0sImIiOnsiJGkiOiIxIiwib3RoZXIiOjJ9fQ=="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"a\": [{\"$i\": \"1\"}, \"x\", null], \"b\": {\"$i\": \"1\", \"other\": {\"$i\": \"2\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "selftest.untagged.strings-and-literals",
+      "input": {
+        "value": {
+          "f": false,
+          "n": null,
+          "s": "$i",
+          "t": true
+        }
+      },
+      "intent": "strings, booleans and null are literal JSON; nothing about them is tagged",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJmIjpmYWxzZSwibiI6bnVsbCwicyI6IiRpIiwidCI6dHJ1ZX0="
+      },
+      "profile": "reader",
+      "section": "0.2",
+      "tier": "core",
+      "x_display": "{\"f\": false, \"n\": null, \"s\": \"$i\", \"t\": true}",
+      "x_reference": null
+    }
+  ],
+  "family": "selftest",
+  "section": "0.2",
+  "suite_version": 1
+}
