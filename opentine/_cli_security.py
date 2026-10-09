@@ -5,19 +5,14 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
-from opentine._cli_json import emit_verify
+from opentine._cli_keygen import cmd_keygen
+from opentine._cli_verify_report import emit_verify, signature_block, unchecked_signature
+from opentine._key_hygiene import ed25519_private, hmac_key
+from opentine._signing_pins import apply_pins, normalize_pins, used_key_fingerprint
 from opentine.core import Run, short_id
-from opentine.signing import (
-    SignatureError,
-    ed25519_private_from_file,
-    ed25519_public_from_file,
-    generate_ed25519,
-    hmac_key_from_env,
-    hmac_key_from_file,
-)
+from opentine.signing import SignatureError, ed25519_public_from_file
 
 
 def cmd_verify(args: argparse.Namespace) -> None:
@@ -44,8 +39,9 @@ def cmd_verify(args: argparse.Namespace) -> None:
         # Ordered exactly like the human path below: integrity is the gate, so a
         # failed digest is reported without any authenticity claim beside it.
         armed = result.ok and signature_requested(args)
-        signature = signature_result(args, path) if armed else None
-        emit_verify(path, result, signature)
+        signature, fingerprint = signature_result(args, path) if armed else (None, None)
+        unchecked = unchecked_signature(path) if result.ok and not armed else None
+        emit_verify(path, result, signature, fingerprint=fingerprint, unchecked=unchecked)
         if not result.ok or (signature is not None and not signature.ok):
             raise SystemExit(1)
         return
@@ -59,6 +55,13 @@ def cmd_verify(args: argparse.Namespace) -> None:
     digest = result.actual or result.expected or ""
     draft = " [yellow](draft / autosave checkpoint)[/]" if result.draft else ""
     console.print(f"[green]OK[/] {_terminal(path)} sha256:{_terminal(digest[:12])}{draft}")
+    if not signature_requested(args) and (unchecked := unchecked_signature(path)) is not None:
+        # An OK beside a signed artifact read as "authentic" though nothing was checked.
+        console.print(
+            f"[yellow]signature present but NOT checked[/] alg={_terminal(unchecked.algorithm)} "
+            f"signer={_terminal(unchecked.signer or '-')}: pass --pubkey, --key-file, "
+            "--key-env or --pin to check it"
+        )
     _verify_signature_if_requested(args, path)
 
 
@@ -77,19 +80,26 @@ def signature_requested(args: argparse.Namespace) -> bool:
         or getattr(args, "pubkey", None)
         or getattr(args, "trust_embedded_key", False)
         or getattr(args, "require_signature", False)
+        or getattr(args, "pin", None)
     )
 
 
 def signature_result(args: argparse.Namespace, path: Path):
-    """Run the armed signature check, exiting 1 if the key material is unreadable."""
+    """Run the armed check: ``(verdict, key fingerprint)``; exit 1 on unreadable keys.
+
+    ``--pin`` alone means "trust the embedded key if it is one of these"; it never
+    combines with an HMAC key, which has no fingerprint to pin.
+    """
     key_env = getattr(args, "key_env", None)
     key_file = getattr(args, "key_file", None)
     public_path = getattr(args, "pubkey", None)
-    trust_embedded = getattr(args, "trust_embedded_key", False)
+    if getattr(args, "pin", None) and (key_env or key_file):
+        flag = "--key-env" if key_env else "--key-file"
+        console.print(f"[red]--pin and {flag} cannot be combined:[/] a pin names an Ed25519 key.")
+        raise SystemExit(1)
     try:
-        hmac_key = hmac_key_from_env(key_env) if key_env else None
-        if key_file:
-            hmac_key = hmac_key_from_file(key_file)
+        pins = normalize_pins(getattr(args, "pin", None))
+        secret = hmac_key(key_env, key_file) if key_env or key_file else None
         public = ed25519_public_from_file(public_path) if public_path else None
     # OSError as well as SignatureError: a --key-file/--pubkey path that is missing,
     # a directory, or unreadable came out as an interpreter traceback, which is the
@@ -97,15 +107,18 @@ def signature_result(args: argparse.Namespace, path: Path):
     except (OSError, SignatureError) as exc:
         console.print(f"[red]SIGNATURE FAILED[/] cannot read the key: {_terminal(exc)}")
         raise SystemExit(1) from exc
-    return Run.verify_signature(
-        path, hmac_key=hmac_key, public_key=public, trust_embedded=trust_embedded
+    trust_embedded = getattr(args, "trust_embedded_key", False) or bool(pins and not public)
+    result = Run.verify_signature(
+        path, hmac_key=secret, public_key=public, trust_embedded=trust_embedded
     )
+    fingerprint = used_key_fingerprint(signature_block(path), public)
+    return apply_pins(result, fingerprint, pins), fingerprint
 
 
 def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None:
     if not signature_requested(args):
         return
-    signature = signature_result(args, path)
+    signature, fingerprint = signature_result(args, path)
     if not signature.ok:
         console.print(
             f"[red]SIGNATURE FAILED[/] state={_terminal(signature.state)}: "
@@ -115,10 +128,11 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
     tofu = (
         " [yellow](TOFU — self-asserted key, not verified)[/]" if "tofu" in signature.state else ""
     )
+    key = f" key={_terminal(fingerprint)}" if fingerprint else ""
     console.print(
         f"[green]SIGNATURE OK[/] alg={_terminal(signature.algorithm)} "
         f"key_id={_terminal(signature.key_id or '-')} "
-        f"signer={_terminal(signature.signer or '-')}{tofu}"
+        f"signer={_terminal(signature.signer or '-')}{key}{tofu}"
     )
 
 
@@ -166,11 +180,9 @@ def cmd_sign(args: argparse.Namespace) -> None:
         if args.algorithm == "ed25519":
             if not args.ed25519_key_file:
                 raise SignatureError("--ed25519-key-file is required for ed25519")
-            key = ed25519_private_from_file(args.ed25519_key_file)
-        elif args.key_env:
-            key = hmac_key_from_env(args.key_env)
-        elif args.key_file:
-            key = hmac_key_from_file(args.key_file)
+            key = ed25519_private(args.ed25519_key_file)
+        elif args.key_env or args.key_file:
+            key = hmac_key(args.key_env, args.key_file)
         else:
             raise SignatureError("provide --key-env or --key-file for HMAC signing")
         run = Run.load(path)
@@ -199,40 +211,4 @@ def cmd_sign(args: argparse.Namespace) -> None:
     )
 
 
-def cmd_keygen(args: argparse.Namespace) -> None:
-    if not args.out and not args.pub:
-        # Both halves go to stdout, so there is no file for --force to replace: the
-        # flag was accepted and never consulted.  Same shape as `sign --overwrite`
-        # without --save.
-        refuse_unhonoured(
-            args,
-            ("force",),
-            mode="without --out or --pub",
-            hint="Keys printed to stdout replace no file; pass --out PATH to write one.",
-        )
-    try:
-        seed, public = generate_ed25519()
-    except SignatureError as exc:
-        console.print(f"[red]{_terminal(exc)}[/]")
-        raise SystemExit(1) from exc
-    target_pub = args.pub or (args.out + ".pub" if args.out else None)
-    if args.out and target_pub and Path(args.out) == Path(target_pub):
-        # Writing the seed and then the public key to one path leaves only the
-        # public key: the private half is destroyed and the command still exits 0.
-        console.print("[red]--out and --pub must name different files.[/]")
-        raise SystemExit(1)
-    # Silently overwriting a private key destroys the only copy of a signing
-    # identity, and every artifact it signed becomes unverifiable.
-    for existing in (args.out, target_pub):
-        if existing and Path(existing).exists() and not args.force:
-            console.print(f"[red]{_terminal(existing)} already exists; pass --force.[/]")
-            raise SystemExit(1)
-    if args.out:
-        atomic_write_text(args.out, seed + "\n", fsync=True, mode=0o600)
-    else:
-        console.print(f"private (seed hex): {seed}")
-    target = target_pub
-    if target:
-        atomic_write_text(target, public + "\n")
-    else:
-        console.print(f"public (hex): {public}")
+__all__ = ["cmd_keygen", "cmd_sign", "cmd_verify", "signature_requested", "signature_result"]

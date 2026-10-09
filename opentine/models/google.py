@@ -9,6 +9,7 @@ from typing import Any
 from opentine.billing import PricingCatalog
 from opentine.models._client import closing_client
 from opentine.models._continuation import google_sdk_parts
+from opentine.models._endpoint_security import require_key_transport
 from opentine.models._google_billing import google_header_tier, google_meter, google_service_tier
 from opentine.models._google_stream import GoogleStreamState
 from opentine.models._provider_meta import model_name, validated_rates
@@ -55,7 +56,15 @@ class Google:
             from google import genai
         except ImportError:
             raise ImportError("pip install opentine[google]") from None
-        return genai.Client(api_key=self._api_key)
+        import httpx
+
+        require_key_transport(os.environ.get("GOOGLE_GEMINI_BASE_URL"), self._api_key)
+        # httpx strips only ``Authorization`` on a cross-origin redirect: never
+        # follow one with ``x-goog-api-key``. The transport keeps aiohttp out.
+        stay = {"follow_redirects": False}
+        async_args = {**stay, "transport": httpx.AsyncHTTPTransport()}
+        options = self._types().HttpOptions(client_args=stay, async_client_args=async_args)
+        return genai.Client(api_key=self._api_key, http_options=options)
 
     @staticmethod
     def _types():

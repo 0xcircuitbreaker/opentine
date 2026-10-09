@@ -42,6 +42,7 @@ from typing import Any, Protocol, runtime_checkable
 from opentine._jsonsafe import json_exact as _safe
 from opentine._version import __version__
 from opentine.trace import _genai_semconv as semconv
+from opentine.trace._otel_ids import export_ids
 from opentine.trace._otel_usage import otel_kind, usage_attributes
 from opentine.trace._otel_values import encode_any_value
 from opentine.trace.importers import native_events
@@ -136,13 +137,14 @@ def _events(source: ExportSource) -> list[TraceEvent]:
 
 
 def _span(event: TraceEvent) -> dict[str, Any]:
-    attributes = _attributes(event)
+    ids, originals = export_ids(event)  # OTLP-shaped ids; replaced originals ride along
+    attributes = {**_attributes(event), **originals}
     start = _nanos(event.timestamp)
     span: dict[str, Any] = {
         "name": str(attributes.get(semconv.OPERATION_NAME) or event.actor or event.kind),
         "kind": _SPAN_KINDS.get(event.kind, _INTERNAL_SPAN),
-        "traceId": event.trace_id,
-        "spanId": event.span_id,
+        "traceId": ids["traceId"],
+        "spanId": ids["spanId"],
         "startTimeUnixNano": str(start),
         "endTimeUnixNano": str(start + max(0, _nanos(event.duration))),
         "attributes": [
@@ -151,13 +153,11 @@ def _span(event: TraceEvent) -> dict[str, Any]:
             if value is not None
         ],
     }
-    if event.parent_span_id:
-        span["parentSpanId"] = event.parent_span_id
-    if event.causal_span_ids:
+    if "parentSpanId" in ids:
+        span["parentSpanId"] = ids["parentSpanId"]
+    if ids["links"]:
         # The importer reads causal edges out of links, so write them back there.
-        span["links"] = [
-            {"traceId": event.trace_id, "spanId": span_id} for span_id in event.causal_span_ids
-        ]
+        span["links"] = [{"traceId": ids["traceId"], "spanId": link} for link in ids["links"]]
     if event.kind == "error":
         span["status"] = dict(_ERROR_STATUS)
     return span

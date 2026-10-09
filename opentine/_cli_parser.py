@@ -11,12 +11,14 @@ from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._repo_cli_parser import add_repo_parsers
+from opentine._version import __version__
 from opentine.pricing_cli import add_pricing_parser
 from opentine.remote.server import add_serve_parser
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
+    parser.add_argument("-V", "--version", action="version", version=f"opentine {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
@@ -58,11 +60,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
     verify = sub.add_parser("verify", help="Verify integrity and optionally authenticity")
     verify.add_argument("run_id")
-    verify.add_argument("--key-env")
-    verify.add_argument("--key-file")
-    verify.add_argument("--pubkey")
+    verify.add_argument("--key-env", help="Environment variable holding the HMAC key")
+    verify.add_argument("--key-file", help="File holding the HMAC key (never a public key)")
+    verify.add_argument("--pubkey", help="File holding a trusted Ed25519 public key")
     verify.add_argument("--require-signature", action="store_true")
     verify.add_argument("--trust-embedded-key", action="store_true")
+    verify.add_argument(
+        "--pin",
+        action="append",
+        metavar="FINGERPRINT",
+        help="Trust the embedded Ed25519 key only if its sha256 fingerprint is this (repeatable)",
+    )
 
     sign = sub.add_parser("sign", help="Sign a legacy .tine artifact")
     sign.add_argument("run_id")
@@ -80,10 +88,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sign.add_argument("--force", action="store_true")
 
-    keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair")
-    keygen.add_argument("--out")
+    keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair, or an HMAC key")
+    keygen.add_argument("--out", help="Write the private key here (mode 0600)")
     keygen.add_argument("--pub")
     keygen.add_argument("--force", action="store_true", help="Overwrite an existing key file")
+    keygen.add_argument("--hmac", action="store_true", help="A 32-byte HMAC key, as hex")
+    keygen.add_argument("--stdout", action="store_true", help="Print the private key instead")
 
     migrate = sub.add_parser("migrate", help="Upgrade a legacy .tine file")
     migrate.add_argument("run_id")

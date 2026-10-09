@@ -13,6 +13,7 @@ from typing import Any
 
 from opentine.core import StepKind
 from opentine.harnesses._types import HarnessStep, StepCallback
+from opentine.tools._batch_guard import refuse_batch_injection
 from opentine.tools._process import _attach_kill_job, _cleanup_owned, _group_flags
 
 DEFAULT_TIMEOUT_SECONDS = 3_600.0
@@ -74,9 +75,8 @@ class ProcessHarness:
     def build_command(self, task: str, context: dict[str, Any] | None = None) -> list[str]:
         if not isinstance(task, str):
             raise TypeError("harness task must be a string")
-        # Prevent an untrusted prompt such as ``--dangerously-enable-x`` from
-        # being parsed as another CLI option. Flag-value harnesses and positional
-        # harnesses do not share a portable end-of-options convention.
+        # An untrusted prompt such as ``--dangerously-enable-x`` must not parse as an option;
+        # flag-value and positional harnesses share no portable end-of-options convention.
         if task.startswith("-"):
             raise ValueError("harness task cannot begin with '-' (prefix it with prose)")
         return [*self.command, *self.extra_args, task]
@@ -90,6 +90,7 @@ class ProcessHarness:
         if not self.command:
             raise RuntimeError(f"No command configured for {self.name}")
         command = self.build_command(task, context)
+        refuse_batch_injection(command)
         started = time.time()
         if step_callback:
             step_callback(

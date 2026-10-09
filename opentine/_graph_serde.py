@@ -20,6 +20,7 @@ from opentine._step_serde import step_from_dict as step_from_dict
 from opentine._step_serde import step_to_dict as step_to_dict
 from opentine._unicode_text import assert_unicode_text
 from opentine.migrations import LEGACY_VERSION, MigrationError, detect_version, migrate_dict
+from opentine.policies import run_redaction
 from opentine.redaction import redact_value
 
 
@@ -62,7 +63,8 @@ def run_to_dict(run, *, redact: bool = False) -> dict[str, Any]:
     # the .tine file verbatim while the same run stored to a repository was scrubbed.
     if not redact:
         return data
-    bounded = _redact(data)
+    with run_redaction(run.policies):  # RedactionPolicy.extra_secret_keys
+        bounded = _redact(data)
     # The surrogate check first, as on the v3 path, so a lone surrogate is refused
     # naming its field instead of failing inside the text scrubber at <root>.
     assert_unicode_text(bounded, where="this run")

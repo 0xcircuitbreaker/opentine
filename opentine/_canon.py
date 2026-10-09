@@ -113,7 +113,12 @@ def _integrity_digest(data: dict[str, Any]) -> str:
 
 
 def atomic_write_text(
-    path: str | Path, text: str, *, fsync: bool = False, mode: int | None = None
+    path: str | Path,
+    text: str,
+    *,
+    fsync: bool = False,
+    mode: int | None = None,
+    newline: str | None = None,
 ) -> Path:
     """Write ``text`` to ``path`` atomically.
 
@@ -129,8 +134,9 @@ def atomic_write_text(
     fd, tmp_name = tempfile.mkstemp(dir=str(p.parent), prefix=f".{p.name}.", suffix=".tmp")
     tmp = Path(tmp_name)
     try:
-        # newline=None (the default) replicates Path.write_text's translation.
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        # newline=None (the default) replicates Path.write_text's translation;
+        # newline="" writes the text's own line endings on every platform.
+        with os.fdopen(fd, "w", encoding="utf-8", newline=newline) as handle:
             handle.write(text)
             if fsync:
                 handle.flush()

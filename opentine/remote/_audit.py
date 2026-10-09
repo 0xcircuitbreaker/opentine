@@ -33,6 +33,10 @@ def _tighten_fd(fd: int) -> None:
 
 #: All-zero hash that seeds an empty chain.
 GENESIS = "0" * 64
+#: The audit tenant of events no tenant owns (an unauthenticated request naming no
+#: valid tenant). ``valid_tenant`` refuses a leading underscore, so no tenant can
+#: ever be called this.
+SERVER_TENANT = "_server"
 
 #: Column order used for both writing and verifying a row's committed body.
 FIELDS = ("action", "actor", "details", "event_id", "outcome", "tenant", "timestamp")

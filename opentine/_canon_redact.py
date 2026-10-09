@@ -11,6 +11,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from opentine._redact_extra import extra_secret_names
+from opentine._redact_names import CREDENTIAL_NAMES, SECRET_SUFFIXES
+
 #: Hard nesting bound for every write-side walk over caller data.
 #:
 #: The *format* bound is the reader's — ``kernel.validate_json_shape`` refuses
@@ -97,6 +100,25 @@ def _split_assignment(text: str) -> tuple[str, str, str]:
     return text[:at], text[at], text[at + 1 :]
 
 
+#: Flag names whose *next* argv element is the credential (``--auth user:pw``).
+_FLAG_NAMES = frozenset({"token", "pass", "auth"})
+
+
+def _secret_flag(item: Any, credential_names: frozenset[str], suffixes: tuple[str, ...]) -> str:
+    """The name of a ``--password``-style flag whose value is the next argv element.
+
+    ``--password=hunter2`` was always caught as an assignment, but a recorded
+    command is a list -- ``["cli", "--password", "hunter2"]`` -- and the value
+    stood alone as its own element, with nothing to say what it was.
+    """
+    if not isinstance(item, str) or not item.startswith("-") or len(item) > 64:
+        return ""
+    if "=" in item or any(character.isspace() for character in item):
+        return ""
+    name = _field_name(item.lstrip("-"))
+    return name if name in _FLAG_NAMES or _secret_field(name, credential_names, suffixes) else ""
+
+
 def _redact(value: Any, _depth: int = 0) -> Any:
     """Redact credential fields without deleting numeric usage dimensions.
 
@@ -108,53 +130,8 @@ def _redact(value: Any, _depth: int = 0) -> Any:
     """
     if _depth > MAX_CANONICAL_DEPTH:
         raise _too_deep()
-    credential_names = set(
-        (
-            "api_key apikey api_token access_key secret_access_key secret_key access_token "
-            "refresh_token auth_token bearer_token id_token session_token password passwd "
-            "passphrase secret client_secret private_key credential credentials authorization "
-            "proxy_authorization cookie set_cookie jwt bearer x_amz_security_token "
-            "ocp_apim_subscription_key pwd connection_string conn_str dsn webhook_url "
-            "private_key_id"
-        ).split()
-    )
-    suffixes = (
-        "_api_key",
-        "_api_token",
-        "_access_key",
-        "_access_token",
-        "_authorization",
-        "_auth_token",
-        "_bearer_token",
-        "_client_secret",
-        "_cookie",
-        "_credential",
-        "_credentials",
-        "_id_token",
-        "_passphrase",
-        "_password",
-        "_passwd",
-        "_private_key",
-        "_proxy_authorization",
-        "_refresh_token",
-        "_secret",
-        "_session_token",
-        "_secret_key",
-        "_set_cookie",
-        # A string under any *_token name is a token (GITHUB_TOKEN, hf_token,
-        # PRIVATE-TOKEN, X-Vault-Token); numeric counters such as input_tokens
-        # are exempt below, as they always were.
-        "_token",
-        "_account_key",
-        "_encryption_key",
-        "_master_key",
-        "_signing_key",
-        "_ssh_key",
-        "_subscription_key",
-        "_connection_string",
-        "_dsn",
-        "_webhook_url",
-    )
+    credential_names = CREDENTIAL_NAMES | extra_secret_names()
+    suffixes = SECRET_SUFFIXES
     if isinstance(value, dict):
         header_names = [item for key, item in value.items() if _field_name(key) == "name"]
         header_values = {key for key in value if _field_name(key) == "value"}
@@ -176,6 +153,12 @@ def _redact(value: Any, _depth: int = 0) -> Any:
                 is_secret = True
             if is_secret and _token_counter(name, item):
                 is_secret = False
+            # The policy's own list (RedactionPolicy) names fields and holds none: kept
+            # verbatim, or its first name would read as a ``[name, secret]`` pair.
+            if name == "extra_secret_keys" and isinstance(item, list | tuple):
+                if all(isinstance(entry, str) for entry in item):
+                    redacted[key] = list(item)
+                    continue
             # "pass" and "auth" are also flags ({"pass": true}, {"auth": "oauth2"}
             # is a mode); only a string under them can be the credential itself.
             if name in _LOOSE_NAMES and isinstance(item, str) and item not in _AUTH_MODES:
@@ -191,10 +174,16 @@ def _redact(value: Any, _depth: int = 0) -> Any:
                 name == "token"
                 or name in headers
                 or _secret_field(name, credential_names, suffixes)
-            ):
+            ) and not _token_counter(name, items[1]):
                 return [items[0], "[REDACTED]"]
         redacted = []
+        flag = ""
         for item in items:
+            if flag and isinstance(item, str) and not _token_counter(flag, item):
+                redacted.append("[REDACTED]")
+                flag = ""
+                continue
+            flag = _secret_flag(item, credential_names, suffixes)
             if isinstance(item, str) and (":" in item or "=" in item):
                 name, separator, _ = _split_assignment(item)
                 if _field_name(name) in headers | {"token"}:

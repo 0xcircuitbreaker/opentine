@@ -12,9 +12,26 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from opentine._cli_text import plain_text
+
+MAX_MCP_RUN_BYTES = 256 * 1024 * 1024
+
+
+def confined_run(root: Path, candidate: Path) -> Path | None:
+    """*candidate* resolved, if it is a ``.tine`` file inside *root* within the size cap."""
+    try:
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(root)
+        if not resolved.is_file() or resolved.suffix != ".tine":
+            return None
+        if resolved.stat().st_size > MAX_MCP_RUN_BYTES:
+            raise ValueError("run artifact exceeds the MCP size limit")
+        return resolved
+    except (OSError, ValueError):
+        return None
 
 
 def clip(value: Any, limit: int = 240) -> str:
@@ -61,4 +78,4 @@ def safe_errors(server: Any) -> SafeErrors:
     return server if isinstance(server, SafeErrors) else SafeErrors(server)
 
 
-__all__ = ["SafeErrors", "clip", "safe_errors"]
+__all__ = ["MAX_MCP_RUN_BYTES", "SafeErrors", "clip", "confined_run", "safe_errors"]

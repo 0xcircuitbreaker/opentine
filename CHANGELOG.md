@@ -1,5 +1,428 @@
 # Changelog
 
+## 0.9.2 — 2026-10-09 — Hardening
+
+The follow-ups 0.9.1 left open, `tine --version`, and every hardening item the
+0.9.0 audit listed beyond its confirmed findings — the remote server, signing
+and keys, pricing trust, the CLI/MCP/export surface, and the tool sandbox. Each
+fix has a regression test in `tests/test_security_0_9_2*.py` that fails on
+0.9.1. No format change: every file and repository written since 0.3.0 still
+reads, and 0.9.1 reads the files and repositories 0.9.2 writes. The one
+exception is the remote server's encrypted object store: objects a 0.9.2 server
+stores (`TINEAES3`) cannot be read by a server downgraded to 0.9.1.
+
+### Upgrade notes
+
+*Remote server*
+
+- **`promotions/*` and moving an existing `tags/*` ref need the `admin` role.**
+  `tine serve --writer-promotes` / `RoleAuthorizationPolicy(writer_promotes=True)`
+  restores writer promotion. A custom `AuthorizationPolicy` is now also asked
+  about the actions `promote` and `retag`.
+- New object files are `TINEAES3`; a server downgraded to 0.9.1 cannot read
+  objects written by 0.9.2 (0.9.2 reads everything older).
+- **`tine serve --insecure-dev` binds loopback only**; add
+  `--insecure-dev-any-host` to serve plaintext on another interface.
+- **OIDC tenant claims must be valid tenant names** (`[a-z0-9][a-z0-9._-]*`);
+  other identities are refused at authentication.
+- **OIDC: a token whose `typ` is not `JWT` / `at+jwt` is refused**, and
+  discovered JWKS keys expire after `max_key_age` (default 3600 s) without a
+  successful refetch — keep the issuer's `jwks_uri` reachable from the server.
+- **Busy servers answer `503`** (worker slots full, a peer over its share, or no
+  walk/install slot within 30 s); clients should retry.
+- **`GET /audit/verify` no longer returns `head`.**
+- **`POST /search` answers with at most 1,000 objects and a `truncated` flag**
+  instead of `400`.
+- **`tine fetch` / `tine push` JSON gains `associations_omitted`**, and a tenant
+  holds up to 4,096 refs (was 1,000) within an 896 KiB listing.
+- **`tine serve` takes an optional maintenance `ACTION`**; without one it serves
+  exactly as before.
+- New `tine serve` flags: `--header-timeout` (10), `--max-connections-per-peer`
+  (half of `--max-connections`), `--insecure-dev-any-host`, `--writer-promotes`.
+
+*Signing, keys and pricing*
+
+- **An unsigned `./.tine/pricing.json` no longer prices anything** unless
+  `OPENTINE_TRUST_WORKSPACE_PRICING=1` (or `true`/`yes`/`on`) is set.
+- **`tine keygen` needs `--out PATH`** (or `--stdout` to print the private key).
+- **`tine pricing update` refuses a catalog older than the bundled or installed
+  one**, and an older signed user catalog is ignored.
+- **`--key-file` refuses a `*.pub` file or a PEM/OpenSSH public key.**
+- `tine verify --json` adds `signature_present`, `signature_checked` and
+  `signature.key_fingerprint`; `repo-verify` rows add `key_fingerprint`.
+- A small-order Ed25519 key is `error` (it verified forgeries before).
+
+*Model providers and tools*
+
+- **An API key is no longer sent over `http://` to a non-loopback host.** Use
+  `https://`, or opt in with `allow_insecure=True` (OpenAI-compatible adapters)
+  or `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1` (all adapters) on a network you
+  trust. Local presets with their default placeholder key are unaffected.
+- **A redirect from the Anthropic or Google endpoint is an error.** Point
+  `ANTHROPIC_BASE_URL` / `GOOGLE_GEMINI_BASE_URL` at the final URL.
+- **The python tool ignores `PYTHON*` variables and user site-packages** (`-I`),
+  even with `inherit_env=True`: install what snippets import into the
+  interpreter's environment.
+- **On Windows, a `.cmd`/`.bat` harness or shell-tool program is refused an
+  argument holding `" % ! ^ & | < >` or a line break.** Point
+  `--harness-command` at the real executable (`node path\to\cli.js`).
+- **`RedactionPolicy(redact_secrets=False)` and a policy naming a format field
+  raise `ValueError`;** `extra_secret_keys` is now enforced on every save of a
+  run that records it.
+
+*CLI, MCP and export*
+
+- **Exported OTLP span ids changed shape** for natively recorded runs: `traceId`
+  is now 32 hex and `spanId` 16 hex, derived from the run and step ids, which
+  ride along as `opentine.run_id` / `opentine.step_id` attributes. Dashboards or
+  queries keyed on the old raw ids should key on those attributes. Imported
+  spans keep their ids.
+- **`tine export` scrubs credential-shaped text** from the document it writes or
+  pushes.
+- **MCP:** `fork_run_v3`/`resume_run_v3` refuse an existing ref (pick a new
+  `experiments/` name); `list_runs`/`fork_run` paths are relative to the runs
+  directory; `attest_run` claims are capped at 64 KiB.
+- **Remote URLs** other than `http://`/`https://` are refused even with
+  `--allow-insecure`.
+
+*Runs and repositories*
+
+- **`repo.load_run(...).metadata` no longer repeats `system_prompt`,
+  `user_prompt` and `model_info`** for runs stored from 0.9.2 on; read
+  `run.system_prompt`, `run.user_prompt` and `run.model_info`. `.tine` files
+  are unchanged.
+- **`config.json` with a duplicated key or a boolean for a number is refused.**
+
+### Added
+
+- **`tine --version`** (`-V`) prints the installed version.
+- **`tine keygen --hmac`**, **`--pin FINGERPRINT`** on `verify`/`repo-verify`/`migrate-v3`, key flags on `migrate-v3`, **`--token-file`** on `fetch`/`push`/`clone`, and **`tine serve`** maintenance actions and connection limits (all below).
+
+### Security — remote server
+
+- **The OIDC verifier accepted any JWT type the issuer signs.** A DPoP proof,
+  logout token or security-event token from the same issuer, with the right
+  audience, passed as a bearer credential. A token whose header `typ` is present
+  must now be `JWT` or `at+jwt` (`application/` prefix and case ignored).
+- **Issuer key rotation needed a restart, and a revoked key never expired.**
+  `JWTVerifier.from_discovery` fetched the JWKS once at startup: a key the
+  issuer rotated in was refused until a restart, and one it rotated out — say
+  because it leaked — kept verifying for as long as the server ran. A
+  discovered JWKS is now refetched when a token names an unknown `kid` (at most
+  once a minute, so made-up `kid`s cannot turn the server into a request
+  amplifier against the issuer) and once it is an hour old. A failed refetch
+  keeps the current keys until that hour is up; after it every token is refused
+  rather than checked against keys the issuer may have revoked. A static JWKS
+  passed to `JWTVerifier` directly is the operator's pin and never expires.
+  `refresh_interval`, `max_key_age` and `clock` are configurable.
+- **Attestations could still make a history unfetchable.** 0.9.1 capped a run at
+  1,000 annotations and attestations, but a fetch carries every run's
+  associations under one 10,000-object budget, so ten runs at the cap — or one
+  run with 9,000 events and a thousand attestations — still failed every fetch,
+  clone and push that included them. A pack now walks the object graph first and
+  adds each run's associations only while they fit; a run whose associations do
+  not all fit keeps its annotations (its metadata) when those fit. Associations
+  can no longer make a pack fail. The server reports the runs left short in the
+  fetch audit record and an `Opentine-Associations-Omitted` response header, and
+  `tine fetch` / `push` print them as `associations_omitted` (0 from older
+  servers, which never send the header).
+- **Two concurrent installs could overshoot the association cap by a pack.**
+  The budget check and the writes it admits are now serialized for packs that
+  carry annotations or attestations (packs without them never wait).
+- **A tenant stopped accepting pushes after about a thousand annotated runs.**
+  Each pushed run adds an `annotations/` ref and a tenant was capped at 1,000
+  refs, so the thousand-and-first push moved `heads/main` and then failed at its
+  annotation ref. The bound is now what keeps `GET /refs` readable by every
+  client: up to 4,096 refs and 896 KiB of names and ids, under the 1 MiB
+  control response clients accept (a run's annotation ref is about 160 bytes).
+- **Operators can delete refs and objects.** There was no way to remove a ref
+  or object from the remote short of editing SQLite. `tine serve ACTION` now
+  runs offline maintenance on the server's storage — `refs`, `delete-ref NAME
+  [--expect OID]` (compare-and-swap), `associations OID`, `delete-objects OID…
+  [--from FILE|-] [--dry-run]` (only objects no ref reaches except as
+  associations, e.g. an attestation flood) and `purge [--grace-seconds N]
+  [--dry-run]` (objects no ref reaches, keeping anything written within the
+  grace window, default an hour). It opens `--root` with `TINE_KMS_KEY` as the
+  server does and adds no HTTP endpoint, so no token reaches it over the
+  network. It is safe beside a running server — a pack install re-checks what
+  it wrote or links to under the lock each purge batch takes, so a run pushed
+  again mid-purge is never left with objects missing — and every action, dry
+  runs included, is recorded in the tenant's audit chain.
+- **A handful of idle connections could take the whole server.** Every
+  connection held one of 16 worker slots for up to a minute, a request that
+  trickled a byte every few seconds never hit the per-read timeout, and when the
+  slots were full the accept loop itself blocked. A connection must now finish
+  its TLS handshake, request line and headers within `--header-timeout`
+  (10 s), one peer address holds at most `--max-connections-per-peer` slots
+  (half of `--max-connections` by default), and a connection that finds no free
+  slot is answered `503` (closed, over TLS) at once instead of queueing behind
+  the accept loop. Negotiation, which walks up to a pack's worth of objects like
+  a fetch, is now behind a bounded slot too, and a fetch, negotiate or install
+  that waits more than 30 s for one is answered `503`.
+- **Refusals were not audited.** A bad or missing token got `401` with no
+  record; an OIDC identity whose tenant claim was not a valid tenant name
+  (`"Acme Corp"`) got `400` because its denial could not even be written; and
+  failures after authorization — an invalid pack or ref, an admission refusal —
+  left nothing. An OIDC tenant claim must now be a valid tenant name (refused at
+  authentication otherwise); a denial is written under the identity's tenant or,
+  failing that, the one it asked for; authenticated failures are audited like
+  successes; and unauthenticated refusals are counted and written at most once a
+  minute per tenant named in the URL (under `_server` when it names none), so
+  anonymous traffic cannot flood the log. No token, header or body is recorded.
+- **Any writer could move a promotion or a tag.** `promotions/*` — what a
+  release pipeline deploys from — and existing `tags/*` refs could be re-pointed
+  by any writer. A promotion now needs the `admin` role (`promote`), and moving
+  or replacing an existing tag does too (`retag`); creating a tag is still a
+  writer's. `tine serve --writer-promotes` (or
+  `RoleAuthorizationPolicy(writer_promotes=True)`) restores the old behaviour.
+  Both refusals are audited.
+- **`--insecure-dev` served plaintext bearer tokens on any interface.** It now
+  binds a loopback `--host` only, unless `--insecure-dev-any-host` is also given.
+- **A resumable upload belonged to whoever knew its id.** Any writer in the
+  tenant who learned an upload id — the server's request log printed it — could
+  append to it, read its progress, or complete it and have the install
+  attributed to them. An upload now records the identity that declared it and
+  refuses (`403`, audited) every other one, and request logs no longer print
+  upload ids or query strings.
+- **Audit verification leaked other tenants' activity and cost a full scan.**
+  `GET /audit/verify` returned the server-wide chain head, which changes on every
+  request any tenant makes, and walked every audit row on each call. It now
+  returns only the status and warnings; the reference store walks the whole
+  chain at most once every five minutes and, on every call, authenticates the
+  rows appended since the last verified point up to the authenticated anchor.
+- **Ciphertexts were bound to their tenant only.** An object file and an upload
+  frame — or two objects, or frames of two uploads — encrypted for one tenant
+  were interchangeable under the key (integrity still held, by content hash and
+  pack checksum). New writes are `TINEAES3`, which authenticates purpose, tenant
+  and slot (the oid; the upload id and offset), so a ciphertext opens only where
+  it was written. `TINEAES1`/`TINEAES2` files and in-flight uploads still read; a
+  KMS adapter opts in by implementing `seal`/`unseal`.
+- **Search could be disabled by any writer.** `POST /search` returned `400` once
+  a tenant held more than 1,000 objects of the requested type. It now returns
+  the newest 1,000 (a total order, so pages are stable) with `"truncated": true`.
+- **Purge stopped at 100,000 objects**, the request-path listing bound — the
+  tenants most in need of one. Operator maintenance now streams the tenant's
+  objects with no count bound.
+- **The association cap could be overshot by two server processes.** The lock
+  serializing installs that add annotations or attestations was per process; it
+  now also takes a file lock beside the SQLite database, so processes (or WSGI
+  workers) sharing a store serialize too.
+- **Common access tokens were refused.** `azp` had to equal the audience, which
+  rejects the ordinary access token an IdP issues to a client for this API
+  (`aud` = the API, `azp` = the client). `JWTVerifier(..., authorized_parties=(
+  "client-id",))` (also through `OIDCIdentityProvider.from_jwks`/`from_discovery`)
+  lists accepted clients; with several audiences `azp` is still required.
+
+### Security — signing, keys and pricing
+
+- **A small-order Ed25519 key verified anything.** OpenSSL loads any 32 bytes as
+  a public key and verifies without a cofactor check, so a block whose embedded
+  key was the identity point — with the signature `R` = identity, `S` = 0 —
+  verified as `verified-tofu` over *every* message. The eight small-order keys,
+  in any spelling OpenSSL accepts (non-canonical `y ≥ p`, or `x = 0` with the
+  sign bit set), are now refused as `error` wherever a key is trusted: the
+  embedded key under `--trust-embedded-key`, `--pubkey`, and the library's
+  `public_key=`. No generated key has small order, so nothing honest changes.
+- **Trust-on-first-use named no key.** `tine verify` and `tine repo-verify`
+  printed the same output for an artifact re-signed by someone else under the
+  victim's `signer`/`key_id` labels. Every Ed25519 verdict now names its key by
+  fingerprint (`sha256:` + the SHA-256 of the raw key; JSON
+  `signature.key_fingerprint` / each row's `key_fingerprint`), and
+  `--pin FINGERPRINT` (repeatable; on `verify`, `repo-verify` and `migrate-v3`)
+  makes a trust-on-first-use check pass only for a pinned key — reported
+  `verified` — and fail as `mismatch` for any other. A pin must be the full
+  digest; a 16-hex prefix is 64 bits, which a key grinder can match.
+- **A public key could be used as an HMAC secret.** Passing an Ed25519 public
+  key to `--key-file` — an easy slip next to `--pubkey` — made the public key the
+  shared secret, so anyone could mint HMAC blocks that verified. A file named
+  `*.pub`, or holding a PEM or OpenSSH public key, is now refused as HMAC key
+  material on every verb that reads one.
+- **The workspace pricing overlay is opt-in.** `./.tine/pricing.json` comes from
+  whatever directory the process runs in (a cloned project can ship one), and it
+  outranks the user overlay and the bundled catalog; unsigned, it could price any
+  model at $0 and so disarm every `max_cost` budget computed from the catalog —
+  live model billing included. 0.9.1 announced it; it is now **ignored** unless
+  validly signed by a trusted key or the operator sets
+  `OPENTINE_TRUST_WORKSPACE_PRICING=1` (only `1`/`true`/`yes`/`on` count — `0`
+  no longer silences anything). The CLI says on stderr which overlay it ignored.
+- **A signed catalog could roll prices back.** `tine pricing update` installed
+  any validly signed catalog, and the user slot outranks the bundled one, so an
+  older signed catalog — installed by mistake, or replayed by anyone able to
+  write the file — masked newer bundled cards even across upgrades. A signed
+  catalog older (`generated_at`) than the bundled snapshot or than the catalog
+  it would replace is now refused at install, and a signed user catalog older
+  than the bundled one is skipped at load with a stderr note.
+- **`tine migrate-v3` never checked signatures.** It took no key flags, so a
+  signed source always imported as `no-key`, although `--allow-unverified`
+  promised a signature check. It now takes `--key-env`/`--key-file`/`--pubkey`/
+  `--trust-embedded-key`/`--pin`, and with one of them a source whose signature
+  does not verify is refused (unless `--allow-unverified`).
+- **`tine keygen` printed private keys.** Without `--out` it wrote the seed to
+  stdout, where CI logs keep it. A private key now goes to `--out` (mode 0600)
+  unless `--stdout` asks for it. A private or HMAC key file readable by group or
+  others is announced on stderr, the way ssh does (POSIX).
+- **Nothing made a good HMAC key.** The 16-byte floor is length-only —
+  `passwordpassword` signed — and every signed object is an offline oracle for
+  guessing the key. `tine keygen --hmac --out FILE` writes 32 random bytes as
+  hex, and a key that looks guessable (under about 128 bits by a simple
+  alphabet × length estimate) is announced on stderr.
+- **`tine verify` without a key said "OK" about a signed artifact.** It checked
+  the digest only and said nothing about the signature beside it. It now says
+  *signature present but NOT checked* and how to check it; `--json` gains
+  `signature_present` and `signature_checked`.
+
+### Security — CLI, MCP and export
+
+- **`tine export` scrubbed nothing on the way out, and its push had no bounds.**
+  A `.tine` written before 0.9.1 still holds the prose secrets its writer kept
+  (a `ghp_…` token, a PEM key, a URL password), and export sent them to the
+  collector verbatim. The document is now scrubbed with the same free-text pass
+  the repository applies. The push itself re-implemented its HTTP read without
+  the repository client's controls: it advertised gzip/deflate/zstd and read a
+  rejecting collector's reply decompressed (a 60 KB zstd reply drove the CLI to
+  2.1 GB), and its 30 s timeout applied per read, so a collector trickling a
+  byte every few seconds held it forever. The push now asks for `identity`,
+  reads the reply raw (an encoded reply is not read at all), and runs under a
+  120 s wall deadline. A malformed `--endpoint` (`http://[::1]:4318evil/`) is a
+  refusal instead of a traceback, and `/v1/traces` joins the endpoint's path
+  instead of landing after its query string or fragment.
+- **Exported span ids now have the OTLP shape.** `traceId` was the run id and
+  `spanId` the 64-hex step digest; OTLP requires 16- and 8-byte ids (32 and 16
+  hex), and a spec-strict collector rejects the whole batch otherwise. Export now
+  derives conforming ids deterministically (a domain-separated SHA-256 prefix),
+  so every span of a run lands in one trace and parent and link references
+  still meet, and carries the originals in `opentine.run_id`, `opentine.step_id`,
+  `opentine.parent_step_id` and `opentine.causal_step_ids`. Ids that already
+  have the OTLP shape — anything an import brought in — are kept as they are,
+  and the importer reads the originals back and drops those attributes, so
+  export → import still returns every id the run had.
+- **MCP tools are bounded.** `fork_run` refuses a source run over 32 MiB and
+  refuses once the runs directory holds 5,000 runs (each call wrote a new
+  artifact the size of its source). `fork_run_v3` and `resume_run_v3` only
+  *create* `experiments/*` refs: they used to compare-and-swap against the value
+  they had just read, i.e. overwrite an operator's experiment. `attest_run` and
+  `evaluate_run` cap a claim at 64 KiB of JSON and a signer at 256 characters.
+  `list_runs` and `fork_run` report paths relative to the runs directory instead
+  of absolute host paths.
+- **`tine replay --harness` says what it is about to send.** Without `--prompt`,
+  a harness replay hands a live agent CLI the `user_prompt` recorded in the
+  artifact — text whoever wrote the file chose — and `--verify` sends it twice.
+  It still does (that is what a replay is), but first prints the source, the
+  length and a sanitized 200-character preview on stderr.
+- **`--token` warns.** A bearer token on the command line is visible to `ps`,
+  `/proc` and shell history; `tine fetch`/`push`/`clone` now say so on stderr and
+  point to `TINE_REMOTE_TOKEN` or the new `--token-file PATH` (one token, at most
+  8 KiB, and refused alongside `--token`).
+- **Remote URLs must be http or https.** The loopback exemption accepted any
+  scheme on `127.0.0.1` (`ftp://`, `file:` …); only the two the transport speaks
+  pass now.
+- **Terminal output hardening.** A diff value is clipped *before* it is escaped
+  (clipping escaped markup could strand the backslash that escapes a `[`, so
+  artifact text swallowed the closing style tag); a manifest's budget values
+  (`Budget` accepts numeric strings padded with NEL and other separators) are
+  sanitized; Rich emoji shortcodes are off, so `:warning:` in run text stays
+  literal; and step-ref errors quote the artifact's ids (`'\x1b[2J…'`) instead of
+  interpolating them raw.
+- **`tine resume` says when it strips a signature.** It rewrites the artifact in
+  place, and a plain save drops any signature; it now says so, as `tine tag`
+  does.
+
+### Security — tool sandbox and providers
+
+- **The Anthropic and Google adapters no longer follow redirects.** httpx
+  strips only `Authorization` when a redirect changes origin, so both SDKs
+  carried `x-api-key` / `x-goog-api-key` to wherever a redirect pointed — a
+  gateway named by `ANTHROPIC_BASE_URL` or `GOOGLE_GEMINI_BASE_URL`, or anything
+  able to answer with a 307. A redirect is now an error, as it already was for
+  OpenAI-compatible endpoints. The Google client also stays on httpx when
+  aiohttp is installed, where the setting would not apply.
+- **The fs tool opens the path it checked.** It resolved a path inside the root
+  and then opened it by name, so a directory swapped for a symlink in between —
+  by any other process writing in the workspace — sent the read or write
+  outside the root, or into `.git`. On POSIX the path is now reached from the
+  root one component at a time without following a symlink; on Windows the
+  opened file must still be the one the path names, and a write truncates only
+  after that check. A FIFO swapped in for a file fails instead of hanging the
+  agent, and a file that grows past `max_file_bytes` after the size check is
+  refused.
+- **The python tool runs in isolated mode.** With `inherit_env=True` the host's
+  `PYTHONPATH`, `PYTHONINSPECT`, `PYTHONWARNINGS` and user site-packages shaped
+  every snippet. Snippets now run with `-I -X utf8`, which also makes their
+  output UTF-8 on Windows.
+- **Windows directory listings go through a handle.** `ls` listed a directory
+  by path after checking it, and any Windows user can create a junction, so a
+  junction swapped in between was listed. The directory is now opened once,
+  its handle's final path must be the checked path, and its entries are read
+  from that handle.
+- **`RedactionPolicy` was recorded and read by nothing.** `extra_secret_keys`
+  named fields the host considered secret, yet they reached `.tine` files and
+  repositories verbatim, and `redact_secrets=False` disabled nothing. A run now
+  carries the policy it ran under (`Agent(policies=PolicySet(...))` records
+  `PolicySet.to_dict()` in `run.policies`), and every writer of that run —
+  `Run.save`, autosave and `Repo.put_run` — redacts the named fields as it does
+  `api_key` (camel/kebab/plural forms included, and `name: value` strings). A
+  policy naming a field the run format itself uses (`steps`, `parent_ids`, …)
+  is refused, and `redact_secrets=False` is refused rather than silently
+  ignored. The policy's own list of names is no longer redacted out of the
+  saved file (its key matched `*_secret_keys`), so it survives a reload.
+- **Batch-file argument injection on Windows (BatBadBut, CVE-2024-24576
+  class).** Windows runs a `.bat`/`.cmd` program through `cmd.exe`, which
+  re-parses the command line; Python quotes for the C runtime, so a harness
+  task or a shell-tool argument holding `"` and `&` could run a command of its
+  own. npm installs most agent CLIs as `.cmd` shims. When the program is a
+  batch file, an argument holding `" % ! ^ & | < >` or a line break is now
+  refused before anything starts (harness launches and every `run_bounded`
+  command: shell tool, python tool, git capture). Launch the real executable
+  (`node <entry>.js`, an `.exe`) to pass such text.
+- **API keys no longer cross the network in cleartext.** Every
+  OpenAI-compatible adapter (local presets, hosted providers' `*_BASE_URL`
+  overrides, `OpenAI(base_url=…)`) and the Anthropic/Google adapters'
+  `ANTHROPIC_BASE_URL` / `GOOGLE_GEMINI_BASE_URL` accepted `http://` for any
+  host, sending the key in the clear. A key now goes over plain HTTP only to a
+  loopback address (`localhost`, `127.0.0.0/8`, `::1`); elsewhere use
+  `https://`, or opt in with `allow_insecure=True` or
+  `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1`. A local server's own placeholder key
+  (`vllm`, `lm-studio`, …) is no secret and is unaffected.
+- **Flag values in a recorded command.** `--password=…` was redacted, but a
+  recorded command is a list, and `["cli", "--password", "hunter2"]` left the
+  value as an element of its own. The element after a credential flag
+  (`--password`, `--token`, `--api-key`, `--client-secret`, `--auth`, `--pass`,
+  …) is now redacted; token counters (`--max-tokens 4096`) and `-p` (the prompt
+  flag of most agent CLIs) are kept.
+
+### Security — repository
+
+- **The reflog had no bound.** `logs/<ref>` grew by a row per ref update
+  forever (`experiments/*` churn over MCP, CI loops). Each ref's log is now
+  capped at 1 MiB: when an append would pass it, the log is atomically
+  rewritten keeping its newest half. An oversized log from an earlier version
+  is cut on its next append. The reflog stays history, not authority.
+- **One repository descriptor, one reading.** `config.json` given a key twice
+  (which value wins is parser-specific) or `true` for `1` (which Python's `==`
+  accepted) is refused, and it must be strict UTF-8 (a BOM is tolerated).
+  Unknown keys and any formatting stay accepted, as SPEC §2.2 and its
+  conformance vectors require.
+
+### Fixed
+
+- **Run annotations no longer copy the prompts.** `put_run` stored the run's
+  whole `metadata` in its annotation, and a run made by the runtime or loaded
+  from a `.tine` file carries `system_prompt`, `user_prompt` and `model_info`
+  there — fields the run already stores itself. A 40 KiB system prompt made a
+  44 KiB annotation, pushed with every run and counted against the remote's
+  1 MiB-per-annotation listing budget; it is now about 200 bytes. Annotations
+  written earlier are unchanged and still read.
+
+### Still open
+
+- The pricing catalog's signature has no domain-separation prefix (no other
+  signed message can collide today); one is added with the next release-key
+  rotation, since it needs the bundled catalog re-signed.
+- A public key saved as bare 64-hex under a name other than `*.pub` cannot be
+  told from a 64-hex HMAC secret, so it is not refused as HMAC key material.
+- A custom `KMSKeyProvider` gets slot-bound encryption only by implementing
+  `seal`/`unseal`; `heads/*` has no fast-forward rule on the remote.
+
 ## 0.9.1 — 2026-10-09 — Security
 
 A security and hardening release from a five-slice audit of 0.9.0 (kernel and

@@ -46,7 +46,9 @@ STEP_ICONS = {
 }
 # Auto-detect the terminal: colorize for interactive TTYs, but emit clean output when
 # piped/redirected/captured (and honor NO_COLOR) so machine-readable JSON is not corrupted.
-console = Console()
+# emoji=False: markup escaping leaves ":warning:"-style shortcodes in artifact text live,
+# and no OpenTine output uses one.
+console = Console(emoji=False)
 RUNS_DIR = Path(".tine_runs")
 MAX_CLI_SCAN_RUNS = 5_000
 HARNESS_FACTORIES = {

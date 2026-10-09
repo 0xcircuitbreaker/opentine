@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 
+from opentine._repo_cli_keys import add_key_args
+
 
 def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     init = subparsers.add_parser("init", help="Initialize a v3 .tine repository")
@@ -87,8 +89,9 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     migration.add_argument(
         "--allow-unverified",
         action="store_true",
-        help="Import even if the v2 source fails integrity or signature verification",
+        help="Import even if the integrity check, or a signature check a key flag asked for, fails",
     )
+    add_key_args(migration, signing=False)
 
     fetch = subparsers.add_parser("fetch", help="Fetch a verified pack from a remote")
     _remote_args(fetch)
@@ -177,8 +180,8 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
     # No key => the byte-identical unsigned object. No --algorithm either: the
     # flag naming the key already names the algorithm.
     for signable in (attest, evaluate):
-        _key_args(signable, signing=True)
-    _key_args(verify, signing=False)
+        add_key_args(signable, signing=True)
+    add_key_args(verify, signing=False)
 
     for repo_arg in (attest, evaluate, promote, verify):
         repo_arg.add_argument("--repo", default=".")
@@ -187,24 +190,6 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
         repo_arg.add_argument(
             "--json", action="store_true", help="Emit a machine-readable JSON object instead"
         )
-
-
-def _key_args(parser: argparse.ArgumentParser, *, signing: bool) -> None:
-    """``tine sign``'s or ``tine verify``'s key flags, spelled exactly as they are."""
-    parser.add_argument("--key-env", help="Environment variable holding the HMAC key")
-    parser.add_argument("--key-file", help="File holding the HMAC key")
-    if signing:
-        parser.add_argument(
-            "--ed25519-key-file", help="File holding an Ed25519 private key (seed or hex)"
-        )
-        parser.add_argument("--key-id", help="Key identifier recorded inside the signature")
-        return
-    parser.add_argument("--pubkey", help="File holding a trusted Ed25519 public key")
-    parser.add_argument(
-        "--trust-embedded-key",
-        action="store_true",
-        help="Trust the signature's own Ed25519 key (TOFU; the key is self-asserted)",
-    )
 
 
 def _add_porcelain_parsers(subparsers: argparse._SubParsersAction) -> None:
@@ -246,5 +231,8 @@ def _add_porcelain_parsers(subparsers: argparse._SubParsersAction) -> None:
 def _remote_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("remote")
     parser.add_argument("--tenant")
-    parser.add_argument("--token")
+    parser.add_argument(
+        "--token", help="Bearer token (visible to ps and shell history; prefer --token-file)"
+    )
+    parser.add_argument("--token-file", metavar="PATH", help="Read the bearer token from PATH")
     parser.add_argument("--allow-insecure", action="store_true")

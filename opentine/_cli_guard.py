@@ -8,8 +8,9 @@ screen clear -- through eleven verbs. Every invocation now ends here: one
 sanitized ``tine: <message>`` line on stderr and exit 1. ``OPENTINE_DEBUG=1``
 re-raises, for the traceback.
 
-It also installs the CLI's notice for an unsigned workspace pricing overlay
-(``./.tine/pricing.json``), which the library loads silently.
+It also installs the CLI's notices for the pricing layers the library skips: an
+unsigned workspace overlay (``./.tine/pricing.json``) the operator has not opted
+in to, and a signed user catalog older than the bundled one.
 """
 
 from __future__ import annotations
@@ -20,24 +21,29 @@ from collections.abc import Callable
 from pathlib import Path
 
 from opentine._cli_text import plain_text
+from opentine.billing._catalog_trust import TRUST_WORKSPACE_PRICING_ENV
 
 DEBUG_ENV = "OPENTINE_DEBUG"
-#: Set to silence the workspace-overlay notice once its source is trusted.
-TRUST_WORKSPACE_PRICING_ENV = "OPENTINE_TRUST_WORKSPACE_PRICING"
 
 _warned: set[str] = set()
 
 
+def _once(path: Path, message: str) -> None:
+    if str(path) not in _warned:
+        _warned.add(str(path))
+        print(f"tine: note: {message}", file=sys.stderr)
+
+
 def _warn_overlay(path: Path) -> None:
-    key = str(path)
-    if key in _warned or os.environ.get(TRUST_WORKSPACE_PRICING_ENV):
-        return
-    _warned.add(key)
-    print(
-        f"tine: note: pricing from unsigned workspace overlay {plain_text(path)}, which "
-        f"outranks your user overlay (set {TRUST_WORKSPACE_PRICING_ENV}=1 to silence)",
-        file=sys.stderr,
+    _once(
+        path,
+        f"ignoring unsigned workspace overlay {plain_text(path)} for pricing; set "
+        f"{TRUST_WORKSPACE_PRICING_ENV}=1 to apply it",
     )
+
+
+def _warn_stale(path: Path) -> None:
+    _once(path, f"ignoring {plain_text(path)}: it is older than the bundled pricing catalog")
 
 
 def guarded_dispatch(run: Callable[[], None]) -> None:
@@ -45,6 +51,7 @@ def guarded_dispatch(run: Callable[[], None]) -> None:
     from opentine.billing import catalog
 
     previous, catalog.workspace_overlay_hook = catalog.workspace_overlay_hook, _warn_overlay
+    stale, catalog.stale_catalog_hook = catalog.stale_catalog_hook, _warn_stale
     try:
         run()
     except Exception as exc:  # KeyboardInterrupt and SystemExit pass through
@@ -55,6 +62,7 @@ def guarded_dispatch(run: Callable[[], None]) -> None:
         raise SystemExit(1) from exc
     finally:
         catalog.workspace_overlay_hook = previous
+        catalog.stale_catalog_hook = stale
 
 
 __all__ = ["DEBUG_ENV", "TRUST_WORKSPACE_PRICING_ENV", "guarded_dispatch"]

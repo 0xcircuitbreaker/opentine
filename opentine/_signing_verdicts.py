@@ -13,7 +13,7 @@ import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from opentine._signing_keys import Ed25519PublicKey, SignatureError
+from opentine._signing_keys import SignatureError
 from opentine._signing_keys import coerce_ed25519_public as _coerce_ed25519_public
 
 if TYPE_CHECKING:
@@ -77,14 +77,15 @@ def ed25519_verdict(
             if embedded is not None and embedded != public.public_bytes_raw().hex():
                 return result(False, "mismatch", "embedded public key is not the trusted key")
         elif trust_embedded and embedded is not None:
-            public = Ed25519PublicKey.from_public_bytes(bytes.fromhex(embedded))
+            public = _coerce_ed25519_public(embedded)  # refuses a small-order key
             state = "verified-tofu"
         elif trust_embedded:
             raise SignatureError("malformed embedded public key")
         else:
             return result(False, "no-key", "ed25519 signature present but no trusted public key")
-    except (SignatureError, TypeError, ValueError):
-        return result(False, "error", "malformed ed25519 public key")
+    except (SignatureError, TypeError, ValueError) as exc:
+        weak = "small order" in str(exc)
+        return result(False, "error", str(exc) if weak else "malformed ed25519 public key")
     try:
         public.verify(bytes.fromhex(value), message)
     except Exception:
