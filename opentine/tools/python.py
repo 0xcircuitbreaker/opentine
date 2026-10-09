@@ -15,6 +15,14 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
     pol = policy or PythonPolicy(enabled=False, timeout_seconds=timeout)
     if not pol.enabled:
         return "Error: Python execution disabled by policy"
+    # This tool provides one backend, a plain subprocess. A policy naming another
+    # ("external", "gvisor") ran here unisolated, as the host user with network,
+    # because the field was never read: refuse instead of failing open.
+    if pol.isolation_backend != "subprocess":
+        return (
+            f"Error: isolation backend {pol.isolation_backend!r} is not provided by the "
+            "built-in python tool; register a tool that implements it"
+        )
     try:
         with tempfile.TemporaryDirectory(prefix="opentine-python-") as tmp:
             script_path = str(Path(tmp) / "snippet.py")

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-import opentine._signing_verify as _signing_verify
+import opentine._signing_verdicts as _signing_verdicts
 import opentine.signing as signing
 from opentine import Run, StepKind
 from opentine._canon import _integrity_digest
@@ -310,13 +310,15 @@ def test_signature_lengths_are_checked_before_hex_conversion(monkeypatch):
         }
     }
 
-    def guarded_hex(value: object) -> bool:
-        assert isinstance(value, str) and len(value) <= 128
-        return True
+    class GuardedHex:
+        @staticmethod
+        def fullmatch(value: object) -> bool:
+            assert isinstance(value, str) and len(value) <= 128
+            return True
 
-    # 0.9.0 moved the shared verify half into _signing_verify (attestation signing
-    # reuses it), so the length-before-hex guard now lives there.
-    monkeypatch.setattr(_signing_verify, "_is_hex", guarded_hex)
+    # 0.9.0 moved the shared verify half into _signing_verify; 0.9.1 checks the
+    # canonical lowercase form in _signing_verdicts.lower_hex, length first.
+    monkeypatch.setattr(_signing_verdicts, "_LOWER_HEX", GuardedHex)
     result = signing.verify_artifact(data, hmac_key=b"x" * 32)
     assert not result.ok and result.state == "error"
 

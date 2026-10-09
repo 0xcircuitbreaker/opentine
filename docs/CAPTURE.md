@@ -202,6 +202,15 @@ step. That makes the run priceable afterwards — `tine price <run>` re-prices i
 from the signed catalog, independently of Claude Code's figure. The other agent
 CLIs are still recorded from their text output, without model or usage.
 
+**Whose words stdout is.** A text-mode agent CLI prints the model's answer, so
+from 0.9.1 its stdout is recorded as text: a JSON-shaped line is parsed as an
+event only when the command asks the CLI for JSON output (`--json`,
+`--output-format json|stream-json`, `--format=json`; `kimi-code` and `openclaw`
+do by default), and a currency amount in free text ("cost: $2.50") is booked
+only for an operator-written `generic`/`pi` command. Before, an answer
+containing a JSON line or a dollar figure was recorded as a real tool step,
+error, or charge. For structured `codex` capture, add `--harness-arg --json`.
+
 Process harnesses default to a one-hour wall timeout, a 4-million-character
 total output ceiling, and 10,000 parsed events; override them with
 `--harness-timeout`, `--harness-max-output`, `--harness-max-events`, and

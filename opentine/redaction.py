@@ -14,6 +14,7 @@ from typing import Any
 
 from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
 from opentine._redact_pem import redact_private_keys
+from opentine._redact_shapes import QUERY_SECRET, TOKEN_SHAPES, URL_USERINFO
 from opentine._unicode_text import assert_unicode_text
 
 # A credential-bearing identifier: an optional vendor/scope prefix (OPENAI_, X-, AWS_, …)
@@ -26,13 +27,20 @@ from opentine._unicode_text import assert_unicode_text
 # than by widening the lookbehind to allow a preceding "-": that would make every
 # hyphen in the input a candidate start position and turn matching quadratic on
 # input like "a-b_c-d_"*1500 (see the linearity assertion in test_release_audit_round4).
+# An optional single leading "_" after the dashes (".npmrc"'s "//host/:_authToken=")
+# is one fixed character, so it adds no split ambiguity to the scan. The vendor
+# *_TOKEN / *_KEY compounds name credentials outright; bare "token"/"key" stay out.
 _NAME = (
-    rb"(?<![A-Za-z0-9_-])(?:-{1,2})?(?:[A-Za-z0-9]+[_-])*"
+    rb"(?<![A-Za-z0-9_-])(?:-{1,2})?_?(?:[A-Za-z0-9]+[_-])*"
     rb"[A-Za-z0-9]*"
     rb"(?:api[_-]?keys?|api[_-]?tokens?|access[_-]?keys?|access[_-]?tokens?|"
     rb"secret[_-]?access[_-]?keys?|secret[_-]?keys?|private[_-]?keys?|"
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
-    rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?)"
+    rb"(?:github|gh|hf|npm|pypi|gitlab|bot|slack|discord|telegram|vault|private|"
+    rb"security|registry|personal[_-]?access)[_-]?tokens?|"
+    rb"(?:subscription|account|signing|encryption|master|ssh)[_-]?keys?|"
+    rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?|"
+    rb"private[_-]?key[_-]?ids?|connection[_-]?strings?|webhook[_-]?urls?|dsn)"
 )
 # `[ \t]*(?:[+>-][ \t]*)?` rather than `[ \t]*[+>-]?[ \t]*`: two adjacent runs of
 # optional whitespace give O(n) ways to split n leading spaces, so a failing match
@@ -68,6 +76,12 @@ _QUOTED_FIELD = re.compile(
     rb"[\"']\s*:\s*)([\"'])"
 )
 _BEARER = re.compile(rb"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=-]{8,}")
+# A secret passed as a separate argument: ``mysql --password hunter2``. The
+# ``--flag=value`` form is an assignment and _ASSIGNMENT already takes it.
+_FLAG_VALUE = re.compile(
+    rb"(?i)(?<![A-Za-z0-9_-])(--(?:password|passwd|pass|token|api[_-]?key|secret|"
+    rb"client[_-]?secret|auth[_-]?token|access[_-]?token)[ \t]+)([^\s\"'-][^\s\"']{0,511})"
+)
 _QUOTED_HEADER = re.compile(
     rb"(?i)([\"'](?:authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"']\s*:\s*[\"'])([^\"']*)([\"'])"
 )
@@ -96,15 +110,6 @@ _HEADER_LINE = re.compile(
     rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
-# High-confidence secret token shapes, scrubbed regardless of the surrounding field name.
-_TOKEN_SHAPES = re.compile(
-    rb"(?i)\b(?:"
-    rb"sk-[A-Za-z0-9_-]{16,}"  # OpenAI / Anthropic style
-    rb"|AKIA[0-9A-Z]{16}"  # AWS access key id
-    rb"|gh[opsu]_[A-Za-z0-9]{20,}"  # GitHub tokens
-    rb"|xox[baprs]-[A-Za-z0-9-]{10,}"  # Slack tokens
-    rb")"
-)
 _PROSE_VALUES = {
     b"can",
     b"could",
@@ -173,7 +178,10 @@ def redact_blob(value: bytes) -> bytes:
     value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     value = _ASSIGNMENT.sub(_assignment, value)
     value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = _TOKEN_SHAPES.sub(b"[REDACTED]", value)
+    value = _FLAG_VALUE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
+    value = TOKEN_SHAPES.sub(b"[REDACTED]", value)
+    value = URL_USERINFO.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
+    value = QUERY_SECRET.sub(lambda match: match.group(1) + b"[REDACTED]", value)
     return redact_private_keys(value)
 
 

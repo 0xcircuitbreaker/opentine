@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from opentine.tools._git_guard import HARDENED_CONFIG
 from opentine.tools._process import run_bounded
 
 MAX_GIT_CAPTURE_BYTES = 16 * 1024 * 1024
@@ -18,7 +19,7 @@ MAX_STATUS_ENTRIES = 10_000
 def _git(cwd: Path, *arguments: str) -> tuple[str, str | None]:
     try:
         result = run_bounded(
-            ["git", *arguments],
+            ["git", *HARDENED_CONFIG, *arguments],
             cwd=str(cwd),
             timeout=30,
             max_chars=4_000,

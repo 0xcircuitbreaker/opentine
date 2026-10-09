@@ -8,6 +8,7 @@ from opentine.kernel import KernelError, validate_links
 from opentine.repository._paths import atomic_bytes, install_verified, internal_path
 from opentine.repository._semantic_view import SemanticView
 from opentine.repository._shallow import encode_shallow, shallow_lock
+from opentine.repository._unadopted import foreign_annotations, record_unadopted
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -93,6 +94,7 @@ def install_inspected(
                     raise KernelError(f"pack has unresolved link: {link}")
         if incoming_shallow != external:
             raise KernelError("pack shallow boundaries do not match its external links")
+        record_unadopted(repo.path, foreign_annotations(repo, view, objects))
         written = 0
         for oid, raw in _dependency_order(objects, internal):
             if install_verified(repo._object_path(oid), raw, "object"):

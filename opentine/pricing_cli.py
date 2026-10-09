@@ -97,7 +97,7 @@ def _cmd_show(args: argparse.Namespace, console: Console) -> None:
         f"[bold]{_terminal(card.provider)}/{_terminal(card.model)}[/]  {_terminal(card.id)}"
     )
     console.print(f"effective: {card.effective_from} through {card.effective_until or 'open'}")
-    console.print(f"rates / MTok ({card.currency}): {_terminal(data['rates'])}")
+    console.print(f"rates / MTok ({_terminal(card.currency)}): {_terminal(data['rates'])}")
     if card.context_thresholds:
         # _terminal escapes the brackets; Rich read them as markup and dropped
         # the whole line, hiding the >200K context surcharges it announces.

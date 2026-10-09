@@ -118,7 +118,9 @@ def _require_output_slot(output: Path, force: bool) -> None:
     """
     from opentine._cli_common import _terminal, console
 
-    if output.exists() and not force:
+    # is_symlink too: exists() follows a link, so a dangling one planted at the
+    # destination read as a free slot and the write went wherever it pointed.
+    if (output.exists() or output.is_symlink()) and not force:
         console.print(
             f"[red]Refusing to overwrite existing file: {_terminal(output)}. Pass --force.[/]"
         )

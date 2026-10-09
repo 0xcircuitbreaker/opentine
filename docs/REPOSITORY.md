@@ -159,6 +159,14 @@ An empty query lists candidate runs; a query is matched case-insensitively
 against event input and output blob text, and the matching prefix comes back as
 `matched_text`.
 
+A run's score prefers **signed** evaluations: when any exist, the best signed one
+decides it, and runs scored by signed evaluations rank above runs scored only by
+unsigned ones — any MCP client can write an unsigned evaluation, and through
+0.9.0 one injected score decided the rank. Each result carries `score_signed`,
+and `--signed-only` (`signed_only=` in the library and in `search_runs`) ignores
+unsigned evaluations entirely. *Signed* means a signature block is present, not
+that it verified; check it with `tine repo-verify` and a trusted key.
+
 Search is a **bounded scan, not an index**. It walks up to
 `MAX_SEARCH_OBJECTS` = 100,000 repository objects per invocation and reads blob
 text under further aggregate byte budgets, so its latency grows with repository
@@ -246,7 +254,7 @@ tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... \
 tine promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid | run-ref-or-oid> \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
-    [--require-signature] [--repo .] [--json]
+    [--require-signature] [--signer NAME]... [--claim JSON] [--repo .] [--json]
 ```
 
 Each accepts a ref name or a `run:sha256:…` oid and **resolves it first**. That
@@ -291,7 +299,13 @@ scripts. It reports `tine verify`'s own verdicts (`verified`, `verified-tofu`,
 fail-closed the same way: any key, `--trust-embedded-key`, or
 `--require-signature` arms the check and exits 1 unless every attestation
 verified, and `--require-signature` also refuses a run with no attestation at
-all. Unarmed, it is a report that exits 0. MCP has no equivalent tool: checking a
+all. Unarmed, it is a report that exits 0. **Scope a release gate** with
+`--signer NAME` (repeatable) and `--claim JSON` — the attestation's claim must
+contain those keys with those values: the gate then passes when at least one
+*selected* attestation verifies, and unselected ones (an unsigned note, a signed
+evaluation that is not the approval) neither pass nor block it. Unscoped, a
+verified rejection passed like an approval and any writer's unsigned note
+blocked the release. Either flag arms the check. MCP has no equivalent tool: checking a
 signature needs the operator's key material, and `attest_run` has no signing
 options for the same reason — run content must not be able to sign as an
 operator.
@@ -340,8 +354,11 @@ argparse's 2, which these verbs never emit themselves.
 | | `require_signature` | bool | whether `--require-signature` was passed |
 | | `count` | int | attestations checked (1 for an attestation target) |
 | | `verified` | int | how many reported a passing state |
-| | `ok` | bool | the exit predicate: every row passed, and not `--require-signature` with nothing to check |
-| | `attestations` | array | per attestation: `attestation_id`, `target_id`, `signer` (the claimed label; bound only when `state` is verified), `state`, `ok`, `algorithm`, `key_id`, `signed_at`, `scheme`, `reason` |
+| | `signers` | array | the `--signer` values (0.9.1) |
+| | `claim` | object or null | the `--claim` object (0.9.1) |
+| | `selected` | int | rows the scope selects; every row when unscoped (0.9.1) |
+| | `ok` | bool | the exit predicate: unscoped, every row passed and not `--require-signature` with nothing to check; scoped, at least one selected row passed |
+| | `attestations` | array | per attestation: `attestation_id`, `target_id`, `signer` (the claimed label; bound only when `state` is verified), `state`, `ok`, `algorithm`, `key_id`, `signed_at`, `scheme`, `reason`, `claim` and `selected` (0.9.1) |
 
 `repo-verify` is a read verb, so unlike the three above its `--json` object is
 emitted whether or not the check passed — `ok` and the exit code carry that. Only

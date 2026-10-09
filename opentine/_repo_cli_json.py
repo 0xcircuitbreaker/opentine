@@ -194,12 +194,11 @@ def emit_repo_search(
     limit: int,
     min_score: float | None,
     model: str | None,
+    signed_only: bool = False,
 ) -> None:
-    """Emit ``SearchResult`` rows next to the filters that produced them.
-
-    Echoing the filters is what makes the object reproducible: ``count`` capped at
-    ``limit`` is otherwise indistinguishable from a repository that held no more.
-    """
+    """Emit ``SearchResult`` rows next to the filters that produced them; echoing the
+    filters makes it reproducible (``count`` capped at ``limit`` otherwise looks like
+    a repository that held no more)."""
     emit(
         {
             "command": "repo-search",
@@ -209,6 +208,7 @@ def emit_repo_search(
             "limit": limit,
             "min_score": min_score,
             "model": model,
+            "signed_only": signed_only,
             "count": len(results),
             "results": [asdict(result) for result in results],
         }

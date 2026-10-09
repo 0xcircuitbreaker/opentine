@@ -55,6 +55,26 @@ async def _resolve(host: str, port: int):
     return await future
 
 
+#: IPv6 ranges that carry an IPv4 address in their low 32 bits and that
+#: ``is_global`` calls public: a NAT64 gateway (RFC 6052) or an IPv4-compatible
+#: address delivers ``64:ff9b::a9fe:a9fe`` to 169.254.169.254, the cloud
+#: metadata service, so the embedded address is what has to be public.
+_EMBEDS_IPV4 = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("::/96"))
+
+
+def _public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if not address.is_global:
+        return False
+    if address.version == 4:
+        return True
+    if address.is_site_local:  # fec0::/10: deprecated, but still routed on-site
+        return False
+    embedded = address.ipv4_mapped or address.sixtofour
+    if embedded is None and any(address in network for network in _EMBEDS_IPV4):
+        embedded = ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
+    return embedded is None or embedded.is_global
+
+
 def _check_url(url: str, policy: NetworkPolicy):
     parsed = urlparse(url)
     if parsed.scheme not in policy.allowed_schemes:
@@ -74,7 +94,7 @@ def _check_url(url: str, policy: NetworkPolicy):
     except ValueError:
         pass
     else:
-        if not policy.allow_private_hosts and not literal.is_global:
+        if not policy.allow_private_hosts and not _public(literal):
             raise PermissionError(
                 f"Private/link-local/loopback host denied by policy: {parsed.hostname}"
             )
@@ -93,7 +113,7 @@ async def _pin_url(url: str, policy: NetworkPolicy) -> tuple[str, str, str]:
     for info in infos:
         raw = info[4][0].split("%", 1)[0]
         address = ipaddress.ip_address(raw)
-        if not policy.allow_private_hosts and not address.is_global:
+        if not policy.allow_private_hosts and not _public(address):
             raise PermissionError(
                 f"Private/link-local/loopback host denied by policy: {parsed.hostname}"
             )

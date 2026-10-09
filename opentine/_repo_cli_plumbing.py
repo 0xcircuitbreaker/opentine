@@ -140,6 +140,7 @@ def cmd_repo_search(args: argparse.Namespace, console) -> None:
         min_score=args.min_score,
         model=args.model,
         limit=args.limit,
+        signed_only=args.signed_only,
     )
     if getattr(args, "json", False):
         emit_repo_search(
@@ -150,6 +151,7 @@ def cmd_repo_search(args: argparse.Namespace, console) -> None:
             limit=args.limit,
             min_score=args.min_score,
             model=args.model,
+            signed_only=args.signed_only,
         )
         return
     render_search(console, args.query, results)

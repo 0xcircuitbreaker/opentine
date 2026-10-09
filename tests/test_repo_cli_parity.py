@@ -32,7 +32,6 @@ import pytest
 
 from opentine import cli
 from opentine._cli_parser import _build_parser
-from opentine.kernel import KernelError
 from opentine.mcp_repository import register_repository_tools
 from opentine.repo_cli import REPO_COMMANDS
 from opentine.repository import Repo
@@ -360,16 +359,14 @@ def test_cli_evaluate_refuses_non_finite_scores_that_mcp_passes_straight_through
     string, so it owns that door and closes it *before* any engine call, naming
     the flag the operator typed.
 
-    ``evaluate_run`` takes an already-typed ``dict[str, float]`` and adds no check
-    of its own: the value travels all the way into ``canonical_json``, which
-    refuses it as a ``KernelError`` about JSON encoding. Nothing is stored either
-    way — the divergence is *where* and *how legibly* the refusal happens, and the
-    CLI is strictly the stricter surface. Recorded, not fixed: adding a check at
-    the MCP boundary is a change to the tool's contract, and the kernel is
-    already the authority that nothing non-finite is ever written.
+    ``evaluate_run`` used to add no check of its own, leaving the refusal to
+    ``canonical_json``. Since 0.9.1 it refuses at the MCP boundary too -- a
+    non-finite score, or one beyond +/-1e6, because search ranks by score and a
+    model's unsigned 1.7e308 put its run first. The kernel stays the backstop:
+    nothing non-finite is ever written either way.
     """
     root, run, _ = repo_with_run
-    with pytest.raises(KernelError, match="NaN"):
+    with pytest.raises(ValueError, match="finite"):
         _mcp(root).tools["evaluate_run"](run, {"quality": float("nan")}, "judge")
     assert not [oid for oid in Repo.open(root).iter_oids() if oid.startswith("attestation:")], (
         "the kernel is the backstop: nothing non-finite is ever stored"

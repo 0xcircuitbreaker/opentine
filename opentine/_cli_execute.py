@@ -130,7 +130,14 @@ def _loaded_run(run_id: str) -> tuple[Path, Run]:
     if not path:
         console.print(f"[red]Run not found: {_terminal(run_id)}[/]")
         raise SystemExit(1)
-    return path, Run.load(path)
+    try:
+        return path, Run.load(path)
+    # KernelError is a ValueError. A refusing artifact is a typed refusal here,
+    # never a traceback: the exception text is artifact-derived, and Python's
+    # default hook printed it raw (escape sequences and all) onto the terminal.
+    except (OSError, RecursionError, ValueError) as exc:
+        console.print(f"[red]Cannot load run {_terminal(path)}:[/] {_terminal(exc)}")
+        raise SystemExit(1) from exc
 
 
 def cmd_show(args: argparse.Namespace) -> None:

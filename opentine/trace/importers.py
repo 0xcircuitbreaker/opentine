@@ -10,6 +10,7 @@ from typing import Any
 from opentine._jsonsafe import json_exact as _exact
 from opentine._jsonsafe import json_safe as _safe
 from opentine.trace import _genai_semconv as semconv
+from opentine.trace._import_guard import bounded_lines, shape_checked
 from opentine.trace._import_helpers import (
     dictionary,
     event_kind,
@@ -42,22 +43,10 @@ def _consume(total: int, value: Any) -> int:
 
 
 def _file_lines(path: str | Path):
-    total = 0
     with Path(path).open("rb") as handle:
-        while line := handle.readline(MAX_JSONL_LINE_BYTES + 1):
-            total += len(line)
-            if total > MAX_TRACE_IMPORT_BYTES:
-                raise ValueError("trace import exceeds aggregate payload limit")
-            oversized = len(line) > MAX_JSONL_LINE_BYTES
-            while oversized and not line.endswith(b"\n"):
-                line = handle.readline(MAX_JSONL_LINE_BYTES + 1)
-                total += len(line)
-                if total > MAX_TRACE_IMPORT_BYTES:
-                    raise ValueError("trace import exceeds aggregate payload limit")
-                if not line:
-                    break
-            if not oversized:
-                yield line
+        yield from bounded_lines(
+            handle, line_limit=MAX_JSONL_LINE_BYTES, total_limit=MAX_TRACE_IMPORT_BYTES
+        )
 
 
 def native_events(run) -> list[TraceEvent]:
@@ -108,8 +97,8 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
             continue
         if not line.strip():
             continue
-        try:
-            item = json.loads(line)
+        try:  # a structure bomb is skipped like any other unusable line
+            item = json.loads(shape_checked(line))
         except (ValueError, RecursionError, TypeError, UnicodeDecodeError):
             continue
         if not isinstance(item, dict):

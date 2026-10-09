@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -156,11 +156,21 @@ def user_catalog_path() -> Path:
     return Path(home, "opentine", "pricing.json")
 
 
+#: Called with a workspace overlay's path whenever ``load_catalogs`` applies one.
+#: That overlay is unsigned, comes from whatever directory the process runs in
+#: (a cloned checkout can ship one), and outranks the user's own overlay, so the
+#: CLI sets this to tell the operator; the library itself stays quiet.
+workspace_overlay_hook: Callable[[Path], None] | None = None
+
+
+def workspace_catalog_path(workspace: str | Path | None = None) -> Path:
+    return Path(workspace or Path.cwd()) / ".tine" / "pricing.json"
+
+
 def catalog_paths(workspace: str | Path | None = None) -> list[Path]:
-    root = Path(workspace or Path.cwd())
     paths = [BUNDLED_CATALOG]
     user = os.environ.get("TINE_PRICING_CATALOG")
-    paths.extend([user_catalog_path(), root / ".tine" / "pricing.json"])
+    paths.extend([user_catalog_path(), workspace_catalog_path(workspace)])
     if user:
         paths.append(Path(user))
     return paths
@@ -170,6 +180,7 @@ def load_catalogs(
     paths: Iterable[str | Path] | None = None, *, workspace: str | Path | None = None
 ) -> PricingCatalog:
     selected = [Path(item) for item in paths] if paths is not None else catalog_paths(workspace)
+    overlay = workspace_catalog_path(workspace) if paths is None else None
     catalog: PricingCatalog | None = None
     for index, path in enumerate(selected):
         if not path.exists():
@@ -177,6 +188,8 @@ def load_catalogs(
         current = PricingCatalog.load(
             path, require_signature=index == 0 and path == BUNDLED_CATALOG
         )
+        if path == overlay and workspace_overlay_hook is not None:
+            workspace_overlay_hook(path)
         catalog = current if catalog is None else catalog.overlay(current)
     if catalog is None:
         raise CatalogError("no pricing catalog found")

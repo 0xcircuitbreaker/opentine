@@ -19,6 +19,7 @@ Two rules keep the verdict honest:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from opentine._attest_view import ATTEST_SCHEMES, SCHEME_ATTEST_V1, SIGNATURE_KEY
@@ -27,6 +28,23 @@ from opentine._attest_view import (
 )
 from opentine._signing_keys import SignatureError
 from opentine._signing_verify import SignatureResult, sign_block, verify_block
+from opentine.kernel import KernelError, _parse_int, canonical_json
+
+
+def _as_stored(payload: dict[str, Any]) -> dict[str, Any]:
+    """*payload* as a reader decodes it from the store.
+
+    tine-attest/1 signs with the v2 canonicalizer but the object is stored by the
+    v3 one, which writes an integral float as an integer (``1.0`` -> ``1``). A
+    verifier only ever sees the decoded value, so signing the in-memory float
+    made every genuine signature over ``--score x=1`` verify as ``mismatch``.
+    Signing the round-tripped value makes signer and verifier see one value.
+    """
+    body = {key: value for key, value in payload.items() if key != "signature"}
+    try:
+        return json.loads(canonical_json(body), parse_int=_parse_int)
+    except (KernelError, RecursionError, TypeError, ValueError) as exc:
+        raise SignatureError(f"attestation payload cannot be stored: {exc}") from exc
 
 
 def sign_attestation(
@@ -46,6 +64,7 @@ def sign_attestation(
     """
     if not isinstance(payload, dict):
         raise SignatureError("attestation payload must be an object")
+    payload = _as_stored(payload)
     signer = payload.get("signer")
     if not isinstance(signer, str) or not signer:
         raise SignatureError("attestation signer must be a non-empty string")

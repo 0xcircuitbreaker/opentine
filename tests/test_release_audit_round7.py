@@ -16,6 +16,7 @@ import time
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from rich.console import Console
@@ -177,7 +178,9 @@ def test_inspect_does_not_resolve_the_unredacted_legacy_blob(tmp_path):
     source = tmp_path / "legacy.tine"
     run = Run(id="legacy")
     run.add_step(StepKind.tool, {"cmd": "env"}, {"stdout": f"ANTHROPIC_API_KEY is {secret}"})
-    run.save(source)
+    # Written as before 0.9.1, when the .tine writer did not scrub free text.
+    with mock.patch("opentine._graph_serde.redact_value", lambda value: value):
+        run.save(source)
 
     repo = Repo.init(tmp_path / "repo")
     migrated = repo.migrate_v2(source)

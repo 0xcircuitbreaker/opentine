@@ -36,17 +36,17 @@ from typing import Any
 
 from opentine._signing_keys import (
     HAS_ED25519,
-    Ed25519PublicKey,
     SignatureError,
 )
 from opentine._signing_keys import (
-    coerce_ed25519_public as _coerce_ed25519_public,
-)
-from opentine._signing_keys import (
-    is_hex as _is_hex,
-)
-from opentine._signing_keys import (
     load_ed25519_private as _load_ed25519_private,
+)
+from opentine._signing_verdicts import (
+    MIN_HMAC_KEY_BYTES,
+    ed25519_verdict,
+    hmac_verdict,
+    lower_hex,
+    require_strong_hmac_key,
 )
 
 #: The two keyed algorithms, and the hex length each one's value must have.
@@ -58,7 +58,10 @@ ALGORITHMS = frozenset(VALUE_LENGTHS)
 #: another even over identical content.
 HEADER_KEYS = ("alg", "key_id", "scheme", "signed_at", "signer")
 
-MIN_HMAC_KEY_BYTES = 16
+
+#: Everything a stored block may hold: the header, the value, Ed25519's key.
+_BLOCK_KEYS = frozenset((*HEADER_KEYS, "value", "public_key"))
+
 
 #: ``header -> the exact bytes signed``. The one thing each family supplies.
 MessageBuilder = Callable[[dict[str, Any]], bytes]
@@ -73,15 +76,6 @@ class SignatureResult:
     signer: str | None
     signed_at: str | None
     reason: str
-
-
-def require_strong_hmac_key(key: Any) -> None:
-    if not isinstance(key, (bytes, bytearray)) or not key:
-        raise SignatureError("HMAC key must be non-empty bytes")
-    if len(key) < MIN_HMAC_KEY_BYTES:
-        raise SignatureError(
-            f"HMAC key too short ({len(key)} bytes); use at least {MIN_HMAC_KEY_BYTES}"
-        )
 
 
 def sign_block(
@@ -161,6 +155,14 @@ def verify_block(
     # (narrower) v1 signed view forever, and only a v2 block gets v2's coverage.
     if block.get("scheme") not in schemes:
         return result(False, "error", "unsupported signature scheme")
+    # One key, chosen by the operator: given several, the block's own ``alg``
+    # would pick which of them is trusted.
+    if (hmac_key is not None) + (public_key is not None) + bool(trust_embedded) > 1:
+        return result(False, "error", "pass exactly one verification key")
+    # A block is signed byte-for-byte as sign_block writes it. Unknown keys and
+    # re-spelled hex verified anyway, so one signature minted many object ids.
+    if set(block) - _BLOCK_KEYS or (algorithm != "ed25519" and "public_key" in block):
+        return result(False, "error", "malformed signature header")
     if not isinstance(algorithm, str) or any(
         item is not None and not isinstance(item, str) for item in raw_optional
     ):
@@ -168,7 +170,7 @@ def verify_block(
     if algorithm not in ALGORITHMS:
         return result(False, "error", "unsupported signature algorithm")
     value = block.get("value")
-    if not isinstance(value, str) or len(value) != VALUE_LENGTHS[algorithm] or not _is_hex(value):
+    if not lower_hex(value, VALUE_LENGTHS[algorithm]):
         return result(False, "error", "malformed signature value")
     header = {name: block.get(name) for name in HEADER_KEYS}
     header["alg"] = algorithm
@@ -177,55 +179,10 @@ def verify_block(
     except (RecursionError, SignatureError, TypeError, ValueError):
         return result(False, "error", f"malformed signed {subject} content")
     if algorithm == "hmac-sha256":
-        return _hmac_verdict(message, value, hmac_key, result)
+        return hmac_verdict(message, value, hmac_key, result)
     if not HAS_ED25519:
         return result(False, "error", "ed25519 requires the 'cryptography' extra")
-    return _ed25519_verdict(message, value, block, public_key, trust_embedded, result)
-
-
-def _hmac_verdict(
-    message: bytes, value: str, hmac_key: bytes | None, result: Callable[..., SignatureResult]
-) -> SignatureResult:
-    if hmac_key is None:
-        return result(False, "no-key", "HMAC signature present but no key supplied")
-    try:
-        require_strong_hmac_key(hmac_key)
-    except SignatureError as exc:
-        return result(False, "error", str(exc))
-    expected = hmac.new(bytes(hmac_key), message, hashlib.sha256).hexdigest()
-    valid = hmac.compare_digest(expected, value)
-    return result(
-        valid, "verified" if valid else "mismatch", "ok" if valid else "signature mismatch"
-    )
-
-
-def _ed25519_verdict(
-    message: bytes,
-    value: str,
-    block: dict[str, Any],
-    public_key: Any | None,
-    trust_embedded: bool,
-    result: Callable[..., SignatureResult],
-) -> SignatureResult:
-    try:
-        if public_key is not None:
-            public = _coerce_ed25519_public(public_key)
-            state = "verified"
-        elif trust_embedded:
-            embedded = block.get("public_key")
-            if not isinstance(embedded, str) or len(embedded) != 64 or not _is_hex(embedded):
-                raise SignatureError("malformed embedded public key")
-            public = Ed25519PublicKey.from_public_bytes(bytes.fromhex(embedded))
-            state = "verified-tofu"
-        else:
-            return result(False, "no-key", "ed25519 signature present but no trusted public key")
-    except (SignatureError, TypeError, ValueError):
-        return result(False, "error", "malformed ed25519 public key")
-    try:
-        public.verify(bytes.fromhex(value), message)
-    except Exception:
-        return result(False, "mismatch", "signature mismatch")
-    return result(True, state, "ok")
+    return ed25519_verdict(message, value, block, public_key, trust_embedded, result)
 
 
 __all__ = [

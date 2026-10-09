@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._stdout_trust import StdoutTrust
 from opentine.harnesses._types import duration_seconds, meter_value
-from opentine.harnesses.base import HarnessStep, ProcessHarness, cost_from_text, parse_json_event
+from opentine.harnesses.base import HarnessStep, ProcessHarness
 
 
-class JSONOrTextHarness(ProcessHarness):
+class JSONOrTextHarness(StdoutTrust, ProcessHarness):
     """Process harness with generic JSON/JSONL and text parsing."""
 
     structured_tool_types = ("tool", "exec", "command", "shell", "edit", "read", "write")
@@ -18,7 +19,7 @@ class JSONOrTextHarness(ProcessHarness):
     def parse_line(self, line: str) -> HarnessStep | None:
         if not line:
             return None
-        data = parse_json_event(line)
+        data = self.json_event(line)
         if data:
             return self._parse_json_event(data)
         return self._parse_text_line(line)
@@ -70,20 +71,20 @@ class JSONOrTextHarness(ProcessHarness):
             return HarnessStep(
                 kind=StepKind.tool,
                 inputs={"name": self._tool_name_from_text(line), "line": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         if "error" in lower or "failed" in lower:
             return HarnessStep(
                 kind=StepKind.error,
                 inputs={"text": line},
-                cost=cost_from_text(line),
+                cost=self.text_cost(line),
                 model_info=self.model_info,
             )
         return HarnessStep(
             kind=StepKind.think,
             inputs={"text": line},
-            cost=cost_from_text(line),
+            cost=self.text_cost(line),
             model_info=self.model_info,
         )
 
@@ -151,9 +152,16 @@ class HermesHarness(JSONOrTextHarness):
 
 
 class GenericHarness(JSONOrTextHarness):
-    """User-supplied generic agent command."""
+    """User-supplied generic agent command.
+
+    The operator wrote this command, so its stdout is trusted as theirs: a JSON
+    line is an event and a "cost: $N" line is booked. Wrap the model's own text
+    in your events if the command prints it.
+    """
 
     name = "generic"
+    structured_stdout = True
+    meter_free_text = True
 
     @property
     def model_info(self) -> str:

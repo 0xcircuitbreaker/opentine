@@ -49,7 +49,30 @@ def _resolve(
     resolved = raw.resolve(strict=False)
     if not any(_within(resolved, root) for root in roots):
         raise ValueError(f"Path {path} escapes sandbox roots")
+    if write:
+        _refuse_unsafe_write(path, raw, resolved)
     return resolved
+
+
+def _refuse_unsafe_write(path: str, raw: Path, resolved: Path) -> None:
+    """Refuse a write git would later execute, or one that lands outside the root.
+
+    A model that could write ``.git/config`` (``core.fsmonitor``, a filter
+    driver) or ``.git/hooks`` ran its command on the host the next time git ran
+    in the workspace -- including ``code_manifest`` capturing it after the run.
+    Any ``.git`` component is refused, case-insensitively for the file systems
+    that fold case, and a ``.git`` *file* too (it redirects to another git
+    directory). A hard-linked file is refused because writing it writes every
+    other name for that inode, which need not be inside the sandbox.
+    """
+    if any(part.lower() == ".git" for part in (*raw.parts, *resolved.parts)):
+        raise PermissionError(f"Writing inside a .git directory is denied by policy: {path}")
+    try:
+        links = resolved.lstat().st_nlink
+    except FileNotFoundError:
+        return
+    if resolved.is_file() and links > 1:
+        raise PermissionError(f"Writing a hard-linked file is denied by policy: {path}")
 
 
 def _require_regular(path: Path) -> None:

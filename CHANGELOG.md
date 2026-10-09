@@ -1,5 +1,201 @@
 # Changelog
 
+## 0.9.1 — 2026-10-09 — Security
+
+A security and hardening release from a five-slice audit of 0.9.0 (kernel and
+packs, repository and signing, the remote server, the tool sandbox and
+harnesses, and the CLI/MCP/import surface). Every finding below was reproduced
+with a proof of concept before it was fixed, and each has a regression test in
+`tests/test_security_0_9_1*.py` that fails on 0.9.0. No format change: every
+file and repository written since 0.3.0 still reads, and nothing new is written
+that 0.9.0 cannot read.
+
+### Upgrade notes
+
+Some fixes change behaviour a workflow may rely on:
+
+- **Text-mode agent CLIs record their stdout as text.** For structured capture,
+  ask the CLI for JSON on its command line — `codex`: `--harness-arg --json`;
+  `cursor`: `--harness-arg --output-format --harness-arg json`.
+- **A `.tine` repository in a parent directory owned by another user is
+  refused** (POSIX). Pass `--repo` or set `OPENTINE_SAFE_DIRECTORIES`.
+- **The shell tool refuses some git invocations** (`git config`, `-c`,
+  `submodule`, `rebase -x`, …), and the fs tool refuses writes inside `.git`.
+- **`PythonPolicy(isolation_backend=…)` other than `subprocess` is refused** by
+  the built-in python tool instead of running unisolated.
+- **A rate card's `currency` must be an ISO code** (`USD`), and an unsigned
+  workspace `.tine/pricing.json` is announced on stderr.
+- **`repo-search` ranks signed evaluations first** and reports `score_signed`.
+- **`verify_attestation`/`verify_artifact` take exactly one key**, and a
+  signature block must be in the exact form OpenTine writes.
+
+### Security — remote server
+
+- **A ref listing can no longer be bricked by one annotation.** `GET /refs`
+  decoded every annotation under a 1 MiB / 8 MiB budget that no write enforced,
+  so one run with a large prompt — or about 185 ordinary annotated runs — made
+  the listing return 400 for good, and with it every fetch, clone and push in
+  the tenant. The listing now binds each annotation ref by the run the index
+  recorded when the annotation was installed and verified, and `update_ref`
+  runs the same listing check before committing, so no write can leave a tenant
+  unlistable.
+- **Uploads can no longer make someone else's run unfetchable.** Any writer
+  could upload ~10,000 attestations naming an existing run, without touching a
+  ref, and that run could never be fetched, negotiated or cloned again. A pack
+  that would give any object more than 1,000 annotations and attestations is now
+  refused at install, before anything is written.
+- **A slow upload no longer stalls every tenant.** The direct pack upload read
+  its request body while holding the server-wide install slots every fetch also
+  needs, so two trickling connections from any writer blocked fetch, clone and
+  push for all tenants. The body is now read before a slot is taken.
+
+### Security — CLI, MCP and import
+
+- **An untrusted `.tine` can no longer write terminal escape sequences.** A
+  loader error quoting artifact content (a step-usage key) reached Python's
+  traceback printer raw, so eleven verbs — `show`, `cost`, `price`, `diff`,
+  `fork`, `replay`, `resume`, `tag`, … — could put an OSC 52 clipboard write, a
+  title change or a screen clear on the operator's terminal, and MCP `show_run`
+  errors carried the same bytes. Loader messages now quote such names; every
+  `tine` invocation turns an uncaught exception into one sanitized
+  `tine: <message>` line with exit 1 (`OPENTINE_DEBUG=1` restores the
+  traceback); MCP tool errors are sanitized the same way.
+- **Terminal and MCP text drop invisible characters.** Zero-width, word-joiner,
+  BOM, line/paragraph-separator and Unicode tag characters are removed along
+  with C0/C1 controls and bidi overrides; MCP text output previously escaped
+  only line breaks.
+- **Workspace pricing overlays.** A rate card's `currency` reached `tine
+  pricing show` raw; it must now be a three-letter ISO 4217 code, so an overlay
+  with free text (or `usd`) there is refused. The unsigned `./.tine/pricing.json`,
+  which outranks the user overlay, is announced on stderr whenever the CLI loads
+  it (`OPENTINE_TRUST_WORKSPACE_PRICING=1` silences this).
+- **`tine import` is bounded before parsing.** Whole documents and each JSONL
+  line pass the `.tine` structural-token budget before `json.loads` — a 256 MiB
+  `[{},{},…]` file needed ~6.6 GB of memory before — and the 256 MiB cap is
+  enforced by reading, so pipes, FIFOs, devices and JSONL on stdin are bounded.
+- **`tine export --output` never writes through a symlink.** A dangling link at
+  the destination is refused like an existing file, `--force` replaces the link
+  instead of following it, and endpoint URLs are printed without their
+  `user:password@`.
+- **Search ranks by signed evaluations.** An unsigned evaluation, which any MCP
+  client can write, decided a run's rank through `max`; one injected score of
+  1.7e308 put a run first. A signed evaluation now decides a run's score
+  whenever one exists, and runs scored by signed evaluations rank above runs
+  scored only by unsigned ones. Results carry `score_signed`; `--signed-only`
+  (CLI), `signed_only=` (library) and `search_runs(signed_only=…)` (MCP) ignore
+  unsigned evaluations; MCP `evaluate_run` refuses non-finite or |score| > 1e6.
+  Signed is not verified — use `tine repo-verify` with a trusted key.
+- **Redaction of imported traces.** Beyond the shapes below, a field named
+  `pass`, `pwd`, `auth`, `connection_string`, `dsn`, `webhook_url` or
+  `private_key_id` (and `*_dsn`, `*_webhook_url`, `*_connection_string`), a
+  `--password X` argument, and Slack or Discord webhook URLs are now redacted.
+  A boolean `pass`, an auth *mode* such as `oauth2`, and `session_id` (a
+  structural identifier) are kept.
+
+### Security — tool sandbox and harnesses
+
+- **A model could run commands on the host through git.** The fs tool could
+  write `.git/config` (`core.fsmonitor`, a `filter.*.clean` driver) and the shell
+  tool's allowlist checked only `argv[0]`, so with `git` allowlisted a model
+  could pass `-c alias.x=!cmd` — and the next git invocation, its own or
+  `code_manifest` capturing the workspace after the run, executed the command.
+  The fs tool now refuses any write inside a `.git` directory (any case, or a
+  `.git` file) or through a hard-linked file; the shell tool refuses git options
+  and subcommands that run a command, inject configuration or point git at
+  another repository (`-c`, `--config-env`, `--git-dir`, `config`, `submodule`,
+  `--upload-pack`, `rebase -x`, `grep -O`, `clone -c`/`--template`, …), with
+  global options checked against an allowlist; and every git OpenTine starts runs
+  with fsmonitor off and `safe.bareRepository=explicit`, so a bare repository
+  assembled from ordinary file writes is never discovered. An allowlisted
+  interpreter or test runner remains arbitrary code execution by design; this is
+  now stated in SECURITY_MODEL.
+- **The SSRF guard let NAT64 addresses reach the metadata service.**
+  `64:ff9b::a9fe:a9fe` (NAT64 for 169.254.169.254), IPv4-compatible `::/96` and
+  site-local `fec0::/10` passed the private-host check because Python calls
+  them global. An IPv6 address that embeds an IPv4 address is now public only if
+  the embedded address is.
+- **The subprocess environment scrub missed common credential names.**
+  `DATABASE_URL`, `MYSQL_PWD`, `PGPASS`, `GH_PAT`, `SENTRY_DSN`,
+  `*_WEBHOOK_URL`, `*_CONNECTION_STRING` and `*_PRIVATE` reached tool
+  subprocesses — and through their output, the model. Inherited variables are
+  now scrubbed by more names and **by value**: a vendor token shape, a URL with
+  a password (including `redis://:pw@`), or a private key is dropped whatever the
+  variable is called.
+- **`PythonPolicy.isolation_backend` failed open.** The built-in python tool
+  never read it, so a policy asking for `external` or `gvisor` isolation ran the
+  snippet as the host user with network. Any backend other than `subprocess` is
+  now refused.
+- **Agent prose could forge steps and charges.** Text-mode harnesses (`gemini`,
+  `grok`, `hermes`, `opencode`, `codex`, `cursor`) read any JSON-shaped stdout
+  line as a structured event and any "cost: $250" as a charge, so a model's
+  answer could record a `deploy_prod` tool call, an error, or money — and trip a
+  cost budget. A JSON line is now an event only when the command asks the CLI
+  for JSON output (`--json`, `--output-format stream-json`, …; `claude-code`,
+  `kimi-code` and `openclaw` do), and free-text cost is booked only for an
+  operator-written `generic`/`pi` command. For structured `codex` capture, pass
+  `--harness-arg --json`.
+
+### Security — repository, signing and redaction
+
+- **A repository planted in a parent directory was adopted.** `Repo.open` and
+  every verb's default `--repo .` walked to the nearest ancestor `.tine` with no
+  ownership check, so one planted in `/tmp` or a shared project root would have
+  your key sign the planter's runs and `migrate-v3` copy your runs into their
+  store (git's CVE-2022-24765 class). On POSIX a repository found in a *parent*
+  directory that another user owns is now refused; the directory you name, or
+  the current one, is trusted as before, and `OPENTINE_SAFE_DIRECTORIES` lists
+  others (`*` for all). A bare repository (`tine init --bare DIR`) now opens at
+  its own path.
+- **A pack could relabel a run you already had.** An annotation with no ref is
+  still read — clones rely on it — but one delivered by a pack for a run the
+  repository already held was adopted too, so anyone handing over a pack or
+  writing to a shared remote could tag an untagged local run `approved` with a
+  "reviewed by" note, and `fsck` stayed green. Those annotations are now recorded
+  in `.tine/unadopted` at install and never adopted by object presence; `fetch`
+  fast-forwards every annotation ref the remote advertises (not only the tip's),
+  so real updates to older runs arrive through the remote's refs.
+- **`tine repo-verify` could not express a release gate.** It required every
+  attestation on the run to verify and never looked at what was signed: a
+  verified *rejection* passed exactly as an approval, and any writer could block
+  a release with one unsigned note. `--signer NAME` (repeatable) and `--claim
+  JSON` now select the attestations a gate is about; it passes when at least one
+  selected attestation verifies, and others neither pass nor block it. Every
+  JSON row carries its `claim` and `selected`. Unscoped behaviour is unchanged.
+- **One signature verified under several attestation ids.** A signature block
+  with re-cased hex, an extra key, or another embedded public key still
+  verified. Blocks are now accepted only in the exact form `tine attest` writes,
+  with an embedded Ed25519 key that must be the key that verified.
+- **The block chose which of the caller's keys was trusted.**
+  `verify_attestation` (and artifact `verify`) accepted `hmac_key`,
+  `public_key` and `trust_embedded` together and let the block's `alg` pick one.
+  Exactly one is now required (`error` otherwise). The CLI already refused two
+  key flags.
+- **A UTF-16 JSON body evaded the structural budget.** The kernel's token scan
+  reads UTF-8, and a UTF-16 body whose code units looked like quotes
+  desynchronised it (U+0122 is `22 01`), letting an over-budget document reach
+  `json.loads`. A NUL-bearing body — every UTF-16/32 document — is now refused
+  before scanning.
+- **The v2 writer saved secrets in prose.** `Run.save` redacted credential
+  *field names* only, so a PEM private key, a `Bearer` token in a curl line, an
+  inline `sk-proj-…`, a URL password or a `ghp_…` token in free text reached the
+  `.tine` file. It now applies the same free-text scrub the v3 store does.
+- **Credential shapes leaked through both scrubbers.** 13 of 16 common shapes
+  survived: GitHub fine-grained PATs, Google API keys, Stripe, GitLab, Hugging
+  Face, npm, PyPI, SendGrid and Vault tokens, JWTs, AWS STS keys, URL userinfo
+  passwords, signed-URL signatures and token query parameters, PGP private-key
+  blocks, and names such as `github_token`, `slack_bot_token`,
+  `subscription_key`, `x_amz_security_token`. They are now redacted; token
+  *counters* (`input_tokens: 120`, `max_tokens`, a list of token ids) are not.
+
+### Fixed
+
+- **A signed score of `1.0` verified as `mismatch`.** `tine-attest/1` signed
+  the in-memory payload, but the v3 store writes an integral float as an integer,
+  so every genuine signature over `--score x=1` (or any `-0.0`) failed. The
+  signature now covers the payload as stored. A `--key-id` that redaction would
+  rewrite (`api_key=prod`) is refused at signing instead of producing an
+  attestation that can never verify.
+
 ## 0.9.0 — 2026-10-09
 
 ### Added

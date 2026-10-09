@@ -18,7 +18,9 @@ from opentine._canon import (
 from opentine._graph_types import Graph, IntegrityResult, RunStatus
 from opentine._step_serde import step_from_dict as step_from_dict
 from opentine._step_serde import step_to_dict as step_to_dict
+from opentine._unicode_text import assert_unicode_text
 from opentine.migrations import LEGACY_VERSION, MigrationError, detect_version, migrate_dict
+from opentine.redaction import redact_value
 
 
 def graph_from_dict(data: dict[str, Any]) -> Graph:
@@ -53,7 +55,18 @@ def run_to_dict(run, *, redact: bool = False) -> dict[str, Any]:
     data["metadata"].pop("tags", None)
     if run.tags:
         data["metadata"]["tags"] = list(run.tags)
-    return _redact(data) if redact else data
+    # The same composition the v3 writer uses (``guarded_redaction``): the field
+    # walk alone reads a free-form string only as ``label: value`` split at its
+    # first colon, so ``$ curl https://... -H 'Authorization: Bearer ...'``, an
+    # inline ``KEY=sk-...`` after ``run:``, or a PEM key in tool output reached
+    # the .tine file verbatim while the same run stored to a repository was scrubbed.
+    if not redact:
+        return data
+    bounded = _redact(data)
+    # The surrogate check first, as on the v3 path, so a lone surrogate is refused
+    # naming its field instead of failing inside the text scrubber at <root>.
+    assert_unicode_text(bounded, where="this run")
+    return redact_value(bounded)
 
 
 def run_from_dict(data: dict[str, Any], run_class):

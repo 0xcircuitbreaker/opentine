@@ -62,6 +62,29 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
     )
 
 
+_LOOSE_NAMES = frozenset({"pass", "auth"})
+_AUTH_MODES = frozenset({"", "none", "basic", "bearer", "oauth", "oauth2", "api_key", "token"})
+
+
+def _token_counter(name: str, value: Any) -> bool:
+    """A number under a ``*token(s)`` name: a usage counter, never a credential.
+
+    Compared with underscores removed, as ``_secret_field`` compares, so ``token``,
+    ``max_tokens`` and ``maxtokens`` all keep their numbers.
+    """
+    if not name.replace("_", "").endswith(("token", "tokens")):
+        return False
+    # Token ids, {"tokens": [101, 2023, ...]}: one flat level, checked in a loop.
+    items = value if isinstance(value, list | tuple) else (value,)
+    for item in items:
+        if isinstance(item, str):
+            if not item.strip().replace(",", "").isdigit():
+                return False
+        elif isinstance(item, bool) or not isinstance(item, int | float):
+            return False
+    return True
+
+
 def _split_assignment(text: str) -> tuple[str, str, str]:
     """Split on whichever of ``:``/``=`` comes *first*, not on whichever exists.
 
@@ -90,7 +113,9 @@ def _redact(value: Any, _depth: int = 0) -> Any:
             "api_key apikey api_token access_key secret_access_key secret_key access_token "
             "refresh_token auth_token bearer_token id_token session_token password passwd "
             "passphrase secret client_secret private_key credential credentials authorization "
-            "proxy_authorization cookie set_cookie"
+            "proxy_authorization cookie set_cookie jwt bearer x_amz_security_token "
+            "ocp_apim_subscription_key pwd connection_string conn_str dsn webhook_url "
+            "private_key_id"
         ).split()
     )
     suffixes = (
@@ -116,6 +141,19 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         "_session_token",
         "_secret_key",
         "_set_cookie",
+        # A string under any *_token name is a token (GITHUB_TOKEN, hf_token,
+        # PRIVATE-TOKEN, X-Vault-Token); numeric counters such as input_tokens
+        # are exempt below, as they always were.
+        "_token",
+        "_account_key",
+        "_encryption_key",
+        "_master_key",
+        "_signing_key",
+        "_ssh_key",
+        "_subscription_key",
+        "_connection_string",
+        "_dsn",
+        "_webhook_url",
     )
     if isinstance(value, dict):
         header_names = [item for key, item in value.items() if _field_name(key) == "name"]
@@ -135,6 +173,12 @@ def _redact(value: Any, _depth: int = 0) -> Any:
                 key in header_values and secret_header
             )
             if name == "token" and not isinstance(item, (int, float)):
+                is_secret = True
+            if is_secret and _token_counter(name, item):
+                is_secret = False
+            # "pass" and "auth" are also flags ({"pass": true}, {"auth": "oauth2"}
+            # is a mode); only a string under them can be the credential itself.
+            if name in _LOOSE_NAMES and isinstance(item, str) and item not in _AUTH_MODES:
                 is_secret = True
             redacted[key] = "[REDACTED]" if is_secret else _redact(item, _depth + 1)
         return redacted
@@ -174,6 +218,10 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         # *quoted* value is no counter — same rule the dict branch applies.
         if name in headers or (name == "token" and candidate.strip()[:1] in {'"', "'"}):
             return label + separator + " [REDACTED]"
-        if _secret_field(name, credential_names, suffixes) and not prose:
+        if (
+            _secret_field(name, credential_names, suffixes)
+            and not prose
+            and not _token_counter(name, candidate)
+        ):
             return label + separator + " [REDACTED]"
     return value

@@ -161,10 +161,9 @@ class RemoteApp:
             content_type = self._headers(environ).get("content-type", "")
             if content_type.startswith("application/vnd.opentine.pack"):
                 self.service._authorize(identity, "upload", tenant)
+                data = self._body(environ)  # off the guard: a slow body must not hold it
                 with self._install_guard:
-                    pack_id, count = self.service.install_pack(
-                        identity, tenant, self._body(environ)
-                    )
+                    pack_id, count = self.service.install_pack(identity, tenant, data)
                 return self._json_response(
                     start_response, "201 Created", {"objects": count, "pack_id": pack_id}
                 )

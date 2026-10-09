@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.0/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
 </p>
 
 <h1 align="center">OpenTine</h1>
@@ -10,18 +10,18 @@
 
 <p align="center">
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.9.0-d4a574" alt="0.9.0" />
+  <img src="https://img.shields.io/badge/status-0.9.1-d4a574" alt="0.9.1" />
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.0/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
 
-OpenTine 0.9.0 has two deliberately separate compatibility surfaces:
+OpenTine 0.9.1 has two deliberately separate compatibility surfaces:
 
 - Portable `*.tine` files remain format v2. Existing `Run`, `Agent`, signing,
   replay, and `total_cost` APIs continue to work.
@@ -39,7 +39,7 @@ outcomes, each named by digest. Fork from any step to retry a different way;
 intact, no structural drift) — all without losing provenance.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.0/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
 </p>
 
 ## Install
@@ -143,7 +143,7 @@ tine diff result.tine retry.tine
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
-fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/TINE_FORMAT.md).
+fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TINE_FORMAT.md).
 
 ## The model-agnostic core
 
@@ -171,7 +171,7 @@ OpenTine supports: it is there so a first run costs one command, not because a
 run has to come from it. The universal, model-agnostic on-ramp is
 OpenTelemetry GenAI — `tine import --format otel-json` needs no adapter, no key,
 and no rate card, and prices the result afterwards if you ask it to. See
-[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/CAPTURE.md).
+[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CAPTURE.md).
 
 ## Universal usage and billing
 
@@ -221,7 +221,7 @@ than an allowlist: any model identifier remains runnable, and models without an
 exact effective card are reported as `unknown` instead of receiving a guessed
 price.
 
-See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/PRICING.md) for resolution order, provenance, and the catalog
+See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
 ## Model adapters
@@ -417,7 +417,7 @@ integrity or a requested signature failure is refused unless
 `--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
 retain source secrets and should be reviewed before synchronization.
 
-See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/REPOSITORY.md) for object semantics and synchronization.
+See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/REPOSITORY.md) for object semantics and synchronization.
 
 ## Live agent recording
 
@@ -527,7 +527,8 @@ tine attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
 tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
 tine promote heads/main --name production            # creates the release gate
 tine promote <run-oid> --name production --expected-old <current-oid>   # moves it
-tine repo-verify heads/main --key-file ~/.keys/release.hmac --require-signature
+tine repo-verify heads/main --key-file ~/.keys/release.hmac \
+    --signer release-manager --claim '{"kind":"approval"}'   # the release gate
 ```
 
 Each takes a ref name or a run oid, resolves it, and makes one engine call, so a
@@ -543,7 +544,9 @@ exactly as `tine sign` takes one) and the signer label is bound to that key at
 evidence. `tine repo-verify` checks one attestation or every attestation on a
 run, with `tine verify`'s own verdicts (`verified`, `unsigned`, `no-key`,
 `mismatch`, `error`) and the same fail-closed rule — `--require-signature` makes
-an unsigned or mismatched approval exit non-zero, which is how CI gates on it.
+an unsigned or mismatched approval exit non-zero. A CI gate should also name the
+claim it is about (`--signer`, `--claim`): then one verified matching approval
+passes, and no other attestation on the run can pass or block it.
 Without a key nothing changes: the object written is byte-identical to what
 0.3.0-0.8.1 wrote, the label is self-asserted, and the receipt prints
 `unsigned`. MCP `attest_run` has no key options, deliberately — untrusted run
@@ -630,7 +633,7 @@ path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
 Enabled shell/Python timeouts terminate the owned process group or Windows Job
 Object and return only bounded partial output, with space reserved for stderr
 diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
-See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/SECURITY_MODEL.md).
+See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/SECURITY_MODEL.md).
 
 ## CLI Reference
 
@@ -775,7 +778,7 @@ tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
 tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid|ref-or-run-oid> --repo . \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
-    [--require-signature] [--json]
+    [--require-signature] [--signer NAME]... [--claim JSON] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
@@ -851,31 +854,31 @@ installed services.
 Tagged releases reuse one validated wheel/sdist pair for GitHub and PyPI. PyPI
 publication uses OIDC Trusted Publishing behind the protected `pypi` GitHub
 environment; no long-lived package-index token is stored. See
-[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/RELEASING.md) for the required one-time configuration and release
+[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/RELEASING.md) for the required one-time configuration and release
 checklist.
 
 ## Documentation
 
 Start here:
 
-- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
-- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
-- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/CAPTURE.md): capture the agent you already have, and export it back out.
-- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/API.md): the public Python surface, one line per name.
+- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
+- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
+- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CAPTURE.md): capture the agent you already have, and export it back out.
+- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/API.md): the public Python surface, one line per name.
 
 Reference:
 
-- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CHANGELOG.md): release-level changes and compatibility.
+- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
 - [conformance/](docs/conformance/README.md): 523 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
-- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
-- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/PRICING.md): signed catalogs and billing semantics.
-- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
-- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
-- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/RELEASING.md): trusted publication and release verification.
-- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/SUPPORT.md): supported runtimes and support levels.
-- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
-- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
+- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
+- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/PRICING.md): signed catalogs and billing semantics.
+- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
+- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/RELEASING.md): trusted publication and release verification.
+- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/SUPPORT.md): supported runtimes and support levels.
+- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
+- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
 
 ## Examples
 
@@ -928,7 +931,7 @@ graphs, and `tine` is the CLI command.
 
 ## Contributing
 
-[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CONTRIBUTING.md)
 is the full guide — dev setup, the gate list, and the standing rules (the
 250-line architecture gate, backwards compatibility with every release from
 0.3.0 on, the git-shelling test contract, and why a new module must be tracked).
@@ -959,9 +962,9 @@ remains authoritative for macOS and Windows.
 
 Report bugs on the
 [issue tracker](https://github.com/0xcircuitbreaker/opentine/issues). Report
-vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/SECURITY.md),
+vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/SECURITY.md),
 not a public issue.
 
 ## License
 
-Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/LICENSE).
