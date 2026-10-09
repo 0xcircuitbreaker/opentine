@@ -601,13 +601,10 @@ def test_the_repo_facing_prose_restates_the_census_correctly() -> None:
         assert found, f"{name} no longer states the census via {pattern!r}"
         for match in found:
             actual = (
-                tuple(int(value) for value in match)
-                if isinstance(match, tuple)
-                else int(match)
+                tuple(int(value) for value in match) if isinstance(match, tuple) else int(match)
             )
             assert actual == expected, (
-                f"{name} restates a stale conformance count {actual}; "
-                f"the manifest says {expected}"
+                f"{name} restates a stale conformance count {actual}; the manifest says {expected}"
             )
 
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0 (unreleased) — Spec & Trust
+## 0.9.0 — 2026-10-09
 
 ### Added
 
