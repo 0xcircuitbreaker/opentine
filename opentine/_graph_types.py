@@ -20,6 +20,12 @@ class StepKind(StrEnum):
     error = "error"
 
 
+#: v3 event kinds with no legacy ``StepKind`` member. A step of one loads as
+#: ``model`` with its real kind in ``Step.v3_kind``, which the v2 serializer
+#: carries so a ``subagent`` roll-up is never re-billed as a model call.
+V3_ONLY_KINDS = frozenset({"human", "policy", "approval", "subagent"})
+
+
 class RunStatus(StrEnum):
     running = "running"
     paused = "paused"

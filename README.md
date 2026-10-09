@@ -492,9 +492,12 @@ out twice, so one document renders everywhere: `gen_ai.prompt` /
 `gen_ai.completion` for readers that know the v1.27.0 conventions, and the
 structured `gen_ai.input.messages` / `gen_ai.output.messages` arrays current
 backends (Arize Phoenix, Langfuse) render, with the scope's `schemaUrl` naming
-the v1.36.0 conventions they follow. Usage goes out whole — input, output,
-cache read, both cache-write TTLs, reasoning, total — as `gen_ai.usage.*`
-counters, so a cached, reasoning step keeps its numbers. Every key is spelled
+the v1.36.0 conventions they follow. Usage goes out in the current
+conventions' shape — `input_tokens` / `output_tokens` totals that *include*
+the `cache_read.input_tokens`, `cache_creation.input_tokens` and
+`reasoning.output_tokens` sub-counts beside them — so any backend sees every
+token a step consumed; what no convention spells (the 1-hour cache-write TTL,
+an extra dimension) rides exactly in `opentine.usage`. Every key is spelled
 once in `opentine.trace._genai_semconv` so import and export cannot drift.
 Import and export are inverses: re-importing exported spans yields the events
 they came from, usage included. Cost has no GenAI convention, so it travels
@@ -679,7 +682,7 @@ its own falls back to `$OTEL_EXPORTER_OTLP_ENDPOINT`; `/v1/traces` is appended
 unless the endpoint already ends there. The push prints a receipt naming the
 endpoint, the span count, and the HTTP status, and exits non-zero if the
 collector is unreachable or answers anything but 2xx. Spans carry both the
-v1.27.0 and the v1.36.0 GenAI content shapes and every `gen_ai.usage.*` counter;
+v1.27.0 and the v1.36.0 GenAI content shapes and current-convention usage counters;
 cost, which the conventions do not define, rides in `opentine.cost_usd`. Because
 a run carries
 prompts and completions, a cleartext push is refused unless the endpoint is a

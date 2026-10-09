@@ -35,6 +35,31 @@ guessed, and anything a vendor does not publish stays `unknown`.
   bills "requests whose prompt reaches the listed token threshold" at the higher
   rate; every xAI card fired only above 200,000, under-billing a prompt of
   exactly 200,000 tokens. The rule is now `at-least-200k`.
+- **Imported OpenTelemetry traces bill cached tokens at the cache rate.** The
+  current GenAI conventions report `gen_ai.usage.input_tokens` *including* its
+  `cache_read.input_tokens` / `cache_creation.input_tokens` (now
+  `cache_write.input_tokens`) sub-counts, and `output_tokens` including
+  `reasoning.output_tokens`. The importer read none of those keys and treated
+  the inclusive total as fresh input, so a 100k-token call with 90k cached
+  priced at $0.525 instead of $0.12 on Claude Opus 5. The sub-counts are now
+  read and subtracted; the older exclusive spellings (`cache_read_input_tokens`
+  and friends, which every OpenTine export through 0.8.1 wrote) keep their
+  reading, so existing documents import exactly as before. A total smaller than
+  its own sub-counts is kept as reported and flagged on the span.
+- **Imported agent spans no longer double-bill their model calls.** An
+  `invoke_agent` span reports the aggregate usage of the calls beneath it, and
+  was imported as a `model` step, so an agent with two $0.075 calls cost $0.30.
+  Agent operations (`invoke_agent`, `create_agent`, `invoke_workflow`) now import
+  as `subagent` steps that record their usage without being billed, unless no
+  span beneath them reports usage of its own (a remote agent), in which case
+  the agent span is the only record of that spend and is billed. `tine cost`
+  token totals skip the roll-up for the same reason.
+- **A v3 step kind the legacy enum lacks survives a `.tine` save.** `subagent`,
+  `human`, `policy` and `approval` steps loaded as `model` and were written that
+  way, so `tine price` on a saved run would have billed a roll-up a second time.
+  The real kind is now carried as an additive `v3_kind` field (absent for every
+  other step, so existing artifacts re-serialize byte for byte) and is what
+  pricing reads.
 - **DeepSeek peak pricing excludes Chinese public holidays.** "Peak hours are
   01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese
   public holidays." The 2026 weekday holidays (09-25 and 10-01 through 10-07)
@@ -76,6 +101,19 @@ guessed, and anything a vendor does not publish stays `unknown`.
 
 ### Changed
 
+- **OpenTelemetry export speaks the current GenAI conventions.** Spans carry
+  `input_tokens` / `output_tokens` totals that include the
+  `cache_read.input_tokens`, `cache_creation.input_tokens` and
+  `reasoning.output_tokens` sub-counts written beside them, so Langfuse, Phoenix
+  and any other reader see every token a step consumed (the exclusive totals
+  exported through 0.8.1 under-reported a cached call's input), and
+  `gen_ai.provider.name` beside `gen_ai.system`. What no convention spells -- the
+  1-hour cache-write TTL, a dimension like `input_audio` -- rides exactly in an
+  `opentine.usage` attribute, written only when the standard counters cannot
+  carry the usage back. Re-importing an export reproduces its usage exactly, and
+  a span imported from elsewhere still re-exports with the attributes it came
+  with. OpenTine 0.8.1 and earlier read these newer exports' inclusive totals as
+  fresh input.
 - **Adapter defaults move to each vendor's current model**: `OpenAI()` ->
   `gpt-6.1-sol`, `Anthropic()` -> `claude-sonnet-5-5`, `Google()` ->
   `gemini-3.8-flash`, `Grok()` -> `grok-4.7`, `GLM()` -> `glm-5.3`, `Qwen()` ->

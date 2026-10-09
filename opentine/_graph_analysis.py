@@ -81,6 +81,8 @@ class RunAnalysisMixin:
                 by_kind_decimal[step.kind.value] = (
                     by_kind_decimal.get(step.kind.value, Decimal("0")) + cost
                 )
+                if step.v3_kind == "subagent":
+                    continue  # its usage rolls up the model calls beneath it
                 input_tokens += sum(
                     int(step.usage.get(name, 0))
                     for name in ("input", "cache_read", "cache_write_5m", "cache_write_1h")

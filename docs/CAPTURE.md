@@ -59,7 +59,17 @@ being dropped.
 The importer also accepts camelCase and snake_case span keys and decodes typed
 `AnyValue` attributes. Every `gen_ai.usage.*` counter is preserved — input,
 output, cache read, both cache-write TTLs, reasoning, and total — so a cached,
-reasoning step keeps its numbers. `gen_ai.system` / `gen_ai.provider.name` is
+reasoning step keeps its numbers. Both readings in the wild are understood: the
+current conventions' `gen_ai.usage.cache_read.input_tokens`,
+`cache_creation.input_tokens` / `cache_write.input_tokens` and
+`reasoning.output_tokens` are sub-counts *included in* `input_tokens` /
+`output_tokens`, and are subtracted back out so a cached token is billed at the
+cache rate; the older `cache_read_input_tokens`-style spellings (what OpenTine
+itself exported through 0.8.1) are exclusive buckets and are read as such. An
+`invoke_agent` / `create_agent` / `invoke_workflow` span becomes a `subagent`
+step: its counters aggregate the model calls beneath it, so pricing it as well
+would bill them twice. Only when no span beneath it reports usage — a remote
+agent — is it billed as the model call it is. `gen_ai.system` / `gen_ai.provider.name` is
 read onto the step as its `provider`, so an imported trace carries the identity
 half of its cost and can be priced afterwards — `--price` on the import, or
 `tine price <run>` at any later date. Span links become causal edges;
