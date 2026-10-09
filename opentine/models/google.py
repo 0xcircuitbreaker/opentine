@@ -55,7 +55,14 @@ class Google:
             from google import genai
         except ImportError:
             raise ImportError("pip install opentine[google]") from None
-        return genai.Client(api_key=self._api_key)
+        import httpx
+
+        # httpx strips only ``Authorization`` on a cross-origin redirect: never
+        # follow one with ``x-goog-api-key``. The transport keeps aiohttp out.
+        stay = {"follow_redirects": False}
+        async_args = {**stay, "transport": httpx.AsyncHTTPTransport()}
+        options = self._types().HttpOptions(client_args=stay, async_client_args=async_args)
+        return genai.Client(api_key=self._api_key, http_options=options)
 
     @staticmethod
     def _types():

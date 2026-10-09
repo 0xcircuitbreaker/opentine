@@ -457,7 +457,10 @@ Enforced:
 
 The compatibility writer emits `compatibility: "run-metadata-v1"`,
 `previous_id`, `target_id` (a run oid), and `value` = `{"metadata": {...},
-"tags": [str, ...]}`.
+"tags": [str, ...]}`. Since 0.9.2 it leaves `model_info`, `system_prompt` and
+`user_prompt` out of `metadata`, because the run carries them (`model`,
+`system_blob`, `prompt_blob`); annotations written earlier may still repeat
+them, and a reader takes the run's own fields.
 
 Note the asymmetry with §1.5.4: an **attestation**'s `target_id` must be a run;
 an **annotation**'s may be any object type, and may be absent.

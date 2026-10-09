@@ -162,11 +162,14 @@ def request_pack(
     url: str,
     *,
     max_seconds: float = 120,
+    response_headers: dict[str, str] | None = None,
     **kwargs: Any,
 ) -> bytes:
     def operation() -> bytes:
         with session.stream(method, url, **kwargs) as response:
             response.raise_for_status()
+            if response_headers is not None:
+                response_headers.update((k.lower(), v) for k, v in response.headers.items())
             return read_pack(response, max_seconds=max_seconds)
 
     return run_request(session, max_seconds, "pack request", operation)

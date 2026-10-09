@@ -8,7 +8,8 @@ from typing import Any
 
 from opentine.kernel import parse_oid, validate_links
 from opentine.remote._admission import AllowAdmission
-from opentine.remote._association_budget import association_targets, check_association_budget
+from opentine.remote._association_budget import admitted_associations
+from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
 from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref, validate_ref_listing
 from opentine.remote.backend import valid_tenant
@@ -153,12 +154,15 @@ class RemoteService:
         *,
         depth: int | None = None,
         object_types: set[str] | None = None,
+        omitted: list[str] | None = None,
     ) -> bytes:
+        """A pack for *wants*; runs whose associations did not fit go to *omitted*."""
         self._authorize(identity, "fetch", tenant)
         repo = SemanticView(
             TenantRepo(tenant, self.objects, self.index), max_source_bytes=MAX_PACK_BODY_BYTES
         )
-        missing = negotiate(repo, wants, haves, depth=depth)
+        short: list[str] = []
+        missing = negotiate(repo, wants, haves, depth=depth, omitted=short)
         if object_types:
             selected = {oid for oid in missing if oid.split(":", 1)[0] in object_types}
             selected.update(
@@ -169,7 +173,12 @@ class RemoteService:
             )
             missing = sorted(selected)
         data = create_pack(repo, missing)
-        self._audit(identity, tenant, "fetch", "ok", {"objects": len(missing)})
+        details: dict[str, Any] = {"objects": len(missing)}
+        if short:
+            details["associations_omitted"] = len(short)
+            if omitted is not None:
+                omitted.extend(short)
+        self._audit(identity, tenant, "fetch", "ok", details)
         return data
 
     def install_pack(self, identity: Identity, tenant: str, data: bytes) -> tuple[str, int]:
@@ -191,11 +200,8 @@ class RemoteService:
         # Dependency order, not manifest order: any interrupted write prefix
         # must stay link-closed so already-durable objects remain readable.
         order = verified_write_order(tenant, self.objects, packed, shallow)
-        targets = association_targets(order)
-        check_association_budget(tenant, self.index, targets)
-        for oid, raw in order:
-            self.objects.put(tenant, oid, raw)
-            self.index.record_object(tenant, oid, len(raw), targets[oid])
+        with admitted_associations(tenant, self.index, order) as targets:
+            install_objects(self.objects, self.index, tenant, order, targets, list(shallow))
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
         return pack_id, len(packed)
 

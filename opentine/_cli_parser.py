@@ -11,12 +11,14 @@ from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._repo_cli_parser import add_repo_parsers
+from opentine._version import __version__
 from opentine.pricing_cli import add_pricing_parser
 from opentine.remote.server import add_serve_parser
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
+    parser.add_argument("-V", "--version", action="version", version=f"opentine {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")

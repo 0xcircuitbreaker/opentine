@@ -8,7 +8,7 @@ OpenTine is local-first provenance tooling. It records agent activity and can in
 
 ## Default Posture
 
-- Filesystem tools are constrained to configured roots, use `Path.relative_to` checks, deny symlinks by default, cap file size, and require explicit write roots. A write never lands inside a `.git` directory (any case, or a `.git` file), because git executes commands named in repository configuration and hooks; and never through a hard-linked file, whose other names need not be inside the root.
+- Filesystem tools are constrained to configured roots, use `Path.relative_to` checks, deny symlinks by default, cap file size, and require explicit write roots. A write never lands inside a `.git` directory (any case, or a `.git` file), because git executes commands named in repository configuration and hooks; and never through a hard-linked file, whose other names need not be inside the root. The checked path is the one opened: on POSIX the tool reaches it from the root one component at a time (`dir_fd` with `O_NOFOLLOW`), so a directory swapped for a symlink after the check is refused rather than followed, and a FIFO swapped in for a file fails instead of blocking; elsewhere (Windows) the opened handle must still be the file the path names, and a write truncates only after that check. The checks are by path: a concurrent process that renames real directories inside the workspace is outside this model.
 - Network tools allow HTTPS by default, block private, loopback, link-local,
   reserved, and multicast hosts unless policy opts in — including an IPv6 address
   that embeds one (NAT64 `64:ff9b::/96`, IPv4-compatible `::/96`, 6to4, IPv4-mapped)
@@ -17,7 +17,7 @@ OpenTine is local-first provenance tooling. It records agent activity and can in
   markup rather than applying unbounded backtracking expressions.
 - Shell execution is disabled unless a `ShellPolicy` enables it. Enabled shell calls are parsed to argv arrays, executable allowlists can be enforced, environment inheritance is off by default, and output is capped. **An allowlist decides which program starts, not what it does**: an allowlisted interpreter, test runner or build tool (`python`, `pytest`, `npm`, `make`) is arbitrary code execution by design. `git` is the one program whose arguments are checked: options and subcommands that run a command, inject configuration, or point git at another repository (`-c`, `--config-env`, `--git-dir`, `config`, `submodule`, `--upload-pack`, `rebase -x`, `grep -O`, …) are refused, and every git OpenTine starts — the shell tool's and `code_manifest`'s — runs with fsmonitor off and `safe.bareRepository=explicit`, so a bare repository assembled from ordinary file writes is never discovered.
 - An inherited environment is scrubbed by name (`*KEY*`, `*SECRET*`, `*TOKEN*`, `*PASSWORD*`, `*_PWD`, `*PASS`, `*_PAT`, `*_DSN`, `*WEBHOOK*`, `*CONNECTION_STRING*`, `*PRIVATE*`, …) **and by value**: a variable holding a vendor token shape, a URL with a password, or a private key is dropped whatever it is called.
-- Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output. The built-in tool provides only the `subprocess` isolation backend; a policy naming any other (`external`, `gvisor`) is refused rather than run unisolated.
+- Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output. The built-in tool provides only the `subprocess` isolation backend; a policy naming any other (`external`, `gvisor`) is refused rather than run unisolated. Snippets run in Python's isolated mode (`-I -X utf8`): the host's `PYTHON*` variables and user site-packages do not apply even when the environment is inherited, and output is UTF-8 on every platform.
 - External CLI harnesses do not inherit the parent environment by default.
   `--harness-login-env` passes only login/config variables plus explicitly allowed
   names. Harness subprocesses have configurable wall-time, total-output, line-size,
@@ -40,7 +40,10 @@ OpenAI-compatible transport may buffer or decompress complete responses or
 individual stream events before OpenTine applies its retained-content limits.
 An arbitrary or attacker-controlled `base_url` can therefore exhaust client
 memory. Compatible endpoints disable ambient proxies and redirects, but those
-controls are not a response-size guarantee.
+controls are not a response-size guarantee. No adapter follows a redirect: httpx
+strips only `Authorization` when a redirect changes origin, so the Anthropic
+(`x-api-key`) and Google (`x-goog-api-key`) SDKs would otherwise hand the key to
+the redirect target; a redirect is reported as an error instead.
 
 ## Redaction
 
@@ -214,8 +217,15 @@ preventing loopback bearer credentials from being forwarded through ambient
 proxy variables. Bearer tokens are stored as hashes in memory and
 compared in constant time. OIDC ships a `JWTVerifier` (RS256/ES256) that validates the JWS
 signature against a JWKS plus issuer, audience, authorized party, expiry, and
-not-before claims; unsupported critical headers and weak RSA keys are rejected.
-Discovery is dependency-injected and HTTPS-only. A custom verifier can still be
+not-before claims; unsupported critical headers, weak RSA keys, and token types
+other than `JWT` / `at+jwt` (a DPoP proof, logout or security-event token from
+the same issuer) are rejected. Discovery is dependency-injected and HTTPS-only.
+A discovered JWKS is refetched when a token names an unknown `kid` — at most once
+per `refresh_interval` (60 s) — and once it is older than `max_key_age` (1 h); a
+failed refetch keeps the current keys until that age, after which every token is
+refused, so a key the issuer rotates out stops verifying within the hour. A
+static JWKS is the operator's pin and does not expire. Token checks wait for a refetch in
+progress, so the `fetch` given to discovery must carry its own timeout. A custom verifier can still be
 injected, in which case the integrator is responsible for equivalent signature
 and claim validation. Authorization combines a tenant namespace with
 reader/writer/admin roles.
@@ -255,7 +265,9 @@ be laundered into a valid chain and is detected at startup or explicit verify,
 though an append alone is not a full historical scan. Admission policies can
 reject oversized or costly writes.
 
-Control-plane ref discovery is capped at 1,000 refs. An annotation ref is bound
+Control-plane ref discovery is capped at 4,096 refs and 896 KiB of names and
+ids, so a full listing stays under the 1 MiB control response every client
+accepts; `update_ref` enforces both before committing. An annotation ref is bound
 to its run by the target the index recorded when the annotation was installed
 and verified, so listing decodes nothing in the normal case; an annotation the
 index has no record of (a custom index, an interrupted install) is still decoded
@@ -267,12 +279,36 @@ Reference filesystem reads reject linked, non-regular, or oversized encrypted
 object leaves before decryption.
 
 An object can carry at most 1,000 associated annotations and attestations,
-enforced at install before anything is written, so no writer can attach enough
-of them to someone else's run to exceed the fetch traversal bound and make it
-unfetchable. Two installs run concurrently, so the cap can be overshot by up to
-one pack's worth; data already above it is not cleaned up. A request body is
+enforced at install before anything is written; installs that carry
+associations are serialized from that check to their last write, so concurrent
+packs cannot overshoot it (per server process). Associations also cannot make a
+fetch fail: a pack walks the object graph first and adds each run's
+associations only while they fit the 10,000-object budget, keeping a run's
+annotations ahead of its attestations, and reports the runs left short
+(`Opentine-Associations-Omitted`, `associations_omitted`). A request body is
 read before a worker takes one of the server-wide install slots, so a slow
 upload cannot hold them.
+
+Operator maintenance is offline: `tine serve --root DIR ACTION` opens the
+server's storage directly to list refs, delete a ref (CAS), list or delete
+objects that no ref reaches except as associations, or purge objects no ref
+reaches. There is no HTTP endpoint for any of it, so no token — admin role
+included — can delete over the network. Purge keeps everything a ref reaches
+with the associations a fetch would carry, everything written within the grace
+window (default one hour, so a push between its pack install and its ref update
+keeps its objects), and anything it cannot decode; it deletes in batches inside
+SQLite write transactions that re-read the refs and the objects installed since
+its scan. `delete-objects` refuses an object a ref names or a reachable object
+links to. Every action, dry runs included, is written to the tenant's audit
+chain — a destructive one as `started` before and `ok` (with a digest of the
+removed ids) after. A pack install fences itself against a running purge:
+after writing, it re-checks every object it wrote or links to inside the same
+SQLite write lock purge takes per batch, restoring what a batch removed and
+restarting each object's age, which purge re-reads under that lock before
+deleting — so a re-pushed orphan, or a new run sharing an old blob, is never
+left on a ref with objects missing. Purge with `--grace-seconds 0` gives up the
+in-flight-push protection between an install and its ref update; such a push
+can at worst fail its ref update and need a retry.
 
 The local authenticated-head file detects database-only rollback, but a host
 administrator who restores both SQLite and that file to an earlier valid pair

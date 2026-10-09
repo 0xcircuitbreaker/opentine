@@ -642,6 +642,17 @@ and its authenticated head outside SQLite, the listing and annotation ceilings,
 and the operator responsibilities that remain — are specified in
 [SECURITY_MODEL.md](SECURITY_MODEL.md) and are not restated here.
 
+`tine serve --root DIR [--tenant T] ACTION` runs operator maintenance on that
+storage instead of serving: `refs`, `delete-ref NAME [--expect OID]`,
+`associations OID`, `delete-objects OID… [--from FILE|-] [--dry-run]` and
+`purge [--grace-seconds N] [--dry-run]`, each printing JSON. It needs
+`TINE_KMS_KEY` (the server's key) and no token; see SECURITY_MODEL.md for what
+each keeps and refuses.
+
+A fetch response may carry `Opentine-Associations-Omitted: N` — N runs whose
+annotations or attestations did not all fit in the pack. Clients that predate
+it ignore it; `tine fetch` reports it as `associations_omitted`.
+
 The 0.3.0 scope is an enterprise repository foundation. The bundled bounded
 WSGI server targets development and small self-hosted deployments, not turnkey
 high availability. S3-compatible

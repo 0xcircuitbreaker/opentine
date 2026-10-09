@@ -12,6 +12,7 @@ from socketserver import ThreadingMixIn
 from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
+from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
 from opentine.remote.interfaces import Identity, IdentityProvider, KeyProvider
@@ -151,9 +152,12 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         metavar="SHA256",
         help="Recover a verified chain only when its computed head equals SHA256",
     )
+    add_admin_parsers(parser)
 
 
 def cmd_serve(args: argparse.Namespace, console: Any) -> None:
+    if getattr(args, "admin_action", None):
+        return cmd_serve_admin(args, console)
     token = os.environ.get(args.token_env)
     if not token:
         raise SystemExit(f"{args.token_env} must contain the development bearer token")

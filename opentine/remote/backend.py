@@ -13,12 +13,14 @@ from typing import Any
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
+from opentine.remote._admin_backend import SQLiteAdminMixin
 from opentine.remote._association_backend import SQLiteAssociationMixin
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._db import open_db
 from opentine.remote._object_file import object_file_size, read_object_file
 from opentine.remote._object_list import list_objects
+from opentine.remote._ref_backend import SQLiteRefMixin
 from opentine.remote._schema import initialize
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 from opentine.repository._refs import normalize_ref
@@ -103,6 +105,14 @@ class FilesystemObjectStore:
             except FileNotFoundError:
                 pass
 
+    def touch(self, tenant: str, oid: str) -> bool:
+        """Restart an object's age (purge's grace window); ``False`` if it is gone."""
+        try:
+            os.utime(self._path(tenant, oid))
+        except FileNotFoundError:
+            return False
+        return True
+
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
         if self.retention:
@@ -119,7 +129,7 @@ class FilesystemObjectStore:
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
 
-class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
+class SQLiteBackend(SQLiteRefMixin, SQLiteAdminMixin, SQLiteAssociationMixin, SQLiteAuditMixin):
     validate_tenant = staticmethod(valid_tenant)
 
     def __init__(
@@ -185,48 +195,6 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
                 write_anchor(self._anchor_path, head, self._audit_key)
             else:
                 raise RuntimeError("audit chain does not match its authenticated anchor")
-
-    def list_refs(self, tenant: str) -> dict[str, str]:
-        with self._connect() as database:
-            rows = database.execute(
-                "SELECT name,oid FROM refs WHERE tenant=? ORDER BY name LIMIT ?",
-                (valid_tenant(tenant), MAX_CONTROL_RESULTS + 1),
-            ).fetchall()
-        if len(rows) > MAX_CONTROL_RESULTS:
-            raise ValueError("ref listing exceeds control-plane result limit")
-        return dict(rows)
-
-    def read_ref(self, tenant: str, name: str) -> str | None:
-        with self._connect() as database:
-            row = database.execute(
-                "SELECT oid FROM refs WHERE tenant=? AND name=?",
-                (valid_tenant(tenant), valid_ref(name)),
-            ).fetchone()
-        return row[0] if row else None
-
-    def update_ref(self, tenant: str, name: str, new_oid: str, expected_old: str | None) -> bool:
-        tenant = valid_tenant(tenant)
-        name = valid_ref(name)
-        with self._connect() as database:
-            database.execute("BEGIN IMMEDIATE")
-            row = database.execute(
-                "SELECT oid FROM refs WHERE tenant=? AND name=?", (tenant, name)
-            ).fetchone()
-            old = row[0] if row else None
-            if old != expected_old:
-                return False
-            count = database.execute(
-                "SELECT count(*) FROM refs WHERE tenant=?", (tenant,)
-            ).fetchone()[0]
-            if row is None and count >= MAX_CONTROL_RESULTS:
-                raise ValueError("tenant ref count exceeds control-plane limit")
-            database.execute(
-                "INSERT INTO refs(tenant,name,oid) VALUES(?,?,?) "
-                "ON CONFLICT(tenant,name) DO UPDATE SET "
-                "oid=excluded.oid,updated_at=CURRENT_TIMESTAMP",
-                (tenant, name, new_oid),
-            )
-        return True
 
     def search(self, tenant: str, query: dict[str, Any]) -> list[str]:
         prefix = str(query.get("type") or "")

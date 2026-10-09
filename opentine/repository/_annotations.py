@@ -177,9 +177,17 @@ def _head_value(repo: Repo, head: str, run_id: str) -> dict[str, Any] | None:
         return None
 
 
+#: Run fields the v2 format folds into ``metadata``. A v3 run stores them itself
+#: (``system_blob``, ``prompt_blob``, ``model``), so an annotation copy only
+#: duplicated every prompt: a 40 KiB system prompt made a 44 KiB annotation.
+RUN_FIELDS = frozenset({"model_info", "system_prompt", "user_prompt"})
+
+
 def write_run_annotation(
     repo: Repo, run_id: str, metadata: dict[str, Any], tags: list[str]
 ) -> str | None:
+    if isinstance(metadata, dict):
+        metadata = {key: item for key, item in metadata.items() if key not in RUN_FIELDS}
     name = annotation_ref(run_id)
     old, ref_head = _resolved_head(repo, run_id)
     if old and old != ref_head:

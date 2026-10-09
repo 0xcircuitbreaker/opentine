@@ -11,15 +11,16 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._uploads import TerminalUploadError, UploadRegistry
-from opentine.remote._wsgi import json_response, response
+from opentine.remote._wsgi import json_response, request_headers, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
-from opentine.repository.pack import MAX_PACK_BYTES
+from opentine.repository.pack import MAX_PACK_BYTES, OMITTED_HEADER
 
 
 class RemoteApp:
     _json_response = staticmethod(json_response)
     _response = staticmethod(response)
+    _headers = staticmethod(request_headers)
 
     def __init__(
         self,
@@ -49,17 +50,6 @@ class RemoteApp:
             max_bytes=self.max_upload_bytes,
         )
         self._install_guard = threading.BoundedSemaphore(2)
-
-    @staticmethod
-    def _headers(environ: dict[str, Any]) -> dict[str, str]:
-        headers = {
-            key[5:].replace("_", "-").lower(): str(value)
-            for key, value in environ.items()
-            if key.startswith("HTTP_")
-        }
-        if environ.get("CONTENT_TYPE"):
-            headers["content-type"] = environ["CONTENT_TYPE"]
-        return headers
 
     def _body(self, environ: dict[str, Any]) -> bytes:
         raw_length = environ.get("CONTENT_LENGTH") or "0"
@@ -147,6 +137,7 @@ class RemoteApp:
                 isinstance(item, str) and item in OBJECT_TYPES for item in raw_types
             ):
                 raise ValueError("invalid object type filter")
+            omitted: list[str] = []
             with self._install_guard:
                 data = self.service.fetch_pack(
                     identity,
@@ -155,8 +146,13 @@ class RemoteApp:
                     request.get("haves") or [],
                     depth=request.get("depth"),
                     object_types=set(raw_types) or None,
+                    omitted=omitted,
                 )
-            return self._response(start_response, "200 OK", data, "application/vnd.opentine.pack")
+            # Additive: older clients ignore it; newer ones report runs whose
+            # attestations (or annotations) did not fit in the pack.
+            headers = [(OMITTED_HEADER, str(len(omitted)))] if omitted else []
+            pack_type = "application/vnd.opentine.pack"
+            return self._response(start_response, "200 OK", data, pack_type, headers)
         if resource == "packs" and method == "POST":
             content_type = self._headers(environ).get("content-type", "")
             if content_type.startswith("application/vnd.opentine.pack"):

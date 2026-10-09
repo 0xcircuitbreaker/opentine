@@ -70,7 +70,13 @@ class Anthropic:
             import anthropic
         except ImportError:
             raise ImportError("pip install opentine[anthropic]") from None
-        return anthropic.AsyncAnthropic(api_key=self._api_key, max_retries=0)
+        # httpx strips only ``Authorization`` on a cross-origin redirect, so a
+        # followed redirect would hand ``x-api-key`` to the redirect target.
+        return anthropic.AsyncAnthropic(
+            api_key=self._api_key,
+            max_retries=0,
+            http_client=anthropic.DefaultAsyncHttpxClient(follow_redirects=False),
+        )
 
     def _kwargs(
         self,

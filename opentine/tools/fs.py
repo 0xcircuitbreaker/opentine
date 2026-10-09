@@ -8,6 +8,7 @@ from itertools import islice
 from pathlib import Path
 
 from opentine.policies import FilesystemPolicy
+from opentine.tools._fs_open import open_directory, open_file
 
 MAX_LIST_ENTRIES = 1_000
 
@@ -35,6 +36,17 @@ def _resolve(
     write: bool = False,
 ) -> Path:
     """Resolve path within sandbox. Raises ValueError if it escapes."""
+    return _locate(path, sandbox, policy, write=write)[1]
+
+
+def _locate(
+    path: str,
+    sandbox: str | None = None,
+    policy: FilesystemPolicy | None = None,
+    *,
+    write: bool = False,
+) -> tuple[Path, Path]:
+    """The root a path is inside, and the path resolved within it."""
     pol = _policy(sandbox, policy)
     roots = tuple(Path(root).resolve() for root in (pol.write_roots if write else pol.roots))
     if not roots:
@@ -47,11 +59,12 @@ def _resolve(
             if existing.exists() and existing.is_symlink():
                 raise PermissionError(f"Symlink denied by policy: {existing}")
     resolved = raw.resolve(strict=False)
-    if not any(_within(resolved, root) for root in roots):
+    inside = [root for root in roots if _within(resolved, root)]
+    if not inside:
         raise ValueError(f"Path {path} escapes sandbox roots")
     if write:
         _refuse_unsafe_write(path, raw, resolved)
-    return resolved
+    return inside[0], resolved
 
 
 def _refuse_unsafe_write(path: str, raw: Path, resolved: Path) -> None:
@@ -83,15 +96,32 @@ def _require_regular(path: Path) -> None:
 def read(path: str, sandbox: str | None = None, policy: FilesystemPolicy | None = None) -> str:
     """Read a file and return its contents."""
     pol = _policy(sandbox, policy)
-    p = _resolve(path, sandbox, pol)
+    root, p = _locate(path, sandbox, pol)
     _require_regular(p)
-    if p.stat().st_size > pol.max_file_bytes:
-        raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
-    # newline="" to match edit(): universal-newline translation showed agents
-    # "\n" for a CRLF file, so a multi-line `old` copied from read() output
-    # could never match the raw content edit() compares against.
-    with p.open("r", encoding="utf-8", newline="") as handle:
-        return handle.read()
+    return _read_text(root, p, pol.max_file_bytes)
+
+
+def _read_text(root: Path, path: Path, limit: int) -> str:
+    # The checked path is the one opened (_fs_open), and the size is that file's.
+    with os.fdopen(open_file(root, path), "rb") as handle:
+        if os.fstat(handle.fileno()).st_size > limit:
+            raise ValueError(f"File exceeds max_file_bytes={limit}")
+        data = handle.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError(f"File exceeds max_file_bytes={limit}")
+    # Undecoded newlines, to match edit(): universal-newline translation showed
+    # agents "\n" for a CRLF file, so a multi-line `old` copied from read()
+    # output could never match the raw content edit() compares against.
+    return data.decode("utf-8")
+
+
+def _write_text(root: Path, path: Path, text: str) -> None:
+    # newline="" to match read()/edit(): the default translates "\n" to
+    # os.linesep on write, so on Windows a read()->write() round trip turned
+    # every CRLF into \r\r\n (compounding per trip) and the bytes on disk
+    # could exceed the max_file_bytes budget checked above.
+    with os.fdopen(open_file(root, path, write=True), "w", encoding="utf-8", newline="") as out:
+        out.write(text)
 
 
 def write(
@@ -104,16 +134,10 @@ def write(
     pol = _policy(sandbox, policy)
     if len(content.encode("utf-8")) > pol.max_file_bytes:
         raise ValueError(f"Content exceeds max_file_bytes={pol.max_file_bytes}")
-    p = _resolve(path, sandbox, pol, write=True)
-    p.parent.mkdir(parents=True, exist_ok=True)
+    root, p = _locate(path, sandbox, pol, write=True)
     if p.exists():
         _require_regular(p)
-    # newline="" to match read()/edit(): the default translates "\n" to
-    # os.linesep on write, so on Windows a read()->write() round trip turned
-    # every CRLF into \r\r\n (compounding per trip) and the bytes on disk
-    # could exceed the max_file_bytes budget checked above.
-    with p.open("w", encoding="utf-8", newline="") as handle:
-        handle.write(content)
+    _write_text(root, p, content)
     return f"Wrote {len(content)} chars to {path}"
 
 
@@ -126,34 +150,40 @@ def edit(
 ) -> str:
     """Replace the first occurrence of `old` with `new` in a file."""
     pol = _policy(sandbox, policy)
-    p = _resolve(path, sandbox, pol, write=True)
+    root, p = _locate(path, sandbox, pol, write=True)
     _require_regular(p)
-    if p.stat().st_size > pol.max_file_bytes:
-        raise ValueError(f"File exceeds max_file_bytes={pol.max_file_bytes}")
-    # newline="" on both sides: the default translates every line ending on read
-    # and again on write, so editing one line silently rewrote every other line in
-    # the file and turned a one-line change into a whole-file diff.
-    with p.open("r", encoding="utf-8", newline="") as handle:
-        text = handle.read()
+    # Untranslated line endings on both sides: the default translates every one
+    # on read and again on write, so editing one line silently rewrote every
+    # other line in the file and turned a one-line change into a whole-file diff.
+    text = _read_text(root, p, pol.max_file_bytes)
     if old not in text:
         raise ValueError(f"String not found in {path}")
     if len(text.replace(old, new, 1).encode("utf-8")) > pol.max_file_bytes:
         raise ValueError(f"Edited content exceeds max_file_bytes={pol.max_file_bytes}")
-    with p.open("w", encoding="utf-8", newline="") as handle:
-        handle.write(text.replace(old, new, 1))
+    _write_text(root, p, text.replace(old, new, 1))
     return f"Edited {path}"
 
 
 def ls(path: str = ".", sandbox: str | None = None, policy: FilesystemPolicy | None = None) -> str:
     """List directory contents."""
-    p = _resolve(path, sandbox, policy)
-    entries = list(islice(p.iterdir(), MAX_LIST_ENTRIES + 1))
+    root, p = _locate(path, sandbox, policy)
+    if not p.is_dir():
+        missing = FileNotFoundError if not p.exists() else NotADirectoryError
+        raise missing(f"Not a directory: {path}")
+    fd = open_directory(root, p)
+    try:
+        with os.scandir(p if fd is None else fd) as listing:
+            found = list(islice(listing, MAX_LIST_ENTRIES + 1))
+            entries = [(entry.is_dir(follow_symlinks=True), entry.name) for entry in found]
+    finally:
+        if fd is not None:
+            os.close(fd)
     truncated = len(entries) > MAX_LIST_ENTRIES
-    entries = sorted(entries[:MAX_LIST_ENTRIES], key=lambda e: (not e.is_dir(), e.name))
+    entries = sorted(entries[:MAX_LIST_ENTRIES], key=lambda e: (not e[0], e[1]))
     lines = []
-    for e in entries:
-        prefix = "d " if e.is_dir() else "f "
-        escaped = json.dumps(e.name, ensure_ascii=True)[1:-1]
+    for is_dir, name in entries:
+        prefix = "d " if is_dir else "f "
+        escaped = json.dumps(name, ensure_ascii=True)[1:-1]
         lines.append(f"{prefix}{escaped}")
     if truncated:
         lines.append(f"... (truncated after {MAX_LIST_ENTRIES} entries)")

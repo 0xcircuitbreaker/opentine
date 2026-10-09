@@ -10,7 +10,7 @@ import os
 import pytest
 
 from opentine.kernel import ObjectEnvelope
-from opentine.remote import backend as backend_module
+from opentine.remote import _ref_backend
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
@@ -240,7 +240,7 @@ def test_upload_staging_rejects_symlinked_directories_and_hardlinked_files(tmp_p
 
 
 def test_ref_capacity_cannot_make_ref_discovery_permanently_unusable(tmp_path, monkeypatch):
-    monkeypatch.setattr(backend_module, "MAX_CONTROL_RESULTS", 2)
+    monkeypatch.setattr(_ref_backend, "MAX_TENANT_REFS", 2)
     backend = SQLiteBackend(tmp_path / "refs.sqlite3", audit_key=b"a" * 32)
     first = "run:sha256:" + "1" * 64
     second = "run:sha256:" + "2" * 64

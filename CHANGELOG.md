@@ -1,5 +1,119 @@
 # Changelog
 
+## 0.9.2 — 2026-10-09 — Hardening
+
+The follow-ups 0.9.1 left open, plus `tine --version`. Each fix has a regression
+test in `tests/test_security_0_9_2*.py` that fails on 0.9.1. No format change:
+every file and repository written since 0.3.0 still reads, and 0.9.1 reads what
+0.9.2 writes.
+
+### Upgrade notes
+
+- **`repo.load_run(...).metadata` no longer repeats `system_prompt`,
+  `user_prompt` and `model_info`** for runs stored from 0.9.2 on; read
+  `run.system_prompt`, `run.user_prompt` and `run.model_info`. `.tine` files
+  are unchanged.
+- **The python tool ignores `PYTHON*` variables and user site-packages** (`-I`),
+  even with `inherit_env=True`: install what snippets import into the
+  interpreter's environment.
+- **A redirect from the Anthropic or Google endpoint is an error.** Point
+  `ANTHROPIC_BASE_URL` / `GOOGLE_GEMINI_BASE_URL` at the final URL.
+- **OIDC: a token whose `typ` is not `JWT` / `at+jwt` is refused**, and
+  discovered JWKS keys expire after `max_key_age` (default 3600 s) without a
+  successful refetch — keep the issuer's `jwks_uri` reachable from the server.
+- **`tine fetch` / `tine push` JSON gains `associations_omitted`**, and a tenant
+  holds up to 4,096 refs (was 1,000) within an 896 KiB listing.
+- **`tine serve` takes an optional maintenance `ACTION`**; without one it serves
+  exactly as before.
+
+### Added
+
+- **`tine --version`** (`-V`) prints the installed version.
+
+### Security — remote server
+
+- **The OIDC verifier accepted any JWT type the issuer signs.** A DPoP proof,
+  logout token or security-event token from the same issuer, with the right
+  audience, passed as a bearer credential. A token whose header `typ` is present
+  must now be `JWT` or `at+jwt` (`application/` prefix and case ignored).
+- **Issuer key rotation needed a restart, and a revoked key never expired.**
+  `JWTVerifier.from_discovery` fetched the JWKS once at startup: a key the
+  issuer rotated in was refused until a restart, and one it rotated out — say
+  because it leaked — kept verifying for as long as the server ran. A
+  discovered JWKS is now refetched when a token names an unknown `kid` (at most
+  once a minute, so made-up `kid`s cannot turn the server into a request
+  amplifier against the issuer) and once it is an hour old. A failed refetch
+  keeps the current keys until that hour is up; after it every token is refused
+  rather than checked against keys the issuer may have revoked. A static JWKS
+  passed to `JWTVerifier` directly is the operator's pin and never expires.
+  `refresh_interval`, `max_key_age` and `clock` are configurable.
+- **Attestations could still make a history unfetchable.** 0.9.1 capped a run at
+  1,000 annotations and attestations, but a fetch carries every run's
+  associations under one 10,000-object budget, so ten runs at the cap — or one
+  run with 9,000 events and a thousand attestations — still failed every fetch,
+  clone and push that included them. A pack now walks the object graph first and
+  adds each run's associations only while they fit; a run whose associations do
+  not all fit keeps its annotations (its metadata) when those fit. Associations
+  can no longer make a pack fail. The server reports the runs left short in the
+  fetch audit record and an `Opentine-Associations-Omitted` response header, and
+  `tine fetch` / `push` print them as `associations_omitted` (0 from older
+  servers, which never send the header).
+- **Two concurrent installs could overshoot the association cap by a pack.**
+  The budget check and the writes it admits are now serialized for packs that
+  carry annotations or attestations (packs without them never wait).
+- **A tenant stopped accepting pushes after about a thousand annotated runs.**
+  Each pushed run adds an `annotations/` ref and a tenant was capped at 1,000
+  refs, so the thousand-and-first push moved `heads/main` and then failed at its
+  annotation ref. The bound is now what keeps `GET /refs` readable by every
+  client: up to 4,096 refs and 896 KiB of names and ids, under the 1 MiB
+  control response clients accept (a run's annotation ref is about 160 bytes).
+- **Operators can delete refs and objects.** There was no way to remove a ref
+  or object from the remote short of editing SQLite. `tine serve ACTION` now
+  runs offline maintenance on the server's storage — `refs`, `delete-ref NAME
+  [--expect OID]` (compare-and-swap), `associations OID`, `delete-objects OID…
+  [--from FILE|-] [--dry-run]` (only objects no ref reaches except as
+  associations, e.g. an attestation flood) and `purge [--grace-seconds N]
+  [--dry-run]` (objects no ref reaches, keeping anything written within the
+  grace window, default an hour). It opens `--root` with `TINE_KMS_KEY` as the
+  server does and adds no HTTP endpoint, so no token reaches it over the
+  network. It is safe beside a running server — a pack install re-checks what
+  it wrote or links to under the lock each purge batch takes, so a run pushed
+  again mid-purge is never left with objects missing — and every action, dry
+  runs included, is recorded in the tenant's audit chain.
+
+### Security — tool sandbox and providers
+
+- **The Anthropic and Google adapters no longer follow redirects.** httpx
+  strips only `Authorization` when a redirect changes origin, so both SDKs
+  carried `x-api-key` / `x-goog-api-key` to wherever a redirect pointed — a
+  gateway named by `ANTHROPIC_BASE_URL` or `GOOGLE_GEMINI_BASE_URL`, or anything
+  able to answer with a 307. A redirect is now an error, as it already was for
+  OpenAI-compatible endpoints. The Google client also stays on httpx when
+  aiohttp is installed, where the setting would not apply.
+- **The fs tool opens the path it checked.** It resolved a path inside the root
+  and then opened it by name, so a directory swapped for a symlink in between —
+  by any other process writing in the workspace — sent the read or write
+  outside the root, or into `.git`. On POSIX the path is now reached from the
+  root one component at a time without following a symlink; on Windows the
+  opened file must still be the one the path names, and a write truncates only
+  after that check. A FIFO swapped in for a file fails instead of hanging the
+  agent, and a file that grows past `max_file_bytes` after the size check is
+  refused.
+- **The python tool runs in isolated mode.** With `inherit_env=True` the host's
+  `PYTHONPATH`, `PYTHONINSPECT`, `PYTHONWARNINGS` and user site-packages shaped
+  every snippet. Snippets now run with `-I -X utf8`, which also makes their
+  output UTF-8 on Windows.
+
+### Fixed
+
+- **Run annotations no longer copy the prompts.** `put_run` stored the run's
+  whole `metadata` in its annotation, and a run made by the runtime or loaded
+  from a `.tine` file carries `system_prompt`, `user_prompt` and `model_info`
+  there — fields the run already stores itself. A 40 KiB system prompt made a
+  44 KiB annotation, pushed with every run and counted against the remote's
+  1 MiB-per-annotation listing budget; it is now about 200 bytes. Annotations
+  written earlier are unchanged and still read.
+
 ## 0.9.1 — 2026-10-09 — Security
 
 A security and hardening release from a five-slice audit of 0.9.0 (kernel and
