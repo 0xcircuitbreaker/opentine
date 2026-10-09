@@ -67,7 +67,9 @@ def cmd_keygen(args: argparse.Namespace) -> None:
         _claim(args.force, args.out)
         secret = secrets.token_hex(HMAC_KEY_BYTES)
         if args.out:
-            atomic_write_text(args.out, secret + "\n", fsync=True, mode=0o600)
+            # newline="": key files are read as bytes minus one "\n", so a
+            # Windows "\r\n" would make "\r" part of the key.
+            atomic_write_text(args.out, secret + "\n", fsync=True, mode=0o600, newline="")
             console.print(f"Wrote a {HMAC_KEY_BYTES}-byte HMAC key to {_terminal(args.out)}")
         else:
             console.print(f"hmac key (hex): {secret}")

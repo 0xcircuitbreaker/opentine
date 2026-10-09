@@ -357,7 +357,9 @@ def test_keygen_never_prints_a_private_key_unless_asked(workspace, capsys):
 
 def test_keygen_hmac_writes_a_strong_private_key(workspace, capsys):
     code, _, _ = _invoke(capsys, "keygen", "--hmac", "--out", "release.hmac")
-    key = (workspace / "release.hmac").read_text(encoding="utf-8").strip()
+    raw = (workspace / "release.hmac").read_bytes()
+    assert raw.endswith(b"\n") and b"\r" not in raw  # read back minus one "\n", on Windows too
+    key = raw.decode("ascii").strip()
     assert code == 0 and len(key) == 64 and int(key, 16) >= 0
     if os.name == "posix":
         assert (workspace / "release.hmac").stat().st_mode & 0o777 == 0o600
@@ -370,7 +372,7 @@ def test_keygen_hmac_writes_a_strong_private_key(workspace, capsys):
 
 
 def test_a_guessable_hmac_key_is_announced(workspace, capsys):
-    (workspace / "weak.key").write_text("passwordpassword\n", encoding="utf-8")
+    (workspace / "weak.key").write_bytes(b"passwordpassword\n")  # exact bytes on Windows too
     os.chmod(workspace / "weak.key", 0o600)
     path = workspace / "weak.tine"
     _run().save(path, sign_key=b"passwordpassword", sign_algorithm="hmac-sha256")
