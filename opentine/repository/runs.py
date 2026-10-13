@@ -10,6 +10,7 @@ from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine._unicode_text import assert_unicode_text
 from opentine._v3_guards import as_mapping, text_field
+from opentine.policies import run_redaction
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
 from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
@@ -146,15 +147,11 @@ def put_run(
     legacy_blob: str | None = None,
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
-    # Spelled once: the preflight's job is to reject what the writer below would
-    # then attempt, which it can only do if it is handed the identical arguments.
-    conversion: dict[str, Any] = {
-        "ref": ref,
-        "legacy_blob": legacy_blob,
-        "legacy_verification": legacy_verification,
-    }
-    preflight_run(repo, run, **conversion)
-    return _put_run(repo, run, **conversion)
+    # Spelled once: preflight must reject exactly what the writer would attempt.
+    conversion = dict(ref=ref, legacy_blob=legacy_blob, legacy_verification=legacy_verification)
+    with run_redaction(run.policies):  # RedactionPolicy.extra_secret_keys, every object
+        preflight_run(repo, run, **conversion)
+        return _put_run(repo, run, **conversion)
 
 
 def _blob(repo: Repo, cache: dict[str, dict[str, Any]], oid: Any) -> dict[str, Any]:

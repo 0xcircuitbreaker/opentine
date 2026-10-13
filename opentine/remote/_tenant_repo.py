@@ -4,7 +4,8 @@ from typing import Any
 
 from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
 from opentine.remote._association_budget import recorded_targets
-from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
+from opentine.remote._ref_backend import MAX_TENANT_REFS
+from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import IndexBackend, ObjectStore
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._refs import normalize_ref, validate_ref_target
@@ -88,7 +89,7 @@ def _decoded_target(tenant: str, objects: ObjectStore, oid: str, spent: int) -> 
 def validate_ref_listing(
     tenant: str, objects: ObjectStore, index: IndexBackend, refs: dict[str, str]
 ) -> None:
-    if not isinstance(refs, dict) or len(refs) > MAX_CONTROL_RESULTS:
+    if not isinstance(refs, dict) or len(refs) > MAX_TENANT_REFS:
         raise ValueError("ref listing exceeds control-plane result limit")
     # Typed IDs are sufficient for every namespace except annotations, whose ref
     # suffix is bound to target_id. That binding is read from the index, which

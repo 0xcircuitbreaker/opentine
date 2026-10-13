@@ -99,7 +99,8 @@ class Graph:
     def add(self, step: Step) -> None:
         missing = [parent for parent in step.parent_ids if parent not in self.steps]
         if missing:
-            rendered = ", ".join(short_id(item) for item in missing)
+            # repr: ids come from the artifact, and this message reaches terminals.
+            rendered = ", ".join(repr(short_id(item)) for item in missing)
             raise ValueError(f"Unknown parent step(s): {rendered}")
         if step.id not in self.steps:
             self.order.append(step.id)
@@ -120,10 +121,10 @@ class Graph:
             return ref
         matches = [step_id for step_id in self.steps if step_id.startswith(ref)]
         if not matches:
-            raise KeyError(f"Unknown step ref: {ref}")
+            raise KeyError(f"Unknown step ref: {ref!r}")
         if len(matches) > 1:
-            rendered = ", ".join(short_id(item) for item in matches)
-            raise ValueError(f"Ambiguous step ref {ref}: {rendered}")
+            rendered = ", ".join(repr(short_id(item)) for item in matches)
+            raise ValueError(f"Ambiguous step ref {ref!r}: {rendered}")
         return matches[0]
 
     def ancestors(self, step_ref: str) -> list[Step]:

@@ -15,7 +15,6 @@ from opentine.trace._import_helpers import (
     dictionary,
     event_kind,
     imported_usage,
-    link_span_ids,
     logical_size,
     optional_string,
     otel_spans,
@@ -26,6 +25,7 @@ from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._import_helpers import timestamp as _timestamp
 from opentine.trace._otel_accounting import otel_accounting
 from opentine.trace._otel_content import span_content as _span_content
+from opentine.trace._otel_ids import imported_ids
 from opentine.trace._otel_usage import bill_unreported_agents, otel_usage, span_kind
 from opentine.trace._otel_values import attributes as _attributes
 from opentine.trace.schema import TraceEvent
@@ -160,14 +160,16 @@ def otel_genai_events(
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
         inputs, outputs = _span_content(span, attributes)
+        # The ids an export replaced with OTLP-shaped ones come back from attributes.
+        trace_id, span_id, parent_id, causal = imported_ids(span, attributes, len(events))
         events.append(
             TraceEvent(
                 kind=kind,
                 timestamp=_timestamp(nanos) / 1_000_000_000,
-                trace_id=str(_first(span, "traceId", "trace_id", default="")),
-                span_id=str(_first(span, "spanId", "span_id", default=len(events))),
-                parent_span_id=optional_string(_first(span, "parentSpanId", "parent_span_id")),
-                causal_span_ids=link_span_ids(span),
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_id,
+                causal_span_ids=causal,
                 actor=operation,
                 model=str(model or ""),
                 provider=str(_first(attributes, *semconv.PROVIDER_KEYS, default="")),

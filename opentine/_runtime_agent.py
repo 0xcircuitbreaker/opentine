@@ -10,6 +10,7 @@ from opentine._runtime_model import Model
 from opentine.autosave import Autosaver
 from opentine.budget import Budget
 from opentine.graph import Run, StepKind, step_id
+from opentine.policies import PolicySet
 from opentine.tools import tool_schema
 
 
@@ -27,8 +28,13 @@ class AgentBase:
         autosave_path: str | None = None,
         autosave_every_n_steps: int = 0,
         autosave_every_seconds: float = 0.0,
+        policies: PolicySet | None = None,
     ):
+        if policies is not None and not isinstance(policies, PolicySet):
+            raise TypeError("policies must be a PolicySet")
         self.model = model
+        #: Recorded on every run; its RedactionPolicy applies to every save of it.
+        self.policies = policies
         functions = list(tools or [])
         self.tools = {function.__name__: function for function in functions}
         self.schemas = [tool_schema(function) for function in functions]
@@ -81,7 +87,7 @@ class AgentBase:
                 "resume": True,
                 "tools": [schema["name"] for schema in self.schemas],
             },
-            policies={},
+            policies=self.policies.to_dict() if self.policies is not None else {},
             metadata={
                 "model_info": self.model.name,
                 "system_prompt": self.system,

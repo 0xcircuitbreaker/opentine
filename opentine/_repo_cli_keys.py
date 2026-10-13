@@ -34,13 +34,9 @@ import argparse
 from typing import Any
 
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, given
-from opentine._signing_keys import (
-    SignatureError,
-    ed25519_private_from_file,
-    ed25519_public_from_file,
-    hmac_key_from_env,
-    hmac_key_from_file,
-)
+from opentine._key_hygiene import ed25519_private, hmac_key
+from opentine._signing_keys import SignatureError, ed25519_public_from_file
+from opentine._signing_pins import normalize_pins
 
 #: The three flags that can hand ``tine attest`` a *private* signing key.
 SIGNING_KEY_FLAGS = ("key_env", "key_file", "ed25519_key_file")
@@ -71,10 +67,10 @@ def signing_key(args: argparse.Namespace) -> tuple[Any | None, str]:
         return None, "hmac-sha256"
     try:
         if getattr(args, "ed25519_key_file", None):
-            return ed25519_private_from_file(args.ed25519_key_file), "ed25519"
-        if getattr(args, "key_env", None):
-            return hmac_key_from_env(args.key_env), "hmac-sha256"
-        return hmac_key_from_file(args.key_file), "hmac-sha256"
+            return ed25519_private(args.ed25519_key_file), "ed25519"
+        return hmac_key(getattr(args, "key_env", None), getattr(args, "key_file", None)), (
+            "hmac-sha256"
+        )
     except (OSError, SignatureError) as exc:
         raise _unreadable(exc) from exc
 
@@ -91,34 +87,77 @@ def verification_armed(args: argparse.Namespace) -> bool:
         or getattr(args, "pubkey", None)
         or getattr(args, "trust_embedded_key", False)
         or getattr(args, "require_signature", False)
+        or getattr(args, "pin", None)
     )
 
 
+def verification_pins(args: argparse.Namespace) -> frozenset[str]:
+    """The ``--pin`` fingerprints, normalized; a malformed one is refused."""
+    return normalize_pins(getattr(args, "pin", None))
+
+
 def verification_keys(args: argparse.Namespace) -> dict[str, Any]:
-    """Return the ``verify_attestation`` keyword arguments the flags name."""
+    """Return the ``verify_attestation`` keyword arguments the flags name.
+
+    ``--pin`` alone trusts the embedded key subject to the pins (``_signing_pins``);
+    it never combines with an HMAC key, which has no fingerprint.
+    """
     _refuse_two_keys(
         args,
         KEY_MATERIAL_FLAGS,
         "One signature is checked against one key, and the attestation would pick which.",
     )
+    pinned = bool(getattr(args, "pin", None))
+    secret_flag = "--key-env" if getattr(args, "key_env", None) else "--key-file"
+    if pinned and (getattr(args, "key_env", None) or getattr(args, "key_file", None)):
+        raise ValueError(f"--pin and {secret_flag} cannot be combined: a pin names an Ed25519 key")
     try:
-        hmac_key = hmac_key_from_env(args.key_env) if getattr(args, "key_env", None) else None
-        if getattr(args, "key_file", None):
-            hmac_key = hmac_key_from_file(args.key_file)
+        secret = (
+            hmac_key(getattr(args, "key_env", None), getattr(args, "key_file", None))
+            if getattr(args, "key_env", None) or getattr(args, "key_file", None)
+            else None
+        )
         public = ed25519_public_from_file(args.pubkey) if getattr(args, "pubkey", None) else None
     except (OSError, SignatureError) as exc:
         raise _unreadable(exc) from exc
     return {
-        "hmac_key": hmac_key,
+        "hmac_key": secret,
         "public_key": public,
-        "trust_embedded": bool(getattr(args, "trust_embedded_key", False)),
+        "trust_embedded": bool(getattr(args, "trust_embedded_key", False))
+        or (pinned and public is None),
     }
+
+
+def add_key_args(parser: argparse.ArgumentParser, *, signing: bool) -> None:
+    """``tine sign``'s or ``tine verify``'s key flags, spelled exactly as they are."""
+    parser.add_argument("--key-env", help="Environment variable holding the HMAC key")
+    parser.add_argument("--key-file", help="File holding the HMAC key (never a public key)")
+    if signing:
+        parser.add_argument(
+            "--ed25519-key-file", help="File holding an Ed25519 private key (seed or hex)"
+        )
+        parser.add_argument("--key-id", help="Key identifier recorded inside the signature")
+        return
+    parser.add_argument("--pubkey", help="File holding a trusted Ed25519 public key")
+    parser.add_argument(
+        "--trust-embedded-key",
+        action="store_true",
+        help="Trust the signature's own Ed25519 key (TOFU; the key is self-asserted)",
+    )
+    parser.add_argument(
+        "--pin",
+        action="append",
+        metavar="FINGERPRINT",
+        help="Trust the embedded Ed25519 key only if its sha256 fingerprint is this (repeatable)",
+    )
 
 
 __all__ = [
     "SIGNING_KEY_FLAGS",
+    "add_key_args",
     "signing_key",
     "signing_requested",
     "verification_armed",
     "verification_keys",
+    "verification_pins",
 ]

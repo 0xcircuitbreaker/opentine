@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from opentine._redact_shapes import TOKEN_SHAPES, URL_USERINFO
+from opentine.tools._batch_guard import refuse_batch_injection
 
 #: Environment names a tool subprocess never needs and must never be handed.
 _SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
@@ -159,6 +160,7 @@ def run_bounded(
     """Run an argv command while draining and discarding output beyond the cap."""
     if timeout <= 0 or max_chars < 1 or (max_bytes is not None and max_bytes < 1):
         raise ValueError("subprocess timeout and output limit must be positive")
+    refuse_batch_injection(argv)
     process = subprocess.Popen(
         argv,
         cwd=cwd,

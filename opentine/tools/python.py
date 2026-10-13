@@ -9,6 +9,12 @@ from pathlib import Path
 from opentine.policies import PythonPolicy
 from opentine.tools._process import clean_env, run_bounded
 
+#: ``-I`` (isolated mode): the host's ``PYTHON*`` variables (``PYTHONPATH``,
+#: ``PYTHONINSPECT``, ``PYTHONWARNINGS``, ...) and user site-packages no longer
+#: shape a snippet run under ``inherit_env``. ``-X utf8`` keeps output UTF-8 on
+#: every platform, which is how it is decoded, now that ``PYTHONUTF8`` is ignored.
+ISOLATED_FLAGS = ("-I", "-X", "utf8")
+
 
 def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) -> str:
     """Execute Python code in an isolated subprocess and return the output."""
@@ -32,7 +38,7 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
             with Path(script_path).open("w", encoding="utf-8", newline="") as handle:
                 handle.write(code)
             result = run_bounded(
-                [sys.executable, script_path],
+                [sys.executable, *ISOLATED_FLAGS, script_path],
                 timeout=pol.timeout_seconds,
                 max_chars=pol.max_output_chars,
                 env=clean_env(pol.inherit_env, pol.env_allowlist),

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
 </p>
 
 <h1 align="center">OpenTine</h1>
@@ -10,18 +10,18 @@
 
 <p align="center">
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.9.1-d4a574" alt="0.9.1" />
+  <img src="https://img.shields.io/badge/status-0.9.2-d4a574" alt="0.9.2" />
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
 
-OpenTine 0.9.1 has two deliberately separate compatibility surfaces:
+OpenTine 0.9.2 has two deliberately separate compatibility surfaces:
 
 - Portable `*.tine` files remain format v2. Existing `Run`, `Agent`, signing,
   replay, and `total_cost` APIs continue to work.
@@ -39,7 +39,7 @@ outcomes, each named by digest. Fork from any step to retry a different way;
 intact, no structural drift) — all without losing provenance.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.1/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
 </p>
 
 ## Install
@@ -143,7 +143,7 @@ tine diff result.tine retry.tine
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
-fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TINE_FORMAT.md).
+fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TINE_FORMAT.md).
 
 ## The model-agnostic core
 
@@ -171,7 +171,7 @@ OpenTine supports: it is there so a first run costs one command, not because a
 run has to come from it. The universal, model-agnostic on-ramp is
 OpenTelemetry GenAI — `tine import --format otel-json` needs no adapter, no key,
 and no rate card, and prices the result afterwards if you ask it to. See
-[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CAPTURE.md).
+[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CAPTURE.md).
 
 ## Universal usage and billing
 
@@ -221,7 +221,7 @@ than an allowlist: any model identifier remains runnable, and models without an
 exact effective card are reported as `unknown` instead of receiving a guessed
 price.
 
-See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/PRICING.md) for resolution order, provenance, and the catalog
+See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
 ## Model adapters
@@ -417,7 +417,7 @@ integrity or a requested signature failure is refused unless
 `--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
 retain source secrets and should be reviewed before synchronization.
 
-See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/REPOSITORY.md) for object semantics and synchronization.
+See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/REPOSITORY.md) for object semantics and synchronization.
 
 ## Live agent recording
 
@@ -522,6 +522,7 @@ person at the terminal is authenticated by having the shell, a model reached
 over MCP is not.
 
 ```bash
+tine keygen --hmac --out ~/.keys/release.hmac            # a strong shared secret
 tine attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
     --key-file ~/.keys/release.hmac --key-id release-2026   # signs the claim
 tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
@@ -565,7 +566,8 @@ export TINE_KMS_KEY="$(openssl rand -base64 32)"
 tine serve --root /srv/opentine --cert cert.pem --key key.pem
 ```
 
-TLS is mandatory unless `--insecure-dev` is explicit. Static bearer tokens are
+TLS is mandatory unless `--insecure-dev` is explicit, and `--insecure-dev`
+binds a loopback `--host` only (`--insecure-dev-any-host` to override). Static bearer tokens are
 for development; OIDC, reader/writer/admin RBAC, tenant namespaces, KMS key
 providers, authorization, retention, audit, and admission-policy interfaces are
 pluggable. The repository and extension seams are the enterprise foundation;
@@ -633,12 +635,13 @@ path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
 Enabled shell/Python timeouts terminate the owned process group or Windows Job
 Object and return only bounded partial output, with space reserved for stderr
 diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
-See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/SECURITY_MODEL.md).
+See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/SECURITY_MODEL.md).
 
 ## CLI Reference
 
 `tine` ships 40 subcommands. Each one prints its own `--help`, which is
-authoritative when this page has drifted.
+authoritative when this page has drifted. `tine --version` (`-V`) prints the
+installed version.
 
 Portable `.tine` artifacts:
 
@@ -651,7 +654,8 @@ tine cost <run>                       Show cost, tokens, and budget state as rec
 tine price <run> --at 2026-07-15      Re-price a run from the catalog (also prices imports)
 tine verify <run>                     Verify integrity, and authenticity when a key is given
 tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
-tine keygen --out key --pub key.pub   Generate an Ed25519 keypair
+tine keygen --out key --pub key.pub   Generate an Ed25519 keypair (private key 0600)
+tine keygen --hmac --out release.hmac Generate a 32-byte HMAC key
 tine fork <run> --from-step 3         Branch from a step and continue there
 tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
 tine replay <run> --verify            Check the replay reproduces the run: exit 0/1
@@ -761,7 +765,8 @@ V3 repository:
 
 ```text
 tine init [path] [--bare]
-tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified]
+tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified] \
+    [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] [--pin FINGERPRINT]...
 tine fsck --repo . [--shallow]
 tine repo-log [ref] --repo . [--limit N] [--json]
 tine repo-show <ref-or-run-oid> --repo . [--json]
@@ -778,7 +783,7 @@ tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
 tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid|ref-or-run-oid> --repo . \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
-    [--require-signature] [--signer NAME]... [--claim JSON] [--json]
+    [--pin FINGERPRINT]... [--require-signature] [--signer NAME]... [--claim JSON] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
 tine pack --repo . --output run.pack [object-id ...]
 ```
@@ -792,10 +797,13 @@ repo-fork` branches a run object and moves a repository ref.
 Self-hosted remote:
 
 ```text
-tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev]
-tine fetch <remote> --repo . [--tenant T] [--ref R] [--depth N]
-tine push <remote> --repo . [--tenant T] [--ref R] [--remote-ref R]
-tine clone <remote> <path> [--tenant T] [--ref R] [--depth N]
+tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev] [--writer-promotes]
+tine serve --root DIR [--tenant T] refs | delete-ref NAME [--expect OID] | associations OID
+tine serve --root DIR [--tenant T] delete-objects OID... [--from FILE|-] [--dry-run]
+tine serve --root DIR [--tenant T] purge [--grace-seconds N] [--dry-run]
+tine fetch <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--depth N]
+tine push <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--remote-ref R]
+tine clone <remote> <path> [--tenant T] [--token-file PATH] [--ref R] [--depth N]
 ```
 
 Flag details that are easy to get wrong:
@@ -823,8 +831,9 @@ Flag details that are easy to get wrong:
   separate `--force` waives the pre-sign integrity refusal, so it can produce a
   valid signature over a body that already failed verification.
 - `tine verify` fails closed as soon as any of `--key-env`, `--key-file`,
-  `--pubkey`, `--require-signature`, or `--trust-embedded-key` is present.
-  With none of them it checks the integrity digest only.
+  `--pubkey`, `--require-signature`, `--trust-embedded-key` or `--pin` is
+  present. With none of them it checks the integrity digest only, and says so
+  when the artifact is signed.
 - `tine search` understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
   `before:` predicates plus free text. `model:` matches a substring of the model
   id, `status:` is exact, and `cost:` accepts `>`, `>=`, `<`, `<=`, and
@@ -854,31 +863,31 @@ installed services.
 Tagged releases reuse one validated wheel/sdist pair for GitHub and PyPI. PyPI
 publication uses OIDC Trusted Publishing behind the protected `pypi` GitHub
 environment; no long-lived package-index token is stored. See
-[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/RELEASING.md) for the required one-time configuration and release
+[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/RELEASING.md) for the required one-time configuration and release
 checklist.
 
 ## Documentation
 
 Start here:
 
-- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
-- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
-- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/CAPTURE.md): capture the agent you already have, and export it back out.
-- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/API.md): the public Python surface, one line per name.
+- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
+- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
+- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CAPTURE.md): capture the agent you already have, and export it back out.
+- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/API.md): the public Python surface, one line per name.
 
 Reference:
 
-- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CHANGELOG.md): release-level changes and compatibility.
+- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
 - [conformance/](docs/conformance/README.md): 523 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
-- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
-- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/PRICING.md): signed catalogs and billing semantics.
-- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
-- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
-- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/RELEASING.md): trusted publication and release verification.
-- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/SUPPORT.md): supported runtimes and support levels.
-- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
-- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
+- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
+- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/PRICING.md): signed catalogs and billing semantics.
+- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
+- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/RELEASING.md): trusted publication and release verification.
+- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/SUPPORT.md): supported runtimes and support levels.
+- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
+- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
 
 ## Examples
 
@@ -931,7 +940,7 @@ graphs, and `tine` is the CLI command.
 
 ## Contributing
 
-[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CONTRIBUTING.md)
 is the full guide — dev setup, the gate list, and the standing rules (the
 250-line architecture gate, backwards compatibility with every release from
 0.3.0 on, the git-shelling test contract, and why a new module must be tracked).
@@ -962,9 +971,9 @@ remains authoritative for macOS and Windows.
 
 Report bugs on the
 [issue tracker](https://github.com/0xcircuitbreaker/opentine/issues). Report
-vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/SECURITY.md),
+vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/SECURITY.md),
 not a public issue.
 
 ## License
 
-Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.1/LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/LICENSE).

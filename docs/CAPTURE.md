@@ -193,6 +193,10 @@ The bundled harness names are `claude-code`, `codex`, `cursor`, `gemini`,
 `generic` with `--harness-command` (and repeatable `--harness-arg`) for anything
 not on that list.
 
+On Windows, point `--harness-command` at an agent CLI's real executable, not
+its npm `.cmd` shim: a batch file is refused any task holding
+`" % ! ^ & | < >` or a line break, because `cmd.exe` would re-parse it.
+
 `claude-code` runs `claude -p --output-format stream-json --verbose`, so a
 captured run records what Claude Code actually did: one `model` step per API
 call with the model, provider, and exact input-side token usage, one `tool`
@@ -279,15 +283,25 @@ imports priced, with the amount carried as the exact decimal string.
 
 Practical notes for a real backend:
 
-- The push sends `Content-Type: application/json` and nothing else — there is no
-  flag for authorization headers. For a backend that needs credentials (Langfuse
-  Cloud, a hosted vendor endpoint), point `--endpoint` at a local OpenTelemetry
-  Collector and let the collector's exporter attach them.
+- The push sends `Content-Type: application/json` and `Accept-Encoding:
+  identity`, and nothing else — there is no flag for authorization headers. For
+  a backend that needs credentials (Langfuse Cloud, a hosted vendor endpoint),
+  point `--endpoint` at a local OpenTelemetry Collector and let the collector's
+  exporter attach them. The whole push has a 120 s deadline.
 - A cleartext push is refused unless the endpoint host is a **literal loopback
   IP** — `127.0.0.1` or `[::1]`, not the name `localhost` — or
   `--allow-insecure` is passed. A run carries prompts and completions.
-- `/v1/traces` is appended unless the endpoint already ends there, so a base
-  endpoint like `http://127.0.0.1:4318` is enough.
+- `/v1/traces` is appended to the endpoint's path unless it already ends there
+  (a query string stays a query string), so a base endpoint like
+  `http://127.0.0.1:4318` is enough.
+- Span ids have the OTLP shape: a native run's `traceId` (32 hex) and `spanId`
+  (16 hex) are derived from the run and step ids, which ride along as
+  `opentine.run_id`, `opentine.step_id`, `opentine.parent_step_id` and
+  `opentine.causal_step_ids`; ids that already have the OTLP shape are kept.
+  The importer restores the originals, so export → import keeps every id.
+- The document is scrubbed of credential-shaped text before it is written or
+  pushed, so an artifact written before 0.9.1 does not ship the tokens its
+  writer kept.
 - Export is read-only over provenance: the artifact is never rewritten.
 
 In Python the same conversion is two functions:

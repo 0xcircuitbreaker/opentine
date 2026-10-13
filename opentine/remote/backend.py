@@ -7,19 +7,23 @@ import re
 import sqlite3
 import tempfile
 import threading
+from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
+from opentine.remote._admin_backend import SQLiteAdminMixin
 from opentine.remote._association_backend import SQLiteAssociationMixin
 from opentine.remote._audit import GENESIS, audit_file_lock, load_key, read_anchor, write_anchor
 from opentine.remote._audit_backend import SQLiteAuditMixin
 from opentine.remote._db import open_db
 from opentine.remote._object_file import object_file_size, read_object_file
-from opentine.remote._object_list import list_objects
+from opentine.remote._object_list import iter_objects, list_objects
+from opentine.remote._ref_backend import SQLiteRefMixin
 from opentine.remote._schema import initialize
+from opentine.remote._sealed import OBJECT, seal, unseal
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 from opentine.repository._refs import normalize_ref
 
@@ -73,7 +77,7 @@ class FilesystemObjectStore:
             encrypted = read_object_file(self._path(tenant, oid))
         except FileNotFoundError as exc:
             raise KeyError(oid) from exc
-        raw = self.keys.decrypt(tenant, encrypted)
+        raw = unseal(self.keys, OBJECT, tenant, oid, encrypted)
         ObjectEnvelope.decode(raw, oid)
         return raw
 
@@ -92,7 +96,7 @@ class FilesystemObjectStore:
         fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
         try:
             with os.fdopen(fd, "wb") as handle:
-                handle.write(self.keys.encrypt(tenant, data))
+                handle.write(seal(self.keys, OBJECT, tenant, oid, data))
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
@@ -102,6 +106,14 @@ class FilesystemObjectStore:
                 os.unlink(temporary)
             except FileNotFoundError:
                 pass
+
+    def touch(self, tenant: str, oid: str) -> bool:
+        """Restart an object's age (purge's grace window); ``False`` if it is gone."""
+        try:
+            os.utime(self._path(tenant, oid))
+        except FileNotFoundError:
+            return False
+        return True
 
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
@@ -115,11 +127,15 @@ class FilesystemObjectStore:
         root = self.root / valid_tenant(tenant)
         return list_objects(root, limit=limit, truncate=truncate)
 
+    def iter(self, tenant: str) -> Iterator[str]:
+        """Every stored oid, streamed and unbounded (operator maintenance only)."""
+        return iter_objects(self.root / valid_tenant(tenant))
+
 
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
 
-class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
+class SQLiteBackend(SQLiteRefMixin, SQLiteAdminMixin, SQLiteAssociationMixin, SQLiteAuditMixin):
     validate_tenant = staticmethod(valid_tenant)
 
     def __init__(
@@ -143,6 +159,8 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
         self._audit_lock_path = Path(str(self.path) + ".audit-lock")
         self._audit_key, _ = load_key(self._key_path, audit_key)
         self._audit_lock = threading.Lock()
+        self._verify_lock = threading.Lock()
+        self._verified_point: tuple[int, str, float] | None = None
         if reanchor_audit_head is not None and not re.fullmatch(
             r"[0-9a-f]{64}", reanchor_audit_head
         ):
@@ -186,58 +204,16 @@ class SQLiteBackend(SQLiteAssociationMixin, SQLiteAuditMixin):
             else:
                 raise RuntimeError("audit chain does not match its authenticated anchor")
 
-    def list_refs(self, tenant: str) -> dict[str, str]:
-        with self._connect() as database:
-            rows = database.execute(
-                "SELECT name,oid FROM refs WHERE tenant=? ORDER BY name LIMIT ?",
-                (valid_tenant(tenant), MAX_CONTROL_RESULTS + 1),
-            ).fetchall()
-        if len(rows) > MAX_CONTROL_RESULTS:
-            raise ValueError("ref listing exceeds control-plane result limit")
-        return dict(rows)
-
-    def read_ref(self, tenant: str, name: str) -> str | None:
-        with self._connect() as database:
-            row = database.execute(
-                "SELECT oid FROM refs WHERE tenant=? AND name=?",
-                (valid_tenant(tenant), valid_ref(name)),
-            ).fetchone()
-        return row[0] if row else None
-
-    def update_ref(self, tenant: str, name: str, new_oid: str, expected_old: str | None) -> bool:
-        tenant = valid_tenant(tenant)
-        name = valid_ref(name)
-        with self._connect() as database:
-            database.execute("BEGIN IMMEDIATE")
-            row = database.execute(
-                "SELECT oid FROM refs WHERE tenant=? AND name=?", (tenant, name)
-            ).fetchone()
-            old = row[0] if row else None
-            if old != expected_old:
-                return False
-            count = database.execute(
-                "SELECT count(*) FROM refs WHERE tenant=?", (tenant,)
-            ).fetchone()[0]
-            if row is None and count >= MAX_CONTROL_RESULTS:
-                raise ValueError("tenant ref count exceeds control-plane limit")
-            database.execute(
-                "INSERT INTO refs(tenant,name,oid) VALUES(?,?,?) "
-                "ON CONFLICT(tenant,name) DO UPDATE SET "
-                "oid=excluded.oid,updated_at=CURRENT_TIMESTAMP",
-                (tenant, name, new_oid),
-            )
-        return True
-
     def search(self, tenant: str, query: dict[str, Any]) -> list[str]:
         prefix = str(query.get("type") or "")
         if prefix and prefix not in OBJECT_TYPES:
             raise ValueError("invalid object type filter")
+        # One past the bound, newest first with a total order: the service cuts
+        # it and says so. Refusing instead let any writer disable search.
         with self._connect() as database:
             rows = database.execute(
                 "SELECT oid FROM objects WHERE tenant=? AND oid LIKE ? "
-                "ORDER BY created_at DESC LIMIT ?",
+                "ORDER BY created_at DESC, oid LIMIT ?",
                 (valid_tenant(tenant), f"{prefix}%", MAX_CONTROL_RESULTS + 1),
             ).fetchall()
-        if len(rows) > MAX_CONTROL_RESULTS:
-            raise ValueError("search exceeds control-plane result limit")
         return [row[0] for row in rows]

@@ -61,6 +61,7 @@ from opentine._cli_common import (
 from opentine._cli_flags import _require_output_slot
 from opentine._cli_json_flow import drift_payload, emit_replay_verify
 from opentine._cli_render import print_replay_verify
+from opentine._cli_text import announce_recorded_task
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import diff_runs
 from opentine.core import Run
@@ -176,6 +177,7 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
         console.print("[red]--prompt is required when replaying a harness run.[/]")
         raise SystemExit(1)
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
+    announce_recorded_task(args.prompt, task)  # once, though both reruns send it
     context = _run_context(run, start)
     # Both reruns share this one context, so a wrong slice (descendants instead of
     # ancestors) makes them agree on a corrupt history and the determinism gate alone

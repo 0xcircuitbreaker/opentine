@@ -17,9 +17,9 @@ from opentine.kernel import (
     validate_json_shape,
     validate_links,
 )
-from opentine.repository._associations import associated_map
+from opentine.repository._pack_walk import include_associations, walk
 from opentine.repository._semantic_view import semantic_view
-from opentine.repository._traversal import MAX_TRAVERSAL_OBJECTS, TraversalQueue
+from opentine.repository._traversal import MAX_TRAVERSAL_OBJECTS
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -30,6 +30,8 @@ MAGIC = b"TINEPACK3\0"
 MAX_PACK_BYTES = 256 * 1024 * 1024
 MAX_PACK_BODY_BYTES = 256 * 1024 * 1024
 MAX_PACK_OBJECTS = MAX_TRAVERSAL_OBJECTS
+#: Fetch response header: how many runs' associations did not fit in the pack.
+OMITTED_HEADER = "Opentine-Associations-Omitted"
 _DECOMPRESS_CHUNK = 64 * 1024
 
 
@@ -76,7 +78,13 @@ def reachable(
     *,
     depth: int | None = None,
     include_associated: bool = True,
+    omitted: list[str] | None = None,
 ) -> list[str]:
+    """Every object a pack for *wants* carries: the graph, then runs' associations.
+
+    Associations are added only while they fit (see ``_pack_walk``); a run whose
+    associations were left out, wholly or in part, is appended to *omitted*.
+    """
     if not isinstance(wants, list) or not all(isinstance(oid, str) for oid in wants):
         raise KernelError("pack wants must be a list of object ids")
     if len(wants) > MAX_PACK_OBJECTS or (
@@ -86,37 +94,19 @@ def reachable(
     for oid in wants:
         parse_oid(oid)
     repo = semantic_view(repo, max_source_bytes=MAX_PACK_BODY_BYTES)
-    queue = TraversalQueue((oid, 0) for oid in wants)
-    seen: set[str] = set()
-    associated_checked: set[str] = set()
-    for oid, event_depth in queue:
-        if not repo.has(oid):
-            continue
-        if oid not in seen:
-            if len(seen) >= MAX_PACK_OBJECTS:
-                raise KernelError("pack graph exceeds maximum object count")
-            seen.add(oid)
-        envelope = repo.get(oid)
-        if include_associated and envelope.object_type == "run" and oid not in associated_checked:
-            associated_checked.add(oid)
-            related = associated_map(repo, [oid], MAX_PACK_OBJECTS - len(seen)).get(oid, [])
-            for linked in related:
-                queue.add(linked, 0, front=True)
-        links = list(validate_links(envelope))
-        if depth is not None and envelope.object_type == "run":
-            payload = envelope.payload()
-            event_links = set(payload.get("events") or [])
-            tips = payload.get("tips", [])
-            links = [link for link in links if link not in event_links or link in tips]
-        for link in links:
-            next_depth = event_depth + (1 if link.startswith("event:") else 0)
-            if depth is None or next_depth <= depth or not link.startswith("event:"):
-                queue.add(link, next_depth, front=not link.startswith("event:"))
+    seen, runs = walk(repo, wants, set(), depth, MAX_PACK_OBJECTS)
+    if include_associated:
+        include_associations(repo, runs, seen, depth, MAX_PACK_OBJECTS, omitted)
     return sorted(seen)
 
 
 def negotiate(
-    repo: Repo, wants: list[str], haves: list[str], *, depth: int | None = None
+    repo: Repo,
+    wants: list[str],
+    haves: list[str],
+    *,
+    depth: int | None = None,
+    omitted: list[str] | None = None,
 ) -> list[str]:
     if not isinstance(haves, list) or not all(isinstance(oid, str) for oid in haves):
         raise KernelError("pack haves must be a list of object ids")
@@ -124,7 +114,7 @@ def negotiate(
         raise KernelError("pack negotiation has too many haves")
     for oid in haves:
         parse_oid(oid)
-    available = set(reachable(repo, wants, depth=depth))
+    available = set(reachable(repo, wants, depth=depth, omitted=omitted))
     return sorted(available - set(haves))
 
 

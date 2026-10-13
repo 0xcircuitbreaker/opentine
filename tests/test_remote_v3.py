@@ -59,7 +59,7 @@ def test_auth_rbac_namespace_encryption_cas_and_append_only_audit(tmp_path: Path
     assert service.list_refs(reader, "acme") == {"heads/main": run}
 
     encrypted = objects._path("acme", oid).read_bytes()
-    assert encrypted.startswith(b"TINEAES2")
+    assert encrypted.startswith(b"TINEAES3")
     assert b"remote secret payload" not in encrypted
     assert objects.get("acme", oid) == local.raw(oid)
 
@@ -168,7 +168,7 @@ def test_resumable_pack_upload_round_trip(tmp_path: Path):
     assert status == "200 OK" and json.loads(body)["offset"] == midpoint
     staged = app.uploads / "acme" / f"{upload_id}.part"
     assert pack[:midpoint] not in staged.read_bytes()
-    assert b"TINEAES2" in staged.read_bytes()
+    assert b"TINEAES3" in staged.read_bytes()
     recovered = pack[midpoint : midpoint + 5]
     append_frames(staged, objects.keys, "acme", midpoint, recovered, len(pack))
     with staged.open("ab") as handle:

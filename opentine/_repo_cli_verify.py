@@ -30,6 +30,11 @@ values) select the attestations the gate is about; it then passes when at least
 one selected attestation verifies, and the rest are reported but neither pass
 nor block it. Either flag arms the check. Each row carries its ``claim``.
 
+**Name the key, and pin it.** Each Ed25519 row carries its key's fingerprint,
+and ``--pin FINGERPRINT`` (repeatable; alone it implies the embedded key)
+makes an attestation verify only under a pinned key -- ``verified`` -- and fail
+as ``mismatch`` under any other (``_signing_pins``).
+
 **The verdict vocabulary is artifact signing's**, unchanged: ``verified``,
 ``verified-tofu``, ``unsigned``, ``no-key``, ``mismatch``, ``error``. Only the
 first two carry ``ok``.
@@ -43,8 +48,9 @@ from typing import Any
 from opentine._cli_common import _terminal
 from opentine._cli_json import emit
 from opentine._repo_cli_claim import parse_claim
-from opentine._repo_cli_keys import verification_armed, verification_keys
+from opentine._repo_cli_keys import verification_armed, verification_keys, verification_pins
 from opentine._repo_cli_render import _short_oid
+from opentine._signing_pins import apply_pins, used_key_fingerprint
 from opentine.attest_signing import verify_attestation
 from opentine.kernel import parse_oid
 from opentine.repo import Repo
@@ -70,10 +76,13 @@ def _targets(repo: Repo, value: str) -> tuple[str, list[str]]:
     return oid, list(repo.attestations_for(oid))
 
 
-def _row(repo: Repo, oid: str, keys: dict[str, Any]) -> dict[str, Any]:
+def _row(repo: Repo, oid: str, keys: dict[str, Any], pins: frozenset[str]) -> dict[str, Any]:
     """Verify one attestation and flatten its verdict into the JSON row shape."""
     payload = repo.get(oid).payload()
     result = verify_attestation(payload if isinstance(payload, dict) else None, **keys)
+    block = payload.get("signature") if isinstance(payload, dict) else None
+    fingerprint = used_key_fingerprint(block, keys.get("public_key"))
+    result = apply_pins(result, fingerprint, pins)
     claimed = payload.get("signer") if isinstance(payload, dict) else None
     return {
         "attestation_id": oid,
@@ -83,6 +92,7 @@ def _row(repo: Repo, oid: str, keys: dict[str, Any]) -> dict[str, Any]:
         "ok": result.ok,
         "algorithm": result.algorithm,
         "key_id": result.key_id,
+        "key_fingerprint": fingerprint,
         "signed_at": result.signed_at,
         "scheme": (payload.get("signature") or {}).get("scheme")
         if isinstance(payload.get("signature"), dict)
@@ -109,6 +119,8 @@ def _render(console, rows: list[dict[str, Any]], target: str, scoped: bool) -> N
             f"alg={_terminal(row['algorithm'] or '-')} "
             f"key_id={_terminal(row['key_id'] or '-')}{aside}"
         )
+        if row["key_fingerprint"]:
+            console.print(f"  [dim]key {_terminal(row['key_fingerprint'])}[/]")
         if not row["ok"]:
             console.print(f"  [dim]{_terminal(row['reason'])}[/]")
     verified = sum(1 for row in rows if row["ok"])
@@ -123,10 +135,11 @@ def cmd_repo_verify(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
     target_id, oids = _targets(repo, args.target)
     keys = verification_keys(args)
+    pins = verification_pins(args)
     signers = list(getattr(args, "signer", None) or [])
     claim = parse_claim(args) if getattr(args, "claim", None) else None
     scoped = bool(signers) or claim is not None
-    rows = [_row(repo, oid, keys) for oid in oids]
+    rows = [_row(repo, oid, keys, pins) for oid in oids]
     for row in rows:
         row["selected"] = _selects(row, signers, claim)
     require = bool(getattr(args, "require_signature", False))

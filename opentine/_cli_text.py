@@ -14,6 +14,7 @@ the reader while a copy-paste or a model still receives it.
 
 from __future__ import annotations
 
+import sys
 from urllib.parse import urlsplit, urlunsplit
 
 BIDI_FORMATTING = frozenset(
@@ -52,4 +53,34 @@ def without_userinfo(url: str) -> str:
     return urlunsplit(parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]))
 
 
-__all__ = ["BIDI_FORMATTING", "INVISIBLE", "displayable", "plain_text", "without_userinfo"]
+#: How much of a recorded prompt a harness replay shows before sending it.
+TASK_PREVIEW_CHARS = 200
+
+
+def announce_recorded_task(prompt: str | None, task: str) -> None:
+    """Say on stderr that a harness replay is about to send the artifact's own prompt.
+
+    Without ``--prompt``, ``tine replay --harness`` hands a live agent CLI the
+    ``user_prompt`` recorded in the artifact -- text whoever wrote the file
+    chose. The replay still runs it (that is what a replay is), but never
+    silently: the source, the length and a sanitized preview come first.
+    """
+    if prompt:
+        return
+    shown = plain_text(" ".join(str(task).split()))
+    if len(shown) > TASK_PREVIEW_CHARS:
+        shown = shown[: TASK_PREVIEW_CHARS - 3] + "..."
+    sys.stderr.write(
+        f"Replaying with the artifact's recorded prompt ({len(task)} chars; "
+        f"pass --prompt to send your own): {shown}\n"
+    )
+
+
+__all__ = [
+    "BIDI_FORMATTING",
+    "INVISIBLE",
+    "announce_recorded_task",
+    "displayable",
+    "plain_text",
+    "without_userinfo",
+]

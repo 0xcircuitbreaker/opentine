@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import asdict
 from typing import Any
@@ -23,6 +24,30 @@ _MCP_WRITABLE_REF_NAMESPACE = "experiments/"
 #: Bound on an MCP-written evaluation score. Search ranks by score, and the
 #: client writing it is a model reading untrusted run content.
 MAX_MCP_SCORE = 1e6
+#: Bounds on what a model may attach to a run: every attestation is stored,
+#: pushed and fetched with the run for good.
+MAX_MCP_CLAIM_BYTES = 64 * 1024
+MAX_MCP_SIGNER_CHARS = 256
+
+
+def _bounded_claim(claim: Any, signer: Any) -> None:
+    if not isinstance(signer, str) or not 0 < len(signer) <= MAX_MCP_SIGNER_CHARS:
+        raise ValueError(f"signer must be 1 to {MAX_MCP_SIGNER_CHARS} characters")
+    try:
+        size = len(json.dumps(claim, sort_keys=True, separators=(",", ":")).encode())
+    except (RecursionError, TypeError, ValueError) as exc:
+        raise ValueError("claim must be a JSON object") from exc
+    if not isinstance(claim, dict) or size > MAX_MCP_CLAIM_BYTES:
+        raise ValueError(f"claim must be a JSON object of at most {MAX_MCP_CLAIM_BYTES} bytes")
+
+
+def _create_ref(repo: Repo, ref: str, run_id: str) -> None:
+    """Point a new experiments/ ref at *run_id*; an existing ref is never moved.
+
+    A fork used to compare-and-swap against the value it had just read, i.e.
+    overwrite: a model could replace an operator's ``experiments/*`` work.
+    """
+    repo.update_ref(ref, run_id, expected_old=None)
 
 
 def _finite_score(value: Any) -> float:
@@ -109,12 +134,15 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         policy: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Fork from the last good event with optional model, prompt, and policy overrides."""
+        name = _writable_ref(ref)
+        if repo.read_ref(name) is not None:
+            raise ValueError(f"{name} already exists; MCP forks only create new refs")
         forked = repo.fork(
             run_id,
             from_event,
             overrides={"model": model, "policy": policy, "prompt": prompt},
-            ref=_writable_ref(ref),
         )
+        _create_ref(repo, name, forked)
         return {"ref": ref, "run_id": forked}
 
     @mcp.tool()
@@ -126,7 +154,11 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         tips = payload.get("tips") or []
         if not tips:
             raise ValueError("cannot resume a run without an event tip")
-        resumed = repo.fork(run_id, tips[-1], overrides={"resume": True}, ref=_writable_ref(ref))
+        name = _writable_ref(ref)
+        if repo.read_ref(name) is not None:
+            raise ValueError(f"{name} already exists; MCP resumes only create new refs")
+        resumed = repo.fork(run_id, tips[-1], overrides={"resume": True})
+        _create_ref(repo, name, resumed)
         return {"ref": ref, "run_id": resumed}
 
     @mcp.tool()
@@ -139,11 +171,9 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         # A model wrote this, unsigned; 1.7e308 once ranked a run first in search.
         if any(abs(_finite_score(value)) > MAX_MCP_SCORE for value in scores.values()):
             raise ValueError(f"evaluation scores must be finite and within +/-{MAX_MCP_SCORE:g}")
-        attestation = repo.attest(
-            run_id,
-            {"kind": "evaluation", "scores": scores},
-            signer=evaluator,
-        )
+        claim = {"kind": "evaluation", "scores": scores}
+        _bounded_claim(claim, evaluator)
+        attestation = repo.attest(run_id, claim, signer=evaluator)
         return {"attestation_id": attestation}
 
     @mcp.tool()
@@ -152,7 +182,8 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         claim: dict[str, Any],
         signer: str,
     ) -> dict[str, str]:
-        """Attach an approval or provenance claim to a run."""
+        """Attach an approval or provenance claim (a JSON object, at most 64 KiB) to a run."""
+        _bounded_claim(claim, signer)
         return {"attestation_id": repo.attest(run_id, claim, signer=signer)}
 
     if allow_promotion:

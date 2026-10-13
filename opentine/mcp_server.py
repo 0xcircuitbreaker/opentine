@@ -7,16 +7,20 @@ from itertools import islice
 from pathlib import Path
 from typing import Any
 
+from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
+from opentine._mcp_safety import confined_run as _confined_run
 from opentine._mcp_safety import safe_errors
 from opentine.core import Run
 
-MAX_MCP_RUN_BYTES = 256 * 1024 * 1024
 MAX_MCP_SCAN_RUNS = 5_000
 MAX_MCP_LIST_RUNS = 200
 MAX_MCP_SUMMARY_BYTES = 64 * 1024 * 1024
 MAX_MCP_RENDER_STEPS = 1_000
 MAX_MCP_TEXT_CHARS = 256_000
+#: Largest run an MCP ``fork_run`` copies. Every call writes a new artifact the
+#: size of its source, and the caller is a model reading untrusted run content.
+MAX_MCP_FORK_BYTES = 32 * 1024 * 1024
 
 
 def _scan_runs(root: Path) -> tuple[list[Path], bool]:
@@ -32,19 +36,6 @@ def _bounded_text(lines: list[str]) -> str:
         if len(rendered) <= MAX_MCP_TEXT_CHARS
         else rendered[: MAX_MCP_TEXT_CHARS - len(marker)] + marker
     )
-
-
-def _confined_run(root: Path, candidate: Path) -> Path | None:
-    try:
-        resolved = candidate.resolve(strict=True)
-        resolved.relative_to(root)
-        if not resolved.is_file() or resolved.suffix != ".tine":
-            return None
-        if resolved.stat().st_size > MAX_MCP_RUN_BYTES:
-            raise ValueError("run artifact exceeds the MCP size limit")
-        return resolved
-    except (OSError, ValueError):
-        return None
 
 
 def find_run(run_id: str, runs_dir: str | Path = ".tine_runs") -> Path:
@@ -100,14 +91,17 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
                     "model": _clip(run.model_info),
                     "steps": len(run.steps),
                     "cost": cost,
-                    "path": str(path),
+                    # Relative to the runs directory, which find_run accepts:
+                    # the client is a model and needs no host layout.
+                    "path": path.relative_to(root).as_posix(),
                     "forked_from": _clip(run.metadata.get("forked_from"), 120)
                     if run.metadata.get("forked_from")
                     else None,
                 }
             )
         except Exception:
-            summaries.append({"id": _clip(path.stem), "status": "corrupt", "path": str(path)})
+            relative = path.relative_to(root).as_posix()
+            summaries.append({"id": _clip(path.stem), "status": "corrupt", "path": relative})
     if truncated:
         summaries.append({"id": None, "status": "truncated", "limit": MAX_MCP_LIST_RUNS})
     return summaries
@@ -151,6 +145,10 @@ def fork_run_file(
     if reason is not None and (not isinstance(reason, str) or len(reason) > 4_096):
         raise ValueError("fork reason must be at most 4096 characters")
     path = find_run(run_id, runs_dir)
+    if path.stat().st_size > MAX_MCP_FORK_BYTES:
+        raise ValueError(f"run is too large to fork over MCP (over {MAX_MCP_FORK_BYTES} bytes)")
+    if _scan_runs(Path(runs_dir).resolve())[1]:
+        raise ValueError(f"the runs directory already holds {MAX_MCP_SCAN_RUNS} runs")
     run = Run.load(path)
     if from_step < 0 or from_step >= len(run.steps):
         raise IndexError(f"Step index {from_step} out of range")
@@ -216,7 +214,8 @@ def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "
     @mcp.tool()
     def fork_run(run_id: str, from_step: int, reason: str | None = None) -> dict[str, Any]:
         """Fork a run from a step index."""
-        return fork_run_file(run_id, from_step, runs_dir=runs_dir, reason=reason)
+        forked = fork_run_file(run_id, from_step, runs_dir=runs_dir, reason=reason)
+        return {**forked, "path": Path(forked["path"]).name}  # relative to the runs dir
 
     @mcp.tool()
     def diff_runs(run_a: str, run_b: str) -> str:

@@ -18,6 +18,7 @@ from opentine.trace import (
     to_otel_genai_document,
 )
 from opentine.trace import _genai_semconv as semconv
+from opentine.trace._otel_ids import otlp_span_id, otlp_trace_id
 from opentine.trace._otel_values import attributes as decoded_attributes
 from opentine.trace._otel_values import encode_any_value
 from opentine.trace.exporters import COST_ATTRIBUTE
@@ -249,8 +250,14 @@ def test_native_run_exports_expected_gen_ai_attributes_usage_and_timings():
     spans = to_otel_genai(run)
     assert len(spans) == 2
     model_span, tool_span = spans
-    assert model_span["traceId"] == "native-run" and model_span["spanId"] == step.id
-    assert tool_span["parentSpanId"] == step.id
+    # OTLP-shaped ids derived from the run/step ids (0.9.2), which ride along.
+    assert model_span["traceId"] == otlp_trace_id("native-run") and len(model_span["traceId"]) == 32
+    assert model_span["spanId"] == otlp_span_id(step.id) and len(model_span["spanId"]) == 16
+    assert tool_span["parentSpanId"] == model_span["spanId"]
+    assert _by_key(model_span)["opentine.run_id"] == "native-run"
+    assert _by_key(model_span)["opentine.step_id"] == step.id
+    assert _by_key(tool_span)["opentine.parent_step_id"] == step.id
+    assert [event.span_id for event in otel_genai_events(spans)] == [s.id for s in run.steps]
     assert model_span["name"] == "model" and tool_span["name"] == "lookup"
 
     values = _by_key(model_span)
@@ -301,8 +308,10 @@ def test_v3_repository_run_exports_otel_genai_spans(tmp_path):
 
     spans = to_otel_genai(repo.load_run(run_id))
     assert len(spans) == 2
-    assert spans[0]["spanId"] == first and spans[1]["parentSpanId"] == first
-    assert {span["traceId"] for span in spans} == {run_id}
+    assert spans[0]["spanId"] == otlp_span_id(first) == spans[1]["parentSpanId"]
+    assert {span["traceId"] for span in spans} == {otlp_trace_id(run_id)}
+    assert otel_genai_events(spans)[0].span_id == first
+    assert {event.trace_id for event in otel_genai_events(spans)} == {run_id}
     assert spans[0]["startTimeUnixNano"] == "5000000000"
     assert spans[0]["endTimeUnixNano"] == "5500000000"
     values = _by_key(spans[0])
@@ -344,9 +353,11 @@ def test_runs_written_by_every_release_since_0_3_0_still_export(version, tmp_pat
     shutil.copytree(COMPAT / version / "repo", destination)
     spans = to_otel_genai(Repo.open(destination).load_run("heads/main"))
     assert len(spans) == 4
-    assert {span["traceId"] for span in spans} == {f"compat-repo-source-{version}"}
+    assert {span["traceId"] for span in spans} == {otlp_trace_id(f"compat-repo-source-{version}")}
     assert semconv.OPERATION_NAME in _by_key(spans[0])
-    assert otel_genai_events(spans)[0].span_id == spans[0]["spanId"]
+    reimported = otel_genai_events(spans)
+    assert {event.trace_id for event in reimported} == {f"compat-repo-source-{version}"}
+    assert otlp_span_id(reimported[0].span_id) == spans[0]["spanId"]
 
 
 def test_export_refuses_records_that_are_not_trace_events():

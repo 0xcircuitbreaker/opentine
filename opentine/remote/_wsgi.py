@@ -34,3 +34,14 @@ def json_response(
 ):
     body = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
     return response(start_response, status, body, "application/json", headers)
+
+
+def request_headers(environ: dict[str, Any]) -> dict[str, str]:
+    headers = {
+        key[5:].replace("_", "-").lower(): str(value)
+        for key, value in environ.items()
+        if key.startswith("HTTP_")
+    }
+    if environ.get("CONTENT_TYPE"):
+        headers["content-type"] = environ["CONTENT_TYPE"]
+    return headers

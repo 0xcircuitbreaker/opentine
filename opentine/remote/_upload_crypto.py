@@ -7,6 +7,7 @@ import stat
 import struct
 from pathlib import Path
 
+from opentine.remote._sealed import SEALED, UPLOAD_FRAME, seal, unseal
 from opentine.remote.interfaces import KeyProvider
 
 _LENGTH = struct.Struct(">I")
@@ -43,7 +44,8 @@ def append_frames(
     with _open_regular(path, os.O_WRONLY | os.O_APPEND, "ab") as handle:
         for start in range(0, len(chunk), _PLAIN_CHUNK):
             piece = chunk[start : start + _PLAIN_CHUNK]
-            ciphertext = keys.encrypt(tenant, _OFFSET.pack(offset) + piece)
+            context = f"{path.stem}:{offset}"
+            ciphertext = seal(keys, UPLOAD_FRAME, tenant, context, _OFFSET.pack(offset) + piece)
             if (
                 not isinstance(ciphertext, bytes)
                 or not 0 < len(ciphertext) <= min(_MAX_CIPHER, len(piece) + 8 + _MAX_OVERHEAD)
@@ -69,7 +71,7 @@ def read_frames(
     """Decrypt frames, optionally discarding an incomplete crash tail."""
     plaintext = bytearray()
     valid_end = 0
-    incomplete = False
+    incomplete = sealed = False
     with _open_regular(path, os.O_RDONLY, "rb") as handle:
         if os.fstat(handle.fileno()).st_size > spool_bound(declared_size):
             raise ValueError("encrypted upload spool exceeds its declared bound")
@@ -87,7 +89,12 @@ def read_frames(
             if len(ciphertext) != length:
                 incomplete = True
                 break
-            frame = keys.decrypt(tenant, ciphertext)
+            # Once a spool holds a bound frame, every later frame must be bound too.
+            sealed = sealed or ciphertext.startswith(SEALED)
+            if sealed and not ciphertext.startswith(SEALED):
+                raise ValueError("encrypted upload frame is not bound to its upload")
+            context = f"{path.stem}:{len(plaintext)}"
+            frame = unseal(keys, UPLOAD_FRAME, tenant, context, ciphertext)
             if (
                 not isinstance(frame, bytes)
                 or not _OFFSET.size < len(frame) <= _OFFSET.size + _PLAIN_CHUNK

@@ -18,7 +18,14 @@ from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import require_secure_remote as _require_secure_remote
 from opentine.repository._unadopted import adopt_advertised_annotations
 from opentine.repository._upload_client import upload as _upload
-from opentine.repository.pack import MAGIC, MAX_PACK_OBJECTS, create_pack, negotiate, reachable
+from opentine.repository.pack import (
+    MAGIC,
+    MAX_PACK_OBJECTS,
+    OMITTED_HEADER,
+    create_pack,
+    negotiate,
+    reachable,
+)
 
 if TYPE_CHECKING:
     from opentine.repository import Repo
@@ -29,6 +36,13 @@ class TransferResult:
     objects: int
     pack_id: str
     ref: str | None = None
+    #: Runs whose attestations (or annotations) did not fit in a fetched pack.
+    associations_omitted: int = 0
+
+
+def _omitted(headers: dict[str, str]) -> int:
+    value = headers.get(OMITTED_HEADER.lower(), "0")
+    return int(value) if value.isdigit() and int(value) <= MAX_PACK_OBJECTS else 0
 
 
 def _annotation_ref(run_id: str) -> str | None:
@@ -122,11 +136,13 @@ def fetch(
         selected = wants or ([remote_refs[ref]] if ref in remote_refs else [])
         if not selected:
             raise KeyError(f"remote ref not found: {ref}")
+        received: dict[str, str] = {}
         pack = _request_pack(
             client,
             "POST",
             _prefix(namespace) + "/fetch",
             max_seconds=timeout,
+            response_headers=received,
             json={
                 "depth": depth,
                 # The wire protocol deliberately bounds negotiation sets. A
@@ -147,7 +163,7 @@ def fetch(
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
         repo.update_ref(tracking, remote_refs[ref], expected_old=repo.read_ref(tracking))
         adopt_advertised_annotations(repo, remote_refs)
-    return TransferResult(len(result.objects), result.pack_id, ref)
+    return TransferResult(len(result.objects), result.pack_id, ref, _omitted(received))
 
 
 def push(
@@ -171,7 +187,8 @@ def push(
         _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         old = _refs(refs).get(destination)
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
-        missing = negotiate(repo, [local_oid], known)
+        short: list[str] = []
+        missing = negotiate(repo, [local_oid], known, omitted=short)
         pack = create_pack(repo, missing)
         uploaded = _upload(
             client,
@@ -210,7 +227,7 @@ def push(
             )
             if annotation_status == 409:
                 raise ValueError("remote annotation ref changed concurrently")
-    return TransferResult(objects, pack_id, destination)
+    return TransferResult(objects, pack_id, destination, len(short))
 
 
 def clone(

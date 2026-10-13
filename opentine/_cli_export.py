@@ -54,18 +54,16 @@ from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
 from opentine._cli_text import without_userinfo as _without_userinfo
 from opentine.core import Run
+from opentine.redaction import redact_value
 from opentine.repository._http import require_secure_remote
+from opentine.trace._otlp_push import TRACES_PATH, post, traces_url
 from opentine.trace.exporters import to_otel_genai_document
+
+__all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
 EXPORT_FORMATS = ("otel-json", "otlp")
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
-TRACES_PATH = "/v1/traces"
-CONTENT_TYPE = "application/json"
 DEFAULT_SERVICE_NAME = "opentine"
-OTLP_TIMEOUT = 30.0
-#: How much of a rejecting collector's reply is read back to explain the refusal.
-MAX_RECEIPT_BYTES = 4096
-MAX_RECEIPT_CHARS = 200
 
 
 def add_export_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
@@ -141,12 +139,6 @@ def _refuse_unusable_flags(args: argparse.Namespace, endpoint: str | None) -> No
         )
 
 
-def _traces_url(endpoint: str) -> str:
-    """The OTLP/HTTP traces URL for a base endpoint, or the endpoint if it is one."""
-    base = endpoint.rstrip("/")
-    return base if base.endswith(TRACES_PATH) else f"{base}{TRACES_PATH}"
-
-
 def _spans(document: dict[str, Any]) -> list[Any]:
     """The spans the exporter put in its single resource/scope envelope."""
     resource = document["resourceSpans"][0]
@@ -170,39 +162,8 @@ def _shown(url: str) -> str:
     return _terminal(_without_userinfo(url))  # never print a URL's credentials
 
 
-def _detail(response: httpx.Response) -> str:
-    """A bounded, single-line excerpt of a rejecting collector's reply."""
-    body = bytearray()
-    try:
-        for chunk in response.iter_bytes():
-            body.extend(chunk)
-            if len(body) >= MAX_RECEIPT_BYTES:
-                break
-    except httpx.HTTPError:
-        return ""
-    text = bytes(body[:MAX_RECEIPT_BYTES]).decode("utf-8", "replace")
-    return " ".join(text.split())[:MAX_RECEIPT_CHARS]
-
-
-def _post(url: str, body: bytes) -> tuple[int, str]:
-    """POST the document; return the status and, for a refusal, why it was refused."""
-    try:
-        with (
-            httpx.Client(timeout=OTLP_TIMEOUT, follow_redirects=False, trust_env=False) as client,
-            client.stream(
-                "POST", url, content=body, headers={"Content-Type": CONTENT_TYPE}
-            ) as response,
-        ):
-            if 200 <= response.status_code < 300:
-                return response.status_code, ""
-            return response.status_code, _detail(response)
-    except httpx.HTTPError as exc:
-        console.print(f"[red]OTLP export failed:[/] {_shown(url)} is unreachable: {_terminal(exc)}")
-        raise SystemExit(1) from exc
-
-
 def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None:
-    url = _traces_url(endpoint)
+    url = traces_url(endpoint)
     try:
         require_secure_remote(url, allow_insecure)
     except ValueError as exc:
@@ -211,7 +172,11 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
             "a run carries prompts and completions. Use https, or --allow-insecure.[/]"
         )
         raise SystemExit(1) from exc
-    status, detail = _post(url, serialize(document, indent=None).encode("utf-8"))
+    try:
+        status, detail = post(url, serialize(document, indent=None).encode("utf-8"))
+    except (httpx.HTTPError, httpx.InvalidURL) as exc:  # InvalidURL is no HTTPError
+        console.print(f"[red]OTLP export failed:[/] {_shown(url)} is unreachable: {_terminal(exc)}")
+        raise SystemExit(1) from exc
     if not 200 <= status < 300:
         suffix = f": {_terminal(detail)}" if detail else ""
         console.print(f"[red]OTLP export rejected:[/] {_shown(url)} returned HTTP {status}{suffix}")
@@ -234,7 +199,9 @@ def cmd_export(args: argparse.Namespace) -> None:
         raise SystemExit(1)
     try:
         run = Run.load(path)
-        document = to_otel_genai_document(run, service_name=args.service_name)
+        # Scrubbed again on the way out: a .tine written before 0.9.1 still holds
+        # the prose secrets (tokens, PEM keys, URL passwords) its writer kept.
+        document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
         # The write and the push are inside the same guard as the conversion:
         # ``serialize`` refuses a document it cannot render faithfully (nesting
         # past the format bound, or a cycle) rather than writing a truncation

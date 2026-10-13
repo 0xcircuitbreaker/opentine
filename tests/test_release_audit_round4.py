@@ -160,7 +160,8 @@ def test_l6_audit_verify_is_read_only_and_reports_status(tmp_path: Path):
     second = service.verify_audit_chain(admin, "acme")
     with sqlite3.connect(index.path) as database:
         after_count = database.execute("SELECT count(*) FROM audit").fetchone()[0]
-    assert first == second == {"head": before, "ok": True, "status": "verified", "warnings": []}
+    # No head in the report: the chain is server-wide (0.9.2, cross-tenant timing).
+    assert first == second == {"ok": True, "status": "verified", "warnings": []}
     assert after_count == count and index.audit_head() == before
 
     class InvalidAudit:

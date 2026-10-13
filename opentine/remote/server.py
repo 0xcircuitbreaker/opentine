@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import os
-import socket
 import ssl
-import threading
 from pathlib import Path
-from socketserver import ThreadingMixIn
 from typing import Any
-from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+from wsgiref.simple_server import make_server
 
+from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
+from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
 from opentine.remote.interfaces import Identity, IdentityProvider, KeyProvider
@@ -23,59 +23,13 @@ from opentine.remote.security import (
 from opentine.remote.service import RemoteService
 
 
-class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
-    daemon_threads = True
-    request_queue_size = 64
-    max_workers = 16
-    request_deadline = 60
-    ssl_context: ssl.SSLContext | None = None
-
-    def __init__(self, *args, **kwargs):
-        self._request_slots = threading.BoundedSemaphore(self.max_workers)
-        super().__init__(*args, **kwargs)
-
-    def process_request(self, request, client_address) -> None:
-        self._request_slots.acquire()
-        try:
-            super().process_request(request, client_address)
-        except BaseException:
-            self._request_slots.release()
-            raise
-
-    def get_request(self):
-        request, address = super().get_request()
-        if self.ssl_context is None:
-            return request, address
-        try:
-            wrapped = self.ssl_context.wrap_socket(
-                request, server_side=True, do_handshake_on_connect=False
-            )
-        except BaseException:
-            request.close()
-            raise
-        return wrapped, address
-
-    def process_request_thread(self, request, client_address) -> None:
-        def expire() -> None:
-            try:
-                request.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
-
-        deadline = threading.Timer(self.request_deadline, expire)
-        deadline.daemon = True
-        deadline.start()
-        try:
-            super().process_request_thread(request, client_address)
-        finally:
-            deadline.cancel()
-            deadline.join()
-            self._request_slots.release()
-
-
-class TimeoutRequestHandler(WSGIRequestHandler):
-    #: Per-connection inactivity timeout; the server also has an absolute deadline.
-    timeout = 30
+def _loopback(host: str) -> bool:
+    if host.lower() in {"localhost", "localhost."}:
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
 
 
 def reference_app(
@@ -132,7 +86,20 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--cert")
     parser.add_argument("--key")
     parser.add_argument("--insecure-dev", action="store_true")
+    parser.add_argument(
+        "--insecure-dev-any-host",
+        action="store_true",
+        help="Allow --insecure-dev (plaintext bearer tokens) on a non-loopback --host",
+    )
+    parser.add_argument(
+        "--writer-promotes",
+        action="store_true",
+        help="Let writers move promotions/* and existing tags/* (admin-only by default)",
+    )
     parser.add_argument("--timeout", type=int, default=30, help="Per-connection socket timeout (s)")
+    parser.add_argument(
+        "--header-timeout", type=int, default=10, help="Seconds to send TLS + request headers"
+    )
     parser.add_argument(
         "--request-deadline", type=int, default=60, help="Absolute request deadline (s)"
     )
@@ -141,6 +108,9 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         "--max-upload-mb", type=int, default=256, help="Max resumed pack size (MiB)"
     )
     parser.add_argument("--max-connections", type=int, default=16, help="Maximum worker threads")
+    parser.add_argument(
+        "--max-connections-per-peer", type=int, help="Worker threads one peer may hold (half)"
+    )
     parser.add_argument(
         "--migrate-legacy-audit",
         action="store_true",
@@ -151,9 +121,12 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         metavar="SHA256",
         help="Recover a verified chain only when its computed head equals SHA256",
     )
+    add_admin_parsers(parser)
 
 
 def cmd_serve(args: argparse.Namespace, console: Any) -> None:
+    if getattr(args, "admin_action", None):
+        return cmd_serve_admin(args, console)
     token = os.environ.get(args.token_env)
     if not token:
         raise SystemExit(f"{args.token_env} must contain the development bearer token")
@@ -161,16 +134,15 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         raise SystemExit(f"{args.token_env} must contain at least 16 bytes of token material")
     if not args.insecure_dev and not (args.cert and args.key):
         raise SystemExit("TLS --cert and --key are required unless --insecure-dev is explicit")
-    if (
-        min(
-            args.timeout,
-            args.request_deadline,
-            args.max_body_mb,
-            args.max_upload_mb,
-            args.max_connections,
+    if args.insecure_dev and not (_loopback(args.host) or args.insecure_dev_any_host):
+        raise SystemExit(
+            "--insecure-dev sends bearer tokens in plaintext: it serves loopback only "
+            "unless --insecure-dev-any-host is also given"
         )
-        < 1
-    ):
+    peer_limit = args.max_connections_per_peer
+    limits = (args.timeout, args.header_timeout, args.request_deadline, args.max_body_mb)
+    limits += (args.max_upload_mb, args.max_connections, peer_limit or 1)
+    if min(limits) < 1:
         raise SystemExit("timeout and server limits must be positive")
     identities = StaticTokenIdentityProvider(
         {token: Identity("development", args.tenant, (args.role,))}
@@ -178,17 +150,17 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
     application = reference_app(
         args.root,
         identities=identities,
+        authorization=RoleAuthorizationPolicy(writer_promotes=args.writer_promotes),
         max_request_bytes=args.max_body_mb * 1024 * 1024,
         max_upload_bytes=args.max_upload_mb * 1024 * 1024,
         migrate_legacy_audit=args.migrate_legacy_audit,
         reanchor_audit_head=args.reanchor_audit_head,
     )
-    handler = type("_Handler", (TimeoutRequestHandler,), {"timeout": args.timeout})
-    server_class = type(
-        "_Server",
-        (ThreadingWSGIServer,),
-        {"max_workers": args.max_connections, "request_deadline": args.request_deadline},
-    )
+    handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
+    handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)
+    server_limits = {"max_workers": args.max_connections, "max_per_peer": peer_limit}
+    server_limits["request_deadline"] = args.request_deadline
+    server_class = type("_Server", (ThreadingWSGIServer,), server_limits)
     server = make_server(
         args.host,
         args.port,

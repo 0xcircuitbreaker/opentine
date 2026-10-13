@@ -16,10 +16,18 @@ from collections.abc import Callable
 from typing import Any
 
 from opentine.kernel import validate_json_shape
+from opentine.remote._jwks import (
+    DEFAULT_MAX_KEY_AGE,
+    DEFAULT_REFRESH_INTERVAL,
+    KeySet,
+    OIDCError,
+)
+from opentine.remote._jwt_claims import validate_claims
 
-
-class OIDCError(PermissionError):
-    pass
+#: ``typ`` values an access or ID token may carry (RFC 7519, RFC 9068). Absent is
+#: accepted too. Anything else -- ``dpop+jwt``, ``logout+jwt``, ``secevent+jwt`` --
+#: is a different kind of JWT the same issuer signs, never a bearer credential.
+_TOKEN_TYPES = frozenset({"jwt", "at+jwt"})
 
 
 def _b64url(segment: str) -> bytes:
@@ -122,16 +130,23 @@ class JWTVerifier:
         algorithms: tuple[str, ...] = ("RS256", "ES256"),
         leeway: int = 60,
         now: Callable[[], float] = time.time,
+        jwks_fetch: Callable[[], Any] | None = None,
+        refresh_interval: float = DEFAULT_REFRESH_INTERVAL,
+        max_key_age: float = DEFAULT_MAX_KEY_AGE,
+        clock: Callable[[], float] = time.monotonic,
+        authorized_parties: tuple[str, ...] = (),
     ):
-        keys = jwks.get("keys", []) if isinstance(jwks, dict) else jwks
-        if not isinstance(keys, list) or not keys or len(keys) > 100:
-            raise OIDCError("JWKS must contain between 1 and 100 keys")
-        self.keys: dict[str, dict[str, Any]] = {}
-        for key in keys:
-            kid = key.get("kid") if isinstance(key, dict) else None
-            if not isinstance(kid, str) or not kid or kid in self.keys:
-                raise OIDCError("JWKS key ids must be unique non-empty strings")
-            self.keys[kid] = key
+        #: Client ids (``azp``) accepted besides the audience itself (_jwt_claims).
+        if not all(isinstance(party, str) and party for party in authorized_parties):
+            raise OIDCError("authorized parties must be non-empty client id strings")
+        self.authorized_parties = frozenset(authorized_parties)
+        self._key_set = KeySet(
+            jwks,
+            fetch=jwks_fetch,
+            refresh_interval=refresh_interval,
+            max_age=max_key_age,
+            clock=clock,
+        )
         supported = {"RS256", "ES256"}
         if not algorithms or not set(algorithms) <= supported:
             raise OIDCError("JWT algorithms must be a subset of RS256/ES256")
@@ -150,6 +165,10 @@ class JWTVerifier:
         self.leeway = leeway
         self.now = now
 
+    @property
+    def keys(self) -> dict[str, dict[str, Any]]:
+        return self._key_set.keys
+
     @classmethod
     def from_discovery(
         cls, issuer: str, audience: str, fetch: Callable[[str], bytes], **kwargs: Any
@@ -164,8 +183,11 @@ class JWTVerifier:
         jwks_uri = config.get("jwks_uri")
         if not isinstance(jwks_uri, str) or not jwks_uri.startswith("https://"):
             raise OIDCError("OIDC discovery requires an HTTPS jwks_uri")
-        jwks = _document(fetch(jwks_uri), "JWKS")
-        return cls(jwks, issuer=issuer, audience=audience, **kwargs)
+
+        def refetch() -> dict[str, Any]:
+            return _document(fetch(jwks_uri), "JWKS")
+
+        return cls(refetch(), issuer=issuer, audience=audience, jwks_fetch=refetch, **kwargs)
 
     def __call__(self, token: str) -> dict[str, Any]:
         try:
@@ -175,6 +197,12 @@ class JWTVerifier:
         header = _json_object(header_b64, "header")
         if "crit" in header or "b64" in header:
             raise OIDCError("unsupported JWT critical header")
+        token_type = header.get("typ")
+        if token_type is not None and (
+            not isinstance(token_type, str)
+            or token_type.lower().removeprefix("application/") not in _TOKEN_TYPES
+        ):
+            raise OIDCError("JWT type is not an access or ID token")
         alg = header.get("alg")
         if not isinstance(alg, str) or not alg:
             raise OIDCError("JWT algorithm must be a non-empty string")
@@ -183,43 +211,10 @@ class JWTVerifier:
         kid = header.get("kid")
         if not isinstance(kid, str) or not kid:
             raise OIDCError("JWT key id must be a non-empty string")
-        jwk = self.keys.get(kid)
+        jwk = self._key_set.get(kid)
         if jwk is None:
             raise OIDCError("no JWKS key matches the token 'kid'")
         _verify_signature(alg, jwk, f"{header_b64}.{payload_b64}".encode(), _b64url(sig_b64))
         claims = _json_object(payload_b64, "payload")
-        self._validate(claims)
+        validate_claims(self, claims)
         return claims
-
-    def _validate(self, claims: dict[str, Any]) -> None:
-        if claims.get("iss") != self.issuer:
-            raise OIDCError("JWT issuer mismatch")
-        audience = claims.get("aud")
-        allowed = audience if isinstance(audience, list) else [audience]
-        if not all(isinstance(item, str) for item in allowed):
-            raise OIDCError("JWT audience must be a string or list of strings")
-        if self.audience not in allowed:
-            raise OIDCError("JWT audience mismatch")
-        authorized_party = claims.get("azp")
-        if (len(allowed) > 1 or authorized_party is not None) and authorized_party != self.audience:
-            raise OIDCError("JWT authorized party mismatch")
-        now = self.now()
-        if isinstance(now, bool) or not isinstance(now, (int, float)) or not math.isfinite(now):
-            raise OIDCError("JWT verifier clock is invalid")
-        expiry = claims.get("exp")
-        if (
-            isinstance(expiry, bool)
-            or not isinstance(expiry, (int, float))
-            or not math.isfinite(expiry)
-            or now >= expiry + self.leeway
-        ):
-            raise OIDCError("JWT is expired or missing 'exp'")
-        not_before = claims.get("nbf")
-        if not_before is not None:
-            if (
-                isinstance(not_before, bool)
-                or not isinstance(not_before, (int, float))
-                or not math.isfinite(not_before)
-                or now < not_before - self.leeway
-            ):
-                raise OIDCError("JWT is not yet valid")

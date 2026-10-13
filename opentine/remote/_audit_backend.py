@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import time
 
 from opentine.remote._audit import (
     FIELDS,
     GENESIS,
+    SERVER_TENANT,
     audit_file_lock,
     chain,
     read_anchor,
@@ -31,7 +33,9 @@ class SQLiteAuditMixin:
             "details": json.dumps(event.details, sort_keys=True, separators=(",", ":")),
             "event_id": event.event_id,
             "outcome": event.outcome,
-            "tenant": self.validate_tenant(event.tenant),
+            "tenant": event.tenant
+            if event.tenant == SERVER_TENANT
+            else self.validate_tenant(event.tenant),
             "timestamp": event.timestamp,
         }
         with self._audit_lock, audit_file_lock(self._audit_lock_path):
@@ -123,6 +127,54 @@ class SQLiteAuditMixin:
         if not valid or anchored != head:
             return "invalid"
         return self._status_for(head, expected_head)
+
+    #: A full chain walk at most this often per process for ``audit_status_bounded``;
+    #: in between, rows appended since the last verified point are authenticated.
+    full_verify_interval = 300.0
+
+    def _verify_rows(self, database, after: int, previous: str) -> tuple[bool, int, str]:
+        rows = database.execute(
+            "SELECT sequence," + ",".join(FIELDS) + ",prev_hash,row_hash FROM audit "
+            "WHERE sequence>? ORDER BY sequence",
+            (after,),
+        )
+        for record in rows:
+            row = dict(zip(FIELDS, record[1:]))
+            if record[-2] != previous or chain(previous, row, self._audit_key) != record[-1]:
+                return False, after, previous
+            after, previous = record[0], record[-1]
+        return True, after, previous
+
+    def audit_status_bounded(self, *, clock=time.monotonic) -> str:
+        """The chain status at bounded cost, for a request any tenant admin can make.
+
+        A full walk is O(rows) for the whole server; it runs at most once per
+        ``full_verify_interval``, lock-free, and every call then authenticates the
+        rows appended since the last verified point -- under the append lock, up to
+        the authenticated anchor -- so the newest rows are always checked.
+        """
+        with self._verify_lock:
+            now = clock()
+            point = self._verified_point
+            if point is None or now - point[2] >= self.full_verify_interval:
+                with self._connect() as database:
+                    valid, sequence, head = self._verify_rows(database, 0, GENESIS)
+                if not valid:
+                    self._verified_point = None
+                    return "invalid"
+                point = (sequence, head, now)
+            with self._audit_lock, audit_file_lock(self._audit_lock_path):
+                with self._connect() as database:
+                    valid, sequence, head = self._verify_rows(database, point[0], point[1])
+                try:
+                    anchored = read_anchor(self._anchor_path, self._audit_key)
+                except RuntimeError:
+                    anchored = None
+            if not valid or anchored != head:
+                self._verified_point = None
+                return "invalid"
+            self._verified_point = (sequence, head, point[2])
+            return self._status_for(head, None)
 
     def verify_audit_chain(self, *, expected_head: str | None = None) -> bool:
         return self.audit_status(expected_head=expected_head) == "verified"

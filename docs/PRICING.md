@@ -31,8 +31,8 @@ Resolution order is:
 
 1. an explicit adapter/run `rates=` override, when the model check below allows it;
 2. an explicitly selected catalog or `TINE_PRICING_CATALOG`;
-3. workspace `.tine/pricing.json`;
-4. user `$XDG_CONFIG_HOME/opentine/pricing.json`;
+3. workspace `.tine/pricing.json`, when signed or opted in with `OPENTINE_TRUST_WORKSPACE_PRICING=1`;
+4. user `$XDG_CONFIG_HOME/opentine/pricing.json` (a signed one only if no older than the bundled snapshot);
 5. the bundled signed snapshot;
 6. an `unknown` result—never another provider's price.
 
@@ -188,9 +188,11 @@ tine pricing show anthropic claude-opus-5
 ```
 
 A workspace overlay at `.tine/pricing.json` takes the same content and outranks
-the user one. It is unsigned and comes from the current directory — a cloned
-checkout can ship one — so from 0.9.1 the CLI announces it on stderr each time
-it is used; set `OPENTINE_TRUST_WORKSPACE_PRICING=1` once you trust its source.
+the user one — but only when you opt in. It comes from the current directory, so
+a cloned checkout can ship one, and an unsigned overlay could price any model at
+$0 and disarm every `max_cost` budget. From 0.9.2 it is **ignored** (with a
+note on stderr) unless it is validly signed by a trusted key or
+`OPENTINE_TRUST_WORKSPACE_PRICING=1` is set (`1`/`true`/`yes`/`on`).
 A rate card's `currency` must be an ISO 4217 code (`USD`, three capitals).
 
 An overlay carries its own `catalog_id`, so recompute it after any edit. The
@@ -208,7 +210,10 @@ Note that a merged catalog reports `signed=false` once any layer is unsigned; th
 bundled layer's own signature is still verified and enforced on load.
 
 Prices are never downloaded during inference. Catalog updates are explicit and
-must verify their Ed25519 signature before installation:
+must verify their Ed25519 signature before installation, and a catalog older
+(`generated_at`) than the bundled snapshot or the one it would replace is
+refused, so an update can never roll prices back. A signed user catalog older
+than the bundled one (say, left over from before an upgrade) is skipped at load:
 
 ```bash
 tine pricing list

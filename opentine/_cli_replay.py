@@ -20,6 +20,7 @@ from opentine._cli_common import (
 )
 from opentine._cli_flags import HARNESS_CONFIG_FLAGS, _require_output_slot, refuse_unhonoured
 from opentine._cli_render import _print_diff_table, _print_run_tree
+from opentine._cli_text import announce_recorded_task
 from opentine._cli_verify_replay import cache_replay, expected_slice, verify_replay
 from opentine.core import Run
 from opentine.harnesses import OpentineHarness
@@ -51,6 +52,7 @@ def _harness_replay(args: argparse.Namespace, run: Run) -> None:
         console.print("[red]--prompt is required when replaying a harness run.[/]")
         raise SystemExit(1)
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
+    announce_recorded_task(args.prompt, task)
     wrapper = OpentineHarness(_harness_from_args(args))
     output = Path(args.save) if args.save else None
     force = getattr(args, "force", False)

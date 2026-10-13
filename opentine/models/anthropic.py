@@ -16,6 +16,7 @@ from opentine.models._anthropic_rules import (
     validate_service_tier,
 )
 from opentine.models._client import closing_client
+from opentine.models._endpoint_security import require_key_transport
 from opentine.models._metered import metered_response
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._stream_content import anthropic_content
@@ -70,7 +71,14 @@ class Anthropic:
             import anthropic
         except ImportError:
             raise ImportError("pip install opentine[anthropic]") from None
-        return anthropic.AsyncAnthropic(api_key=self._api_key, max_retries=0)
+        require_key_transport(os.environ.get("ANTHROPIC_BASE_URL"), self._api_key)
+        # httpx strips only ``Authorization`` on a cross-origin redirect, so a
+        # followed redirect would hand ``x-api-key`` to the redirect target.
+        return anthropic.AsyncAnthropic(
+            api_key=self._api_key,
+            max_retries=0,
+            http_client=anthropic.DefaultAsyncHttpxClient(follow_redirects=False),
+        )
 
     def _kwargs(
         self,
