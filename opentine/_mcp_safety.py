@@ -11,7 +11,6 @@ was already clean is re-raised untouched, type and all.
 from __future__ import annotations
 
 import functools
-import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -52,6 +51,40 @@ def _clean(text: str) -> str:
     return text.translate(_HIDDEN_ORDS)
 
 
+def _plain_copy(value: Any) -> Any:
+    """A JSON-shaped copy of *value*, built without recursion.
+
+    ``json.loads(json.dumps(...))`` recursed, and failed on deep values under
+    3.11 and Windows stack limits. This gives the same result -- tuples as
+    lists, other objects as ``str``, non-string keys as ``str`` -- with an
+    explicit stack.
+    """
+
+    def shell(item: Any) -> Any:
+        if isinstance(item, dict):
+            return {}
+        if isinstance(item, (list, tuple)):
+            return []
+        if item is None or isinstance(item, (str, bool, int, float)):
+            return item
+        return str(item)
+
+    root = shell(value)
+    stack = [(value, root)] if isinstance(root, (dict, list)) else []
+    while stack:
+        source, target = stack.pop()
+        pairs = source.items() if isinstance(source, dict) else enumerate(source)
+        for key, item in pairs:
+            copy = shell(item)
+            if isinstance(target, dict):
+                target[key if isinstance(key, str) else str(key)] = copy
+            else:
+                target.append(copy)
+            if isinstance(copy, (dict, list)):
+                stack.append((item, copy))
+    return root
+
+
 def visible(value: Any) -> Any:
     """A JSON *value* with hidden characters removed from every string and key.
 
@@ -61,7 +94,7 @@ def visible(value: Any) -> Any:
     without escaping. A ``models`` entry or a resolved blob could carry either.
     The walk is iterative, so nesting depth cannot exhaust the stack.
     """
-    data = json.loads(json.dumps(value, ensure_ascii=False, default=str))
+    data = _plain_copy(value)
     changed = False
     root = [data]
     stack: list[Any] = [root]
