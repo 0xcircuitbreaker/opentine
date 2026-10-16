@@ -278,7 +278,7 @@ def test_gemini_pro_thresholds_apply_only_above_200k():
             Decimal(over.calculation["rates_per_million"]["input"])
             == Decimal(at.calculation["rates_per_million"]["input"]) * 2
         )
-    flash = bill("google", "gemini-3.5-flash", Usage(input=300_000), catalog=catalog)
+    flash = bill("google", "gemini-3-flash-preview", Usage(input=300_000), catalog=catalog)
     assert flash.calculation["context_rules"] == []
 
 
