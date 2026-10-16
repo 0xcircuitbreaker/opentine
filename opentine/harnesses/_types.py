@@ -13,14 +13,28 @@ from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
 from opentine.core import StepKind, step_id
 from opentine.kernel import MAX_JSON_DEPTH, KernelError, validate_json_shape
 
+#: The largest meter (USD, seconds) or count a CLI event may report. A JSON
+#: integer has no bound, and ``float`` of one past ~1e308 raised OverflowError,
+#: which escaped the reader and killed the run (final pass 5, #10).
+MAX_METER = 1e15
+MAX_COUNT = 2**53 - 1
 
-def _meter(value: Any, name: str) -> float:
+
+def bounded_number(value: Any) -> float | None:
+    """*value* as a finite number in ``[0, MAX_METER]``, else ``None``."""
+    if isinstance(value, bool):
+        return None
     try:
         number = float(value)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"harness {name} must be finite and non-negative") from exc
-    if isinstance(value, bool) or not math.isfinite(number) or number < 0:
-        raise ValueError(f"harness {name} must be finite and non-negative")
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) and 0 <= number <= MAX_METER else None
+
+
+def _meter(value: Any, name: str) -> float:
+    number = bounded_number(value)
+    if number is None:
+        raise ValueError(f"harness {name} must be finite and non-negative, at most {MAX_METER:g}")
     return number
 
 
@@ -33,15 +47,24 @@ def meter_value(data: Mapping[str, Any], *names: str) -> Any:
     return 0.0
 
 
+def reported_meter(data: Mapping[str, Any], *names: str) -> tuple[float, dict[str, str]]:
+    """A CLI event's figure and, when it is malformed, a warning field for the step.
+
+    The generic JSON parsers passed the raw ``cost``/``price`` to ``HarnessStep``,
+    whose check raises: one malformed figure ended the run it described and every
+    later event, the CLI's closing cost included, was lost (final pass 2, #9).
+    """
+    value = meter_value(data, *names)
+    try:
+        return _meter(value, names[0]), {}
+    except ValueError:
+        return 0.0, {"meter_warning": f"malformed {names[0]} ignored"}
+
+
 def _numeric(value: Any) -> float:
     """Coerce a harness-reported metric to a number, or 0.0 if it is not one."""
-    if isinstance(value, bool):
-        return 0.0
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return 0.0
-    return number if math.isfinite(number) and number >= 0 else 0.0
+    number = bounded_number(value)
+    return 0.0 if number is None else number
 
 
 def duration_seconds(data: Mapping[str, Any]) -> Any:
@@ -164,6 +187,17 @@ class HarnessAdapter(Protocol):
     ) -> Any | Awaitable[Any]: ...
 
 
+def _no_constant(_token: str) -> None:
+    return None
+
+
+def loads_event(text: str) -> Any:
+    """``json.loads`` with ``NaN``/``Infinity`` read as ``null``: Python CLIs emit
+    them (``allow_nan``) and the record's canonical JSON refuses them, which ended
+    the run (final pass 6, #10)."""
+    return json.loads(text, parse_constant=_no_constant)
+
+
 def parse_json_event(line: str) -> dict[str, Any] | None:
     """Parse one harness stdout line as an event, or ``None`` if it is not one.
 
@@ -192,7 +226,7 @@ def parse_json_event(line: str) -> dict[str, Any] | None:
         except KernelError:
             return None
     try:
-        data = json.loads(stripped)
+        data = loads_event(stripped)
     except json.JSONDecodeError:
         return None
     return data if isinstance(data, dict) else None
@@ -212,4 +246,4 @@ def cost_from_text(text: str) -> float:
         text,
         re.I,
     )
-    return float(match.group(1) or match.group(2)) if match else 0.0
+    return (bounded_number(match.group(1) or match.group(2)) or 0.0) if match else 0.0

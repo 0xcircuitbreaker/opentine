@@ -13,22 +13,23 @@ remainder no message reported), making per-model totals equal Claude Code's own.
 
 from __future__ import annotations
 
-import math
 import os
 from collections.abc import Callable, Mapping
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._claude_env import (
+    _count,
+    _money,
+    env_provider,
+    list_priced,
+    service_tier,
+)
 from opentine.harnesses._types import HarnessStep
 
 #: ``modelUsage[...].provider`` -> OpenTine provider. Bedrock and Vertex keep
 #: their own names: Anthropic's first-party cards must not price them.
 _PROVIDERS = {"firstParty": "anthropic"}
-_ENV_PROVIDERS = (
-    ("CLAUDE_CODE_USE_BEDROCK", "bedrock"),
-    ("CLAUDE_CODE_USE_VERTEX", "vertex"),
-    ("CLAUDE_CODE_USE_FOUNDRY", "foundry"),
-)
 _INPUT_SIDE = {
     "input": "inputTokens",
     "cache_read": "cacheReadInputTokens",
@@ -37,17 +38,6 @@ MAX_TOOL_RESULT_CHARS = 64_000
 #: Event types the structured stream emits; ``rate_limit_event`` and anything
 #: newer are consumed silently rather than recorded as noise.
 STREAM_EVENTS = frozenset({"system", "assistant", "user", "result", "rate_limit_event"})
-
-
-def _count(value: Any) -> int | None:
-    return value if type(value) is int and value >= 0 else None
-
-
-def _money(value: Any) -> float:
-    # A malformed figure from the CLI must not abort the run it describes.
-    if isinstance(value, bool) or not isinstance(value, int | float):
-        return 0.0
-    return float(value) if math.isfinite(value) and value >= 0 else 0.0
 
 
 def _input_usage(raw: Any) -> dict[str, int]:
@@ -93,17 +83,11 @@ class ClaudeStream:
     def reset(self) -> None:
         """Start a new session: a harness object may run more than once."""
         self.model = ""
-        self.provider = self._env_provider(self._env())
+        self.provider, self.base_override = env_provider(self._env())
         self.tools: dict[str, tuple[str, Any]] = {}
         self.messages: set[str] = set()
         self.seen: dict[str, dict[str, int]] = {}
-
-    @staticmethod
-    def _env_provider(env: Mapping[str, str]) -> str:
-        for name, provider in _ENV_PROVIDERS:
-            if str(env.get(name, "")).strip().casefold() not in ("", "0", "false"):
-                return provider
-        return "anthropic"
+        self.tiers: dict[str, str] = {}
 
     def step(self, data: Mapping[str, Any]) -> HarnessStep | list[HarnessStep] | None:
         kind, subtype = data.get("type"), data.get("subtype")
@@ -142,6 +126,9 @@ class ClaudeStream:
         totals = self.seen.setdefault(model, {})
         for name, value in usage.items():
             totals[name] = totals.get(name, 0) + value
+        tier = service_tier(message.get("usage"))
+        if tier:
+            self.tiers[model] = tier
         content = message.get("content")
         blocks = [b for b in content if isinstance(b, Mapping)] if isinstance(content, list) else []
         calls = []
@@ -150,9 +137,15 @@ class ClaudeStream:
                 call_id, name = str(block.get("id") or ""), str(block.get("name") or "tool")
                 self.tools[call_id] = (name, block.get("input"))
                 calls.append({"id": call_id, "name": name, "arguments": block.get("input")})
+        step_inputs = {
+            "message_id": identifier,
+            "parent_tool_use_id": data.get("parent_tool_use_id"),
+        }
+        if tier:
+            step_inputs["service_tier"] = tier
         return HarnessStep(
             kind=StepKind.model,
-            inputs={"message_id": identifier, "parent_tool_use_id": data.get("parent_tool_use_id")},
+            inputs=step_inputs,
             outputs={"text": _text(blocks), "tool_calls": calls},
             model_info=model or None,
             provider=self.provider,
@@ -204,7 +197,14 @@ class ClaudeStream:
                 usage["cache_write_5m"] = unwritten
             raw_provider = totals.get("provider")
             provider = _PROVIDERS.get(str(raw_provider), str(raw_provider or self.provider))
+            if self.base_override and raw_provider in (None, "firstParty"):
+                provider = self.provider  # Claude Code calls any base URL first-party
             inputs: dict[str, Any] = {"event": "result-usage", "model": model}
+            tier = self.tiers.get(str(model)) or service_tier(data.get("usage"))
+            if tier:
+                inputs["service_tier"] = tier
+            if totals.get("costBasis") is not None:
+                inputs["cost_basis"] = totals.get("costBasis")
             if seen and provider != self.provider:
                 # Claude Code can switch to Bedrock/Vertex from its own settings,
                 # which the environment does not show: this model's per-call steps
@@ -221,6 +221,10 @@ class ClaudeStream:
                 )
             )
         failed = bool(data.get("is_error"))
+        reported = _money(data.get("total_cost_usd"))
+        # Book Claude Code's figure only when it is a list price for a Claude
+        # model it knows; otherwise it is an estimate, kept but not charged.
+        booked = reported if list_priced(per_model) and not self.base_override else 0.0
         steps.append(
             HarnessStep(
                 kind=StepKind.error if failed else StepKind.done,
@@ -231,10 +235,11 @@ class ClaudeStream:
                     "session_id": data.get("session_id"),
                     "reported_by": "claude-code",
                 },
-                outputs={"result": data.get("result")},
+                outputs={"result": data.get("result")}
+                | ({} if booked == reported else {"reported_estimate_usd": reported}),
                 # Claude Code's own list-price figure; `tine price` re-prices the
                 # model steps from the signed catalog independently.
-                cost=_money(data.get("total_cost_usd")),
+                cost=booked,
                 duration=(_count(data.get("duration_ms")) or 0) / 1000,
                 model_info=self.model or None,
             )

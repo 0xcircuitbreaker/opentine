@@ -187,7 +187,12 @@ def test_a_recorded_claude_code_run_is_priceable_after_the_fact(tmp_path):
     # A stand-in "claude" that replays the live capture: the real recording path
     # end to end, with no model call.
     replay = f"import sys; sys.stdout.write(open({str(FIXTURE)!r}, encoding='utf-8').read())"
-    harness = ClaudeCodeHarness(command=(sys.executable, "-c", replay), cwd=tmp_path)
+    # `-c` ignores the flags; they declare stream-json, so JSON lines are events.
+    harness = ClaudeCodeHarness(
+        command=(sys.executable, "-c", replay),
+        extra_args=("--output-format", "stream-json"),
+        cwd=tmp_path,
+    )
     saved = tmp_path / "run.tine"
     OpentineHarness(harness).run_sync("answer", save_path=saved)
     run = Run.load(saved)

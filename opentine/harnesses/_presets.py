@@ -11,12 +11,14 @@ command was guessed is worse than no preset: it fails at spawn time with a confu
 error instead of letting the user reach for ``--harness generic --harness-command``,
 which already runs anything.
 
-Deliberately absent: Z.ai's ZCode ships as a desktop application with no documented
-headless CLI, so there is no command to encode.
+The table itself now lives in ``_harness_catalog`` (one row per CLI, with the
+event dialect that makes its runs priceable); :func:`preset` remains for
+callers that build their own text-mode preset.
 """
 
 from __future__ import annotations
 
+from opentine.harnesses._harness_catalog import HARNESS_CLASSES
 from opentine.harnesses.agent_cli import JSONOrTextHarness
 
 
@@ -41,21 +43,9 @@ def preset(
     )
 
 
-#: xAI's terminal coding agent. ``grok exec`` is its documented one-shot mode: the
-#: agent plans, executes, and exits. It documents no JSON output flag, which costs
-#: nothing here — JSONOrTextHarness falls back to line-wise text capture.
-GrokBuildHarness = preset(
-    "grok",
-    ("grok", "exec"),
-    doc="Run xAI's Grok Build non-interactively through ``grok exec <task>``.",
-)
-
-#: Google's Gemini CLI. ``-p`` (``--prompt``) is its documented headless mode:
-#: bypasses the interactive UI, prints one response to stdout, exits.
-GeminiCLIHarness = preset(
-    "gemini",
-    ("gemini", "-p"),
-    doc="Run Google's Gemini CLI in headless mode through ``gemini -p <task>``.",
-)
+#: Kept as names for code written against 0.9: both now come from the catalog,
+#: which reads their documented JSON modes (``_harness_catalog``).
+GeminiCLIHarness = HARNESS_CLASSES["gemini"]
+GrokBuildHarness = HARNESS_CLASSES["grok"]
 
 __all__ = ["GeminiCLIHarness", "GrokBuildHarness", "preset"]

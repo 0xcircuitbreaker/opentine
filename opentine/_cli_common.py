@@ -18,17 +18,10 @@ from opentine._cli_text import displayable
 from opentine._graph_analysis import retained_closure
 from opentine.core import Run, StepKind, short_id
 from opentine.harnesses import (
+    HARNESS_CLASSES,
     ClaudeCodeHarness,
     CodexCLIHarness,
-    CursorHarness,
-    GeminiCLIHarness,
     GenericHarness,
-    GrokBuildHarness,
-    HermesHarness,
-    KimiCodeHarness,
-    OpenClawHarness,
-    OpenCodeHarness,
-    PiHarness,
 )
 from opentine.index import RunIndex
 
@@ -51,18 +44,13 @@ STEP_ICONS = {
 console = Console(emoji=False)
 RUNS_DIR = Path(".tine_runs")
 MAX_CLI_SCAN_RUNS = 5_000
+#: Every ``--harness`` name: the two dedicated parsers, ``generic`` (any command),
+#: and each catalogued agent CLI (``opentine.harnesses._harness_catalog``).
 HARNESS_FACTORIES = {
     "claude-code": ClaudeCodeHarness,
     "codex": CodexCLIHarness,
-    "cursor": CursorHarness,
-    "gemini": GeminiCLIHarness,
     "generic": GenericHarness,
-    "grok": GrokBuildHarness,
-    "hermes": HermesHarness,
-    "kimi-code": KimiCodeHarness,
-    "openclaw": OpenClawHarness,
-    "opencode": OpenCodeHarness,
-    "pi": PiHarness,
+    **HARNESS_CLASSES,
 }
 
 
@@ -125,7 +113,7 @@ def _index_update(path: str | Path | None) -> None:
 def _harness_from_args(args: argparse.Namespace):
     factory = HARNESS_FACTORIES[args.harness]
     command = shlex.split(args.harness_command) if args.harness_command else None
-    if args.harness in {"generic", "pi"} and not command:
+    if args.harness == "generic" and not command:
         raise SystemExit(f"--harness-command is required for {args.harness}")
     return factory(
         command=command,
@@ -228,7 +216,7 @@ def _step_label(step) -> Text:
         )
     else:
         label = f"{icon} [dim]{_terminal(step.short_id)}[/] [bold]{step.kind.value}[/]"
-    return Text.from_markup(label)
+    return Text.from_markup(label, emoji=False)  # shortcodes in step text stay literal
 
 
 def _cost_str(cost: float) -> str:

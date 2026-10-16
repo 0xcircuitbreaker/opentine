@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 
 from opentine._canon import FORMAT_VERSION
-from opentine._cli_common import HARNESS_FACTORIES
 from opentine._cli_export import add_export_parser
+from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
+from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
@@ -26,11 +27,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_harness_args(run)
     # The third run mode, and the only one that needs nothing written first: it
     # calls a bundled adapter directly, so it is exclusive with the other two.
-    run.add_argument(
-        "--model",
-        metavar="PROVIDER[:MODEL]",
-        help="Run a bundled model adapter with --prompt, e.g. anthropic or openai:gpt-5.6",
-    )
+    add_model_args(run)
     # --save works in both modes; the autosave trio checkpoints a run in flight
     # and so needs --harness. Script mode refuses them rather than ignoring them.
     run.add_argument(
@@ -218,6 +215,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     add_pricing_parser(sub)
     add_serve_parser(sub)
+    add_harnesses_parser(sub)
     add_repo_parsers(sub)
     return parser
 
@@ -231,17 +229,3 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--since")
     parser.add_argument("--until")
     parser.add_argument("--grep", action="append", default=[])
-
-
-def _add_harness_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--harness", choices=sorted(HARNESS_FACTORIES))
-    parser.add_argument("--prompt")
-    parser.add_argument("--cwd")
-    parser.add_argument("--harness-command")
-    parser.add_argument("--harness-arg", action="append", default=[])
-    parser.add_argument("--harness-login-env", action="store_true")
-    parser.add_argument("--harness-env", action="append", default=[])
-    parser.add_argument("--harness-timeout", type=float, default=3_600.0, metavar="SECONDS")
-    parser.add_argument("--harness-max-output", type=int, default=4_000_000, metavar="CHARS")
-    parser.add_argument("--harness-max-events", type=int, default=10_000, metavar="N")
-    parser.add_argument("--harness-max-line-bytes", type=int, default=1_000_000, metavar="BYTES")

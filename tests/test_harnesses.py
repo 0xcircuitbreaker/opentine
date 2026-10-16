@@ -110,27 +110,42 @@ def test_agent_cli_harness_command_defaults():
     assert CodexCLIHarness().build_command("task") == [
         "codex",
         "exec",
+        "--json",
         "--skip-git-repo-check",
         "task",
     ]
-    assert OpenCodeHarness().build_command("task") == ["opencode", "run", "task"]
+    # Each now asks its CLI for the documented JSON event stream.
+    assert OpenCodeHarness().build_command("task") == [
+        "opencode",
+        "run",
+        "--format",
+        "json",
+        "task",
+    ]
     assert KimiCodeHarness().build_command("task") == [
         "kimi",
         "--print",
         "--output-format",
         "stream-json",
-        "--prompt",
+        "-p",
         "task",
     ]
     assert OpenClawHarness().build_command("task") == [
         "openclaw",
         "agent",
-        "--local",
+        "exec",
         "--json",
-        "--message",
         "task",
     ]
-    assert HermesHarness().build_command("task") == ["hermes", "chat", "-q", "task"]
+    assert HermesHarness().build_command("task") == [
+        "hermes",
+        "chat",
+        "--oneshot",
+        "--format",
+        "stream-json",
+        "-q",
+        "task",
+    ]
     assert GenericHarness(command=("agent", "run")).build_command("task") == [
         "agent",
         "run",
@@ -334,10 +349,15 @@ def test_harness_rejects_invalid_accounting_metrics(cost, duration, name):
 
 
 @pytest.mark.parametrize("cost", ["nan", -5, 1e309, True])
-def test_external_json_harness_rejects_invalid_cost_before_callback(cost):
-    line = json.dumps({"type": "message", "cost": cost})
-    with pytest.raises(ValueError, match="harness cost must be finite and non-negative"):
-        GenericHarness().parse_line(line)
+def test_external_json_harness_never_books_an_invalid_cost(cost):
+    # A malformed figure is ignored with a warning rather than raised: raising
+    # ended the run it described and lost every later event, the CLI's closing
+    # cost included (0.10 final pass 2, #9).
+    step = GenericHarness().parse_line(json.dumps({"type": "message", "cost": cost}))
+    assert step.cost == 0.0
+    # ``Infinity`` now reads as null (final pass 6, #10): no figure, no warning.
+    if cost != 1e309:
+        assert step.inputs["meter_warning"] == "malformed cost ignored"
 
 
 @pytest.mark.parametrize(

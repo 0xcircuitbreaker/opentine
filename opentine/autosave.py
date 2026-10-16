@@ -24,10 +24,16 @@ class Autosaver:
         *,
         every_n_steps: int = 0,
         every_seconds: float = 0.0,
+        min_growth: float = 0.0,
     ):
         self.path = Path(path) if path else None
         self.every_n_steps = every_n_steps
         self.every_seconds = every_seconds
+        # Each checkpoint re-serializes the whole run, so a fixed step interval
+        # still costs O(n^2) over a long run. A growth gate (the run must have
+        # grown by this fraction since the last checkpoint) makes the total
+        # geometric, i.e. linear in the number of steps.
+        self.min_growth = min_growth
         self._last_step_count = 0
         self._last_time: float | None = None
 
@@ -47,7 +53,8 @@ class Autosaver:
             secs_since = now - self._last_time
             steps_ok = self.every_n_steps <= 0 or steps_since >= self.every_n_steps
             secs_ok = self.every_seconds <= 0 or secs_since >= self.every_seconds
-            if not (steps_ok and secs_ok):
+            grown = steps_since >= self.min_growth * self._last_step_count
+            if not (steps_ok and secs_ok and grown):
                 return False
         run.save(self.path, draft=True)
         self._last_step_count = len(run.steps)

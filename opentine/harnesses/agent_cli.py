@@ -6,7 +6,7 @@ from typing import Any
 
 from opentine.core import StepKind
 from opentine.harnesses._stdout_trust import StdoutTrust
-from opentine.harnesses._types import duration_seconds, meter_value
+from opentine.harnesses._types import duration_seconds, reported_meter
 from opentine.harnesses.base import HarnessStep, ProcessHarness
 
 
@@ -27,7 +27,7 @@ class JSONOrTextHarness(StdoutTrust, ProcessHarness):
     def _parse_json_event(self, data: dict[str, Any]) -> HarnessStep:
         event_type = str(data.get("type") or data.get("event") or data.get("kind") or "")
         lower = event_type.lower()
-        cost = meter_value(data, "cost", "price")
+        cost, warn = reported_meter(data, "cost", "price")
         session = self._session_metadata(data)
 
         if any(token in lower for token in self.structured_tool_types):
@@ -38,6 +38,7 @@ class JSONOrTextHarness(StdoutTrust, ProcessHarness):
                     "name": str(name or "tool"),
                     "arguments": data.get("arguments", data.get("args", {})),
                     **session,
+                    **warn,
                 },
                 outputs={"result": data.get("result") or data.get("output") or data.get("content")},
                 cost=cost,
@@ -47,7 +48,7 @@ class JSONOrTextHarness(StdoutTrust, ProcessHarness):
         if "error" in lower or data.get("error"):
             return HarnessStep(
                 kind=StepKind.error,
-                inputs={"error": data.get("error") or data, **session},
+                inputs={"error": data.get("error") or data, **session, **warn},
                 cost=cost,
                 model_info=self.model_info,
             )
@@ -60,6 +61,7 @@ class JSONOrTextHarness(StdoutTrust, ProcessHarness):
                 or data.get("delta")
                 or data,
                 **session,
+                **warn,
             },
             cost=cost,
             model_info=self.model_info,
@@ -100,57 +102,6 @@ class JSONOrTextHarness(StdoutTrust, ProcessHarness):
         return "tool"
 
 
-class OpenCodeHarness(JSONOrTextHarness):
-    """Run OpenCode through ``opencode run <task>``."""
-
-    name = "opencode"
-    default_command = ("opencode", "run")
-    login_env_keys = ("OPENCODE_CONFIG",)
-
-    @property
-    def model_info(self) -> str:
-        return "opencode"
-
-
-class KimiCodeHarness(JSONOrTextHarness):
-    """Run Kimi Code in print JSONL mode.
-
-    Authenticate the CLI outside opentine with ``kimi login``.
-    """
-
-    name = "kimi-code"
-    default_command = ("kimi", "--print", "--output-format", "stream-json", "--prompt")
-    login_env_keys = ("KIMI_HOME",)
-
-    @property
-    def model_info(self) -> str:
-        return "kimi-code"
-
-
-class OpenClawHarness(JSONOrTextHarness):
-    """Run OpenClaw in local JSON mode."""
-
-    name = "openclaw"
-    default_command = ("openclaw", "agent", "--local", "--json", "--message")
-    login_env_keys = ("OPENCLAW_HOME",)
-
-    @property
-    def model_info(self) -> str:
-        return "openclaw"
-
-
-class HermesHarness(JSONOrTextHarness):
-    """Run Hermes Agent through ``hermes chat -q <task>``."""
-
-    name = "hermes"
-    default_command = ("hermes", "chat", "-q")
-    login_env_keys = ("HERMES_HOME",)
-
-    @property
-    def model_info(self) -> str:
-        return "hermes"
-
-
 class GenericHarness(JSONOrTextHarness):
     """User-supplied generic agent command.
 
@@ -168,11 +119,19 @@ class GenericHarness(JSONOrTextHarness):
         return "generic"
 
 
-class PiHarness(GenericHarness):
-    """User-supplied Pi orchestrator or Pi agent command."""
+#: 0.9 names for CLI harnesses now built from the catalog (``_harness_catalog``).
+_CATALOG_NAMES = {
+    "HermesHarness": "hermes",
+    "KimiCodeHarness": "kimi-code",
+    "OpenClawHarness": "openclaw",
+    "OpenCodeHarness": "opencode",
+    "PiHarness": "pi",
+}
 
-    name = "pi"
 
-    @property
-    def model_info(self) -> str:
-        return "pi"
+def __getattr__(name: str) -> Any:
+    if name in _CATALOG_NAMES:
+        from opentine.harnesses._harness_catalog import HARNESS_CLASSES
+
+        return HARNESS_CLASSES[_CATALOG_NAMES[name]]
+    raise AttributeError(name)
