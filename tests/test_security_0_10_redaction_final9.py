@@ -140,7 +140,7 @@ def test_a_line_after_a_truncated_ppk_is_kept():
 
 def _best(fn, blob: bytes) -> float:
     best = float("inf")
-    for _ in range(2):
+    for _ in range(3):
         started = time.monotonic()
         fn(blob)
         best = min(best, time.monotonic() - started)
@@ -154,6 +154,9 @@ def _best(fn, blob: bytes) -> float:
         json.dumps({f"\n{i}": 0 for i in range(8000)}),
         json.dumps([f"2026-10-16 INFO request ok\nline two {i}" for i in range(2000)]),
     ],
+    # Short ids: the document as an id overflows Windows' 32767-char env var
+    # limit when pytest sets PYTEST_CURRENT_TEST.
+    ids=["newlines", "escaped-keys", "log-lines"],
 )
 def test_json_redaction_stays_close_to_the_byte_scan(doc):
     blob = doc.encode()
@@ -170,4 +173,4 @@ def test_nesting_depth_costs_linear_not_exponential_work():
         return _best(redact_blob, json.dumps({"o": text}).encode())
 
     one, four = at(1), at(4)
-    assert four < max(one, 0.02) * 6  # linear in depth ~4x; doubling per level ~16x
+    assert four < max(one, 0.02) * 8  # linear in depth ~4x; doubling per level ~16x

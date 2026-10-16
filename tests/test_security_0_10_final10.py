@@ -54,7 +54,7 @@ def test_coverage_search_time_grows_linearly():
     def elapsed(scale: int) -> float:
         needles, text = _adversarial(scale)
         best = float("inf")
-        for _ in range(2):
+        for _ in range(3):
             started = time.perf_counter()
             all_in(needles, text)
             best = min(best, time.perf_counter() - started)
@@ -102,7 +102,8 @@ def test_visible_is_iterative_on_deep_values():
     value: list = ["\x1bx"]
     for _ in range(5000):
         value = [value]
-    cleaned = visible(json.loads(json.dumps(value)))
+    # Built in memory: json.dumps itself recurses and would hit the limit first.
+    cleaned = visible(value)
     for _ in range(5000):
         cleaned = cleaned[0]
     assert cleaned == ["x"]

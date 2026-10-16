@@ -265,12 +265,13 @@ def test_fsck_reports_an_illegal_ref_file_and_a_corrupt_unadopted_record(tmp_pat
     repo = Repo.init(tmp_path)
     run_oid = repo.put_run(_run(), ref="heads/main").run_id
     assert repo.fsck().ok
-    (repo.path / "refs" / "heads" / "Main").write_text(run_oid)
+    # Not "Main": on a case-insensitive filesystem that just rewrites "main".
+    (repo.path / "refs" / "heads" / "Feature").write_text(run_oid)
     (repo.path / ".DS_Store").write_text("junk")  # litter elsewhere stays ignored
     (repo.path / "refs" / ".DS_Store").write_text("junk")
     report = repo.fsck()
-    assert not report.ok and any("Main" in error for error in report.errors)
-    (repo.path / "refs" / "heads" / "Main").unlink()
+    assert not report.ok and any("Feature" in error for error in report.errors)
+    (repo.path / "refs" / "heads" / "Feature").unlink()
     (repo.path / "unadopted").write_bytes(b"not-an-oid\n")
     report = repo.fsck()
     assert not report.ok and any(error.startswith("unadopted") for error in report.errors)

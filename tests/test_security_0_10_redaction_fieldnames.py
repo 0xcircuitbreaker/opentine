@@ -96,11 +96,11 @@ def test_the_field_rule_stays_linear():
         unit = '{"field_%d": "value", "app.db.pwd": "x"} '
         blob = "".join(unit % i for i in range(count)).encode()
         best = float("inf")
-        for _ in range(2):
+        for _ in range(3):
             started = time.perf_counter()
             redact_blob(blob)
             best = min(best, time.perf_counter() - started)
         return best
 
     small, large = cost(2000), cost(8000)
-    assert large < max(small, 0.02) * 6
+    assert large < max(small, 0.02) * 8

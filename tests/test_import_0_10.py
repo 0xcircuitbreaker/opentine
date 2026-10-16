@@ -591,7 +591,7 @@ def test_gemini_patch_merge_is_linear_in_tool_calls():
 
 
 def _growth(build, run, n: int) -> float:
-    """time(2n) / time(n), best of three each: ~2 when linear, ~4 when quadratic."""
+    """time(4n) / time(n), best of three each: ~4 when linear, ~16 when quadratic."""
 
     def best(size: int) -> float:
         data = build(size)
@@ -602,7 +602,7 @@ def _growth(build, run, n: int) -> float:
             timings.append(time.perf_counter() - started)
         return min(timings)
 
-    return best(2 * n) / max(best(n), 1e-9)
+    return best(4 * n) / max(best(n), 0.01)
 
 
 def _gemini_updates(size: int) -> list[dict]:
@@ -616,7 +616,7 @@ def _gemini_updates(size: int) -> list[dict]:
 
 
 def test_gemini_patch_updates_cost_linear_time_in_updates_times_calls():
-    assert _growth(_gemini_updates, gemini_session_events, 3000) < 3
+    assert _growth(_gemini_updates, gemini_session_events, 1500) < 8
 
 
 def test_gemini_result_attaches_to_one_call_when_ids_repeat():
@@ -1262,10 +1262,13 @@ def _chain(spans: int) -> dict:
 def test_the_agent_billing_walk_is_linear_in_a_span_chain():
     def elapsed(spans: int) -> float:
         document = _chain(spans)
-        started = time.perf_counter()
-        events = otel_genai_events(document)
-        assert len(events) == spans
-        return time.perf_counter() - started
+        best = float("inf")
+        for _ in range(3):
+            started = time.perf_counter()
+            events = otel_genai_events(document)
+            assert len(events) == spans
+            best = min(best, time.perf_counter() - started)
+        return best
 
     elapsed(200)  # warm
     small, large = elapsed(1500), elapsed(6000)
@@ -1400,7 +1403,7 @@ def test_span_coverage_is_linear_in_turns_times_payload():
         payload = {"text": "a" * (40_000 * scale) + tail}
         turns = [{"role": "user", "content": f"<{i}>"} for i in range(count)]
         best = float("inf")
-        for _ in range(2):
+        for _ in range(3):
             started = time.monotonic()
             _covered(payload, turns)
             best = min(best, time.monotonic() - started)

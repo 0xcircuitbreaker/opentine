@@ -78,9 +78,12 @@ def test_a_decorated_ppk_never_reaches_a_saved_run(tmp_path):
 def test_ppk_redaction_stays_linear_in_headers():
     def elapsed(count: int) -> float:
         text = "PuTTY-User-Key-File-3: x\n" * count
-        started = time.perf_counter()
-        redact_text(text)
-        return time.perf_counter() - started
+        best = float("inf")
+        for _ in range(3):
+            started = time.perf_counter()
+            redact_text(text)
+            best = min(best, time.perf_counter() - started)
+        return best
 
     small, large = elapsed(2000), elapsed(8000)
     assert large < max(small, 0.02) * 8

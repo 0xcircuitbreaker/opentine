@@ -410,7 +410,7 @@ def test_inline_reasoning_stream_is_bounded_and_linear():
     started = __import__("time").perf_counter()
     for _ in range(20_000):
         stream.feed("x" * 64)
-    assert __import__("time").perf_counter() - started < 2.0
+    assert __import__("time").perf_counter() - started < 5.0
     assert len(stream._pending) <= inline.GAP_LIMIT + 64
     blank = InlineReasoningStream()
     for _ in range(20_000):

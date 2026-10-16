@@ -83,9 +83,12 @@ def test_a_long_secret_field_name_is_still_redacted(length):
 def test_long_field_names_stay_linear():
     def elapsed(n: int) -> float:
         blob = ('"' + "a" * 2000 + '": "v", ') * n
-        started = time.monotonic()
-        redact_blob(blob.encode())
-        return time.monotonic() - started
+        best = float("inf")
+        for _ in range(3):
+            started = time.monotonic()
+            redact_blob(blob.encode())
+            best = min(best, time.monotonic() - started)
+        return best
 
     small, large = elapsed(50), elapsed(200)
     assert large < max(small, 0.02) * 8

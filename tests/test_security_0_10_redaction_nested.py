@@ -82,7 +82,7 @@ def test_nested_check_stays_linear():
         lines = "\n".join(f"AZURE_STORAGE_KEY=a{i}\nDB_PASSWORD='{SECRET}{i}'" for i in range(n))
         blob = json.dumps({"stdout": _nested(lines, 2)}).encode()
         best = float("inf")
-        for _ in range(2):
+        for _ in range(3):
             started = time.monotonic()
             out = redact_blob(blob)
             best = min(best, time.monotonic() - started)

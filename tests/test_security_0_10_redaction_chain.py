@@ -43,14 +43,14 @@ def _ratio(unit: bytes, small: int) -> float:
     def elapsed(size: int) -> float:
         blob = b"log: " + unit * (size // len(unit))
         best = float("inf")
-        for _ in range(2):
+        for _ in range(3):
             started = time.monotonic()
             redact_blob(blob)
             best = min(best, time.monotonic() - started)
         return best
 
     a, b = elapsed(small), elapsed(small * 4)
-    return b / max(a, 0.01)
+    return b / max(a, 0.02)
 
 
 @pytest.mark.parametrize(

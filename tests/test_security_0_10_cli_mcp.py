@@ -9,6 +9,7 @@ unsigned out-of-bound scores and junk signature blocks), and the MCP fork bounds
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -240,7 +241,10 @@ def test_every_registered_mcp_tool_and_resource_returns_no_hidden_characters(tmp
     _, v3_run, event, _ = _v3(tmp_path, text=f"answer{TAGS}‮", model=f"gpt{TAGS}")
     runs = tmp_path / "runs"
     runs.mkdir()
-    for name in ("plain", f"run{TAGS}‮enit", f"z{chr(0x200B) * 3}\x1b]52;c;x\x07"):
+    # Windows refuses C0 controls in file names; the hidden-name skip is still
+    # exercised there by the zero-width and tag/bidi names.
+    controls = "" if sys.platform == "win32" else "\x1b]52;c;x\x07"
+    for name in ("plain", f"run{TAGS}‮enit", f"z{chr(0x200B) * 3}{controls}"):
         run = Run(run_id=f"r{TAGS}{len(name)}", model_info=f"m{TAGS}‮")
         run.add_step(StepKind.think, {"text": f"t{TAGS}‮"})
         run.add_step(StepKind.done, {"text": f"d{TAGS}"})

@@ -127,10 +127,13 @@ def test_prose_mentioning_putty_is_not_a_key():
 def test_many_openers_on_one_line_stay_linear():
     def elapsed(n: int) -> float:
         line = "PuTTY-User-Key-File-3: ssh-ed25519 " * n
-        started = time.perf_counter()
-        KeyLines().mask(line)
-        masked_text(line)
-        return time.perf_counter() - started
+        best = float("inf")
+        for _ in range(3):
+            started = time.perf_counter()
+            KeyLines().mask(line)
+            masked_text(line)
+            best = min(best, time.perf_counter() - started)
+        return best
 
     elapsed(200)
     small, large = elapsed(2000), elapsed(8000)
