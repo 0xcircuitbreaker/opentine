@@ -143,12 +143,12 @@ def test_migration_preflight_matches_object_limit_and_ref_validation(
     existing = limited.put("run", {"events": [], "manifests": {}, "roots": [], "tips": []})
     limited.put("annotation", {"target_id": existing, "value": {"index": 1}})
     limited.put("annotation", {"target_id": existing, "value": {"index": 2}})
-    before = limited.iter_oids()
     original_limit = _annotations.MAX_LEGACY_OBJECTS
     monkeypatch.setattr(_annotations, "MAX_LEGACY_OBJECTS", 1)
-    with pytest.raises(ValueError, match="legacy annotation scan exceeds its object limit"):
-        limited.migrate_v2(path)
-    assert limited.iter_oids() == before
+    # Past the legacy scan bound the unheaded-annotation fallback adopts nothing
+    # (0.10); it no longer refuses the migration, in the preflight or the store.
+    migrated = limited.migrate_v2(path)
+    assert limited.load_run(migrated.run_id).metadata["note"] == "force annotation discovery"
 
     monkeypatch.setattr(_annotations, "MAX_LEGACY_OBJECTS", original_limit)
     invalid_ref = Repo.init(tmp_path / "invalid-ref")

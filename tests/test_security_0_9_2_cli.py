@@ -138,6 +138,7 @@ def test_a_token_file_is_read_and_checked(tmp_path, capsys):
     good, bad = tmp_path / "token", tmp_path / "two"
     good.write_text("secret-token\n")
     bad.write_text("one two\n")
+    good.chmod(0o600)  # 0.10 warns about a group/other-readable token file
     assert _token(argparse.Namespace(token=None, token_file=str(good))) == "secret-token"
     assert capsys.readouterr().err == ""
     with pytest.raises(ValueError, match="exactly one token"):

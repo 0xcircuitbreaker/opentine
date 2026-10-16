@@ -5,11 +5,12 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
+import re
 import threading
 import time
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 import httpx
 
@@ -60,8 +61,27 @@ def run_request(
     raise result
 
 
+def raise_for_status(response: httpx.Response) -> None:
+    """Refuse a non-2xx response without echoing the URL's credentials or query.
+
+    httpx's own message carries the full request URL, so a token in a query
+    string or in userinfo travelled into tracebacks, CLI errors and CI logs.
+    """
+    if response.is_success:
+        return
+    path = urlparse(str(response.request.url)).path
+    raise ValueError(f"remote returned HTTP {response.status_code} for {path}")
+
+
 def require_secure_remote(base: str, allow_insecure: bool) -> None:
     parsed = urlparse(base)
+    # A request path is joined onto the base, so a query string there ended up in
+    # the middle of every URL -- and credentials in it or in userinfo were echoed.
+    if parsed.query or parsed.fragment or parsed.username or parsed.password:
+        raise ValueError(
+            "remote URL must not carry credentials, a query or a fragment; "
+            "pass the token with --token-file or TINE_REMOTE_TOKEN"
+        )
     # Only the two schemes the transport speaks: the loopback exemption below used
     # to wave through ``ftp://127.0.0.1`` (refused later, by httpx, by accident).
     if parsed.scheme not in {"http", "https"}:
@@ -154,7 +174,7 @@ def request_json(
     def operation() -> tuple[int, dict[str, Any]]:
         with session.stream(method, url, **kwargs) as response:
             if response.status_code not in allowed:
-                response.raise_for_status()
+                raise_for_status(response)
             return response.status_code, read_json(response, max_seconds=max_seconds)
 
     return run_request(session, max_seconds, "control request", operation)
@@ -171,9 +191,37 @@ def request_pack(
 ) -> bytes:
     def operation() -> bytes:
         with session.stream(method, url, **kwargs) as response:
-            response.raise_for_status()
+            raise_for_status(response)
             if response_headers is not None:
                 response_headers.update((k.lower(), v) for k, v in response.headers.items())
             return read_pack(response, max_seconds=max_seconds)
 
     return run_request(session, max_seconds, "pack request", operation)
+
+
+#: The tenant-name grammar the server enforces (``remote.valid_tenant``).
+_TENANT = re.compile(r"[a-z0-9][a-z0-9._-]{0,127}")
+
+
+def split_remote(remote: str, tenant: str | None) -> tuple[str, str]:
+    url = remote.rstrip("/")
+    # Checked on the URL as given: splitting off an embedded tenant first left a
+    # ``?token=...`` inside the tenant, sent in every request path and echoed in
+    # errors.
+    parsed = urlsplit(url)
+    if parsed.query or parsed.fragment or parsed.username or parsed.password or "?" in url:
+        raise ValueError(
+            "remote URL must not carry credentials, a query or a fragment; "
+            "pass the token with --token-file or TINE_REMOTE_TOKEN"
+        )
+    marker = "/v1/tenants/"
+    if marker in url:
+        base, embedded = url.split(marker, 1)
+        name = tenant or embedded.split("/", 1)[0]
+    elif tenant:
+        base, name = url, tenant
+    else:
+        raise ValueError("tenant is required unless embedded in the remote URL")
+    if not _TENANT.fullmatch(name):
+        raise ValueError("tenant must match [a-z0-9][a-z0-9._-]*")
+    return base, name

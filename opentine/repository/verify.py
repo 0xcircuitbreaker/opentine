@@ -112,6 +112,36 @@ def _pack_errors(repo: Repo) -> list[str]:
     return errors
 
 
+def _layout_errors(repo: Repo) -> list[str]:
+    """Ref files ``list_refs`` skips by design, and an unreadable unadopted record.
+
+    ``list_refs`` ignores a file that is not a legal ref name (a stray
+    ``.DS_Store`` must not make every ref unreadable), so fsck reports it here --
+    except dot-files, which are operating-system litter, not attempted refs;
+    and a corrupt ``unadopted`` record breaks every load of a run that has no
+    annotation ref while every object still verifies.
+    """
+    from opentine.repository._paths import internal_files, internal_path
+    from opentine.repository._unadopted import read_unadopted
+
+    errors: list[str] = []
+    root = internal_path(repo.path, "refs")
+    for path in sorted(internal_files(repo.path, "refs")):
+        name = path.relative_to(root).as_posix()
+        # Lock files are transient; dot-files are OS litter (.DS_Store, ._x).
+        if name.casefold().endswith(".lock") or path.name.startswith("."):
+            continue
+        try:
+            repo._ref_name(name)
+        except ValueError as exc:
+            errors.append(f"ref file {name!r}: not a legal ref name ({exc})")
+    try:
+        read_unadopted(repo.path, strict=True)
+    except (KernelError, OSError, ValueError) as exc:
+        errors.append(f"unadopted: {exc}")
+    return errors
+
+
 def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     errors: list[str] = []
     view = SemanticView(repo)
@@ -148,6 +178,7 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
         except (KernelError, ValueError) as exc:
             errors.append(f"ref {name}: {exc}")
             continue
+    errors.extend(_layout_errors(repo))
     if deep:
         errors.extend(_pack_errors(repo))
         errors.extend(_cycle_errors(view, oids))

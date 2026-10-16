@@ -137,7 +137,9 @@ def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
     # Written over the whole mapping so an override added above is covered here
     # without a second edit, and before _closure so nothing is written at all.
     assert_unicode_text(
-        _redact(json_safe({key: item for key, item in values.items() if key != "prompt"})),
+        _redact(
+            json_safe({key: item for key, item in values.items() if key != "prompt"}, strict=True)
+        ),
         where="fork override",
     )
     return values

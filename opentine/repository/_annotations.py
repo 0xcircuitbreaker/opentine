@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any
 
 from opentine._canon import _redact
@@ -76,44 +77,67 @@ def _value(payload: Any, run_id: str) -> dict[str, Any]:
     return value
 
 
-def _bounded_legacy_oids(oids):
+def _legacy_candidates(repo: Repo, run_id: str) -> list[str] | None:
+    """Annotation ids that may name *run_id*; None when there are too many to read.
+
+    A repository on disk asks the target index, so a load or put reads only this
+    run's annotations. Other stores (a migration preflight view) are scanned.
+    """
+    from opentine.repository._association_index import associated
+
+    typed = getattr(repo, "iter_typed_oids", None)
+    path = getattr(repo, "path", None)
+    staged = getattr(repo, "annotation_candidates", None)
     try:
-        yield from oids
-    except ValueError as exc:
-        if "typed object scan exceeds" in str(exc):
-            raise ValueError("legacy annotation scan exceeds its object limit") from exc
-        raise
+        oids = staged(run_id) if callable(staged) else None
+        if oids is not None:
+            pass
+        elif callable(typed):
+            oids = list(typed({"annotation"}, limit=MAX_LEGACY_OBJECTS))
+        elif path is not None:
+            oids = associated(repo, run_id, {"annotation"})
+        else:
+            oids = [
+                oid
+                for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS)
+                if oid.startswith("annotation:")
+            ]
+    except ValueError:
+        return None  # past the scan bound
+    if oids is None or len(oids) > MAX_LEGACY_OBJECTS:
+        return None
+    return oids
 
 
 def _legacy_head(repo: Repo, run_id: str) -> str | None:
-    from opentine.repository._objects import iter_typed_object_oids
+    """The run's unique unheaded annotation chain tip, if the fallback may adopt one.
+
+    The fallback only ever *adds* tags a ref does not vouch for, so whenever it
+    cannot be read safely -- more annotations than its bounds, or an unadopted
+    record it cannot fully read -- it adopts nothing rather than failing every
+    ``load_run`` and ``put_run`` of an untagged run.
+    """
     from opentine.repository._semantic_view import semantic_view
     from opentine.repository._unadopted import read_unadopted
 
     candidates: dict[str, dict[str, Any]] = {}
-    typed = getattr(repo, "iter_typed_oids", None)
-    path = getattr(repo, "path", None)
-    if callable(typed):
-        oids = typed({"annotation"}, limit=MAX_LEGACY_OBJECTS)
-    elif path is not None:
-        oids = iter_typed_object_oids(
-            path,
-            {"annotation"},
-            limit=MAX_LEGACY_OBJECTS,
-        )
-    else:
-        oids = (
-            oid for oid in repo.iter_oids(limit=MAX_LEGACY_OBJECTS) if oid.startswith("annotation:")
-        )
-    view = semantic_view(repo)
+    # A preflight view stages writes over a store: its record is the store's.
+    path = getattr(repo, "path", None) or getattr(getattr(repo, "base", None), "path", None)
+    oids = _legacy_candidates(repo, run_id)
+    if oids is None:
+        return None
     # A pack's annotations of a run this repository already held (see _unadopted).
     skipped = read_unadopted(path) if path is not None else frozenset()
-    for index, oid in enumerate(_bounded_legacy_oids(oids), 1):
-        if index > MAX_LEGACY_OBJECTS:
-            raise ValueError("legacy annotation scan exceeds its object limit")
+    if not getattr(skipped, "complete", True):
+        return None
+    view = semantic_view(repo)
+    for oid in oids:
         if oid in skipped:
             continue
-        payload = view.get(oid).payload()
+        try:
+            payload = view.get(oid).payload()
+        except (KeyError, ValueError, KernelError):
+            continue  # unreadable here (a cut link): it cannot be this run's head
         if isinstance(payload, dict) and payload.get("target_id") == run_id:
             candidates[oid] = payload
     marked = {
@@ -132,7 +156,15 @@ def _legacy_head(repo: Repo, run_id: str) -> str | None:
     }
     tips = sorted(set(candidates) - previous)
     if len(tips) != 1:
-        raise ValueError("run has ambiguous unheaded legacy annotations")
+        # Any writer on a shared remote can push two unheaded annotations for
+        # someone else's run; raising made it unloadable and untaggable. Adopt
+        # nothing, so a later tag starts a fresh, ref-backed head.
+        warnings.warn(
+            "run has ambiguous unheaded legacy annotations; adopting none",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
     return tips[0]
 
 
@@ -193,7 +225,7 @@ def write_run_annotation(
     if old and old != ref_head:
         repo.update_ref(name, old, expected_old=ref_head)
         ref_head = old
-    value = redact_value(_redact(json_safe({"metadata": metadata, "tags": tags})))
+    value = redact_value(_redact(json_safe({"metadata": metadata, "tags": tags}, strict=True)))
     _assert_writable(value)
     if old and _head_value(repo, old, run_id) == value:
         return old

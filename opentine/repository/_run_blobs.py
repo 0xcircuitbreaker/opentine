@@ -53,7 +53,7 @@ def apply_legacy_migration(
 
 
 def json_blob(repo: Repo, value: Any) -> str:
-    return repo.put("blob", guarded_blob_body(value), redact=False)
+    return repo.put("blob", guarded_blob_body(value, strict=True), redact=False)
 
 
 def blob_json(repo: Repo, oid: str) -> dict[str, Any]:
@@ -152,7 +152,7 @@ def put_run_manifest(repo: Repo, manifest: dict[str, Any], event_map: dict[str, 
             return value
         raise ValueError("pricing manifest references an unknown step")
 
-    stored = json_safe(manifest)
+    stored = json_safe(manifest, strict=True)
     pricing = stored.get("pricing") if isinstance(stored, dict) else None
     if isinstance(pricing, dict):
         cards = pricing.get("rate_cards")

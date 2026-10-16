@@ -17,7 +17,7 @@ from opentine._v3_guards import guarded_redaction
 from opentine.kernel import KernelError, _parse_int, canonical_json, validate_json_shape
 
 
-def guarded_blob_body(value: Any) -> bytes:
+def guarded_blob_body(value: Any, *, strict: bool = False) -> bytes:
     """Canonicalize a JSON blob, refusing anything ``guarded_blob_parse`` cannot read.
 
     The reader enforces four rules on every blob: the body parses as JSON, its
@@ -41,8 +41,14 @@ def guarded_blob_body(value: Any) -> bytes:
     ``guarded_redaction`` names the field path instead, for every blob this
     writes: step inputs and outputs, the run manifest, transcript, cache and
     policies.
+
+    ``strict`` is the repository's spelling (``put_run``, ``migrate-v3``): there a
+    subtree past the lenient depth bound used to be replaced by ``"[MAX_DEPTH]"``
+    with no error and fsck still green -- the v2 file held it, the v3 copy did not.
+    Strict mode refuses instead (``ValueError``) and only beyond the format's own
+    depth limit. The lenient default stays for the trace and live recorders.
     """
-    safe = json_safe(value)
+    safe = json_safe(value, strict=strict)
     if not isinstance(safe, dict):
         raise ValueError(
             "step and run JSON must be an object to survive a later load; got "

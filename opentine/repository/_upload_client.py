@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from opentine.repository._http import read_json, request_json, run_request
+from opentine.repository._http import raise_for_status, read_json, request_json, run_request
 from opentine.repository.pack import minimum_upload_chunk
 
 _UPLOAD_ID = re.compile(r"[0-9a-f]{32}")
@@ -28,7 +28,7 @@ def _head_offset(
         with client.stream("HEAD", upload) as response:
             if response.status_code == 404:
                 return None
-            response.raise_for_status()
+            raise_for_status(response)
             raw = response.headers.get("upload-offset")
             if raw is None:
                 raw = str(_offset(read_json(response, max_seconds=timeout)))

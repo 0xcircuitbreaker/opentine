@@ -50,7 +50,7 @@ class SemanticView:
         self._cache: OrderedDict[str, CachedEnvelope] = OrderedDict()
         self._cache_bytes = 0
         self._source_bytes = 0
-        self._source_seen: set[str] = set()
+        self._source_seen: dict[str, int] = {}
         self._summaries: OrderedDict[str, tuple[Any, ...]] = OrderedDict()
         self._validated: set[str] = set()
         self._validating: set[str] = set()
@@ -69,6 +69,16 @@ class SemanticView:
     def raw(self, oid: str) -> bytes:
         raw = self.packed.get(oid)
         return raw if raw is not None else self.base.raw(oid)
+
+    def source_mark(self) -> int:
+        """A point to roll the source budget back to (see :meth:`source_reset`)."""
+        return len(self._source_seen)
+
+    def source_reset(self, mark: int) -> None:
+        """Forget the source bytes charged since *mark* (work that was abandoned)."""
+        while len(self._source_seen) > mark:
+            _, size = self._source_seen.popitem()
+            self._source_bytes -= size
 
     def _preflight_source(self, oid: str, size: int) -> None:
         if type(size) is not int or size < 0:
@@ -103,7 +113,7 @@ class SemanticView:
                 self._preflight_source(oid, source_size)
             envelope = CachedEnvelope(decoded)
             if fresh_source:
-                self._source_seen.add(oid)
+                self._source_seen[oid] = source_size
                 self._source_bytes += source_size
             self._remember_summary(oid, envelope)
             if source_size <= self._max_cache_bytes:

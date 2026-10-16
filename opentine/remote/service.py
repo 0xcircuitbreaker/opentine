@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import parse_oid, validate_links
+from opentine.kernel import parse_oid
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
@@ -26,9 +26,10 @@ from opentine.remote.interfaces import (
     IndexBackend,
     ObjectStore,
 )
+from opentine.repository._pack_fit import fitted_pack, typed_selection
 from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository._semantic_view import SemanticView
-from opentine.repository.pack import MAX_PACK_BODY_BYTES, create_pack, inspect_pack, negotiate
+from opentine.repository.pack import MAX_PACK_BODY_BYTES, inspect_pack, negotiate
 
 
 class RemoteService:
@@ -137,17 +138,14 @@ class RemoteService:
             TenantRepo(tenant, self.objects, self.index), max_source_bytes=MAX_PACK_BODY_BYTES
         )
         short: list[str] = []
-        missing = negotiate(repo, wants, haves, depth=depth, omitted=short)
-        if object_types:
-            selected = {oid for oid in missing if oid.split(":", 1)[0] in object_types}
-            selected.update(
-                link
-                for oid in tuple(selected)
-                for link in validate_links(repo.get(oid))
-                if link in missing
-            )
-            missing = sorted(selected)
-        data = create_pack(repo, missing)
+        data, missing = fitted_pack(
+            repo,
+            wants,
+            haves,
+            depth=depth,
+            omitted=short,
+            select=typed_selection(object_types) if object_types else None,
+        )
         details: dict[str, Any] = {"objects": len(missing)}
         if short:
             details["associations_omitted"] = len(short)

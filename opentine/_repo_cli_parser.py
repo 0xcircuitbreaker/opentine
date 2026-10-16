@@ -97,6 +97,11 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     _remote_args(fetch)
     fetch.add_argument("--ref", default="heads/main")
     fetch.add_argument("--depth", type=int)
+    fetch.add_argument(
+        "--adopt-annotations",
+        action="store_true",
+        help="Also adopt the remote's tags/metadata for runs you already held",
+    )
     fetch.add_argument("--repo", default=".")
 
     push = subparsers.add_parser("push", help="Push a pack and CAS-update a remote ref")

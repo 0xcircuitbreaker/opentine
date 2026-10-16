@@ -159,21 +159,26 @@ def test_a_credential_shaped_policy_value_is_redacted_not_refused(tmp_path):
     assert repo.fsck().ok
 
 
-def test_a_policy_deeper_than_json_safe_keeps_is_still_forkable(tmp_path):
-    # json_safe truncates at depth 100 rather than refusing, so a surrogate below
-    # that line never reaches an encoder and the blob writer accepts it. The guard
-    # runs on json_safe's own output for exactly this reason: reading the raw dict
-    # would refuse a fork the writer beneath it completes.
-    deep: dict[str, object] = {}
-    cursor = deep
-    for _ in range(140):
-        child: dict[str, object] = {}
-        cursor["n"] = child
-        cursor = child
-    cursor["leaf"] = LONE
+def test_a_deep_policy_is_forked_intact_and_a_deep_surrogate_is_refused(tmp_path):
+    # json_safe used to truncate at depth 100 on the repository path, so a deep
+    # policy was stored as "[MAX_DEPTH]" (0.10: strict, no silent truncation). The
+    # guard still runs on what the writer stores, which is now the whole value.
+    def nest(leaf: object) -> dict[str, object]:
+        deep: dict[str, object] = {}
+        cursor = deep
+        for _ in range(140):
+            child: dict[str, object] = {}
+            cursor["n"] = child
+            cursor = child
+        cursor["leaf"] = leaf
+        return deep
+
     repo, run_id, event = _forkable(tmp_path, "deep")
-    forked = repo.fork(run_id, event, overrides={"policy": deep}, ref="heads/alt")
-    assert b"MAX_DEPTH" in repo.get(repo.get(forked).payload()["manifests"]["policy"]).body
+    forked = repo.fork(run_id, event, overrides={"policy": nest("ok")}, ref="heads/alt")
+    body = repo.get(repo.get(forked).payload()["manifests"]["policy"]).body
+    assert b"MAX_DEPTH" not in body and b'"leaf":"ok"' in body
+    with pytest.raises(ValueError):
+        repo.fork(run_id, event, overrides={"policy": nest(LONE)}, ref="heads/alt2")
     assert repo.fsck().ok
 
 

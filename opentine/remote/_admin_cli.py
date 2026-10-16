@@ -49,10 +49,19 @@ def add_admin_parsers(serve: argparse.ArgumentParser) -> None:
         default=3600.0,
         help="Keep unreferenced objects written this recently (default 3600)",
     )
+    purge.add_argument(
+        "--force",
+        action="store_true",
+        help="Allow --grace-seconds below 60, which can race a push in progress",
+    )
     for parser in (delete_objects, purge):
         parser.add_argument("--dry-run", action="store_true", help="Report without deleting")
     for parser in (refs, delete_ref, associations, delete_objects, purge):
         _scoped(parser)
+
+
+#: Below this, ``purge`` needs ``--force``: a concurrent push may lose objects.
+MIN_SAFE_GRACE = 60.0
 
 
 def _oids(args: argparse.Namespace) -> list[str]:
@@ -67,8 +76,16 @@ def _oids(args: argparse.Namespace) -> list[str]:
 def cmd_serve_admin(args: argparse.Namespace, console: Any) -> None:
     from opentine.remote._admin import RemoteAdmin
 
-    admin = RemoteAdmin.open(args.root)
     action = args.admin_action
+    # An install reuses old orphaned objects; with no grace a purge can remove
+    # them between that install and its ref update (the fence cannot help).
+    if action == "purge" and args.grace_seconds < MIN_SAFE_GRACE:
+        if not (args.force or args.dry_run):
+            raise SystemExit(
+                f"--grace-seconds below {MIN_SAFE_GRACE:g} can delete objects a push in "
+                "progress is about to reference; pass --force if no client is writing"
+            )
+    admin = RemoteAdmin.open(args.root)
     if action == "refs":
         result: Any = {"refs": admin.refs(args.tenant)}
     elif action == "delete-ref":
