@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from opentine.models._chat import ChatCompletions
+from opentine.models._sdk_headers import openai_headers
 
 
 def _exact_url(base_url: str) -> str:
@@ -66,6 +68,8 @@ class OpenAICompatible(ChatCompletions):
                 trust_env=self._trust_env,
                 follow_redirects=False,
             ),
+            # A compatible or local server never gets OPENAI_CUSTOM_HEADERS.
+            default_headers=openai_headers(openai.Omit(), self._base_url, keep_env=False),
         )
 
     def _kwargs(
@@ -94,6 +98,8 @@ class LocalOpenAICompatible(OpenAICompatible):
     default_key = "local"
     api_prefix = "/v1"
     default_include_usage = False
+    #: A runtime with no conventional port (Foundry Local picks one at start).
+    requires_base_url = False
 
     def __init__(
         self,
@@ -108,6 +114,14 @@ class LocalOpenAICompatible(OpenAICompatible):
     ):
         if host is not None and base_url is not None:
             raise ValueError("pass host or exact base_url, not both")
+        # ``LLAMACPP_BASE_URL`` / ``LLAMACPP_API_KEY``: per-preset overrides, so a
+        # server on another port or machine, or one that requires a key, needs no code.
+        env = self.provider.upper().replace("-", "_")
+        if host is None and base_url is None and os.environ.get(f"{env}_BASE_URL"):
+            base_url = os.environ[f"{env}_BASE_URL"]
+        api_key = api_key or os.environ.get(f"{env}_API_KEY") or None
+        if self.requires_base_url and host is None and base_url is None:
+            raise ValueError(f"{self.provider} needs base_url= (or {env}_BASE_URL)")
         if unmetered is None:
             priced = kwargs.get("rates") is not None or any(
                 kwargs.get(name) is not None
@@ -165,6 +179,7 @@ class LocalAI(LocalOpenAICompatible):
     provider = "localai"
     default_host = "http://localhost:8080"
     default_key = "local-ai"
+    default_include_usage = True  # honours stream_options.include_usage (v4.x)
 
 
 class Jan(LocalOpenAICompatible):

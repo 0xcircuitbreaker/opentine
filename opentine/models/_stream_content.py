@@ -6,6 +6,7 @@ from typing import Any
 
 from opentine.models._chat_blocks import parse_chat_blocks
 from opentine.models._continuation import anthropic_blocks, google_blocks
+from opentine.models._inline_reasoning import split_inline
 from opentine.models._streaming import (
     MAX_STREAM_CALLS,
     SizeBudget,
@@ -37,9 +38,17 @@ def chat_content(message: Any) -> dict[str, Any]:
         value(message, "content", "") or ""
     )
     warnings.extend(block_warnings)
+    body, inline = split_inline(body)  # <think>/[THINK]/Harmony left inline by the server
     text.add(body)
     refusal.add(value(message, "refusal", "") or "")
-    reasoning.add(value(message, "reasoning_content") or value(message, "reasoning") or thought)
+    structured = value(message, "reasoning_content") or value(message, "reasoning") or thought
+    # Both kept: a server can return structured reasoning *and* leave a different
+    # <think> block inline; dropping either loses model output from the record.
+    # The same text in both places (llama.cpp's deepseek-legacy) is kept once.
+    parts = [part for part in (structured, inline) if isinstance(part, str) and part]
+    if len(parts) == 2 and parts[1].strip() in parts[0]:
+        parts.pop()
+    reasoning.add("\n\n".join(parts))
     raw_calls = value(message, "tool_calls", []) or []
     for call in raw_calls[:MAX_STREAM_CALLS]:
         function = value(call, "function")

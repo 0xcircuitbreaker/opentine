@@ -175,18 +175,34 @@ LOCAL_PRESETS = {
     "tgi": compat.TGI,
     "unsloth": compat.Unsloth,
     "vllm": compat.VLLM,
+    "aphrodite": compat.Aphrodite,
+    "docker-model-runner": compat.DockerModelRunner,
+    "dynamo": compat.Dynamo,
+    "foundry-local": compat.FoundryLocal,
+    "lemonade": compat.Lemonade,
+    "llamafile": compat.Llamafile,
+    "lmdeploy": compat.LMDeploy,
+    "mistralrs": compat.MistralRs,
+    "ovms": compat.OVMS,
+    "tabbyapi": compat.TabbyAPI,
+    "xinference": compat.Xinference,
 }
 
 
 @pytest.mark.parametrize("name", sorted(LOCAL_PRESETS), ids=lambda name: name)
 def test_a_local_preset_resolves_to_its_class_at_its_own_default_host(name):
     """A model id is the whole spec: the preset supplies host, prefix, and key."""
+    preset = LOCAL_PRESETS[name]
+    assert model_class(name) is preset
+    if preset.requires_base_url:  # no conventional port: the base URL is required
+        with pytest.raises(ValueError, match="base_url"):
+            resolve_model(f"{name}:served-model")
+        return
     adapter = resolve_model(f"{name}:served-model")
 
-    assert model_class(name) is LOCAL_PRESETS[name]
-    assert isinstance(adapter, LOCAL_PRESETS[name])
+    assert isinstance(adapter, preset)
     assert adapter.name == "served-model"
-    assert adapter._base_url == f"{LOCAL_PRESETS[name].default_host}/v1"
+    assert adapter._base_url == f"{preset.default_host}{preset.api_prefix}"
     assert "localhost" in adapter._base_url
 
 

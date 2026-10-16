@@ -7,26 +7,11 @@ from typing import Any
 
 from opentine.models._chat import ChatCompletions
 from opentine.models._compat_auth import glm_jwt
+from opentine.models._compat_util import _china_host, _has_cache_control
 
 
 def env_key(name: str) -> str:
     return os.environ.get(name, "")
-
-
-def _has_cache_control(value: Any) -> bool:
-    stack, seen = [value], set()
-    while stack:
-        item = stack.pop()
-        if id(item) in seen:
-            continue
-        seen.add(id(item))
-        if isinstance(item, dict):
-            if "cache_control" in item:
-                return True
-            stack.extend(item.values())
-        elif isinstance(item, (list, tuple)):
-            stack.extend(item)
-    return False
 
 
 def _base(
@@ -38,12 +23,14 @@ def _base(
     url: str,
     kwargs: dict[str, Any],
 ) -> None:
+    # An explicit ``base_url`` (``tine run --base-url``) replaces the preset's
+    # endpoint at construction, so nothing derived from the URL goes stale.
     ChatCompletions.__init__(
         instance,
         model,
         provider=provider,
         api_key=key or env_key(key_env),
-        base_url=url,
+        base_url=kwargs.pop("base_url", None) or url,
         **kwargs,
     )
 
@@ -109,8 +96,13 @@ class GLM(ChatCompletions):
         kwargs.setdefault("omit_temperature", True)
         raw_key = api_key or env_key("GLM_API_KEY")
         configured_region = os.environ.get("GLM_REGION")
-        china = (configured_region or "").lower() == "china" or (
-            configured_region is None and "." in raw_key
+        explicit = kwargs.get("base_url") or os.environ.get("GLM_BASE_URL")
+        # The China endpoint (bigmodel.cn) bills in CNY: an explicit URL there is
+        # China whatever the key looks like, so it never prices at the USD card.
+        china = (
+            (configured_region or "").lower() == "china"
+            or (configured_region is None and "." in raw_key)
+            or _china_host(explicit)
         )
         self._glm_jwt_key = raw_key if china and "." in raw_key else None
         default_url = (
@@ -144,7 +136,7 @@ class Grok(ChatCompletions):
 class Groq(ChatCompletions):
     def __init__(
         self,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "openai/gpt-oss-120b",
         api_key: str | None = None,
         **kwargs: Any,
     ):
@@ -163,7 +155,7 @@ class Groq(ChatCompletions):
 class Together(ChatCompletions):
     def __init__(
         self,
-        model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        model: str = "meta-models/Muse-Glimmer-30B",
         api_key: str | None = None,
         **kwargs: Any,
     ):
@@ -217,7 +209,7 @@ class Ministral(Mistral):
 class OpenRouter(ChatCompletions):
     def __init__(
         self,
-        model: str = "nousresearch/hermes-4-70b",
+        model: str = "openai/gpt-oss-120b",
         api_key: str | None = None,
         **kwargs: Any,
     ):

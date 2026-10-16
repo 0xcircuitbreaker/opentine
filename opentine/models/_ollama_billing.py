@@ -17,6 +17,8 @@ def ollama_meter(
     catalog: PricingCatalog | None,
     rates: dict[str, Any] | None,
     compute_rate: bool,
+    *,
+    cloud: bool = False,
 ) -> dict[str, Any]:
     normalized = dict(data)
     with billing_context():
@@ -42,13 +44,15 @@ def ollama_meter(
         if compute_rate
         else ("prompt_eval_count", "eval_count")
     )
+    # Ollama Cloud bills per token: priced from its card (unknown until carded),
+    # never recorded as a free local call.
     return metered_response(
-        "ollama",
+        "ollama-cloud" if cloud else "ollama",
         model,
         ollama_usage(normalized),
         catalog=catalog,
         rate_override=rates,
-        unmetered=rates is None,
+        unmetered=rates is None and not cloud,
         usage_reported=any(name in data for name in usage_fields),
         missing_usage=missing_usage_dimensions(data, required),
         reported_model=data.get("model"),

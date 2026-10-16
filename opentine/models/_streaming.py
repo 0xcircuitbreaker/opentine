@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from opentine.models._chat_blocks import MAX_BLOCKS, count_chat_blocks, parse_chat_blocks
+from opentine.models._inline_reasoning import InlineReasoningStream, finish, route
 from opentine.models._stream_limits import MAX_STREAM_CHARS
 from opentine.models._stream_limits import SizeBudget as _SizeBudget
 from opentine.models._terminal import reject_refused_tool_calls, reject_unsafe_tool_calls
@@ -88,22 +89,21 @@ class ChatStreamState:
         self.warnings: list[str] = WarningList()
         self.argument_budget = SizeBudget()
         self.content_budget = SizeBudget()
+        self.inline = InlineReasoningStream()
+
+    def finish(self) -> list[dict[str, str]]:
+        """Events for text the inline-reasoning splitter held back to the end."""
+        return finish(self.inline, self.text, self.reasoning)
 
     def add(self, delta: Any) -> list[dict[str, str]]:
         events: list[dict[str, str]] = []
         text, thought, blocks, block_warnings = parse_chat_blocks(value(delta, "content"))
         self.warnings.extend(block_warnings)
-        text = self.text.add(text)
-        if text:
-            events.append({"type": "text_delta", "text": text})
+        structured = value(delta, "reasoning_content") or value(delta, "reasoning") or thought
+        events.extend(route(self.inline, self.text, self.reasoning, text or "", structured))
         refusal = self.refusals.add(value(delta, "refusal"))
         if refusal:
             events.append({"type": "refusal_delta", "text": refusal})
-        reasoning = self.reasoning.add(
-            value(delta, "reasoning_content") or value(delta, "reasoning") or thought
-        )
-        if reasoning:
-            events.append({"type": "reasoning_delta", "text": reasoning})
         for block in blocks or []:
             count = count_chat_blocks([block])
             if self.content_block_count + count > MAX_BLOCKS:
@@ -155,6 +155,7 @@ class ChatStreamState:
         return events
 
     def result(self) -> dict[str, Any]:
+        self.finish()
         calls: list[dict[str, Any]] = []
         warnings: list[str] = WarningList()
         warnings.extend(self.warnings)

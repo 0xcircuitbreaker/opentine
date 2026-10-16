@@ -66,8 +66,10 @@ def test_a_foreign_model_behind_the_anthropic_adapter_keeps_its_temperature(mode
         ("o3-mini", True, True),
         ("gpt-5.6-sol", True, True),
         ("gpt-6.1-sol", True, True),
-        # Unlisted: the native API fails safe, an arbitrary endpoint does not guess.
-        ("gpt-7", True, False),
+        # A later GPT generation is a reasoning model on any endpoint (0.10: a
+        # gateway serving gpt-7 would 400 on temperature exactly as gpt-6 did).
+        ("gpt-7", True, True),
+        # Unlisted and not a GPT generation: an arbitrary endpoint does not guess.
         ("codex-mini-latest", True, False),
     ],
 )

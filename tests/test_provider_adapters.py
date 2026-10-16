@@ -303,6 +303,7 @@ async def test_compatible_clients_disable_ambient_proxy_and_redirects(
         SimpleNamespace(
             AsyncOpenAI=FakeClient,
             DefaultAsyncHttpxClient=FakeTransport,
+            Omit=object,  # clients cancel the SDK's env custom headers with Omit
         ),
     )
     for adapter in (
@@ -381,7 +382,7 @@ async def test_groq_stream_requests_and_reads_extension_usage(monkeypatch: pytes
 
             return chunks()
 
-    adapter = Groq(api_key="key")
+    adapter = Groq("llama-3.3-70b-versatile", api_key="key")
     client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
     monkeypatch.setattr(adapter, "_get_client", lambda: client)
     events = [event async for event in adapter.stream([{"role": "user", "content": "hi"}])]

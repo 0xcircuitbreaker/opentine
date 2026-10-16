@@ -10,7 +10,9 @@ import httpx
 
 from opentine.billing import PricingCatalog
 from opentine.models import _ollama_http as _http
+from opentine.models._endpoint_security import require_key_transport
 from opentine.models._ollama_billing import ollama_meter
+from opentine.models._ollama_host import cloud_host, normalize_host, served_by_cloud
 from opentine.models._ollama_rates import rate_override
 from opentine.models._ollama_request import build_messages, build_tools
 from opentine.models._provider_meta import model_name
@@ -37,9 +39,14 @@ class Ollama:
         output_cost_per_mtok: float | None = None,
         compute_cost_per_second: float | None = None,
         catalog: PricingCatalog | None = None,
+        api_key: str | None = None,
     ):
         self._model = model
-        self._host = (host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
+        self._host = normalize_host(host or os.environ.get("OLLAMA_HOST"))
+        # Only Ollama Cloud (https://ollama.com) takes a key; never send one elsewhere.
+        key = api_key or (os.environ.get("OLLAMA_API_KEY", "") if cloud_host(self._host) else "")
+        require_key_transport(self._host, key)
+        self._headers = {**_IDENTITY, **({"Authorization": f"Bearer {key}"} if key else {})}
         self._think = think
         self._capabilities: set[str] | None = None
         self._catalog = catalog
@@ -59,7 +66,7 @@ class Ollama:
                 url = f"{self._host}/api/show"
                 request = {"model": self._model}
                 with httpx.Client(timeout=5, trust_env=False, follow_redirects=False) as client:
-                    with client.stream("POST", url, json=request, headers=_IDENTITY) as resp:
+                    with client.stream("POST", url, json=request, headers=self._headers) as resp:
                         resp.raise_for_status()
                         data = _http.read_json(resp, max_bytes=_http.MAX_SHOW_BYTES)
                     self._capabilities = set(data.get("capabilities") or ["tools"])
@@ -105,7 +112,12 @@ class Ollama:
 
     def _meter(self, data: dict[str, Any]) -> dict[str, Any]:
         return ollama_meter(
-            self._model, data, self._catalog, self._rate_override, self._compute_rate
+            self._model,
+            data,
+            self._catalog,
+            self._rate_override,
+            self._compute_rate,
+            cloud=served_by_cloud(self._host, self._model, data),
         )
 
     async def complete(
@@ -125,7 +137,7 @@ class Ollama:
         async with httpx.AsyncClient(
             timeout=120, trust_env=False, follow_redirects=False
         ) as client:
-            async with client.stream("POST", url, json=payload, headers=_IDENTITY) as resp:
+            async with client.stream("POST", url, json=payload, headers=self._headers) as resp:
                 resp.raise_for_status()
                 data = await _http.read_json_async(resp, max_bytes=_http.MAX_CHAT_BYTES)
 
@@ -161,7 +173,7 @@ class Ollama:
         async with httpx.AsyncClient(
             timeout=120, trust_env=False, follow_redirects=False
         ) as client:
-            async with client.stream("POST", url, json=payload, headers=_IDENTITY) as resp:
+            async with client.stream("POST", url, json=payload, headers=self._headers) as resp:
                 resp.raise_for_status()
                 async for chunk in _http.iter_ndjson(resp):
                     if chunk.get("error"):

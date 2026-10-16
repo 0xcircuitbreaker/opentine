@@ -155,4 +155,28 @@ def chat_meter(
         return _openrouter_total(result, raw_usage)
     if provider == "xai" and rates is None and not unmetered:
         return _xai_total(result, raw_usage)
+    if provider == "deepinfra" and rates is None and not unmetered:
+        return _estimated_total(result, raw_usage)
+    return result
+
+
+def _estimated_total(result: dict[str, Any], raw_usage: Any) -> dict[str, Any]:
+    """DeepInfra reports each call's charge as ``usage.estimated_cost``."""
+    cost = _reported_cost(value(raw_usage, "estimated_cost"))
+    if cost is None:
+        return result  # no figure: the card (or unknown) stands
+    billing, amount = result["billing"], str(cost)
+    calculation = billing["calculation"]
+    calculation["candidate_rate_card_id"] = billing["rate_card_id"]
+    calculation["candidate_components_usd"] = calculation.get("components_usd", {})
+    calculation.update(
+        pricing_basis="provider_reported_total",
+        provider_reported_cost_usd=amount,
+        components_usd={"provider_reported_total": amount},
+    )
+    billing.update(
+        status="complete", amount_usd=amount, known_subtotal_usd=amount, rate_card_id=None
+    )
+    billing["warnings"] = [w for w in billing["warnings"] if "unknown" not in w]
+    result["cost"] = float(cost)
     return result

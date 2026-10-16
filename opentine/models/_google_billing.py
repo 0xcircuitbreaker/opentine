@@ -18,6 +18,9 @@ def _tier(value: Any) -> str | None:
         "on_demand": "standard",
         "on_demand_flex": "flex",
         "on_demand_priority": "priority",
+        # google-genai 2.30: an off-peak discount tier. Priced only by a card that
+        # names "offpeak"; otherwise unknown, never billed at the standard rate.
+        "on_demand_offpeak": "offpeak",
     }
     return aliases.get(normalized, normalized)
 

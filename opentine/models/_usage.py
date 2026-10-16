@@ -106,6 +106,10 @@ def openai_missing_usage(raw: Any, *, require_cache_write: bool = False) -> tupl
     return tuple(missing)
 
 
+#: Top-level cached-read spellings (DeepSeek, Inception, ...).
+_CACHED = "cached_tokens prompt_cache_hit_tokens num_cached_tokens cached_input_tokens".split()
+
+
 def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
     """Normalize Responses or Chat Completions usage into exclusive buckets."""
     input_total = alias_integer(raw, "input_tokens", "prompt_tokens")
@@ -122,11 +126,7 @@ def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
         raw_value = _first_value(*candidates, *((raw, name) for name in fallbacks))
         return integer({"value": raw_value}, "value")
 
-    cached = detail(
-        input_details,
-        "cached_tokens",
-        fallbacks=("cached_tokens", "prompt_cache_hit_tokens", "num_cached_tokens"),
-    )
+    cached = detail(input_details, "cached_tokens", fallbacks=tuple(_CACHED))
     write_5m = detail(
         input_details,
         "cache_write_tokens",
@@ -152,7 +152,7 @@ def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
     )
 
 
-def anthropic_usage(raw: Any) -> Usage:
+def anthropic_usage(raw: Any, *, cache_inclusive: bool = False) -> Usage:
     creation = value(raw, "cache_creation")
     write_5m = integer(creation, "ephemeral_5m_input_tokens")
     write_1h = integer(creation, "ephemeral_1h_input_tokens")
@@ -165,6 +165,8 @@ def anthropic_usage(raw: Any) -> Usage:
     if reasoning > output_count:
         raise ValueError("provider usage reasoning tokens exceed total output tokens")
     cache_read = integer(raw, "cache_read_input_tokens")
+    if cache_inclusive:  # a compatible server that counts cache inside input_tokens
+        input_count = max(0, input_count - cache_read - write_5m - write_1h)
     return Usage(
         input=input_count,
         output=output_count - reasoning,
@@ -238,8 +240,10 @@ def ollama_usage(raw: Mapping[str, Any]) -> Usage:
     }
     input_count = integer(raw, "prompt_eval_count")
     output_count = integer(raw, "eval_count")
+    cached = min(integer(raw, "prompt_eval_cached_count"), input_count)  # a subset of input
     return Usage(
-        input=input_count,
+        input=input_count - cached,
+        cache_read=cached,
         output=output_count,
         total=_safe_total(input_count, output_count),
         extra=extra,
