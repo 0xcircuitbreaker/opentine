@@ -351,7 +351,8 @@ def _completed(repo: Repo, name: str) -> str:
 def test_search_ranks_signed_evaluations_above_injected_unsigned_ones(tmp_path):
     repo = Repo.init(tmp_path)
     good, evil = _completed(repo, "good"), _completed(repo, "evil")
-    repo.attest(evil, {"kind": "evaluation", "scores": {"q": 1e300}}, signer="model")
+    # Within the unsigned bound (1e300 is now ignored outright; 0.10 audit C3-7).
+    repo.attest(evil, {"kind": "evaluation", "scores": {"q": 9e5}}, signer="model")
     repo.attest(good, {"kind": "evaluation", "scores": {"q": 0.5}}, signer="ci", key=b"k" * 32)
     ranked = [(row.run_id, row.score_signed) for row in repo.search("")]
     assert ranked == [(good, True), (evil, False)]

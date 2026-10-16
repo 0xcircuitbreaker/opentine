@@ -52,7 +52,8 @@ from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
-from opentine._cli_text import without_userinfo as _without_userinfo
+from opentine._cli_text import endpoint_for_display
+from opentine._graph_serde import run_from_dict, run_to_dict
 from opentine.core import Run
 from opentine.redaction import redact_value
 from opentine.repository._http import require_secure_remote
@@ -159,7 +160,7 @@ def _write(document: dict[str, Any], output: Path | None) -> None:
 
 
 def _shown(url: str) -> str:
-    return _terminal(_without_userinfo(url))  # never print a URL's credentials
+    return _terminal(endpoint_for_display(url))  # never print a URL's credentials
 
 
 def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None:
@@ -175,7 +176,8 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
     try:
         status, detail = post(url, serialize(document, indent=None).encode("utf-8"))
     except (httpx.HTTPError, httpx.InvalidURL) as exc:  # InvalidURL is no HTTPError
-        console.print(f"[red]OTLP export failed:[/] {_shown(url)} is unreachable: {_terminal(exc)}")
+        reason = _terminal(redact_value(str(exc)))  # httpx quotes the URL, query and all
+        console.print(f"[red]OTLP export failed:[/] {_shown(url)} is unreachable: {reason}")
         raise SystemExit(1) from exc
     if not 200 <= status < 300:
         suffix = f": {_terminal(detail)}" if detail else ""
@@ -198,9 +200,14 @@ def cmd_export(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     try:
-        run = Run.load(path)
         # Scrubbed again on the way out: a .tine written before 0.9.1 still holds
-        # the prose secrets (tokens, PEM keys, URL passwords) its writer kept.
+        # the secrets its writer kept -- in prose (tokens, PEM keys, URL passwords)
+        # and under field names it did not know (``github_token``, ``pwd``). The
+        # run goes through the writer's own redaction, field names included, before
+        # it becomes spans: the ``gen_ai.prompt`` kvlist carries each name and value
+        # as separate strings, where the free-text pass alone cannot pair them.
+        run = Run.load(path)
+        run = run_from_dict(run_to_dict(run, redact=True), type(run))
         document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
         # The write and the push are inside the same guard as the conversion:
         # ``serialize`` refuses a document it cannot render faithfully (nesting

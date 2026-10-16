@@ -28,6 +28,26 @@ class CatalogError(ValueError):
     pass
 
 
+#: The whole ``signature`` block is left out of the signed bytes, so anything
+#: in it beyond these fields is unsigned, and it is copied into every billed
+#: step's provenance: a catalog padded there (a cloned ``.tine/pricing.json``)
+#: would grow every run record by the padding. Only these keys are accepted,
+#: and only they are ever copied.
+SIGNATURE_FIELDS = ("algorithm", "key_id", "value")
+_MAX_SIGNATURE_FIELD = 256
+
+
+def signature_fields(signature: Any) -> dict[str, str] | None:
+    """The known, bounded signature fields, or None: never arbitrary content."""
+    if not isinstance(signature, dict):
+        return None
+    return {
+        key: value
+        for key in SIGNATURE_FIELDS
+        if isinstance(value := signature.get(key), str) and len(value) <= _MAX_SIGNATURE_FIELD
+    }
+
+
 def _body(data: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in data.items() if key not in {"catalog_id", "signature"}}
 
@@ -54,6 +74,13 @@ def verify_catalog(data: dict[str, Any], *, require_signature: bool = True) -> s
         return actual
     if not isinstance(signature, dict):
         raise CatalogError("catalog signature is not an object")
+    if set(signature) - set(SIGNATURE_FIELDS):
+        raise CatalogError("catalog signature has unexpected fields")
+    if any(
+        not isinstance(signature.get(key), str) or len(signature[key]) > _MAX_SIGNATURE_FIELD
+        for key in SIGNATURE_FIELDS
+    ):
+        raise CatalogError("catalog signature fields must be short strings")
     if signature.get("algorithm") != "ed25519":
         raise CatalogError("unsupported catalog signature algorithm")
     key_id = signature.get("key_id")

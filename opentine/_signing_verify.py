@@ -163,6 +163,10 @@ def verify_block(
     # re-spelled hex verified anyway, so one signature minted many object ids.
     if set(block) - _BLOCK_KEYS or (algorithm != "ed25519" and "public_key" in block):
         return result(False, "error", "malformed signature header")
+    # Writers drop absent header fields; an explicit null is a second spelling of
+    # the same signed header, so one signature would verify under two oids.
+    if any(item is None for item in block.values()):
+        return result(False, "error", "malformed signature header")
     if not isinstance(algorithm, str) or any(
         item is not None and not isinstance(item, str) for item in raw_optional
     ):

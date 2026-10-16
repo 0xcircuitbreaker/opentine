@@ -13,7 +13,14 @@ import re
 from typing import Any
 
 from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
-from opentine._redact_pem import redact_private_keys
+from opentine._redact_edits import Edit, Step, run, sub_step
+from opentine._redact_fields import FIELD, NAME_TAIL, quoted_field_edits
+from opentine._redact_flags import flag_edits
+from opentine._redact_forms import B64_KEY_STEP, FORM_STEPS
+from opentine._redact_json import redact_json
+from opentine._redact_names import secret_name
+from opentine._redact_pem import private_key_edits
+from opentine._redact_ppk import ppk_edits
 from opentine._redact_shapes import QUERY_SECRET, TOKEN_SHAPES, URL_USERINFO
 from opentine._unicode_text import assert_unicode_text
 
@@ -38,7 +45,7 @@ _NAME = (
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
     rb"(?:github|gh|hf|npm|pypi|gitlab|bot|slack|discord|telegram|vault|private|"
     rb"security|registry|personal[_-]?access)[_-]?tokens?|"
-    rb"(?:subscription|account|signing|encryption|master|ssh)[_-]?keys?|"
+    rb"(?:subscription|account|signing|encryption|master|ssh|storage)[_-]?keys?|key[_-]data|"
     rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?|"
     rb"private[_-]?key[_-]?ids?|connection[_-]?strings?|webhook[_-]?urls?|dsn)"
 )
@@ -53,35 +60,26 @@ _LINE_ASSIGNMENT = re.compile(
     + _NAME
     + rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
-# No leading \b: it fails between a space and the "-" of a mid-line "--api-key=…"
-# flag, and _NAME's own lookbehind is already the stricter start-boundary gate.
-# Quotes excluded from the *unquoted* value class so a JSON string value ends at
-# its closing quote. Consuming it produced '{"note": "the api_key: [REDACTED],
-# "user": "bob"}' — no longer parseable, so every downstream reader fell back to
-# treating the whole blob as opaque text. A quoted value therefore gets its own
-# alternative instead, redacted *inside* the quotes by _assignment below: with only
-# the unquoted class, 'the password: "hunter2" is old' backtracked the separator's
-# trailing \s* and matched the lone space, writing 'password:[REDACTED]"hunter2"'
-# — a false [REDACTED] marker with the secret still beside it. The unquoted class
-# starts with a non-space character for that reason, and the closing quote is
-# optional so a truncated 'api_key: "abc' is still redacted rather than skipped.
+# No leading \b: it fails between a space and the "-" of "--api-key=…", and _NAME's
+# lookbehind is the stricter start gate. Quotes are excluded from the unquoted class so
+# a JSON string value ends at its closing quote (consuming it made '{"note": "the
+# api_key: [REDACTED], "user": "bob"}', unparseable). A quoted value has its own
+# alternative, redacted inside the quotes by _assignment: with only the unquoted class
+# 'the password: "hunter2" is old' backtracked to the lone space and wrote a false
+# marker beside the secret, so the unquoted class starts with a non-space character.
+# The closing quote is optional so a truncated 'api_key: "abc' is still redacted.
+# Unquoted values go word by word and stop only before a next credential-name head
+# (``[-e ]NAME=``), so ``-e A_KEY=x -e B_PASSWORD="y"`` still matches twice while
+# base64 padding (``Basic dXNl…=``) or a ``user:pass`` word stays inside the value.
+_NEXT_HEAD = rb"(?!(?:-{1,2}[A-Za-z]+[^\S\r\n]+)?" + _NAME + rb"[ \t]*[:=])"
 _ASSIGNMENT = re.compile(
     rb"(?i)(" + _NAME + rb")(\s*[:=]\s*)"
-    rb"(\"[^\"\r\n]*\"?|'[^'\r\n]*'?|[^\s\r\n,;\"'][^\r\n,;\"']*)"
+    rb"(\"[^\"\r\n]*\"?|'[^'\r\n]*'?|[^\s,;\"']+(?:[^\S\r\n]+" + _NEXT_HEAD + rb"[^\s,;\"']+)*)"
 )
-_QUOTED_FIELD = re.compile(
-    rb"(?i)([\"'](?:"
-    + _NAME
-    + rb"|token|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)"
-    rb"[\"']\s*:\s*)([\"'])"
+_FIELD_NAME = re.compile(
+    rb"(?i)" + _NAME + rb"|token|authorization|proxy[_-]?authorization|cookie|set[_-]?cookie"
 )
 _BEARER = re.compile(rb"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=-]{8,}")
-# A secret passed as a separate argument: ``mysql --password hunter2``. The
-# ``--flag=value`` form is an assignment and _ASSIGNMENT already takes it.
-_FLAG_VALUE = re.compile(
-    rb"(?i)(?<![A-Za-z0-9_-])(--(?:password|passwd|pass|token|api[_-]?key|secret|"
-    rb"client[_-]?secret|auth[_-]?token|access[_-]?token)[ \t]+)([^\s\"'-][^\s\"']{0,511})"
-)
 _QUOTED_HEADER = re.compile(
     rb"(?i)([\"'](?:authorization|proxy[_-]?authorization|cookie|set[_-]?cookie)[\"']\s*:\s*[\"'])([^\"']*)([\"'])"
 )
@@ -110,17 +108,7 @@ _HEADER_LINE = re.compile(
     rb"[ \t]*[:=][ \t]*)([^\r\n]*)"
 )
 _QUOTED_TOKEN = re.compile(rb"(?i)([\"']token[\"']\s*:\s*[\"'])([^\"']*)([\"'])")
-_PROSE_VALUES = {
-    b"can",
-    b"could",
-    b"how",
-    b"should",
-    b"what",
-    b"when",
-    b"where",
-    b"which",
-    b"why",
-}
+_PROSE_VALUES = {b"can", b"could", b"how", b"should", b"what", b"when", b"where", b"which", b"why"}
 
 
 def _assignment(match: re.Match[bytes]) -> bytes:
@@ -137,52 +125,62 @@ def _assignment(match: re.Match[bytes]) -> bytes:
     return match.group(1) + separator + b"[REDACTED]"
 
 
-def _quoted_fields(value: bytes) -> bytes:
-    output = bytearray()
-    cursor = 0
-    while match := _QUOTED_FIELD.search(value, cursor):
-        output.extend(value[cursor : match.end()])
-        quote = match.group(2)[0]
-        end = match.end()
-        while end < len(value) and value[end] not in (10, 13):
-            if value[end] == quote:
-                output.extend(b"[REDACTED]" + bytes((quote,)))
-                cursor = end + 1
-                break
-            end += 2 if value[end] == 92 and end + 1 < len(value) else 1
-        else:
-            output.extend(b"[REDACTED]")
-            cursor = end
-    output.extend(value[cursor:])
-    return bytes(output)
+def _field_is_secret(name: bytes) -> bool:
+    # The record walk's predicate (single source: ``_redact_names``), plus the
+    # name pattern this rule always used, so no field it redacted is kept now.
+    name = name[-NAME_TAIL:]
+    return bool(_FIELD_NAME.fullmatch(name)) or secret_name(name.decode("ascii"))
+
+
+def _quoted_field_edits(value: bytes) -> list[Edit]:
+    return quoted_field_edits(FIELD, value, _field_is_secret)
 
 
 def redact_blob(value: bytes) -> bytes:
-    """Scrub credential-shaped UTF-8 text while leaving opaque binary intact."""
+    """Scrub credential-shaped UTF-8 text; JSON stays valid JSON (``_redact_json``)."""
     try:
         value.decode("utf-8")
     except UnicodeDecodeError:
         return value
-    value = _quoted_fields(value)
-    value = _NAMED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = _REVERSED_NAMED_HEADER.sub(
-        lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
-    )
-    value = _HEADER_PAIR.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = _QUOTED_HEADER_LINE.sub(
-        lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value
-    )
-    value = _QUOTED_HEADER.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = _QUOTED_TOKEN.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = _LINE_ASSIGNMENT.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = _HEADER_LINE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = _ASSIGNMENT.sub(_assignment, value)
-    value = _BEARER.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = _FLAG_VALUE.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    value = TOKEN_SHAPES.sub(b"[REDACTED]", value)
-    value = URL_USERINFO.sub(lambda match: match.group(1) + b"[REDACTED]" + match.group(3), value)
-    value = QUERY_SECRET.sub(lambda match: match.group(1) + b"[REDACTED]", value)
-    return redact_private_keys(value)
+    return redact_json(value, _scan, STEPS)
+
+
+def _keep_ends(match: re.Match[bytes]) -> bytes:
+    return match.group(1) + b"[REDACTED]" + match.group(3)
+
+
+def _keep_head(match: re.Match[bytes]) -> bytes:
+    return match.group(1) + b"[REDACTED]"
+
+
+#: The byte scan, in order. ``_redact_json`` also runs each step alone to find
+#: where a step would remove something. Private-key blocks go first, PEM and
+#: base64-wrapped alike: a value pattern that runs across a JSON-escaped ``\\n``
+#: (``MYSQL_PWD=x\\n-----BEGIN``) or takes a wrapped key's first line
+#: (``SSH_PRIVATE_KEY=LS0t…``) would otherwise leave the key body behind.
+STEPS: list[Step] = [
+    private_key_edits,
+    ppk_edits,  # PuTTY key files carry no PEM marker (``_redact_ppk``)
+    B64_KEY_STEP,
+    _quoted_field_edits,
+    *(sub_step(p, _keep_ends) for p in (_NAMED_HEADER, _REVERSED_NAMED_HEADER, _HEADER_PAIR)),
+    *(sub_step(p, _keep_ends) for p in (_QUOTED_HEADER_LINE, _QUOTED_HEADER, _QUOTED_TOKEN)),
+    sub_step(_LINE_ASSIGNMENT, _keep_head),
+    sub_step(_HEADER_LINE, _keep_head),
+    sub_step(_ASSIGNMENT, _assignment),
+    sub_step(_BEARER, _keep_head),
+    flag_edits,  # ``--password x`` / ``--token "x"`` (``_redact_flags``)
+    # Tokens before the bounded form values, so a value cut at its bound cannot take
+    # a token's prefix and leave the rest behind (see also ``_redact_tails``).
+    sub_step(TOKEN_SHAPES, b"[REDACTED]"),
+    sub_step(URL_USERINFO, _keep_ends),
+    sub_step(QUERY_SECRET, _keep_head),
+    *FORM_STEPS,
+]
+
+
+def _scan(value: bytes) -> bytes:
+    return run(value, STEPS)
 
 
 def redact_text(value: str) -> str:
@@ -197,10 +195,13 @@ def redact_text(value: str) -> str:
     caller ever surfaces a codec message as an opentine error.
     """
     try:
-        return redact_blob(value.encode("utf-8")).decode("utf-8")
+        clean = redact_blob(value.encode("utf-8"))
     except UnicodeEncodeError as exc:
         assert_unicode_text(value, where="the value being redacted")
         raise ValueError(f"value is not UTF-8 text: {exc.reason}") from exc
+    # Edits end on character boundaries (``_redact_edits``); this is the backstop,
+    # so a text value never surfaces a codec error from inside a save.
+    return clean.decode("utf-8", "replace")
 
 
 def redact_value(value: Any, _depth: int = 0) -> Any:

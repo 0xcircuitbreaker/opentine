@@ -7,7 +7,7 @@ import math
 from dataclasses import asdict
 from typing import Any
 
-from opentine._mcp_safety import safe_errors
+from opentine._mcp_safety import safe_errors, visible
 from opentine.kernel import parse_oid
 from opentine.repo import Repo
 from opentine.repository._refs import normalize_ref
@@ -24,6 +24,9 @@ _MCP_WRITABLE_REF_NAMESPACE = "experiments/"
 #: Bound on an MCP-written evaluation score. Search ranks by score, and the
 #: client writing it is a model reading untrusted run content.
 MAX_MCP_SCORE = 1e6
+#: The bound ``tine fork --policy`` puts on a policy file, for every fork override.
+MAX_MCP_OVERRIDE_BYTES = 1024 * 1024
+MAX_MCP_MODEL_CHARS = 256
 #: Bounds on what a model may attach to a run: every attestation is stored,
 #: pushed and fetched with the run for good.
 MAX_MCP_CLAIM_BYTES = 64 * 1024
@@ -48,6 +51,36 @@ def _create_ref(repo: Repo, ref: str, run_id: str) -> None:
     overwrite: a model could replace an operator's ``experiments/*`` work.
     """
     repo.update_ref(ref, run_id, expected_old=None)
+
+
+def _bounded_overrides(model: Any, prompt: Any, policy: Any) -> None:
+    """The CLI's bounds on a fork's overrides: an MCP client is a model, and unbounded."""
+    if model is not None and (not isinstance(model, str) or len(model) > MAX_MCP_MODEL_CHARS):
+        raise ValueError(f"model must be a string of at most {MAX_MCP_MODEL_CHARS} characters")
+    encoded = prompt.encode("utf-8", "replace") if isinstance(prompt, str) else None
+    if prompt is not None and (encoded is None or len(encoded) > MAX_MCP_OVERRIDE_BYTES):
+        raise ValueError(f"prompt must be text of at most {MAX_MCP_OVERRIDE_BYTES} bytes")
+    if policy is not None:
+        try:
+            size = len(json.dumps(policy, ensure_ascii=False).encode("utf-8"))
+        except (RecursionError, TypeError, ValueError) as exc:
+            raise ValueError("policy must be a JSON object") from exc
+        if size > MAX_MCP_OVERRIDE_BYTES:
+            raise ValueError(f"policy must be at most {MAX_MCP_OVERRIDE_BYTES} bytes")
+
+
+def _bounded_scores(claim: Any) -> None:
+    """Refuse an evaluation claim whose scores are not finite numbers within +/-1e6.
+
+    A model wrote it, unsigned; 1.7e308 once ranked a run first in search.
+    """
+    if not isinstance(claim, dict) or claim.get("kind") != "evaluation":
+        return
+    scores = claim.get("scores")
+    if not isinstance(scores, dict) or any(
+        abs(_finite_score(value)) > MAX_MCP_SCORE for value in scores.values()
+    ):
+        raise ValueError(f"evaluation scores must be finite and within +/-{MAX_MCP_SCORE:g}")
 
 
 def _finite_score(value: Any) -> float:
@@ -97,32 +130,34 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         evaluation; ``signed_only`` ignores unsigned ones. Signed is not
         verified -- check it with ``tine repo-verify`` and a trusted key.
         """
-        return [
-            asdict(result)
-            for result in repo.search(
-                query,
-                successful_only=successful_only,
-                min_score=min_score,
-                model=model,
-                limit=limit,
-                signed_only=signed_only,
-            )
-        ]
+        return visible(
+            [
+                asdict(result)
+                for result in repo.search(
+                    query,
+                    successful_only=successful_only,
+                    min_score=min_score,
+                    model=model,
+                    limit=limit,
+                    signed_only=signed_only,
+                )
+            ]
+        )
 
     @mcp.tool()
     def inspect_object(object_id: str, resolve_blobs: bool = True) -> dict[str, Any]:
         """Inspect a verified v3 object and optionally resolve its content blobs."""
-        return repo.inspect(object_id, resolve_blobs=resolve_blobs)
+        return visible(repo.inspect(object_id, resolve_blobs=resolve_blobs))
 
     @mcp.tool()
     def context_slice(event_id: str, depth: int = 8) -> list[dict[str, Any]]:
         """Retrieve only the causal ancestors needed for an event."""
-        return [asdict(entry) for entry in repo.context_slice(event_id, depth=depth)]
+        return visible([asdict(entry) for entry in repo.context_slice(event_id, depth=depth)])
 
     @mcp.tool()
     def semantic_diff(run_a: str, run_b: str) -> dict[str, Any]:
         """Compare cost, latency, tool path, content, and event identity."""
-        return asdict(repo.diff(run_a, run_b))
+        return visible(asdict(repo.diff(run_a, run_b)))
 
     @mcp.tool()
     def fork_run_v3(
@@ -134,6 +169,7 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         policy: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Fork from the last good event with optional model, prompt, and policy overrides."""
+        _bounded_overrides(model, prompt, policy)
         name = _writable_ref(ref)
         if repo.read_ref(name) is not None:
             raise ValueError(f"{name} already exists; MCP forks only create new refs")
@@ -168,10 +204,8 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         evaluator: str,
     ) -> dict[str, str]:
         """Attach immutable evaluation scores to a run (each within +/-1e6)."""
-        # A model wrote this, unsigned; 1.7e308 once ranked a run first in search.
-        if any(abs(_finite_score(value)) > MAX_MCP_SCORE for value in scores.values()):
-            raise ValueError(f"evaluation scores must be finite and within +/-{MAX_MCP_SCORE:g}")
         claim = {"kind": "evaluation", "scores": scores}
+        _bounded_scores(claim)
         _bounded_claim(claim, evaluator)
         attestation = repo.attest(run_id, claim, signer=evaluator)
         return {"attestation_id": attestation}
@@ -183,6 +217,7 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
         signer: str,
     ) -> dict[str, str]:
         """Attach an approval or provenance claim (a JSON object, at most 64 KiB) to a run."""
+        _bounded_scores(claim)  # an evaluation is an evaluation, whichever tool wrote it
         _bounded_claim(claim, signer)
         return {"attestation_id": repo.attest(run_id, claim, signer=signer)}
 
@@ -200,4 +235,4 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
 
     @mcp.resource("tine-object://{object_id}")
     def object_resource(object_id: str) -> dict[str, Any]:
-        return repo.inspect(object_id, resolve_blobs=True)
+        return visible(repo.inspect(object_id, resolve_blobs=True))

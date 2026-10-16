@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -63,17 +64,42 @@ class PythonPolicy:
     isolation_backend: str = "subprocess"
 
 
+def _secret_key_name(name: Any) -> str | None:
+    if not isinstance(name, str) or not name.strip() or len(name) > 128:
+        return None
+    field_name = _field_name(name)
+    # The walk also matches a field one "s" longer ("output" redacts "outputs"),
+    # so the singular of a reserved field would blank it and every save would fail.
+    if field_name in RESERVED_FIELD_NAMES or f"{field_name}s" in RESERVED_FIELD_NAMES:
+        return None
+    return field_name
+
+
 def _secret_key_names(names: Any) -> tuple[str, ...] | None:
     if not isinstance(names, list | tuple):
         return None
-    normalized: list[str] = []
-    for name in names:
-        if not isinstance(name, str) or not name.strip() or len(name) > 128:
-            return None
-        if (field_name := _field_name(name)) in RESERVED_FIELD_NAMES:
-            return None
-        normalized.append(field_name)
-    return tuple(normalized)
+    normalized = [_secret_key_name(name) for name in names]
+    if any(name is None for name in normalized):
+        return None
+    return tuple(name for name in normalized if name is not None)
+
+
+def _recorded_secret_key_names(names: Any) -> tuple[str, ...]:
+    """The usable names of a *recorded* policy: one unusable name drops only itself.
+
+    A run recorded before 0.10 may name a field the stricter check now refuses
+    (``root``); refusing the whole list would write every other declared field in clear.
+    """
+    if not isinstance(names, list | tuple):
+        return ()
+    usable = tuple(name for name in map(_secret_key_name, names) if name is not None)
+    if len(usable) != len(names):
+        warnings.warn(
+            "ignoring extra_secret_keys entries that name a field the run format uses",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+    return usable
 
 
 @dataclass(frozen=True)
@@ -104,7 +130,7 @@ def run_redaction(policies: Any) -> AbstractContextManager[None]:
     """Redact the extra secret fields a run's recorded policy names, inside the block."""
     redaction = policies.get("redaction") if isinstance(policies, dict) else None
     names = redaction.get("extra_secret_keys") if isinstance(redaction, dict) else ()
-    return secret_keys(_secret_key_names(names) or ())
+    return secret_keys(_recorded_secret_key_names(names))
 
 
 @dataclass(frozen=True)

@@ -51,7 +51,7 @@ def _print_run_tree(run: Run) -> None:
         f"steps=[dim]{len(run.steps)}[/]  cost=[dim]{_cost_str(run.total_cost)}[/]  "
         f"[{color}]{run.status.value}[/]"
     )
-    tree = Tree(Text.from_markup(header))
+    tree = Tree(Text.from_markup(header, emoji=False))  # ":lock:" in run text stays literal
     for step in run.steps:
         label = _step_label(step)
         if step.cost > 0:

@@ -20,16 +20,22 @@ from urllib.parse import urlsplit, urlunsplit
 BIDI_FORMATTING = frozenset(
     {0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)}
 )
-INVISIBLE = frozenset(
-    {
-        *range(0x200B, 0x200E),  # zero-width space / non-joiner / joiner
-        *range(0x2060, 0x2065),  # word joiner and invisible operators
-        0xFEFF,  # zero-width no-break space (BOM)
-        0x2028,  # line separator
-        0x2029,  # paragraph separator
-        *range(0xE0000, 0xE0080),  # tag characters
-    }
-)
+#: Every format character (General_Category Cf) and Default_Ignorable_Code_Point of
+#: Unicode 16, plus the line/paragraph separators: characters that render as
+#: nothing. Variation selectors (U+FE00-FE0F, U+E0100-E01EF) and tag characters
+#: each carry a hidden byte per character -- the "smuggling" channels -- and
+#: fillers such as U+3164 look like blanks. Fixed ranges, so the rule does not
+#: change with the Python version's ``unicodedata``.
+_INVISIBLE_RANGES = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x0600, 0x0605), (0x061C, 0x061C),
+    (0x06DD, 0x06DD), (0x070F, 0x070F), (0x0890, 0x0891), (0x08E2, 0x08E2),
+    (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F),
+    (0x2028, 0x202E), (0x2060, 0x206F), (0x3164, 0x3164), (0xFE00, 0xFE0F),
+    (0xFEFF, 0xFEFF), (0xFFA0, 0xFFA0), (0xFFF0, 0xFFFB), (0x110BD, 0x110BD),
+    (0x110CD, 0x110CD), (0x13430, 0x1343F), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A),
+    (0xE0000, 0xE0FFF),
+)  # fmt: skip
+INVISIBLE = frozenset(code for low, high in _INVISIBLE_RANGES for code in range(low, high + 1))
 _HIDDEN = BIDI_FORMATTING | INVISIBLE
 
 
@@ -51,6 +57,16 @@ def without_userinfo(url: str) -> str:
     if "@" not in parts.netloc:
         return url
     return urlunsplit(parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]))
+
+
+def endpoint_for_display(url: str) -> str:
+    """*url* without credentials, query string or fragment: what a message may print.
+
+    Collectors are often addressed with ``?token=...`` or ``?api_key=...``, which
+    ``without_userinfo`` leaves in place.
+    """
+    parts = urlsplit(without_userinfo(url))
+    return urlunsplit(parts._replace(query="", fragment=""))
 
 
 #: How much of a recorded prompt a harness replay shows before sending it.

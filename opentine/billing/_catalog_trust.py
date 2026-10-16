@@ -13,6 +13,10 @@
   write the file -- masked newer bundled cards, even across upgrades. A signed
   catalog is compared by ``generated_at``: one older than the bundled snapshot
   (or than the one it would replace) is refused at install and skipped at load.
+  That holds for a signed workspace overlay too: every release catalog ever
+  shipped still verifies under the release key, so a cloned project could carry
+  an old one and outrank both newer layers. A different catalog signed at the
+  same ``generated_at`` cannot be ordered and is refused the same way.
 """
 
 from __future__ import annotations
@@ -53,9 +57,37 @@ def older(candidate: datetime | None, reference: datetime | None) -> bool:
     return candidate is None or candidate < reference
 
 
+def rolls_back(candidate: Any, latest: tuple[datetime | None, str] | None) -> bool:
+    """Whether signed *candidate* would roll back the newest signed layer, *latest*.
+
+    Two different catalogs signed with the same ``generated_at`` cannot be ordered,
+    so one replacing the other counts as a rollback too (an identical copy does not).
+    """
+    if latest is None:
+        return False
+    at, digest = latest
+    if older(candidate.generated_at, at):
+        return True
+    return candidate.generated_at == at and candidate.hash != digest
+
+
+def newest(
+    latest: tuple[datetime | None, str] | None, candidate: Any
+) -> tuple[datetime | None, str]:
+    """The (``generated_at``, hash) of the newer of *latest* and *candidate*."""
+    mine = (candidate.generated_at, candidate.hash)
+    if latest is None or latest[0] is None:
+        return mine
+    if candidate.generated_at is None or candidate.generated_at < latest[0]:
+        return latest
+    return mine
+
+
 __all__ = [
     "TRUST_WORKSPACE_PRICING_ENV",
     "generated_at",
+    "newest",
     "older",
+    "rolls_back",
     "workspace_pricing_trusted",
 ]

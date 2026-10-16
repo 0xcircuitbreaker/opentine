@@ -43,7 +43,7 @@ def _warn_overlay(path: Path) -> None:
 
 
 def _warn_stale(path: Path) -> None:
-    _once(path, f"ignoring {plain_text(path)}: it is older than the bundled pricing catalog")
+    _once(path, f"ignoring {plain_text(path)}: a newer signed pricing catalog is already in use")
 
 
 def guarded_dispatch(run: Callable[[], None]) -> None:
