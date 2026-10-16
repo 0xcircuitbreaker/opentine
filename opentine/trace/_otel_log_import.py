@@ -17,15 +17,22 @@ is used only when no ``api_response`` is present, never billed on top of it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
+from dataclasses import replace
 from typing import Any
 
-from opentine.trace._import_helpers import dictionary, first, integer, timestamp
+from opentine.trace._import_helpers import (
+    dictionary,
+    first,
+    integer,
+    note_import_warning,
+    timestamp,
+)
 from opentine.trace._otel_dialects import log_fields
 from opentine.trace._otel_usage import otel_usage
 from opentine.trace._otel_values import any_value
 from opentine.trace._otel_values import attributes as decoded_attributes
 from opentine.trace._provider_alias import canonical_provider
-from opentine.trace._transcript_common import MAX_EVENTS, Chain
+from opentine.trace._transcript_common import MAX_EVENTS, SHAPE_ERRORS, Chain, note_skipped
 from opentine.trace.schema import TraceEvent
 
 GEMINI_DETAILS = "gen_ai.client.inference.operation.details"
@@ -33,6 +40,10 @@ GEMINI_DETAILS = "gen_ai.client.inference.operation.details"
 #: this sits a few times above the event cap rather than at it.
 _MAX_RECORDS = 400_000
 _SESSION_KEYS = ("session.id", "conversation.id", "gen_ai.conversation.id", "prompt_id")
+#: A ``timeUnixNano`` must be a positive int64; anything else (``1e400``-sized
+#: integers overflowed the float division and aborted the whole import) is
+#: ignored for that record, which falls back to ``event.timestamp``.
+_MAX_NANOS = 2**63
 
 
 def log_records(source: Any) -> Iterator[dict[str, Any]]:
@@ -72,8 +83,17 @@ def _name(record: dict[str, Any], attributes: dict[str, Any]) -> str:
     return body if isinstance(body, str) and len(body) < 128 else ""
 
 
+def _nanos(record: dict[str, Any]) -> tuple[int, bool]:
+    """The record's valid nanosecond time (0 if none) and whether one was refused."""
+    raw = first(record, "timeUnixNano", "observedTimeUnixNano", default=0)
+    nanos = integer(raw) if isinstance(raw, (int, str)) and not isinstance(raw, bool) else 0
+    if 0 < nanos < _MAX_NANOS:
+        return nanos, False
+    return 0, raw not in (0, "0", None, "")
+
+
 def _when(record: dict[str, Any], attributes: dict[str, Any]) -> float:
-    nanos = integer(first(record, "timeUnixNano", "observedTimeUnixNano", default=0))
+    nanos, _ = _nanos(record)
     if nanos:
         return nanos / 1_000_000_000
     return timestamp(attributes.get("event.timestamp") or 0)
@@ -86,14 +106,20 @@ def otel_log_events(source: Any) -> list[TraceEvent]:
     rows: list[tuple[float, str, dict[str, Any]]] = []
     details: list[tuple[float, str, dict[str, Any]]] = []
     has_gemini_responses = False
+    skipped = refused_times = 0
     for record in log_records(source):
         try:
             attributes = decoded_attributes(record)
         except (AttributeError, RecursionError, TypeError, ValueError):
             continue
-        row = _row(record, attributes)
+        try:
+            row = _row(record, attributes)
+        except (*SHAPE_ERRORS, ArithmeticError):
+            skipped += 1  # one hostile record never aborts the import
+            continue
         if row is None:
             continue
+        refused_times += _nanos(record)[1]
         name, when, session, fields = row
         if name == "gemini_cli.api_response" and not has_gemini_responses:
             has_gemini_responses = True
@@ -115,7 +141,13 @@ def otel_log_events(source: Any) -> list[TraceEvent]:
     events = [event for chain in chains.values() for event in chain.events]
     if len(events) > MAX_EVENTS:
         raise ValueError("trace import exceeds maximum event count")
-    return events
+    if refused_times and events:
+        attributes = dict(events[0].attributes or {})
+        note_import_warning(
+            attributes, f"ignored {refused_times} out-of-range or non-numeric log timestamp(s)"
+        )
+        events[0] = replace(events[0], attributes=attributes)
+    return note_skipped(events, skipped)
 
 
 def _row(

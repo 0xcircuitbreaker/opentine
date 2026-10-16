@@ -384,7 +384,8 @@ reads and prices.
   `client-key-data: LS0t…`); a block whose marker will not decode is redacted,
   and a wrapped certificate is left alone. PuTTY `.ppk` files (header through
   `Private-MAC`, whatever decorates each line — the Read tool's `N→` numbers,
-  `cat -n`, a diff's `+`, a `> ` quote, an indent) and RFC 4716
+  `cat -n`, a diff's `+`, a `> ` quote, an indent, and a quote inside the
+  `Comment:` line of a file with real line breaks) and RFC 4716
   `---- BEGIN SSH2 … PRIVATE KEY ----` blocks carry no PEM marker and were saved
   whole by 0.9.2; both now become `[REDACTED PRIVATE KEY]`.
 - **About twenty more credential formats are redacted**, in both writers and on
@@ -561,7 +562,11 @@ reads and prices.
 - **`tine import --format otel-logs` refuses an oversized file while reading
   it.** The event cap is enforced as records are mapped, before any session
   chain is built (a 65 MB file of one-record sessions took 2.7 GB and 64 s
-  before the refusal); at most 400,000 raw log records are read.
+  before the refusal); at most 400,000 raw log records are read. A record
+  whose `timeUnixNano` is out of range or not a number (a 400-digit integer
+  aborted the whole import with `OverflowError`) falls back to
+  `event.timestamp` with an import warning, and a record that still raises an
+  arithmetic or shape error is skipped and counted.
 - **One record with an unexpected field type no longer fails a whole import.**
   A session-log or OTLP-logs record whose `content`, `usage`, `toolCalls`,
   `parts` or `logRecords` has the wrong type is skipped like an unparsable
