@@ -33,6 +33,7 @@ from opentine._blob_guard import guarded_blob_body
 from opentine._jsonsafe import json_safe
 from opentine._unicode_text import SURROGATE_CHAR, lone_surrogate_path
 from opentine.trace._import_helpers import imported_usage
+from opentine.trace._provider_alias import canonical_provider
 from opentine.trace.schema import TraceEvent
 
 UNSTORABLE = "opentine.unstorable"
@@ -141,6 +142,7 @@ class LiveSpan:
     kind: str = "model"
     actor: str = ""
     model: str = ""
+    provider: str = ""
     inputs: dict[str, Any] = field(default_factory=dict)
     outputs: dict[str, Any] = field(default_factory=dict)
     usage: dict[str, Any] = field(default_factory=dict)
@@ -162,6 +164,7 @@ class LiveSpan:
             parent_span_id=self.parent_span_id,
             actor=storable_text(self.actor),
             model=storable_text(self.model),
+            provider=storable_text(canonical_provider(self.provider)),
             duration=max(0.0, end - self.started),
             inputs=storable(self.inputs, "inputs"),
             outputs=storable(self.outputs, "outputs"),

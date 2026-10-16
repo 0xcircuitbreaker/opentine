@@ -37,8 +37,13 @@ import json
 from typing import Any
 
 from opentine.trace import _genai_semconv as semconv
+from opentine.trace._import_guard import decodable_text
 from opentine.trace._otel_values import any_value
 from opentine.trace._otel_values import attributes as _decode_attributes
+
+#: Longest serialized message array decoded from one attribute (the JSONL line
+#: bound); a longer one stays in the span attributes as text.
+MAX_MESSAGE_STRING_BYTES = 16 * 1024 * 1024
 
 #: Upper bound on messages taken from one span, per side. The span is already
 #: size-bounded by the importer; this only stops a pathological one from
@@ -144,6 +149,8 @@ def _from_structured(_span: dict[str, Any], values: dict[str, Any]) -> tuple[Mes
 def _messages(value: Any) -> Messages:
     # SDKs serialize the message array to a JSON string; decode it back first.
     if isinstance(value, str):
+        if not decodable_text(value, MAX_MESSAGE_STRING_BYTES):
+            return []
         try:
             value = json.loads(value)
         except (ValueError, RecursionError):
@@ -193,7 +200,8 @@ def _flattened(attributes: dict[str, Any], prefix: str, infix: str) -> Messages:
             marker, _, field = field.partition(".")
             if marker != infix:
                 continue
-        if not index.isdigit() or not field or "." in field:
+        numeric = index.isascii() and index.isdigit() and len(index) <= 9
+        if not numeric or not field or "." in field:
             continue
         grouped.setdefault(int(index), {})[field] = value
     return _collect([grouped[index] for index in sorted(grouped)])

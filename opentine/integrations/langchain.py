@@ -48,6 +48,7 @@ from opentine.integrations._lc_payloads import (
     llm_result,
     message_rows,
     model_name,
+    provider_name,
     run_name,
     text_value,
 )
@@ -115,6 +116,7 @@ class OpenTineCallbackHandler(HandlerBase):
             kind="model",
             actor=run_name(serialized, name, kwargs, "llm"),
             model=model_name(serialized, metadata, kwargs),
+            provider=provider_name(metadata),
             inputs={"prompts": [text_value(prompt) for prompt in listed]},
             attributes=self._attributes("llm", tags, metadata),
         )
@@ -137,6 +139,7 @@ class OpenTineCallbackHandler(HandlerBase):
             kind="model",
             actor=run_name(serialized, name, kwargs, "chat_model"),
             model=model_name(serialized, metadata, kwargs),
+            provider=provider_name(metadata),
             inputs={"messages": message_rows(messages)},
             attributes=self._attributes("chat_model", tags, metadata),
         )

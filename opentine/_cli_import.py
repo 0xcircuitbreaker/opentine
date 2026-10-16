@@ -1,21 +1,22 @@
 """``tine import``: materialize a foreign agent trace as an OpenTine run.
 
-The importers in :mod:`opentine.trace.importers` were reachable only from
-Python. This command is a thin shell over them: it reads ``SOURCE`` (a file, or
-``-`` for stdin), hands the bytes to the importer named by ``--format``, and
-records the resulting :class:`~opentine.trace.schema.TraceEvent` list with
-:meth:`Recorder.import_events`. No importer is reimplemented here, and no
-artifact or repository format changes: an imported run is an ordinary run.
+A thin shell over :mod:`opentine.trace.importers`: it reads ``SOURCE`` (a file,
+or ``-`` for stdin), hands it to the importer ``--format`` names, and records
+the events with :meth:`Recorder.import_events`. An imported run is ordinary.
 
 Formats
 -------
-``otel-json``      one complete OTLP/JSON export document (``resourceSpans``…),
-                   or a ``{"spans": [...]}`` wrapper, or one span object.
-``otel-spans``     a JSON array of OTel GenAI span objects, or one span per
-                   line (JSONL).
+``otel-json``      an OTLP/JSON export (``resourceSpans``…, one or one per line),
+                   a ``{"spans": [...]}`` wrapper, or one span object.
+``otel-spans``     a JSON array of OTel GenAI spans, or one span per line.
 ``jsonl``          OpenTine ``TraceEvent`` records, one JSON object per line.
 ``langchain`` ``llamaindex`` ``autogen`` ``crewai`` ``openai-agents``
                    serialized framework log records, as a JSON array or JSONL.
+``otel-logs``      OTLP/JSON logs (Claude Code, Codex and Gemini CLI events).
+``claude-code-transcript`` ``codex-session`` ``gemini-session`` ``qwen-session``
+                   an agent CLI's own session log; ``--from-default-location``
+                   lists them and resolves ``latest`` or an id prefix.
+``auto``           (the default) recognize the source by its shape.
 
 Persistence — at least one target is required
 ---------------------------------------------
@@ -40,10 +41,8 @@ Pricing
                    Without the flag import behaviour is unchanged.
 
 With ``--json`` the human lines are replaced by one object naming the run and
-both targets; its schema is documented in :mod:`opentine._cli_json_surface`.
-
-Reading and routing ``SOURCE`` lives in :mod:`opentine._cli_import_read`, whose
-``read_events`` is re-exported here as the entry point it has always been.
+both targets (schema: :mod:`opentine._cli_json_surface`). Reading and routing
+``SOURCE`` lives in :mod:`opentine._cli_import_read`.
 """
 
 from __future__ import annotations
@@ -55,23 +54,47 @@ from pathlib import Path
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spelling of "-"
+from opentine._cli_import_read import detect_and_read
 from opentine._cli_import_read import read_events as read_events  # re-exported entry point
+from opentine._cli_import_sessions import print_sessions, resolve
 from opentine._cli_json_surface import emit_import
+from opentine._import_billing import distrust_source_billing, mark_unpriced
 from opentine._pricing_pass import price_events
 from opentine.core import Run
 from opentine.repo import Repo
+from opentine.repository._annotations import write_run_annotation
+from opentine.trace._transcript_common import capture_marker
 from opentine.trace.recorder import Recorder
 from opentine.trace.schema import TraceEvent
 
 FRAMEWORK_FORMATS = ("langchain", "llamaindex", "autogen", "crewai", "openai-agents")
-IMPORT_FORMATS = ("otel-json", "otel-spans", "jsonl", *FRAMEWORK_FORMATS)
+TRANSCRIPT_FORMATS = ("claude-code-transcript", "codex-session", "gemini-session", "qwen-session")
+IMPORT_FORMATS = (
+    "auto",
+    "otel-json",
+    "otel-logs",
+    "otel-spans",
+    "jsonl",
+    *TRANSCRIPT_FORMATS,
+    *FRAMEWORK_FORMATS,
+)
 DEFAULT_REF = "heads/main"
 
 
 def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
     parser = subparsers.add_parser("import", help="Import a foreign agent trace as a run")
-    parser.add_argument("source", help="Trace file to read, or - for stdin")
-    parser.add_argument("--format", choices=IMPORT_FORMATS, required=True)
+    parser.add_argument(
+        "source",
+        nargs="?",
+        help="Trace file to read, - for stdin, or with --from-default-location "
+        "'latest' or a session-id prefix",
+    )
+    parser.add_argument("--format", choices=IMPORT_FORMATS, default="auto")
+    parser.add_argument(
+        "--from-default-location",
+        action="store_true",
+        help="Find SOURCE among the agent CLIs' own session logs; without SOURCE, list them",
+    )
     parser.add_argument(
         "--save", metavar="PATH", help="Write the imported run as a portable .tine artifact"
     )
@@ -120,15 +143,21 @@ def _refuse_unusable_flags(args: argparse.Namespace) -> None:
         )
 
 
-def _record(repo: Repo, events: list[TraceEvent], ref: str) -> str:
+def _record(repo: Repo, events: list[TraceEvent], ref: str, capture: dict | None) -> str:
     recorder = Recorder.start(repo, ref=ref, capture=False)
-    recorder.import_events(events)
-    return recorder.finalize()
+    recorder.import_events(events, trusted_billing=True)  # distrusted + priced above
+    run_id = recorder.finalize()
+    if capture:
+        # A transcript is the agent's own, agent-writable account of itself.
+        write_run_annotation(repo, run_id, {"capture": capture}, [])
+    return run_id
 
 
-def _persist(repo: Repo, events: list[TraceEvent], ref: str, output: Path | None) -> Run:
+def _persist(
+    repo: Repo, events: list[TraceEvent], ref: str, output: Path | None, capture: dict | None
+) -> Run:
     """Record the events and read the run back, before any scratch repo is gone."""
-    run = repo.load_run(_record(repo, events, ref))
+    run = repo.load_run(_record(repo, events, ref, capture))
     if output is not None:
         run.save(output)
     return run
@@ -145,14 +174,28 @@ def _refused(exc: Exception) -> SystemExit:
 
 
 def cmd_import(args: argparse.Namespace) -> None:
+    if args.from_default_location and args.source is None:
+        print_sessions(args.format)
+        return
+    if args.source is None:
+        console.print(
+            "[red]Pass a SOURCE to import, or --from-default-location to list sessions.[/]"
+        )
+        raise SystemExit(1)
+    if args.from_default_location and not Path(args.source).exists():
+        try:
+            args.source = str(resolve(args.source, args.format).path)
+        except ValueError as exc:
+            raise _refused(exc) from exc
     _refuse_unusable_flags(args)
     output = Path(args.save) if args.save else None
     if output is not None:
         _require_output_slot(output, args.force)
     ref = args.ref or DEFAULT_REF
     repo_path = None
+    capture = None
     try:
-        events = read_events(args.source, args.format)
+        source_format, events = detect_and_read(args.source, args.format)
     except (OSError, RecursionError, ValueError) as exc:
         raise _refused(exc) from exc
     if not events:
@@ -160,9 +203,12 @@ def cmd_import(args: argparse.Namespace) -> None:
         # this importer recognizes, which almost always means the wrong --format.
         console.print(
             f"[red]No trace events found in {_terminal(args.source)} "
-            f"as --format {_terminal(args.format)}.[/]"
+            f"as --format {_terminal(source_format)}.[/]"
         )
         raise SystemExit(1)
+    if source_format in TRANSCRIPT_FORMATS:
+        capture = capture_marker(source_format)
+    events = distrust_source_billing(events)  # an import never claims a free call
     if getattr(args, "price", False):
         # Before the first blob is written, on records no store has seen: the
         # price lands as part of the initial recording of these steps, never as
@@ -171,21 +217,22 @@ def cmd_import(args: argparse.Namespace) -> None:
             events = price_events(events)
         except (OSError, ValueError) as exc:
             raise _refused(exc) from exc
+    events = mark_unpriced(events)
     try:
         if args.repo:
             repo = Repo.open(args.repo)
             repo_path = repo.path
-            run = _persist(repo, events, ref, output)
+            run = _persist(repo, events, ref, output, capture)
         else:
             with tempfile.TemporaryDirectory(prefix="tine-import-") as scratch:
-                run = _persist(Repo.init(Path(scratch) / "import"), events, ref, output)
+                run = _persist(Repo.init(Path(scratch) / "import"), events, ref, output, capture)
     except (OSError, RecursionError, ValueError) as exc:
         raise _refused(exc) from exc
     if getattr(args, "json", False):
         emit_import(
             run,
             source=args.source,
-            source_format=args.format,
+            source_format=source_format,
             events_imported=len(events),
             saved_to=output,
             repo=repo_path,

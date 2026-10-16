@@ -27,6 +27,22 @@ def shape_checked(data: bytes | str) -> bytes | str:
     return data
 
 
+def decodable_text(value: str, limit: int) -> bool:
+    """May a JSON document held *inside* a string be decoded?
+
+    The scans above see a string attribute as one token, so ``"[{},{},...]"``
+    serialized into an attribute reached ``json.loads`` unbudgeted -- ~24x its
+    size in memory. Such text gets the same length cap and structure budget.
+    """
+    if len(value) > limit:
+        return False
+    try:
+        shape_checked(value)
+    except (ValueError, RecursionError):
+        return False
+    return True
+
+
 def bounded_read(handle: IO[Any], limit: int) -> bytes | str:
     """At most ``limit + 1`` units of *handle*, so the caller can refuse the excess."""
     data = handle.read(limit + 1)
@@ -59,4 +75,4 @@ def bounded_lines(handle: IO[Any], *, line_limit: int, total_limit: int) -> Iter
             yield line
 
 
-__all__ = ["bounded_lines", "bounded_read", "shape_checked"]
+__all__ = ["bounded_lines", "bounded_read", "decodable_text", "shape_checked"]

@@ -192,7 +192,9 @@ def timestamp(value: Any) -> float:
         except OverflowError:
             return 0.0
         return result if math.isfinite(result) else 0.0
-    if isinstance(value, str) and value.strip():
+    # No real timestamp is longer; a long string would be parsed again for
+    # every event that repeats it.
+    if isinstance(value, str) and value.strip() and len(value) <= 64:
         text = value.strip()
         try:
             result = float(text)

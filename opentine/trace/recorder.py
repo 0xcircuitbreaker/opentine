@@ -8,6 +8,7 @@ import uuid
 from collections import defaultdict, deque
 from typing import Any
 
+from opentine._import_billing import distrust_source_billing
 from opentine._unicode_text import assert_unicode_text
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
@@ -130,7 +131,14 @@ class Recorder:
         self.span_map[key] = event_id
         return event_id
 
-    def import_events(self, events: list[TraceEvent]) -> list[str]:
+    def import_events(
+        self, events: list[TraceEvent], *, trusted_billing: bool = False
+    ) -> list[str]:
+        # Imported billing and cost are text from a source file: dropped unless
+        # the caller already replaced them from the catalog (``tine import``
+        # passes ``trusted_billing=True`` after its own distrust + pricing).
+        if not trusted_billing:
+            events = distrust_source_billing(events)
         run = self._payload
         self._capacity(run, len(events))
         by_span: dict[tuple[str, str], int] = {}

@@ -9,7 +9,6 @@ from typing import Any
 
 from opentine._jsonsafe import json_exact as _exact
 from opentine._jsonsafe import json_safe as _safe
-from opentine.trace import _genai_semconv as semconv
 from opentine.trace._import_guard import bounded_lines, shape_checked
 from opentine.trace._import_helpers import (
     dictionary,
@@ -17,17 +16,12 @@ from opentine.trace._import_helpers import (
     imported_usage,
     logical_size,
     optional_string,
-    otel_spans,
 )
 from opentine.trace._import_helpers import first as _first
-from opentine.trace._import_helpers import integer as _int
 from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._import_helpers import timestamp as _timestamp
-from opentine.trace._otel_accounting import otel_accounting
-from opentine.trace._otel_content import span_content as _span_content
-from opentine.trace._otel_ids import imported_ids
-from opentine.trace._otel_usage import bill_unreported_agents, otel_usage, span_kind
-from opentine.trace._otel_values import attributes as _attributes
+from opentine.trace._otel_span_import import otel_genai_events as otel_genai_events
+from opentine.trace._provider_alias import canonical_provider
 from opentine.trace.schema import TraceEvent
 
 MAX_TRACE_EVENTS = 100_000
@@ -121,7 +115,7 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
                 else (),
                 actor=str(item.get("actor", "")),
                 model=str(item.get("model", "")),
-                provider=str(item.get("provider") or ""),
+                provider=canonical_provider(item.get("provider") or ""),
                 cost=_safe(item.get("cost")),
                 duration=max(0, _timestamp(item.get("duration", item.get("latency", 0)))),
                 inputs=_safe(_mapping(_first(item, "inputs", "input"))),
@@ -132,57 +126,6 @@ def jsonl_events(source: str | Path | Iterable[str]) -> list[TraceEvent]:
             )
         )
     return events
-
-
-def otel_genai_events(
-    spans: Iterable[dict[str, Any]] | dict[str, Any],
-) -> list[TraceEvent]:
-    events: list[TraceEvent] = []
-    total, inferred = 0, set[int]()
-    for span in otel_spans(spans):
-        if len(events) >= MAX_TRACE_EVENTS:
-            raise ValueError("trace import exceeds maximum event count")
-        total = _consume(total, span)
-        try:
-            attributes = _attributes(span)
-        except (RecursionError, ValueError):
-            continue
-        operation = str(attributes.get(semconv.OPERATION_NAME, span.get("name", "")))
-        usage, attributes = otel_usage(attributes)
-        # A native run's kind rides in an OpenTine attribute when the operation
-        # name cannot carry it; read it back (and drop it) so export->import
-        # restores tool/think/error instead of collapsing them to "model".
-        kind = span_kind(attributes, operation, inferred, len(events))
-        # Money rides in OpenTine attributes for the same reason; read it back
-        # too, or a priced run re-imports at $0.00 with its billing dropped.
-        cost, billing = otel_accounting(attributes)
-        nanos = _int(_first(span, "startTimeUnixNano", "start_time_unix_nano", default=0))
-        end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
-        model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
-        inputs, outputs = _span_content(span, attributes)
-        # The ids an export replaced with OTLP-shaped ones come back from attributes.
-        trace_id, span_id, parent_id, causal = imported_ids(span, attributes, len(events))
-        events.append(
-            TraceEvent(
-                kind=kind,
-                timestamp=_timestamp(nanos) / 1_000_000_000,
-                trace_id=trace_id,
-                span_id=span_id,
-                parent_span_id=parent_id,
-                causal_span_ids=causal,
-                actor=operation,
-                model=str(model or ""),
-                provider=str(_first(attributes, *semconv.PROVIDER_KEYS, default="")),
-                cost=cost,
-                duration=max(0, _timestamp(end_nanos - nanos)) / 1_000_000_000,
-                inputs=_safe(inputs),
-                outputs=_safe(outputs),
-                usage=usage,
-                billing=_safe(billing),
-                attributes=_safe(attributes),
-            )
-        )
-    return bill_unreported_agents(events, inferred)
 
 
 _FRAMEWORK_FIELDS = {
@@ -228,6 +171,9 @@ def framework_events(records: Iterable[dict[str, Any]], framework: str) -> list[
                 ),
                 actor=str(_first(record, actor_field, "actor", "name", default="")),
                 model=str(record.get("model", "")),
+                provider=canonical_provider(
+                    record.get("provider") or dictionary(record.get("metadata")).get("ls_provider")
+                ),
                 cost=_safe(record.get("cost")),
                 duration=max(0, _timestamp(record.get("duration", record.get("latency", 0)))),
                 inputs=_safe(

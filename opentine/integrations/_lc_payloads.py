@@ -96,22 +96,85 @@ def model_name(serialized: Any, metadata: Any, extra: Any) -> str:
     return ""
 
 
+def provider_name(metadata: Any) -> str:
+    """The serving provider langchain names in ``ls_provider`` (aliased at the event)."""
+    value = metadata.get("ls_provider") if isinstance(metadata, dict) else None
+    return value if isinstance(value, str) else ""
+
+
 def token_usage(raw: Any) -> dict[str, int]:
-    """Map a provider/langchain usage report onto OpenTine's usage dimensions."""
+    """Map a provider/langchain usage report onto OpenTine's exclusive buckets.
+
+    Two of the shapes carry *inclusive* totals: langchain's normalized
+    ``usage_metadata`` (``input_tokens`` is the "sum of all input token types",
+    its ``*_token_details`` breakdowns inside it) and OpenAI's raw
+    ``token_usage`` (``prompt_tokens_details.cached_tokens`` and
+    ``completion_tokens_details.reasoning_tokens`` inside the totals). Both
+    used to be stored as exclusive with the sub-counts added on top, billing a
+    cached call ~4.7x. Anthropic's raw ``usage`` is exclusive and read as-is.
+    """
     source = dict(raw) if isinstance(raw, dict) else {}
+    inclusive = False
     for key in ("input_token_details", "output_token_details"):
         nested = source.get(key)
         if isinstance(nested, dict):
+            inclusive = True
             for name, value in nested.items():
                 source.setdefault(str(name), value)
+    # Anthropic's raw usage nests the TTL split: {"cache_creation": {"ephemeral_1h_…"}}.
+    if isinstance(source.get("cache_creation"), dict):
+        for name, value in source["cache_creation"].items():
+            source.setdefault(str(name), value)
+    for key, name, dimension in _OPENAI_DETAILS:
+        nested = source.get(key)
+        if isinstance(nested, dict) and _count(nested.get(name)) is not None:
+            inclusive = True
+            source.setdefault(dimension, nested[name])
     usage: dict[str, int] = {}
     for dimension, names in _USAGE_ALIASES:
         for name in names:
-            value = source.get(name)
-            if type(value) is int and 0 <= value <= _MAX_SAFE_INTEGER:
+            value = _count(source.get(name))
+            if value is not None:
                 usage[dimension] = value
                 break
+    _split_cache_writes(source, usage)
+    if inclusive:
+        cached = sum(
+            usage.get(name, 0) for name in ("cache_read", "cache_write_5m", "cache_write_1h")
+        )
+        _exclude(usage, "input", cached)
+        _exclude(usage, "output", usage.get("reasoning", 0))
     return usage
+
+
+#: OpenAI's raw ``token_usage`` nests its inclusive sub-counts one level down.
+_OPENAI_DETAILS = (
+    ("prompt_tokens_details", "cached_tokens", "cache_read"),
+    ("completion_tokens_details", "reasoning_tokens", "reasoning"),
+)
+
+
+def _count(value: Any) -> int | None:
+    return value if type(value) is int and 0 <= value <= _MAX_SAFE_INTEGER else None
+
+
+def _split_cache_writes(source: dict[str, Any], usage: dict[str, int]) -> None:
+    """langchain-anthropic reports the TTL split as ``ephemeral_{5m,1h}_input_tokens``."""
+    five, hour = (_count(source.get(f"ephemeral_{ttl}_input_tokens")) for ttl in ("5m", "1h"))
+    if hour:
+        usage["cache_write_1h"] = hour
+        usage["cache_write_5m"] = (
+            five if five is not None else max(0, usage.get("cache_write_5m", 0) - hour)
+        )
+        if not usage["cache_write_5m"]:
+            del usage["cache_write_5m"]
+
+
+def _exclude(usage: dict[str, int], name: str, included: int) -> None:
+    # A total smaller than its own sub-counts cannot include them (the emitter
+    # reported exclusive buckets under inclusive names): keep it as reported.
+    if name in usage and included and usage[name] >= included:
+        usage[name] -= included
 
 
 def message_payload(value: Any) -> Any:
