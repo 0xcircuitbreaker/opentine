@@ -258,7 +258,8 @@ def test_the_live_events_agree_with_the_post_hoc_framework_importer(tmp_path):
             },
             {"input": 7, "output": 3, "cache_read": 4, "cache_write_5m": 2},
         ),
-        # langchain's normalized usage_metadata, including its nested details
+        # langchain's normalized usage_metadata: totals INCLUDE their details,
+        # so the exclusive buckets are what is left once the details come out
         (
             {
                 "input_tokens": 7,
@@ -267,7 +268,18 @@ def test_the_live_events_agree_with_the_post_hoc_framework_importer(tmp_path):
                 "input_token_details": {"cache_read": 4},
                 "output_token_details": {"reasoning": 1},
             },
-            {"input": 7, "output": 3, "total": 10, "cache_read": 4, "reasoning": 1},
+            {"input": 3, "output": 2, "total": 10, "cache_read": 4, "reasoning": 1},
+        ),
+        # OpenAI raw token_usage: cached and reasoning counts sit inside the totals
+        (
+            {
+                "prompt_tokens": 100,
+                "completion_tokens": 30,
+                "total_tokens": 130,
+                "prompt_tokens_details": {"cached_tokens": 60},
+                "completion_tokens_details": {"reasoning_tokens": 10},
+            },
+            {"input": 40, "output": 20, "total": 130, "cache_read": 60, "reasoning": 10},
         ),
         # nothing usable is not an error, it is simply no usage
         ({"prompt_tokens": "7", "completion_tokens": -1}, {}),

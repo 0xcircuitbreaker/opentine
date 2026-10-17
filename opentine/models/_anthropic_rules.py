@@ -46,6 +46,8 @@ def pricing_tier(
 ) -> str | None:
     usage = value(response, "usage")
     tier = value(usage, "service_tier") or value(response, "service_tier") or configured_tier
+    if value(usage, "speed") == "fast":  # fast mode bills at the card's ``fast`` multiplier
+        tier = "fast"
     geo = value(usage, "inference_geo") or configured_geo
     if geo != "us":
         return tier

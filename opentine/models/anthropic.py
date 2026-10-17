@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import AsyncIterator
 from typing import Any
 
 from opentine.billing import PricingCatalog
+from opentine.models._anthropic_client import credentials, make_client, sampling_kwargs
 from opentine.models._anthropic_request import build_tools, convert_messages
 from opentine.models._anthropic_rules import (
     early_refusal_is_free,
@@ -16,7 +16,6 @@ from opentine.models._anthropic_rules import (
     validate_service_tier,
 )
 from opentine.models._client import closing_client
-from opentine.models._endpoint_security import require_key_transport
 from opentine.models._metered import metered_response
 from opentine.models._provider_meta import model_name, validated_rates
 from opentine.models._stream_content import anthropic_content
@@ -41,11 +40,22 @@ class Anthropic:
         catalog: PricingCatalog | None = None,
         service_tier: str | None = None,
         inference_geo: str | None = None,
+        base_url: str | None = None,
+        provider: str = "anthropic",
+        unmetered: bool = False,
+        cache_inclusive: bool = False,
     ):
         validate_service_tier(service_tier)
         self._model = model
-        self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self._rate_override = validated_rates("anthropic", model, rates)
+        self._api_key, self._auth_token = credentials(api_key, base_url)
+        # A compatible server (Ollama, LM Studio, llama.cpp, vLLM, a gateway) is
+        # recorded under its own provider so first-party cards never price it.
+        self._base_url = base_url
+        self._provider = provider
+        self._unmetered = unmetered
+        # Some servers count cached prompt tokens inside ``input_tokens``.
+        self._cache_inclusive = cache_inclusive
+        self._rate_override = validated_rates(provider, model, rates)
         self._catalog = catalog
         self._service_tier = service_tier
         self._inference_geo = inference_geo
@@ -67,18 +77,7 @@ class Anthropic:
         return model_rules(self._model)[1]
 
     def _get_client(self):
-        try:
-            import anthropic
-        except ImportError:
-            raise ImportError("pip install opentine[anthropic]") from None
-        require_key_transport(os.environ.get("ANTHROPIC_BASE_URL"), self._api_key)
-        # httpx strips only ``Authorization`` on a cross-origin redirect, so a
-        # followed redirect would hand ``x-api-key`` to the redirect target.
-        return anthropic.AsyncAnthropic(
-            api_key=self._api_key,
-            max_retries=0,
-            http_client=anthropic.DefaultAsyncHttpxClient(follow_redirects=False),
-        )
+        return make_client(self._api_key, self._auth_token, self._base_url)
 
     def _kwargs(
         self,
@@ -93,7 +92,7 @@ class Anthropic:
             "messages": convert_messages(messages),
         }
         if not self._adaptive:
-            kwargs["temperature"] = temperature
+            kwargs.update(sampling_kwargs(temperature))
         if system:
             kwargs["system"] = system
         api_tools = build_tools(tools)
@@ -111,11 +110,12 @@ class Anthropic:
         raw_usage = value(response, "usage")
         raw_model = value(response, "model")
         payload = metered_response(
-            "anthropic",
+            self._provider,
             self._model,
-            anthropic_usage(raw_usage),
+            anthropic_usage(raw_usage, cache_inclusive=self._cache_inclusive),
             catalog=self._catalog,
             rate_override=self._rate_override,
+            unmetered=self._unmetered,
             service_tier=pricing_tier(response, self._service_tier, self._inference_geo),
             usage_reported=raw_usage is not None,
             missing_usage=missing_usage_dimensions(
@@ -161,7 +161,7 @@ class Anthropic:
                 result.pop(field, None)
             result["warnings"].append("discarded partial output from refused response")
         raw_usage = value(response, "usage")
-        usage = anthropic_usage(raw_usage)
+        usage = anthropic_usage(raw_usage, cache_inclusive=self._cache_inclusive)
         result.update(
             self._meter(
                 response,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from typing import Any
 
 from opentine.autosave import Autosaver
@@ -124,28 +125,22 @@ class RuntimeLoopMixin:
         run: Run,
         messages: list[dict[str, Any]],
         tool_calls: list[dict[str, Any]],
+        exhausted: Callable[[], bool] | None = None,
     ) -> None:
+        # The model chooses how many calls a response holds, so the budget is
+        # checked before each one; once spent, the rest are answered, not run,
+        # which keeps the batch complete for a resume.
+        spent = False
         for call in tool_calls:
             name, arguments = call["name"], call.get("arguments", {})
             call_id = call.get("id") or name
             cache_key = semantic_key("tool.call", {"arguments": arguments, "name": name})
             started = time.monotonic()
-            try:
-                result = await self._call_tool(name, arguments)
-                run.cache[cache_key] = CacheEntry(
-                    cache_key,
-                    "tool.call",
-                    {"result": result},
-                    {"mode": "rerun", "tool": name},
-                ).to_dict()
-            except Exception as exc:
-                result = f"[Tool output from {name}] Error: {exc}"
-                run.add_step(
-                    StepKind.error,
-                    {"error": result, "tool": name},
-                    outputs={"result": result},
-                    error={"message": str(exc), "type": type(exc).__name__},
-                )
+            spent = spent or (exhausted is not None and exhausted())
+            if spent:
+                result = f"[Tool output from {name}] Error: not executed: run budget exhausted"
+            else:
+                result = await self._run_tool(run, name, arguments, cache_key)
             duration = time.monotonic() - started
             step = run.add_step(
                 StepKind.tool,
@@ -163,6 +158,26 @@ class RuntimeLoopMixin:
             }
             run.transcript.append(message)
             messages.append({key: value for key, value in message.items() if key != "step_id"})
+
+    async def _run_tool(self, run: Run, name: str, arguments: Any, cache_key: str) -> Any:
+        try:
+            result = await self._call_tool(name, arguments)
+        except Exception as exc:
+            result = f"[Tool output from {name}] Error: {exc}"
+            run.add_step(
+                StepKind.error,
+                {"error": result, "tool": name},
+                outputs={"result": result},
+                error={"message": str(exc), "type": type(exc).__name__},
+            )
+            return result
+        run.cache[cache_key] = CacheEntry(
+            cache_key,
+            "tool.call",
+            {"result": result},
+            {"mode": "rerun", "tool": name},
+        ).to_dict()
+        return result
 
     async def _continue(
         self,
@@ -202,7 +217,22 @@ class RuntimeLoopMixin:
             if not tool_calls:
                 run.status = RunStatus.completed
                 break
-            await self._execute_tools(run, messages, tool_calls)
+            await self._execute_tools(
+                run,
+                messages,
+                tool_calls,
+                None
+                if budget is None
+                else lambda: (
+                    budget.check(
+                        cost=run.total_cost,
+                        usage=run.total_tokens,
+                        steps=len(run.steps),
+                        duration=max(run.total_duration, elapsed_duration()),
+                    )
+                    is not None
+                ),
+            )
             if budget is not None and self._enforce_budget(
                 run, budget, elapsed_duration=elapsed_duration()
             ):

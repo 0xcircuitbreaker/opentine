@@ -38,15 +38,17 @@ class UnknownProvider(ValueError):
 
 
 def _hosted() -> dict[str, type]:
-    from opentine.models import _compat_hosted
+    from opentine.models import _compat_hosted, _compat_vendors
     from opentine.models._chat import ChatCompletions
 
     return {
         name.casefold(): value
-        for name, value in vars(_compat_hosted).items()
+        for module in (_compat_hosted, _compat_vendors)
+        for name, value in vars(module).items()
         if isinstance(value, type)
         and issubclass(value, ChatCompletions)
-        and value.__module__ == _compat_hosted.__name__
+        and value.__module__ == module.__name__
+        and not name.startswith("_")
     }
 
 

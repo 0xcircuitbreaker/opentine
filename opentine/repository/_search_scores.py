@@ -10,14 +10,23 @@ those, and unsigned scores count only for runs with none (or not at all, with
 ``signed_only``), and a run scored by a signed evaluation ranks above every run
 scored by an unsigned one. ``score_signed`` reports which kind decided.
 
-"Signed" means the attestation carries a signature block. Search holds no keys,
-so this is not verification -- ``tine repo-verify`` with a trusted key is.
+"Signed" means the attestation carries a well-formed signature block (one that
+verifies to ``no-key`` without a key: ``"signature": {}`` is junk, not a
+signature). Search holds no keys, so this is not verification -- ``tine
+repo-verify`` with a trusted key is. An unsigned score outside +/-1e6 -- the
+bound MCP ``evaluate_run`` enforces, which ``attest_run`` or any repository
+writer could skip -- counts for nothing.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from typing import Any
+
+from opentine.attest_signing import verify_attestation
+
+#: The largest unsigned evaluation score search believes (MCP's ``evaluate_run`` bound).
+MAX_UNSIGNED_SCORE = 1e6
 
 #: target run id -> [(average score, signed)]
 Scores = dict[str, list[tuple[float, bool]]]
@@ -48,9 +57,15 @@ def collect_scores(
         target = payload.get("target_id")
         average = finite(sum(values) / len(values)) if values else None
         if isinstance(target, str) and average is not None:
-            signed = isinstance(payload.get("signature"), dict)
+            signed = _signed(payload)
+            if not signed and any(abs(value) > MAX_UNSIGNED_SCORE for value in values):
+                continue
             scores.setdefault(target, []).append((average, signed))
     return scores
+
+
+def _signed(payload: dict[str, Any]) -> bool:
+    return verify_attestation(payload).state not in ("error", "unsigned")
 
 
 def best_score(
@@ -65,4 +80,4 @@ def best_score(
     return max(average for average, _ in entries), False
 
 
-__all__ = ["Scores", "best_score", "collect_scores"]
+__all__ = ["MAX_UNSIGNED_SCORE", "Scores", "best_score", "collect_scores"]

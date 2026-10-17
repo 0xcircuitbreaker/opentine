@@ -3,52 +3,15 @@
 from __future__ import annotations
 
 import os
-import re
 import signal
 import subprocess
 import threading
-from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from opentine._redact_shapes import TOKEN_SHAPES, URL_USERINFO
+from opentine.tools import _subreaper
 from opentine.tools._batch_guard import refuse_batch_injection
-
-#: Environment names a tool subprocess never needs and must never be handed.
-_SENSITIVE_PAT = re.compile(r"(KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH)", re.IGNORECASE)
-#: Credential spellings the substring list above missed (audit 0.9.1, D-4):
-#: ``MYSQL_PWD``, ``PGPASS``, ``GH_PAT``, ``SENTRY_DSN``, ``*_WEBHOOK_URL``,
-#: ``*_CONNECTION_STRING``, ``SIGNING_PRIVATE``, ``*_COOKIE``. ``PWD``/``OLDPWD``
-#: themselves are directories, and ``PATH`` is not ``PAT``.
-_SENSITIVE_SUFFIX = re.compile(r"(?:PASS|PASSWD|_PWD|_PAT|_DSN)$", re.IGNORECASE)
-_SENSITIVE_PART = re.compile(
-    r"(?:^|_)(?:PRIVATE|WEBHOOK|COOKIE|CREDS|CONNECTION_STRING|CONN_STR)(?:_|$)", re.IGNORECASE
-)
-
-
-def _sensitive(name: str, value: str) -> bool:
-    if _SENSITIVE_PAT.search(name) or _SENSITIVE_SUFFIX.search(name):
-        return True
-    if _SENSITIVE_PART.search(name):
-        return True
-    # By value, whatever the name: ``DATABASE_URL=postgres://u:pw@db``, a proxy
-    # with credentials, a vendor token or a private key under an innocent name.
-    raw = value.encode("utf-8", "replace")
-    return bool(TOKEN_SHAPES.search(raw) or URL_USERINFO.search(raw) or b"PRIVATE KEY-----" in raw)
-
-
-def clean_env(inherit_env: bool, env_allowlist: Iterable[str]) -> dict[str, str]:
-    """The environment a bounded subprocess may see, scrubbed on inheritance.
-
-    One spelling for every tool that spawns a process. The shell tool used to
-    hand ``dict(os.environ)`` over verbatim on ``inherit_env``, so an
-    ANTHROPIC_API_KEY left the host and came straight back into model context
-    through the command's own output, while the python tool scrubbed the same
-    names — a divergence that only exists while the helper is written twice.
-    """
-    if inherit_env:
-        return {key: value for key, value in os.environ.items() if not _sensitive(key, value)}
-    return {name: os.environ[name] for name in env_allowlist if name in os.environ}
+from opentine.tools._env_scrub import clean_env as clean_env
 
 
 @dataclass(frozen=True)
@@ -145,6 +108,9 @@ def _cleanup_owned(process: subprocess.Popen[bytes], job: Any) -> None:
             return
         except OSError:
             pass
+    if getattr(process, "opentine_supervised", None):
+        _subreaper.stop(process)  # also kills descendants that left the group
+        _subreaper.finish(process)  # a supervisor killed from below: clean up after it
     _kill_tree(process)
 
 
@@ -161,7 +127,8 @@ def run_bounded(
     if timeout <= 0 or max_chars < 1 or (max_bytes is not None and max_bytes < 1):
         raise ValueError("subprocess timeout and output limit must be positive")
     refuse_batch_injection(argv)
-    process = subprocess.Popen(
+    launch = subprocess.Popen if os.name == "nt" else _subreaper.popen
+    process = launch(
         argv,
         cwd=cwd,
         env=env,

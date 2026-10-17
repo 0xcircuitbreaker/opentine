@@ -1,0 +1,4 @@
+{"ts":"2026-10-15T10:00:00.000Z","type":"agent_event","event":{"type":"iteration_start","iteration":1}}
+{"ts":"2026-10-15T10:00:01.000Z","type":"agent_event","event":{"type":"usage","inputTokens":3000,"outputTokens":120,"cacheReadTokens":10000,"cacheWriteTokens":800,"cost":0.0091,"totalInputTokens":3000,"totalOutputTokens":120,"totalCost":0.0091}}
+{"ts":"2026-10-15T10:00:02.000Z","type":"agent_event","event":{"type":"done","reason":"completed","text":"Hello!","iterations":1}}
+{"ts":"2026-10-15T10:00:02.100Z","type":"run_result","finishReason":"completed","iterations":1,"usage":{"inputTokens":3000,"outputTokens":120},"durationMs":2100,"model":"claude-sonnet-5-5","text":"Hello!"}

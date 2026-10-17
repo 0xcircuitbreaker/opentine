@@ -106,7 +106,34 @@ def _selects(row: dict[str, Any], signers: list[str], claim: dict[str, Any] | No
     if signers and row["signer"] not in signers:
         return False
     held = row["claim"] if isinstance(row["claim"], dict) else {}
-    return claim is None or all(key in held and held[key] == claim[key] for key in claim)
+    return claim is None or all(key in held and _same_json(held[key], claim[key]) for key in claim)
+
+
+def _same_json(left: Any, right: Any) -> bool:
+    """JSON equality: ``true`` is not ``1``, as Python's ``==`` says it is.
+
+    Integral numbers compare equal across int/float (canonical JSON stores
+    ``1.0`` as ``1``); booleans, strings, null and containers compare by type.
+    """
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if isinstance(left, int | float) and isinstance(right, int | float):
+        return left == right
+    if isinstance(left, dict) and isinstance(right, dict):
+        if left.keys() != right.keys():
+            return False
+        for key in left:
+            if not _same_json(left[key], right[key]):
+                return False
+        return True
+    if isinstance(left, list) and isinstance(right, list):
+        if len(left) != len(right):
+            return False
+        for a, b in zip(left, right, strict=True):
+            if not _same_json(a, b):
+                return False
+        return True
+    return type(left) is type(right) and left == right
 
 
 def _render(console, rows: list[dict[str, Any]], target: str, scoped: bool) -> None:

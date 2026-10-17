@@ -11,6 +11,7 @@ from typing import Any
 from opentine.autosave import Autosaver
 from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind
+from opentine.harnesses._record_depth import _recordable, escaped_text
 from opentine.harnesses._types import (
     HarnessAdapter,
     HarnessStep,
@@ -31,6 +32,7 @@ class OpentineHarness:
         autosave_path: str | Path | None = None,
         autosave_steps: int = 0,
         autosave_seconds: float = 0.0,
+        autosave_growth: float = 0.0,
     ):
         self.harness = harness
         self.run = run
@@ -41,6 +43,7 @@ class OpentineHarness:
             self.autosave_path,
             every_n_steps=autosave_steps,
             every_seconds=autosave_seconds,
+            min_growth=autosave_growth,
         )
         self._last_step_id = run.steps[-1].id if run and run.steps else None
         self._budget_breached = False
@@ -151,18 +154,21 @@ class OpentineHarness:
         cost = _meter(cost, "cost")
         duration = _meter(duration, "duration")
         run = self._require_run()
+        trace = getattr(self.harness, "trace_id", None)
+        if isinstance(trace, str) and trace and "otel_trace_id" not in run.metadata:
+            run.metadata["otel_trace_id"] = trace  # joins the CLI's own OTel trace
         original_model = run.model_info
         if model_info:
-            run.model_info = model_info
+            run.model_info = escaped_text(model_info)
         added = run.add_step(
             normalized,
-            _jsonable(inputs or {}),
-            outputs=_jsonable(outputs or {}),
+            _jsonable(_recordable(inputs or {})),
+            outputs=_jsonable(_recordable(outputs or {})),
             parent_id=parent_id or self._last_step_id,
             cost=cost,
             duration=duration,
             usage=usage or None,
-            provider=provider,
+            provider=escaped_text(provider),
         )
         run.model_info = original_model
         self._last_step_id = added.id

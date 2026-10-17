@@ -12,22 +12,19 @@ included) understands, and the 1.36 ``gen_ai.input.messages`` /
 ``gen_ai.output.messages`` arrays current backends — Arize Phoenix, Langfuse —
 render as a conversation, under the scope ``schemaUrl`` that names them.
 
-Export is read-only over provenance. It reads runs through the same public
-loaders every release since 0.3.0 exposes, writes nothing, and introduces no
-artifact or repository format version.
+Export is read-only over provenance and introduces no format version.
 
 Known lossy edges, all outside the GenAI conventions:
 
-* ``timestamp``/``duration`` are seconds as ``float``; nanosecond precision
-  beyond float64's 53-bit mantissa (roughly microseconds at a 2020s epoch) is
-  already gone by the time an event exists, so re-exported nanos may differ in
-  the last digits from the ones originally imported.
+* ``timestamp``/``duration`` are float seconds, so re-exported nanos may differ
+  in the last digits (float64 keeps about microseconds at a 2020s epoch).
 * ``cost`` and ``billing`` have no GenAI convention, so they ride under
   ``opentine.*``; the importer reads both back, a cost as the exact decimal
   string written here rather than as the float it may have started as.
 * Usage dimensions outside the token counters GenAI names (an ``eval_seconds``,
   say) have no attribute to ride in, so they do not survive the round trip.
-* Attributes whose value is ``None`` are dropped; OTLP has no null ``AnyValue``.
+* ``None`` attributes are dropped (OTLP has no null), as are reserved ``opentine.*``
+  keys an event does not itself derive.
 
 Everything the importer does read survives: ``otel_genai_events(spans)`` and
 ``otel_genai_events(to_otel_genai(otel_genai_events(spans)))`` compare equal.
@@ -55,9 +52,7 @@ MAX_EXPORTED_MESSAGES = 10_000
 SCOPE_NAME = "opentine"
 SCHEMA_URL = semconv.SCHEMA_URL
 KIND_ATTRIBUTE = semconv.KIND_ATTRIBUTE
-#: Cost and billing stay OpenTine-namespaced on purpose (see the semconv module,
-#: which spells both keys for the reader half too — a key only one direction
-#: knows is how the money went missing across a round trip in the first place).
+#: Cost and billing stay OpenTine-namespaced; the semconv module spells both for the reader too.
 COST_ATTRIBUTE = semconv.COST_ATTRIBUTE
 BILLING_ATTRIBUTE = semconv.BILLING_ATTRIBUTE
 _CLIENT_SPAN = "SPAN_KIND_CLIENT"
@@ -172,6 +167,13 @@ def _attributes(event: TraceEvent) -> dict[str, Any]:
     attribute set for a natively recorded run.
     """
     attributes = dict(_safe(event.attributes))
+    # Reserved keys riding in from foreign attributes would re-kind or re-price on import.
+    if attributes.get(KIND_ATTRIBUTE) not in (None, event.kind):
+        del attributes[KIND_ATTRIBUTE]
+    if event.cost is None:
+        attributes.pop(COST_ATTRIBUTE, None)
+    if not event.billing:
+        attributes.pop(BILLING_ATTRIBUTE, None)
     if event.actor and semconv.OPERATION_NAME not in attributes:
         attributes[semconv.OPERATION_NAME] = event.actor
     if event.model and not any(key in attributes for key in semconv.MODEL_KEYS):

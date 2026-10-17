@@ -25,6 +25,7 @@ from typing import Any
 
 from opentine.trace import _genai_semconv as semconv
 from opentine.trace._import_helpers import event_kind, imported_usage, note_import_warning
+from opentine.trace.schema import TRACE_KINDS
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
 _LEGACY_KEYS = frozenset(semconv.USAGE_BY_DIMENSION.values())
@@ -42,9 +43,14 @@ def span_kind(attributes: dict[str, Any], operation: str, inferred: set[int], po
     Agent spans whose kind was only inferred are noted in *inferred* for
     :func:`bill_unreported_agents` to reconsider once every span is read.
     """
-    explicit = str(attributes.pop(semconv.KIND_ATTRIBUTE, ""))
-    if explicit:
-        return explicit
+    explicit = attributes.pop(semconv.KIND_ATTRIBUTE, "")
+    if explicit not in ("", None):
+        if isinstance(explicit, str) and explicit in TRACE_KINDS:
+            return explicit
+        # One span naming a kind no event can hold used to fail the whole
+        # import at TraceEvent construction; coerce it and say so instead.
+        note_import_warning(attributes, f"invalid {semconv.KIND_ATTRIBUTE} {str(explicit)[:64]!r}")
+        return event_kind(explicit if isinstance(explicit, str) else "")
     if operation in semconv.AGENT_OPERATIONS:
         inferred.add(position)
     return otel_kind(operation)
@@ -176,13 +182,15 @@ def bill_unreported_agents(events: list[Any], inferred: set[int]) -> list[Any]:
     for event in events:
         if not event.usage:
             continue
-        seen: set[int] = set()
+        # Stop at the first ancestor already marked: every ancestor above it was
+        # marked when it was first reached, so each position is climbed once and
+        # the pass is linear in the span count (final security pass 5, #5). The
+        # same check ends a parent cycle.
         parent = event.parent_span_id
         while parent is not None:
             position = index.get((event.trace_id, parent))
-            if position is None or position in seen:
+            if position is None or position in reported_below:
                 break
-            seen.add(position)
             reported_below.add(position)
             parent = events[position].parent_span_id
     return [

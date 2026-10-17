@@ -1,0 +1,12 @@
+{"type":"session","version":3,"id":"pi-sess","timestamp":"2026-10-15T10:00:00.000Z","cwd":"/w"}
+{"type":"agent_start"}
+{"type":"turn_start"}
+{"type":"message_start","message":{"role":"user","content":"Fix the bug","timestamp":1760000000000}}
+{"type":"message_end","message":{"role":"user","content":"Fix the bug","timestamp":1760000000000}}
+{"type":"message_update","usage":{"input":100,"output":1,"cacheRead":0,"cacheWrite":0,"totalTokens":101,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"Looking"}}
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"hmm"},{"type":"text","text":"Looking at it."},{"type":"toolCall","id":"call_1","name":"bash","arguments":{"command":"ls"}}],"api":"anthropic-messages","provider":"anthropic","model":"claude-sonnet-5-5","usage":{"input":1500,"output":300,"cacheRead":20000,"cacheWrite":4000,"cacheWrite1h":1000,"reasoning":120,"totalTokens":25800,"cost":{"input":0.003,"output":0.0045,"cacheRead":0.002,"cacheWrite":0.006,"total":0.0155}},"stopReason":"toolUse","timestamp":1760000001000}}
+{"type":"tool_execution_start","toolCallId":"call_1","toolName":"bash","args":{"command":"ls"}}
+{"type":"tool_execution_end","toolCallId":"call_1","toolName":"bash","result":{"content":[{"type":"text","text":"a.py\nb.py"}],"details":{}},"isError":false,"durationMs":12}
+{"type":"turn_end","message":{"role":"assistant"},"toolResults":[]}
+{"type":"agent_end","messages":[],"willRetry":false}
+{"type":"agent_settled","aborted":false}

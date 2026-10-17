@@ -1,0 +1,6 @@
+{"type":"step_start","timestamp":1760000000000,"sessionID":"ses_1","part":{"id":"p1","sessionID":"ses_1","messageID":"msg_1","type":"step-start"}}
+{"type":"text","timestamp":1760000000100,"sessionID":"ses_1","part":{"id":"p2","type":"text","text":"Running the tests."}}
+{"type":"tool_use","timestamp":1760000000200,"sessionID":"ses_1","part":{"partID":"p3","sessionID":"ses_1","messageID":"msg_1","type":"tool","id":"call_1","tool":"bash","state":{"status":"completed","input":{"command":"pytest -q"},"output":"3 passed","title":"bash","time":{"start":1,"end":2}}}}
+{"type":"tool_use","timestamp":1760000000300,"sessionID":"ses_1","part":{"partID":"p4","sessionID":"ses_1","messageID":"msg_1","type":"tool","id":"call_2","tool":"read","state":{"status":"error","input":{"filePath":"nope"},"error":"File not found","time":{"start":1,"end":2}}}}
+{"type":"step_finish","timestamp":1760000000400,"sessionID":"ses_1","part":{"id":"p5","sessionID":"ses_1","messageID":"msg_1","type":"step-finish","reason":"tool-calls","cost":0.0123,"tokens":{"input":1200,"output":80,"reasoning":20,"cache":{"read":9000,"write":500}}}}
+{"type":"error","timestamp":1760000000500,"sessionID":"ses_1","error":{"type":"unknown","message":"provider timeout"}}

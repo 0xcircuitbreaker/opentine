@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.10.0/docs/assets/opentine-logo.svg" alt="OpenTine" width="120" />
 </p>
 
 <h1 align="center">OpenTine</h1>
@@ -10,18 +10,18 @@
 
 <p align="center">
   <a href="https://pypi.org/project/opentine/"><img src="https://img.shields.io/pypi/v/opentine?color=d4a574" alt="PyPI" /></a>
-  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
+  <a href="https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-d4a574" alt="License" /></a>
   <a href="https://github.com/0xcircuitbreaker/opentine/actions"><img src="https://img.shields.io/github/actions/workflow/status/0xcircuitbreaker/opentine/ci.yml?color=d4a574" alt="CI" /></a>
-  <img src="https://img.shields.io/badge/status-0.9.2-d4a574" alt="0.9.2" />
+  <img src="https://img.shields.io/badge/status-0.10.0-d4a574" alt="0.10.0" />
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.10.0/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
 
-OpenTine 0.9.2 has two deliberately separate compatibility surfaces:
+OpenTine 0.10.0 has two deliberately separate compatibility surfaces:
 
 - Portable `*.tine` files remain format v2. Existing `Run`, `Agent`, signing,
   replay, and `total_cost` APIs continue to work.
@@ -39,7 +39,7 @@ outcomes, each named by digest. Fork from any step to retry a different way;
 intact, no structural drift) — all without losing provenance.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.9.2/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.10.0/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
 </p>
 
 ## Install
@@ -57,14 +57,16 @@ pip install "opentine[anthropic]"
 pip install "opentine[openai]"
 pip install "opentine[google]"
 pip install "opentine[compat]"  # hosted and local OpenAI-compatible APIs
-pip install "opentine[mcp]"
+pip install "opentine[mcp]"     # MCP server; works with MCP SDK 1.x and 2.x
 pip install "opentine[langchain]" # live callback capture for LangChain/LangGraph
 pip install "opentine[crypto]" # compatibility alias only; see below
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
 `all` installs the Anthropic, OpenAI, and Google SDKs; it does not include
-`mcp` or `langchain`. Ollama needs no extra because it uses the core `httpx`
+`mcp` or `langchain`. The Anthropic adapter works with both the 0.x SDK and the
+1.x SDK (which no longer accepts `temperature` as a keyword; OpenTine sends it in
+the request body for the models that take it). Ollama needs no extra because it uses the core `httpx`
 dependency.
 `crypto` is retained for older installation instructions and installs nothing
 new: `cryptography` is already a required core dependency, so Ed25519 signing,
@@ -101,16 +103,24 @@ tine run --model openai:gpt-6.1-sol --prompt "Explain the current branch" --save
 
 `--model` takes `provider` or `provider:model`; without a model id the adapter
 keeps its own default. Valid providers are `anthropic`, `openai`, `google`, and
-`ollama`; every hosted OpenAI-compatible adapter — `deepseek`, `glm`/`zai`,
-`grok`, `groq`, `hermes`, `kimi`, `ministral`, `mistral`, `openrouter`, `qwen`,
-and `together`; and every local OpenAI-compatible runtime — `jan`, `koboldcpp`,
-`litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`, `localai`, `mlx-lm`,
-`nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`, and `vllm`, each of
-which resolves to the localhost URL its server conventionally listens on:
+`ollama`; every hosted OpenAI-compatible adapter — `bedrock`, `cerebras`,
+`cohere`, `deepinfra`, `deepseek`, `fireworks`, `glm`/`zai`, `grok`, `groq`,
+`hermes`, `huggingface`, `inception`, `kimi`, `meta`, `minimax`, `ministral`,
+`mistral`, `nvidia`, `openrouter`, `qwen`, `sambanova`, `stepfun`, `together`,
+`upstage`, `vercel`, and `xiaomi`; and every local OpenAI-compatible runtime —
+`aphrodite`, `docker-model-runner`, `dynamo`, `foundry-local`, `jan`,
+`koboldcpp`, `lemonade`, `litellm`, `llama-cpp-python`, `llamacpp`,
+`llamafile`, `lmdeploy`, `lmstudio`, `localai`, `mistralrs`, `mlx-lm`,
+`nvidia-nim`, `ovms`, `sglang`, `tabbyapi`, `tensorrt-llm`, `tgi`, `unsloth`,
+`vllm`, and `xinference`, each of which resolves to the localhost URL its server
+conventionally listens on (`foundry-local` and `ovms` have none and need
+`--base-url`). `--base-url URL` and `--api-key-env NAME` point any of them at
+another port, machine, or key-protected server:
 
 ```bash
 tine run --model vllm:served-model --prompt "Explain the current branch"
 tine run --model lmstudio --prompt "Explain the current branch"
+tine run --model llamacpp --base-url http://127.0.0.1:9931/v1 --prompt "Explain the current branch"
 ```
 
 A local runtime has no rate card, so its runs record usage with the API cost
@@ -143,7 +153,7 @@ tine diff result.tine retry.tine
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
 and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
-fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TINE_FORMAT.md).
+fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/TINE_FORMAT.md).
 
 ## The model-agnostic core
 
@@ -171,7 +181,7 @@ OpenTine supports: it is there so a first run costs one command, not because a
 run has to come from it. The universal, model-agnostic on-ramp is
 OpenTelemetry GenAI — `tine import --format otel-json` needs no adapter, no key,
 and no rate card, and prices the result afterwards if you ask it to. See
-[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CAPTURE.md).
+[CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/CAPTURE.md).
 
 ## Universal usage and billing
 
@@ -221,7 +231,7 @@ than an allowlist: any model identifier remains runnable, and models without an
 exact effective card are reported as `unknown` instead of receiving a guessed
 price.
 
-See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/PRICING.md) for resolution order, provenance, and the catalog
+See [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/PRICING.md) for resolution order, provenance, and the catalog
 maintenance boundary.
 
 ## Model adapters
@@ -255,7 +265,7 @@ GLM()                             # glm-5.3 / Z.AI global endpoint
 Grok()                            # grok-4.7
 Qwen()                            # qwen3.8-max international endpoint
 Ministral()                       # ministral-14b-2512
-OpenRouter()                      # nousresearch/hermes-4-70b
+OpenRouter()                      # openai/gpt-oss-120b
 Hermes()                          # direct Nous; local price overlay expected
 ```
 
@@ -330,18 +340,42 @@ Common compatible endpoints are:
 | Hugging Face TGI | `http://localhost:8080/v1` | `TGI` |
 | Open WebUI | `http://localhost:3000/api` | exact `base_url` |
 | LiteLLM Proxy | `http://localhost:4000/v1` | `LiteLLM`; may route paid APIs |
-| llamafile | `http://localhost:8080/v1` | `LocalOpenAICompatible` |
+| llamafile | `http://localhost:8080/v1` | `Llamafile` |
+| Docker Model Runner | `http://localhost:12434/engines/v1` | `DockerModelRunner` |
+| AMD Lemonade | `http://localhost:13305/api/v1` | `Lemonade` |
+| mistral.rs | `http://localhost:1234/v1` | `MistralRs` |
+| TabbyAPI / ExLlamaV3 | `http://localhost:5000/v1` | `TabbyAPI` |
+| Xinference | `http://localhost:9997/v1` | `Xinference` |
+| LMDeploy | `http://localhost:23333/v1` | `LMDeploy` |
+| NVIDIA Dynamo | `http://localhost:8000/v1` | `Dynamo` |
+| Aphrodite | `http://localhost:2242/v1` | `Aphrodite` |
+| Foundry Local | dynamic port; base URL required | `FoundryLocal` |
+| OpenVINO Model Server | `/v3`; base URL required | `OVMS` |
 | GPT4All | `http://localhost:4891/v1` | `LocalOpenAICompatible` |
 | KoboldCpp | `http://localhost:5001/v1` | `KoboldCpp` |
 | text-generation-webui | `http://localhost:5000/v1` | `LocalOpenAICompatible` |
 | MLC-LLM and llama-swap | configured server base, usually `/v1` | `LocalOpenAICompatible` |
 
 Every row above that names a preset class is also a CLI provider word —
-`jan`, `koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`,
-`localai`, `mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`,
-`vllm` — resolving to exactly the base above. The rows answered by
-`LocalOpenAICompatible` or an exact `base_url` stay Python-only: there is no
-conventional host for `tine run --model` to assume.
+`aphrodite`, `docker-model-runner`, `dynamo`, `foundry-local`, `jan`,
+`koboldcpp`, `lemonade`, `litellm`, `llama-cpp-python`, `llamacpp`,
+`llamafile`, `lmdeploy`, `lmstudio`, `localai`, `mistralrs`, `mlx-lm`,
+`nvidia-nim`, `ovms`, `sglang`, `tabbyapi`, `tensorrt-llm`, `tgi`, `unsloth`,
+`vllm`, `xinference` — resolving to exactly the base above. Each preset also
+reads `<PRESET>_BASE_URL` and `<PRESET>_API_KEY` (for example
+`LLAMACPP_BASE_URL=http://127.0.0.1:9931/v1` for llama.cpp's newer default
+port, `JAN_API_KEY`, `TABBYAPI_API_KEY`), and `tine run --model` takes
+`--base-url` and `--api-key-env`. A real key from the environment is still held
+to the cleartext rule: plain `http://` only to a loopback address. A hosted
+preset's own key never follows `--base-url` to another host (`--base-url` on a
+hosted preset needs `--api-key-env`), and `--model anthropic --base-url` sends
+`ANTHROPIC_COMPAT_API_KEY`, never `ANTHROPIC_API_KEY` /
+`ANTHROPIC_AUTH_TOKEN`; the SDKs' environment headers
+(`ANTHROPIC_CUSTOM_HEADERS`, `OPENAI_CUSTOM_HEADERS`) are not sent there either.
+The rows
+answered by `LocalOpenAICompatible` or an exact `base_url` stay Python-only.
+Reasoning a server leaves inline (`<think>…</think>`, `[THINK]`, raw Harmony
+channels) is split into reasoning rather than recorded as the answer.
 
 Model IDs, tool calling, reasoning fields, multimodal input, and usage reporting
 depend on the loaded model, chat template, runtime version, and server flags.
@@ -417,7 +451,7 @@ integrity or a requested signature failure is refused unless
 `--allow-unverified` is explicit. Because the legacy blob is byte-exact, it can
 retain source secrets and should be reviewed before synchronization.
 
-See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/REPOSITORY.md) for object semantics and synchronization.
+See [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/REPOSITORY.md) for object semantics and synchronization.
 
 ## Live agent recording
 
@@ -446,8 +480,13 @@ Importers normalize OpenTine traces, JSONL, and OpenTelemetry GenAI spans or
 complete OTLP/JSON exports, including camelCase keys and typed `AnyValue`
 attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
-AutoGen, CrewAI, and OpenAI Agents logs. `tine import` (see the CLI reference)
-is the shell-level front end for exactly these importers.
+AutoGen, CrewAI, and OpenAI Agents logs. OTLP logs (`--format otel-logs`) and
+Claude Code's own OTel traces import priced, and the session logs Claude Code,
+Codex, Gemini CLI and Qwen Code keep for themselves import directly
+(`claude-code-transcript`, `codex-session`, `gemini-session`, `qwen-session`).
+`--format` defaults to `auto`, which recognizes each of these by shape.
+`tine import` (see the CLI reference) is the shell-level front end for exactly
+these importers.
 
 ### Live framework capture
 
@@ -615,10 +654,22 @@ graph LR
 OpenTine can capture external CLI agents:
 
 ```bash
-tine run --harness codex --prompt "Inspect this repo" --save run.tine
-tine run --harness kimi-code --prompt "Summarize README.md" --save run.tine
+tine harnesses --installed            # which agent CLIs are here, and what a run of each records
+tine run --harness gemini --prompt "Inspect this repo" --save run.tine
+tine run --harness qwen-code --prompt "Summarize README.md" --save run.tine
 tine run --harness generic --harness-command "agent run" --prompt "Fix tests"
 ```
+
+25 harnesses ship: `claude-code`, `codex`, `gemini`, `qwen-code`, `cursor`,
+`opencode`, `pi`, `hermes`, `openclaw`, `kimi-code`, `grok`, `goose`, `amp`,
+`droid`, `copilot`, `auggie`, `cline`, `qoder`, `continue`, `openhands`, `vibe`,
+`aider`, `crush`, `kiro`, and `generic` for anything else. Each catalogued CLI
+runs in its documented JSON mode, so its runs record the real model, token
+usage, tools and the CLI's own cost where it reports them, and `tine price` can
+re-price them. Sessions an agent CLI already ran on its own import after the
+fact: `tine import --from-default-location` lists the newest Claude Code,
+Codex, Gemini CLI and Qwen Code sessions, and
+`tine import latest --from-default-location --save run.tine` records one.
 
 Process harnesses default to a one-hour wall timeout, 4-million-character total
 output ceiling, and 10,000 parsed events. Override them with
@@ -635,11 +686,11 @@ path-aware, but no automatic redactor can prove arbitrary prose is secret-free.
 Enabled shell/Python timeouts terminate the owned process group or Windows Job
 Object and return only bounded partial output, with space reserved for stderr
 diagnostics. These subprocess controls are resource boundaries, not an OS sandbox.
-See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/SECURITY_MODEL.md).
+See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/SECURITY_MODEL.md).
 
 ## CLI Reference
 
-`tine` ships 40 subcommands. Each one prints its own `--help`, which is
+`tine` ships 41 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 
@@ -649,6 +700,7 @@ Portable `.tine` artifacts:
 tine run <script.py>                  Execute a Python script and save the Run it builds
 tine run --model anthropic --prompt P Call a bundled model adapter directly, no script
 tine run --harness codex --prompt P   Record an external CLI agent as a run
+tine harnesses                        List agent CLIs --harness can drive, installed ones, fidelity
 tine show <run>                       Pretty-print a run tree
 tine cost <run>                       Show cost, tokens, and budget state as recorded
 tine price <run> --at 2026-07-15      Re-price a run from the catalog (also prices imports)
@@ -674,6 +726,8 @@ Interoperability:
 tine import <trace> --format otel-json --save run.tine
 tine import - --format jsonl --repo . --ref heads/main
 tine import agent.log --format langchain --save run.tine
+tine import --from-default-location                              # newest agent-CLI sessions on this machine
+tine import latest --from-default-location --save run.tine       # import the newest one
 tine import <trace> --format otel-json --price --save run.tine   # price it from the catalog
 tine export <run> > spans.json
 tine export <run> --output spans.json
@@ -863,31 +917,31 @@ installed services.
 Tagged releases reuse one validated wheel/sdist pair for GitHub and PyPI. PyPI
 publication uses OIDC Trusted Publishing behind the protected `pypi` GitHub
 environment; no long-lived package-index token is stored. See
-[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/RELEASING.md) for the required one-time configuration and release
+[RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/RELEASING.md) for the required one-time configuration and release
 checklist.
 
 ## Documentation
 
 Start here:
 
-- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
-- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
-- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/CAPTURE.md): capture the agent you already have, and export it back out.
-- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/API.md): the public Python surface, one line per name.
+- [GETTING_STARTED.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/GETTING_STARTED.md): install to a promoted v3 run, one command at a time.
+- [CONCEPTS.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/CONCEPTS.md): the mental model — run graphs, digests, refs, verify/fork/diff.
+- [CAPTURE.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/CAPTURE.md): capture the agent you already have, and export it back out.
+- [API.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/API.md): the public Python surface, one line per name.
 
 Reference:
 
-- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CHANGELOG.md): release-level changes and compatibility.
+- [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
 - [conformance/](docs/conformance/README.md): 523 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
-- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
-- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/PRICING.md): signed catalogs and billing semantics.
-- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
-- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
-- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/RELEASING.md): trusted publication and release verification.
-- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/SUPPORT.md): supported runtimes and support levels.
-- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
-- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
+- [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
+- [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/PRICING.md): signed catalogs and billing semantics.
+- [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
+- [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/RELEASING.md): trusted publication and release verification.
+- [SUPPORT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/SUPPORT.md): supported runtimes and support levels.
+- [TROUBLESHOOTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/docs/TROUBLESHOOTING.md): common install, provider, and verification failures.
+- [CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/CONTRIBUTING.md): dev setup, the gate list, and the standing rules.
 
 ## Examples
 
@@ -940,7 +994,7 @@ graphs, and `tine` is the CLI command.
 
 ## Contributing
 
-[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/CONTRIBUTING.md)
 is the full guide — dev setup, the gate list, and the standing rules (the
 250-line architecture gate, backwards compatibility with every release from
 0.3.0 on, the git-shelling test contract, and why a new module must be tracked).
@@ -971,9 +1025,9 @@ remains authoritative for macOS and Windows.
 
 Report bugs on the
 [issue tracker](https://github.com/0xcircuitbreaker/opentine/issues). Report
-vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/SECURITY.md),
+vulnerabilities through [SECURITY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/SECURITY.md),
 not a public issue.
 
 ## License
 
-Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.9.2/LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/0xcircuitbreaker/opentine/blob/v0.10.0/LICENSE).

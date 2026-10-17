@@ -47,6 +47,8 @@ env/
 *.tine
 !tests/fixtures/
 !tests/fixtures/*.tine
+!tests/fixtures/pricing/
+!tests/fixtures/pricing/*.tine
 .tine_runs/
 
 # OS

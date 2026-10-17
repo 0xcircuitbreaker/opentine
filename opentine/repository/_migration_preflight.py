@@ -133,6 +133,24 @@ class _MemoryRepo:
             raise ValueError("concurrent in-memory ref update")
         self.refs[normalized] = new_oid
 
+    def annotation_candidates(self, run_id: str) -> list[str] | None:
+        """Staged annotations naming *run_id*, plus the store's, via its target index."""
+        path = getattr(self.base, "path", None)
+        if self.base is not None and path is None:
+            return None  # no index to ask: the caller scans
+        from opentine.repository._association_index import associated
+
+        found = associated(self.base, run_id, {"annotation"}) if self.base is not None else []
+        if found is None:
+            raise ValueError("typed object scan exceeds its object limit")
+        staged = {
+            oid
+            for oid, envelope in self.objects.items()
+            if envelope.object_type == "annotation"
+            and envelope.payload().get("target_id") == run_id
+        }
+        return sorted(staged | set(found))
+
     def associated_oids(self, target_id: str, *, limit: int) -> list[str]:
         found: list[str] = []
         if self.base is not None:

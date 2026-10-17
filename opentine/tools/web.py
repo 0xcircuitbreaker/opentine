@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import codecs
 import ipaddress
+import re
 import socket
 import threading
 from typing import Any
@@ -63,7 +65,8 @@ _EMBEDS_IPV4 = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("::/9
 
 
 def _public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    if not address.is_global:
+    # ``is_global`` calls multicast (224.0.0.0/4, ff00::/8) public.
+    if not address.is_global or address.is_multicast:
         return False
     if address.version == 4:
         return True
@@ -72,7 +75,11 @@ def _public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     embedded = address.ipv4_mapped or address.sixtofour
     if embedded is None and any(address in network for network in _EMBEDS_IPV4):
         embedded = ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
-    return embedded is None or embedded.is_global
+    if embedded is not None:
+        return embedded.is_global and not embedded.is_multicast
+    # After the embedded branch: 64:ff9b::/96 sits inside the reserved ::/8, and
+    # reserved space includes SIIT forms such as ::ffff:0:a9fe:a9fe.
+    return not address.is_reserved
 
 
 def _check_url(url: str, policy: NetworkPolicy):
@@ -198,8 +205,7 @@ async def fetch(url: str, max_chars: int = 8000, policy: NetworkPolicy | None = 
     pol = policy or NetworkPolicy(max_body_bytes=max_chars)
     resp = await _get(url, pol)
     resp.raise_for_status()
-    body = resp.content
-    text = body.decode(resp.encoding or "utf-8", errors="replace")
+    text = _decode(resp)
 
     return visible_text(text, max_chars)
 
@@ -208,13 +214,31 @@ async def fetch_raw(url: str, policy: NetworkPolicy | None = None) -> dict[str, 
     """Fetch a URL and return status, headers, and raw body."""
     pol = policy or NetworkPolicy()
     resp = await _get(url, pol)
-    body = resp.content
     return {
         "status": resp.status_code,
         "headers": dict(resp.headers),
-        "body": body.decode(resp.encoding or "utf-8", errors="replace"),
+        "body": _decode(resp),
         "untrusted": True,
     }
+
+
+#: Text codecs a server may name. Others Python knows -- ``punycode`` (quadratic
+#: to decode), ``idna``, ``utf-7``, ``unicode_escape``, ``rot13`` -- are not page
+#: encodings, and the decode runs outside the request timeout.
+_TEXT_CODECS = re.compile(
+    r"(?:utf[-_]?(?:8|16|32)(?:[-_]?(?:le|be))?|ascii|latin[-_]?1|iso8859[-_]\d+|cp\d{3,4}"
+    r"|koi8[-_][ru]|shift_jis|euc[-_](?:jp|kr)|gbk|gb2312|gb18030|big5|mac[-_]roman)"
+)
+
+
+def _decode(resp: Any) -> str:
+    try:
+        name = codecs.lookup(resp.encoding or "utf-8").name
+    except LookupError:
+        name = "utf-8"
+    if not _TEXT_CODECS.fullmatch(name):
+        name = "utf-8"
+    return resp.content.decode(name, errors="replace")
 
 
 # Models choose the URL; the embedding host owns body/output ceilings and policy.

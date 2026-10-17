@@ -30,6 +30,9 @@ def validate_claims(verifier: Any, claims: dict[str, Any]) -> None:
     if verifier.audience not in allowed:
         raise OIDCError("JWT audience mismatch")
     party = claims.get("azp")
+    if party is not None and not isinstance(party, str):
+        # A list or object here used to raise TypeError (a 500, unaudited).
+        raise OIDCError("JWT authorized party must be a string")
     parties = {verifier.audience, *getattr(verifier, "authorized_parties", ())}
     if (len(allowed) > 1 or party is not None) and party not in parties:
         raise OIDCError("JWT authorized party mismatch")

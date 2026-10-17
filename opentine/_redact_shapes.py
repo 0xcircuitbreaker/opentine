@@ -17,9 +17,18 @@ TOKEN_SHAPES = re.compile(
     rb"|gh[oprsu]_[A-Za-z0-9]{20,}"  # GitHub tokens
     rb"|github_pat_[A-Za-z0-9_]{22,}"  # GitHub fine-grained PAT
     rb"|xox[baprs]-[A-Za-z0-9-]{10,}"  # Slack tokens
+    rb"|xoxe(?:\.xox[bp])?-[0-9]-[A-Za-z0-9-]{20,}"  # Slack refresh / rotating tokens
+    rb"|xapp-[0-9]-[A-Za-z0-9-]{20,}"  # Slack app-level token
+    rb"|xai-[A-Za-z0-9]{40,}"  # xAI
+    rb"|gsk_[A-Za-z0-9]{40,}"  # Groq
+    rb"|r8_[A-Za-z0-9]{30,}"  # Replicate
+    rb"|pplx-[A-Za-z0-9]{40,}"  # Perplexity
+    rb"|ya29\.[A-Za-z0-9_-]{20,}"  # Google OAuth access token
+    rb"|GOCSPX-[A-Za-z0-9_-]{20,}"  # Google OAuth client secret
+    rb"|whsec_[A-Za-z0-9+/=_]{20,}"  # Stripe / Svix webhook signing secret
     rb"|AIza[0-9A-Za-z_-]{30,}"  # Google API key
     rb"|[rs]k_(?:live|test)_[0-9A-Za-z]{16,}"  # Stripe
-    rb"|glpat-[0-9A-Za-z_-]{20,}"  # GitLab PAT
+    rb"|gl(?:pat|rt|dt|ptt|oas|ft|cbt|soat|imt|agent|ffct)-[0-9A-Za-z_-]{20,}"  # GitLab
     rb"|hf_[A-Za-z0-9]{30,}"  # Hugging Face
     rb"|npm_[A-Za-z0-9]{36,}"  # npm
     rb"|pypi-[A-Za-z0-9_-]{40,}"  # PyPI upload token
@@ -38,5 +47,5 @@ URL_USERINFO = re.compile(
 # Credential-bearing query parameters: signed-URL signatures and tokens in URLs.
 QUERY_SECRET = re.compile(
     rb"(?i)([?&](?:sig|signature|x-amz-signature|x-amz-security-token|x-goog-signature|"
-    rb"token|access_token|id_token|api_key|apikey)=)([^&\s\"'#<>]{8,})"
+    rb"token|access_token|id_token|api_key|apikey|key|auth|code)=)([^&\s\"'#<>]{8,})"
 )

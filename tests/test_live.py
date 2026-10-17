@@ -66,13 +66,13 @@ PROVIDERS = {
     "groq": (
         "opentine.models.compat",
         "Groq",
-        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-120b",
         "GROQ_API_KEY",
     ),
     "together": (
         "opentine.models.compat",
         "Together",
-        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "meta-models/Muse-Glimmer-30B",
         "TOGETHER_API_KEY",
     ),
     "mistral": (
@@ -91,7 +91,7 @@ PROVIDERS = {
     "openrouter": (
         "opentine.models.compat",
         "OpenRouter",
-        "nousresearch/hermes-4-70b",
+        "openai/gpt-oss-120b",
         "OPENROUTER_API_KEY",
     ),
     "hermes": ("opentine.models.compat", "Hermes", "Hermes-4-70B", "NOUS_API_KEY"),

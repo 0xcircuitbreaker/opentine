@@ -240,8 +240,23 @@ def test_pricing_update_installs_where_the_loader_actually_reads(monkeypatch, tm
 
 
 def test_documented_harness_presets_build_their_documented_command():
-    assert GrokBuildHarness().build_command("fix the tests") == ["grok", "exec", "fix the tests"]
-    assert GeminiCLIHarness().build_command("fix the tests") == ["gemini", "-p", "fix the tests"]
+    # Grok Build's documented headless mode is ``-p`` (``grok exec`` never existed);
+    # both now ask for their JSON event streams (tests/test_harness_dialects.py).
+    assert GrokBuildHarness().build_command("fix the tests") == [
+        "grok",
+        "--no-auto-update",
+        "--output-format",
+        "streaming-json",
+        "-p",
+        "fix the tests",
+    ]
+    assert GeminiCLIHarness().build_command("fix the tests") == [
+        "gemini",
+        "--output-format",
+        "stream-json",
+        "-p",
+        "fix the tests",
+    ]
     assert {"grok", "gemini"} <= set(HARNESS_FACTORIES)
 
 
@@ -423,10 +438,19 @@ def test_redaction_stays_linear_in_line_indentation():
     # `[ \t]*[+>-]?[ \t]*` gives O(n) ways to split n leading spaces, so a failing
     # match backtracks through every split and the scan turns quadratic. Ordinary
     # indented JSON — exactly what a captured trace looks like — passed the budget.
-    blob = b"\n".join(b" " * 24 + b'"field": "value",' for _ in range(8000))
-    started = time.monotonic()
-    redact_blob(blob)
-    assert time.monotonic() - started < 1.5
+    # A growth ratio, not a wall-clock budget: per-line work quadratic in the
+    # indent roughly quadruples when the indent doubles; linear work doubles at most.
+    def elapsed(indent: int) -> float:
+        blob = b"\n".join(b" " * indent + b'"field": "value",' for _ in range(600))
+        best = float("inf")
+        for _ in range(3):
+            started = time.monotonic()
+            redact_blob(blob)
+            best = min(best, time.monotonic() - started)
+        return best
+
+    small, large = elapsed(32), elapsed(128)
+    assert large < max(small, 0.02) * 8  # 4x indent: linear <= ~4x, quadratic ~16x
 
 
 def test_indented_and_diff_marked_credentials_still_redact():

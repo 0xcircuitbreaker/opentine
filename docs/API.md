@@ -135,7 +135,7 @@ at the package root — importing them should be an explicit decision:
 |---|---|
 | `opentine.models.anthropic` / `.openai` / `.google` / `.ollama` / `.compat` | Each lazy-imports its provider SDK; the root must stay installable with none of them. |
 | `opentine.models.resolve_model("provider:model")` | The string-to-adapter resolver `tine run --model` uses. |
-| `opentine.harnesses` | External agent-CLI harnesses. |
+| `opentine.harnesses` | External agent-CLI harnesses: `HARNESS_CLASSES` maps every `tine run --harness` name to its class (`ClaudeCodeHarness`, `CodexCLIHarness`, `GeminiCLIHarness`, `QwenCodeHarness`, `GooseHarness`, …). |
 | `opentine.tools` | Bundled filesystem, shell, Python, web, and search tools, under restrictive policies. |
 | `opentine.integrations.langchain.OpenTineCallbackHandler` | Needs `opentine[langchain]`; `import opentine` must never pull in a framework. |
 | `opentine.repository`, `opentine.repo` | `Repo`, `FsckResult`, `SemanticDiff`, and the object-store internals. |

@@ -193,30 +193,32 @@ def test_google_tool_use_usage_and_actual_service_tier():
     split = google_usage({"promptTokenCount": maximum, "toolUsePromptTokenCount": maximum})
     assert split.input == maximum and split.extra["input_tool_use"] == maximum
 
-    result = Google("gemini-3.5-flash", service_tier="priority")._result(
+    # gemini-3.5-flash was deprecated (rerouted) on 2026-10-08 and its card closed; an
+    # open-ended card keeps this test about the service tier, not about today's date.
+    result = Google("gemini-3-flash-preview", service_tier="priority")._result(
         {
             "candidates": [{"content": {"parts": [{"text": "ok"}]}, "finish_reason": "STOP"}],
-            "modelVersion": "gemini-3.5-flash",
+            "modelVersion": "gemini-3-flash-preview",
             "sdk_http_response": {"headers": {"x-gemini-service-tier": "standard"}},
             "usage_metadata": {"promptTokenCount": 1_000_000, "candidatesTokenCount": 0},
         }
     )
     assert result["billing"]["calculation"]["service_tier"] == "standard"
-    assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("1.5")
+    assert Decimal(result["billing"]["known_subtotal_usd"]) == Decimal("0.5")
 
     usage = {"promptTokenCount": 1_000_000, "candidatesTokenCount": 0}
-    adapter = Google("gemini-3.5-flash", service_tier="priority")
+    adapter = Google("gemini-3-flash-preview", service_tier="priority")
     unobserved = adapter._meter(usage)
     assert unobserved["billing"]["status"] == "unknown"
     assert unobserved["billing"]["known_subtotal_usd"] == "0"
     calculation = unobserved["billing"]["calculation"]
     assert calculation["components_usd"] == {}
-    assert calculation["candidate_components_usd"] == {"input": "2.70"}
+    assert calculation["candidate_components_usd"] == {"input": "0.900"}
     assert calculation["requested_service_tier"] == "priority"
     assert unobserved["cost"] == 0.0
     observed = adapter._meter(usage, response_tier="priority")
     assert observed["billing"]["status"] == "complete"
-    assert Decimal(observed["billing"]["known_subtotal_usd"]) == Decimal("2.70")
+    assert Decimal(observed["billing"]["known_subtotal_usd"]) == Decimal("0.90")
     overridden = Google(service_tier="priority", rates={"input": "7", "output": "8"})._meter(usage)
     assert overridden["billing"]["status"] == "complete"
     assert Decimal(overridden["billing"]["known_subtotal_usd"]) == Decimal("7")
@@ -346,15 +348,17 @@ def test_incremental_push_uses_exact_old_closure_not_local_associations(tmp_path
             return 200, {"refs": {"heads/main": old}}
         return 200, {}
 
-    def capture_negotiate(_repo, wants, haves, **_kwargs):
+    synthetic_pack = repository_client.MAGIC + b"\x11" * 32
+
+    def capture_fitted_pack(_repo, wants, haves, **_kwargs):
+        # Push negotiates and packs through fitted_pack: its haves are what the
+        # remote already holds, so they must be the old ref's exact closure.
         captured.update(wants=wants, haves=haves)
-        return []
+        return synthetic_pack, []
 
     monkeypatch.setattr(repository_client, "_client", lambda *a, **k: nullcontext(object()))
     monkeypatch.setattr(repository_client, "_request_json", request_json)
-    monkeypatch.setattr(repository_client, "negotiate", capture_negotiate)
-    synthetic_pack = repository_client.MAGIC + b"\x11" * 32
-    monkeypatch.setattr(repository_client, "create_pack", lambda *_a, **_k: synthetic_pack)
+    monkeypatch.setattr(repository_client, "fitted_pack", capture_fitted_pack)
     monkeypatch.setattr(
         repository_client,
         "_upload",

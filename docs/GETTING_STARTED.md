@@ -63,14 +63,20 @@ tine run --model openai:gpt-6.1-sol --prompt "Explain the current branch" --save
 ```
 
 The providers `--model` accepts are `anthropic`, `google`, `ollama`, and
-`openai`; the hosted OpenAI-compatible adapters `deepseek`, `glm`, `grok`,
-`groq`, `hermes`, `kimi`, `ministral`, `mistral`, `openrouter`, `qwen`,
-`together`, and `zai`; and the local OpenAI-compatible runtimes `jan`,
-`koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`, `localai`,
-`mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`, and `vllm`,
-each of which needs no key and points at the localhost URL its server
-conventionally listens on. A name outside that set is refused with the full list
-rather than guessed at.
+`openai`; the hosted OpenAI-compatible adapters `bedrock`, `cerebras`,
+`cohere`, `deepinfra`, `deepseek`, `fireworks`, `glm`, `grok`, `groq`,
+`hermes`, `huggingface`, `inception`, `kimi`, `meta`, `minimax`, `ministral`,
+`mistral`, `nvidia`, `openrouter`, `qwen`, `sambanova`, `stepfun`, `together`,
+`upstage`, `vercel`, `xiaomi`, and `zai`; and the local OpenAI-compatible
+runtimes `aphrodite`, `docker-model-runner`, `dynamo`, `foundry-local`, `jan`,
+`koboldcpp`, `lemonade`, `litellm`, `llama-cpp-python`, `llamacpp`,
+`llamafile`, `lmdeploy`, `lmstudio`, `localai`, `mistralrs`, `mlx-lm`,
+`nvidia-nim`, `ovms`, `sglang`, `tabbyapi`, `tensorrt-llm`, `tgi`, `unsloth`,
+`vllm`, and `xinference`, each of which needs no key and points at the localhost
+URL its server conventionally listens on (`foundry-local` and `ovms` have none:
+pass `--base-url`). `--base-url URL` and `--api-key-env NAME` point any provider
+at another port, machine, or key-protected server. A name outside that set is
+refused with the full list rather than guessed at.
 
 Without `--save` the run is written to `.tine_runs/<run-id>.tine` and the id is
 printed. `--model` is exclusive with a script argument and with `--harness`:

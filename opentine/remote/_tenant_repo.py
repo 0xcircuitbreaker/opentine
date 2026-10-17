@@ -29,6 +29,11 @@ class TenantRepo:
     def raw(self, oid: str) -> bytes:
         return self.objects.get(self.tenant, oid)
 
+    def raw_size(self, oid: str) -> int:
+        """An upper bound on ``len(raw(oid))`` read without decrypting the object."""
+        size = getattr(self.objects, "size", None)
+        return size(self.tenant, oid) if callable(size) else len(self.raw(oid))
+
     def get(self, oid: str) -> ObjectEnvelope:
         envelope = ObjectEnvelope.decode(self.raw(oid), oid)
         validate_links(envelope, self.has)
@@ -63,6 +68,10 @@ class PackedTenantRepo(TenantRepo):
 
     def raw(self, oid: str) -> bytes:
         return self.packed.get(oid) or super().raw(oid)
+
+    def raw_size(self, oid: str) -> int:
+        packed = self.packed.get(oid)
+        return len(packed) if packed is not None else super().raw_size(oid)
 
     def get(self, oid: str) -> ObjectEnvelope:
         return self._semantic.get(oid)

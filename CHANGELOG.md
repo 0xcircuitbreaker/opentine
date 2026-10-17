@@ -1,5 +1,914 @@
 # Changelog
 
+## 0.10.0 — 2026-10-15 — Universal harnesses & round-3 security
+
+Every major agent CLI is now a harness whose runs record the real model, token
+usage, tools and cost, and the session logs those CLIs keep for themselves
+import directly — so `tine price` works on Gemini CLI, Qwen Code, Codex, Pi,
+OpenCode, Goose and a dozen others, not only Claude Code. Local servers gain
+`--base-url`/`--api-key-env` and eleven new presets, hosted vendors fifteen,
+and the signed catalog grows from 122 to 190 cards. This release also fixes
+every finding of a third security audit of 0.9.2 (25 confirmed issues across
+the remote, the repository, signing, redaction, the tool sandbox and the CLI),
+the Anthropic SDK 1.x crash, and `tine price` reporting $0 for most runs. Each
+fix has a regression test in `tests/test_security_0_10_*.py` that fails on
+0.9.2. No format change: every file and repository written since 0.3.0 still
+reads and prices.
+
+### Upgrade notes
+
+*Pricing and models*
+
+- **`tine price` totals rise for runs recorded before 0.10.** It now also prices
+  the `done`, `think` and `error` steps the capture billed (a `tine run --model`
+  run's only step is a `done` step), and applies the recorded service tier
+  (fast, priority, flex, US-geo). Totals captured at run time are unchanged.
+- **Default models changed:** `groq` and `openrouter` default to
+  `openai/gpt-oss-120b`, `together` to `meta-models/Muse-Glimmer-30B` (the old
+  defaults were removed or made Enterprise-only upstream).
+- A signed `.tine/pricing.json` older than the bundled or installed catalog is
+  ignored (stderr notice); re-sign or remove it. `tine pricing install` refuses a
+  different catalog signed at the same `generated_at` as the installed one.
+- `gemini-3.5-flash` calls after 2026-10-07 re-price `unknown` (Google retired
+  the model and routes its calls to 3.6 Flash at half the price); May–July 2026
+  calls now price.
+- A later GPT generation (`gpt-7`) behind any OpenAI-compatible endpoint is
+  treated as a reasoning model and sent no `temperature`.
+- `--base-url` with a hosted preset (Groq, DeepSeek, …) needs `--api-key-env`:
+  the vendor's own key never follows the URL to another host.
+  `Anthropic(base_url=<non-Anthropic host>)` and `--model anthropic --base-url`
+  read `ANTHROPIC_COMPAT_API_KEY` (or an explicit key), never
+  `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`. `ANTHROPIC_BASE_URL` set in the
+  environment keeps the SDK's own behaviour — the operator's pairing of
+  endpoint and key (Bedrock/Vertex/Foundry-style gateways).
+- The SDKs' environment headers (`ANTHROPIC_CUSTOM_HEADERS`,
+  `OPENAI_CUSTOM_HEADERS`, `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID`) are no longer
+  sent to an explicit `--base-url`, a compatible server, a hosted-vendor preset
+  or a local preset. Where they are still sent (the first-party API or the
+  operator's `*_BASE_URL` gateway) their values count as credentials for the
+  cleartext rule: a plain-`http://` non-loopback gateway needs
+  `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1`.
+- `tine price` books a call `unmetered` only when its provider is a local
+  server, its model has no `:cloud` / `-cloud` tag and the capture recorded no
+  other verdict; runs captured as unmetered (0.9.x included) re-price the same.
+  Imported traces and session logs are never booked `unmetered` from a provider
+  label: a model call imported without `--price` now carries an explicit
+  `unknown` billing record, and every billing block a source file carries is
+  dropped whatever its status says (missing, empty and odd statuses included), so an imported local run (a Codex session on Ollama, say) prices
+  `unknown`, and a cloud-tagged model through a local daemon or a loopback
+  Anthropic-compatible endpoint prices `unknown`. A model call with no billing
+  re-prices `unmetered` only inside a run the harness wrapper captured; anywhere
+  else (a library `Recorder.import_events` import, a run imported by 0.9.x) it
+  prices `unknown`, as 0.9.2 did. `Recorder.import_events` now drops a source's
+  billing and cost by default; pass `trusted_billing=True` for events you priced
+  yourself.
+- An imported trace no longer sets its own cost: the source's `cost` figure moves
+  to the `opentine.source_reported_cost` attribute (shown, never summed), so
+  `tine show`, `tine cost`, MCP and `tine export` report the catalog's price or
+  nothing — never what the file claimed. `tine import --price` prices from the
+  catalog; a model it cannot price keeps no cost.
+- On Linux, bounded tool commands (shell, python, `code_manifest`'s git) run
+  under a supervisor process; a timed-out command reports exit status 137
+  rather than -9.
+- `tine run --harness --autosave` without `--autosave-interval` or
+  `--autosave-seconds` now checkpoints at most every 2 seconds and only after
+  the run has grown by a quarter (it saved after every output line). An
+  explicit throttle is honoured as before.
+- An imported run's cost always comes from the catalog (`--price` or
+  `tine price`), never from billing the source file carries.
+- A pricing catalog whose `signature` holds any field other than `algorithm`,
+  `key_id` and `value`, or a field that is not a string of at most 256
+  characters, is refused.
+- A malformed `cost`/`price`/`duration` in an agent CLI's JSON event is ignored
+  with a `meter_warning` on the step instead of failing the run.
+
+*Harnesses and import*
+
+- **Default harness commands now ask each CLI for its JSON mode:**
+  `codex exec --json --skip-git-repo-check`, `gemini --output-format stream-json -p`,
+  `opencode run --format json`, `kimi --print --output-format stream-json -p`,
+  `openclaw agent exec --json`, `hermes chat --oneshot --format stream-json -q`,
+  `grok --no-auto-update --output-format streaming-json -p` (was `grok exec`,
+  which does not exist), `agent --print --output-format stream-json` for
+  `cursor` (was `cursor-agent run`), and `pi --mode json`. Pass
+  `--harness-command` to keep an old invocation.
+- **Structured stdout is decided by the last output-format option.** A harness
+  command whose only JSON hint was a bare `json` word or a non-format `--x=json`
+  option now records text; name the output-format option explicitly.
+  `claude-code` follows the same rule, so a plain `claude -p` command records
+  text.
+- `pi` no longer needs `--harness-command`, and free-text "cost: $N" lines are
+  now booked only for an operator-written `generic` command.
+- Harness results carry `"stderr"` when the CLI wrote any; stderr is never
+  parsed as events.
+- `tine import`'s `--format` is optional (default `auto`); passing it behaves as
+  before. OTel-imported events whose provider used a registry spelling now
+  record the catalog id (`google`, not `gcp.gemini`).
+- `tine` has 41 subcommands (`harnesses` is new).
+
+*Repository and remote*
+
+- `fetch` no longer moves a local `annotations/*` ref for a run you already
+  held: the remote's head is kept under `remotes/<name>/annotations/`; adopt it
+  with `tine fetch --adopt-annotations`.
+- A remote URL with `user:pass@`, a query or a fragment is refused in every form
+  (including one with the tenant embedded in its path); pass the token with
+  `--token-file` or `TINE_REMOTE_TOKEN`. A remote tenant, from the flag or the
+  URL, must match `[a-z0-9][a-z0-9._-]*` (the server already required this).
+- `put_run`, `migrate-v3` and `fork` raise `ValueError` for a value nested
+  deeper than 512 levels (it was silently truncated at 100 with a marker).
+- `tine clone` refuses a target that already holds refs or objects.
+- `tine serve purge --grace-seconds N` with N below 60 needs `--force` (or
+  `--dry-run`).
+
+*Signing and MCP*
+
+- Ed25519 signature blocks without an embedded `public_key`, and any block with
+  a `null` field, verify as `error` (OpenTine never wrote either).
+- `--ed25519-key-file` refuses `*.pub` files and copies of the adjacent `.pub`.
+- `repo-verify --claim approved=true` no longer selects a claim of `1`.
+- MCP `attest_run` refuses evaluation scores outside ±1e6, `fork_run_v3` /
+  `resume_run_v3` refuse a prompt or policy over 1 MiB, and the `mcp` extra now
+  allows MCP SDK 2.x (`mcp>=1.28.1,<3`).
+
+### Added
+
+- **Every major agent CLI is a harness, and most runs are now priceable.**
+  `tine run --harness NAME` drives 25 agent CLIs: `claude-code`, `codex`,
+  `gemini`, `qwen-code`, `cursor`, `opencode`, `pi`, `hermes`, `openclaw`,
+  `kimi-code`, `grok`, `goose`, `amp`, `droid`, `copilot`, `auggie`, `cline`,
+  `qoder`, `continue`, `openhands`, `vibe`, `aider`, `crush`, `kiro`, and
+  `generic` for anything else (new: `qwen-code`, `goose`, `amp`, `droid`,
+  `copilot`, `auggie`, `cline`, `qoder`, `continue`, `openhands`, `vibe`,
+  `aider`, `crush`, `kiro`). Each catalogued CLI runs in its documented
+  headless JSON mode, and an event *dialect* built from that CLI's own source or
+  reference docs reads it into `model` steps (model, provider, token usage in
+  OpenTine's exclusive buckets), `tool` steps paired with their results, errors,
+  and the CLI's own dollar figure where it reports one. `tine price` re-prices
+  Claude Code, Codex, Gemini CLI, Qwen Code, Pi, Hermes, OpenClaw, OpenCode,
+  Goose, Amp, Copilot and Cline runs from the signed catalog. Token conventions
+  are per CLI and converted explicitly: Gemini CLI and Qwen Code count cached
+  tokens inside `input_tokens` and keep thinking outside `output_tokens`; Goose
+  and Copilot count cache inside input; Pi keeps reasoning inside output.
+  Copilot's `cost` is a premium-request multiplier, recorded as
+  `premium_multiplier` and never booked.
+- **`tine harnesses`** lists every harness, the command it runs, whether the CLI
+  is on `PATH`, and what a recorded run holds (model / usage / cost / tools:
+  `yes`, `no`, `flag` = model only when `--model` is passed, `unverified` = JSON
+  mode documented but its schema not). `--installed`, `--json`.
+- **Codex runs record their model and exact usage.** The `codex` harness reads
+  Codex's documented `exec --json` event stream: a tool step per command,
+  patch, MCP call (`server.tool`), web search and collab call, and one model
+  step per turn. Codex reports the thread's *running* total on every
+  `turn.completed` and counts cached input and reasoning inside its totals, so
+  each turn records its own difference in exclusive buckets. The model comes
+  from `-m` / `--model` / `-c model=…` or `~/.codex/config.toml` (profiles
+  included), a `model rerouted` notice updates it, and `--oss` /
+  `--local-provider` record the local provider.
+- **Claude Code harness runs carry a W3C `TRACEPARENT`**, so Claude Code's own
+  OTel trace (when its telemetry is on) shares the run's trace id, recorded as
+  `run.metadata["otel_trace_id"]`; an operator-supplied one is kept.
+- **Agent CLI session logs import directly.** `tine import` reads the session
+  logs Claude Code (`~/.claude/projects/*/*.jsonl`), Codex
+  (`~/.codex/sessions/**/rollout-*.jsonl`), Gemini CLI
+  (`~/.gemini/tmp/*/chats/session-*.jsonl`, and the legacy `.json`) and Qwen
+  Code (`~/.qwen/projects/*/chats/*.jsonl`) keep for themselves
+  (`--format claude-code-transcript | codex-session | gemini-session |
+  qwen-session`). Each API call becomes a model step with its model, provider
+  and exact usage, each tool call a tool step, each prompt a human step.
+  `tine import --from-default-location` lists the newest sessions across all
+  four CLIs, and `tine import latest --from-default-location --save run.tine`
+  (or a session-id prefix) imports one. A transcript-imported run records
+  `metadata.capture = {"method": "transcript-import", "source_format": …,
+  "agent_writable": true}`: the agent wrote that log and could have edited it.
+  Claude Code subagent transcripts (`<session>/subagents/agent-*.jsonl`) are
+  imported with their session (with `--format auto` and
+  `tine import latest --from-default-location` too), each hung under the tool
+  step that spawned it
+  (bounded: each file on disk is read once, so hard links or a second path to
+  it are skipped, and the session's byte budget is charged before a file is
+  parsed, whether it then imports or not; any left out are counted in
+  `opentine.import_warnings`), and the
+  listing shows how many each session has. Fast-mode and US-only calls in
+  Claude Code transcripts and OTel logs keep their `fast` / `fast_us` / `us`
+  tier, so they price at the carded modifier.
+  A Claude Code response that a mid-stream tool result splits across lines is
+  still one model step with its usage counted once, a session id that is not
+  short and id-shaped is stored as `session-<sha256 prefix>`, and reused span
+  ids and Gemini `$patch` merges cost linear work.
+- **`--format auto`** (the new default) recognizes OTLP spans or logs, OpenTine
+  JSONL, OTel span lists and the session logs above by shape.
+- **OTLP logs import (`--format otel-logs`).** Claude Code `api_request` /
+  `user_prompt` / `tool_result` / `tool_decision` / `api_error`, Codex
+  `codex.sse_event` / `user_prompt` / `tool_result` / `tool_decision`, Gemini CLI
+  `gemini_cli.api_response` / `user_prompt` / `tool_call` / `api_error` and
+  `gen_ai.client.inference.operation.details` each become a priced event,
+  chained per session in time order; Gemini's semconv details event is used only
+  when no `api_response` reports the same call. `otel-json` also accepts the
+  collector file exporter's one document per line.
+- **Claude Code traces import priced.** Its spans carry bare `input_tokens` /
+  `output_tokens` / `cache_read_tokens` / `cache_creation_tokens` and set no
+  `gen_ai.usage.*`; each `claude_code.llm_request` is now a priced model step,
+  `claude_code.interaction` a human step, `claude_code.tool` a tool step and
+  `tool.blocked_on_user` an approval.
+- **Provider spellings are mapped onto catalog ids at import:** `gcp.gemini` /
+  `gcp.vertex_ai` / `gcp.gen_ai` → `google`, `x_ai` → `xai`, `mistral_ai` →
+  `mistral`, `aws.bedrock` → `bedrock`, `azure.ai.openai` / `azure.ai.inference`
+  → `foundry`, LangChain's `google_genai` / `mistralai` / `azure_openai` / …
+  likewise. The original attribute stays on the span.
+- **`tine run --model … --base-url URL --api-key-env NAME`** points any adapter
+  at a server on another port or machine, or one that needs a key, without
+  Python. Every local preset also reads `<PRESET>_BASE_URL` /
+  `<PRESET>_API_KEY` (for example `LLAMACPP_BASE_URL=http://127.0.0.1:9931/v1`
+  for llama.cpp's newer default port, `JAN_API_KEY`, `TABBYAPI_API_KEY`). A real
+  key from the environment is still held to the cleartext rule.
+- **Local runtimes:** `docker-model-runner` (12434, `/engines/v1`), `lemonade`
+  (13305, `/api/v1`), `mistralrs`, `tabbyapi` (5000), `xinference` (9997),
+  `lmdeploy` (23333), `llamafile` (8080), `dynamo` (8000), `aphrodite` (2242),
+  `foundry-local` and `ovms` (`/v3`) — the last two have no conventional port
+  and need `--base-url`. TGI is marked deprecated (archived upstream).
+- **Hosted vendors:** `meta` (Muse; no temperature), `minimax`
+  (`reasoning_split`), `deepinfra` (priced from its reported
+  `usage.estimated_cost`), `fireworks` (the US host bills the 1.5x `us` tier),
+  `cerebras`, `sambanova`, `stepfun`, `xiaomi`, `upstage`, `inception`,
+  `nvidia`, `huggingface`, `vercel`, `cohere`, and `bedrock` (Bedrock's
+  OpenAI-compatible endpoint with `AWS_BEARER_TOKEN_BEDROCK`; a `global.` model
+  id prices at list, a geographic `us.` / `eu.` / … id at the 1.1x `regional`
+  tier, which a reported `default` / `standard` tier never erases and a real
+  tier composes with, e.g. `batch_regional`). Vendors without a card record
+  `unknown`, never a guessed price.
+- **Compatible endpoints:** `Anthropic(base_url=…, provider=…, unmetered=…,
+  cache_inclusive=…)` targets the Anthropic-compatible `/v1/messages` that
+  Ollama, LM Studio, llama.cpp, vLLM and gateways serve, under their own
+  provider, and never receives the first-party `ANTHROPIC_API_KEY` /
+  `ANTHROPIC_AUTH_TOKEN` (only an explicit key or `ANTHROPIC_COMPAT_API_KEY`);
+  `tine run --model anthropic --base-url` records such a run as
+  `local-anthropic-compatible` (loopback, unmetered) or `anthropic-compatible`.
+  `OpenAI(base_url=…, provider=…, responses=True)` targets a
+  compatible `/v1/responses`. OpenAI's data-residency hosts
+  (`eu.api.openai.com`, …) stay native OpenAI and bill the carded `regional`
+  uplift on Responses and Chat Completions alike; a Priority or Flex call there
+  bills `priority_regional` / `flex_regional`, priced only where carded and
+  otherwise `unknown`, never the global rate.
+- **Pricing catalog refreshed (122 → 190 signed cards, verified 2026-10-15).**
+  New: Gemini 4 Argon (introductory $2 / $10 through 2026-11-30 and the
+  already-published $4 / $20 from 2026-12-01), Gemini 3.1 Flash-Lite, Mistral
+  Large 4 (launch sale), Mistral-hosted GLM 5.3, GPT-Rosalind Research, the
+  older OpenAI families still served for Codex and imported traces (gpt-5.5
+  with its 2.5x Fast multiplier, gpt-5.4 / mini / nano, gpt-5.3-codex,
+  gpt-5.2, gpt-5.1, gpt-5-mini with 1.8x Fast, gpt-5-nano), Groq gpt-oss-120b /
+  20b / safeguard-20b, Together MiniMax-M3 / Muse Glimmer 30B / gpt-oss-120b /
+  Qwen3.7-Plus; new first-party vendors Meta (Muse Wonder 1.0, Muse Spark
+  1.1–1.3 and the Contributor-mode variants), MiniMax (M3, M2.7,
+  M2.7-highspeed), StepFun, Xiaomi MiMo v2.6 and Fireworks; and cloud
+  namespaces `bedrock` (Claude 5.x and GPT-6 Astra: global at first-party list,
+  regional 1.1x), `vertex` (Claude 5.x) and `foundry` (Claude at Anthropic's
+  rates with the US Data Zone 1.1x; Azure OpenAI GPT-6 with Data Zone US 1.1x
+  and EU 1.2x). OpenAI's 10% regional-processing uplift is carded as a
+  `regional` tier on models released on or after 2026-03-05. Every GPT-6,
+  GPT-6.1 Sol, Claude Opus / Sonnet / Haiku 5.5 and Fable 5 / 5.1 card was
+  re-verified against the vendor's page; unannounced successors
+  (`claude-fable-5-5`, `gpt-6.2-*`, `gpt-7`) get fail-safe wire rules and stay
+  visibly unpriced until a card exists.
+- **MCP SDK 2.x.** The `mcp` extra allows `mcp>=1.28.1,<3`; the server runs on
+  SDK 2's `MCPServer` or 1.x's `FastMCP`, and under 2.x a tool's (sanitized)
+  error message reaches the client.
+- `StdoutTrust.json_options` / `json_values`: a harness names the option and
+  values that switch its CLI to JSON output.
+
+### Security — repository and remote
+
+- **Fetched associations made every local push and pack quadratic.** The pack
+  walk listed every annotation and attestation file once per run in the
+  history, so objects arriving with ordinary fetches cost runs × objects on
+  each later push. The association target indexes are now listed once per walk.
+- **A writer could still make someone else's run unfetchable.** 0.9.2 promised
+  associations could no longer make a pack fail, but only the object *count*
+  was budgeted. An attestation whose `evidence_ids` named large blobs broke the
+  pack-body or semantic-source limit, and one naming ten thousand tiny ones
+  overflowed the traversal queue (raised before the walk's own budget check) —
+  `fetch`, `clone` and `negotiate` of the victim's run then failed for every
+  reader, promoted runs included. The association phase now budgets objects,
+  encoded pack-body bytes, the source budget and the shallow-boundary list a
+  depth-limited pack carries (at depth 0 one attestation citing ten thousand
+  events added ten thousand boundaries), treats any failure of an association
+  subset as "does not fit", rolls back what it charged, and reports the run as
+  `associations_omitted`. A pack also leaves out what the receiver already
+  holds (and, on a typed fetch, what the type filter drops), so links into
+  those objects could still overflow the shallow list after the budget was
+  checked: a fetch, typed fetch or push whose pack cannot be built with
+  associations is now rebuilt from the object graph alone, its runs reported
+  as omitted (`Opentine-Associations-Omitted`). A graph that does not fit by
+  itself still fails as before.
+- **One fetch can no longer re-read the same oversized evidence once per run.**
+  A rolled-back association set used to leave the next run a fresh budget, so a
+  writer attaching one body-sized evidence set to thousands of runs made a
+  single fetch, negotiate or push read it thousands of times while holding one
+  of the server's pack slots. Everything the association phase reads is now
+  charged, before it is read, to a total of twice the pack body budget that is
+  never rolled back; once it is spent, the remaining runs keep their graph and
+  their associations are reported omitted.
+- **An annotation planted ahead of its run was adopted when the run arrived.**
+  A pack could carry an annotation for a run it did not include (the run as a
+  shallow boundary); nothing was recorded, and when the real run arrived later
+  without an annotation ref the fallback adopted the planted tags. An
+  annotation is now the pack's own only when its run arrives in the same pack
+  and was not already held; every other one is recorded as unadopted. A
+  remote's advertised `annotations/<digest>` ref is likewise adopted only for a
+  run that fetch delivered, and never when any annotation in its chain was
+  recorded as foreign at install.
+- **A co-writer on a shared remote could still relabel a run you held.** Pushing
+  an annotation *and* its `annotations/<digest>` ref made the next `fetch` adopt
+  it (an absent local ref counted as a fast-forward). `fetch` now adopts
+  advertised annotation refs only for runs it delivered; for runs held before
+  the fetch the remote's head is kept as `remotes/<name>/annotations/<digest>`,
+  and `tine fetch --adopt-annotations` adopts them deliberately.
+- **Advertised annotation refs could make a fetch quadratic.** A remote could
+  point thousands of `annotations/*` refs at one long annotation chain, and the
+  client re-walked the whole chain for every ref after the transfer (hours of
+  object reads for a ~1 MB pack). A ref whose annotation names a different run is
+  now skipped before any walk, and chain reads and verdicts are memoized per
+  fetch, so adoption costs one read per object.
+- **Remote errors printed credentials.** An HTTP error from a remote verb
+  carried the full URL, userinfo and query-string tokens included. Errors now
+  name only the status and path, a remote URL carrying credentials, a query or
+  a fragment is refused — checked on the URL as given, before an embedded
+  tenant (`…/v1/tenants/acme`) is split off, so a token cannot ride into every
+  request path as part of the tenant — the tenant must match the server's
+  tenant grammar, and the client no longer appends `/v1/...` after a query
+  string.
+- **A non-string `azp` crashed authentication** (a 500 with no audit row); it is
+  now an `OIDCError` (401, audited).
+- **One IPv6 client could hold every worker slot.** The per-peer share was per
+  address, and an IPv6 host routinely has a whole /64; peers are now grouped by
+  /64 (IPv4-mapped addresses as their IPv4 address).
+- **`--token-file` warns** when the file is readable by group or others, as key
+  files already do.
+- **Annotations from a remote can no longer break a repository.** The record of
+  annotations no ref vouches for could grow past what its own reader accepted,
+  after which every fetch, `load_run` of an untagged run and `put_run` failed.
+  It is now kept within its limit (entries the fallback can no longer read are
+  pruned); a foreign annotation that still does not fit is not installed, with
+  a warning; and a damaged record makes the fallback adopt nothing instead of
+  failing. `tine fsck` still reports a damaged record.
+- **Unheaded-annotation lookups read only the run's own annotations.**
+  `load_run`, `put_run`, pack walks and unadopted pruning decoded every
+  annotation and attestation in the repository — minutes at 100,000, and a hard
+  failure past that which a remote could reach over a few fetches. A cache in
+  `.tine/indexes/` maps each annotation and attestation to its target; past the
+  scan bounds the fallback adopts nothing rather than failing.
+- **Two unheaded annotations can no longer brick a run.** A writer on a shared
+  remote could push two independent unheaded annotations for someone else's
+  untagged run; every fresh fetch then failed `load_run` and tagging with
+  "ambiguous unheaded legacy annotations". The fallback now adopts nothing (with
+  a warning), and tagging starts a fresh, ref-backed head.
+- **A remote can no longer un-adopt an annotation you already have.** An
+  unheaded annotation the fallback had adopted (after an import, a clone with no
+  annotation ref, or from an older repository) was recorded as foreign when a
+  remote sent it again, and the run lost its tags and metadata for good. Only
+  annotations new in a pack are judged now.
+
+### Security — signing, keys, pricing trust and redaction
+
+- **Private keys are redacted whole, in every common armor.** A PEM block is
+  replaced from its `BEGIN` marker to its `END` before any other pattern runs, so
+  no value pattern can eat the marker and leave the body behind
+  (`MYSQL_PWD=x\n-----BEGIN …`, in text or inside a JSON string). A truncated
+  block keeps no body behind OpenPGP armor headers (`Version:`, `Hash:`,
+  `Charset:`) or numbered, quoted or indented body lines, while a diagnostic
+  such as `error: …` after a lone marker is kept, and the line after a truncated
+  block keeps its line start so its own credential is still redacted. A
+  base64-wrapped key (`base64` / `openssl base64` output at 64 or 76 columns, on
+  real lines or as `\n` / `\r\n` escapes inside a JSON string) is removed
+  whole, including after a credential name (`SSH_PRIVATE_KEY=LS0t…`,
+  `client-key-data: LS0t…`); a block whose marker will not decode is redacted,
+  and a wrapped certificate is left alone. PuTTY `.ppk` files (header through
+  `Private-MAC`, whatever decorates each line — the Read tool's `N→` numbers,
+  `cat -n`, a diff's `+`, a `> ` quote, an indent, and a quote inside the
+  `Comment:` line of a file with real line breaks) and RFC 4716
+  `---- BEGIN SSH2 … PRIVATE KEY ----` blocks carry no PEM marker and were saved
+  whole by 0.9.2; both now become `[REDACTED PRIVATE KEY]`.
+- **About twenty more credential formats are redacted**, in both writers and on
+  export: xAI (`xai-`), Groq (`gsk_`), Replicate (`r8_`), Perplexity (`pplx-`),
+  Google OAuth access tokens (`ya29.`) and client secrets (`GOCSPX-`), Slack app
+  and refresh tokens (`xapp-`, `xoxe`), Stripe webhook secrets (`whsec_`), every
+  GitLab token prefix (`glrt-`, `gldt-`, `glptt-`, …); an `Authorization`,
+  `Cookie` or `Set-Cookie` header in the middle of a log line or a repr'd
+  request; a docker `"auth"` blob; URL passwords containing `/`; `<password>` in
+  XML; and `key=`, `auth=` and `code=` query parameters.
+- **More credential names, in every spelling.** `*_PWD` / `*_PW` names,
+  `REDISCLI_AUTH`, `AZURE_STORAGE_KEY`, `*_storage_key` and `client-key-data`
+  are redacted as field names, in command text (`export LDAP_BIND_PW=…`),
+  quoted or bare with the quotes kept (`MYSQL_PWD='…'`, `mysql_pwd: "…"`) and as
+  flags (`--db-pwd=…`, `--db-pwd …`), whatever the value looks like
+  (`MYSQL_PWD=2024/Summer!`); only a dotted host glued to a port
+  (`example.pw:8443/api`) is left alone. A quoted field is secret by exactly the
+  names the record walk uses, so `"MYSQL_PWD": "…"` in text or nested JSON is
+  redacted as the same dict would be (a digit-only value under a plural
+  `*tokens` name is a usage count and is kept), whatever the length of the name,
+  and `"a": "password": "v"` redacts `v`. JSON-escaped fields in other text
+  (`curl -d "{\"password\":\"…\"}"`, `echo`, logged payloads) are redacted too.
+  A second assignment on the same line is redacted on its own
+  (`-e AZURE_STORAGE_KEY=x -e DB_PASSWORD="y"`): an unquoted value stops only
+  before the next credential-name head, so base64 padding
+  (`credentials: Basic dXNl…=`) or a `user:pass` word stays inside the value.
+- **CLI and `.netrc` credentials.** `curl -u user:PW`, `mysql -pPW`,
+  `redis-cli -a PW` and `docker login -p PW` are redacted, quoted or bare (quotes
+  kept), also right after a literal `\n` or `\t` escape in a repr or logged
+  command; `mysql -P3307` is a port. A credential flag's value
+  (`--password`, `--token`, `--api-key`, `--client-secret`, `--access-token`,
+  …) is redacted space-separated or with `=` (`--token=x`, Go-style `-token=x`),
+  quoted or bare, in text and in JSON at any nesting depth, and a long token is
+  removed whole rather than cut at 512 bytes; bare `token=`/`pass=` counters
+  are kept. `.netrc` passwords are redacted whole, unquoted through `,` `;` `]`
+  `}` or quoted to their own closing quote; on a `password` line of its own a
+  quoted value must end the line, so prose such as
+  `Password "must be 8 chars" is the rule` is kept.
+- **Redacting a JSON document never makes it invalid, and never keeps what the
+  scan removes.** The byte scan stays authoritative — it still redacts
+  credentials split across strings (`{"name": "X-Api-Key", "value": …}`,
+  `["Cookie", …]`) — and its output is kept whenever it keeps the document's
+  structure. Where it would not (an escaped quote eaten, two member names made
+  alike), the blob is rebuilt from its original bytes: any string, number or
+  literal a scan step would remove anything from is replaced whole (by its own
+  decoded-text redaction only when no removed word survives in that, else by
+  `"[REDACTED]"`), every other byte (numbers, escapes, lone surrogates, layout)
+  is kept, and names that redact alike stay distinct. Strings that hold escapes
+  are also redacted as decoded text at every nesting level, so a multi-line
+  `.netrc`, a `jq -Rs` / `json.dumps`'d log or MCP text held inside a JSON
+  string is seen; a clean blob stays byte-identical. JSON with a byte-order mark,
+  `NaN`/`Infinity`, or JSON Lines whose first record is a scalar take the same
+  path. Vendor tokens, URL userinfo and query secrets are redacted before the
+  bounded form values, a form value longer than its bound is removed whole, and
+  a bounded value never ends inside a multi-byte character.
+- **Redaction stays linear in its input.** Survivor checks look for every
+  removed word in one pass, repeated capped forms extend only to the next match,
+  colliding names are renamed in linear time, a run of byte-order marks is
+  ordinary text, and nested JSON grows linearly with depth. `PWD=/home/...`,
+  ports and usage counters are left alone.
+- **An old signed release catalog in a project re-priced runs.** Every release
+  catalog OpenTine has shipped still verifies under the release key, and the
+  rollback check covered only the user's installed catalog: a cloned project's
+  `.tine/pricing.json` holding the 2026-07-20 release catalog outranked both the
+  bundled and the installed one, with no notice, and priced seven models at old
+  rates (DeepSeek V4 Pro output 56% under). A signed workspace catalog older
+  than the newest signed catalog already in use is now skipped with a notice,
+  and two different catalogs signed at the same `generated_at` cannot replace
+  each other, at load or at install.
+- **One signature still verified under several attestation ids.** A header field
+  stored as an explicit `null` rebuilt the same signed header, and an Ed25519
+  block with its `public_key` dropped verified when the key came from
+  `--pubkey`: 4 (HMAC) and 12 (Ed25519) distinct verified oids from one
+  signature. Both spellings are now `error`; no writer ever produced either.
+- **A public key was accepted as an Ed25519 signing key.**
+  `tine sign` / `tine attest --ed25519-key-file key.pub` used the 64-hex public
+  key as a seed, so anyone holding the `.pub` could derive the signing key — and
+  a pin on its fingerprint passed. A `*.pub` file, a PEM or OpenSSH public key,
+  or a file identical to the `.pub` beside it is now refused as signing
+  material, as it already was as an HMAC key.
+- **`tine verify` read the artifact twice.** The verdict and the fingerprint
+  checked against `--pin` came from two reads, so a file swapped in between
+  paired one file's verdict with another's key. `migrate-v3 --pin` likewise
+  checked the pin and then re-verified with "whatever key is embedded"; it now
+  hands the import the key that passed the pin.
+- **Search counted junk as signed, and unsigned scores without bound.** Any dict
+  under `signature` ranked an evaluation as signed; only a well-formed block
+  counts now. MCP `attest_run` wrote `{"kind": "evaluation"}` claims without the
+  ±1e6 bound `evaluate_run` enforces (a 1.7e308 score ranked first); both tools
+  refuse it now, and search ignores an unsigned score outside ±1e6 whatever
+  wrote it.
+- **`tine repo-verify --claim` compared with Python equality**, so
+  `{"approved": true}` selected a signed `{"approved": 1}`. JSON types now
+  compare strictly (an integral float still equals its integer, as canonical
+  JSON stores it).
+- **`tine export` sent secrets an older `.tine` kept under field names.** A file
+  written before 0.9.1 holds `github_token`, `connection_string` or `pwd` values
+  its writer did not know to redact; export scrubbed free text only, so the
+  `gen_ai.prompt` kvlist — where each name and value are separate strings —
+  carried them to the file or collector. Export now applies the writer's full
+  redaction (field names and the run's own `extra_secret_keys`) before it builds
+  spans, no longer prints a collector's query string (`?token=…`), and drops
+  reserved `opentine.*` attributes that rode in from a foreign trace and would
+  have changed the run's kind, cost or billing on the next import.
+- **`migrate-v3` ignored the run's `RedactionPolicy.extra_secret_keys`.** It now
+  redacts exactly as `put_run` does, so both produce the same object ids.
+- **`RedactionPolicy(extra_secret_keys=("output",))` broke every save.** The walk
+  matches a name one `s` longer, so the singular of a reserved field blanked it;
+  such names are now refused like the reserved names themselves. A policy
+  recorded in an older run that names one keeps its other secret fields: only
+  the unusable entry is dropped, with a warning.
+- **A catalog's signature block can no longer carry unsigned content into every
+  run.** The `signature` object sits outside the signed bytes and was copied
+  into each billed step's provenance, so a validly signed catalog padded there
+  (a cloned `.tine/pricing.json`, or a mirror for `tine pricing update`) grew
+  every model call's record. A signature with any field other than
+  `algorithm`, `key_id` and `value`, or a field that is not a short string, is
+  now refused, and provenance copies only those three fields.
+- **A catalog file that is not a regular file is never read.** A cloned
+  repository could symlink `.tine/pricing.json` to `/dev/stdin`, `/dev/tty` or a
+  FIFO, and every pricing load in that directory blocked. Catalog files are now
+  opened non-blocking and refused unless they are regular files; a skipped
+  workspace overlay is reported like an untrusted one.
+
+### Security — CLI, MCP, export and import
+
+- **A Unicode-digit token count no longer aborts a session import.** Counts
+  are read from ASCII digits only; any other record value is skipped.
+- **`tine migrate` printed an artifact's digest raw**, so a crafted legacy file
+  could write a terminal escape (a title change, a screen clear) in the default
+  preview. It is escaped like all run text now.
+- **Rich emoji shortcodes still expanded** in run trees and step labels
+  (`tine show`, `replay --inspect`, `diff`): `:white_check_mark:` in run text
+  rendered as a check mark. They stay literal everywhere now.
+- **Hidden and control characters no longer reach MCP clients.**
+  `search_runs`, `inspect_object`, `context_slice`, `semantic_diff` and the
+  legacy `fork_run` returned bidi, zero-width and Unicode tag characters from
+  run content verbatim — text a client's model reads and a human reviewing the
+  transcript cannot see. The server now sanitizes every tool and resource
+  result as it returns it, dropping every format character and
+  Default_Ignorable_Code_Point (variation selectors U+FE00–FE0F and
+  U+E0100–E01EF, fillers such as U+3164, the soft hyphen) plus C0 controls
+  other than newline and tab, ESC, DEL and C1 controls, from every string and
+  key in text and structured content; terminal output strips the same set.
+  `list_runs` leaves out a run file whose name hides such characters (counted
+  as `hidden-name`), since a cleaned name would not resolve.
+- **MCP forks are bounded.** `fork_run_v3` refuses a prompt or policy over 1 MiB
+  or a model name over 256 characters, and the legacy `fork_run` stops once the
+  runs directory holds 1 GiB.
+- **A message array serialized into one OTel attribute bypassed the import
+  bounds.** `tine import` scans a document's structure before parsing it, but
+  not text inside a string, so `"[{},{},…]"` held in `gen_ai.input.messages`
+  reached `json.loads` unbudgeted (about 24x its size in memory; a 60 MB file
+  peaked at 1.6 GB). Such a string is now decoded only within the JSONL line
+  bound and the structural-token budget; otherwise it stays in the attributes
+  as text and the span carries an import warning.
+- **One span with an invalid `opentine.trace.kind` failed the whole import.** It
+  is now read by its operation name and the span records a warning.
+- **Session-log import cannot multiply one oversized value across events.**
+  Per-record ids Claude Code stamps on each tool result (`requestId`,
+  `promptId`, `agentId`), span ids and the session id are kept only when short
+  and id-shaped (otherwise a digest); tool names repeated on results are
+  clipped to 256 characters; a Codex call's arguments are recorded with its
+  first output only; a Gemini tool result attaches to one call even when ids
+  repeat; a timestamp string longer than 64 characters is not parsed. Gemini
+  session `$patch` merging and span-id numbering are linear.
+- **OTLP span import checks a span's message turns against its classic prompt
+  in one bounded pass.** Each turn used to be searched for separately in the
+  `gen_ai.prompt` / `gen_ai.completion` text, so one crafted 2.9 MB span cost
+  about 155 s of CPU; the turns are now found together in linear time (0.6 s),
+  with the search index capped at 64K characters — past that the turns count
+  as not covered and the conversation is kept in the attributes with a warning,
+  never dropped.
+- **`tine import --format otel-logs` refuses an oversized file while reading
+  it.** The event cap is enforced as records are mapped, before any session
+  chain is built (a 65 MB file of one-record sessions took 2.7 GB and 64 s
+  before the refusal); at most 400,000 raw log records are read. A record
+  whose `timeUnixNano` is out of range or not a number (a 400-digit integer
+  aborted the whole import with `OverflowError`) falls back to
+  `event.timestamp` with an import warning, and a record that still raises an
+  arithmetic or shape error is skipped and counted.
+- **One record with an unexpected field type no longer fails a whole import.**
+  A session-log or OTLP-logs record whose `content`, `usage`, `toolCalls`,
+  `parts` or `logRecords` has the wrong type is skipped like an unparsable
+  line, and the run's first event counts the skipped records
+  (`opentine.import_warnings`).
+- **Codex OTel imports no longer guess the provider from the model id.** A `:`
+  in the model (OpenAI fine-tunes are `ft:…:org::id`) recorded the call as a
+  free local Ollama call; the provider is now what the event states,
+  `ollama-cloud` for a cloud tag, else `openai`.
+- **Claude Code session import bills each API response once.** A subagent
+  transcript that repeats the response which spawned it (or a sibling's), or a
+  repeated request id, is not recorded a second time; on a real session this
+  had overcounted output by about 31%. Subagent transcripts are also read by
+  `--format auto` and `tine import latest --from-default-location`.
+- **Importing a long OTel span chain is linear.** The pass that decides which
+  agent spans to bill climbed every span's full ancestor chain; a 2.5 MB chain
+  of 16k spans took about a minute of CPU. Each ancestor is now climbed once.
+
+### Security — tool sandbox and model adapters
+
+- **`--base-url` on a hosted preset priced at the default endpoint's rates.**
+  The adapter was built for its default host and the URL swapped in afterwards,
+  so host-derived billing stayed stale: a Fireworks `us.` host was billed at the
+  list rate instead of its 1.5x `us` tier, and a GLM China (`bigmodel.cn`)
+  endpoint was booked complete at the international USD card. The preset is now
+  constructed against the given URL, and a `bigmodel.cn` endpoint always records
+  `glm-cn`.
+- **A `GEMINI_API_KEY` could be sent in cleartext.** The Google adapter checked
+  only `GOOGLE_API_KEY` before refusing an `http://` non-loopback
+  `GOOGLE_GEMINI_BASE_URL`, while google-genai fell back to `GEMINI_API_KEY` on
+  its own and sent it. The key is now resolved the way the SDK resolves it,
+  checked, and passed explicitly. The Anthropic adapter likewise checks
+  `ANTHROPIC_AUTH_TOKEN` and passes both credentials explicitly — so a user with
+  only `ANTHROPIC_AUTH_TOKEN` can use the adapter at all.
+- **One model response could run any number of tool calls past the budget.**
+  `max_steps` / `max_duration` / `max_cost` / `max_usage` were checked before
+  and after a model call and after the whole tool batch, and the model chooses
+  how many calls a response holds (200 calls ran against `max_steps=3`). The
+  budget is now checked before every call; once spent, the remaining calls are
+  answered "not executed: run budget exhausted" without running, so the batch
+  stays complete for a resume.
+- **The tool environment scrub covers far more credentials.** `inherit_env=True`
+  handed tools `*PASSPHRASE*` (`BORG_PASSPHRASE`, `GPG_PASSPHRASE`), `*_PW`,
+  Bitwarden's `BW_SESSION`, 1Password's `OP_SESSION_<account>` and
+  `*MNEMONIC*` / `*SEED_PHRASE*` — unlock tokens that usually exist only in the
+  environment — and any `*HEADERS*` variable (`OPENAI_CUSTOM_HEADERS`,
+  `ANTHROPIC_CUSTOM_HEADERS`, `OTEL_EXPORTER_OTLP_*HEADERS`), which carry
+  gateway credentials. Those are scrubbed now, and so is any variable, whatever
+  its name, whose value is a credential header (`Authorization:`,
+  `X-Api-Key=`, `Cookie:`, `Bearer …` / `Basic …`), a connection string
+  (ASP.NET `ConnectionStrings__*`, `*CONNECTIONSTRING*`, or a `password=`,
+  `pwd=`, `token=` or `api_key=` pair as in ADO.NET, ODBC and JDBC URLs) or a
+  signed URL (Azure SAS `sig=`, S3 `X-Amz-Signature` / `X-Amz-Credential`, GCS
+  `X-Goog-Signature` / `X-Goog-Credential`).
+- **Web tool: a server-chosen charset could stall the event loop.**
+  `charset=punycode` (quadratic to decode; 512 KB took about 10 s, a test fetch
+  ran 53 s past its 5 s timeout) and other non-text codecs (`idna`, `utf-7`,
+  `unicode_escape`, `rot13`) were decoded outside the request timeout. Only text
+  encodings are honoured now; anything else is read as UTF-8.
+- **Web tool: multicast and reserved IPv6 passed the private-address block**
+  (`224.0.0.1`, `ff02::1`, `ff0e::1`, the SIIT form `::ffff:0:a9fe:a9fe` of the
+  metadata address). Refused now, as SECURITY_MODEL always said.
+- **Tool descendants that left the process group survived (Linux).** A python-
+  or shell-tool snippet whose child called `setsid()` kept running after the
+  timeout kill (and after a normal exit). On Linux every bounded tool command
+  now runs under a child-subreaper supervisor that kills everything left
+  beneath it, whatever group or session it moved to, and OpenTine sweeps
+  every process still carrying the run's `OPENTINE_TOOL_SCOPE` marker after
+  each command, whatever the supervisor reports. This cleans up runaway and
+  leftover processes; it cannot contain an adversarial process running as the
+  same user, which can read OpenTine's own `/proc` entries, kill the supervisor
+  and drop the marker.
+  Real isolation needs a container or cgroups: this is resource containment,
+  not an OS sandbox. macOS and the BSDs have no subreaper; there the group
+  kill remains the boundary.
+- **A custom `--base-url` never receives first-party credentials.** An explicit
+  non-Anthropic base URL gets only an explicit key or
+  `ANTHROPIC_COMPAT_API_KEY` (a placeholder otherwise), and the SDK is handed
+  both auth headers explicitly so it cannot read `ANTHROPIC_API_KEY` /
+  `ANTHROPIC_AUTH_TOKEN` from the environment either (verified on anthropic
+  0.87 and 1.13). A hosted preset's `--base-url` needs `--api-key-env`, so a
+  vendor key such as `GROQ_API_KEY` is never sent to another host.
+- **Nor the SDKs' environment headers.** Anthropic's and OpenAI's SDKs add
+  `ANTHROPIC_CUSTOM_HEADERS` / `OPENAI_CUSTOM_HEADERS` (often a gateway
+  credential) and `OPENAI_ORG_ID` / `OPENAI_PROJECT_ID` to every request on
+  their own. A client built for an explicit `--base-url`, a compatible server, a
+  hosted-vendor preset or a local preset now cancels every one of them; they
+  still reach Anthropic's or OpenAI's own API and the operator's
+  `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` gateway, and there they obey the
+  cleartext rule a key does.
+- **A cloud-tagged model is never captured as free.** Every adapter applies one
+  rule at capture: a `:cloud` / `-cloud` model served through a local daemon —
+  a loopback `--model anthropic --base-url`, an OpenAI-compatible endpoint or a
+  local preset — is recorded with a warning and priced `unknown`, not
+  `unmetered` $0, so `tine cost` and `--max-cost` see it.
+- **A provider name alone no longer books a call as free.** `tine price`
+  re-prices a recorded call as `unmetered` only when its provider is a local
+  server, its model carries no `:cloud` / `-cloud` tag (Ollama proxies those to
+  a per-token API) and the record carries positive evidence: the capture's own
+  `unmetered` verdict, or no billing inside a run the harness wrapper captured.
+  An imported trace or session log — through `tine import` or the library's
+  `Recorder.import_events` — is never booked `unmetered` from its provider
+  label, and keeps no cost from its source file.
+- **Inline-reasoning splitting is bounded on a compatible server's stream.** It
+  searches only new text, holds at most 64 KiB waiting for Harmony's final
+  channel (the rest is then the answer, as for a whole message), and caps
+  leading whitespace — linear in the stream however it is chunked.
+- **Inline reasoning is kept beside structured reasoning.** A non-streamed
+  chat response that carried both `reasoning_content` and a different inline
+  `<think>` block recorded only the first; both are now kept (the same text in
+  both places is kept once).
+
+### Security — harnesses
+
+- **A plain-text Claude Code run could forge its own record.** `claude -p`
+  prints the model's answer, yet the claude-code harness parsed every
+  JSON-shaped line as a Claude Code event, so an answer could book $250, six
+  million tokens and a `deploy_prod` tool call (and trip a cost budget). Like
+  every other harness, claude-code now decides from the command line: only the
+  *last* output-format option asking for JSON makes stdout events, and a bare
+  `json` word or `--something=json` argument no longer counts. Every catalogued
+  dialect is tested in text mode against a forged JSON line, and
+  `codex exec --json -o last.txt` stays in JSON mode (Codex's `-o` names a
+  file).
+- **stderr is no longer parsed as the CLI's events.** It was merged into stdout,
+  so a JSON line written by anything the CLI let reach stderr (an MCP server, a
+  hook) was trusted in structured mode. stderr now has its own pipe and is
+  recorded as text (`"stream": "stderr"`), never as events or cost.
+- **A private key the agent printed no longer survives in harness runs.** Each
+  output line was redacted on its own, but the key scrubber needs the `BEGIN`
+  marker and the body in one string, so every body line was stored verbatim
+  (0.9.2 too). Harness output is now masked across lines and events:
+  - PEM blocks from `BEGIN` to `END`, base64-wrapped keys (`base64 id_rsa`, a
+    line that decodes to a `BEGIN … PRIVATE KEY` marker and the base64 lines
+    after it), PuTTY `.ppk` files (through `Private-MAC`) and RFC 4716 SSH2
+    blocks;
+  - in text lines and stderr, with per-line decoration stripped first (line
+    numbers from `cat -n`/`nl`/`grep -n`, `> ` quotes, bullets, indents, diff
+    `+`/`-`, `cat -A`'s `$`, comment leaders, terminal colour codes, table
+    borders);
+  - inside JSON events, where a key's whole span becomes
+    `[REDACTED PRIVATE KEY]` in string values and object keys and the event is
+    re-serialized, so the event is never truncated and its usage, cost and tool
+    calls survive; pretty-printed `--json` envelopes (openclaw, droid, auggie)
+    are masked member by member and still parse;
+  - across streamed delta events (gemini, hermes, qwen-code, claude
+    `--include-partial-messages`): a block follows the delta's string path into
+    the next deltas of the same message and content block, only while they are
+    still key-shaped and for at most 64 KiB, and a PEM marker split between
+    deltas is joined through a short carry.
+
+  Masking reaches only key material and stops at the first prose, so later
+  commands, tool results and messages are never touched; it is linear in the
+  input; the masked form is never less redacted than the record's scrubber
+  would leave the raw text, and the joined output kept for the done step and
+  the error tail retains each raw `BEGIN`/`END` marker so that scrubber still
+  removes the whole block on save. A failing run's 4000-character tail is
+  redacted before it is cut.
+- **Malformed or hostile CLI output no longer ends or loses a run.** An odd
+  `type`, a non-list `tool_calls`, a non-numeric, negative, non-finite
+  (`NaN`/`Infinity`, read as `null`) or huge cost, duration or token count
+  (meters above 1e15, counts above 2^53) is ignored with a `meter_warning`, and
+  any other parse error records the line as text (`parse_error`). An event
+  nested past 256 levels is recorded as compact JSON text with a
+  `truncated_depth` marker, and an unpaired surrogate escape (Node CLIs slicing
+  mid-emoji, an MCP result) as its six-character escape text with
+  `surrogates_escaped: true`, so the run always saves; a step the record still
+  refuses is kept as text and never kills the agent.
+- **Harness output stays bounded.** The output cap charges the longer of the
+  raw marker line kept for the scrubber and its masked form, and `--autosave`
+  without a throttle checkpoints at most every 2 seconds and only after the run
+  has grown by a quarter, so checkpoint work stays linear in output an
+  untrusted CLI controls.
+
+### Fixed
+
+- **Anthropic SDK 1.x broke every pre-4.6 Claude model.** Anthropic's Python SDK
+  1.0 (2026-08-20) removed `temperature` / `top_p` / `top_k` from
+  `messages.create`, and `anthropic>=0.87` resolves to 1.13 on a fresh install,
+  so `claude-haiku-4-5`, `claude-sonnet-4-5`, `claude-opus-4-5` and older raised
+  `TypeError` before any request. On SDK ≥ 1 the temperature now travels in
+  `extra_body` (the API still accepts it for those models); verified against
+  anthropic 1.13.0. The adapter still works on the 0.x SDK.
+- **`tine price` priced most runs at $0.** It priced only steps of kind
+  `model`, but the runtime records a call by what it answered: the final answer
+  is a `done` step, text beside tool calls a `think` step, a refusal an `error`
+  step. A `tine run --model … --prompt` run (one `done` step) re-priced at
+  `$0.0000, priced=0`, and every agent run lost its final call. A call-shaped
+  step the capture itself billed is priced now; a harness's closing step (no
+  usage) still is not, so nothing is counted twice.
+- **Local runs re-priced as `unknown`.** A call captured from Ollama, LM Studio,
+  vLLM or any local preset is recorded `unmetered`; `tine price` re-billed it
+  against the catalog and reported an unknown model. Post-hoc pricing now
+  treats the same set of local providers as unmetered (one registry, tested
+  against the preset list).
+- **`tine price` ignored the recorded service tier**, so a Claude fast-mode call
+  (2x), a Priority or Flex call, or a US-geo call re-priced at the standard
+  rate. The tier recorded at capture is used now, and both the native Anthropic
+  adapter and the claude-code harness record `usage.speed == "fast"` and
+  `inference_geo: "us"` as the `fast` / `fast_us` / `us` tier (nothing read
+  them before).
+- **Claude Code's estimate is no longer booked as cost when it is not a list
+  price.** Its `total_cost_usd` is booked only when every model's `costBasis`
+  is `list`; otherwise it is kept as `reported_estimate_usd`.
+- **Claude Code against a local or third-party `ANTHROPIC_BASE_URL` was recorded
+  as `anthropic`.** A loopback base URL records `local-anthropic-compatible`
+  (unmetered); another non-Anthropic host records `anthropic-compatible`
+  (priced unknown). Bedrock/Vertex/Foundry flags still win.
+- **Dead default models.** OpenRouter's default `nousresearch/hermes-4-70b` was
+  removed from OpenRouter, Groq's `llama-3.3-70b-versatile` is Enterprise-only,
+  and Together removes `Llama-3.3-70B-Instruct-Turbo` on 2026-10-22.
+- **LangChain runs were billed up to ~4.7x.** LangChain's normalized
+  `usage_metadata` reports *inclusive* totals, and OpenAI's raw `token_usage`
+  nests `cached_tokens` / `reasoning_tokens` inside its totals. The callback
+  handler stored those totals as exclusive buckets and added the breakdowns on
+  top, so a 10k-fresh + 90k-cached Anthropic call recorded
+  `input: 100000, cache_read: 90000` ($0.458 instead of $0.098) and
+  `tine export` sent `gen_ai.usage.input_tokens = 190000`. Breakdowns are now
+  subtracted, langchain-anthropic's `ephemeral_{5m,1h}_input_tokens` split is
+  honoured (also when it sits nested under `cache_creation` in the raw usage
+  `llm_output` carries, so a 1-hour write is not priced as a 5-minute one), and
+  the handler records the serving provider from `ls_provider`, so
+  a LangChain run prices instead of reading `unknown`. Runs recorded before keep
+  their stored usage.
+- **gemini-3.5-flash billed at its retired rate after being rerouted.** Google
+  deprecated it on 2026-10-08 and routes calls to gemini-3.6-flash (half the
+  price); the card was open-ended, so a response that still names 3.5 billed 2x.
+  The card now closes on 2026-10-07 and starts at GA (2026-05-19) instead of
+  2026-07-15, so May–July runs price too.
+- **Together cards past their models' lives.** Llama-3.3-70B-Instruct-Turbo and
+  DeepSeek-V4-Flash-0731 end 2026-10-21; GLM-5.1 is now 2026-04-08 to 2026-06-08
+  at $1.40 / $4.40 and 2026-06-09 to 2026-07-09 with the $0.26 cached rate;
+  GLM-5.3 starts 2026-08-28 and GLM-5.3-Flash 2026-08-26. OpenRouter's
+  `hermes-4-70b` card closes, Groq `qwen/qwen3.8-27b` is backdated to
+  2026-09-05, and `qwen-max` gets its implicit-cache rate ($0.32).
+- **`OLLAMA_HOST` in the forms Ollama documents failed** (`0.0.0.0`,
+  `127.0.0.1:11434`, `gpu-box`): "Request URL is missing an 'http://' or
+  'https://' protocol". It is read the way Ollama's own client reads it.
+- **Ollama Cloud calls were recorded as free.** `:cloud` / `-cloud` tags proxied
+  through the local daemon, or `https://ollama.com` itself, are recorded under
+  `ollama-cloud`, never `unmetered`; `OLLAMA_API_KEY` is sent only to
+  ollama.com. Ollama's `prompt_eval_cached_count` is recorded as cache reads.
+- **Reasoning left inline was recorded as the answer.** `<think>…</think>`,
+  `[THINK]…[/THINK]` and raw Harmony channels at the start of a message — what
+  TGI, llama-cpp-python, llama.cpp `--reasoning-format none`, MLX-LM and others
+  return — are split into reasoning, identically for a whole message and a
+  stream; a server that sends both (llama.cpp `deepseek-legacy`) is no longer
+  recorded twice.
+- **Streams from cumulative-usage servers emitted a usage event per chunk**
+  (vLLM `--enable-force-include-usage`, `continuous_usage_stats`); a Chat
+  Completions stream now emits one usage event, the last. LocalAI and KoboldCpp
+  streams request usage. Mistral's applied tier is read from
+  `usage.service_tier`, Inception's top-level `cached_input_tokens` count as
+  cache reads, and Gemini's `ON_DEMAND_OFFPEAK` traffic type maps to an
+  `offpeak` tier (priced only where carded).
+- **Harness fixes.** `grok` ran `grok exec`, which does not exist; `cursor` ran
+  `cursor-agent run`, which current Cursor CLIs do not accept; `--harness-arg`
+  landed between a prompt flag and its value for harnesses whose prompt is
+  passed with `-p` / `-q` / `--message`, so `--harness-arg --model
+  --harness-arg X` became the prompt. All three are fixed.
+- **`put_run` and `migrate-v3` silently truncated deep JSON.** A step value
+  nested more than 100 levels was stored as `"[MAX_DEPTH]"` with fsck green,
+  while the v2 file held it intact. The repository writers now keep it (up to
+  the format's 512-level limit) and refuse a deeper or circular value; only the
+  trace and live recorders still truncate.
+- **An interrupted shallow fetch left unreadable objects.** The shallow-boundary
+  file was written after the objects, so Ctrl-C or a full disk during the pack
+  copy left runs whose cut links were neither present nor recorded — and a retry
+  sent nothing, so it never healed. The boundaries are now recorded before any
+  object is written.
+- **A full unadopted-annotation record refused every later pack** carrying a
+  foreign annotation; it now first forgets entries the fallback can no longer
+  read.
+- **`tine clone` into an existing repository** silently re-pointed its
+  `heads/main`; it now refuses (use `fetch`).
+- **fsck** reports a ref file whose name is not a legal ref (dot-files such as
+  `.DS_Store` are still ignored) and a corrupt `unadopted` record.
+- **`tine serve purge --grace-seconds` below 60 needs `--force`**: with no grace,
+  a purge can delete orphaned objects a push in progress is about to reference.
+
+### Still open
+
+- **Not part of this audit round:** the shell tool's executable allowlist and
+  the git option/subcommand guard (`tools/_git_guard.py`) were not re-audited.
+- **Harnesses:** Kilo Code and iFlow CLI are not catalogued (no documented
+  headless invocation could be confirmed; use `generic`). Grok Build and Qoder
+  JSON schemas are undocumented and read as Claude-compatible events
+  (`unverified`); `droid`, `auggie` and `continue` record only their final
+  result; `aider`, `crush` and `kiro` are text only. Dialect fixtures are built
+  from each CLI's documented schema, not live account captures. Model
+  ids are recorded as each CLI spells them (Copilot's `claude-haiku-4.5`,
+  Cursor's display name), so those price `unknown`. A generic ACP client
+  harness would cover several CLIs at once.
+- **Import:** OpenCode session import (its SQLite schema is still changing).
+  Claude Code's `cost_usd` in OTel logs is kept as an attribute, not booked.
+- **Models and pricing:** Kimi's 1-hour cache-write header and LiteLLM's
+  `x-litellm-response-cost` header; sending reasoning back to Ollama; token
+  refresh for Bedrock short-term keys, Vertex OAuth and Entra; Vertex and
+  Foundry adapters; `baseten`, `novita` and `nebius` presets; per-call fees for
+  server-side tools (web search, grounding); region-scoped Qwen identity;
+  compute/energy rates for non-Ollama presets. Mistral Large 4's list price is
+  not carded (the sale's end date is unconfirmed), nor DeepInfra, Cerebras,
+  Upstage, Inception or Nebius (pages not verifiable from raw text), Vertex
+  Gemini, or Bedrock models other than Claude and GPT-6 Astra. Claude Fable 5.5
+  has no published price and no card.
+- **Unchanged from 0.9.2:** the pricing catalog's signature has no
+  domain-separation prefix (added at the next release-key rotation); a bare
+  64-hex public key under a name other than `*.pub` cannot be told from an HMAC
+  secret; a custom `KMSKeyProvider` gets slot-bound encryption only by
+  implementing `seal`/`unseal`; `heads/*` has no fast-forward rule on the
+  remote; an HMAC key file is read byte-exact (a CRLF-written key is a different
+  key — deliberate, so existing signatures keep verifying); an unsigned `.tine`
+  or run record can claim anything about itself (harness markers, billing,
+  costs) — verify signatures (`--require-signature`) where that matters.
+- **Process containment:** on Linux the supervisor cleans up runaway and
+  leftover tool processes but cannot contain an adversarial process running as
+  the same user; real isolation needs a container or cgroups. On macOS and the
+  BSDs a tool descendant that calls `setsid()` can outlive the tool.
+- **Redaction residuals:** redaction is pattern-based and best-effort. On the
+  rare JSON rebuild path a whole string can be replaced where the scan would
+  have cut part of it; JSON holding nested JSON strings full of secrets costs
+  about 7–14x the 0.9.2 scan (flat JSON at most about 4x; always linear); a blob
+  over 32 MiB, or one that is not a JSON document or JSON Lines, keeps the byte
+  scan's output, which can still break JSON in rare shapes; the survivor checks
+  ignore removed text with no word of four or more letters or digits (the
+  scan's own removal still stands); a single-quoted `.netrc`/`*_PWD` value
+  containing `"` is cut at that quote, and a raw-quoted one with no closing
+  quote on its line is not redacted by those patterns; an unquoted multi-word
+  value stops before a following credential-name head (`pw: a api_key=c`
+  redacts `a` and `c` separately but keeps the name `api_key`); a bare `token`
+  name is not a credential name (it is too often a counter).
+- **Harness masking residuals:** a body line with a decoration the masker does
+  not strip can reach its own per-line step, and a PuTTY header or SSH2 marker
+  split across two streamed deltas is not re-joined (PEM markers are); in both
+  cases the done step keeps the raw text for the record scrubber. Streamed
+  chat responses keep only structured reasoning when one delta carries both it
+  and inline `<think>` text.
+- **Local endpoints:** a loopback `ANTHROPIC_BASE_URL` (or `--base-url`) is
+  recorded as a local, unmetered endpoint; a local proxy in front of a paid API
+  should not be labelled that way.
+- Conformance vectors for `config.json`, reflog rotation and `unadopted`.
+
 ## 0.9.2 — 2026-10-09 — Hardening
 
 The follow-ups 0.9.1 left open, `tine --version`, and every hardening item the

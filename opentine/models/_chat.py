@@ -12,6 +12,7 @@ from opentine.models._chat_stream import ChatStreamMixin
 from opentine.models._client import closing_client
 from opentine.models._endpoint_security import require_key_transport
 from opentine.models._provider_meta import model_name, validated_rates
+from opentine.models._sdk_headers import openai_headers
 from opentine.models._stream_content import chat_content
 from opentine.models._terminal import chat_terminal
 from opentine.models._usage import value
@@ -125,6 +126,8 @@ class ChatCompletions(ChatStreamMixin):
             api_key=self._client_api_key(),
             base_url=self._base_url,
             max_retries=0,
+            # A hosted vendor is never OpenAI: OPENAI_CUSTOM_HEADERS stay home.
+            default_headers=openai_headers(openai.Omit(), self._base_url, keep_env=False),
         )
 
     def _client_api_key(self) -> str:
@@ -191,7 +194,10 @@ class ChatCompletions(ChatStreamMixin):
         choice = choices[0] if choices else None
         result = chat_content(value(choice, "message"))
         chat_terminal(result, value(choice, "finish_reason") if choice else "empty_choices")
-        observed_tier = value(response, "service_tier")
+        # Mistral reports the applied tier inside usage rather than beside it.
+        observed_tier = value(response, "service_tier") or value(
+            value(response, "usage"), "service_tier"
+        )
         tier = self._billing_tier(kwargs["messages"], observed_tier)
         reported_model = value(response, "model")
         result.update(

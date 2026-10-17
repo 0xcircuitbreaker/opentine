@@ -79,8 +79,9 @@ def cmd_migrate(args: argparse.Namespace) -> None:
     signature_dropped = bool(old_integrity.get("signature"))
     if args.dry_run or (not args.in_place and not args.save):
         console.print(f"[{BRAND}]# Migration preview[/] {_terminal(path.name)}")
-        console.print(f"  format_version: {source_version} -> {run.format_version}")
-        old_digest = str(old_integrity.get("digest", ""))[:12] or "-"
+        # Both come from the artifact, which may be hostile: escaped like any run text.
+        console.print(f"  format_version: {_terminal(source_version)} -> {run.format_version}")
+        old_digest = _terminal(str(old_integrity.get("digest", ""))[:12]) or "-"
         console.print(f"  digest: {old_digest} -> {new_digest[:12]}")
         if signature_dropped:
             console.print("  [yellow]signature dropped — re-sign after migrating[/]")

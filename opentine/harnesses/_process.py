@@ -12,7 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from opentine.core import StepKind
+from opentine.harnesses._stream_io import Budget, pump, stderr_step
 from opentine.harnesses._types import HarnessStep, StepCallback
+from opentine.redaction import redact_text
 from opentine.tools._batch_guard import refuse_batch_injection
 from opentine.tools._process import _attach_kill_job, _cleanup_owned, _group_flags
 
@@ -20,6 +22,9 @@ DEFAULT_TIMEOUT_SECONDS = 3_600.0
 DEFAULT_MAX_OUTPUT_CHARS = 4_000_000
 DEFAULT_MAX_EVENTS = 10_000
 DEFAULT_MAX_LINE_BYTES = 1_000_000
+#: What a CLI needs to find its own login and config (``--harness-login-env``).
+LOGIN_ENV_KEYS = ("PATH", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA")
+LOGIN_ENV_KEYS += ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME")
 
 
 class ProcessHarness:
@@ -104,7 +109,7 @@ class ProcessHarness:
             *command,
             cwd=str(self.cwd) if self.cwd else None,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.PIPE,
             env=self.build_env(),
             limit=self.max_line_bytes,
             **_group_flags(),
@@ -117,46 +122,31 @@ class ProcessHarness:
             process.kill()
             raise RuntimeError(f"{self.name} subprocess handle is unavailable")
         job = _attach_kill_job(native) if native is not None else None
-        output_buffer = StringIO()
-        output_chars = events = 0
-        saw_line = False
-        output = process.stdout
-        if output is None:
+        output_buffer, error_buffer = StringIO(), StringIO()
+        output, errors = process.stdout, process.stderr
+        if output is None or errors is None:
             _cleanup_owned(process, job)
             raise RuntimeError(f"{self.name} subprocess output pipe is unavailable")
+        budget = Budget(self.name, self.max_output_chars, self.max_events)
+        common = {"budget": budget, "emit": step_callback, "max_line_bytes": self.max_line_bytes}
 
         async def read_output() -> None:
-            nonlocal output_chars, events, saw_line
-            while True:
-                try:
-                    raw = await output.readline()
-                except ValueError as exc:
-                    raise RuntimeError(
-                        f"{self.name} output line exceeds {self.max_line_bytes} bytes"
-                    ) from exc
-                if not raw:
-                    return
-                line = raw.decode(errors="replace").rstrip("\r\n")
-                separator_chars = 1 if saw_line else 0
-                output_chars += separator_chars + len(line)
-                if output_chars > self.max_output_chars:
-                    raise RuntimeError(
-                        f"{self.name} output exceeds {self.max_output_chars} characters"
-                    )
-                if saw_line:
-                    output_buffer.write("\n")
-                output_buffer.write(line)
-                saw_line = True
-                parsed = self.parse_line(line)
-                # One output line can carry several steps (parallel tool results).
-                for step in parsed if isinstance(parsed, list) else [parsed] if parsed else []:
-                    events += 1
-                    if events > self.max_events:
-                        raise RuntimeError(
-                            f"{self.name} emitted more than {self.max_events} events"
-                        )
-                    if step_callback:
-                        step_callback(step)
+            await asyncio.gather(
+                pump(
+                    output,
+                    stream_name="stdout",
+                    buffer=output_buffer,
+                    parse=self.parse_line,
+                    **common,
+                ),
+                pump(
+                    errors,
+                    stream_name="stderr",
+                    buffer=error_buffer,
+                    parse=self.parse_stderr_line,
+                    **common,
+                ),
+            )
 
         cleaned = False
 
@@ -176,9 +166,10 @@ class ProcessHarness:
             return process.returncode
 
         def close_output() -> None:
-            pipe = transport.get_pipe_transport(1) if transport is not None else None
-            if pipe is not None:
-                pipe.close()
+            for fd in (1, 2):
+                pipe = transport.get_pipe_transport(fd) if transport is not None else None
+                if pipe is not None:
+                    pipe.close()
 
         async def finish_reader() -> None:
             done, _ = await asyncio.wait((reader,), timeout=0.2)
@@ -214,37 +205,39 @@ class ProcessHarness:
                 await asyncio.wait_for(process.wait(), timeout=5)
             except (TimeoutError, ProcessLookupError):
                 pass
-        output = output_buffer.getvalue()
+        output, stderr = output_buffer.getvalue(), error_buffer.getvalue()
         if returncode != 0:
             if step_callback:
+                # Redact the whole text, then cut: a tail sliced first can start
+                # inside a key whose BEGIN marker fell outside it.
                 step_callback(
                     HarnessStep(
                         kind=StepKind.error,
-                        inputs={"output": output[-4000:], "returncode": returncode},
+                        inputs={
+                            "output": redact_text(output)[-4000:],
+                            **({"stderr": redact_text(stderr)[-4000:]} if stderr else {}),
+                            "returncode": returncode,
+                        },
                         duration=time.time() - started,
                     )
                 )
             raise RuntimeError(f"{self.name} exited with status {returncode}")
-        return {"output": output, "returncode": returncode}
+        result: dict[str, Any] = {"output": output, "returncode": returncode}
+        if stderr:
+            result["stderr"] = stderr
+        return result
 
     def build_env(self) -> dict[str, str]:
         built: dict[str, str] = {}
         if self.login_env:
-            keys = {
-                "PATH",
-                "HOME",
-                "USERPROFILE",
-                "APPDATA",
-                "LOCALAPPDATA",
-                "XDG_CONFIG_HOME",
-                "XDG_DATA_HOME",
-                "XDG_CACHE_HOME",
-                *self.login_env_keys,
-                *self.env_allowlist,
-            }
+            keys = {*LOGIN_ENV_KEYS, *self.login_env_keys, *self.env_allowlist}
             built.update({key: value for key in keys if (value := os.environ.get(key))})
         built.update(self.env)
         return built
 
     def parse_line(self, line: str) -> HarnessStep | list[HarnessStep] | None:
         return HarnessStep.from_line(line, model_info=self.model_info) if line else None
+
+    def parse_stderr_line(self, line: str) -> HarnessStep | None:
+        """A stderr line is recorded as text, never parsed as a structured event."""
+        return stderr_step(line, self.model_info)

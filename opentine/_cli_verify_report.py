@@ -22,12 +22,30 @@ from opentine._cli_json import emit
 from opentine.core import Run
 
 
-def signature_block(path: str | Path) -> Any:
-    """The artifact's stored signature block, or ``None`` if it has none or is unreadable."""
+def read_once(path: str | Path) -> dict[str, Any] | str | Path:
+    """The parsed artifact, or *path* itself when it cannot be read.
+
+    A verdict and the key fingerprint it is pinned against must come from the
+    same bytes: reading the file twice let a swap between the reads pair one
+    file's verdict with another's key. The unreadable case returns the path so
+    ``Run.verify_signature`` still reports why.
+    """
     try:
         data = read_artifact_json(path)
     except (OSError, RecursionError, ValueError):
-        return None
+        return path
+    return data if isinstance(data, dict) else path
+
+
+def signature_block(source: str | Path | dict[str, Any]) -> Any:
+    """The artifact's stored signature block, or ``None`` if it has none or is unreadable."""
+    if isinstance(source, dict):
+        data = source
+    else:
+        try:
+            data = read_artifact_json(source)
+        except (OSError, RecursionError, ValueError):
+            return None
     metadata = data.get("metadata") if isinstance(data, dict) else None
     integrity = metadata.get("integrity") if isinstance(metadata, dict) else None
     return integrity.get("signature") if isinstance(integrity, dict) else None

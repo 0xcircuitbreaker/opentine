@@ -1,0 +1,9 @@
+{"type":"session.start","id":"e0","parentId":null,"timestamp":"2026-10-15T10:00:00Z","data":{"sessionId":"cp-1"}}
+{"type":"assistant.turn_start","id":"e1","parentId":"e0","timestamp":"2026-10-15T10:00:00Z","data":{"turnId":"1"}}
+{"type":"assistant.message","id":"e2","parentId":"e1","timestamp":"2026-10-15T10:00:01Z","data":{"messageId":"m1","content":"Listing files.","model":"claude-haiku-4.5"}}
+{"type":"assistant.usage","id":"e3","parentId":"e1","timestamp":"2026-10-15T10:00:01Z","data":{"model":"claude-haiku-4.5","inputTokens":8000,"outputTokens":200,"cacheReadTokens":6000,"cacheWriteTokens":0,"reasoningTokens":50,"cost":0.33,"apiCallId":"call-a"}}
+{"type":"tool.execution_start","id":"e4","parentId":"e1","timestamp":"2026-10-15T10:00:01Z","data":{"toolCallId":"tc1","toolName":"bash","arguments":{"command":"ls"}}}
+{"type":"tool.execution_complete","id":"e5","parentId":"e4","timestamp":"2026-10-15T10:00:02Z","data":{"toolCallId":"tc1","success":true,"result":{"content":"a.py"}}}
+{"type":"tool.execution_start","id":"e6","parentId":"e1","timestamp":"2026-10-15T10:00:02Z","data":{"toolCallId":"tc2","toolName":"view","arguments":{"path":"x"}}}
+{"type":"tool.execution_complete","id":"e7","parentId":"e6","timestamp":"2026-10-15T10:00:02Z","data":{"toolCallId":"tc2","success":false,"error":{"message":"not found"}}}
+{"type":"session.idle","id":"e8","parentId":null,"timestamp":"2026-10-15T10:00:03Z","data":{}}

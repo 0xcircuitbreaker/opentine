@@ -411,8 +411,10 @@ def test_migrate_v3_verifies_with_the_key_flags(workspace, capsys):
     assert code == 0, out
     repo = Repo.open(workspace / "repo")
     payload = repo.get(repo.read_ref("heads/main")).payload()
-    state = json.dumps(payload)
-    assert '"state": "verified-tofu"' in state or '"state":"verified-tofu"' in state
+    state = json.dumps(payload).replace(" ", "")
+    # Imported under the key that passed the pin, as ``verify --pin`` reports it
+    # (0.10: no longer "whatever key is embedded" on the second read).
+    assert '"state":"verified"' in state
 
 
 # --- C-H10: a public key is never an HMAC secret ---------------------------------- #

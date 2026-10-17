@@ -1,0 +1,5 @@
+{"type":"message","message":{"id":"m1","role":"assistant","created":1760000000,"content":[{"type":"text","text":"I'll run the tests."},{"type":"toolRequest","id":"tr_1","toolCall":{"status":"success","value":{"name":"developer__shell","arguments":{"command":"pytest -q"}}}}],"metadata":{"userVisible":true,"agentVisible":true}}}
+{"type":"notification","extension_id":"developer","log":{"message":"running"}}
+{"type":"message","message":{"id":"m2","role":"user","created":1760000001,"content":[{"type":"toolResponse","id":"tr_1","toolResult":{"status":"success","value":[{"type":"text","text":"3 passed"}]}}],"metadata":{"userVisible":true,"agentVisible":true}}}
+{"type":"message","message":{"id":"m3","role":"assistant","created":1760000002,"content":[{"type":"text","text":"All tests pass."}],"metadata":{"userVisible":true,"agentVisible":true}}}
+{"type":"complete","total_tokens":21240,"input_tokens":21000,"output_tokens":240,"cache_read_input_tokens":15000,"cache_write_input_tokens":2000,"cost_usd":0.0312}

@@ -10,7 +10,8 @@ from typing import Any
 from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
 from opentine._mcp_safety import confined_run as _confined_run
-from opentine._mcp_safety import safe_errors
+from opentine._mcp_safety import hidden_name as _hidden_name
+from opentine._mcp_safety import safe_errors, server_class, total_bytes
 from opentine.core import Run
 
 MAX_MCP_SCAN_RUNS = 5_000
@@ -21,6 +22,7 @@ MAX_MCP_TEXT_CHARS = 256_000
 #: Largest run an MCP ``fork_run`` copies. Every call writes a new artifact the
 #: size of its source, and the caller is a model reading untrusted run content.
 MAX_MCP_FORK_BYTES = 32 * 1024 * 1024
+MAX_MCP_RUNS_DIR_BYTES = 1024 * 1024 * 1024
 
 
 def _scan_runs(root: Path) -> tuple[list[Path], bool]:
@@ -69,7 +71,10 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
 
     summaries: list[dict[str, Any]] = []
     paths, truncated = _scan_runs(root)
-    candidates = [found for path in paths if (found := _confined_run(root, path))]
+    found = [run for path in paths if (run := _confined_run(root, path))]
+    # A name hiding characters can neither be shown cleaned (it would not resolve)
+    # nor shown as is (it reaches the client's model): leave it out, counted.
+    candidates = [p for p in found if not _hidden_name(p.relative_to(root).as_posix())]
     candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     truncated |= len(candidates) > MAX_MCP_LIST_RUNS
     total_bytes = 0
@@ -102,6 +107,8 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
         except Exception:
             relative = path.relative_to(root).as_posix()
             summaries.append({"id": _clip(path.stem), "status": "corrupt", "path": relative})
+    if skipped := len(found) - len(candidates):
+        summaries.append({"id": None, "status": "hidden-name", "skipped": skipped})
     if truncated:
         summaries.append({"id": None, "status": "truncated", "limit": MAX_MCP_LIST_RUNS})
     return summaries
@@ -147,8 +154,11 @@ def fork_run_file(
     path = find_run(run_id, runs_dir)
     if path.stat().st_size > MAX_MCP_FORK_BYTES:
         raise ValueError(f"run is too large to fork over MCP (over {MAX_MCP_FORK_BYTES} bytes)")
-    if _scan_runs(Path(runs_dir).resolve())[1]:
+    held, full = _scan_runs(Path(runs_dir).resolve())
+    if full:
         raise ValueError(f"the runs directory already holds {MAX_MCP_SCAN_RUNS} runs")
+    if total_bytes(held) + path.stat().st_size > MAX_MCP_RUNS_DIR_BYTES:
+        raise ValueError(f"the runs directory already holds {MAX_MCP_RUNS_DIR_BYTES} bytes of runs")
     run = Run.load(path)
     if from_step < 0 or from_step >= len(run.steps):
         raise IndexError(f"Step index {from_step} out of range")
@@ -165,8 +175,8 @@ def fork_run_file(
     forked.save(out)
     return {
         "new_run_id": forked.id,
-        "forked_from": run.id,
-        "fork_point": fork_step.id,
+        "forked_from": _clip(run.id),
+        "fork_point": _clip(fork_step.id, 120),
         "path": str(out),
     }
 
@@ -192,13 +202,8 @@ def diff_runs_text(run_a: str, run_b: str, runs_dir: str | Path = ".tine_runs") 
 
 
 def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "."):
-    """Create a FastMCP server. Requires the optional ``mcp`` package."""
-    try:
-        from mcp.server.fastmcp import FastMCP
-    except ImportError as exc:  # pragma: no cover - optional integration
-        raise RuntimeError("Install the mcp package to run opentine's MCP server.") from exc
-
-    server = FastMCP("opentine")
+    """Create an MCP server. Requires the optional ``mcp`` package (SDK 1.x or 2.x)."""
+    server = server_class()("opentine")
     mcp = safe_errors(server)  # every tool error reaches the client sanitized
 
     @mcp.tool()

@@ -36,6 +36,8 @@ _OPENAI_SAMPLING = ("gpt-4", "gpt-3.5", "chatgpt-", "ft:gpt-4", "ft:gpt-3.5", "d
 #: Known OpenAI reasoning families, for OpenAI-shaped endpoints that may serve
 #: anything (a custom ``base_url``): there, only these names drop temperature.
 _OPENAI_REASONING = ("gpt-5", "gpt-6", "o1", "o3", "o4")
+#: Any later GPT generation (``gpt-7``, ``gpt-10``) is assumed to be one too.
+_OPENAI_LATER = re.compile(r"gpt-(?:[5-9]|[1-9]\d+)(?:\D|$)")
 
 
 def claude_rules(model: str) -> tuple[bool, bool, bool]:
@@ -62,4 +64,4 @@ def openai_omits_temperature(model: str, *, native: bool) -> bool:
     name = model.lower()
     if native:
         return not name.startswith(_OPENAI_SAMPLING)
-    return name.startswith(_OPENAI_REASONING)
+    return name.startswith(_OPENAI_REASONING) or bool(_OPENAI_LATER.match(name))

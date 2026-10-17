@@ -100,14 +100,26 @@ def test_a_reimported_priced_run_is_still_priced_in_the_store(priced, tmp_path):
     read of that run (``tine show``, ``tine stats``, a cost budget) agrees with
     the zero rather than with what the run actually cost.
     """
+    # A caller that trusts the source (its own export, re-imported) opts in;
+    # by default an import keeps no cost or billing from the file (final
+    # security pass 5, #6): the catalog prices it, ``tine price`` re-derives it.
     recorder = Recorder.start(Repo.init(tmp_path / "repo"), ref="heads/main", capture=False)
-    recorder.import_events(otel_genai_events(_document(priced)))
+    recorder.import_events(otel_genai_events(_document(priced)), trusted_billing=True)
     rebuilt = recorder.repo.load_run(recorder.finalize())
 
     charged = [step for step in rebuilt.steps if Decimal(str(step.cost or 0))]
     assert len(charged) == 1, "the priced step is priced, and nothing else became priced"
     assert Decimal(str(charged[0].cost)) == Decimal("0.0125")
     assert charged[0].billing == BILLING
+
+
+def test_a_default_reimport_keeps_no_cost_from_the_source(priced, tmp_path):
+    recorder = Recorder.start(Repo.init(tmp_path / "repo"), ref="heads/main", capture=False)
+    recorder.import_events(otel_genai_events(_document(priced)))
+    rebuilt = recorder.repo.load_run(recorder.finalize())
+
+    assert not [step for step in rebuilt.steps if Decimal(str(step.cost or 0))]
+    assert not [step for step in rebuilt.steps if step.billing]
 
 
 def test_the_round_trip_is_still_a_fixed_point_now_that_the_money_is_read(priced):

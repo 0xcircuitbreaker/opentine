@@ -24,9 +24,16 @@ import json
 from typing import Any
 
 from opentine.trace import _genai_semconv as semconv
+from opentine.trace._import_guard import decodable_text
 from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._import_helpers import note_import_warning
-from opentine.trace._otel_logs import Messages, message_content, structured_messages
+from opentine.trace._otel_logs import (
+    MAX_MESSAGE_STRING_BYTES,
+    Messages,
+    message_content,
+    structured_messages,
+)
+from opentine.trace._substrings import all_in
 
 
 def span_content(
@@ -58,6 +65,9 @@ def span_content(
         if turns[side] and (not classic[side] or _covered(kept[side], turns[side])):
             continue
         attributes[key] = structured[key]
+        value = structured[key]
+        if isinstance(value, str) and not decodable_text(value, MAX_MESSAGE_STRING_BYTES):
+            note_import_warning(attributes, f"{key} left undecoded: over the import budget")
         if classic[side]:
             # Two shapes for one side that do not agree: the scalar becomes the
             # event's content and the conversation stays in the attributes, so a
@@ -90,6 +100,7 @@ def _covered(payload: dict[str, Any], turns: Messages) -> bool:
 
     try:
         text = dumped(payload)
+        needles: set[str] = set()
         for turn in turns:
             content = turn.get("content")
             rendered = content if isinstance(content, str) else dumped(content)
@@ -99,8 +110,11 @@ def _covered(payload: dict[str, Any], turns: Messages) -> bool:
                 for field in semconv.CARRIED_FIELDS
                 if turn.get(field) is not None
             ]
-            if not evidence or any(item not in text for item in evidence):
+            if not evidence:
                 return False
+            needles.update(evidence)
     except (RecursionError, TypeError, ValueError):
         return False
-    return True
+    # One linear search for every turn's evidence: a substring scan per turn was
+    # turns x payload length, minutes of CPU for one crafted span.
+    return all_in(needles, text)

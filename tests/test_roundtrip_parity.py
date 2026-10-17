@@ -281,15 +281,21 @@ def test_an_otel_document_rebuilds_a_priced_run_into_a_repository_still_priced(s
     The import half is where an unpriced event becomes a durable ``cost: 0`` --
     ``put_trace_event`` defaults it while writing the run -- so the loss is in
     the store the moment the document lands, not just in an in-memory event.
-    Rebuilt through the same ``Recorder`` the import command drives.
+    Rebuilt through the same ``Recorder`` the import command drives. Since 0.10 an
+    import distrusts a document's own billing by default (a file must not set its
+    own price), so carrying the money through is the explicit trusted path.
     """
     events = otel_genai_events(json.loads(serialize(to_otel_genai_document(source))))
     recorder = Recorder.start(Repo.init(tmp_path / "priced"), ref="heads/main", capture=False)
-    recorder.import_events(events)
+    recorder.import_events(events, trusted_billing=True)
     rebuilt = recorder.repo.load_run(recorder.finalize())
 
     assert _money(source), "the representative run is priced"
     assert _money(rebuilt) == _money(source)
+
+    untrusted = Recorder.start(Repo.init(tmp_path / "untrusted"), ref="heads/main", capture=False)
+    untrusted.import_events(events)
+    assert _money(untrusted.repo.load_run(untrusted.finalize())) == []
 
 
 def test_the_otel_round_trip_returns_the_provider_that_served_each_step(source, tmp_path):

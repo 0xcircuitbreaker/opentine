@@ -13,12 +13,13 @@ from typing import Any
 
 from opentine._canon import atomic_write_text
 from opentine.billing import _catalog_trust as _trust
+from opentine.billing._catalog_file import read_regular
 from opentine.billing._catalog_json import parse_catalog_json
 from opentine.billing._catalog_verify import SUPPORTED_SCHEMAS as SUPPORTED_SCHEMAS
 from opentine.billing._catalog_verify import TRUSTED_KEYS as TRUSTED_KEYS
 from opentine.billing._catalog_verify import CatalogError as CatalogError
 from opentine.billing._catalog_verify import catalog_hash as catalog_hash
-from opentine.billing._catalog_verify import verify_catalog as verify_catalog
+from opentine.billing._catalog_verify import signature_fields, verify_catalog
 from opentine.billing._immutable import freeze
 from opentine.billing.types import RateCard, as_date
 
@@ -125,7 +126,7 @@ class PricingCatalog:
                 {
                     "catalog_hash": digest,
                     "catalog_id": catalog_id,
-                    "signature": data.get("signature"),
+                    "signature": signature_fields(data.get("signature")),
                     "source": source,
                 },
             ),
@@ -138,8 +139,7 @@ class PricingCatalog:
     ) -> PricingCatalog:
         p = Path(path)
         try:
-            with p.open("rb") as handle:
-                data = handle.read(MAX_CATALOG_BYTES + 1)
+            data = read_regular(p, MAX_CATALOG_BYTES)  # never a FIFO or device
             if len(data) > MAX_CATALOG_BYTES:
                 raise CatalogError("pricing catalog exceeds maximum size")
         except OSError as exc:
@@ -186,7 +186,7 @@ def load_catalogs(
     selected = [Path(item) for item in paths] if paths is not None else catalog_paths(workspace)
     overlay = workspace_catalog_path(workspace) if paths is None else None
     user = user_catalog_path() if paths is None else None
-    catalog, bundled_at = None, None
+    catalog, latest = None, None  # (generated_at, hash) of the newest signed layer applied
     for index, path in enumerate(selected):
         if not path.exists():
             continue
@@ -198,12 +198,12 @@ def load_catalogs(
         )
         if current is None:
             continue
-        if path == BUNDLED_CATALOG:
-            bundled_at = current.generated_at
-        elif path == user and current.signed and _trust.older(current.generated_at, bundled_at):
-            if stale_catalog_hook is not None:
-                stale_catalog_hook(path)
-            continue
+        if path == BUNDLED_CATALOG or (path in (user, overlay) and current.signed):
+            if path != BUNDLED_CATALOG and _trust.rolls_back(current, latest):
+                if stale_catalog_hook is not None:
+                    stale_catalog_hook(path)
+                continue
+            latest = _trust.newest(latest, current)
         catalog = current if catalog is None else catalog.overlay(current)
     if catalog is None:
         raise CatalogError("no pricing catalog found")
@@ -226,9 +226,9 @@ def _workspace_overlay(path: Path) -> PricingCatalog | None:
     return None
 
 
-def _signed_at(path: Path) -> datetime | None:
+def _signed(path: Path) -> PricingCatalog | None:
     try:
-        return PricingCatalog.load(path).generated_at if path.exists() else None
+        return PricingCatalog.load(path) if path.exists() else None
     except CatalogError:
         return None  # an unsigned or damaged file is nothing to roll back from
 
@@ -239,12 +239,12 @@ def install_catalog(data: bytes, path: str | Path) -> PricingCatalog:
     raw = parse_catalog_json(data, CatalogError)
     catalog = PricingCatalog.from_dict(raw, source=str(path), verify=True, require_signature=True)
     for name, reference in (("bundled", BUNDLED_CATALOG), ("installed", Path(path))):
-        newer = _signed_at(reference)
-        if _trust.older(catalog.generated_at, newer):
+        held = _signed(reference)
+        if held is not None and _trust.rolls_back(catalog, (held.generated_at, held.hash)):
             when = raw.get("generated_at") or "at no date"
             raise CatalogError(
                 f"refusing a pricing catalog generated {when}: the {name} catalog is newer "
-                f"({newer}), and installing this one would roll prices back"
+                f"({held.generated_at}), and installing this one would roll prices back"
             )
     atomic_write_text(path, json.dumps(raw, indent=2, sort_keys=True) + "\n", fsync=True)
     return catalog

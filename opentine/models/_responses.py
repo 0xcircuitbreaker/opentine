@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any
 
-from opentine.billing import PricingCatalog
+from opentine.billing import PricingCatalog, load_catalogs
 from opentine.kernel import KernelError, canonical_json
 from opentine.models._chat_billing import requires_cache_write
 from opentine.models._metered import metered_response
@@ -99,12 +99,18 @@ class ResponsesTransport:
         rate_override: dict[str, Any] | None = None,
         service_tier: str | None = None,
         unmetered: bool = False,
+        provider: str = "openai",
+        regional: bool = False,
     ):
         self.model = model
         self.catalog = catalog
-        self.rate_override = validated_rates("openai", model, rate_override)
+        # A local or gateway /v1/responses endpoint records its own provider.
+        self.provider = provider
+        self.rate_override = validated_rates(provider, model, rate_override)
         self.service_tier = service_tier
         self.unmetered = unmetered
+        #: A data-residency host (``eu.api.openai.com``…): its card's ``regional`` uplift.
+        self.regional = regional
 
     def kwargs(
         self,
@@ -119,7 +125,7 @@ class ResponsesTransport:
         converted_tools = response_tools(tools)
         if converted_tools:
             kwargs["tools"] = converted_tools
-        if not omits_temperature(self.model):
+        if not omits_temperature(self.model, native=self.provider == "openai"):
             kwargs["temperature"] = temperature
         if self.service_tier:
             kwargs["service_tier"] = self.service_tier
@@ -132,16 +138,16 @@ class ResponsesTransport:
         missing = openai_missing_usage(
             raw_usage,
             require_cache_write=requires_cache_write(
-                "openai", self.model, reported_model, self.catalog
+                self.provider, self.model, reported_model, self.catalog
             ),
         )
         return metered_response(
-            "openai",
+            self.provider,
             self.model,
             openai_usage(raw_usage),
             catalog=self.catalog,
             rate_override=self.rate_override,
-            service_tier=observed_tier or self.service_tier,
+            service_tier=self._tier(observed_tier or self.service_tier, reported_model),
             unmetered=self.unmetered,
             usage_reported=raw_usage is not None,
             missing_usage=missing,
@@ -150,6 +156,28 @@ class ResponsesTransport:
             requested_service_tier=self.service_tier,
             service_tier_observed=observed_tier not in (None, ""),
         )
+
+    def _tier(self, tier: str | None, reported: Any) -> str | None:
+        """The billed tier on a data-residency host: the uplift composes with any tier.
+
+        A plain tier becomes the card's ``regional``; Priority or Flex becomes
+        ``priority_regional`` / ``flex_regional``, which prices only where carded and
+        is otherwise ``unknown`` -- never the global rate recorded as complete.
+        A model whose card has no ``regional`` uplift (released before the
+        residency surcharge) bills its tier unchanged.
+        """
+        if not self.regional:
+            return tier
+        card = (self.catalog or load_catalogs()).lookup(
+            self.provider, model_name(reported) or self.model
+        )
+        if card is None or "regional" not in card.service_modifiers:
+            return tier
+        if tier in (None, "", "default", "standard", "auto"):
+            return "regional"
+        return f"{tier}_regional"
+
+    regional_tier = _tier
 
     async def complete(
         self,

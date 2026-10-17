@@ -1,0 +1,6 @@
+{"type":"system","subtype":"init","model":"anthropic/claude-sonnet-5-5","session_id":"h-1","timestamp":1760000000000}
+{"type":"text","text":"Checking ","timestamp":1760000000100}
+{"type":"text","text":"the repo.","timestamp":1760000000200}
+{"type":"tool_use","name":"terminal","input":{"command":"git status"},"timestamp":1760000000300}
+{"type":"tool_result","name":"terminal","output":"clean","duration_ms":40,"is_error":false,"timestamp":1760000000400}
+{"type":"result","session_id":"h-1","exit_code":0,"text":"The tree is clean.","tokens":{"input":2000,"output":150,"total":14150,"cache_read":12000,"cache_write":0},"duration_ms":900,"timestamp":1760000000500}

@@ -66,7 +66,9 @@ def ed25519_verdict(
     result: Callable[..., SignatureResult],
 ) -> SignatureResult:
     embedded = block.get("public_key")
-    if embedded is not None and not lower_hex(embedded, 64):
+    # Every ed25519 writer embeds its public key; a block without one is a
+    # re-spelling (one more oid for the same signature), whichever key verifies it.
+    if not lower_hex(embedded, 64):
         return result(False, "error", "malformed ed25519 public key")
     try:
         if public_key is not None:

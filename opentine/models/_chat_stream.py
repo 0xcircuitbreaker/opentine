@@ -44,32 +44,21 @@ class ChatStreamMixin:
             reported_model = value(chunk, "model")
             if reported_model is not None:
                 final_model = reported_model
-            chunk_tier = value(chunk, "service_tier")
+            chunk_tier = value(chunk, "service_tier") or value(raw_usage, "service_tier")
             if chunk_tier is not None:
                 observed_tier = chunk_tier
             if raw_usage:
+                # Last one wins: servers with continuous usage stats (vLLM
+                # ``--enable-force-include-usage``) repeat a *cumulative* count on
+                # every chunk, so emitting each would invite double counting.
                 final_usage = raw_usage
-                if self._provider != "xai":
-                    tier = self._billing_tier(kwargs["messages"], observed_tier)
-                    yield {
-                        "type": "usage",
-                        **self._meter(
-                            raw_usage, tier, final_model, observed_tier not in (None, "")
-                        ),
-                    }
         final_tier = self._billing_tier(kwargs["messages"], observed_tier)
-        if final_usage is None:
-            yield {
-                "type": "usage",
-                **self._meter(None, final_tier, final_model, observed_tier not in (None, "")),
-            }
-        elif self._provider == "xai":
-            yield {
-                "type": "usage",
-                **self._meter(
-                    final_usage, final_tier, final_model, observed_tier not in (None, "")
-                ),
-            }
+        yield {
+            "type": "usage",
+            **self._meter(final_usage, final_tier, final_model, observed_tier not in (None, "")),
+        }
+        for event in state.finish():
+            yield event
         response = state.result()
         terminal_reason = final_reason if saw_choice else "empty_choices"
         if saw_choice and not terminal_reason:

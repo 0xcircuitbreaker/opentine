@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
+from opentine._local_providers import cloud_model
 from opentine.billing import PricingCatalog, Usage, bill, known_cost, load_catalogs
 from opentine.billing.types import billing_moment
 from opentine.models._provider_meta import equivalent_model, model_name
@@ -29,6 +30,12 @@ def metered_response(
 ) -> dict[str, Any]:
     raw_reported_model = reported_model
     reported_model = model_name(reported_model)
+    # One rule for every adapter: a cloud-tagged model (``:cloud`` / ``-cloud``)
+    # served through a local daemon is proxied to a per-token API, so it is never
+    # booked unmetered, whatever endpoint or preset carried it.
+    cloud_tagged = unmetered and (cloud_model(model) or cloud_model(reported_model or ""))
+    if cloud_tagged:
+        unmetered = False
     invalid_reported_model = raw_reported_model is not None and reported_model is None
     priced_model = (
         "__invalid_reported_model__" if invalid_reported_model else reported_model or model
@@ -52,6 +59,10 @@ def metered_response(
     )
     billing = result.to_dict()
     compatibility_cost = known_cost(result)
+    if cloud_tagged:
+        billing["warnings"].append(
+            "cloud-tagged model is billed by its cloud provider; not recorded as unmetered"
+        )
     billing["calculation"].update(
         {"provider": provider, "requested_model": model, "reported_model": reported_model}
     )

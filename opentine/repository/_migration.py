@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from opentine._artifact_io import parse_artifact_json
+from opentine.policies import run_redaction
 from opentine.repository._migration_preflight import preflight_v2
 
 if TYPE_CHECKING:
@@ -56,12 +57,16 @@ def migrate_v2(
         "scope": "original-v2-artifact",
     }
     run = _run_from_dict(data)
-    preflight_v2(repo, run, raw, verification, ref=ref)
-    legacy_blob = repo.put("blob", raw, redact=False)
-    return _put_run(
-        repo,
-        run,
-        ref=ref,
-        legacy_blob=legacy_blob,
-        legacy_verification=verification,
-    )
+    # The run's own RedactionPolicy.extra_secret_keys, exactly as put_run applies
+    # it: migrating used to skip it, so the same run stored a field put_run
+    # redacts, in a different object id. The raw legacy blob is unchanged.
+    with run_redaction(run.policies):
+        preflight_v2(repo, run, raw, verification, ref=ref)
+        legacy_blob = repo.put("blob", raw, redact=False)
+        return _put_run(
+            repo,
+            run,
+            ref=ref,
+            legacy_blob=legacy_blob,
+            legacy_verification=verification,
+        )

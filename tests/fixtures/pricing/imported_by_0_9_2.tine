@@ -1,0 +1,68 @@
+{
+  "cache": {},
+  "created_at": 1792137794.7727094,
+  "format_version": 2,
+  "graph": {
+    "order": [
+      "event:sha256:57d5976fa76fb5c233090ef7a1be652fb52fdb9c9ced902b7cfe50c85f5b1655",
+      "event:sha256:3b3944ed51d199a4d01647ee692ca5650f6ff8caae95dc8e6796dec6707de38c"
+    ],
+    "steps": {
+      "event:sha256:3b3944ed51d199a4d01647ee692ca5650f6ff8caae95dc8e6796dec6707de38c": {
+        "cost": 0.0001,
+        "duration": 0.0,
+        "error": {},
+        "id": "event:sha256:3b3944ed51d199a4d01647ee692ca5650f6ff8caae95dc8e6796dec6707de38c",
+        "inputs": {},
+        "kind": "model",
+        "model_info": "claude-sonnet-5-5",
+        "outputs": {},
+        "parent_ids": [
+          "event:sha256:57d5976fa76fb5c233090ef7a1be652fb52fdb9c9ced902b7cfe50c85f5b1655"
+        ],
+        "provider": "anthropic",
+        "timestamp": 1790000001.0,
+        "tool_info": {},
+        "usage": {
+          "input": 1000,
+          "output": 100
+        }
+      },
+      "event:sha256:57d5976fa76fb5c233090ef7a1be652fb52fdb9c9ced902b7cfe50c85f5b1655": {
+        "cost": 0.0,
+        "duration": 0.0,
+        "error": {},
+        "id": "event:sha256:57d5976fa76fb5c233090ef7a1be652fb52fdb9c9ced902b7cfe50c85f5b1655",
+        "inputs": {},
+        "kind": "model",
+        "model_info": "qwen3:8b",
+        "outputs": {},
+        "parent_ids": [],
+        "provider": "ollama",
+        "timestamp": 1790000000.0,
+        "tool_info": {},
+        "usage": {
+          "input": 1000,
+          "output": 100
+        }
+      }
+    }
+  },
+  "manifest": {},
+  "metadata": {
+    "integrity": {
+      "algorithm": "sha256",
+      "digest": "9d18d3a35988bf1df32973d8526186d00f09149ab6bcecb9de9e018f9315ab01"
+    },
+    "model_info": "",
+    "system_prompt": "",
+    "user_prompt": ""
+  },
+  "policies": {},
+  "refs": {
+    "main": "event:sha256:3b3944ed51d199a4d01647ee692ca5650f6ff8caae95dc8e6796dec6707de38c"
+  },
+  "run_id": "run:sha256:2a69f7a36ee0e6830f930d55ac931af2343a75b45fcfc835b0a1b0afabcd7c67",
+  "status": "completed",
+  "transcript": []
+}

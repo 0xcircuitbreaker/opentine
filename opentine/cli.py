@@ -28,6 +28,7 @@ from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness,
 from opentine._cli_export import cmd_export
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_guard import guarded_dispatch
+from opentine._cli_harnesses import cmd_harnesses
 from opentine._cli_import import cmd_import
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_migrate import cmd_migrate
@@ -61,6 +62,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "diff": cmd_diff,
     "export": cmd_export,
     "fork": cmd_fork,
+    "harnesses": cmd_harnesses,
     "import": cmd_import,
     "keygen": cmd_keygen,
     "ls": cmd_ls,

@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/2",
-  "generated_at": "2026-10-08T00:00:00Z",
-  "verified_at": "2026-10-08",
+  "generated_at": "2026-10-15T00:00:00Z",
+  "verified_at": "2026-10-15",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -12,10 +12,10 @@
       "effective_until": "2026-08-20",
       "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "6.25", "output": "30", "reasoning": "30"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-08-17",
-      "metadata": {"note": "Priority processing was renamed Fast mode on 2026-07-30; the API accepts both service_tier values at the same 2x rate."}
+      "metadata": {"note": "Priority processing was renamed Fast mode on 2026-07-30; the API accepts both service_tier values at the same 2x rate. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-sol:2026-08-21",
@@ -25,10 +25,10 @@
       "effective_from": "2026-08-21",
       "rates": {"input": "4", "cache_read": "0.40", "cache_write_5m": "5", "cache_write_1h": "5", "output": "20", "reasoning": "20"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-sol", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-08-17",
-      "metadata": {"promotional": true, "guaranteed_through": "2026-11-21"}
+      "metadata": {"promotional": true, "guaranteed_through": "2026-11-21", "note": "'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-6-astra:2026-09-03",
@@ -38,10 +38,10 @@
       "effective_from": "2026-09-03",
       "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "12.50", "output": "50", "reasoning": "50"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-astra"],
       "verified_at": "2026-10-08",
-      "metadata": {"note": "The threshold is request-scoped, and so is opentine's application of it: 'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.' OpenAI publishes a single 'cache writes' price ($12.50/MTok), carded on both the 5m and 1h write dimensions. 'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' Ultrafast (available from 2026-09-29) is published at 6x ($60/$6/$75/$300). 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+      "metadata": {"note": "The threshold is request-scoped, and so is opentine's application of it: 'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.' OpenAI publishes a single 'cache writes' price ($12.50/MTok), carded on both the 5m and 1h write dimensions. 'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' Ultrafast (available from 2026-09-29) is published at 6x ($60/$6/$75/$300). 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-terra:2026-07-09",
@@ -52,9 +52,10 @@
       "effective_until": "2026-07-29",
       "rates": {"input": "2.50", "cache_read": "0.25", "cache_write_5m": "3.125", "cache_write_1h": "3.125", "output": "15", "reasoning": "15"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models", "https://developers.openai.com/api/docs/changelog"],
-      "verified_at": "2026-08-17"
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-terra:2026-07-30",
@@ -64,9 +65,10 @@
       "effective_from": "2026-07-30",
       "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "12", "reasoning": "12"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "https://developers.openai.com/api/docs/changelog"],
-      "verified_at": "2026-08-17"
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-luna:2026-07-09",
@@ -77,9 +79,10 @@
       "effective_until": "2026-07-29",
       "rates": {"input": "1", "cache_read": "0.10", "cache_write_5m": "1.25", "cache_write_1h": "1.25", "output": "6", "reasoning": "6"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://openai.com/index/gpt-5-6/", "https://developers.openai.com/api/docs/models", "https://developers.openai.com/api/docs/changelog"],
-      "verified_at": "2026-08-17"
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-luna:2026-07-30",
@@ -89,9 +92,10 @@
       "effective_from": "2026-07-30",
       "rates": {"input": "0.20", "cache_read": "0.02", "cache_write_5m": "0.25", "cache_write_1h": "0.25", "output": "1.20", "reasoning": "1.20"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-luna", "https://developers.openai.com/api/docs/changelog"],
-      "verified_at": "2026-08-17"
+      "verified_at": "2026-08-17",
+      "metadata": {"note": "'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5.6-cyber:2026-08-17",
@@ -101,9 +105,10 @@
       "effective_from": "2026-08-17",
       "rates": {"input": "12.50", "cache_read": "1.25", "cache_write_5m": "15.625", "cache_write_1h": "15.625", "output": "75", "reasoning": "75"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-5.6-cyber"],
       "verified_at": "2026-10-08",
-      "metadata": {"access": "approval-gated", "note": "OpenAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. No Batch, Flex, Fast or Priority price is published for this model (the pricing page's tier tables carry no gpt-5.6-cyber row), so no service modifier is carded and a tiered request stays visibly unknown rather than borrowing a sibling's rate."}
+      "metadata": {"access": "approval-gated", "note": "OpenAI publishes no availability date for this model; effective_from is the catalog verification date, so earlier runs report cost=unknown rather than an unverified price. No Batch, Flex, Fast or Priority price is published for this model (the pricing page's tier tables carry no gpt-5.6-cyber row), so no service modifier is carded and a tiered request stays visibly unknown rather than borrowing a sibling's rate. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-5:2025-08-07",
@@ -111,9 +116,10 @@
       "model": "gpt-5",
       "effective_from": "2025-08-07",
       "rates": {"input": "1.25", "cache_read": "0.125", "output": "10", "reasoning": "10"},
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "fast": "2", "flex": "0.5", "priority": "2"},
       "source_urls": ["https://developers.openai.com/api/docs/models"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Fast mode (Priority processing renamed on 2026-07-30) lists gpt-5 at $2.50 / $0.25 / $20.00, 2x standard."}
     },
     {
       "id": "openai:gpt-4o-2024-05-13:stable",
@@ -196,10 +202,10 @@
       "effective_from": "2026-09-29",
       "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "ultrafast": "6", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6.1-sol", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-10-08",
-      "metadata": {"note": "The whole GPT-6.1 series is this one model. 'Cached input tokens are priced at 5% of the uncached input token rate.' OpenAI publishes one cache-write price, carded on both write dimensions. 'Fast mode prices are 2x Standard. Batch and Flex prices are 50% lower than Standard. Ultrafast mode prices are 6x Standard.' Ultrafast became available on 2026-10-08. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+      "metadata": {"note": "The whole GPT-6.1 series is this one model. 'Cached input tokens are priced at 5% of the uncached input token rate.' OpenAI publishes one cache-write price, carded on both write dimensions. 'Fast mode prices are 2x Standard. Batch and Flex prices are 50% lower than Standard. Ultrafast mode prices are 6x Standard.' Ultrafast became available on 2026-10-08. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-6-sol:2026-09-22",
@@ -209,10 +215,10 @@
       "effective_from": "2026-09-22",
       "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-sol", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-10-08",
-      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "openai:gpt-6-luna:2026-09-22",
@@ -222,10 +228,10 @@
       "effective_from": "2026-09-22",
       "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.125", "output": "0.50", "reasoning": "0.50"},
       "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
-      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
       "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/models/gpt-6-luna", "https://developers.openai.com/api/docs/changelog"],
       "verified_at": "2026-10-08",
-      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier."}
+      "metadata": {"note": "'Batch and Flex are priced at 50% of Standard rates. Fast mode is priced at 2x the applicable rates.' No Ultrafast price is published for this model. 'Priority processing was renamed Fast mode on July 30, 2026' and 'requests tagged priority will automatically use Fast mode', so priority is carded as the same 2x tier. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
     },
     {
       "id": "anthropic:claude-fable-5-1:2026-09-01",
@@ -832,15 +838,13 @@
       "id": "google:gemini-3.5-flash:2026-07-15",
       "provider": "google",
       "model": "gemini-3.5-flash",
-      "effective_from": "2026-07-15",
+      "effective_from": "2026-05-19",
+      "effective_until": "2026-10-07",
       "rates": {"input": "1.50", "input_audio": "1.50", "cache_read": "0.15", "cache_read_audio": "0.15", "output": "9", "reasoning": "9"},
-      "service_rates": {
-        "batch": {"input": "0.75", "input_audio": "0.75", "cache_read": "0.075", "cache_read_audio": "0.075", "output": "4.50", "reasoning": "4.50"},
-        "flex": {"input": "0.75", "input_audio": "0.75", "cache_read": "0.08", "cache_read_audio": "0.08", "output": "4.50", "reasoning": "4.50"},
-        "priority": {"input": "2.70", "input_audio": "2.70", "cache_read": "0.27", "cache_read_audio": "0.27", "output": "16.20", "reasoning": "16.20"}
-      },
-      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing"],
-      "verified_at": "2026-07-16"
+      "service_rates": {"batch": {"input": "0.75", "input_audio": "0.75", "cache_read": "0.075", "cache_read_audio": "0.075", "output": "4.50", "reasoning": "4.50"}, "flex": {"input": "0.75", "input_audio": "0.75", "cache_read": "0.08", "cache_read_audio": "0.08", "output": "4.50", "reasoning": "4.50"}, "priority": {"input": "2.70", "input_audio": "2.70", "cache_read": "0.27", "cache_read_audio": "0.27", "output": "16.20", "reasoning": "16.20"}},
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/changelog", "https://ai.google.dev/gemini-api/docs/deprecations", "https://web.archive.org/web/20260520120241/https://ai.google.dev/gemini-api/docs/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"closed_reason": "model-deprecated-and-rerouted", "note": "GA on 2026-05-19 ('Released gemini-3.5-flash, the generally available (GA) version'); the 2026-05-20 archived pricing page shows these same rates, so the card is backdated from its first-seen date. Deprecated on 2026-10-08: 'API requests to gemini-3.5-flash are automatically routed to gemini-3.6-flash'. What Google bills a routed call is unpublished, so the card closes on 2026-10-07 and later calls that still report gemini-3.5-flash are unknown rather than billed at the retired 3.5 rate (2x the 3.6 rate). The card id keeps its original date so recorded rate_card_ids stay valid."}
     },
     {
       "id": "google:gemini-3.1-pro:2026-02-19",
@@ -1151,10 +1155,10 @@
       "model": "qwen-max",
       "aliases": [],
       "effective_from": "2026-01-01",
-      "rates": {"input": "1.60", "output": "6.40", "reasoning": "6.40"},
-      "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing"],
-      "verified_at": "2026-07-16",
-      "metadata": {"region": "international"}
+      "rates": {"input": "1.60", "cache_read": "0.32", "output": "6.40", "reasoning": "6.40"},
+      "source_urls": ["https://www.alibabacloud.com/help/en/model-studio/model-pricing", "https://www.alibabacloud.com/help/en/model-studio/context-cache"],
+      "verified_at": "2026-10-15",
+      "metadata": {"region": "international", "note": "Implicit-cache hits: 'For models other than deepseek-v4.1-flash, deepseek-v4-pro, qwen3.8-max, qwen3.8-max-0902, qwen3.8-flash, qwen3.8-2.4t-a95b, and qwen3.8-omni-flash: The unit price of cached_token is 20% of the input_token unit price', and qwen-max is listed among the implicit-cache models, so cache_read is 20% of $1.60."}
     },
     {
       "id": "qwen:qwen3.6-27b:international-2026-07",
@@ -1231,11 +1235,11 @@
       "provider": "groq",
       "model": "qwen/qwen3.8-27b",
       "aliases": [],
-      "effective_from": "2026-10-08",
+      "effective_from": "2026-09-05",
       "rates": {"input": "0.80", "output": "4.00", "reasoning": "4.00"},
-      "source_urls": ["https://console.groq.com/docs/model/qwen/qwen3.8-27b", "https://console.groq.com/docs/models"],
-      "verified_at": "2026-10-08",
-      "metadata": {"status": "preview", "note": "Groq publishes no launch date, so the card starts on the verification date and earlier runs report cost unknown."}
+      "source_urls": ["https://console.groq.com/docs/model/qwen/qwen3.8-27b", "https://console.groq.com/docs/models", "https://console.groq.com/docs/deprecations", "https://web.archive.org/web/20260905191720/https://console.groq.com/docs/models"],
+      "verified_at": "2026-10-15",
+      "metadata": {"status": "preview", "note": "Groq publishes no launch date. The earliest archived models page that lists it (2026-09-05) already shows '$0.80 input $4.00 output', so the card starts there; Groq's 2026-09-14 deprecation of qwen/qwen3.6-27b names it the replacement. The card id keeps its original date so recorded rate_card_ids stay valid."}
     },
     {
       "id": "together:llama-3.3-70b:legacy-2026-05",
@@ -1252,9 +1256,11 @@
       "provider": "together",
       "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "effective_from": "2026-05-29",
+      "effective_until": "2026-10-21",
       "rates": {"input": "1.04", "output": "1.04"},
-      "source_urls": ["https://docs.together.ai/docs/serverless/models", "https://docs.together.ai/docs/changelog"],
-      "verified_at": "2026-07-16"
+      "source_urls": ["https://docs.together.ai/docs/serverless/models", "https://docs.together.ai/docs/changelog", "https://docs.together.ai/docs/deprecations"],
+      "verified_at": "2026-10-15",
+      "metadata": {"closed_reason": "scheduled-removal", "note": "Together's scheduled-deprecations table removes this model from serverless on 2026-10-22, so the card ends the day before."}
     },
     {
       "id": "together:kimi-k2.6:2026-07",
@@ -1282,10 +1288,12 @@
       "id": "together:glm-5.1:2026-07",
       "provider": "together",
       "model": "zai-org/GLM-5.1",
-      "effective_from": "2026-07-14",
-      "rates": {"input": "1.40", "output": "4.40", "reasoning": "4.40"},
-      "source_urls": ["https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-07-16"
+      "effective_from": "2026-06-09",
+      "effective_until": "2026-07-09",
+      "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
+      "source_urls": ["https://docs.together.ai/docs/changelog", "https://docs.together.ai/docs/deprecations", "https://web.archive.org/web/20260707223629/https://www.together.ai/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"closed_reason": "model-retired", "note": "Corrected window. Together's changelog: cached input '$0.26 cached input (81% discount from $1.40 standard input)' effective June 9, 2026; 'zai-org/GLM-5.1' deprecated and no longer available on serverless on July 10, 2026. The archived 2026-07-07 pricing page shows '$1.40 $0.26 (cached) $4.40'. The earlier window (2026-04-08 to 2026-06-08, no cached rate) is its own card. The card previously started 2026-07-14 open-ended, after the model had left serverless."}
     },
     {
       "id": "together:glm-5.2:2026-07",
@@ -1342,9 +1350,11 @@
       "provider": "together",
       "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
       "effective_from": "2026-08-03",
+      "effective_until": "2026-10-21",
       "rates": {"input": "0.14", "cache_read": "0.03", "output": "0.28", "reasoning": "0.28"},
-      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog"],
-      "verified_at": "2026-10-08"
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/changelog", "https://docs.together.ai/docs/deprecations"],
+      "verified_at": "2026-10-15",
+      "metadata": {"closed_reason": "scheduled-removal", "note": "Together's scheduled-deprecations table removes this model from serverless on 2026-10-22, so the card ends the day before."}
     },
     {
       "id": "together:qwen3.7-max:2026-09-22",
@@ -1360,20 +1370,21 @@
       "id": "together:glm-5.3:2026-08",
       "provider": "together",
       "model": "zai-org/GLM-5.3",
-      "effective_from": "2026-08-13",
+      "effective_from": "2026-08-28",
       "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
-      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-10-08"
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Together's changelog announces zai-org/GLM-5.3 on serverless on August 28, 2026 ('Pricing: $1.40 input / $4.40 output / $0.26 cached input'); the card previously started 2026-08-13 (the model page date)."}
     },
     {
       "id": "together:glm-5.3-flash:2026-08",
       "provider": "together",
       "model": "zai-org/GLM-5.3-Flash",
-      "effective_from": "2026-08-25",
+      "effective_from": "2026-08-26",
       "rates": {"input": "0.15", "cache_read": "0.03", "output": "0.50", "reasoning": "0.50"},
       "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless/models"],
-      "verified_at": "2026-10-08",
-      "metadata": {"note": "Together did not mirror Z.ai's 50% launch promotion."}
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Together did not mirror Z.ai's 50% launch promotion. Together's changelog announces zai-org/GLM-5.3-Flash on serverless on August 26, 2026."}
     },
     {
       "id": "together:kimi-k3:2026-07",
@@ -1479,9 +1490,11 @@
       "model": "nousresearch/hermes-4-70b",
       "aliases": ["nousresearch/hermes-4-70b:exacto"],
       "effective_from": "2026-07-14",
+      "effective_until": "2026-10-13",
       "rates": {"input": "0.13", "output": "0.40", "reasoning": "0.40"},
       "source_urls": ["https://openrouter.ai/nousresearch/hermes-4-70b/pricing"],
-      "verified_at": "2026-07-16"
+      "verified_at": "2026-10-15",
+      "metadata": {"closed_reason": "model-removed", "note": "nousresearch/hermes-4-70b is absent from OpenRouter's /api/v1/models (checked 2026-10-14 and 2026-10-15) and its endpoints list is empty. The removal date is unpublished, so the card closes the day before it was first seen missing."}
     },
     {
       "id": "nous:hermes-4-70b:dynamic",
@@ -1493,12 +1506,819 @@
       "source_urls": ["https://portal.nousresearch.com/api-docs"],
       "verified_at": "2026-07-16",
       "metadata": {"price": "dynamic; use a local catalog overlay"}
+    },
+    {
+      "id": "openai:gpt-5.5:2026-04-24",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "aliases": [],
+      "effective_from": "2026-04-24",
+      "rates": {"input": "5", "cache_read": "0.50", "output": "30", "reasoning": "30"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2.5", "priority": "2.5", "regional": "1.1"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.5"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Fast mode is 2.5x on gpt-5.5 ($12.50 / $1.25 / $75.00), not the 2x of newer models. No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
+    },
+    {
+      "id": "openai:gpt-5.4:2026-03-05",
+      "provider": "openai",
+      "model": "gpt-5.4",
+      "aliases": [],
+      "effective_from": "2026-03-05",
+      "rates": {"input": "2.50", "cache_read": "0.25", "output": "15", "reasoning": "15"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.4"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
+    },
+    {
+      "id": "openai:gpt-5.4-mini:2026-03-17",
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "aliases": [],
+      "effective_from": "2026-03-17",
+      "rates": {"input": "0.75", "cache_read": "0.075", "output": "4.50", "reasoning": "4.50"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2", "regional": "1.1"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.4-mini"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal. 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
+    },
+    {
+      "id": "openai:gpt-5.4-nano:2026-03-17",
+      "provider": "openai",
+      "model": "gpt-5.4-nano",
+      "aliases": [],
+      "effective_from": "2026-03-17",
+      "rates": {"input": "0.20", "cache_read": "0.02", "output": "1.25", "reasoning": "1.25"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "regional": "1.1"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.4-nano"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Fast mode is not offered for gpt-5.4-nano. No cache-write price is published for this model (cache writes bill as input). 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
+    },
+    {
+      "id": "openai:gpt-5.3-codex:2026-02-24",
+      "provider": "openai",
+      "model": "gpt-5.3-codex",
+      "aliases": [],
+      "effective_from": "2026-02-24",
+      "rates": {"input": "1.75", "cache_read": "0.175", "output": "14", "reasoning": "14"},
+      "service_modifiers": {"fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.3-codex"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Listed under specialized (Codex) models with Standard and Fast prices only. No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal."}
+    },
+    {
+      "id": "openai:gpt-5.2:2025-12-11",
+      "provider": "openai",
+      "model": "gpt-5.2",
+      "aliases": [],
+      "effective_from": "2025-12-11",
+      "rates": {"input": "1.75", "cache_read": "0.175", "output": "14", "reasoning": "14"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.2"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal."}
+    },
+    {
+      "id": "openai:gpt-5.1:2025-11-13",
+      "provider": "openai",
+      "model": "gpt-5.1",
+      "aliases": [],
+      "effective_from": "2025-11-13",
+      "rates": {"input": "1.25", "cache_read": "0.125", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "2", "priority": "2"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5.1"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal."}
+    },
+    {
+      "id": "openai:gpt-5-mini:2025-08-07",
+      "provider": "openai",
+      "model": "gpt-5-mini",
+      "aliases": [],
+      "effective_from": "2025-08-07",
+      "rates": {"input": "0.25", "cache_read": "0.025", "output": "2", "reasoning": "2"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "fast": "1.8", "priority": "1.8"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5-mini"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Fast mode is 1.8x on gpt-5-mini ($0.45 / $0.045 / $3.60). No cache-write price is published for this model (cache writes bill as input). Fast mode is OpenAI's renamed Priority processing (2026-07-30; 'requests tagged priority will automatically use Fast mode'), so priority is carded at the same multiplier. Priority rates before 2026-07-30 are not separately published and are assumed equal."}
+    },
+    {
+      "id": "openai:gpt-5-nano:2025-08-07",
+      "provider": "openai",
+      "model": "gpt-5-nano",
+      "aliases": [],
+      "effective_from": "2025-08-07",
+      "rates": {"input": "0.05", "cache_read": "0.005", "output": "0.40", "reasoning": "0.40"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog", "https://developers.openai.com/api/docs/models/gpt-5-nano"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Fast mode is not offered for gpt-5-nano. No cache-write price is published for this model (cache writes bill as input)."}
+    },
+    {
+      "id": "openai:gpt-rosalind-research:2026-10-05",
+      "provider": "openai",
+      "model": "gpt-rosalind-research",
+      "aliases": [],
+      "effective_from": "2026-10-05",
+      "rates": {"input": "5", "cache_read": "0.50", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing", "https://developers.openai.com/api/docs/changelog"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'Billing for gpt-rosalind-research begins on October 5, 2026. Cache-write pricing does not apply to this model.' Access is limited to the trusted-access program. No cache-write price is published for this model (cache writes bill as input). 'Regional processing (data residency) endpoints are charged a 10% uplift for models released on or after March 5, 2026', carded as the regional service tier."}
+    },
+    {
+      "id": "google:gemini-4-argon:2026-10-13",
+      "provider": "google",
+      "model": "gemini-4-argon",
+      "aliases": [],
+      "effective_from": "2026-10-13",
+      "effective_until": "2026-11-30",
+      "rates": {"input": "2", "cache_read": "0.10", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "1.8"},
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/changelog"],
+      "verified_at": "2026-10-15",
+      "metadata": {"introductory": true, "note": "GA on 2026-10-13. '$2.00 through November 30, 2026. $4.00 starting December 1, 2026' (input), '$10.00 ... $20.00' (output, including thinking tokens), '$0.10 ... $0.20' (context caching; 'Implicit caching only'). Batch and Flex are half the Standard rates and Priority is 1.8x ($3.60 / $0.18 / $18.00). One flat rate across the context window. Not on the free tier."}
+    },
+    {
+      "id": "google:gemini-4-argon:2026-12-01",
+      "provider": "google",
+      "model": "gemini-4-argon",
+      "aliases": [],
+      "effective_from": "2026-12-01",
+      "rates": {"input": "4", "cache_read": "0.20", "output": "20", "reasoning": "20"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "1.8"},
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/changelog"],
+      "verified_at": "2026-10-15",
+      "metadata": {"scheduled": true, "note": "Google publishes this price today as 'starting December 1, 2026' for every tier (Batch/Flex $2.00 / $0.10 / $10.00, Priority $7.20 / $0.36 / $36.00), so the post-introductory card is written ahead of time rather than leaving December runs unpriced."}
+    },
+    {
+      "id": "google:gemini-3.1-flash-lite:2026-05-07",
+      "provider": "google",
+      "model": "gemini-3.1-flash-lite",
+      "aliases": [],
+      "effective_from": "2026-05-07",
+      "effective_until": "2027-05-07",
+      "rates": {"input": "0.25", "input_audio": "0.50", "cache_read": "0.025", "cache_read_audio": "0.05", "output": "1.50", "reasoning": "1.50"},
+      "service_modifiers": {"batch": "0.5", "flex": "0.5", "priority": "1.8"},
+      "source_urls": ["https://ai.google.dev/gemini-api/docs/pricing", "https://ai.google.dev/gemini-api/docs/changelog", "https://ai.google.dev/gemini-api/docs/deprecations"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "GA on 2026-05-07; the archived 2026-05-20 pricing page shows the same rates. '$0.25 (text / image / video) $0.50 (audio)' input, '$1.50' output, caching '$0.025 ... $0.05 (audio)'. Batch and Flex are half, Priority 1.8x ($0.45 / $0.90 / $2.70). Shutdown date 2027-05-07 per the deprecations page."}
+    },
+    {
+      "id": "mistral:mistral-large-4:2026-10-06-launch",
+      "provider": "mistral",
+      "model": "mistral-large-4",
+      "aliases": [],
+      "effective_from": "2026-10-06",
+      "effective_until": "2026-10-19",
+      "rates": {"input": "0.68", "cache_read": "0.07", "output": "2.09", "reasoning": "2.09"},
+      "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/mistral-large-4-0"],
+      "verified_at": "2026-10-15",
+      "metadata": {"promotional": true, "note": "Public Preview from 2026-10-06. The changelog says 'Launch pricing: 50% off for 2 weeks'; the pricing page shows 'Original price: $1.36 Sale price: $0.68' (input), '$0.14 / $0.07' (cached input) and '$4.18 / $2.09' (output). Two weeks from 2026-10-06 ends on 2026-10-19; no exact end is published, so the list-price card ($1.36 / $0.14 / $4.18) is deliberately not written until the switch is confirmed and later runs report cost unknown. mistral-large-latest still points to Large 3. No batch rate is published for Large 4."}
+    },
+    {
+      "id": "mistral:zai-glm-5-3:2026-09-28",
+      "provider": "mistral",
+      "model": "zai-glm-5-3",
+      "aliases": [],
+      "effective_from": "2026-09-28",
+      "rates": {"input": "1.4", "cache_read": "0.14", "output": "4.4", "reasoning": "4.4"},
+      "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/zai-glm-5-3"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Z.ai's GLM 5.3 hosted by Mistral ('Third-party hosted'); GA 2026-09-28 per the changelog. Mistral's cached-input rate ($0.14) differs from Z.ai's own ($0.26)."}
+    },
+    {
+      "id": "groq:gpt-oss-120b:2026-01-08",
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "aliases": [],
+      "effective_from": "2026-01-08",
+      "rates": {"input": "0.15", "cache_read": "0.075", "output": "0.60", "reasoning": "0.60"},
+      "source_urls": ["https://console.groq.com/docs/models", "https://console.groq.com/docs/prompt-caching"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "The earliest archived models page checked (2026-01-08) already lists this price. 'There is a 50% discount for cached input tokens' on the prompt-caching models list; that the discount applied from the card's start is assumed."}
+    },
+    {
+      "id": "groq:gpt-oss-20b:2026-01-08",
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "aliases": [],
+      "effective_from": "2026-01-08",
+      "rates": {"input": "0.075", "cache_read": "0.0375", "output": "0.30", "reasoning": "0.30"},
+      "source_urls": ["https://console.groq.com/docs/models", "https://console.groq.com/docs/prompt-caching"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "The earliest archived models page checked (2026-01-08) already lists this price. 'There is a 50% discount for cached input tokens' on the prompt-caching models list; that the discount applied from the card's start is assumed."}
+    },
+    {
+      "id": "groq:gpt-oss-safeguard-20b:2026-01-08",
+      "provider": "groq",
+      "model": "openai/gpt-oss-safeguard-20b",
+      "aliases": [],
+      "effective_from": "2026-01-08",
+      "rates": {"input": "0.075", "cache_read": "0.0375", "output": "0.30", "reasoning": "0.30"},
+      "source_urls": ["https://console.groq.com/docs/models", "https://console.groq.com/docs/prompt-caching"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "The earliest archived models page checked (2026-01-08) already lists this price. 'There is a 50% discount for cached input tokens' on the prompt-caching models list; that the discount applied from the card's start is assumed."}
+    },
+    {
+      "id": "together:glm-5.1:2026-04-08",
+      "provider": "together",
+      "model": "zai-org/GLM-5.1",
+      "effective_from": "2026-04-08",
+      "effective_until": "2026-06-08",
+      "rates": {"input": "1.40", "output": "4.40", "reasoning": "4.40"},
+      "source_urls": ["https://docs.together.ai/docs/changelog", "https://web.archive.org/web/20260409175621/https://www.together.ai/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Added to serverless on April 8, 2026; the archived 2026-04-09 pricing page shows 'GLM-5.1 $1.40 $4.40'. No cached rate until 2026-06-09 (next card)."}
+    },
+    {
+      "id": "together:minimax-m3:2026-06-12",
+      "provider": "together",
+      "model": "MiniMaxAI/MiniMax-M3",
+      "effective_from": "2026-06-12",
+      "rates": {"input": "0.30", "cache_read": "0.06", "output": "1.20", "reasoning": "1.20"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless-models", "https://docs.together.ai/docs/changelog"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Changelog June 12, 2026: 'MiniMaxAI/MiniMax-M3: 524,288 context length, FP4 quantization. Pricing: $0.30 input / $1.20 output / $0.06 cached input'."}
+    },
+    {
+      "id": "together:muse-glimmer-30b:2026-08-11",
+      "provider": "together",
+      "model": "meta-models/Muse-Glimmer-30B",
+      "effective_from": "2026-08-11",
+      "rates": {"input": "0.35", "cache_read": "0.04", "output": "1.50", "reasoning": "1.50"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless-models", "https://docs.together.ai/docs/changelog", "https://docs.together.ai/docs/deprecations"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Changelog August 11, 2026: 'Pricing: $0.35 input / $1.50 output / $0.04 cached input'. Together's recommended replacement for meta-llama/Llama-3.3-70B-Instruct-Turbo (removed 2026-10-22)."}
+    },
+    {
+      "id": "together:gpt-oss-120b:2026-04-09",
+      "provider": "together",
+      "model": "openai/gpt-oss-120b",
+      "effective_from": "2026-04-09",
+      "rates": {"input": "0.15", "output": "0.60", "reasoning": "0.60"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless-models", "https://docs.together.ai/docs/changelog", "https://web.archive.org/web/20260409175621/https://www.together.ai/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'gpt-oss-120B $0.15 $0.60' on every archived pricing page checked from 2026-04-09; no cached-input rate is published. The model has been on Together since 2025-08-05 but earlier prices were not verified."}
+    },
+    {
+      "id": "together:qwen3.7-plus:2026-07-07",
+      "provider": "together",
+      "model": "Qwen/Qwen3.7-Plus",
+      "effective_from": "2026-07-07",
+      "rates": {"input": "0.32", "output": "1.28", "reasoning": "1.28"},
+      "source_urls": ["https://www.together.ai/pricing", "https://docs.together.ai/docs/serverless-models", "https://docs.together.ai/docs/changelog", "https://web.archive.org/web/20260707223629/https://www.together.ai/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'Qwen3.7-Plus $0.32 $1.28' from the earliest archived pricing page that lists it (2026-07-07); no launch date or cached rate is published."}
+    },
+    {
+      "id": "meta:muse-wonder-1.0:2026-10-12",
+      "provider": "meta",
+      "model": "muse-wonder-1.0",
+      "aliases": [],
+      "effective_from": "2026-10-12",
+      "rates": {"input": "4", "cache_read": "0.20", "output": "20", "reasoning": "20"},
+      "source_urls": ["https://dev.meta.ai/docs/pricing-rate-limits", "https://dev.meta.ai/docs/models", "https://about.fb.com/news/2026/10/introducing-muse-wonder-models/"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'Muse Wonder is available today ... through the Meta Model API' (2026-10-12). Standard mode only: 'Contributor mode isn't available for Muse Wonder on Model API.' 'No long-context premium'. Web search grounding is $2.50 per 1,000 queries on top (not carded)."}
+    },
+    {
+      "id": "meta:muse-spark-1.3:2026-10-15",
+      "provider": "meta",
+      "model": "muse-spark-1.3",
+      "aliases": ["muse-spark-1.2", "muse-spark-1.1"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "1.25", "cache_read": "0.15", "output": "4.25", "reasoning": "4.25"},
+      "source_urls": ["https://dev.meta.ai/docs/pricing-rate-limits", "https://dev.meta.ai/docs/models"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "One Standard-mode price for muse-spark-1.3, 1.2 and 1.1. Meta publishes no release dates for the Spark versions, so the card starts on the verification date and earlier runs report cost unknown."}
+    },
+    {
+      "id": "meta:muse-spark-1.3-contributor:2026-10-15",
+      "provider": "meta",
+      "model": "muse-spark-1.3-contributor",
+      "aliases": ["muse-spark-1.2-contributor"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.10", "cache_read": "0.002", "output": "0.20", "reasoning": "0.20"},
+      "source_urls": ["https://dev.meta.ai/docs/pricing-rate-limits", "https://dev.meta.ai/docs/models"],
+      "verified_at": "2026-10-15",
+      "metadata": {"contributor_mode": true, "note": "Contributor mode: discounted prices 'in exchange for permission to use your content ... to train future Meta models'. No release dates are published; the card starts on the verification date."}
+    },
+    {
+      "id": "minimax:minimax-m3:2026-10-15",
+      "provider": "minimax",
+      "model": "MiniMax-M3",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.30", "cache_read": "0.06", "output": "1.20", "reasoning": "1.20"},
+      "context_thresholds": [{"id": "over-512k", "input_tokens": 512000, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "service_modifiers": {"priority": "1.5"},
+      "source_urls": ["https://platform.minimax.io/docs/pricing/overview"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'Permanent 50% off' a $0.60 / $2.40 / $0.12 list price: $0.30 input, $1.20 output, $0.06 cache read up to 512k input tokens and $0.60 / $2.40 / $0.12 above. 'Priority ... Pricing is 1.5x standard.' The 512k boundary is read as 512,000 tokens. No start date for the permanent price is published, so the card starts on the verification date."}
+    },
+    {
+      "id": "minimax:minimax-m2.7:2026-10-15",
+      "provider": "minimax",
+      "model": "MiniMax-M2.7",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.3", "cache_read": "0.06", "cache_write_5m": "0.375", "output": "1.2", "reasoning": "1.2"},
+      "source_urls": ["https://platform.minimax.io/docs/pricing/overview"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Prompt caching write $0.375 is carded on the 5-minute write dimension (MiniMax publishes one write price). No release date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "minimax:minimax-m2.7-highspeed:2026-10-15",
+      "provider": "minimax",
+      "model": "MiniMax-M2.7-highspeed",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.6", "cache_read": "0.06", "cache_write_5m": "0.375", "output": "2.4", "reasoning": "2.4"},
+      "source_urls": ["https://platform.minimax.io/docs/pricing/overview"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "See MiniMax-M2.7; the highspeed variant doubles input and output only."}
+    },
+    {
+      "id": "stepfun:step-5-preview:2026-10-15",
+      "provider": "stepfun",
+      "model": "step-5-preview",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "1.00", "cache_read": "0.10", "output": "2.70", "reasoning": "2.70"},
+      "source_urls": ["https://platform.stepfun.ai/docs/en/guides/pricing/details"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "'For step-5-preview, the cache-miss input price includes writing new content to the cache. Output tokens include both the model's reasoning process and final answer.' No release date is published on the vendor page; the card starts on the verification date."}
+    },
+    {
+      "id": "stepfun:step-3.7-flash:2026-10-15",
+      "provider": "stepfun",
+      "model": "step-3.7-flash",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.20", "cache_read": "0.04", "output": "1.15", "reasoning": "1.15"},
+      "source_urls": ["https://platform.stepfun.ai/docs/en/guides/pricing/details"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No release date is published on the vendor page; the card starts on the verification date."}
+    },
+    {
+      "id": "stepfun:step-3.5-flash:2026-10-15",
+      "provider": "stepfun",
+      "model": "step-3.5-flash",
+      "aliases": ["step-3.5-flash-2603"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.10", "cache_read": "0.02", "output": "0.30", "reasoning": "0.30"},
+      "source_urls": ["https://platform.stepfun.ai/docs/en/guides/pricing/details"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "No release date is published on the vendor page; the card starts on the verification date."}
+    },
+    {
+      "id": "xiaomi:mimo-v2.6-pro:2026-10-15",
+      "provider": "xiaomi",
+      "model": "mimo-v2.6-pro",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.435", "cache_read": "0.0036", "output": "0.87", "reasoning": "0.87"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://mimo.mi.com/static/docs/price/pay-as-you-go.md"],
+      "verified_at": "2026-10-15",
+      "metadata": {"region": "overseas", "note": "Overseas (USD) pay-as-you-go price. 'Cache Write: Limited-time Free' (no write rate carded). Internet search is billed per call on top. Batch API is half price. No release date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "xiaomi:mimo-v2.6-flash:2026-10-15",
+      "provider": "xiaomi",
+      "model": "mimo-v2.6-flash",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.14", "cache_read": "0.0028", "output": "0.28", "reasoning": "0.28"},
+      "service_modifiers": {"batch": "0.5"},
+      "source_urls": ["https://mimo.mi.com/static/docs/price/pay-as-you-go.md"],
+      "verified_at": "2026-10-15",
+      "metadata": {"region": "overseas", "note": "Overseas (USD) pay-as-you-go price. 'Cache Write: Limited-time Free' (no write rate carded). Internet search is billed per call on top. Batch API is half price. No release date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "xiaomi:mimo-v2.6-pro-ultraspeed:2026-10-15",
+      "provider": "xiaomi",
+      "model": "mimo-v2.6-pro-ultraspeed",
+      "aliases": [],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "4.35", "cache_read": "0.036", "output": "8.7", "reasoning": "8.7"},
+      "source_urls": ["https://mimo.mi.com/static/docs/price/pay-as-you-go.md"],
+      "verified_at": "2026-10-15",
+      "metadata": {"region": "overseas", "note": "Overseas (USD) pay-as-you-go price. 'Cache Write: Limited-time Free' (no write rate carded). Internet search is billed per call on top. 'Not support batch API'. No release date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:kimi-k3:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/kimi-k3",
+      "aliases": ["fireworks/kimi-k3", "kimi-k3"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "3.00", "cache_read": "0.30", "output": "15.00", "reasoning": "15.00"},
+      "service_modifiers": {"batch": "0.5", "fast": "1.5", "priority": "1.25", "us": "1.5", "priority_us": "1.875"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:deepseek-v4p1-flash:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/deepseek-v4p1-flash",
+      "aliases": ["fireworks/deepseek-v4p1-flash", "deepseek-v4p1-flash"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.30", "cache_read": "0.006", "output": "1.20", "reasoning": "1.20"},
+      "service_modifiers": {"batch": "0.5", "priority": "1.25", "us": "1.5", "priority_us": "1.875"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:glm-5p3:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/glm-5p3",
+      "aliases": ["fireworks/glm-5p3", "glm-5p3"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "1.40", "cache_read": "0.26", "output": "4.40", "reasoning": "4.40"},
+      "service_modifiers": {"batch": "0.5", "fast": "1.5", "priority": "1.25", "us": "1.5", "priority_us": "1.875"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:glm-5p3-flash:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/glm-5p3-flash",
+      "aliases": ["fireworks/glm-5p3-flash", "glm-5p3-flash"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.15", "cache_read": "0.03", "output": "0.50", "reasoning": "0.50"},
+      "service_modifiers": {"batch": "0.5", "priority": "1.25", "us": "1.5", "priority_us": "1.875"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:minimax-m3:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/minimax-m3",
+      "aliases": ["fireworks/minimax-m3", "minimax-m3"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.30", "cache_read": "0.06", "output": "1.20", "reasoning": "1.20"},
+      "service_modifiers": {"batch": "0.5", "priority": "1.5"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:gpt-oss-120b:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/gpt-oss-120b",
+      "aliases": ["fireworks/gpt-oss-120b", "gpt-oss-120b"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "0.15", "cache_read": "0.015", "output": "0.60", "reasoning": "0.60"},
+      "service_modifiers": {"batch": "0.5", "priority": "1.2"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "fireworks:qwen3p8-max:2026-10-15",
+      "provider": "fireworks",
+      "model": "accounts/fireworks/models/qwen3p8-max",
+      "aliases": ["fireworks/qwen3p8-max", "qwen3p8-max"],
+      "effective_from": "2026-10-15",
+      "rates": {"input": "2.00", "cache_read": "0.25", "output": "6.00", "reasoning": "6.00"},
+      "service_modifiers": {"batch": "0.5", "priority": "1.5"},
+      "source_urls": ["https://docs.fireworks.ai/serverless/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Standard serverless price on api.fireworks.ai. The (US) rows \u2014 the us.api.fireworks.ai host \u2014 bill 1.5x for the same model and are carded as the us tier; Batch is 'billed at 50% of serverless pricing'. No start date is published; the card starts on the verification date."}
+    },
+    {
+      "id": "bedrock:claude-fable-5:2026-09-01",
+      "provider": "bedrock",
+      "model": "anthropic.claude-fable-5",
+      "aliases": ["claude-fable-5", "global.anthropic.claude-fable-5"],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:claude-fable-5-1:2026-09-01",
+      "provider": "bedrock",
+      "model": "anthropic.claude-fable-5-1",
+      "aliases": ["claude-fable-5-1", "global.anthropic.claude-fable-5-1"],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "0.25", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:claude-opus-5:2026-09-01",
+      "provider": "bedrock",
+      "model": "anthropic.claude-opus-5",
+      "aliases": ["claude-opus-5", "global.anthropic.claude-opus-5"],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"regional": "1.1", "batch": "0.5", "batch_regional": "0.55"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release. Batch is published for Opus 5 only ($2.50 / $12.50 global, $2.75 / $13.75 regional)."}
+    },
+    {
+      "id": "bedrock:claude-opus-5-5:2026-09-22",
+      "provider": "bedrock",
+      "model": "anthropic.claude-opus-5-5",
+      "aliases": ["claude-opus-5-5", "global.anthropic.claude-opus-5-5"],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "4", "cache_read": "0.20", "cache_write_5m": "5", "cache_write_1h": "8", "output": "20", "reasoning": "20"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:claude-sonnet-5:2026-09-01",
+      "provider": "bedrock",
+      "model": "anthropic.claude-sonnet-5",
+      "aliases": ["claude-sonnet-5", "global.anthropic.claude-sonnet-5"],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:claude-sonnet-5-5:2026-10-01",
+      "provider": "bedrock",
+      "model": "anthropic.claude-sonnet-5-5",
+      "aliases": ["claude-sonnet-5-5", "global.anthropic.claude-sonnet-5-5"],
+      "effective_from": "2026-10-01",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:claude-haiku-5-5:2026-10-07",
+      "provider": "bedrock",
+      "model": "anthropic.claude-haiku-5-5",
+      "aliases": ["claude-haiku-5-5", "global.anthropic.claude-haiku-5-5"],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.20", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-100k", "input_tokens": 100000, "multipliers": {"input": "5", "cache_read": "5", "cache_write_5m": "5", "cache_write_1h": "5", "output": "5", "reasoning": "5"}}],
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json", "https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Amazon Bedrock list price from the AWS Price List: the 'Standard, Global' meters equal the first-party price and the regional 'Standard' meters are 1.1x ('Regional endpoints carry a 10% pricing premium over global endpoints'), carded as the regional tier. An adapter maps a regional endpoint or a us./eu./jp./au./apac. inference-profile prefix to that tier. The card starts at the later of the price term's start and the first-party release."}
+    },
+    {
+      "id": "bedrock:gpt-6-astra:2026-09-03",
+      "provider": "bedrock",
+      "model": "gpt-6-astra",
+      "aliases": [],
+      "effective_from": "2026-09-03",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "12.50", "output": "50", "reasoning": "50"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/us-east-1/index.json"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "OpenAI GPT-6 Astra (Amazon Bedrock Edition): global $10 / $1 / $50, long context $20 / $2 / $75, regional 1.1x. Bedrock bills one 30-minute cache write ($12.50), carded on both write dimensions. Bedrock's model id string is not verified here; an adapter strips any provider prefix to gpt-6-astra."}
+    },
+    {
+      "id": "vertex:claude-fable-5:2026-06-09",
+      "provider": "vertex",
+      "model": "claude-fable-5",
+      "aliases": [],
+      "effective_from": "2026-06-09",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-fable-5-1:2026-09-01",
+      "provider": "vertex",
+      "model": "claude-fable-5-1",
+      "aliases": [],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "0.25", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-opus-5:2026-07-24",
+      "provider": "vertex",
+      "model": "claude-opus-5",
+      "aliases": [],
+      "effective_from": "2026-07-24",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-opus-5-5:2026-09-22",
+      "provider": "vertex",
+      "model": "claude-opus-5-5",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "4", "cache_read": "0.20", "cache_write_5m": "5", "cache_write_1h": "8", "output": "20", "reasoning": "20"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-sonnet-5:2026-06-30",
+      "provider": "vertex",
+      "model": "claude-sonnet-5",
+      "aliases": [],
+      "effective_from": "2026-06-30",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-sonnet-5-5:2026-10-07",
+      "provider": "vertex",
+      "model": "claude-sonnet-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "vertex:claude-haiku-5-5:2026-10-07",
+      "provider": "vertex",
+      "model": "claude-haiku-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.20", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-100k", "input_tokens": 100000, "multipliers": {"input": "5", "cache_read": "5", "cache_write_5m": "5", "cache_write_1h": "5", "output": "5", "reasoning": "5"}}],
+      "service_modifiers": {"regional": "1.1"},
+      "source_urls": ["https://cloud.google.com/vertex-ai/generative-ai/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", "https://platform.claude.com/docs/en/about-claude/pricing"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude on Google Cloud Vertex AI at the global endpoint: the Vertex pricing page lists the first-party rates; 'Regional and multi-region endpoints include a 10% premium over global endpoints' (Anthropic pricing page), carded as the regional tier. Vertex batch rates are not carded (the published batch table is inconsistent with its standard rates). Availability on Vertex is assumed from the first-party release date."}
+    },
+    {
+      "id": "foundry:claude-fable-5:2026-06-09",
+      "provider": "foundry",
+      "model": "claude-fable-5",
+      "aliases": [],
+      "effective_from": "2026-06-09",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:claude-fable-5-1:2026-09-01",
+      "provider": "foundry",
+      "model": "claude-fable-5-1",
+      "aliases": [],
+      "effective_from": "2026-09-01",
+      "rates": {"input": "10", "cache_read": "0.25", "cache_write_5m": "12.50", "cache_write_1h": "20", "output": "50", "reasoning": "50"},
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:claude-opus-5:2026-07-24",
+      "provider": "foundry",
+      "model": "claude-opus-5",
+      "aliases": [],
+      "effective_from": "2026-07-24",
+      "rates": {"input": "5", "cache_read": "0.50", "cache_write_5m": "6.25", "cache_write_1h": "10", "output": "25", "reasoning": "25"},
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:claude-opus-5-5:2026-09-22",
+      "provider": "foundry",
+      "model": "claude-opus-5-5",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "4", "cache_read": "0.20", "cache_write_5m": "5", "cache_write_1h": "8", "output": "20", "reasoning": "20"},
+      "service_modifiers": {"us": "1.1", "fast": "2", "fast_us": "2.2"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier). Fast mode is available for Claude Opus 5.5 on Foundry deployments hosted on Azure (2x)."}
+    },
+    {
+      "id": "foundry:claude-sonnet-5:2026-06-30",
+      "provider": "foundry",
+      "model": "claude-sonnet-5",
+      "aliases": [],
+      "effective_from": "2026-06-30",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:claude-sonnet-5-5:2026-10-07",
+      "provider": "foundry",
+      "model": "claude-sonnet-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "4", "output": "10", "reasoning": "10"},
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:claude-haiku-5-5:2026-10-07",
+      "provider": "foundry",
+      "model": "claude-haiku-5-5",
+      "aliases": [],
+      "effective_from": "2026-10-07",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.20", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-100k", "input_tokens": 100000, "multipliers": {"input": "5", "cache_read": "5", "cache_write_5m": "5", "cache_write_1h": "5", "output": "5", "reasoning": "5"}}],
+      "service_modifiers": {"us": "1.1"},
+      "source_urls": ["https://platform.claude.com/docs/en/about-claude/pricing", "https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Claude in Microsoft Foundry: 'Anthropic rates your token usage in USD at standard per-model, per-feature rates' and bills CCUs ($0.01 each) through the Azure Marketplace. 'US Data Zone Standard ... applies the same 1.1x pricing multiplier' (us tier)."}
+    },
+    {
+      "id": "foundry:gpt-6-astra:2026-09-03",
+      "provider": "foundry",
+      "model": "gpt-6-astra",
+      "aliases": [],
+      "effective_from": "2026-09-03",
+      "rates": {"input": "10", "cache_read": "1", "cache_write_5m": "12.50", "cache_write_1h": "12.50", "output": "50", "reasoning": "50"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"flex": "0.5", "us": "1.1", "eu": "1.2"},
+      "source_urls": ["https://prices.azure.com/api/retail/prices?$filter=productName eq 'Azure OpenAI GPT6'"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Azure OpenAI in Foundry (Azure Retail Prices API, product 'Azure OpenAI GPT6'): Global Standard equals OpenAI's list price; Data Zone Standard is 1.1x in US regions (eastus, eastus2) and 1.2x in EU regions (westeurope), carded as the us and eu tiers; Flex Global is half (meters from 2026-10-01). Long-context (>272K) meters are 2x input/cache and 1.5x output. The deployment name is the user's; an adapter maps it to the model. The card starts at OpenAI's release; the Azure meters are dated from 2026-09-01."}
+    },
+    {
+      "id": "foundry:gpt-6-sol:2026-09-22",
+      "provider": "foundry",
+      "model": "gpt-6-sol",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "2", "cache_read": "0.20", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"flex": "0.5", "us": "1.1", "eu": "1.2", "priority": "2", "priority_us": "2.2", "priority_eu": "2.4"},
+      "source_urls": ["https://prices.azure.com/api/retail/prices?$filter=productName eq 'Azure OpenAI GPT6'"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Azure OpenAI in Foundry (Azure Retail Prices API, product 'Azure OpenAI GPT6'): Global Standard equals OpenAI's list price; Data Zone Standard is 1.1x in US regions (eastus, eastus2) and 1.2x in EU regions (westeurope), carded as the us and eu tiers; Flex Global is half (meters from 2026-10-01). Long-context (>272K) meters are 2x input/cache and 1.5x output. The deployment name is the user's; an adapter maps it to the model. Priority (PP) meters: 2x global, 2.2x US data zone, 2.4x EU data zone. The card starts at OpenAI's release; the Azure meters are dated from 2026-09-01."}
+    },
+    {
+      "id": "foundry:gpt-6-luna:2026-09-22",
+      "provider": "foundry",
+      "model": "gpt-6-luna",
+      "aliases": [],
+      "effective_from": "2026-09-22",
+      "rates": {"input": "0.10", "cache_read": "0.01", "cache_write_5m": "0.125", "cache_write_1h": "0.125", "output": "0.50", "reasoning": "0.50"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"flex": "0.5", "us": "1.1", "eu": "1.2"},
+      "source_urls": ["https://prices.azure.com/api/retail/prices?$filter=productName eq 'Azure OpenAI GPT6'"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Azure OpenAI in Foundry (Azure Retail Prices API, product 'Azure OpenAI GPT6'): Global Standard equals OpenAI's list price; Data Zone Standard is 1.1x in US regions (eastus, eastus2) and 1.2x in EU regions (westeurope), carded as the us and eu tiers; Flex Global is half (meters from 2026-10-01). Long-context (>272K) meters are 2x input/cache and 1.5x output. The deployment name is the user's; an adapter maps it to the model. The card starts at OpenAI's release; the Azure meters are dated from 2026-09-01."}
+    },
+    {
+      "id": "foundry:gpt-6.1-sol:2026-10-01",
+      "provider": "foundry",
+      "model": "gpt-6.1-sol",
+      "aliases": [],
+      "effective_from": "2026-10-01",
+      "rates": {"input": "2", "cache_read": "0.10", "cache_write_5m": "2.50", "cache_write_1h": "2.50", "output": "10", "reasoning": "10"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "cache_write_5m": "2", "cache_write_1h": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "service_modifiers": {"flex": "0.5", "us": "1.1", "eu": "1.2"},
+      "source_urls": ["https://prices.azure.com/api/retail/prices?$filter=productName eq 'Azure OpenAI GPT6'"],
+      "verified_at": "2026-10-15",
+      "metadata": {"note": "Azure OpenAI in Foundry (Azure Retail Prices API, product 'Azure OpenAI GPT6'): Global Standard equals OpenAI's list price; Data Zone Standard is 1.1x in US regions (eastus, eastus2) and 1.2x in EU regions (westeurope), carded as the us and eu tiers; Flex Global is half (meters from 2026-10-01). Long-context (>272K) meters are 2x input/cache and 1.5x output. The deployment name is the user's; an adapter maps it to the model. The card starts on the Azure meter date."}
     }
   ],
-  "catalog_id": "sha256:4a03f53ae5b618811202df17ea2b5330d55abda46a3f56be544299ed3bc85e85",
+  "catalog_id": "sha256:dd3ec618419834ebabf535883ad6d61082b1db320fa4deed8a90556bfc5ff6ec",
   "signature": {
     "algorithm": "ed25519",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "TLOUHJVOBWxpBksXXmHTwNcCUQEako1405swrnFr1zyZJz47LAjPJIbA4OAcNA8RJ8rfHJuLUKMSwYUQhFn7AA=="
+    "value": "Y/KZpOhm1KTLKi8udO6aruHgrnF2U0fVvHC59RpTE/CepbF2lNEVPE8w7DVP0iMmUfZ0YvhrgoOGSrbmz9RFCg=="
   }
 }

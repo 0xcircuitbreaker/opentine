@@ -6,13 +6,31 @@ from collections.abc import Iterable
 from typing import Any
 
 from opentine.kernel import KernelError
+from opentine.repository._association_index import indexed_targets
 from opentine.repository._objects import iter_typed_object_oids
 
 _ASSOCIATION_TYPES = {"annotation", "attestation"}
 MAX_ASSOCIATION_SCAN = 100_000
 
 
-def associated_map(repo: Any, targets: Iterable[str], limit: int) -> dict[str, list[str]]:
+def association_indexes(repo: Any) -> dict[str, dict[str, str]]:
+    """Both target indexes, listed once; a caller walking many runs reuses them."""
+    indexes = {
+        kind: indexed_targets(repo, kind, limit=MAX_ASSOCIATION_SCAN)
+        for kind in sorted(_ASSOCIATION_TYPES)
+    }
+    if any(index is None for index in indexes.values()):
+        raise ValueError("typed object scan exceeds its object limit")
+    return indexes  # type: ignore[return-value]
+
+
+def associated_map(
+    repo: Any,
+    targets: Iterable[str],
+    limit: int,
+    *,
+    indexes: dict[str, dict[str, str]] | None = None,
+) -> dict[str, list[str]]:
     selected = set(targets)
     result = {target: [] for target in selected}
     lookup = getattr(repo, "associated_oids", None)
@@ -25,19 +43,23 @@ def associated_map(repo: Any, targets: Iterable[str], limit: int) -> dict[str, l
     path = getattr(repo, "path", None)
     if path is None:
         raise KernelError("repository cannot enumerate associated objects")
+    # The target index narrows the scan to each target's own objects, listed
+    # once per call (or once per walk, when the caller passes *indexes*); every
+    # candidate is still read and checked.
+    if indexes is None:
+        indexes = association_indexes(repo)
     count = 0
-    for oid in iter_typed_object_oids(
-        path,
-        _ASSOCIATION_TYPES,
-        limit=MAX_ASSOCIATION_SCAN,
-    ):
-        target = repo.get(oid).payload().get("target_id")
-        if target not in selected:
-            continue
-        count += 1
-        if count > limit:
-            raise KernelError("pack graph exceeds maximum object count")
-        result[target].append(oid)
+    for kind, index in indexes.items():
+        for digest, named in sorted(index.items()):
+            if named not in selected:
+                continue
+            oid = f"{kind}:sha256:{digest}"
+            if repo.get(oid).payload().get("target_id") != named:
+                continue
+            count += 1
+            if count > limit:
+                raise KernelError("pack graph exceeds maximum object count")
+            result[named].append(oid)
     return result
 
 

@@ -659,7 +659,40 @@ each keeps and refuses.
 
 A fetch response may carry `Opentine-Associations-Omitted: N` — N runs whose
 annotations or attestations did not all fit in the pack. Clients that predate
-it ignore it; `tine fetch` reports it as `associations_omitted`.
+it ignore it; `tine fetch` reports it as `associations_omitted`. Associations are
+budgeted by object count, encoded pack bytes, source bytes and the
+shallow-boundary list a depth-limited pack carries, so an association
+set that does not fit is left out rather than failing the fetch. A pack that
+still cannot be built with associations — the receiver's haves or a type filter
+can add shallow boundaries after the budget is checked — is rebuilt from the
+object graph alone and its runs reported as omitted; this applies to fetch,
+typed fetch and push. A graph that does not fit by itself still fails. The
+association phase also has a total read budget, twice the pack body budget,
+charged before every read and never returned when a set is rolled back; once it
+is spent, the remaining runs' associations are reported omitted rather than
+read, so one oversized evidence set shared by many runs is read a bounded number
+of times.
+
+`fetch` adopts the advertised `annotations/*` refs of the runs it delivers —
+never one whose chain holds an annotation recorded as foreign at install, so a
+remote cannot plant a note through its ref for a run it only names as a shallow
+boundary. For a
+run the local repository already held, the remote's annotation head is stored
+as `remotes/<name>/annotations/<digest>` and left unadopted; `tine fetch
+--adopt-annotations` (`fetch(..., adopt_annotations=True)`) adopts those
+deliberately. The `.tine/unadopted` record is bounded: a foreign annotation
+that no longer fits is not installed (with a warning), and a damaged or
+over-limit record makes the unheaded fallback adopt nothing instead of failing.
+So do two or more independent unheaded chain tips for one run (with a
+warning); the next tag of that run writes a fresh head under its
+`annotations/<digest>` ref.
+Unheaded lookups use the non-authoritative target caches in `.tine/indexes/`. `tine clone` refuses a target that already holds refs or objects
+(use `fetch`). A remote URL may not carry `user:pass@`, a query or a fragment —
+checked on the URL as given, before an embedded tenant
+(`…/v1/tenants/acme`) is split off; pass the token with `--token-file` or
+`TINE_REMOTE_TOKEN` — a remote tenant must match `[a-z0-9][a-z0-9._-]*`, and
+remote errors name only the HTTP status and path. `tine serve purge --grace-seconds N` with
+N below 60 needs `--force` (or `--dry-run`).
 
 `POST /search` returns `{"objects": [...], "truncated": bool}` — at most 1,000
 objects, newest first. `GET /audit/verify` returns `{"ok", "status",

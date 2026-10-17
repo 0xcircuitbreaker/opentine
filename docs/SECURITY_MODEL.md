@@ -12,12 +12,17 @@ OpenTine is local-first provenance tooling. It records agent activity and can in
 - Network tools allow HTTPS by default, block private, loopback, link-local,
   reserved, and multicast hosts unless policy opts in — including an IPv6 address
   that embeds one (NAT64 `64:ff9b::/96`, IPv4-compatible `::/96`, 6to4, IPv4-mapped)
-  and deprecated site-local `fec0::/10` — and stream responses under
-  the configured body-size limit. Visible-text extraction is linear on malformed
-  markup rather than applying unbounded backtracking expressions.
+  and deprecated site-local `fec0::/10`; multicast and reserved IPv6 (the SIIT
+  form `::ffff:0:a9fe:a9fe` of the metadata address included) are refused — and
+  stream responses under the configured body-size limit. Only text charsets are
+  honoured when decoding a response (a server-chosen `punycode`, `idna`, `utf-7`,
+  `unicode_escape` or `rot13` is read as UTF-8). Visible-text extraction is
+  linear on malformed markup rather than applying unbounded backtracking
+  expressions.
 - Shell execution is disabled unless a `ShellPolicy` enables it. Enabled shell calls are parsed to argv arrays, executable allowlists can be enforced, environment inheritance is off by default, and output is capped. **An allowlist decides which program starts, not what it does**: an allowlisted interpreter, test runner or build tool (`python`, `pytest`, `npm`, `make`) is arbitrary code execution by design. `git` is the one program whose arguments are checked: options and subcommands that run a command, inject configuration, or point git at another repository (`-c`, `--config-env`, `--git-dir`, `config`, `submodule`, `--upload-pack`, `rebase -x`, `grep -O`, …) are refused, and every git OpenTine starts — the shell tool's and `code_manifest`'s — runs with fsmonitor off and `safe.bareRepository=explicit`, so a bare repository assembled from ordinary file writes is never discovered.
-- An inherited environment is scrubbed by name (`*KEY*`, `*SECRET*`, `*TOKEN*`, `*PASSWORD*`, `*_PWD`, `*PASS`, `*_PAT`, `*_DSN`, `*WEBHOOK*`, `*CONNECTION_STRING*`, `*PRIVATE*`, …) **and by value**: a variable holding a vendor token shape, a URL with a password, or a private key is dropped whatever it is called.
-- Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output. The built-in tool provides only the `subprocess` isolation backend; a policy naming any other (`external`, `gvisor`) is refused rather than run unisolated. Snippets run in Python's isolated mode (`-I -X utf8`): the host's `PYTHON*` variables and user site-packages do not apply even when the environment is inherited, and output is UTF-8 on every platform.
+- An inherited environment is scrubbed by name (`*KEY*`, `*SECRET*`, `*TOKEN*`, `*PASSWORD*`, `*PASSPHRASE*`, `*_PWD`, `*_PW`, `*PASS`, `*_PAT`, `*_DSN`, `*SESSION` — `BW_SESSION`, `OP_SESSION_*` —, `*MNEMONIC*`, `*SEED_PHRASE*`, `*WEBHOOK*`, `*CONNECTION_STRING*`, `*PRIVATE*`, `*HEADERS*` — `OPENAI_CUSTOM_HEADERS`, `ANTHROPIC_CUSTOM_HEADERS`, `OTEL_EXPORTER_OTLP_*HEADERS` —, …) **and by value**: a variable holding a vendor token shape, a URL with a password, a credential header (`Authorization:`, `X-Api-Key=`, `Bearer …`), a connection string carrying `password=`/`pwd=`/`token=` (ADO.NET, ODBC, JDBC), or a private key is dropped whatever it is called; `ConnectionStrings__*` and `*CONNECTIONSTRING*` names are dropped too.
+- Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output. The built-in tool provides only the `subprocess` isolation backend; a policy naming any other (`external`, `gvisor`) is refused rather than run unisolated. Snippets run in Python's isolated mode (`-I -X utf8`): the host's `PYTHON*` variables and user site-packages do not apply even when the environment is inherited, and output is UTF-8 on every platform. On Linux every bounded tool command (shell, python, `code_manifest`'s git) runs under a child-subreaper supervisor, so a descendant that leaves the process group (`setsid`) is still killed on exit and on timeout, and after each command OpenTine also kills every process still carrying the run's `OPENTINE_TOOL_SCOPE` marker. This cleans up runaway and leftover processes; it does not contain an adversarial process running as the same user, which can read OpenTine's own `/proc` entries, kill or impersonate the supervisor, and drop the marker. Real isolation needs a container or cgroups — this is resource containment, not an OS sandbox. macOS and the BSDs have no subreaper, and there the process-group kill is the boundary.
+- An agent run's tool calls are budgeted one by one: `max_steps`, `max_duration`, `max_cost` and `max_usage` are checked before every call in a batch, and calls past the budget are answered "not executed: run budget exhausted" without running, so the model cannot choose the size of the overshoot.
 - External CLI harnesses do not inherit the parent environment by default.
   `--harness-login-env` passes only login/config variables plus explicitly allowed
   names. Harness subprocesses have configurable wall-time, total-output, line-size,
@@ -25,8 +30,48 @@ OpenTine is local-first provenance tooling. It records agent activity and can in
   completion and errors. This is resource containment, not an OS sandbox.
   A text-mode agent CLI's stdout is the model's prose, so it is recorded as text:
   a JSON-shaped line is an event only when the command asks the CLI for JSON
-  output (`--json`, `--output-format stream-json`, …), and a currency amount in
-  free text is booked only for an operator-written command (`generic`, `pi`).
+  output — the *last* `--output-format` / `--format` / `-o` / `--output` /
+  `--mode` value, or `--json` (each harness names its own options: Codex's `-o`
+  is its last-message file, so only `--json` counts there); a bare `json` word
+  or another `--x=json` option does not count, and this holds for `claude-code`
+  too — and a currency amount in
+  free text is booked only for an operator-written `generic` command. stderr is
+  read on its own pipe and recorded as text, never as events or cost. Harness
+  text output is masked across lines from a private-key `BEGIN` marker to its
+  `END` before it is parsed or stored — bodies printed with line numbers,
+  quoted, bulleted or indented included — and a failing run's output tail is
+  redacted before it is cut. A line that is a JSON document (a JSON-mode CLI's
+  own event) is never truncated as text, so a marker in a model's answer
+  cannot cut the event short and erase its usage, cost or tool calls; instead
+  private-key blocks inside its string values and object keys are masked —
+  the whole span from `BEGIN` to the nearest `END`, or to the end of the string,
+  becomes `[REDACTED PRIVATE KEY]`, so the marker is never cut on its own and the
+  record is never less redacted than the scrubber would leave the raw text — and
+  the event re-serialized before the line is buffered, parsed or recorded. Raw
+  key lines are tested after stripping diff, `cat -A`, source-literal, comment
+  (`#`, `//`, `;`), terminal-colour and table-border decoration, and the joined
+  output kept for the done step retains each raw `BEGIN`/`END` marker line, so
+  the record's scrubber still removes the whole block there. A pretty-printed `--json` envelope is masked member by member so
+  it still parses (cost, usage and budgets kept); one that still fails to parse
+  is recorded as an error step. An event nested past the 512-level limit is
+  recorded as masked text. An unterminated marker masks only the key material
+  after it (base64 body and PEM headers), never the prose, commands or later
+  events that follow. A block opened in one streamed JSON delta follows that
+  string's path (`content`, `event.delta.text`) into the next deltas of the
+  same message and content block while they are still key-shaped (at most
+  64 KiB), until `END`; whole events never inherit it. A marker split across
+  deltas is joined through a short carry, so a key streamed in pieces is
+  masked whole. A key printed base64-wrapped (`base64 id_rsa`, any
+  wrap width or one line) is recognised by decoding its first line to a
+  `BEGIN … PRIVATE KEY` marker; that line and the base64 lines after it are
+  masked, on stdout and stderr alike. PuTTY key files (from the
+  `PuTTY-User-Key-File-N` header to `Private-MAC`) and RFC 4716
+  `---- BEGIN SSH2 … PRIVATE KEY ----` blocks are masked the same way as PEM
+  ones. Masking is linear in the line. A
+  malformed CLI event (an odd `type`, a non-list `tool_calls`, a non-numeric
+  negative or out-of-range cost, a number too large for a float) is recorded
+  with the figure ignored and a `meter_warning`,
+  never ending the run, so later events and the closing cost are kept.
   On Windows a `.bat`/`.cmd` program runs through `cmd.exe`, which re-parses its
   command line (the BatBadBut class), so a harness or shell-tool launch of a
   batch file refuses any argument holding `" % ! ^ & | < >` or a line break.
@@ -51,9 +96,28 @@ the redirect target; a redirect is reported as an error instead.
 No adapter sends an API key over cleartext `http://` to a host other than
 loopback (`localhost`, `127.0.0.0/8`, `::1`) unless the caller opts in with
 `allow_insecure=True` or `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1`; a local
-server's placeholder key is exempt.
+server's placeholder key is exempt. The key checked is the key sent: the Google
+adapter resolves `api_key`, `GOOGLE_API_KEY` and `GEMINI_API_KEY` as its SDK
+does, the Anthropic adapter checks `ANTHROPIC_AUTH_TOKEN` as well as the API
+key, and both pass the resolved credentials explicitly. `OLLAMA_API_KEY` is
+sent only to `ollama.com`. An explicit non-Anthropic `base_url` never receives
+`ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`: it gets an explicit key or
+`ANTHROPIC_COMPAT_API_KEY` (a placeholder otherwise), and the SDK is handed both
+auth headers so it cannot read them from the environment. A hosted preset's key
+(`GROQ_API_KEY`, …) never follows `--base-url` to another host: `--base-url`
+on a hosted preset needs `--api-key-env`. `ANTHROPIC_BASE_URL` set in the
+environment keeps the SDK's behaviour, as the operator's own pairing of
+endpoint and key. The same holds for the headers the SDKs read from the
+environment: `ANTHROPIC_CUSTOM_HEADERS`, `OPENAI_CUSTOM_HEADERS`,
+`OPENAI_ORG_ID` and `OPENAI_PROJECT_ID` are cancelled on every client aimed at a
+compatible, hosted-vendor or local endpoint, and where they are sent (the
+first-party API or the operator's `*_BASE_URL` gateway) their values follow the
+cleartext rule for keys. Post-hoc pricing books a call `unmetered` only for a
+local provider, a model without a `:cloud` / `-cloud` tag and a capture that
+recorded no other verdict; an imported trace's provider label never makes a
+call free.
 
-Pricing decides cost budgets, so its layers are trusted deliberately. The bundled catalog is signed; `tine pricing update` installs only a catalog signed by a trusted release key, and refuses one older (`generated_at`) than the bundled snapshot or the catalog it would replace, so prices cannot be rolled back; a signed user catalog older than the bundled one is skipped at load. A workspace overlay (`./.tine/pricing.json`, read from the current directory) applies only when validly signed or when the operator sets `OPENTINE_TRUST_WORKSPACE_PRICING=1`; otherwise it is ignored with a note on stderr, because an unsigned overlay from a cloned project could price every model at $0 and disarm `max_cost`. The catalog signature carries no domain-separation prefix yet (no other signed message starts with `{`); one is added at the next release-key rotation.
+Pricing decides cost budgets, so its layers are trusted deliberately. The bundled catalog is signed; `tine pricing update` installs only a catalog signed by a trusted release key, and refuses one older (`generated_at`) than the bundled snapshot or the catalog it would replace, so prices cannot be rolled back; a signed user catalog older than the bundled one is skipped at load. That covers a signed workspace overlay too: it applies only when it is not older than the newest signed catalog already in use (bundled or installed), because every release catalog ever shipped still verifies under the release key; a skipped one is reported on stderr. Two different catalogs signed with the same `generated_at` cannot be ordered, so neither replaces the other, at load or at `tine pricing install`. A workspace overlay (`./.tine/pricing.json`, read from the current directory) applies only when validly signed or when the operator sets `OPENTINE_TRUST_WORKSPACE_PRICING=1`; otherwise it is ignored with a note on stderr, because an unsigned overlay from a cloned project could price every model at $0 and disarm `max_cost`. The catalog signature carries no domain-separation prefix yet (no other signed message starts with `{`); one is added at the next release-key rotation. A catalog signature has exactly `algorithm`, `key_id` and `value` (short strings); any other field is refused, and run provenance copies only those three.
 
 ## Redaction
 
@@ -66,12 +130,59 @@ as `input_tokens` or a numeric direct field named `token` is retained.
 A host can name more secret fields: `RedactionPolicy(extra_secret_keys=…)` in
 the `PolicySet` an `Agent` runs under is recorded in `run.policies`, and every
 writer of that run (`Run.save`, autosave, `Repo.put_run`) redacts those names
-with the built-in ones. A name the run format itself uses is refused, and
+with the built-in ones (`migrate-v3` included). A name the run format itself uses — or its singular, which the walk would also match — is refused, and
 redaction cannot be turned off (`redact_secrets` must be `True`). In a
 recorded command, the element after a credential flag (`--password`,
 `--token`, `--api-key`, …) is redacted as `--password=…` always was.
-Credential-shaped UTF-8 assignments, bearer values, PEM private keys, and common
-header captures are also scrubbed from raw v3 blobs.
+Credential-shaped UTF-8 assignments, bearer values, PEM private keys, PuTTY
+(`.ppk`) and RFC 4716 SSH2 private keys, and common
+header captures are also scrubbed from raw v3 blobs. The free-text scrubber knows
+vendor token shapes (OpenAI, Anthropic, xAI `xai-`, Groq `gsk_`, Replicate
+`r8_`, Perplexity `pplx-`, Google `AIza` / `ya29.` / `GOCSPX-`, GitHub, every
+GitLab prefix, Slack including `xapp-` / `xoxe`, Stripe including `whsec_`,
+Hugging Face, npm, PyPI, AWS, JWTs), the CLI and file forms secrets travel in
+(`curl -u user:PW`, `mysql -pPW`, `redis-cli -a PW`, `docker login -p PW`, a
+`.netrc` `password`, a docker `"auth"` blob, `<password>` in XML, a URL password
+containing `/`, a base64-wrapped PEM private key (every wrapped line of the
+block, on real lines or as `\n` escapes inside a JSON string; an undecodable
+block is redacted, a wrapped certificate kept), `key=` / `auth=` / `code=` and
+other secret query parameters), and an `Authorization`, `Proxy-Authorization`,
+`Cookie` or `Set-Cookie` header anywhere in a line. `*_PWD`, `*_PW`,
+`*_STORAGE_KEY` and `client-key-data` names are redacted by field; `*_PW`
+and `REDISCLI_AUTH` assignments are redacted in command text too, quoted, bare
+or as a flag (`--db-pwd x`), whatever the value looks like; only a dotted host
+glued to a port (`example.pw:8443/api`) is left alone. A `.netrc` password is
+redacted whole — unquoted through `,` `;` `]` `}`, quoted to its own closing
+quote (escapes included); on a `password` line of its own a quoted value must
+end the line, so prose after a quoted word is kept. Quoted CLI passwords
+(`mysql -p'x'`, `redis-cli -a "x"`, `docker login -p 'x'`, `curl -u 'u:p'`) are
+redacted with their quotes kept; `mysql -P<port>` is a port. The byte scan is
+authoritative for every blob, JSON included, so credentials split across JSON
+strings (header `name`/`value` objects in either order, `[name, value]` pairs,
+`"password": …` members) are redacted as before. When a JSON (or JSON Lines)
+blob's scanned bytes no longer have its original structure (an escaped quote or
+a separator eaten, member names made alike), it is rebuilt from the original
+bytes instead: each step of the scan is run over the document on its own, and
+any string, number or literal some step would remove bytes from is replaced
+whole — a string by its own scan as decoded text only when no word the byte scan
+removes from it survives there, otherwise by `"[REDACTED]"` — and the rebuilt
+document is checked the same way.
+So nothing the scan would remove survives and a valid document stays valid, at
+the cost of redacting a whole string where the scan would have cut part of it.
+Strings containing JSON escapes are additionally scanned as decoded text, so a
+secret hidden behind `\n` or `\"` is seen; that rescan starts from the scan's
+output and is checked against the original string's own decoded scan. Private-key
+blocks are replaced before every other pattern, so no value pattern can eat a
+BEGIN marker, and no bounded value ends inside a multi-byte character. A
+byte-order mark, `NaN`/`Infinity` and scalar-first JSON Lines are handled the
+same way. Bytes that were not redacted —
+numbers, escapes, lone surrogates, whitespace — are copied verbatim: a clean blob
+keeps its bytes and content address, and member names that redact alike are kept
+distinct (`#2`). Every step of this is linear in the blob's size: removed words are checked in one pass and a byte-order mark is stripped at most once. A blob over 32 MiB, or one that is not a JSON document or JSON
+Lines, keeps the byte scan's output, which can still break JSON in rare shapes.
+`tine export` applies the writer's full redaction — field names and the run's
+own `extra_secret_keys` — before it builds spans, so a `.tine` written by an
+older release cannot carry a name-keyed secret to a file or collector.
 
 A PEM private-key marker without a matching end marker is redacted by scanning
 forward for key material only, so the scan removes the key without taking
@@ -149,7 +260,7 @@ What a valid attestation signature proves: the target, claim, signer, evidence a
 
 **Gate on the claim, not on the run.** Unscoped, every attestation on the run must verify — so a single unsigned note from any writer blocks the gate, and a verified *rejection* passed exactly as an approval did, because the check never looked at what was signed. `--signer NAME` (repeatable) and `--claim JSON` (the attestation's claim must contain these keys with these values) select the attestations a gate is about; it then passes when at least one selected attestation verifies, and the others are reported but neither pass nor block it. Either flag arms the check. A release gate should be scoped: `tine repo-verify heads/main --pubkey release.pub --signer security-team --claim '{"result": "pass"}'`. Every row carries its `claim`.
 
-**One signature, one object.** A signature block is accepted only in the exact form `tine attest` writes: the header keys, the lowercase-hex `value`, and — for Ed25519 — the lowercase-hex `public_key`, which must be the key that verified. An extra key, re-cased hex, or another embedded key is `error`/`mismatch`, so one signature cannot mint several attestation ids. `verify_attestation` (and `tine verify`'s library half) accepts exactly one of `hmac_key`, `public_key`, `trust_embedded`; given several, the block's own `alg` would pick which of the caller's keys is trusted.
+**One signature, one object.** A signature block is accepted only in the exact form `tine attest` writes: the header keys, the lowercase-hex `value`, and — for Ed25519 — the lowercase-hex `public_key`, which must be the key that verified. An extra key, re-cased hex, or another embedded key is `error`/`mismatch`, so one signature cannot mint several attestation ids. A block with a `null` field, or an Ed25519 block without its own lowercase-hex `public_key`, is malformed whichever key checks it. `verify_attestation` (and `tine verify`'s library half) accepts exactly one of `hmac_key`, `public_key`, `trust_embedded`; given several, the block's own `alg` would pick which of the caller's keys is trusted.
 
 MCP's `attest_run` and `evaluate_run` deliberately take **no** key options: an MCP client is acting on run content it just read, and untrusted text must not be able to sign as an operator. Signing is an operator-surface capability only.
 
@@ -218,9 +329,21 @@ named by its `annotations/<digest>` ref. Unreferenced annotations are still read
 not one that a pack delivered for a run the repository *already held*: those are
 recorded in `.tine/unadopted` at install time and skipped, because anyone
 handing over a pack (or writing to a shared remote) could otherwise attach
-"approved" tags to an untagged local run. `fetch` fast-forwards every
-annotation ref the remote advertises, so a real update to an older run arrives
-through the remote's refs.
+"approved" tags to an untagged local run. An annotation a pack carries is
+recorded as unadopted unless its run arrives in the same pack and was not
+already held — including one aimed at a run the pack does not carry, so an
+annotation planted ahead of its run is not adopted when the run arrives later.
+`fetch` adopts the advertised annotation refs of the runs it delivers, and
+never one whose chain holds an annotation recorded as foreign at install — so
+a remote cannot plant a note through its ref for a run it only names as a
+shallow boundary. For a run
+that was already held, the remote's head is kept as
+`remotes/<name>/annotations/<digest>` and adopted only on request
+(`tine fetch --adopt-annotations`), so a co-writer on a shared remote cannot
+relabel a run you already hold by pushing an annotation ref. The unadopted record is bounded: a foreign annotation that no longer fits is
+not installed (with a warning), and a damaged or over-limit record makes the
+fallback adopt nothing rather than fail. Unheaded lookups read only the run's
+own annotations through a non-authoritative target cache in `.tine/indexes/`.
 
 The reference remote requires TLS, with one exception that takes no opt-in: when
 the base URL's host parses as a **literal loopback IP address** — anything in
@@ -359,7 +482,8 @@ can at worst fail its ref update and need a retry.
 The bundled HTTP server bounds what a client can hold: a connection must
 complete its TLS handshake, request line and headers within
 `--header-timeout` (10 s, a total, not a per-read timeout); one peer address
-holds at most `--max-connections-per-peer` worker slots (half by default); a
+holds at most `--max-connections-per-peer` worker slots (half by default; IPv6
+clients are grouped by /64, IPv4-mapped addresses by their IPv4 address); a
 connection that finds every slot busy is answered `503` (closed, over TLS)
 without blocking the accept loop; and negotiation, fetch and install each
 wait at most 30 s for one of their bounded slots before `503`. Request logs
@@ -367,7 +491,17 @@ omit query strings and upload ids. `--insecure-dev` binds loopback only
 unless `--insecure-dev-any-host` is given. Purge streams the tenant's objects
 (no 100,000-object bound), and installs that add associations serialize
 across processes through a file lock beside the SQLite database. Search
-returns at most 1,000 objects, newest first, with `truncated`.
+returns at most 1,000 objects, newest first, with `truncated`. A pack's
+associations (annotations and attestations) are budgeted by object count,
+encoded pack-body bytes, source bytes and the shallow-boundary list a
+depth-limited pack carries; an association set that does not fit
+is left out and its run reported as `associations_omitted`, so no association a
+writer attaches can make another run unfetchable. Remote URLs may not carry
+credentials, a query or a fragment — checked on the URL as given, before an
+embedded tenant is split off, and the tenant must match the server's tenant
+grammar — remote errors name only the HTTP status and
+path, and `--token-file` warns when the file is readable by group or others.
+`tine serve purge --grace-seconds` below 60 needs `--force` (or `--dry-run`).
 
 The local authenticated-head file detects database-only rollback, but a host
 administrator who restores both SQLite and that file to an earlier valid pair
@@ -448,7 +582,15 @@ one side only produces files that save cleanly and then fail every later load.
 - **Imports.** `tine import` applies the `.tine` reader's structural-token budget
   to every whole document and every JSONL line before `json.loads`, and enforces
   its byte cap by bounded reads for every source — pipes, FIFOs, devices and
-  stdin included.
+  stdin included. A JSON document serialized into an attribute string
+  (`gen_ai.*.messages`) is decoded only within the JSONL line bound and the
+  structural-token budget. A run imported from an agent CLI's own session log is
+  the agent's own account, which it could have edited: it records
+  `metadata.capture.agent_writable = true`.
+- **Depth on write.** The repository writers (`put_run`, `migrate-v3`, `fork`)
+  keep values nested up to `MAX_JSON_DEPTH` and refuse a deeper or circular value
+  with `ValueError`; they never truncate silently. Only the trace and live
+  recorders still cut a value at their recording depth.
 
 These are containment bounds, not a guarantee that content which passes them is
 safe to act on. Recorded model output remains untrusted text; see the non-goals
@@ -482,10 +624,20 @@ chosen by whoever produced the run rather than by the operator.
   clobbered, but creating one is an operator decision, not a model's.
 - **Attestation is a claim, not a signature.** Evaluation and attestation tools
   record a caller-supplied `signer` label and no cryptographic signature, with
-  the same self-asserted-identity caveat as the signing section above.
-- **Bounded writes.** `fork_run` refuses a source over 32 MiB and a runs
-  directory already holding 5,000 runs; `attest_run`/`evaluate_run` cap a claim
-  at 64 KiB of JSON and a signer at 256 characters.
+  the same self-asserted-identity caveat as the signing section above. An
+  evaluation score outside ±1e6 is refused by `attest_run` as by
+  `evaluate_run`, and search ignores an unsigned score outside that bound
+  whatever wrote it; only a well-formed signature block counts as signed.
+- **Bounded writes.** `fork_run` refuses a source over 32 MiB, a runs directory
+  already holding 5,000 runs, or one already holding 1 GiB; `fork_run_v3` and
+  `resume_run_v3` refuse a prompt or policy over 1 MiB and a model name over 256
+  characters; `attest_run`/`evaluate_run` cap a claim at 64 KiB of JSON and a
+  signer at 256 characters.
+- **No hidden characters.** Every MCP tool and resource result has bidi,
+  zero-width and Unicode tag characters removed before it is returned — text a
+  client's model reads and a human reviewing the transcript cannot see.
+  `list_runs` leaves out a run file whose name carries such characters and
+  reports how many it skipped.
 - **No host paths.** `list_runs` and `fork_run` report paths relative to the
   runs directory.
 

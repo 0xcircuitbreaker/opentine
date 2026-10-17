@@ -322,11 +322,15 @@ def test_import_price_lands_the_catalog_cost_on_the_saved_run(workspace, capsys)
     assert priced.steps[1].billing == {} and priced.steps[1].cost == 0.0
 
 
-def test_import_without_price_is_unchanged(workspace, capsys):
+def test_import_without_price_is_unpriced_but_never_free(workspace, capsys):
     plain = _imported(workspace, capsys, name="plain.tine")
 
     assert [step.cost for step in plain.steps] == [0.0, 0.0]
-    assert [step.billing for step in plain.steps] == [{}, {}]
+    # The model call carries an explicit unknown (an import is a label, not a
+    # capture, so a later `tine price` may price it but never books it free);
+    # the tool step is not a billable call and stays as imported.
+    assert plain.steps[0].billing["status"] == "unknown"
+    assert plain.steps[1].billing == {}
 
 
 def test_import_price_records_an_uncarded_call_as_unknown_not_zero(workspace, capsys):
@@ -396,8 +400,12 @@ def test_import_price_rewrites_no_stored_object(workspace, capsys):
     assert first.steps[0].usage == priced.steps[0].usage  # same record, priced
 
 
-def test_price_events_keeps_a_cost_the_source_reported(workspace, capsys):
-    """A pass that cannot price must not erase what the trace already carried."""
+def test_price_events_never_keeps_a_cost_the_source_reported(workspace, capsys):
+    """An imported step's cost comes from the catalog only (final security pass 5, #6).
+
+    The source's own figure is kept for display as ``opentine.source_reported_cost``
+    and never summed: a file claiming $0.0001 for 40M tokens no longer sets the cost.
+    """
     from opentine.trace.schema import TraceEvent
 
     reported = TraceEvent(
@@ -413,5 +421,6 @@ def test_price_events_keeps_a_cost_the_source_reported(workspace, capsys):
 
     (event,) = price_events([reported])
 
-    assert event.cost == 0.25
+    assert event.cost is None
+    assert event.attributes["opentine.source_reported_cost"] == "0.25"
     assert event.billing["status"] == "unknown"

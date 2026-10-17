@@ -504,6 +504,9 @@ Every constant that can refuse a v3 object or repository read:
 | `.tine` integer digits | `_artifact_io.MAX_TINE_INTEGER_DIGITS` | 4096 | `_artifact_io` |
 | HMAC key floor | `_signing_verify.MIN_HMAC_KEY_BYTES` | 16 bytes | `_signing_verify` |
 
+Past the legacy annotation scan bound, the unheaded-annotation fallback adopts
+nothing (no error); so does a damaged or over-limit `.tine/unadopted` record.
+
 ---
 
 # Part 2 — Repository layout
@@ -520,7 +523,7 @@ A repository is the directory `.tine/` (or, bare, any directory holding
   refs/<namespace>/<name>          one oid per file (§2.4)
   logs/<namespace>/<name>          append-only reflog (§2.6)
   packs/<64 hex>.pack              TINEPACK3 frames (§2.8)
-  indexes/                         reserved; created empty, never written
+  indexes/                         non-normative caches (below)
   shallow                          shallow-fetch boundary set (§2.7)
 ```
 
@@ -534,9 +537,13 @@ non-regular/non-directory file, a hard-linked regular file, `.`, `..` or empty
 is rejected, and the resolved path must stay under the root
 (`_paths.internal_path`).
 
-> **⚠ Wart — `indexes/` is a reserved empty directory.** It is created and
-> recreated but nothing in this build reads or writes it. (The *legacy* run
-> index is a separate, non-repository sidecar: `.tine_runs/index.json`, §4.6.)
+`indexes/annotation-targets` and `indexes/attestation-targets` (0.10) are
+non-normative caches mapping each annotation or attestation digest to its
+`target_id`. Readers rebuild them from the object store (listing it on every
+use, decoding unknown objects, dropping missing ones, rebuilding a damaged
+file) and MUST NOT treat them as authoritative; every candidate they name is
+still read and validated. (The *legacy* run index is a separate,
+non-repository sidecar: `.tine_runs/index.json`, §4.6.)
 
 ## 2.2 `config.json`
 
@@ -761,17 +768,25 @@ reader MUST NOT rely on it.
 An installer MUST write objects in **dependency order** — every link target
 before the object citing it — so that an interrupted install (Ctrl-C, ENOSPC)
 leaves a link-closed subset rather than an unreadable object whose targets were
-never written.
+never written. Before writing any object, the installer records the pack's
+shallow boundaries — with any existing boundary the pack fills — in the
+`shallow` file, and prunes the boundaries the pack filled afterwards; an install
+interrupted after the first object therefore never leaves a cut link that is
+neither present nor recorded (a retry of the same fetch sends nothing, so it
+could never heal one).
 
 ## 2.9 `fsck`
 
 A deep `fsck` (`repository.verify.fsck`) checks: every loose object re-hashes
 to its own oid, decodes canonically, satisfies its link rules with existence
 checks, passes annotation-chain and event-metric validation, and — for runs —
-graph validation; every ref name is legal, its oid parses, its target exists
+graph validation; every ref name is legal (a ref file whose name is not is
+reported; dot-files under `refs/`, such as `.DS_Store`, are ignored as OS
+litter), its oid parses, its target exists
 and satisfies the namespace type rule; every shallow entry is a valid oid;
 every file in `packs/` has a legal `<64 hex>.pack` name, verifies, matches its
-own filename, and contains objects byte-identical to the loose copies; and the
+own filename, and contains objects byte-identical to the loose copies; the
+`unadopted` record, when present, parses; and the
 event graph (`parent_ids` + `causal_ids`) is acyclic, reported per cycle root.
 `fsck` bounds itself at 1000 packs and 1 GiB of pack bytes.
 
@@ -950,6 +965,12 @@ message under another over identical content.
 > the message and the verdict goes `mismatch`. A verifier MUST rebuild the
 > five-key header from the block, filling absent keys with `null`, before
 > canonicalizing.
+
+A key absent from the signed header is absent from the stored block: a key whose
+stored value is `null` is malformed (`error`), not a spelling of "absent" — two
+spellings of one header would let one signature verify under two object ids. An
+`ed25519` block always carries its own lowercase-hex `public_key`, whatever key
+source the verifier uses.
 
 ## 4.2 The message
 

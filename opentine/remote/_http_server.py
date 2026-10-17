@@ -20,6 +20,7 @@ resumable upload ids that let a same-tenant writer reach someone else's upload.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 import socket
 import ssl
@@ -37,7 +38,22 @@ _UPLOAD_PATH = re.compile(r"/packs/[^/?]+")
 
 
 def _peer(address) -> str:
-    return str(address[0]) if isinstance(address, tuple) and address else str(address)
+    """The share key for a client: its IPv4 address, or its IPv6 /64.
+
+    One IPv6 host is routinely handed a whole /64, so per-address accounting let
+    a single client open slots from as many source addresses as it liked.
+    """
+    host = str(address[0]) if isinstance(address, tuple) and address else str(address)
+    try:
+        parsed = ipaddress.ip_address(host.split("%", 1)[0])
+    except ValueError:
+        return host
+    mapped = getattr(parsed, "ipv4_mapped", None)
+    if mapped is not None:
+        return str(mapped)
+    if parsed.version == 6:
+        return str(ipaddress.ip_network(f"{parsed}/64", strict=False))
+    return str(parsed)
 
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):

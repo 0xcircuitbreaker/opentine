@@ -14,6 +14,43 @@ if TYPE_CHECKING:
     from opentine.repository.store import Repo
 
 
+def _without(
+    objects: list[tuple[str, bytes]],
+    internal: dict[str, set[str]],
+    rejected: set[str],
+    view: SemanticView,
+) -> tuple[list[tuple[str, bytes]], set[str]]:
+    """*objects* less the rejected annotations and everything in the pack linking to them.
+
+    A foreign annotation the full unadopted record cannot take is not installed
+    (installed but unrecorded, the fallback would adopt it); a later version of it
+    in the same pack goes too, so what remains is link-closed. Returns the kept
+    objects and their links outside the kept set.
+    """
+    import warnings
+
+    dropped = set(rejected)
+    changed = True
+    while changed:
+        changed = False
+        for oid, _ in objects:
+            if oid not in dropped and internal[oid] & dropped:
+                dropped.add(oid)
+                changed = True
+    kept = [(oid, raw) for oid, raw in objects if oid not in dropped]
+    kept_ids = {oid for oid, _ in kept}
+    external = {
+        link for oid in kept_ids for link in validate_links(view.get(oid)) if link not in kept_ids
+    }
+    warnings.warn(
+        f"{len(dropped)} annotation(s) from this pack were not installed: the record of "
+        "annotations no ref vouches for is full",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    return kept, external
+
+
 def _same_pack(raw: bytes, pack_id: str, max_body: int, max_pack: int) -> bool:
     from opentine.repository.pack import inspect_pack
 
@@ -94,19 +131,35 @@ def install_inspected(
                     raise KernelError(f"pack has unresolved link: {link}")
         if incoming_shallow != external:
             raise KernelError("pack shallow boundaries do not match its external links")
-        record_unadopted(repo.path, foreign_annotations(repo, view, objects))
+        rejected = record_unadopted(repo.path, foreign_annotations(repo, view, objects), repo)
+        if rejected:
+            objects, external = _without(objects, internal, rejected, view)
+            packed_ids = {oid for oid, _ in objects}
+            boundaries = {
+                oid for oid in existing | external if oid not in packed_ids and not repo.has(oid)
+            }
+            shallow_body = encode_shallow(boundaries)
+            shallow = sorted(oid for oid in external if not repo.has(oid))
+        if shallow or shallow_path.exists():
+            # Before any object: an install cut short (Ctrl-C, ENOSPC on the pack
+            # copy) used to leave objects whose cut links were neither present nor
+            # recorded, unreadable for good -- a retry sends nothing, so the file
+            # was never written. Boundaries this pack fills stay listed until then.
+            provisional = boundaries | (existing & packed_ids)
+            atomic_bytes(shallow_path, encode_shallow(provisional))
+            repo._invalidate_shallow()
         written = 0
         for oid, raw in _dependency_order(objects, internal):
             if install_verified(repo._object_path(oid), raw, "object"):
                 written += len(raw)
-        pack_path = internal_path(repo.path, "packs", f"{pack_id[7:]}.pack")
-        install_verified(
-            pack_path,
-            data,
-            "pack",
-            equivalent=lambda raw: _same_pack(raw, pack_id, max_body, max_pack),
-            read_limit=max_pack,
-        )
+        if not rejected:  # a kept copy must hold only objects installed loose (fsck)
+            install_verified(
+                internal_path(repo.path, "packs", f"{pack_id[7:]}.pack"),
+                data,
+                "pack",
+                equivalent=lambda raw: _same_pack(raw, pack_id, max_body, max_pack),
+                read_limit=max_pack,
+            )
         if shallow or shallow_path.exists():
             atomic_bytes(shallow_path, shallow_body)
             repo._invalidate_shallow()

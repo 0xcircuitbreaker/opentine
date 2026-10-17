@@ -132,7 +132,63 @@ Non-streamed `complete()` calls are unaffected.
 
 Pass `include_usage=True` to the adapter if your deployment does accept the
 field, and confirm on a short streamed call that `billing.status` is not
-`unknown` before relying on streamed cost.
+`unknown` before relying on streamed cost. `LocalAI` and `KoboldCpp` request it
+by default (both honour it). A Chat Completions stream emits one usage event,
+the last, so a server that repeats cumulative usage on every chunk (vLLM
+`--enable-force-include-usage`, `continuous_usage_stats`) cannot be counted
+twice.
+
+### Re-pricing a recorded run (`tine price`)
+
+`tine price` re-derives cost from what the run recorded. It prices every step
+the capture itself billed as a model call — a `model` step, and also the `done`
+step a `tine run --model … --prompt` run ends on, a `think` step beside tool
+calls, or a refusal recorded as `error` — when the step carries usage, a
+provider and a billing calculation; a harness's closing step carries no usage
+and is not counted twice. The service tier recorded at capture
+(`billing.calculation.service_tier`, or a harness step's `service_tier`) is
+applied, so a Claude fast-mode call re-prices at its 2x modifier and a Priority,
+Flex or US-geo call at its own. A call captured from a local provider (Ollama,
+LM Studio, vLLM, `local-anthropic-compatible`, any local preset) re-prices as
+`unmetered`, exactly as it was recorded — but only when the model carries no
+`:cloud` / `-cloud` tag and the record carries positive evidence (the capture's
+own `unmetered` verdict, or no billing inside a run the harness wrapper
+captured: a billing-less step in any other run, such as one imported by 0.9.x
+or through `Recorder.import_events`, prices `unknown`); an imported
+trace or session log is never booked `unmetered` from its provider label (an
+imported model call carries an explicit `unknown` record, every billing block
+the source carried is dropped whatever its status, and a billing block with a
+missing or unreadable status never counts as "no verdict"), so an imported local run prices `unknown`.
+An imported step never keeps the source file's own cost either: the figure
+moves to the `opentine.source_reported_cost` attribute and the step's cost comes
+from the catalog (`--price`, or `tine price` later). Ollama Cloud calls are `ollama-cloud`
+and re-price `unknown` until a card covers them. A run captured with explicit
+Ollama compute or token rates re-prices as `unmetered`, because those override
+rates are not part of the record.
+
+### Service tiers
+
+A card's `service_modifiers` scale every dimension for a named tier. Tiers the
+adapters and harnesses report: `regional` (OpenAI's regional-processing domains
+for models released on or after 2026-03-05; Bedrock regional endpoints and
+geographic inference-profile prefixes `us.` / `eu.` / `jp.` / `au.` / `apac.`;
+Vertex multi-region and regional endpoints), `us` / `eu` (Anthropic
+`inference_geo`, Foundry data zones, Fireworks' US host at 1.5x), `fast` /
+`fast_us`, `priority` / `priority_us` / `priority_eu`, `flex`, `batch` /
+`batch_regional` (on an OpenAI data-residency host a Priority or Flex call
+bills `priority_regional` / `flex_regional`), and `offpeak` (Gemini's `ON_DEMAND_OFFPEAK` traffic type,
+priced only where carded). A tier no card carries is reported `unknown`, never
+priced at the standard rate.
+
+### Provider-reported cost
+
+OpenRouter's `usage.cost` and xAI's `cost_in_usd_ticks` were already read as
+the provider's own figure; DeepInfra's `usage.estimated_cost` now is too. A
+Bedrock model id's routing prefix (`global.`, `us.`, `eu.`, …) and `openai.`
+are stripped before card lookup: `global.` prices at list, a geographic prefix
+at the `regional` tier. Hosted vendors without a card (DeepInfra, Cerebras,
+SambaNova, Upstage, Inception, NVIDIA, Hugging Face, Vercel, Cohere) record
+`unknown`, never a guessed price.
 
 ### Models newer than the bundled snapshot
 
@@ -193,6 +249,11 @@ a cloned checkout can ship one, and an unsigned overlay could price any model at
 $0 and disarm every `max_cost` budget. From 0.9.2 it is **ignored** (with a
 note on stderr) unless it is validly signed by a trusted key or
 `OPENTINE_TRUST_WORKSPACE_PRICING=1` is set (`1`/`true`/`yes`/`on`).
+A signed overlay older than the newest signed catalog already in use (bundled or
+installed) is skipped with a notice too: every release catalog ever shipped still
+verifies under the release key, so an old one checked into a project would
+otherwise roll prices back. Two different catalogs signed with the same
+`generated_at` cannot replace each other, at load or at `tine pricing install`.
 A rate card's `currency` must be an ISO 4217 code (`USD`, three capitals).
 
 An overlay carries its own `catalog_id`, so recompute it after any edit. The
@@ -262,7 +323,12 @@ price is published for Astra, so that tier is left uncarded rather than guessed.
 
 The catalog also contains provider-scoped cards for current defaults and
 frontier families from Kimi, DeepSeek, Google Gemini, Grok/xAI, GLM/Z.AI, Qwen,
-Groq, Together, Mistral/Ministral, and OpenRouter Hermes. Use `tine pricing
+Groq, Together, Mistral/Ministral, Meta (Muse), MiniMax, StepFun, Xiaomi MiMo
+and Fireworks, and cloud namespaces `bedrock` (global endpoints at first-party
+list, regional 1.1x), `vertex` (Claude; regional and multi-region 1.1x) and
+`foundry` (Claude at Anthropic's rates with the US Data Zone at 1.1x; Azure
+OpenAI GPT-6 with Data Zone US 1.1x and EU 1.2x). The 0.10.0 snapshot holds 190
+signed cards, verified 2026-10-15. Use `tine pricing
 list` for the exact effective records rather than copying rates into code.
 Direct Nous/Hermes rates are dynamic in the upstream service, so that card is
 intentionally `unknown` until a local overlay supplies a price.
@@ -336,7 +402,7 @@ Primary rate sources are linked on every card, including the
 ## Local infrastructure rates
 
 Ollama and other local adapters preserve usage while reporting `unmetered` API
-cost by default. Optional input/output token rates and compute-second rates let
+cost by default, at capture and when `tine price` re-prices the run. Optional input/output token rates and compute-second rates let
 a workspace estimate infrastructure cost. `unmetered` means “no metered API
 price,” not “the hardware is free.”
 

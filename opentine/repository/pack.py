@@ -94,9 +94,12 @@ def reachable(
     for oid in wants:
         parse_oid(oid)
     repo = semantic_view(repo, max_source_bytes=MAX_PACK_BODY_BYTES)
-    seen, runs = walk(repo, wants, set(), depth, MAX_PACK_OBJECTS)
+    links: dict[str, tuple[str, ...]] = {}
+    seen, runs = walk(repo, wants, set(), depth, MAX_PACK_OBJECTS, links_out=links)
     if include_associated:
-        include_associations(repo, runs, seen, depth, MAX_PACK_OBJECTS, omitted)
+        include_associations(
+            repo, runs, seen, depth, MAX_PACK_OBJECTS, omitted, MAX_PACK_BODY_BYTES, links
+        )
     return sorted(seen)
 
 

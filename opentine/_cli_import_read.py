@@ -12,7 +12,9 @@ import json
 import sys
 from pathlib import Path
 
+from opentine.trace._import_detect import TRANSCRIPT_IMPORTERS, detect_format
 from opentine.trace._import_guard import bounded_lines, bounded_read, shape_checked
+from opentine.trace._otel_log_import import looks_like_logs, otel_log_events
 from opentine.trace.importers import (
     MAX_JSONL_LINE_BYTES,
     MAX_TRACE_IMPORT_BYTES,
@@ -71,20 +73,59 @@ def _records(text: str) -> list:
 
 def read_events(source: str, source_format: str) -> list[TraceEvent]:
     """Route *source* to the importer named by *source_format*."""
+    return detect_and_read(source, source_format)[1]
+
+
+def detect_and_read(source: str, source_format: str) -> tuple[str, list[TraceEvent]]:
+    """``(format, events)``: *source* through its importer, detecting ``auto``."""
     if source_format == "jsonl":
         # The JSONL importer does its own bounded, streaming read of a path;
         # stdin gets the same per-line bound instead of whole-line buffering.
         if source != STDIN:
-            return jsonl_events(source)
+            return source_format, jsonl_events(source)
         stream = getattr(sys.stdin, "buffer", sys.stdin)
-        return jsonl_events(
+        return source_format, jsonl_events(
             bounded_lines(
                 stream, line_limit=MAX_JSONL_LINE_BYTES, total_limit=MAX_TRACE_IMPORT_BYTES
             )
         )
+    if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:
+        # Transcripts are read line by line from a path, each line bounded.
+        return source_format, TRANSCRIPT_IMPORTERS[source_format](source)
     text = _read_text(source)
-    if source_format == "otel-json":
-        return otel_genai_events(json.loads(text))
+    if source_format == "auto":
+        source_format = detect_format(text)
+        if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:
+            # From the path, as an explicit --format does: a Claude Code
+            # session's subagents/ files are found beside it (final pass 3, #4).
+            return source_format, TRANSCRIPT_IMPORTERS[source_format](source)
+        if source_format == "jsonl":
+            return source_format, jsonl_events(text.splitlines())
+    if source_format in TRANSCRIPT_IMPORTERS:
+        return source_format, TRANSCRIPT_IMPORTERS[source_format](text.splitlines())
+    if source_format in ("otel-json", "otel-logs"):
+        documents = _documents(text)
+        if source_format == "otel-logs" or (
+            looks_like_logs(documents) and not _has_spans(documents)
+        ):
+            return "otel-logs", otel_log_events(documents)
+        return source_format, otel_genai_events(documents)
     if source_format == "otel-spans":
-        return otel_genai_events(_records(text))
-    return framework_events(_records(text), source_format)
+        return source_format, otel_genai_events(_records(text))
+    return source_format, framework_events(_records(text), source_format)
+
+
+def _documents(text: str) -> object:
+    """One OTLP/JSON document, or the collector file exporter's one per line."""
+    try:
+        return json.loads(text)
+    except ValueError:
+        return _records(text)
+
+
+def _has_spans(documents: object) -> bool:
+    items = documents if isinstance(documents, list) else [documents]
+    return any(
+        isinstance(item, dict) and ("resourceSpans" in item or "resource_spans" in item)
+        for item in items
+    )

@@ -3,11 +3,9 @@
 :func:`opentine.billing.bill` has always been the pricing primitive, but its
 only caller lived inside adapter capture (``opentine.models._metered``). A run
 that was *imported* rather than executed therefore recorded ``(provider, model,
-usage)`` and no cost at all, and anything summing the recorded costs showed an
-honest-looking ``$0.00`` exactly where the live path would have said
-``unknown``. This module is the second caller: it re-derives the price of an
-already-recorded run from the catalog, and it bottoms out in the same
-``bill()``, so there is one pricing arithmetic in the codebase, not two.
+usage)`` and no cost at all, so summing recorded costs showed ``$0.00`` where
+the live path said ``unknown``. This module is the second caller: it re-derives
+an already-recorded run's price from the catalog through the same ``bill()``.
 
 Two rules the pass may never break:
 
@@ -17,10 +15,9 @@ Two rules the pass may never break:
   as free. It is kept out of ``by_model``/``by_provider`` for the same reason --
   a ``0.0`` beside a model name reads as "free" -- and named in
   ``unknown_models`` instead. The total sums *known* subtotals only.
-* **Never rewrite the record.** A priced run is a *report* (``tine price``). The
-  only place a price is written is onto records that have not been stored yet --
-  :func:`price_events`, on a fresh import, which is initial recording, not
-  mutation. Rewriting a stored content-addressed event would change its id.
+* **Never rewrite the record.** A priced run is a *report* (``tine price``); a
+  price is written only by :func:`price_events`, onto a fresh import that no store
+  has seen. Rewriting a stored content-addressed event would change its id.
 """
 
 from __future__ import annotations
@@ -31,14 +28,22 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from opentine._pricing_record import bill_record, read_record, record_moment
+from opentine._import_billing import without_source_cost
+from opentine._local_providers import harness_run, unmetered_call
+from opentine._pricing_record import (
+    bill_record,
+    billable,
+    read_record,
+    record_moment,
+    record_tier,
+    verdict_status,
+)
 from opentine.billing import PricingCatalog, load_catalogs
 from opentine.billing._context import billing_context
 from opentine.billing.types import as_date
 
-#: Only a model call meets a rate card. A tool or think step is not "free", it
-#: is simply not a billable call, so it is left out of the rollup entirely
-#: rather than counted as a zero.
+#: Only a model call meets a rate card. A tool or think step is not "free", it is
+#: not a billable call, so it is left out of the rollup rather than counted as 0.
 PRICEABLE_KINDS = frozenset({"model"})
 UNKNOWN = "unknown"
 #: Statuses that mean the catalog actually answered for this step.
@@ -112,12 +117,9 @@ class RunPricing:
 def _card_date(when: date, moment: datetime | None, pinned: bool) -> date:
     """Which day's rate card prices this step.
 
-    ``tine price --at DATE`` pins it for the whole run ("what would this cost
-    under the cards effective on DATE"). Unpinned, a step is carded on the day it
-    was actually recorded, falling back to the pass's as-of date when the record
-    carries no timestamp. Either way the *window* within the card comes from the
-    step's own instant, so a run spanning peak and off-peak prices each step at
-    the rate it was really billed.
+    ``tine price --at DATE`` pins it for the whole run. Unpinned, a step is carded
+    on the day it was recorded (the pass's as-of date without a timestamp); the
+    *window* within the card always comes from the step's own instant.
     """
     return when if pinned or moment is None else moment.date()
 
@@ -127,6 +129,7 @@ def price_steps(
     *,
     effective_at: date | datetime | str | None = None,
     catalog: PricingCatalog | None = None,
+    harness_capture: bool = False,
 ) -> RunPricing:
     """Price every model step from the catalog; report, never write."""
     selected = catalog or load_catalogs()
@@ -141,7 +144,7 @@ def price_steps(
     with billing_context():
         for step in steps:
             kind, provider, model, usage, identifier = read_record(step)
-            if kind not in PRICEABLE_KINDS:
+            if not billable(kind, step, PRICEABLE_KINDS):
                 continue
             moment = record_moment(step)
             result = bill_record(
@@ -151,6 +154,10 @@ def price_steps(
                 catalog=selected,
                 when=_card_date(when, moment, pinned),
                 billed_at=moment,
+                service_tier=record_tier(step),
+                unmetered=unmetered_call(
+                    provider, model, verdict_status(step), harness_capture=harness_capture
+                ),
             )
             known = Decimal(str(result.known_subtotal_usd))
             prices.append(
@@ -192,7 +199,10 @@ def price_run(
     catalog: PricingCatalog | None = None,
 ) -> RunPricing:
     """Re-price a recorded run. Read-only: the run is not touched."""
-    return price_steps(run.steps, effective_at=effective_at, catalog=catalog)
+    capture = harness_run(run)  # positive evidence for a billing-less local call
+    return price_steps(
+        run.steps, effective_at=effective_at, catalog=catalog, harness_capture=capture
+    )
 
 
 def price_events(
@@ -205,11 +215,10 @@ def price_events(
 
     Called on freshly parsed trace events, before anything is written, so this
     is initial recording rather than mutation -- the inputs are plain frozen
-    dataclasses that no store has seen. When the catalog cannot price a step the
-    event's own recorded cost is kept (a pass that cannot price must not erase
-    what the source reported), and the unknown billing record is attached only
-    when the event carried none, so a bare import gains an honest ``unknown``
-    instead of an implicit zero.
+    dataclasses that no store has seen. A step the catalog cannot price keeps no
+    cost from its source (final security pass 5, #6: the file's own figure moves
+    to ``opentine.source_reported_cost``) and gains an ``unknown`` record when it
+    carried no billing. An imported provider is a label: never ``unmetered``.
     """
     selected = catalog or load_catalogs()
     when = as_date(effective_at)
@@ -217,7 +226,7 @@ def price_events(
     priced: list[Any] = []
     for event in events:
         kind, provider, model, usage, _ = read_record(event)
-        if kind not in PRICEABLE_KINDS:
+        if not billable(kind, event, PRICEABLE_KINDS):
             priced.append(event)
             continue
         moment = record_moment(event)
@@ -228,13 +237,14 @@ def price_events(
             catalog=selected,
             when=_card_date(when, moment, pinned),
             billed_at=moment,
+            service_tier=record_tier(event),
         )
         if result.status in PRICED_STATUSES:
             priced.append(
                 replace(event, cost=float(result.known_subtotal_usd), billing=result.to_dict())
             )
         elif not getattr(event, "billing", None):
-            priced.append(replace(event, billing=result.to_dict()))
+            priced.append(replace(without_source_cost(event), billing=result.to_dict()))
         else:
-            priced.append(event)
+            priced.append(without_source_cost(event))
     return priced

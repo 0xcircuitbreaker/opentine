@@ -28,7 +28,7 @@ from opentine._cli_flags import (
 from opentine._cli_json import emit_cost, emit_show
 from opentine._cli_json_pricing import emit_price
 from opentine._cli_render import _budget_str, _print_run_tree, _save_run_receipt
-from opentine._cli_run_model import cmd_run_model
+from opentine._cli_run_model import cmd_run_model, refuse_model_flags
 from opentine._pricing_pass import price_run
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
@@ -40,6 +40,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     if getattr(args, "model", None):
         cmd_run_model(args)
         return
+    refuse_model_flags(args, "without --model")
     if args.harness:
         cmd_run_harness(args)
         return
@@ -93,13 +94,18 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         )
     interval = getattr(args, "autosave_interval", 0) or 0
     seconds = getattr(args, "autosave_seconds", 0.0) or 0.0
+    growth = 0.0
     if autosave_path and not interval and not seconds:
-        interval = 1
+        # Every harness output line is a step, and each checkpoint re-saves the
+        # whole run: "every step" was O(n^2) in output the agent controls. The
+        # default checkpoints at most every 2 s and only after 25% growth.
+        interval, seconds, growth = 1, 2.0, 0.25
     wrapped = OpentineHarness(
         _harness_from_args(args),
         autosave_path=autosave_path,
         autosave_steps=interval,
         autosave_seconds=seconds,
+        autosave_growth=growth,
     )
     output = Path(args.save) if args.save else None
     if output:
@@ -114,7 +120,10 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         run = wrapped.run
         if run is not None:
             output = output or (_runs_dir() / f"{run.id}.tine")
-            run.save(output)
+            try:
+                run.save(output)
+            except (OSError, ValueError) as save_exc:
+                console.print(f"[red]Could not save the run:[/] {_terminal(save_exc)}")
             _print_run_tree(run)
         console.print(f"[red]Harness failed:[/] {_terminal(exc)}")
         raise SystemExit(1) from exc

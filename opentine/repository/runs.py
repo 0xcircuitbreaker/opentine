@@ -98,7 +98,7 @@ def _put_run(
         # pre-0.8.0 run ever stored, for a field that would always be empty.
         if step.provider:
             payload["provider"] = step.provider
-        event_id = repo.put("event", json_safe(payload))
+        event_id = repo.put("event", json_safe(payload, strict=True))
         event_map[step.id] = event_id
         events.append(event_id)
 
@@ -131,7 +131,7 @@ def _put_run(
         "tips": tips,
     }
     apply_legacy_migration(payload, legacy_blob, legacy_verification, migration_map_blob)
-    run_id = repo.put("run", json_safe(payload))
+    run_id = repo.put("run", json_safe(payload, strict=True))
     annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:
         old = repo.read_ref(ref)

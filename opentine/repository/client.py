@@ -16,14 +16,14 @@ from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
 from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import require_secure_remote as _require_secure_remote
-from opentine.repository._unadopted import adopt_advertised_annotations
+from opentine.repository._http import split_remote as _remote
+from opentine.repository._pack_fit import fitted_pack
+from opentine.repository._unadopted import adopt_advertised_annotations, runs_held
 from opentine.repository._upload_client import upload as _upload
 from opentine.repository.pack import (
     MAGIC,
     MAX_PACK_OBJECTS,
     OMITTED_HEADER,
-    create_pack,
-    negotiate,
     reachable,
 )
 
@@ -43,25 +43,6 @@ class TransferResult:
 def _omitted(headers: dict[str, str]) -> int:
     value = headers.get(OMITTED_HEADER.lower(), "0")
     return int(value) if value.isdigit() and int(value) <= MAX_PACK_OBJECTS else 0
-
-
-def _annotation_ref(run_id: str) -> str | None:
-    try:
-        object_type, digest = parse_oid(run_id)
-    except KernelError:
-        return None
-    return f"annotations/{digest}" if object_type == "run" else None
-
-
-def _remote(remote: str, tenant: str | None) -> tuple[str, str]:
-    url = remote.rstrip("/")
-    marker = "/v1/tenants/"
-    if marker in url:
-        base, embedded = url.split(marker, 1)
-        return base, tenant or embedded.split("/", 1)[0]
-    if not tenant:
-        raise ValueError("tenant is required unless embedded in the remote URL")
-    return url, tenant
 
 
 def _prefix(tenant: str) -> str:
@@ -125,6 +106,7 @@ def fetch(
     remote_name: str = "origin",
     allow_insecure: bool = False,
     timeout: float = 120,
+    adopt_annotations: bool = False,
 ) -> TransferResult:
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
@@ -154,6 +136,7 @@ def fetch(
                 "wants": selected,
             },
         )
+    held_before = runs_held(repo, remote_refs)
     result = repo.import_pack(pack)
     # A filtered or shallow fetch may intentionally omit the advertised root.
     # Only materialize a tracking ref when its target is actually present and
@@ -162,7 +145,9 @@ def fetch(
     if ref in remote_refs and repo.has(remote_refs[ref]):
         tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
         repo.update_ref(tracking, remote_refs[ref], expected_old=repo.read_ref(tracking))
-        adopt_advertised_annotations(repo, remote_refs)
+        adopt_advertised_annotations(
+            repo, remote_refs, held_before, remote_name, adopt_held=adopt_annotations
+        )
     return TransferResult(len(result.objects), result.pack_id, ref, _omitted(received))
 
 
@@ -188,8 +173,7 @@ def push(
         old = _refs(refs).get(destination)
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
         short: list[str] = []
-        missing = negotiate(repo, [local_oid], known, omitted=short)
-        pack = create_pack(repo, missing)
+        pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
         uploaded = _upload(
             client,
             _prefix(namespace) + "/packs",
@@ -211,7 +195,9 @@ def push(
         )
         if status == 409:
             raise ValueError("remote ref changed concurrently")
-        annotation = _annotation_ref(local_oid)
+        annotation = (
+            "annotations/" + local_oid[11:] if local_oid.startswith("run:sha256:") else None
+        )
         local_annotation = repo.read_ref(annotation) if annotation else None
         if annotation and local_annotation:
             annotation_status, _ = _request_json(
@@ -220,10 +206,7 @@ def push(
                 _prefix(namespace) + "/refs/" + quote(annotation, safe=""),
                 allowed=(200, 409),
                 max_seconds=timeout,
-                json={
-                    "expected_old": _refs(refs).get(annotation),
-                    "new": local_annotation,
-                },
+                json={"expected_old": _refs(refs).get(annotation), "new": local_annotation},
             )
             if annotation_status == 409:
                 raise ValueError("remote annotation ref changed concurrently")
@@ -238,10 +221,13 @@ def clone(
     from opentine.repository import Repo
 
     repo = Repo.init(path)
+    # Cloning into a repository that already held refs re-pointed its heads/main
+    # silently (the compare-and-swap was against the value just read).
+    if repo.list_refs() or repo.iter_oids(limit=1, truncate=True):
+        raise ValueError(f"clone target already holds a repository: {path}; use fetch")
     fetch(repo, remote, **kwargs)
     ref = str(kwargs.get("ref", "heads/main"))
-    remote_name = str(kwargs.get("remote_name", "origin"))
-    tracking = f"remotes/{remote_name}/{ref.removeprefix('heads/')}"
+    tracking = f"remotes/{kwargs.get('remote_name', 'origin')}/{ref.removeprefix('heads/')}"
     target = repo.read_ref(tracking)
     if target:
         repo.update_ref(ref, target, expected_old=repo.read_ref(ref))

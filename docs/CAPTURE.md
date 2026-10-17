@@ -87,8 +87,92 @@ artifact and refuses an existing file without `--force`; `--repo PATH` records
 into a v3 repository and advances `--ref` (default `heads/main`). Both may be
 given. `--ref` without `--repo` is refused rather than ignored.
 
+Provider spellings from the semantic-convention registry are mapped onto the
+catalog's ids at import — `gcp.gemini` / `gcp.vertex_ai` / `gcp.gen_ai` →
+`google`, `x_ai` → `xai`, `mistral_ai` → `mistral`, `aws.bedrock` → `bedrock`,
+`azure.ai.openai` / `azure.ai.inference` → `foundry`, and LangChain's
+`google_genai`, `mistralai`, `azure_openai`, … likewise — so those calls price
+instead of reading `unknown`. The original attribute stays on the span.
+
+**Agent CLI telemetry.** Claude Code (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, plus
+`CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1` for traces), Codex (`[otel]` in
+`config.toml`) and Gemini CLI (`telemetry.enabled`) export OTLP. Their traces
+import with `--format otel-json`: Claude Code's spans carry bare
+`input_tokens` / `output_tokens` / `cache_read_tokens` /
+`cache_creation_tokens` and no `gen_ai.usage.*`, and each
+`claude_code.llm_request` becomes a priced model step (`claude_code.interaction`
+a human step, `claude_code.tool` a tool step, `tool.blocked_on_user` an
+approval). Their richer log events import with `--format otel-logs`: Claude Code
+`api_request` / `user_prompt` / `tool_result` / `tool_decision` / `api_error`,
+Codex `codex.sse_event` (`response.completed`) / `user_prompt` / `tool_result`
+/ `tool_decision`, and Gemini CLI `gemini_cli.api_response` / `user_prompt` /
+`tool_call` / `api_error` and `gen_ai.client.inference.operation.details`; each
+becomes a priced event, chained per session in time order. The event cap is
+enforced while records are read (at most 400,000 raw log records), so an
+oversized file is refused before any session chain is built. `otel-json` also
+accepts the collector file exporter's one document per line. `--format`
+defaults to `auto`, which recognizes each of these by shape.
+
+A message array serialized into one attribute string (`gen_ai.input.messages`)
+is decoded only within the 16 MiB line bound and the structural-token budget;
+beyond that it stays in the attributes as text and the event carries an import
+warning.
+
 `python examples/otel_interop.py` runs this path offline, end to end, and then
 exports the imported run back out.
+
+### Importing agent session logs
+
+`tine import` also reads the session logs agent CLIs keep for themselves —
+Claude Code (`~/.claude/projects/*/*.jsonl`), Codex
+(`~/.codex/sessions/**/rollout-*.jsonl`), Gemini CLI
+(`~/.gemini/tmp/*/chats/session-*.jsonl`, and the legacy `.json`) and Qwen Code
+(`~/.qwen/projects/*/chats/*.jsonl`) — with `--format claude-code-transcript`,
+`codex-session`, `gemini-session` or `qwen-session` (or `auto`):
+
+```bash
+tine import --from-default-location                         # the newest sessions on this machine
+tine import latest --from-default-location --price --save run.tine
+```
+
+Each API call becomes a model step with its model, provider and exact usage, each
+tool call a tool step, each prompt a human step, so `tine price` works on a
+session that never ran under `tine run`. `CLAUDE_CONFIG_DIR`, `CODEX_HOME`,
+`GEMINI_CLI_HOME` and `QWEN_HOME` are honoured; a session-id prefix may stand in
+for `latest`. A run imported from a session log records
+`metadata.capture = {"method": "transcript-import", "source_format": …,
+"agent_writable": true}`: the agent wrote that log and could have edited it, so
+it is only as trustworthy as the machine it ran on. A Claude Code response
+that a mid-stream tool result splits across lines is still one model step with
+its usage counted once; a session id that is not short and id-shaped (at most
+128 of `[A-Za-z0-9._:-]`) is stored as `session-<sha256 prefix>`, as are
+per-record ids copied onto several events (`requestId`, `promptId`, `agentId`,
+span ids). Tool names repeated on results are clipped to 256 characters, a
+Codex call's arguments are recorded with its first output only, a Gemini tool
+result attaches to one call even when ids repeat, and Gemini `$patch` merging
+is linear. A record with an unexpected field type (`content`, `usage`,
+`toolCalls`, `parts`, `logRecords`) is skipped and counted in
+`opentine.import_warnings` on the run's first event instead of failing the
+import, and an imported local run prices `unknown` (a provider label never makes
+a call free: a model call imported without `--price` carries an explicit
+`unknown` billing record, and every billing block the source carried is
+dropped, whatever its status). The source's own `cost` figure is not the step's
+cost either: it is kept as the `opentine.source_reported_cost` attribute, and the
+catalog prices the step. The library path, `Recorder.import_events`, applies the
+same rule unless called with `trusted_billing=True`.
+Claude Code writes each subagent's transcript beside the session, in
+`<session>/subagents/agent-*.jsonl`; those are imported with the session
+(whether the format is detected or named), each
+subagent's steps hung under the tool step that spawned it (at most 1,000 files,
+real files only, each file on disk read once so hard links are skipped, the
+session's byte budget charged before a file is parsed, and the event cap; any left out
+are counted in `opentine.import_warnings`), and `--from-default-location` shows
+how many each session has. Each API response is billed once across the whole session, so a
+subagent transcript that repeats the response which spawned it is not counted
+twice. Fast-mode and US-only calls (`usage.speed`,
+`inference_geo`) keep their `fast` / `fast_us` / `us` tier, in transcripts and
+in Claude Code OTel logs alike. OpenCode keeps its sessions
+in a SQLite database whose schema is still changing and is not imported yet.
 
 ## 2. Serialized framework logs
 
@@ -183,15 +267,54 @@ plausible but wrong causal edges. CrewAI logs are imported post hoc instead.
 `tine run --harness` wraps an external agent CLI and records its steps:
 
 ```bash
+tine harnesses --installed            # which agent CLIs are here, and what each records
 tine run --harness codex --prompt "Inspect this repo" --save run.tine
-tine run --harness kimi-code --prompt "Summarize README.md" --save run.tine
+tine run --harness gemini --prompt "Summarize README.md" --save run.tine
 tine run --harness generic --harness-command "agent run" --prompt "Fix tests"
 ```
 
-The bundled harness names are `claude-code`, `codex`, `cursor`, `gemini`,
-`generic`, `grok`, `hermes`, `kimi-code`, `openclaw`, `opencode`, and `pi`. Use
-`generic` with `--harness-command` (and repeatable `--harness-arg`) for anything
-not on that list.
+`tine harnesses` lists every harness name, the command it runs, whether the CLI
+is installed, and what a recorded run holds (`--installed`, `--json`). The
+catalogued CLIs run in their documented headless JSON modes:
+
+| Harness | Command | Model | Usage | CLI cost | Tools |
+|---|---|---|---|---|---|
+| `claude-code` | `claude -p --output-format stream-json --verbose` | yes | yes | yes | yes |
+| `codex` | `codex exec --json --skip-git-repo-check` | with `--model` / `config.toml` | yes | no | yes |
+| `gemini` | `gemini --output-format stream-json -p` | yes | yes | no | yes |
+| `qwen-code` | `qwen --output-format stream-json -p` | yes | yes | no | yes |
+| `pi` | `pi --mode json` | yes | yes | yes | yes |
+| `hermes` | `hermes chat --oneshot --format stream-json -q` | yes | yes | no | yes |
+| `openclaw` | `openclaw agent exec --json` | yes | yes | yes | summary |
+| `opencode` | `opencode run --format json` | with `--model provider/model` | yes | yes | yes |
+| `goose` | `goose run --output-format stream-json -t` | with `--model` / `GOOSE_MODEL` | yes | yes | yes |
+| `copilot` | `copilot --output-format json -p` | yes | yes | multiplier only | yes |
+| `cline` | `cline --json` | yes | yes | yes | no |
+| `amp` | `amp --stream-json -x` | no | yes | no | yes |
+| `cursor` | `agent --print --output-format stream-json` | display name | no | no | yes |
+| `kimi-code` | `kimi --print --output-format stream-json -p` | with `--model` | no | no | yes |
+| `openhands` | `openhands --headless --json -t` | no | no | no | yes |
+| `vibe` | `vibe --output streaming --prompt` | with `--model` | if reported | no | yes |
+| `grok`, `qoder` | `grok --no-auto-update --output-format streaming-json -p`, `qodercli --output-format stream-json -p` | JSON mode documented, schema not: read as Claude-compatible events (`unverified`) | | | |
+| `droid`, `auggie`, `continue` | `droid exec --output-format json`, `auggie --print --output-format json`, `cn --format json -p` | final result only | | | |
+| `aider`, `crush`, `kiro` | `aider --yes-always --no-pretty --message`, `crush run -q`, `kiro-cli chat --no-interactive` | text only | | | |
+
+Use `generic` with `--harness-command` (and repeatable `--harness-arg`) for
+anything else. `--harness-arg` values are inserted before a harness's prompt flag
+(`-p`, `-q`, `--message`), so `--harness-arg --model --harness-arg
+gemini-3.8-flash` reaches the CLI as an option. Not catalogued, because no
+headless invocation could be confirmed from their docs: Kilo Code, iFlow CLI,
+Z.ai ZCode.
+
+Token conventions differ by CLI, and each harness converts to OpenTine's
+exclusive buckets before recording: Gemini CLI and Qwen Code count cached tokens
+inside `input_tokens` and keep thinking outside `output_tokens` (recorded as
+`reasoning`); Goose and Copilot count cache inside input; Pi keeps reasoning
+inside output; Codex reports the thread's running total, so each turn records its
+own difference. Copilot's per-call `cost` is a premium-request multiplier,
+recorded as `premium_multiplier` and never booked. A CLI's own dollar figure
+(Pi, OpenCode, Cline per call; OpenClaw, Goose per run) is booked on that step;
+`tine price` re-prices the model steps from the catalog independently.
 
 On Windows, point `--harness-command` at an agent CLI's real executable, not
 its npm `.cmd` shim: a batch file is refused any task holding
@@ -203,17 +326,43 @@ call with the model, provider, and exact input-side token usage, one `tool`
 step per tool call carrying its result, the true per-model output totals from
 the final `result` event, and Claude Code's own reported cost on the closing
 step. That makes the run priceable afterwards — `tine price <run>` re-prices it
-from the signed catalog, independently of Claude Code's figure. The other agent
-CLIs are still recorded from their text output, without model or usage.
+from the signed catalog, independently of Claude Code's figure. Fast mode and
+US-only inference are recorded as the `fast` / `fast_us` / `us` service tier.
+Claude Code's own `total_cost_usd` is booked only when every model's
+`costBasis` is `list`; otherwise it is kept as `reported_estimate_usd`. With a
+non-Anthropic `ANTHROPIC_BASE_URL` the provider is `local-anthropic-compatible`
+(loopback, unmetered) or `anthropic-compatible` (priced unknown), never
+`anthropic`; Bedrock, Vertex and Foundry flags still win. Each run carries a
+W3C `TRACEPARENT`, so Claude Code's own OTel trace shares the run's trace id,
+recorded as `run.metadata.otel_trace_id`.
+
+`codex` runs `codex exec --json --skip-git-repo-check`: one model step per turn
+with exact usage (the model from `-m` / `--model` / `-c model=…` or
+`~/.codex/config.toml`, profiles included; a `model rerouted` notice updates
+it), and tool steps for commands, patches, MCP calls (`server.tool`), web
+searches and collab calls. `--oss` / `--local-provider` record the local
+provider.
 
 **Whose words stdout is.** A text-mode agent CLI prints the model's answer, so
 from 0.9.1 its stdout is recorded as text: a JSON-shaped line is parsed as an
-event only when the command asks the CLI for JSON output (`--json`,
-`--output-format json|stream-json`, `--format=json`; `kimi-code` and `openclaw`
-do by default), and a currency amount in free text ("cost: $2.50") is booked
-only for an operator-written `generic`/`pi` command. Before, an answer
-containing a JSON line or a dollar figure was recorded as a real tool step,
-error, or charge. For structured `codex` capture, add `--harness-arg --json`.
+event only when the command asks the CLI for JSON output — the last
+`--output-format` / `--format` / `-o` / `--output` / `--mode` value on the
+command line decides, or `--json`, and every catalogued harness asks for it by
+default — and a currency amount in free text ("cost: $2.50") is booked only for
+an operator-written `generic` command. Before, an answer containing a JSON line
+or a dollar figure was recorded as a real tool step, error, or charge. stderr is
+read on its own pipe and always recorded as text (`"stream": "stderr"`), never
+as events or cost. Harness text output is masked across lines from a
+private-key `BEGIN` marker to its `END` before it is parsed or stored (bodies
+printed with line numbers, quoted, bulleted or indented included), and a failing
+run's output tail is redacted before it is cut. A line that is a JSON document —
+a JSON-mode CLI's own event — is never truncated as text, so a marker in a
+model's answer cannot erase the event's usage, cost or tool calls; private-key
+blocks inside its string values are masked and the event re-serialized before
+it is buffered or parsed, and an event nested past 512 levels is recorded as
+masked text. Each harness
+names its own output-format options: Codex's `-o` is its last-message file, so
+only `--json` switches the codex harness to JSON.
 
 Process harnesses default to a one-hour wall timeout, a 4-million-character
 total output ceiling, and 10,000 parsed events; override them with
@@ -224,7 +373,11 @@ platform config/data/cache directories, and the harness's own login variables �
 and `--harness-env NAME` (repeatable) adds named variables to *that* forwarded
 set, so it only has an effect alongside `--harness-login-env`. Long runs can
 checkpoint with `--autosave PATH` plus `--autosave-interval N` or
-`--autosave-seconds T`.
+`--autosave-seconds T`. Without either, a harness run checkpoints at most every 2 seconds
+and only after the run has grown by a quarter, so checkpoint work stays linear
+in the output. Event subtrees nested deeper than 256 levels are recorded as
+their compact JSON text with a `truncated_depth` marker, so a run can always
+be saved.
 
 Because a harness re-executes real work, it is also how nondeterminism gets
 caught: `tine replay <run> --verify --harness <name>` runs it twice and compares
@@ -248,13 +401,30 @@ tine run --model lmstudio --prompt "…"            # http://localhost:1234/v1
 tine run --model ollama:llama3.1:8b --prompt "…"  # native adapter
 ```
 
-`jan`, `koboldcpp`, `litellm`, `llama-cpp-python`, `llamacpp`, `lmstudio`,
-`localai`, `mlx-lm`, `nvidia-nim`, `sglang`, `tensorrt-llm`, `tgi`, `unsloth`,
-and `vllm` each resolve to the localhost URL their server conventionally listens
-on; a server on a different port or an exact nonstandard prefix is the Python
-`LocalOpenAICompatible(host=…)`/`base_url=…` form instead. Local API usage is
-recorded `unmetered`, so these runs are captured, verified, and diffed like any
-other — they just carry no dollar figure.
+Each local preset resolves to the localhost URL its server conventionally
+listens on; `--base-url URL` (or `<PRESET>_BASE_URL`) points it at another port
+or machine, and `--api-key-env NAME` (or `<PRESET>_API_KEY`) supplies a key for a
+server that wants one. A hosted preset's own key never follows `--base-url` to
+another host: `--base-url` on a hosted preset (Groq, DeepSeek, …) needs
+`--api-key-env`. Local API usage is recorded `unmetered` — at capture and
+when `tine price` re-prices the run — so these runs are captured, verified, and
+diffed like any other; they just carry no dollar figure. Reasoning a server
+leaves inline (`<think>…</think>`, `[THINK]…[/THINK]`, raw Harmony channels) is
+split into reasoning for whole messages and streams alike. Ollama Cloud models
+(`:cloud` tags, or `https://ollama.com`) are recorded as `ollama-cloud`, never
+`unmetered`, and Ollama's cached prompt count is recorded as cache reads.
+
+Anthropic-compatible and Responses-compatible servers are reachable from Python:
+`Anthropic(base_url=…, provider=…, unmetered=…, cache_inclusive=…)` targets the
+`/v1/messages` that Ollama, LM Studio, llama.cpp, vLLM and gateways serve, and
+`OpenAI(base_url=…, provider=…, responses=True)` a compatible `/v1/responses`.
+An explicit non-Anthropic `base_url` never receives `ANTHROPIC_API_KEY` /
+`ANTHROPIC_AUTH_TOKEN`: pass `api_key=` or set `ANTHROPIC_COMPAT_API_KEY` (a
+placeholder is sent otherwise). From the CLI, `tine run --model anthropic:MODEL
+--base-url URL` records the run as `local-anthropic-compatible` (loopback,
+unmetered) or `anthropic-compatible`. `ANTHROPIC_BASE_URL` set in the
+environment keeps the SDK's own behaviour, as the operator's pairing of
+endpoint and key.
 
 See [GETTING_STARTED.md](GETTING_STARTED.md#2-your-first-captured-run-with-no-code)
 for the provider list and the exclusivity rules.

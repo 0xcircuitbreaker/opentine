@@ -33,7 +33,9 @@ class Google:
         if service_tier not in (None, "standard", "flex", "priority"):
             raise ValueError("Google service_tier must be standard, flex, or priority")
         self._model = model
-        self._api_key = api_key or os.environ.get("GOOGLE_API_KEY", "")
+        # As google-genai resolves it: the checked key is the key the SDK sends.
+        env = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+        self._api_key = api_key or env
         self._rate_override = validated_rates("google", model, rates)
         self._catalog = catalog
         self._service_tier = service_tier

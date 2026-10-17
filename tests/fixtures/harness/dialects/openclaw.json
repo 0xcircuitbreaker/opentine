@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "status": "ok",
+  "final": "The focused tests pass.",
+  "payloads": [{ "text": "The focused tests pass." }],
+  "usage": { "input": 120, "output": 8, "total": 128 },
+  "costUsd": 0.0021,
+  "codeModeEngaged": false,
+  "assistantTurns": 2,
+  "bridgeCalls": { "search": 1, "describe": 0, "call": 3 },
+  "toolSummary": { "calls": 2, "tools": ["read", "write"], "totalToolTimeMs": 48 },
+  "model": "gpt-6-astra",
+  "provider": "openai",
+  "sessionId": "019..."
+}

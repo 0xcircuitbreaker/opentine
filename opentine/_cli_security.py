@@ -8,7 +8,12 @@ from pathlib import Path
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
 from opentine._cli_keygen import cmd_keygen
-from opentine._cli_verify_report import emit_verify, signature_block, unchecked_signature
+from opentine._cli_verify_report import (
+    emit_verify,
+    read_once,
+    signature_block,
+    unchecked_signature,
+)
 from opentine._key_hygiene import ed25519_private, hmac_key
 from opentine._signing_pins import apply_pins, normalize_pins, used_key_fingerprint
 from opentine.core import Run, short_id
@@ -108,10 +113,11 @@ def signature_result(args: argparse.Namespace, path: Path):
         console.print(f"[red]SIGNATURE FAILED[/] cannot read the key: {_terminal(exc)}")
         raise SystemExit(1) from exc
     trust_embedded = getattr(args, "trust_embedded_key", False) or bool(pins and not public)
+    source = read_once(path)  # one read: the verdict and the pinned key share its bytes
     result = Run.verify_signature(
-        path, hmac_key=secret, public_key=public, trust_embedded=trust_embedded
+        source, hmac_key=secret, public_key=public, trust_embedded=trust_embedded
     )
-    fingerprint = used_key_fingerprint(signature_block(path), public)
+    fingerprint = used_key_fingerprint(signature_block(source), public)
     return apply_pins(result, fingerprint, pins), fingerprint
 
 
