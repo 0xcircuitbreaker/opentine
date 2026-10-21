@@ -5,11 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from opentine import _codec
 from opentine._v3_guards import guarded_redaction
-from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, parse_oid, validate_links
+from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, validate_links
 from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
-from opentine.repository._config import validate_config
+from opentine.repository._config import config_bytes, read_config, storage_codec
 from opentine.repository._discovery import find_repository
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
@@ -18,6 +19,7 @@ from opentine.repository._ref_store import commit_ref, read_ref_oid
 from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._shallow import read_shallow, shallow_fingerprint
+from opentine.repository._storage import object_exists, read_object
 
 _UNSET = object()
 
@@ -28,28 +30,27 @@ class Repo:
         if linklike(source):
             raise KernelError("repository root cannot be a symlink")
         self.path = source.resolve()
-        validate_config(internal_path(self.path, "config.json"))
+        config = read_config(internal_path(self.path, "config.json"))
+        self._storage_codec = storage_codec(config)
         self._shallow_cache = None
 
     @classmethod
-    def init(cls, path: str | Path = ".", *, bare: bool = False) -> Repo:
+    def init(
+        cls, path: str | Path = ".", *, bare: bool = False, compression: str | None = "default"
+    ) -> Repo:
+        """Create a repository; new ones store objects compressed (0.11+).
+
+        ``compression`` is a codec (``"zstd"``, ``"zlib"``), ``None`` for the plain
+        version-1 layout every release reads, or ``"default"``: compressed unless
+        ``OPENTINE_COMPRESS=0``. An existing repository keeps its descriptor.
+        """
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
         ensure_layout(tine)
         config = internal_path(tine, "config.json")
         if not config.exists():
-            _atomic_bytes(
-                config,
-                canonical_json(
-                    {
-                        "format": 3,
-                        "object_hash": "sha256",
-                        "repository": "opentine",
-                        "version": 1,
-                    }
-                )
-                + b"\n",
-            )
+            codec = _codec.wanted() if compression == "default" else compression
+            _atomic_bytes(config, config_bytes(codec))
         return cls(tine)
 
     @classmethod
@@ -65,10 +66,7 @@ class Repo:
         return internal_path(self.path, "objects", object_type, digest[:2], digest[2:])
 
     def has(self, oid: str) -> bool:
-        try:
-            return self._object_path(oid).is_file()
-        except KernelError:
-            return False
+        return object_exists(self, oid)
 
     def _shallow_set(self) -> frozenset[str]:
         path = internal_path(self.path, "shallow")
@@ -109,12 +107,7 @@ class Repo:
         return store_envelope(self, envelope)
 
     def get(self, oid: str) -> ObjectEnvelope:
-        path = self._object_path(oid)
-        try:
-            stored = path.read_bytes()
-        except FileNotFoundError as exc:
-            raise KeyError(oid) from exc
-        envelope = ObjectEnvelope.decode(stored, oid)
+        envelope = ObjectEnvelope.decode(read_object(self, oid), oid)
         validate_links(envelope, self._link_exists)
         validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
@@ -122,10 +115,7 @@ class Repo:
         return envelope
 
     def raw(self, oid: str) -> bytes:
-        try:
-            return self._object_path(oid).read_bytes()
-        except FileNotFoundError as exc:
-            raise KeyError(oid) from exc
+        return read_object(self, oid)
 
     def raw_size(self, oid: str) -> int:
         from opentine.repository._blob_io import stored_object_size

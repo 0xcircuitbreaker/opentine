@@ -53,6 +53,7 @@ from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
 from opentine._cli_text import endpoint_for_display
+from opentine._codec_io import atomic_write_bytes, standard_frame
 from opentine._graph_serde import run_from_dict, run_to_dict
 from opentine.core import Run
 from opentine.redaction import redact_value
@@ -76,6 +77,11 @@ def add_export_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
     )
     parser.add_argument(
         "--force", action="store_true", help="Replace an existing --output destination"
+    )
+    parser.add_argument(
+        "--compress",
+        choices=("gzip", "zstd"),
+        help="Write --output as a .gz or .zst file instead of plain JSON",
     )
     parser.add_argument(
         "--endpoint",
@@ -117,6 +123,9 @@ def _endpoint(args: argparse.Namespace) -> str | None:
 
 def _refuse_unusable_flags(args: argparse.Namespace, endpoint: str | None) -> None:
     """Refuse a flag this destination cannot honour instead of dropping it."""
+    if getattr(args, "compress", None) and not args.output:
+        console.print("[red]--compress has no effect without --output.[/]")
+        raise SystemExit(1)
     if endpoint is not None:
         refuse_unhonoured(
             args,
@@ -146,14 +155,18 @@ def _spans(document: dict[str, Any]) -> list[Any]:
     return resource["scopeSpans"][0]["spans"]
 
 
-def _write(document: dict[str, Any], output: Path | None) -> None:
+def _write(document: dict[str, Any], output: Path | None, compress: str | None = None) -> None:
     if output is None:
         # The CLI's one JSON writer: no Rich wrapping or markup on machine output.
         emit(document)
         return
     # Atomic replace, like every other artifact writer: a symlink at the
     # destination is replaced, never written through.
-    atomic_write_text(output, serialize(document) + "\n")
+    if compress:
+        text = (serialize(document) + "\n").encode()
+        atomic_write_bytes(output, standard_frame(text, compress))
+    else:
+        atomic_write_text(output, serialize(document) + "\n")
     console.print(
         f"[{BRAND}]# Exported[/] {len(_spans(document))} span(s) [{BRAND}]to[/] {_terminal(output)}"
     )
@@ -214,7 +227,7 @@ def cmd_export(args: argparse.Namespace) -> None:
         # past the format bound, or a cycle) rather than writing a truncation
         # marker, and that refusal has to exit 1 with a message like any other.
         if endpoint is None:
-            _write(document, output)
+            _write(document, output, getattr(args, "compress", None))
         else:
             _push(document, endpoint, args.allow_insecure)
     # KernelError subclasses ValueError, so a refusing artifact reads as a
