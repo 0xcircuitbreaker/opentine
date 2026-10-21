@@ -27,8 +27,8 @@ def _price(catalog, provider, model, when, usage=MILLION, tier=None):
 
 def test_the_refresh_is_signed_and_newer_than_every_earlier_release(catalog):
     raw = json.loads(BUNDLED_CATALOG.read_text(encoding="utf-8"))
-    assert catalog.signed and raw["generated_at"] == "2026-10-15T00:00:00Z"
-    assert raw["verified_at"] == "2026-10-15"
+    assert catalog.signed and raw["generated_at"] >= "2026-10-15T00:00:00Z"
+    assert raw["verified_at"] >= "2026-10-15"
     for card in raw["cards"]:
         assert card["source_urls"] and card["verified_at"], card["id"]
 
@@ -71,7 +71,11 @@ def test_mistral_large_4_launch_sale_is_carded_for_two_weeks_only(catalog):
         "complete",
         Decimal("2.77"),
     )
-    assert _price(catalog, "mistral", "mistral-large-4", "2026-10-20", usage)[0] == "unknown"
+    # The 2026-10-20 refresh cards the list price that follows the sale.
+    assert _price(catalog, "mistral", "mistral-large-4", "2026-10-20", usage) == (
+        "complete",
+        Decimal("5.54"),
+    )
 
 
 @pytest.mark.parametrize(

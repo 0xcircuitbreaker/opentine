@@ -326,12 +326,12 @@ def test_price_run_on_a_recorded_run_uses_the_recorded_instants(catalog):
 # --------------------------------------------------------------------------- #
 
 
-def test_bundled_catalog_is_schema_2_and_verifies(catalog):
+def test_bundled_catalog_is_schema_3_and_verifies(catalog):
     raw = json.loads(BUNDLED_CATALOG.read_text(encoding="utf-8"))
-    assert raw["schema"] == "opentine-pricing/2"
+    assert raw["schema"] == "opentine-pricing/3"  # /3 since the 0.11 media cards
     assert raw["signature"]["key_id"] == "opentine-release-2026-07-r3"
     assert catalog.signed and catalog.id == f"sha256:{catalog.hash}"
-    assert len(catalog.cards) == 190
+    assert len(catalog.cards) == 224
 
 
 @pytest.mark.parametrize("schema", ["opentine-pricing/1", "opentine-pricing/2"])
@@ -384,7 +384,7 @@ def test_a_schema_1_overlay_still_layers_over_the_bundled_catalog(tmp_path):
 
 
 def test_an_unknown_catalog_schema_is_still_refused(tmp_path):
-    data = {"schema": "opentine-pricing/3", "cards": []}
+    data = {"schema": "opentine-pricing/99", "cards": []}
     data["catalog_id"] = f"sha256:{catalog_hash(data)}"
     path = tmp_path / "future.json"
     path.write_text(json.dumps(data), encoding="utf-8")

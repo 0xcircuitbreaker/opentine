@@ -12,13 +12,17 @@ import hashlib
 from typing import Any
 
 from opentine._canon import _canonical_bytes
+from opentine.billing._media import check_schema_features
 
 #: Every catalog schema this build reads. ``/2`` adds the optional time-of-day
 #: ``schedule`` to a rate card; ``/1`` stays readable forever, because a repo of
 #: runs priced against an older catalog must keep loading (the backwards-compat
 #: policy) and user overlays in the wild are still written as ``/1``. The two
-#: differ only by that optional field, so one parser reads both.
-SUPPORTED_SCHEMAS = ("opentine-pricing/1", "opentine-pricing/2")
+#: differ only by that optional field, so one parser reads both. ``/3`` adds the
+#: optional media fields ``units`` and ``same_rate_as`` (``billing._media``);
+#: a /1 or /2 catalog that carries them is refused, so no reader prices a
+#: per-image rate as a per-million one.
+SUPPORTED_SCHEMAS = ("opentine-pricing/1", "opentine-pricing/2", "opentine-pricing/3")
 TRUSTED_KEYS = {
     "opentine-release-2026-07-r3": "VuhZjI3+QIPzZEA0y0Emw+o11f69o1J4kETghGGCwgc=",
 }
@@ -26,6 +30,18 @@ TRUSTED_KEYS = {
 
 class CatalogError(ValueError):
     pass
+
+
+def checked_cards(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """The catalog's card objects, after the shape and schema-feature checks."""
+    cards = data.get("cards")
+    if not isinstance(cards, list) or not all(isinstance(item, dict) for item in cards):
+        raise CatalogError("pricing catalog cards must be a list of objects")
+    try:
+        check_schema_features(data)
+    except ValueError as exc:
+        raise CatalogError(str(exc)) from exc
+    return cards
 
 
 #: The whole ``signature`` block is left out of the signed bytes, so anything

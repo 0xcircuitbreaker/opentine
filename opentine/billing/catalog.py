@@ -19,7 +19,7 @@ from opentine.billing._catalog_verify import SUPPORTED_SCHEMAS as SUPPORTED_SCHE
 from opentine.billing._catalog_verify import TRUSTED_KEYS as TRUSTED_KEYS
 from opentine.billing._catalog_verify import CatalogError as CatalogError
 from opentine.billing._catalog_verify import catalog_hash as catalog_hash
-from opentine.billing._catalog_verify import signature_fields, verify_catalog
+from opentine.billing._catalog_verify import checked_cards, signature_fields, verify_catalog
 from opentine.billing._immutable import freeze
 from opentine.billing.types import RateCard, as_date
 
@@ -103,9 +103,7 @@ class PricingCatalog:
     ) -> PricingCatalog:
         if not isinstance(data, dict):
             raise CatalogError("pricing catalog root is not an object")
-        cards = data.get("cards")
-        if not isinstance(cards, list) or not all(isinstance(item, dict) for item in cards):
-            raise CatalogError("pricing catalog cards must be a list of objects")
+        cards = checked_cards(data)
         digest = (
             verify_catalog(data, require_signature=require_signature)
             if verify

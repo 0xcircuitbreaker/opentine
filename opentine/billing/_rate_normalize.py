@@ -47,3 +47,7 @@ def normalize_rate_card(card: Any) -> None:
     object.__setattr__(card, "schedule", normalize_schedule(card.schedule))
     object.__setattr__(card, "currency_to_usd", decimal(card.currency_to_usd))
     object.__setattr__(card, "metadata", freeze(card.metadata))
+    for name in ("units", "same_rate_as"):
+        if not isinstance(getattr(card, name), Mapping):
+            raise ValueError(f"rate-card {name} must be an object")
+        object.__setattr__(card, name, freeze(dict(getattr(card, name))))

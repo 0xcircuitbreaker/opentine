@@ -29,7 +29,16 @@ from opentine.trace.schema import TRACE_KINDS
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
 _LEGACY_KEYS = frozenset(semconv.USAGE_BY_DIMENSION.values())
-_COUNTER_KEYS = _LEGACY_KEYS | set(semconv.STANDARD_USAGE_KEYS) | {semconv.USAGE_ATTRIBUTE}
+#: Per-modality counters (``gen_ai.usage.<modality>.<side>_tokens``), each
+#: included in its side's total, mapped to OpenTine's media dimensions.
+MODALITY_KEYS = {
+    f"gen_ai.usage.{modality}.{side}_tokens": (f"{side}_{modality}", side)
+    for modality in ("image", "audio", "video")
+    for side in ("input", "output")
+}
+_COUNTER_KEYS = (
+    _LEGACY_KEYS | set(semconv.STANDARD_USAGE_KEYS) | set(MODALITY_KEYS) | {semconv.USAGE_ATTRIBUTE}
+)
 
 
 def otel_kind(operation: str) -> str:
@@ -109,6 +118,40 @@ def _apply_standard_counters(attributes: dict[str, Any], raw: dict[str, Any]) ->
     if reasoning is not None:
         raw["reasoning"] = reasoning
         _subtract(attributes, raw, "output", semconv.OUTPUT_TOKENS, reasoning)
+    _split_modalities(attributes, raw)
+
+
+def _split_modalities(attributes: dict[str, Any], raw: dict[str, Any]) -> None:
+    """Carve per-modality counters out of the inclusive side totals.
+
+    The modality counters are a breakdown of ``input_tokens``/``output_tokens``,
+    like the cache counters: what is left of a side's total (after cache and
+    reasoning came out) is shared among its modalities and text. A side whose
+    remainder is smaller than its modalities -- cached media, or several
+    modalities against a small total -- kept the full media counts *and* the
+    text remainder, billing the overlap twice; they now get at most the remainder.
+    """
+    by_side: dict[str, list[tuple[str, int]]] = {}
+    for key, (name, side) in MODALITY_KEYS.items():
+        count = _tokens(attributes.get(key))
+        if count:
+            by_side.setdefault(side, []).append((name, count))
+    for side, counts in by_side.items():
+        if side not in raw:
+            raw.update(counts)
+            continue
+        left = raw[side]
+        wanted = sum(count for _, count in counts)
+        if wanted > left:
+            note_import_warning(
+                attributes, f"{side} modality counters exceed the {side} remainder; clamped"
+            )
+        for name, count in counts:
+            taken = min(count, left)
+            left -= taken
+            if taken:
+                raw[name] = taken
+        raw[side] = left
 
 
 def _subtract(
@@ -162,6 +205,12 @@ def _standard_counters(usage: dict[str, Any]) -> dict[str, int]:
         counters[semconv.OUTPUT_TOKENS] = (count["output"] or 0) + (count["reasoning"] or 0)
     if count["reasoning"] is not None:
         counters[semconv.REASONING_OUTPUT_TOKENS] = count["reasoning"]
+    for key, (name, side) in MODALITY_KEYS.items():
+        media = _tokens(usage.get(name))
+        if media:
+            counters[key] = media
+            totals = semconv.INPUT_TOKENS if side == "input" else semconv.OUTPUT_TOKENS
+            counters[totals] = counters.get(totals, 0) + media
     if count["total"] is not None:
         counters[semconv.TOTAL_TOKENS] = count["total"]
     return counters
