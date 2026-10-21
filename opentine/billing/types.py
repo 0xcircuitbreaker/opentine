@@ -11,10 +11,10 @@ from typing import Any
 from opentine.billing._billing_result import BillingResult as BillingResult
 from opentine.billing._billing_result import BillingStatus as BillingStatus
 from opentine.billing._context import billing_context
-from opentine.billing._immutable import freeze, thaw
+from opentine.billing._immutable import freeze
+from opentine.billing._rate_json import card_to_dict
 from opentine.billing._rate_normalize import normalize_rate_card
 from opentine.billing._rate_validation import validate_rate_card, validate_rate_card_data
-from opentine.billing._schedule import schedule_to_json
 from opentine.billing._values import as_date as as_date
 from opentine.billing._values import as_datetime as as_datetime
 from opentine.billing._values import billing_moment as billing_moment
@@ -141,6 +141,10 @@ class RateCard:
     #: positional construction of the /1 fields shifts. Empty means "price from
     #: ``rates`` at every hour", which is what every /1 card means.
     schedule: tuple[Mapping[str, Any], ...] = ()
+    #: ``opentine-pricing/3`` media fields (see ``billing._media``). Empty means
+    #: every dimension is a token dimension with its own rate, as in /1 and /2.
+    units: Mapping[str, str] = field(default_factory=dict)
+    same_rate_as: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         normalize_rate_card(self)
@@ -171,44 +175,7 @@ class RateCard:
         }
 
     def to_dict(self) -> dict[str, Any]:
-        # ``schedule`` is emitted only when the card has one, so every existing
-        # (unscheduled) card serializes byte-identically to what /1 produced.
-        scheduled = {"schedule": schedule_to_json(self.schedule)} if self.schedule else {}
-        return {
-            **scheduled,
-            "id": self.id,
-            "provider": self.provider,
-            "model": self.model,
-            "aliases": list(self.aliases),
-            "effective_from": self.effective_from.isoformat(),
-            "effective_until": self.effective_until.isoformat() if self.effective_until else None,
-            "rates": {key: str(value) for key, value in sorted(self.rates.items())},
-            "context_thresholds": [
-                {
-                    **thaw(rule),
-                    "multipliers": {
-                        key: str(value) for key, value in (rule.get("multipliers") or {}).items()
-                    },
-                }
-                for rule in self.context_thresholds
-            ],
-            "service_modifiers": {
-                key: {name: str(rate) for name, rate in sorted(value.items())}
-                if isinstance(value, Mapping)
-                else str(value)
-                for key, value in sorted(self.service_modifiers.items())
-            },
-            "service_rates": {
-                tier: {name: str(rate) for name, rate in sorted(rates.items())}
-                for tier, rates in sorted(self.service_rates.items())
-            },
-            "currency": self.currency,
-            "currency_to_usd": str(self.currency_to_usd),
-            "source_urls": list(self.source_urls),
-            "verified_at": self.verified_at.isoformat() if self.verified_at else None,
-            "unmetered": self.unmetered,
-            "metadata": thaw(self.metadata),
-        }
+        return card_to_dict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RateCard:
@@ -241,4 +208,6 @@ class RateCard:
             unmetered=bool(data.get("unmetered", False)),
             metadata=dict(data.get("metadata") or {}),
             schedule=tuple(data.get("schedule") or ()),
+            units=dict(data.get("units") or {}),
+            same_rate_as=dict(data.get("same_rate_as") or {}),
         )

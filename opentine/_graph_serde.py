@@ -13,8 +13,8 @@ from opentine._canon import (
     SUPPORTED_VERSIONS,
     _integrity_digest,
     _redact,
-    atomic_write_text,
 )  # fmt: skip
+from opentine._codec_io import write_artifact
 from opentine._graph_types import Graph, IntegrityResult, RunStatus
 from opentine._step_serde import step_from_dict as step_from_dict
 from opentine._step_serde import step_to_dict as step_to_dict
@@ -144,7 +144,7 @@ def save_run(
         )
     serialized = json.dumps(data, indent=2, sort_keys=True, allow_nan=False)
     artifact_io.assert_loadable(serialized)  # never persist what this build could not read back
-    atomic_write_text(target, serialized, fsync=fsync)
+    write_artifact(target, serialized, fsync=fsync, draft=draft)
     return target
 
 

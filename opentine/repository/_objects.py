@@ -6,8 +6,9 @@ import os
 from collections.abc import Iterator
 from pathlib import Path
 
-from opentine.kernel import OBJECT_TYPES, KernelError, ObjectEnvelope, verify_object
-from opentine.repository._paths import atomic_bytes, internal_path
+from opentine.kernel import OBJECT_TYPES, KernelError, ObjectEnvelope
+from opentine.repository._packs import pack_set
+from opentine.repository._paths import internal_path
 
 _HEX = frozenset("0123456789abcdef")
 MAX_TYPED_OBJECT_SCAN = 100_000
@@ -15,11 +16,9 @@ MAX_TYPED_OBJECT_SCAN = 100_000
 
 def store_envelope(repo, envelope: ObjectEnvelope) -> str:
     """Persist a caller-validated immutable envelope without rewalking its graph."""
-    path = repo._object_path(envelope.oid)
-    if not path.exists():
-        atomic_bytes(path, envelope.encode())
-    else:
-        verify_object(path.read_bytes(), envelope.oid, repo._link_exists)
+    from opentine.repository._storage import write_object
+
+    write_object(repo, envelope.oid, envelope.encode())
     return envelope.oid
 
 
@@ -95,6 +94,16 @@ def iter_object_oids(
                 found.append(f"{object_type}:sha256:{prefix}{suffix}")
                 if truncate and scanned == limit:
                     return sorted(found)
+    loose = set(found)
+    for oid in pack_set(root).oids():
+        if oid in loose:
+            continue
+        scanned += 1
+        if limit is not None and scanned > limit:
+            if truncate:
+                return sorted(found)
+            raise ValueError("repository object listing exceeds search limit")
+        found.append(oid)
     return sorted(found)
 
 
@@ -122,3 +131,15 @@ def iter_typed_object_oids(
                 if not path.is_file():
                     raise KernelError("repository object path is not a regular file")
                 yield f"{object_type}:sha256:{prefix}{suffix}"
+    for oid in pack_set(root).oids(object_types):
+        if internal_path(root, "objects", *_loose_parts(oid)).is_file():
+            continue  # already yielded loose
+        scanned += 1
+        if scanned > limit:
+            raise ValueError("typed object scan exceeds its object limit")
+        yield oid
+
+
+def _loose_parts(oid: str) -> tuple[str, str, str]:
+    object_type, _, digest = oid.split(":", 2)
+    return object_type, digest[:2], digest[2:]

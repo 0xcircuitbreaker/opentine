@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import opentine._artifact_shapes as artifact_shapes
+from opentine import _codec
 from opentine._canon import SUPPORTED_VERSIONS
 from opentine._unicode_text import SURROGATE_TEXT, assert_unicode_text, surrogate_suspect
 from opentine.kernel import KernelError, validate_json_shape
@@ -90,7 +91,8 @@ def read_artifact_bytes(path: str | Path) -> bytes:
         raw = handle.read(MAX_TINE_ARTIFACT_BYTES + 1)
     if len(raw) > MAX_TINE_ARTIFACT_BYTES:
         raise ValueError(".tine artifact exceeds the 256 MiB size limit")
-    return raw
+    # A compressed artifact (0.11+) inflates under the same 256 MiB bound.
+    return _codec.unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES)
 
 
 def _bounded_int(value: str) -> int:

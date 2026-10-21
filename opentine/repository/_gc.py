@@ -1,0 +1,191 @@
+"""``tine gc`` / ``tine repack``: move loose objects into compressed packs.
+
+The pack is written and read back object by object before anything loose is
+removed, so an interrupted gc leaves every object readable (at worst twice). A
+repository is upgraded to descriptor version 2 the first time it is packed:
+earlier opentine releases then refuse it cleanly instead of failing on a
+packed object.
+"""
+
+from __future__ import annotations
+
+import os
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
+
+from opentine import _codec
+from opentine.kernel import KernelError, canonical_json
+from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository._pack_write import load_pack, write_pack
+from opentine.repository._packs import oid_of, pack_set
+from opentine.repository._paths import atomic_bytes, internal_path
+
+GC_LEVEL = 19  # packs are written once and read many times
+
+
+@dataclass(frozen=True)
+class GcResult:
+    packed: int
+    removed_loose: int
+    removed_packs: int
+    removed_transfer_packs: int
+    bytes_before: int
+    bytes_after: int
+    disk_before: int
+    disk_after: int
+    codec: str
+
+
+def footprint(tine: Path) -> tuple[int, int]:
+    """(file bytes, allocated disk bytes) of the object and pack directories."""
+    total = disk = 0
+    for name in ("objects", "packs"):
+        for directory, _, files in os.walk(internal_path(tine, name)):
+            for file in files:
+                info = os.lstat(os.path.join(directory, file))
+                total += info.st_size
+                disk += getattr(info, "st_blocks", 0) * 512 or info.st_size
+    return total, disk
+
+
+def enable_storage(repo, codec: str) -> None:
+    """Upgrade a version-1 descriptor to version 2 with *codec*, keeping other keys."""
+    path = internal_path(repo.path, "config.json")
+    config = read_config(path)
+    if config.get("version") == STORAGE_VERSION:
+        return
+    config.update(version=STORAGE_VERSION, storage={"compression": codec})
+    atomic_bytes(path, canonical_json(config) + b"\n")
+    repo._storage_codec = codec
+
+
+def _loose_oids(repo) -> list[str]:
+    return [oid for oid in repo.iter_oids() if repo._object_path(oid).is_file()]
+
+
+def _remove_loose(repo, oid: str) -> None:
+    # The emptied prefix directory is left in place: removing it could race a
+    # concurrent writer that has just created it to install a new object.
+    repo._object_path(oid).unlink(missing_ok=True)
+
+
+_STALE_SECONDS = 24 * 60 * 60
+
+
+@contextmanager
+def gc_lock(root: Path) -> Iterator[None]:
+    """One gc or repack at a time per repository.
+
+    Two concurrent packers could each delete loose objects the other has not
+    yet packed and published. The lock is a file created exclusively; a lock
+    left by a crashed gc is taken over once its process is gone (POSIX) or it
+    is a day old, and ``OPENTINE_GC_BREAK_LOCK=1`` overrides it explicitly.
+    """
+    path = internal_path(root, "gc.lock")
+    stamp = f"{os.getpid()} {int(time.time())}\n".encode("ascii")
+    for _ in range(2):
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            break
+        except FileExistsError:
+            if not _stale(path):
+                raise KernelError(
+                    "another tine gc is running on this repository "
+                    "(set OPENTINE_GC_BREAK_LOCK=1 if it is not)"
+                ) from None
+            path.unlink(missing_ok=True)
+    else:
+        raise KernelError("could not take the gc lock")
+    try:
+        os.write(fd, stamp)
+        os.close(fd)
+        yield
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def _stale(path: Path) -> bool:
+    if os.environ.get("OPENTINE_GC_BREAK_LOCK") == "1":
+        return True
+    try:
+        pid_text, when_text = path.read_text(encoding="ascii").split()
+        pid, when = int(pid_text), int(when_text)
+    except (OSError, ValueError):
+        return False  # being written right now, or unreadable: assume live
+    if time.time() - when > _STALE_SECONDS:
+        return True
+    if os.name == "posix":
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        except OSError:
+            return False
+    return False
+
+
+def gc(
+    repo,
+    *,
+    repack: bool = False,
+    codec: str | None = None,
+    level: int | None = GC_LEVEL,
+    keep_transfer_packs: bool = False,
+) -> GcResult:
+    configured = getattr(repo, "_storage_codec", None)
+    chosen = codec or (configured if configured not in (None, "none") else None)
+    chosen = chosen or _codec.default_codec()
+    if not _codec.available(chosen):
+        raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
+    with gc_lock(repo.path):
+        return _gc_locked(repo, repack, chosen, level, keep_transfer_packs)
+
+
+def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool) -> GcResult:
+    before = footprint(repo.path)
+    enable_storage(repo, chosen)
+    packs = pack_set(repo.path)
+    packs.refresh()
+    old_packs = sorted({place[0] for place in packs.where.values()}) if repack else []
+    loose = _loose_oids(repo)
+    selected = sorted(set(loose) | (set(packs.oids()) if repack else set()))
+    objects: list[tuple[str, bytes]] = []
+    for oid in selected:
+        raw = repo.raw(oid)
+        if oid_of(raw) != oid:
+            raise KernelError(f"refusing to pack a corrupt object: {oid}")
+        objects.append((oid, raw))
+    removed_packs = 0
+    if objects:
+        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9)
+        check = load_pack(repo.path, digest)
+        expected = dict(objects)
+        for oid in check.in_block_order():  # read back before anything is deleted
+            if check.read(oid) != expected.get(oid):
+                raise KernelError(f"new pack does not return {oid}; nothing was removed")
+        for oid in loose:
+            _remove_loose(repo, oid)
+        for old in old_packs:
+            if old == digest:
+                continue
+            for suffix in (".tidx", ".tpk"):  # unpublish first, then drop the body
+                internal_path(repo.path, "packs", old + suffix).unlink(missing_ok=True)
+            removed_packs += 1
+    transfer = 0
+    if not keep_transfer_packs:
+        # Received transfer packs are kept only as a copy of what arrived; every
+        # object in them is installed, so the copy is redundant once packed.
+        directory = internal_path(repo.path, "packs")
+        for name in sorted(os.listdir(directory)) if directory.exists() else []:
+            if name.endswith(".pack"):
+                internal_path(repo.path, "packs", name).unlink()
+                transfer += 1
+    packs.refresh()
+    after = footprint(repo.path)
+    return GcResult(
+        len(objects), len(loose), removed_packs, transfer, *before[:1], after[0],
+        before[1], after[1], chosen,
+    )  # fmt: skip

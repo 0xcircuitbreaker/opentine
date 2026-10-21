@@ -487,6 +487,25 @@ document = to_otel_genai_document(repo.load_run("heads/main"), service_name="age
 Both accept a `TraceEvent`, an iterable of them, or anything with `.steps` — a
 v2 `Run`, a loaded `.tine` file, or a v3 repository run.
 
+## Which agents did what
+
+Every recorded tool call is also an *action*: its verb (`exec`, `file.read`,
+`file.write`, `file.delete`, `net`, `mcp`, `git`, `spawn_subagent`), the
+programs it ran (through `sudo`, `env`, `bash -c` and `&&`/`;`/`|` chains), the
+paths and hosts it named, the MCP server and tool, and the agent, session,
+model and provider that made it — all from redacted content. Shell-side
+writes count as `file.write` with their paths: redirects (`>`, `>>`, `&>`),
+`tee`, `cp`/`mv`/`install`/`ln` destinations, `sed -i`, `dd of=`, `truncate`,
+`touch` and `chmod`/`chown`/`chgrp` targets; the whole command is marked, so
+`touched` can over-report a read in the same command line but never misses a
+listed writer. A URL's host is kept even when redaction rewrote its
+userinfo. `tine who`,
+`tine actions`, `tine touched` and `tine audit --policy` query them through a
+rebuildable SQLite index; MCP clients use `find_actions`. Gemini output
+modalities (image, audio, video) and OpenAI audio/image token details are
+recorded as separate usage dimensions, and OTel
+`gen_ai.usage.<modality>.<side>_tokens` map to the same dimensions.
+
 ## What capture does *not* do
 
 Redaction is typed and path-aware and runs before canonicalization and hashing,

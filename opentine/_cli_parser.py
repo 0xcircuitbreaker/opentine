@@ -11,6 +11,8 @@ from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
+from opentine._cli_storage import add_storage_parsers
+from opentine._cli_who import add_actions_parsers
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
 from opentine.pricing_cli import add_pricing_parser
@@ -20,6 +22,11 @@ from opentine.remote.server import add_serve_parser
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
     parser.add_argument("-V", "--version", action="version", version=f"opentine {__version__}")
+    parser.add_argument(
+        "--no-compress",
+        action="store_true",
+        help="Write plain .tine files and repositories that releases before 0.11 can read",
+    )
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
@@ -216,6 +223,8 @@ def _build_parser() -> argparse.ArgumentParser:
     add_pricing_parser(sub)
     add_serve_parser(sub)
     add_harnesses_parser(sub)
+    add_storage_parsers(sub)
+    add_actions_parsers(sub)
     add_repo_parsers(sub)
     return parser
 

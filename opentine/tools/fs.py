@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from opentine.policies import FilesystemPolicy
+from opentine.tools._dotgit import is_dotgit
 from opentine.tools._fs_open import list_entries, open_file
 
 MAX_LIST_ENTRIES = 1_000
@@ -72,12 +73,13 @@ def _refuse_unsafe_write(path: str, raw: Path, resolved: Path) -> None:
     A model that could write ``.git/config`` (``core.fsmonitor``, a filter
     driver) or ``.git/hooks`` ran its command on the host the next time git ran
     in the workspace -- including ``code_manifest`` capturing it after the run.
-    Any ``.git`` component is refused, case-insensitively for the file systems
-    that fold case, and a ``.git`` *file* too (it redirects to another git
-    directory). A hard-linked file is refused because writing it writes every
-    other name for that inode, which need not be inside the sandbox.
+    Any ``.git`` component is refused, including the spellings Windows and HFS+
+    resolve to it (:func:`~opentine.tools._dotgit.is_dotgit`), and a ``.git``
+    *file* too (it redirects to another git directory). A hard-linked file is
+    refused because writing it writes every other name for that inode, which
+    need not be inside the sandbox.
     """
-    if any(part.lower() == ".git" for part in (*raw.parts, *resolved.parts)):
+    if any(is_dotgit(part) for part in (*raw.parts, *resolved.parts)):
         raise PermissionError(f"Writing inside a .git directory is denied by policy: {path}")
     try:
         links = resolved.lstat().st_nlink

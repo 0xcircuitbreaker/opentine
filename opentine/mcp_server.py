@@ -232,12 +232,9 @@ def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "
         """Expose a run as an MCP resource."""
         return format_run_for_llm(Run.load(find_run(run_id, runs_dir)))
 
-    try:
-        from opentine.mcp_repository import register_repository_tools
+    from opentine._mcp_actions import register_actions_and_repository
 
-        register_repository_tools(mcp, str(repo_path))
-    except FileNotFoundError:
-        pass
+    register_actions_and_repository(mcp, runs_dir, repo_path)
 
     return server
 

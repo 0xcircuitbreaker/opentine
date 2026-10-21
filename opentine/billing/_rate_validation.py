@@ -8,13 +8,23 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
+from opentine.billing._media import validate_media_fields
+
 _CURRENCY = re.compile(r"[A-Z]{3}")
+_OBJECT_FIELDS = (
+    "rates",
+    "service_modifiers",
+    "service_rates",
+    "metadata",
+    "units",
+    "same_rate_as",
+)
 
 
 def validate_rate_card_data(data: Any) -> None:
     if not isinstance(data, dict):
         raise ValueError("rate card must be an object")
-    for field in ("rates", "service_modifiers", "service_rates", "metadata"):
+    for field in _OBJECT_FIELDS:
         if field in data and not isinstance(data[field], dict):
             raise ValueError(f"rate-card {field} must be an object")
     for field in ("aliases", "context_thresholds", "schedule", "source_urls"):
@@ -72,3 +82,4 @@ def validate_rate_card(card: Any) -> None:
         raise ValueError("rate-card source URLs must contain strings")
     if type(card.unmetered) is not bool:
         raise ValueError("rate-card unmetered must be a boolean")
+    validate_media_fields(card)

@@ -591,6 +591,35 @@ event references while bounding structured and blob source bytes. Direct blob
 inspection returns a verified 512 KiB prefix; resolved inspection returns at
 most 1 MiB across 64 referenced blobs and marks truncated results explicitly.
 
+## Compression and packs
+
+Since 0.11 `Repo.init` creates a version-2 repository (`config.json` carries
+`"version": 2` and `"storage": {"compression": …}`) whose loose objects are
+stored compressed (zstd on Python 3.14 or with `opentine[zstd]`, zlib
+otherwise). Object ids stay over the canonical bytes, so a compressed and a
+plain repository hold the same objects. `OPENTINE_COMPRESS=0` or
+`tine --no-compress` creates the plain version-1 layout older releases read,
+and an existing version-1 repository is never written compressed until
+`tine gc` upgrades it.
+
+- `tine gc` moves loose objects into compressed local packs
+  (`.tine/packs/*.tpk` + `.tidx`): a pack is written and read back object by
+  object before anything loose is deleted (about 18x less disk on real
+  sessions). Redundant copies of received transfer packs are removed unless
+  `--keep-transfer-packs`.
+- `tine gc` and `tine repack` hold `.tine/gc.lock`, so two packers never
+  race; a lock left by a crashed gc is taken over once its process is gone
+  (POSIX) or after a day (`OPENTINE_GC_BREAK_LOCK=1` forces it). An
+  interrupted gc loses nothing and can be re-run.
+- `tine repack` merges every local pack into one.
+- `tine archive create FILE` writes the whole repository (objects, refs,
+  shallow boundaries) as one compressed file; `tine archive restore FILE DEST`
+  verifies the pack digest and every object id and sets refs through the
+  normal validated path, into a new repository only.
+
+Push, fetch and clone are unchanged: transfer packs carry canonical bytes, so
+compressed and plain repositories exchange objects freely.
+
 ## Packs and synchronization
 
 `TINEPACK3` packs are canonical manifests of verified envelopes, compressed

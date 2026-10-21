@@ -566,6 +566,14 @@ walks upward from the given path looking for `<dir>/config.json` or
 > number is required (`true` is not `1`), and requires UTF-8 (a leading BOM is
 > tolerated).
 
+Since 0.11 a descriptor may instead carry `"version": 2` together with
+`"storage": {"compression": "zstd" | "zlib" | "none"}`. A version-2 repository
+may hold compressed loose objects (§2.3) and local packs (§2.8). Version 1
+holds plain loose objects only. A reader that supports only version 1 MUST
+refuse version 2. `Repo.init` writes version 2 by default; with
+`OPENTINE_COMPRESS=0` or `tine --no-compress` it writes version 1 byte for byte
+as shown above.
+
 ## 2.3 `objects/`
 
 For `oid = TYPE:sha256:HEX`, the loose object lives at:
@@ -585,6 +593,34 @@ identically everywhere. A directory under `objects/` whose name is not an
 object type, a 2-character non-hex prefix directory, or a file whose name is
 not 62 hex characters is **skipped, not an error** (one stray `.DS_Store` must
 not take down `fsck`, `search` and `pack`).
+
+### Stored form vs. canonical form
+
+An object's id, a `.tine` artifact's digest (§3.5) and every signature are
+computed over the canonical bytes defined above, never over the bytes on disk.
+
+An implementation may store those bytes compressed. A stored body that begins
+with `TINEZ1\0` has this layout:
+
+```text
+TINEZ1\0 ‖ codec (1 byte) ‖ uvarint(canonical length) ‖ frame
+```
+
+- **Codec byte:** 0 = raw, 1 = zlib (RFC 1950), 2 = zstd (RFC 8878, one frame).
+- **Length:** a minimal LEB128 varint of at most 10 bytes.
+- **Anything else:** a stored body that does not begin with `TINEZ1\0` is the
+  canonical bytes themselves.
+
+A reader MUST refuse a wrapped body when any of these holds:
+
+- its declared length exceeds the reader's limit;
+- its declared length exceeds 1000 × the frame length;
+- it inflates to a different length than declared;
+- it has bytes after its frame;
+- its inflated bytes are themselves wrapped;
+- its codec byte is unknown.
+
+Writers MUST NOT emit a body that exceeds the ratio limit.
 
 ## 2.4 `refs/`
 
@@ -774,6 +810,30 @@ shallow boundaries — with any existing boundary the pack fills — in the
 interrupted after the first object therefore never leaves a cut link that is
 neither present nor recorded (a retry of the same fetch sends nothing, so it
 could never heal one).
+
+### Local packs
+
+A version-2 repository may also hold local packs, written by `tine gc`. Each
+pack is two files, `packs/<sha256>.tpk` and `packs/<sha256>.tidx`, named by the
+SHA-256 of the `.tpk` bytes.
+
+- **`.tpk`:** `TINELP1\n` followed by blocks. Each block is a wrapped body (see
+  "Stored form vs. canonical form" in §2.3) holding a concatenation of
+  canonical objects.
+- **`.tidx`:** a wrapped canonical-JSON document:
+
+  ```text
+  {"blocks": [[offset, length], …],
+   "objects": [[oid, block, start, length], …],
+   "pack": "<digest>",
+   "version": 1}
+  ```
+
+  `objects` is sorted and unique, and `blocks` exactly covers the `.tpk`.
+
+A packed object MUST be checked against its id when read. Local packs are a
+storage detail: they never cross the network, and transfer packs (TINEPACK3)
+always carry canonical bytes.
 
 ## 2.9 `fsck`
 

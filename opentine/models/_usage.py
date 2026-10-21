@@ -141,14 +141,38 @@ def openai_usage(raw: Any, *, additive_reasoning: bool = False) -> Usage:
         raise ValueError("provider usage reasoning tokens exceed total output tokens")
     normalized_output = output_total if additive_reasoning else output_total - reasoning
     computed_total = _safe_total(input_total, output_total, reasoning if additive_reasoning else 0)
+    # Audio and image tokens (gpt-audio, gpt-realtime, image generation) are
+    # priced apart from text; split them out of the text buckets, bounded by
+    # what those buckets hold so a provider's overlap never goes negative.
+    fresh = input_total - cached - write_5m - write_1h
+    extra: dict[str, int] = {}
+    # Input audio_tokens/image_tokens count cached media too; only the uncached
+    # share leaves the fresh bucket (cached_tokens_details breaks the cache out),
+    # or fresh text tokens would bill at the media rate.
+    cached_details = tuple(value(source, "cached_tokens_details") for source in input_details)
+    for side, details, room in (("input", input_details, fresh), ("output", output_details, None)):
+        for modality in ("audio", "image"):
+            reported = detail(details, f"{modality}_tokens")
+            if room is not None:
+                reported = max(0, reported - detail(cached_details, f"{modality}_tokens"))
+            count = min(reported, normalized_output if room is None else room)
+            if count:
+                extra[f"{side}_{modality}"] = count
+                if room is None:
+                    normalized_output -= count
+                else:
+                    room -= count
+        if room is not None:
+            fresh = room
     return Usage(
-        input=input_total - cached - write_5m - write_1h,
+        input=fresh,
         output=normalized_output,
         cache_read=cached,
         cache_write_5m=write_5m,
         cache_write_1h=write_1h,
         reasoning=reasoning,
         total=integer(raw, "total_tokens") or computed_total,
+        extra=extra,
     )
 
 
@@ -178,55 +202,6 @@ def anthropic_usage(raw: Any, *, cache_inclusive: bool = False) -> Usage:
     )
 
 
-def _google_modalities(raw: Any, name: str, wire_name: str) -> dict[str, int]:
-    result: dict[str, int] = {}
-    details = _first_value((raw, name), (raw, wire_name), default=[])
-    for item in details or []:
-        modality = str(value(item, "modality", "")).lower().rsplit(".", 1)[-1]
-        if modality:
-            count = alias_integer(item, "token_count", "tokenCount")
-            result[modality] = result.get(modality, 0) + count
-    return result
-
-
-def google_usage(raw: Any) -> Usage:
-    prompt = alias_integer(raw, "prompt_token_count", "promptTokenCount")
-    tool_use = alias_integer(raw, "tool_use_prompt_token_count", "toolUsePromptTokenCount")
-    cached = alias_integer(raw, "cached_content_token_count", "cachedContentTokenCount")
-    output = alias_integer(raw, "candidates_token_count", "candidatesTokenCount")
-    reasoning = alias_integer(raw, "thoughts_token_count", "thoughtsTokenCount")
-    total = alias_integer(raw, "total_token_count", "totalTokenCount")
-    total = total or _safe_total(prompt, output, reasoning, tool_use)
-    prompt_modalities = _google_modalities(raw, "prompt_tokens_details", "promptTokensDetails")
-    cache_modalities = _google_modalities(raw, "cache_tokens_details", "cacheTokensDetails")
-    prompt_audio = prompt_modalities.get("audio", 0)
-    audio_cache = cache_modalities.get("audio", 0)
-    if cached > prompt or prompt_audio > prompt or audio_cache > min(cached, prompt_audio):
-        raise ValueError("provider usage cache/audio sub-buckets exceed prompt token totals")
-    audio_input = prompt_audio - audio_cache
-    extra = {
-        name: count
-        for name, count in {
-            "input_audio": audio_input,
-            "cache_read_audio": audio_cache,
-        }.items()
-        if count
-    }
-    fresh_input = prompt - cached - audio_input
-    if fresh_input + tool_use > _MAX_SAFE_INTEGER:
-        extra["input_tool_use"] = tool_use
-    else:
-        fresh_input += tool_use
-    return Usage(
-        input=fresh_input,
-        output=output,
-        cache_read=cached - audio_cache,
-        reasoning=reasoning,
-        total=total,
-        extra=extra,
-    )
-
-
 def ollama_usage(raw: Mapping[str, Any]) -> Usage:
     extra = {
         key: raw[key]
@@ -248,3 +223,6 @@ def ollama_usage(raw: Mapping[str, Any]) -> Usage:
         total=_safe_total(input_count, output_count),
         extra=extra,
     )
+
+
+from opentine.models._usage_google import google_usage as google_usage  # noqa: E402

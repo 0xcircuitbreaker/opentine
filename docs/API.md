@@ -155,6 +155,17 @@ that decision.
 `Agent(policies=PolicySet(...))` records the set on every run it makes; its
 `RedactionPolicy.extra_secret_keys` then applies to every save of that run.
 
+## Actions, media pricing and storage (0.11)
+
+- `Repo.init(path, *, bare=False, compression="default")` — `"none"` creates
+  the plain version-1 layout.
+- `opentine.billing._media.media_usage(images=, video_seconds=,
+  audio_input_seconds=, audio_output_seconds=, tts_characters=, requests=,
+  tokens=)` builds usage for a media call.
+- The action layer (`opentine._actions.extract_actions`, `ActionIndex`,
+  `ActionQuery`) is internal for now; the public surface is the CLI
+  (`tine who`, `actions`, `touched`, `audit`) and MCP `find_actions`.
+
 ## Next
 
 - [GETTING_STARTED.md](GETTING_STARTED.md) — the CLI walkthrough.

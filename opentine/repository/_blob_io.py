@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import stat
@@ -14,8 +15,15 @@ _HEADER_LIMIT = 256
 _READ_CHUNK = 64 * 1024
 
 
-def _open_object(repo, oid: str):
+def _open_object(repo, oid: str, limit: int | None = None):
     parse_oid(oid)
+    from opentine.repository._storage import canonical_size, read_object
+
+    size = canonical_size(repo, oid)
+    if size is not None:  # compressed or packed: inflate once, bounded first
+        if limit is not None and size > limit:
+            raise KernelError("repository blob exceeds the inspection source-byte limit")
+        return io.BytesIO(read_object(repo, oid)), size
     path: Path = repo._object_path(oid)
     try:
         fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
@@ -31,7 +39,12 @@ def _open_object(repo, oid: str):
 
 
 def stored_object_size(repo, oid: str) -> int:
-    """Return a confined regular object's encoded size without reading its body."""
+    """Return an object's canonical size without reading (or inflating) its body."""
+    from opentine.repository._storage import canonical_size
+
+    size = canonical_size(repo, oid)
+    if size is not None:
+        return size
     handle, size = _open_object(repo, oid)
     handle.close()
     return size
@@ -51,7 +64,7 @@ def read_verified_blob_prefix(
         raise ValueError("blob inspection limits must be non-negative and positive")
     if parse_oid(oid)[0] != "blob":
         raise KernelError("bounded blob reader requires a blob id")
-    handle, stored_size = _open_object(repo, oid)
+    handle, stored_size = _open_object(repo, oid, source_limit + _HEADER_LIMIT + 1)
     try:
         if stored_size > source_limit + _HEADER_LIMIT + 1:
             raise KernelError("repository blob exceeds the inspection source-byte limit")

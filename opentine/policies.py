@@ -52,6 +52,10 @@ class ShellPolicy:
     env_allowlist: tuple[str, ...] = ()
     timeout_seconds: int = 30
     max_output_chars: int = 8_000
+    #: git subcommands that move data off or onto the machine (fetch/pull/push).
+    git_network: bool = False
+    #: git subcommands that write files themselves (init, clone, archive, ...).
+    git_write_out: bool = False
 
 
 @dataclass(frozen=True)

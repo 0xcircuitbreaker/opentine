@@ -10,11 +10,17 @@ from pathlib import Path
 
 from opentine._canon import FORMAT_VERSION, atomic_write_text
 from opentine._index_query import Query, QueryError, _parse_date, match_entry, parse_query
-from opentine._index_types import IndexEntry, entry_from_run
+from opentine._index_types import (
+    MAX_FULL_TEXT_CHARS,
+    IndexEntry,
+    entry_from_run,
+    searchable_text,
+)
 from opentine.graph import Run
 from opentine.kernel import validate_json_shape
 
-INDEX_VERSION = 1
+#: 2 (0.11): entries carry tool arguments, harness, providers and ``truncated``.
+INDEX_VERSION = 2
 INDEX_FILENAME = "index.json"
 MAX_INDEX_BYTES = 16 * 1024 * 1024
 MAX_INDEX_RUNS = 1_000
@@ -154,9 +160,27 @@ class RunIndex:
     def search(self, query: str | Query) -> list[IndexEntry]:
         self.sync()
         parsed = parse_query(query) if isinstance(query, str) else query
-        results = [entry for entry in self.entries.values() if match_entry(entry, parsed)]
+        results = [
+            entry
+            for entry in self.entries.values()
+            if match_entry(entry, parsed)
+            or (
+                entry.truncated
+                and parsed.text
+                and match_entry(entry, parsed, text=False)
+                and self._full_text_matches(entry, parsed.text)
+            )
+        ]
         results.sort(key=lambda entry: entry.created_at, reverse=True)
         return results
+
+    def _full_text_matches(self, entry: IndexEntry, terms: list[str]) -> bool:
+        """Search a run whose index text was cut off, in full, from its file."""
+        try:
+            text, _ = searchable_text(Run.load(self.runs_dir / entry.file), MAX_FULL_TEXT_CHARS)
+        except Exception:
+            return False
+        return all(term in text for term in terms)
 
     def lookup(self, run_id: str) -> IndexEntry | None:
         exact = [entry for entry in self.entries.values() if entry.run_id == run_id]

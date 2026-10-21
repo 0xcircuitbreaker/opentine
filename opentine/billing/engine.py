@@ -8,10 +8,9 @@ from decimal import Decimal
 from typing import Any
 
 from opentine.billing._context import billing_context
+from opentine.billing._media import resolve_rate
 from opentine.billing._schedule import window_rates
 from opentine.billing.types import BillingResult, RateCard, Usage, billing_moment, decimal
-
-_MILLION = Decimal(1_000_000)
 
 
 def _calculation_usage(usage: Usage) -> dict[str, Any]:
@@ -134,16 +133,16 @@ def _calculate(
         count = decimal(raw_count)
         if not count:
             continue
-        rate = rates.get(dimension)
+        rate, base, divisor = resolve_rate(card, rates, dimension)
         if rate is None:
             missing.append(dimension)
             continue
         modifier = (
-            decimal(dimension_modifiers.get(dimension), "1")
+            decimal(dimension_modifiers.get(dimension, dimension_modifiers.get(base)), "1")
             if dimensional_modifier
             else decimal(raw_modifier, "1")
         )
-        amount = count * rate / _MILLION * modifier * card.currency_to_usd
+        amount = count * rate / divisor * modifier * card.currency_to_usd
         known += amount
         components[dimension] = str(amount)
 
@@ -173,6 +172,9 @@ def _calculate(
             "currency_to_usd": str(card.currency_to_usd),
         }
     )
+    if card.units or card.same_rate_as:  # /3 cards only: older records unchanged
+        calculation["units"] = dict(card.units)
+        calculation["same_rate_as"] = dict(card.same_rate_as)
     if card.schedule:
         # Only for scheduled cards: an unscheduled card's calculation record is
         # byte-for-byte what it was before time-of-day pricing existed.

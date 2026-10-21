@@ -327,7 +327,7 @@ Groq, Together, Mistral/Ministral, Meta (Muse), MiniMax, StepFun, Xiaomi MiMo
 and Fireworks, and cloud namespaces `bedrock` (global endpoints at first-party
 list, regional 1.1x), `vertex` (Claude; regional and multi-region 1.1x) and
 `foundry` (Claude at Anthropic's rates with the US Data Zone at 1.1x; Azure
-OpenAI GPT-6 with Data Zone US 1.1x and EU 1.2x). The 0.10.0 snapshot holds 190
+OpenAI GPT-6 with Data Zone US 1.1x and EU 1.2x). The 0.11.0 snapshot holds 224
 signed cards, verified 2026-10-15. Use `tine pricing
 list` for the exact effective records rather than copying rates into code.
 Direct Nous/Hermes rates are dynamic in the upstream service, so that card is
@@ -398,6 +398,30 @@ Primary rate sources are linked on every card, including the
 [xAI pricing](https://docs.x.ai/developers/pricing),
 [Z.AI pricing](https://docs.z.ai/guides/overview/pricing), and
 [Alibaba Model Studio pricing](https://www.alibabacloud.com/help/en/model-studio/model-pricing).
+
+## Media, voice and omni models
+
+A rate card prices token dimensions per million tokens, as before. Schema
+`opentine-pricing/3` adds two optional fields. `units` maps a dimension to its
+unit — `image`, `second`, `minute`, `character` or `request` — and that
+dimension's rate is per unit
+(`{"rates": {"images:1024x1024:high": "0.17"}, "units": {"images:1024x1024:high": "image"}}`).
+`same_rate_as` names a dimension the vendor bills like another
+(`{"input_video": "input"}`); it is never inferred.
+
+Media dimensions: per-modality tokens `input_image`, `input_audio`,
+`input_video`, `output_image`, `output_audio`, `output_video` (split out of
+`input`/`output`), and per-unit `images[:variant]`, `video_seconds[:variant]`,
+`audio_input_seconds`, `audio_output_seconds`, `audio_minutes`,
+`tts_characters`, `realtime_minutes`, `requests`. A dimension the card does not
+price makes the result `partial` with a "missing rates" warning — media is
+never billed at the text rate. A per-unit dimension (or its `:variant`) is
+priced only in the unit the card states: a card that prices one without a
+`units` entry is refused at load, and a /1 or /2 catalog carrying per-unit
+rate names is refused. Older catalogs (/1, /2) cannot carry these
+fields, and a 0.10 reader refuses a /3 catalog. Gemini image and video *input*
+stay in the `input` bucket (they bill at the text rate on every model except
+Live).
 
 ## Local infrastructure rates
 

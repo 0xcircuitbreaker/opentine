@@ -17,6 +17,10 @@ def pytest_configure(config):
     """
     os.environ.pop("FORCE_COLOR", None)
     os.environ["NO_COLOR"] = "1"
+    # 0.11 compresses .tine files and new repositories by default. Most tests
+    # read or corrupt stored bytes directly, so they pin the plain form; the
+    # compression tests (test_compression_0_11.py) turn it back on themselves.
+    os.environ.setdefault("OPENTINE_COMPRESS", "0")
     # Also pin a fixed, wide console WIDTH. The CLI's Rich console captures its
     # width at import: from the controlling terminal in an interactive dev shell
     # (wide), or 80 when stdout is not a tty (CI). A long message or temp path

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, verify_object
 from opentine.repository._annotations import validate_annotation_chain
+from opentine.repository._pack_write import verify_packs
 from opentine.repository._paths import internal_path
 from opentine.repository._refs import validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from opentine.repository.store import Repo
 
 _PACK_NAME = re.compile(r"^([0-9a-f]{64})\.pack$")
+_LOCAL_PACK = re.compile(r"^[0-9a-f]{64}\.(tpk|tidx)$")
 _MAX_FSCK_PACKS = 1_000
 _MAX_FSCK_PACK_BYTES = 1024 * 1024 * 1024
 
@@ -80,8 +82,11 @@ def _pack_errors(repo: Repo) -> list[str]:
         return []
     except (KernelError, OSError) as exc:
         return [f"packs: {exc}"]
+    errors.extend(verify_packs(repo.path))  # local .tpk/.tidx packs (tine gc)
     for name in sorted(names):
         match = _PACK_NAME.fullmatch(name)
+        if _LOCAL_PACK.fullmatch(name):
+            continue
         if not match:
             errors.append(f"pack {name}: invalid pack filename")
             continue
