@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Callable
 
@@ -51,6 +52,8 @@ from opentine._cli_security import (
     cmd_verify,
 )
 from opentine._cli_stats import cmd_stats
+from opentine._cli_storage import STORAGE_COMMANDS
+from opentine._cli_who import COMMANDS as ACTION_COMMANDS
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
 from opentine.repo_cli import REPO_COMMANDS, cmd_repo
@@ -63,6 +66,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "export": cmd_export,
     "fork": cmd_fork,
     "harnesses": cmd_harnesses,
+    **STORAGE_COMMANDS,
     "import": cmd_import,
     "keygen": cmd_keygen,
     "ls": cmd_ls,
@@ -80,6 +84,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "stats": cmd_stats,
     "tag": cmd_tag,
     "verify": cmd_verify,
+    **ACTION_COMMANDS,
 }
 
 
@@ -88,6 +93,8 @@ def main(argv: list[str] | None = None) -> None:
     _common.RUNS_DIR = RUNS_DIR
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.no_compress:
+        os.environ["OPENTINE_COMPRESS"] = "0"
     guarded_dispatch(lambda: _dispatch(parser, args))
 
 

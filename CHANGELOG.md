@@ -1,5 +1,310 @@
 # Changelog
 
+## 0.11.0 — 2026-10-20 — Agent actions, multimodal pricing, storage compression
+
+You can now ask which agents did what. `tine who` finds every agent, model or
+session that ran a command, touched a path, called a host or used an MCP tool,
+and `tine audit --policy` turns those questions into a CI gate. Image, video,
+voice and omni-modal models are priced by their own units: per image, per
+second, per minute, per character. `.tine` files and repositories are stored
+compressed by default, and `tine gc` packs a repository about 18× smaller on
+disk. The shell tool's git guard, the one area the 0.10 audit did not cover,
+is rebuilt as an allowlist.
+
+### Upgrade notes
+
+- **Files written by 0.11 need 0.11 to read.**
+  - A compressed `.tine` starts with `TINEZ1`, and a compressed or packed
+    repository has a version-2 descriptor. Releases before 0.11 refuse both;
+    for repositories the refusal is clean.
+  - To share with an older release, write plain files: `tine --no-compress …`
+    or `OPENTINE_COMPRESS=0`. `tine compress --decompress` converts existing
+    `.tine` files.
+  - Existing version-1 repositories are never written compressed until
+    `tine gc` upgrades them.
+- **Compressed `.tine` files are binary.** `cat` and `jq` show compressed
+  bytes; use `tine show`, `tine export` or `tine compress --decompress`.
+- **Codecs.** `OPENTINE_COMPRESS=zlib|zstd` picks one. On Python 3.11–3.13,
+  install `opentine[zstd]` (`backports.zstd`) to read zstd data; without it,
+  writes use zlib.
+- **Network transfer is unchanged.** Push, fetch, clone and transfer packs carry
+  canonical bytes, so compressed and plain repositories exchange objects
+  freely.
+- **The bundled catalog is `opentine-pricing/3`.**
+  - 0.10 and earlier refuse a /3 catalog (`unsupported pricing catalog
+    schema`). Installing a 0.11 catalog on 0.10 therefore fails closed rather
+    than reading a per-image price as a per-million price.
+  - A /1 or /2 catalog that carries `units` or `same_rate_as` is refused.
+  - Recorded Gemini image/audio/video output and OpenAI audio/image tokens now
+    land in media dimensions, so a workspace pricing overlay for those models
+    needs the media rates or the price comes out `partial`.
+- **git in the shell tool is opt-in beyond read-mostly work.**
+  - `ShellPolicy` gains `git_network` and `git_write_out`, both off by default.
+  - `fetch`, `pull`, `push` and `ls-remote` need `git_network`.
+  - `init`, `clone`, `archive` and `format-patch` need `git_write_out`; `clone`
+    needs both.
+  - Abbreviated git options, `-p`/`--paginate`, `diff --output`, `--no-index`,
+    and subcommands outside the list below are refused.
+  - `git-*` helpers and `scalar` can no longer be allowlisted directly.
+  - Bare allowlist entries are resolved with `shutil.which` when the command
+    runs.
+- **New index files.**
+  - The run index (`index.json`) moves to version 2 and rebuilds once, on the
+    first `ls` or `search`.
+  - The new action index lives in `.tine_runs/actions.sqlite` and
+    `.tine/indexes/actions.sqlite`. Both are caches and safe to delete.
+
+### Added
+
+- **`tine who`: which agents did an action.**
+  - Filter by tool, command text (`--cmd`), program (`--program rm`), path,
+    host, MCP server/tool (`--mcp github/create_*`), verb, agent, model,
+    provider, session, run and time (`--since 7d`).
+  - Verbs are `exec`, `file.read`, `file.write`, `file.delete`, `net`, `mcp`,
+    `git` and `spawn_subagent`.
+  - Group results with `--by agent,model` (or provider, session, subagent, run,
+    tool, program), or list them with `--list`. `--json` is available.
+  - It covers the legacy runs directory by default, or a v3 repository's refs
+    with `--repo PATH`.
+  - Commands are parsed through `sudo`, `env`, `bash -c`, and `&&`, `;` and `|`
+    chains.
+- **More action commands.**
+  - `tine actions RUN` lists one run's tool calls in order.
+  - `tine touched --path X` shows which agents wrote or deleted a path.
+  - `tine audit --policy FILE` checks recorded actions against deny/warn rules
+    (TOML or JSON). It exits 1 on a deny rule, or on any rule with `--strict`,
+    so CI can gate on what agents did. It also exits 1 when a run could not be
+    read or hit the per-run action cap, unless `--allow-partial` is given.
+- **MCP `find_actions`.** The same query for a model client, with bounded
+  arguments and the usual result sanitizing.
+- **The action index.** A rebuildable SQLite cache (stdlib `sqlite3`). Updates
+  are incremental, and an incremental sync gives the same result as a fresh
+  build.
+- **Image, video, voice and omni models are priced.**
+  - Usage has per-modality token dimensions: `input_image`, `input_audio`,
+    `input_video`, `output_image`, `output_audio`, `output_video`.
+  - It also has per-unit dimensions: `images[:variant]`,
+    `video_seconds[:variant]`, `audio_input_seconds`, `audio_output_seconds`,
+    `audio_minutes`, `tts_characters`, `realtime_minutes` and `requests`.
+  - A rate card can price a dimension per unit (`units`), and can declare that a
+    dimension bills like another (`same_rate_as`).
+  - A used dimension with no rate makes the price `partial` with a warning, so
+    media is never billed at the text rate.
+  - `opentine.billing._media.media_usage()` builds usage for a media call.
+- **Adapters and OTel capture media usage.**
+  - Gemini output is split by modality.
+  - OpenAI audio and image tokens are split from text.
+  - OTel `gen_ai.usage.<image|audio|video>.<input|output>_tokens` import into
+    the media dimensions and export from them.
+    The modality counters are read as a breakdown of the inclusive input and
+    output totals, like the cache counters: they never bill more than the span
+    reported. Counters larger than what is left after cache (cached media, or
+    several modalities against a small total) are clamped, with an import warning.
+- **Pricing catalog: 190 → 224 signed cards (`opentine-pricing/3`, verified
+  2026-10-20).**
+  - Mistral Large 4's launch sale is over. Runs from 2026-10-20 price at the
+    list rate: $1.36 input, $0.14 cached, $4.18 output.
+  - New text models: MiniMax M3.1 Flash, and Gemini Omni Flash with its
+    preview. Omni video output is priced at $17.50/M.
+  - New Gemini media models: Nano Banana 2.1, 3.1 Flash Image and Flash-Lite
+    Image; 3.8 Flash TTS and Flash-Lite TTS; 3.8 Live; Lyria 3.5.
+  - New OpenAI media models: the gpt-realtime and gpt-audio families,
+    gpt-4o-mini-tts, tts-1 and tts-1-hd (per character), the gpt-image family,
+    and whisper-1 and gpt-transcribe (per minute).
+  - DeepSeek's `deepseek-flash` records model version V4.1-Flash-1017.
+- **Compressed storage, on by default.**
+  - New `.tine` files and new repositories are stored compressed: zstd on
+    Python 3.14 or with `opentine[zstd]`, zlib otherwise. On real Claude Code
+    sessions a `.tine` is about 21% of its plain size.
+  - Object ids, run digests and signatures are computed over the uncompressed
+    canonical bytes, so a compressed copy and a plain copy are the same
+    artifact and every existing signature still verifies.
+- **`tine gc` and `tine repack`.**
+  - They move loose objects into compressed packs (`.tine/packs/*.tpk` +
+    `.tidx`). On four real sessions, a store went from 5.3 MB on disk to
+    300 KB.
+  - A pack is written and read back before anything loose is deleted.
+  - `repack` merges all packs into one.
+- **`tine archive create FILE` / `tine archive restore FILE DEST`.** A whole
+  repository as one compressed file. Restore verifies every object id and goes
+  into a new repository only. Refs (including `remotes/*/annotations`), shallow
+  boundaries and the unadopted-annotation record travel with the archive, so a
+  restored repository labels runs exactly as the original did.
+- **`tine compress PATH...` / `--decompress`.** Rewrites existing `.tine` files
+  without reserializing them, so the digest and signature are untouched.
+- **`tine export --compress gzip|zstd`.** Writes a `.gz` or `.zst` document that
+  other tools open directly.
+
+### Fixed
+
+- **`tine search` finds tool arguments.**
+  - The index used to take only a step's `text`, `name` and `result`, so a run
+    that ran `rm -rf /tmp/build` could not be found by that command.
+  - A run past the 8,000-character index text is marked `truncated` and
+    searched in full from its file.
+  - New `harness:` and `provider:` predicates.
+- **`tine gc` / `tine repack` take a repository lock.**
+  - Two packers can't race.
+  - A lock left by a crashed gc is taken over once its process is gone (POSIX)
+    or after a day; `OPENTINE_GC_BREAK_LOCK=1` forces it.
+  - An interrupted gc loses nothing and can be re-run.
+  - gc no longer removes emptied object directories, which raced concurrent
+    writers.
+- **Shell-side writes count as writes.**
+  - Recognised forms: redirects (`>`, `>>`, `&>`), `tee`, `cp`/`mv`/`install`/
+    `ln` destinations (including `-t DIR`), `sed -i`, `dd of=`, `truncate`,
+    `touch`, and `chmod`/`chown`/`chgrp` targets.
+  - `tine touched` and `writes=true` policy rules now see them.
+  - The action index rebuilds once.
+- **`tine who --program X --by program`** groups under the program that
+  matched, not the command's first program.
+
+### Security — git in the shell tool
+
+- **`rev:path` stays inside the shell root.** A `rev:path` token is also
+  contained as a filesystem path, and its path part must stay inside the root:
+  `git diff` silently switches to `--no-index` for a path outside the work tree,
+  so `ab:c/../../../x` could print a host file. Drive-letter, backslash and
+  absolute forms are refused.
+- **git in the shell tool is an allowlist, not a denylist.**
+  - git accepts any unambiguous abbreviation of a long option, so an
+    abbreviation of `--upload-pack` got past the old option denylist.
+  - Its subcommand set is open-ended: `maintenance`, `credential-store`, and
+    any `git-*` program.
+  - The shell tool now runs only these read-mostly subcommands: status, log,
+    show, diff, shortlog, describe, add, rm, mv, commit, branch, checkout,
+    switch, restore, rev-parse, ls-files, ls-tree, cat-file, grep, blame,
+    stash, tag, merge, reset, reflog, version.
+  - Each subcommand accepts only its own listed long options and short letters,
+    and an abbreviation is never accepted.
+  - Each option is classed as taking a required value, an attached-only
+    optional value (`--pretty[=fmt]`, `-U5`, `-uno`), or none, per subcommand,
+    so the token after a flag is always checked. A test asks the installed git
+    whether every option the guard reads a value for really takes one.
+  - Merge strategies are limited to git's own.
+- **Network and write-out git need an explicit opt-in.** Remotes must be
+  https/ssh URLs or remote names. Local paths, `file://` and `transport::`
+  helpers are refused, including as clone sources.
+- **Every path git is told to use stays inside the shell root.**
+  - Covered: `-C` (including through `..` or a symlink), path-valued options,
+    init and clone directories, and every positional of a local subcommand
+    (`rm`, `mv`, `checkout`, `restore`, `add`, `reset`, `stash`, `diff`, …).
+  - Pathspec magic (`:(top)`, `:/`, any leading `:`) is refused.
+  - `rev:path` is accepted only by the read-only `show`, `diff`, `log`, `grep`
+    and `blame`.
+  - Paths resolve from the directory git actually runs in, so a symlink below
+    the working directory cannot lead outside the root.
+- **git runs with a clean environment and hardened configuration.**
+  - `GIT_*`, `PAGER`, `EDITOR`, `VISUAL` and `LESS*` are dropped.
+  - Five variables are pinned: `GIT_CONFIG_NOSYSTEM=1`,
+    `GIT_TERMINAL_PROMPT=0`, `GIT_PAGER=cat`, `GIT_EDITOR=true` and
+    `GIT_PROTOCOL_FROM_USER=0`.
+  - Hooks, the pager, external diff and every transport are disabled; https
+    and ssh are re-enabled only with the network opt-in.
+  - This applies to the shell tool and to `code_manifest`.
+- **git helpers are refused, and allowlist entries resolve to absolute
+  programs,** so PATH order cannot swap the program that runs.
+- **`.git` aliases.** The fs tool also refuses `.git.`, `GIT~1`, NTFS stream
+  names and HFS+-ignorable spellings.
+
+### Security — storage and indexes
+
+- **An action index is trusted only if this machine wrote it.** Its stamp is
+  keyed with a per-user secret (`$XDG_CONFIG_HOME/opentine/actions-index.key`),
+  so an `actions.sqlite` shipped with a clone or archive is rebuilt from the runs
+  instead of steering `who`, `touched` or `find_actions`. A symlinked, junctioned
+  or non-regular index (or runs directory) is refused, SQLite opens it with
+  `nofollow`, and a file that is not opentine's own index is replaced, never
+  emptied in place.
+- **A process survives another process's repack.** A packed read whose pack
+  disappeared refreshes the pack list and retries once.
+- **Cached audio no longer moves text into the audio bucket.** OpenAI's input
+  `audio_tokens`/`image_tokens` include cached media; only the uncached share
+  (after `cached_tokens_details`) is split out of fresh text, so text no longer
+  bills at the audio rate.
+- **Every compressed read is bounded before it allocates.**
+  - The declared length must fit the reader's limit and a 1000:1 ratio, and the
+    data must inflate to exactly that length.
+  - Trailing data, multiple frames, nested compression and unknown codecs are
+    refused.
+  - Packed objects are checked against their id on every read and by fsck.
+- **A crafted pack index or archive can't force repeated inflation.**
+  - Reads, fsck and `tine archive restore` could be made to re-inflate a large
+    block for every object.
+  - Each block's entries must now tile it exactly.
+  - A block of several objects stays within 1 MiB.
+  - A block must inflate to exactly the size its entries describe.
+  - fsck and gc read packs block by block.
+- **Per-unit media dimensions are priced only in their stated unit.**
+  - Covered: images, video and audio seconds, minutes, TTS characters,
+    requests, and their `:variant` forms.
+  - A card that gives no unit makes the price `partial` with a missing-rate
+    warning, instead of a "complete" price per million units.
+  - Such cards are refused at load, and /1 or /2 catalogs carrying per-unit rate
+    names are refused.
+- **Hosts behind userinfo stay visible.** A URL with a password no longer loses
+  its host in the action index once redacted, so `host=` rules and
+  `tine who --host` match it.
+- **The action index holds only redacted content.** It is built through the
+  same redaction a saved run gets, and every query filter is a bound SQL
+  parameter.
+- **Redacted coverage is reported, not hidden.** A `--cmd` query says how many
+  actions it could not match because their text was redacted.
+- **`tine audit` re-derives every verdict.** It builds the action index in
+  memory from the runs on each call, so an index file that arrived with a
+  cloned tree or archive cannot hide an action from it. A run that could not be
+  read, or that hit the per-run action cap, fails the audit unless
+  `--allow-partial` is given. So does a command whose text redaction cut short
+  (`export TOKEN=x; rm -rf /` is stored as `export TOKEN=[REDACTED]`): the
+  audit reports it as unchecked coverage instead of a pass. Program names are
+  also read from the command before redaction -- only bare executable names
+  that redaction leaves untouched, never an argument -- so `rm` still reaches
+  a `program="rm"` rule.
+- **Only written paths count as written.** A shell command records the files
+  it reads and the files it writes separately: `cat /a > /b` and `cp /a /b`
+  list `/a` as read and `/b` as written, so `tine touched` and `writes=true`
+  rules no longer report a file an agent only read. `sed -i`'s script is not
+  taken for a file.
+- **Whole-tree git forms stay inside the root.** When the shell root is a
+  subdirectory of a larger repository, `reset --hard` (or any `reset`/`checkout`
+  without a `--` pathspec), `commit -a`, `add -A`/`-u` without a pathspec,
+  `stash` (except `list`/`show`), `merge`, `pull` and `switch` are refused:
+  they act on files outside the root. `--pathspec-from-file` is no longer
+  accepted by `add`, `reset` or `commit`, because the pathspecs inside the file
+  were never checked.
+- **Per-unit media never aliases a per-million rate.** `same_rate_as` compares
+  units by dimension family (`images:hd` is per image through `images`), so a
+  card cannot join a per-image variant to a per-million token rate.
+- **Deleting a bare filename is recorded on that path.** `rm notes.txt`,
+  `unlink`, `rmdir` and `shred` operands now appear in `tine touched` and
+  `writes=true` rules, not only paths with a slash.
+
+### Still open
+
+- **Remote transfer.** Network packs (TINEPACK4) and compress-then-seal on the
+  remote server are planned for 0.12. Network transfer is uncompressed today.
+- **Gemini image and video input** are not split from `input`, so Gemini Live
+  image and video input prices at the text rate.
+- **Media endpoints.** opentine cannot call the OpenAI Images, TTS and
+  Transcription endpoints or Gemini Veo, Lyria and Live itself. Such calls are
+  priced when recorded through the library, a harness or an import.
+- **Not carded:** Veo, Imagen, gpt-4o-transcribe, xAI media and ElevenLabs.
+- **OpenAI media cards start 2026-10-20,** because OpenAI publishes no launch
+  dates.
+- **Archives.** `tine archive` covers a whole repository.
+- **Action records.**
+  - Writers outside the list (`python -c`, `perl -i`, editors) aren't
+    recognised.
+- **git `rev:path`.** In read-only commands, `rev:path` names committed content
+  anywhere in the repository, which can lie outside a shell root that is a
+  subdirectory.
+- **Inflate budget.** Inflate work is bounded by block structure (at most 1 MiB
+  per small-object read), not by a total byte budget per operation.
+- **Stale gc locks on Windows** are detected by age only.
+- **Not yet built:** saved queries, `tine diff --actions`, signed action
+  manifests and action stats.
+- **Still open from 0.10.0.**
+
 ## 0.10.0 — 2026-10-15 — Universal harnesses & round-3 security
 
 Every major agent CLI is now a harness whose runs record the real model, token
