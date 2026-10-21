@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import shlex
+import shutil
 import sys
 from pathlib import Path
 
 from opentine.policies import ShellPolicy
+from opentine.tools._git_guard import git_env, is_git, is_git_family
 from opentine.tools._git_guard import hardened as hardened_git
-from opentine.tools._git_guard import is_git
 from opentine.tools._git_guard import refusal as git_refusal
 from opentine.tools._process import clean_env, run_bounded
 
@@ -30,6 +31,20 @@ def _subprocess_parts(parts: list[str]) -> list[str]:
     if sys.platform == "win32" and parts[0] in {"python", "python3"}:
         return [sys.executable, *parts[1:]]
     return parts
+
+
+def _bound_executable(executable: str, allowed: tuple[str, ...]) -> str | None:
+    """The absolute program an allowlist entry names, resolved now.
+
+    An entry is compared as written, so a bare ``git`` ran whatever ``PATH``
+    found first at spawn time. Resolving at policy bind time pins the program
+    the operator meant; an entry that resolves to nothing is refused.
+    """
+    if executable not in allowed:
+        return None
+    if Path(executable).is_absolute():
+        return executable
+    return shutil.which(executable)
 
 
 def run(
@@ -64,11 +79,8 @@ def run(
         return "Error: shell execution disabled by policy"
     if pol.executables and executable not in pol.executables:
         return f"Error: '{executable}' not in allowlist {list(pol.executables)}"
-    if is_git(executable):
-        reason = git_refusal(parts[1:])
-        if reason:
-            return f"Error: {reason}"
-        parts = hardened_git(parts)
+    if is_git_family(executable):
+        return f"Error: '{executable}' is a git helper; run it through git"
 
     cwd_root = Path(pol.cwd_root).resolve()
     try:
@@ -76,13 +88,33 @@ def run(
     except ValueError:
         return f"Error: cwd escapes shell policy root {cwd_root}"
 
+    env = clean_env(pol.inherit_env, pol.env_allowlist)
+    if is_git(executable):
+        reason = git_refusal(
+            parts[1:],
+            root=cwd_root,
+            cwd=Path.cwd().resolve(),
+            network=pol.git_network,
+            write_out=pol.git_write_out,
+        )
+        if reason:
+            return f"Error: {reason}"
+        parts = hardened_git(parts, network=pol.git_network)
+        env = git_env(env)
+    windows_python = sys.platform == "win32" and executable in {"python", "python3"}
+    if pol.executables and not windows_python:
+        bound = _bound_executable(executable, pol.executables)
+        if bound is None:
+            return f"Error: '{executable}' was not found on PATH"
+        parts = [bound, *parts[1:]]
+
     try:
         result = run_bounded(
             _subprocess_parts(parts),
             timeout=pol.timeout_seconds,
             max_chars=pol.max_output_chars,
             cwd=str(Path.cwd()),
-            env=clean_env(pol.inherit_env, pol.env_allowlist),
+            env=env,
         )
         if result.timed_out:
             return result.output(

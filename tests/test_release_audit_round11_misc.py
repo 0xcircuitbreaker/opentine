@@ -276,6 +276,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_conformance_drift.py": "git",
     "tests/test_release_audit_round9_inventory.py": "git",
     "tests/test_release_inventory.py": "git",
+    "tests/test_security_0_11_git.py": "git",
     "tests/test_trace_capture_bounds.py": "git",
 }
 
