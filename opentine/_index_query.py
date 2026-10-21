@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from opentine._graph_types import _normalize_tag
 from opentine._index_types import IndexEntry
 
-PREDICATES = ("tag", "model", "status", "cost", "after", "before")
+PREDICATES = ("tag", "model", "status", "cost", "after", "before", "harness", "provider")
 
 
 class QueryError(ValueError):
@@ -26,6 +26,8 @@ class Query:
     cost_max: float | None = None
     after: float | None = None
     before: float | None = None
+    harness: str | None = None
+    provider: str | None = None
 
 
 def _parse_date(value: str) -> float:
@@ -85,10 +87,15 @@ def parse_query(query: str) -> Query:
             parsed.after = _parse_date(value)
         elif key == "before":
             parsed.before = _parse_date(value)
+        elif key == "harness":
+            parsed.harness = value.lower()
+        elif key == "provider":
+            parsed.provider = value.lower()
     return parsed
 
 
-def match_entry(entry: IndexEntry, query: Query) -> bool:
+def match_entry(entry: IndexEntry, query: Query, *, text: bool = True) -> bool:
+    """Whether *entry* satisfies *query*; ``text=False`` skips the free-text terms."""
     return not (
         entry.unreadable
         or (query.tags and not all(tag in entry.tags for tag in query.tags))
@@ -98,5 +105,10 @@ def match_entry(entry: IndexEntry, query: Query) -> bool:
         or (query.cost_max is not None and entry.cost > query.cost_max)
         or (query.after is not None and entry.created_at < query.after)
         or (query.before is not None and entry.created_at > query.before)
-        or (query.text and not all(term in entry.text for term in query.text))
+        or (query.harness and query.harness not in entry.harness.lower())
+        or (
+            query.provider
+            and not any(query.provider in provider.lower() for provider in entry.providers)
+        )
+        or (text and query.text and not all(term in entry.text for term in query.text))
     )
