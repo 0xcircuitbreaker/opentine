@@ -223,7 +223,11 @@ def test_gc_packs_loose_objects_and_everything_still_reads(tmp_path, compress_on
     result = gc(repo)
     assert result.packed == len(oids) and result.removed_loose == len(oids)
     after = footprint(repo.path)
-    assert after[1] < before[1] / 4  # disk, not just bytes: small objects waste blocks
+    assert after[0] < before[0]  # fewer bytes everywhere
+    if hasattr(os.stat_result, "st_blocks"):
+        # Disk, not just bytes: small loose objects waste whole blocks. Windows
+        # reports no blocks, so there the footprint is bytes only.
+        assert after[1] < before[1] / 4
     reopened = Repo.open(repo.path)
     assert sorted(reopened.iter_oids()) == oids
     assert all(reopened.raw(oid) == raws[oid] for oid in oids)
