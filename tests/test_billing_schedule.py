@@ -331,7 +331,7 @@ def test_bundled_catalog_is_schema_3_and_verifies(catalog):
     assert raw["schema"] == "opentine-pricing/3"  # /3 since the 0.11 media cards
     assert raw["signature"]["key_id"] == "opentine-release-2026-07-r3"
     assert catalog.signed and catalog.id == f"sha256:{catalog.hash}"
-    assert len(catalog.cards) == 224
+    assert len(catalog.cards) == 231
 
 
 @pytest.mark.parametrize("schema", ["opentine-pricing/1", "opentine-pricing/2"])

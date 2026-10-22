@@ -9,7 +9,15 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-from opentine.remote._sealed import SEALED, seal_with, tenant_key, unseal_with
+from opentine.remote._sealed import (
+    SEALED,
+    SEALED4,
+    seal_compressed_with,
+    seal_with,
+    tenant_key,
+    unseal_compressed_with,
+    unseal_with,
+)
 from opentine.remote.interfaces import Identity
 
 
@@ -77,7 +85,7 @@ class OIDCIdentityProvider:
         *,
         issuer: str,
         audience: str,
-        fetch: Callable[[str], bytes],
+        fetch: Callable[[str], bytes] | None = None,
         **kwargs: Any,
     ) -> OIDCIdentityProvider:
         from opentine.remote._oidc import JWTVerifier
@@ -175,7 +183,19 @@ class LocalKeyProvider:
         """``TINEAES3``: also bound to what the ciphertext is (``_sealed``)."""
         return seal_with(self.key, purpose, tenant, context, plaintext)
 
+    def seal_compressed(
+        self, purpose: str, tenant: str, context: str, plaintext: bytes, codec: str
+    ) -> bytes:
+        """``TINEAES4``: compressed, then sealed with the codec and size bound."""
+        return seal_compressed_with(self.key, purpose, tenant, context, plaintext, codec)
+
     def unseal(self, purpose: str, tenant: str, context: str, ciphertext: bytes) -> bytes:
+        if ciphertext.startswith(SEALED4):
+            from opentine.remote._object_file import MAX_ENCRYPTED_OBJECT_BYTES
+
+            return unseal_compressed_with(
+                self.key, purpose, tenant, context, ciphertext, limit=MAX_ENCRYPTED_OBJECT_BYTES
+            )
         if ciphertext.startswith(SEALED):
             return unseal_with(self.key, purpose, tenant, context, ciphertext)
         return self.decrypt(tenant, ciphertext)  # written before 0.9.2

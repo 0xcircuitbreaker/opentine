@@ -33,7 +33,10 @@ def test_bundled_catalog_is_signed_and_exact_cache_arithmetic(catalog: PricingCa
     assert result.status == "complete"
     assert result.amount_usd == Decimal("93.50")
     assert result.known_subtotal_usd == Decimal("93.50")
-    assert result.catalog_provenance[0]["signature"]["algorithm"] == "ed25519"
+    assert (
+        result.catalog_provenance[0]["signature"]["algorithm"]
+        == "ed25519/opentine.pricing-catalog.v2"
+    )
 
 
 @pytest.mark.parametrize("value", [True, 1.5, -1, "10"])
@@ -662,7 +665,10 @@ def test_run_manifest_pins_catalog_signature_and_calculation():
 
     run = Agent(MeteredModel()).run_sync("go")
     pricing = run.manifest["pricing"]
-    assert pricing["catalog_provenance"][0]["signature"]["algorithm"] == "ed25519"
+    assert (
+        pricing["catalog_provenance"][0]["signature"]["algorithm"]
+        == "ed25519/opentine.pricing-catalog.v2"
+    )
     assert pricing["catalogs"][0]["catalog_id"] == pricing["catalog_id"]
     assert pricing["invocations"][0]["catalog_hash"] == pricing["catalog_hash"]
     assert pricing["rate_cards"]

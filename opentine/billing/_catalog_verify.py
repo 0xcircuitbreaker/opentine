@@ -27,6 +27,31 @@ TRUSTED_KEYS = {
     "opentine-release-2026-07-r3": "VuhZjI3+QIPzZEA0y0Emw+o11f69o1J4kETghGGCwgc=",
 }
 
+#: Signature schemes. ``ed25519`` (v1) signs the bare canonical body, with no
+#: domain separation from the other things the release key could sign. The v2
+#: scheme signs ``CATALOG_DOMAIN + body``, so a catalog signature can never be
+#: replayed as, or forged from, an artifact or attestation signature. v1 stays
+#: readable for catalogs generated before ``V1_CUTOFF`` (every shipped release)
+#: and only for the keys that signed them; anything newer must be v2.
+SCHEME_V1 = "ed25519"
+SCHEME_V2 = "ed25519/opentine.pricing-catalog.v2"
+CATALOG_DOMAIN = b"opentine.pricing-catalog.v2:"
+V1_KEYS = frozenset({"opentine-release-2026-07-r3"})
+V1_CUTOFF = "2026-11-01T00:00:00Z"
+
+
+def signed_message(algorithm: str, body: dict[str, Any]) -> bytes:
+    """The exact bytes a catalog signature of *algorithm* covers."""
+    canonical = _canonical_bytes(body)
+    return CATALOG_DOMAIN + canonical if algorithm == SCHEME_V2 else canonical
+
+
+def _v1_allowed(data: dict[str, Any], key_id: str) -> bool:
+    from opentine.billing._catalog_trust import generated_at
+
+    stamp, cutoff = generated_at(data), generated_at({"generated_at": V1_CUTOFF})
+    return key_id in V1_KEYS and stamp is not None and cutoff is not None and stamp < cutoff
+
 
 class CatalogError(ValueError):
     pass
@@ -97,12 +122,15 @@ def verify_catalog(data: dict[str, Any], *, require_signature: bool = True) -> s
         for key in SIGNATURE_FIELDS
     ):
         raise CatalogError("catalog signature fields must be short strings")
-    if signature.get("algorithm") != "ed25519":
+    algorithm = signature.get("algorithm")
+    if algorithm not in (SCHEME_V1, SCHEME_V2):
         raise CatalogError("unsupported catalog signature algorithm")
     key_id = signature.get("key_id")
     encoded_key = TRUSTED_KEYS.get(key_id) if isinstance(key_id, str) else None
     if not encoded_key:
         raise CatalogError("untrusted catalog signing key")
+    if algorithm == SCHEME_V1 and not _v1_allowed(data, key_id):
+        raise CatalogError("catalog signature must use the domain-separated v2 scheme")
     try:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -114,7 +142,7 @@ def verify_catalog(data: dict[str, Any], *, require_signature: bool = True) -> s
         if len(public_bytes) != 32 or len(signature_bytes) != 64:
             raise CatalogError("catalog signature has the wrong length")
         public = Ed25519PublicKey.from_public_bytes(public_bytes)
-        public.verify(signature_bytes, _canonical_bytes(_body(data)))
+        public.verify(signature_bytes, signed_message(algorithm, _body(data)))
     except ImportError as exc:
         raise CatalogError("catalog verification requires cryptography") from exc
     except CatalogError:
