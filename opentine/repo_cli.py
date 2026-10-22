@@ -14,6 +14,7 @@ from collections.abc import Callable
 import httpx
 
 from opentine._cli_common import _terminal
+from opentine._cli_git import COMMANDS as GIT_COMMANDS
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._repo_cli_plumbing import (
     cmd_clone,
@@ -61,12 +62,13 @@ REPO_COMMANDS: dict[str, RepoHandler] = {
     "repo-search": cmd_repo_search,
     "repo-show": cmd_repo_show,
     "repo-verify": cmd_repo_verify,
+    **GIT_COMMANDS,
 }
 
 
-def cmd_repo(args: argparse.Namespace, console) -> None:
+def cmd_repo(args: argparse.Namespace, console, handler: RepoHandler | None = None) -> None:
     try:
-        REPO_COMMANDS[args.command](args, console)
+        (handler or REPO_COMMANDS[args.command])(args, console)
     # SignatureError is the one opentine error not rooted in ValueError/OSError, and
     # migrate-v3 raises it on its fail-closed path — the expected refusal must read
     # as a refusal, not as an interpreter traceback.

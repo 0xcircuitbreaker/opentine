@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 
 from opentine.kernel import canonical_json
+from opentine.repository._pack4 import build as build_pack4
 from tests.conformance.builders import (
     ANNOTATION_V1,
     ANNOTATION_V1_OID,
@@ -731,6 +732,7 @@ _SELF_CONTAINED = pack_frame([HELLO_BLOB, LINKED_EVENT], [])
 _SELF_CONTAINED_REVERSED = pack_frame([LINKED_EVENT, HELLO_BLOB], [])
 _EXTRA_SHALLOW = pack_frame([LINKED_EVENT], sorted([HELLO_OID, ROOT_EVENT_OID]))
 _NO_SHALLOW = pack_frame([LINKED_EVENT], [])
+_V4_ACCEPT_FRAME = build_pack4([(LINKED_EVENT_OID, LINKED_EVENT)], [HELLO_OID], "zlib")
 
 
 def _entry(raw: bytes) -> dict:
@@ -785,6 +787,13 @@ PACK = Family(
             ACCEPT,
             "a pack with no objects and no boundary is a valid frame",
             B(pack_frame([], []), store="frame"),
+        ),
+        _pack(
+            "inspect.v4-one-object-one-boundary",
+            ACCEPT,
+            "a TINEPACK4 frame (binary header, one compressed body) carries the same object "
+            "set and shallow boundaries as the v3 frame; readers accept both magics",
+            B(_V4_ACCEPT_FRAME, store="frame"),
         ),
         _pack(
             "inspect.shallow-that-is-not-a-link",

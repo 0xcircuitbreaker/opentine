@@ -733,3 +733,7 @@ high availability. S3-compatible
 object storage, PostgreSQL/search backends, managed identity configuration, and
 a hosted control plane remain production adapters or later 0.3.x work—not
 claims of this reference server.
+
+## Linking runs to git
+
+A commit names the runs that produced it with `Tine-Run: <run>` trailers (added by the hook `tine git install-hook` installs) or a note under `refs/notes/tine` (`tine git note`). In a repository the run is named by its object id; in a runs directory by its run id. `tine git log --commit SHA` and `tine blame FILE:LINE --git` follow those links back to runs and steps. Nothing about the link is stored in opentine's own objects: trailers and notes are plain git and travel with `git push` (push `refs/notes/tine` explicitly, as with any notes ref).

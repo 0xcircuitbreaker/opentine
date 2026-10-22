@@ -14,6 +14,13 @@ from dataclasses import asdict
 from pathlib import Path
 
 from opentine._cli_common import _terminal
+from opentine._cli_git_sync import (
+    configured_remotes,
+    emit_all,
+    fetch_one,
+    push_hook,
+    resolve_remote,
+)
 from opentine._repo_cli_json import (
     emit_context,
     emit_repo_diff,
@@ -182,26 +189,40 @@ def cmd_migrate_v3(args: argparse.Namespace, console) -> None:
 
 def cmd_fetch(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
-    result = repo.fetch(
-        args.remote,
-        tenant=args.tenant,
-        token=_token(args),
-        ref=args.ref,
-        depth=args.depth,
-        allow_insecure=args.allow_insecure,
-        adopt_annotations=getattr(args, "adopt_annotations", False),
-    )
+    # A configured remote name resolves to its URL; --all fetches every one.
+    names = configured_remotes(repo) if getattr(args, "all", False) else [args.remote]
+    if not names:
+        raise ValueError("no remotes configured (see `tine remote add`)")
+    if getattr(args, "all", False):
+        emit_all([fetch_one(repo, args, name, _token)[1] for name in names])
+        return
+    result = fetch_one(repo, args, names[0], _token)[1]
     print(json.dumps(asdict(result), indent=2))
 
 
 def cmd_push(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
-    result = repo.push(
-        args.remote,
-        tenant=args.tenant,
-        token=_token(args),
-        ref=args.ref,
-        remote_ref=args.remote_ref,
-        allow_insecure=args.allow_insecure,
+    tracking = resolve_remote(repo, args)
+    # --all pushes every heads/* ref under its own name; otherwise the one --ref.
+    refs = (
+        sorted(name for name in repo.list_refs() if name.startswith("heads/"))
+        if getattr(args, "all", False)
+        else [args.ref]
     )
+    results = []
+    for ref in refs:
+        push_hook(repo, tracking, ref)
+        result = repo.push(
+            args.remote,
+            tenant=args.tenant,
+            token=_token(args),
+            ref=ref,
+            remote_ref=None if getattr(args, "all", False) else args.remote_ref,
+            allow_insecure=args.allow_insecure,
+            force=getattr(args, "force", False),
+        )
+        results.append(result)
+    if getattr(args, "all", False):
+        emit_all(results)
+        return
     print(json.dumps(asdict(result), indent=2))

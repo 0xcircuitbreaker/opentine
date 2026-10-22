@@ -91,7 +91,7 @@ EXPECTED_COUNTS = {
     "vectors/24-refs.json": (34, 22),
     "vectors/26-reflog.json": (8, 2),
     "vectors/27-shallow.json": (14, 6),
-    "vectors/28-pack.json": (30, 19),
+    "vectors/28-pack.json": (31, 19),
     "vectors/31-artifact-v2.json": (20, 11),
     "vectors/35-integrity.json": (12, 0),
     "vectors/42-signing.json": (37, 4),
@@ -597,6 +597,12 @@ def test_the_repo_facing_prose_restates_the_census_correctly() -> None:
     ]
     for name, pattern, expected in claims:
         text = (ROOT / name).read_text("utf-8")
+        if name == "CHANGELOG.md":
+            # A release entry records the census of *its* release; once a later
+            # release adds vectors, that entry is history, not a stale claim.
+            # Only the newest entry that restates a census is held to the manifest.
+            sections = re.split(r"(?m)^## ", text)[1:]
+            text = next((part for part in sections if re.search(pattern, part)), "")
         found = re.findall(pattern, text)
         assert found, f"{name} no longer states the census via {pattern!r}"
         for match in found:

@@ -436,6 +436,7 @@ the same shape `--format otel-json` reads, so import and export are inverses:
 
 ```bash
 tine export run.tine --output spans.json
+tine export run.tine --format atif --output trajectory.json
 tine export run.tine --endpoint http://127.0.0.1:4318 --service-name my-agent
 ```
 
@@ -522,3 +523,5 @@ secrets and should be reviewed before synchronization. See
 - [REPOSITORY.md](REPOSITORY.md) — v3 objects, packs, remotes, and MCP.
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md#tine-import-reports-no-trace-events-found)
   — when an import finds no events.
+
+`--format atif` writes one ATIF-v1.8 trajectory document (to a file or stdout only; it cannot be pushed with `--endpoint`). `tine import` reads ATIF v1.0-v1.8 and OpenCode's `opencode.db` (read-only; `opencode.db::<session id>` picks a session).

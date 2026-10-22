@@ -8,6 +8,9 @@ from opentine._repo_cli_keys import add_key_args
 
 
 def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
+    from opentine._cli_git import add_git_parsers
+
+    add_git_parsers(subparsers)
     init = subparsers.add_parser("init", help="Initialize a v3 .tine repository")
     init.add_argument("path", nargs="?", default=".")
     init.add_argument("--bare", action="store_true")
@@ -94,8 +97,9 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     add_key_args(migration, signing=False)
 
     fetch = subparsers.add_parser("fetch", help="Fetch a verified pack from a remote")
-    _remote_args(fetch)
+    _remote_args(fetch, optional=True)
     fetch.add_argument("--ref", default="heads/main")
+    fetch.add_argument("--all", action="store_true", help="Fetch from every configured remote")
     fetch.add_argument("--depth", type=int)
     fetch.add_argument(
         "--adopt-annotations",
@@ -105,9 +109,11 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     fetch.add_argument("--repo", default=".")
 
     push = subparsers.add_parser("push", help="Push a pack and CAS-update a remote ref")
-    _remote_args(push)
+    _remote_args(push, optional=True)
     push.add_argument("--ref", default="heads/main")
+    push.add_argument("--all", action="store_true", help="Push every heads/* ref")
     push.add_argument("--remote-ref")
+    push.add_argument("--force", action="store_true", help="Non-fast-forward (admin)")
     push.add_argument("--repo", default=".")
 
     clone_parser = subparsers.add_parser("clone", help="Clone a remote v3 repository")
@@ -233,8 +239,9 @@ def _add_porcelain_parsers(subparsers: argparse._SubParsersAction) -> None:
         )
 
 
-def _remote_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("remote")
+def _remote_args(parser: argparse.ArgumentParser, *, optional: bool = False) -> None:
+    # fetch/push take a configured remote name, a URL, or nothing with --all.
+    parser.add_argument("remote", nargs="?" if optional else None)
     parser.add_argument("--tenant")
     parser.add_argument(
         "--token", help="Bearer token (visible to ps and shell history; prefer --token-file)"
