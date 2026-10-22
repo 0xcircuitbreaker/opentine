@@ -6,7 +6,8 @@ directory. This module knows those places, lists the newest sessions, and
 resolves ``latest`` (or a session-id prefix) to a file, so importing the session
 an agent just finished is one command. Only well-known locations are read; the
 environment overrides each CLI itself honours (``CLAUDE_CONFIG_DIR``,
-``CODEX_HOME``, ``GEMINI_CLI_HOME``, ``QWEN_HOME``) are respected.
+``CODEX_HOME``, ``GEMINI_CLI_HOME``, ``QWEN_HOME``, ``XDG_DATA_HOME`` for OpenCode's
+SQLite store) are respected.
 """
 
 from __future__ import annotations
@@ -71,7 +72,31 @@ def sessions(source_format: str | None = None) -> list[Session]:
                 continue
             agents = len(agent_files(path)) if name == "claude-code-transcript" else 0
             found.append(Session(name, path, stat.st_mtime, stat.st_size, agents))
+    if source_format in (None, "auto", "opencode-session"):
+        found.extend(_opencode_sessions())
     return sorted(found, key=lambda item: item.modified, reverse=True)
+
+
+def _opencode_sessions() -> list[Session]:
+    """OpenCode's top-level sessions, as ``opencode.db::<id>`` sources (read-only)."""
+    import sqlite3
+
+    from opentine.trace import _opencode_db as db
+
+    path = db.default_db()
+    if not path.is_file() or path.is_symlink():
+        return []
+    try:
+        connection, _ = db.connect(path)
+        try:
+            rows = db.root_sessions(connection, LIST_LIMIT)
+        finally:
+            connection.close()
+    except (OSError, ValueError, sqlite3.Error):
+        return []  # an unreadable or unknown-schema store just lists nothing
+    size = path.stat().st_size
+    return [Session("opencode-session", Path(f"{path}{db.SEP}{sid}"), ms / 1000, size)
+            for sid, ms, _ in rows]  # fmt: skip
 
 
 def resolve(name: str, source_format: str | None) -> Session:

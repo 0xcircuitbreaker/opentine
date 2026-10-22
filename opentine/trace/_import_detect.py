@@ -13,9 +13,12 @@ import json
 from collections.abc import Callable
 from typing import Any
 
+from opentine._atif import atif_events
+from opentine._atif_parse import is_atif
 from opentine.trace._transcript_claude import claude_transcript_events, looks_like_claude
 from opentine.trace._transcript_codex import codex_session_events, looks_like_codex
 from opentine.trace._transcript_gemini import gemini_session_events, looks_like_gemini
+from opentine.trace._transcript_opencode import opencode_events
 from opentine.trace._transcript_qwen import looks_like_qwen, qwen_session_events
 from opentine.trace.schema import TraceEvent
 
@@ -24,7 +27,10 @@ TRANSCRIPT_IMPORTERS: dict[str, Callable[[Any], list[TraceEvent]]] = {
     "codex-session": codex_session_events,
     "gemini-session": gemini_session_events,
     "qwen-session": qwen_session_events,
+    "atif": atif_events,
+    "opencode-session": opencode_events,  # a SQLite path only, never stdin text
 }
+TRANSCRIPT_FORMATS = tuple(TRANSCRIPT_IMPORTERS)
 _SNIFF_LINES = 64
 
 
@@ -45,6 +51,8 @@ def _document_format(document: Any) -> str | None:
     dicts = [item for item in items[:_SNIFF_LINES] if isinstance(item, dict)]
     if not dicts:
         return None
+    if is_atif(document):
+        return "atif"
     if any("resourceSpans" in item or "resource_spans" in item for item in dicts):
         return "otel-json"
     if any("resourceLogs" in item or "resource_logs" in item for item in dicts):
@@ -92,4 +100,4 @@ def detect_format(text: str) -> str:
     )
 
 
-__all__ = ["TRANSCRIPT_IMPORTERS", "detect_format"]
+__all__ = ["TRANSCRIPT_FORMATS", "TRANSCRIPT_IMPORTERS", "detect_format"]

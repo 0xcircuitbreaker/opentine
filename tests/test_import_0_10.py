@@ -979,8 +979,10 @@ def test_claude_subagent_transcripts_are_imported_under_their_spawner(tmp_path):
     events = claude_transcript_events(_session_with_agent(tmp_path))
     spawner = next(e for e in events if e.span_id == "tool:t1")
     subagent = [e for e in events if e.span_id.startswith("agent-a0/")]
-    assert [e.kind for e in subagent] == ["model"]
+    # 0.12: a typed subagent edge under the spawning tool call, then its steps.
+    assert [e.kind for e in subagent] == ["subagent", "model"]
     assert subagent[0].parent_span_id == spawner.span_id
+    assert subagent[1].parent_span_id == subagent[0].span_id
     assert subagent[0].trace_id == events[0].trace_id
     assert len({e.span_id for e in events}) == len(events)
 
@@ -990,7 +992,8 @@ def test_subagent_files_past_the_cap_are_counted_not_silently_dropped(tmp_path, 
 
     monkeypatch.setattr(_transcript_agents, "MAX_AGENT_FILES", 1)
     events = claude_transcript_events(_session_with_agent(tmp_path, agents=3))
-    assert sum(e.span_id.startswith("agent-") for e in events) == 1
+    # One imported subagent: its typed edge plus its one model step.
+    assert sum(e.span_id.startswith("agent-") for e in events) == 2
     warnings = events[0].attributes["opentine.import_warnings"]
     assert any("2 subagent transcript(s) not imported" in w for w in warnings)
 

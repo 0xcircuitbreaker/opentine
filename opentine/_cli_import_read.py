@@ -89,6 +89,13 @@ def detect_and_read(source: str, source_format: str) -> tuple[str, list[TraceEve
                 stream, line_limit=MAX_JSONL_LINE_BYTES, total_limit=MAX_TRACE_IMPORT_BYTES
             )
         )
+    if source != STDIN and source_format in ("auto", "opencode-session"):
+        from opentine.trace._opencode_db import looks_like_sqlite, split_source
+
+        if source_format == "opencode-session" or looks_like_sqlite(split_source(source)[0]):
+            return "opencode-session", TRANSCRIPT_IMPORTERS["opencode-session"](source)
+    if source_format == "opencode-session":
+        raise ValueError("opencode-session imports read an opencode.db path, not stdin")
     if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:
         # Transcripts are read line by line from a path, each line bounded.
         return source_format, TRANSCRIPT_IMPORTERS[source_format](source)
