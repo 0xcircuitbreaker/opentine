@@ -11,6 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
+from opentine.repository import _pack4
 from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
@@ -20,7 +21,7 @@ from opentine.repository._http import split_remote as _remote
 from opentine.repository._pack_fit import fitted_pack
 from opentine.repository._unadopted import adopt_advertised_annotations, runs_held
 from opentine.repository._upload_client import upload as _upload
-from opentine.repository.pack import (
+from opentine.repository.pack import (  # noqa: F401
     MAGIC,
     MAX_PACK_OBJECTS,
     OMITTED_HEADER,
@@ -134,6 +135,7 @@ def fetch(
                 "haves": repo.iter_oids(limit=MAX_PACK_OBJECTS, truncate=True),
                 "object_types": sorted(object_types or ()),
                 "wants": selected,
+                **_pack4.request_fields(caps),
             },
         )
     held_before = runs_held(repo, remote_refs)
@@ -162,18 +164,22 @@ def push(
     chunk_size: int = 4 * 1024 * 1024,
     allow_insecure: bool = False,
     timeout: float = 120,
+    force: bool = False,
 ) -> TransferResult:
+    """Send *ref*'s run; *force* asks a fast-forward-only server to move a head anyway."""
     local_oid = repo.read_ref(ref)
     if not local_oid:
         raise KeyError(f"local ref not found: {ref}")
     destination = remote_ref or ref
     base, namespace = _remote(remote, tenant)
     with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
+        _, caps = _request_json(client, "GET", "/v1/capabilities", max_seconds=timeout)
         _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         old = _refs(refs).get(destination)
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
         short: list[str] = []
         pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
+        pack = _pack4.for_peer(pack, caps)  # v4 only to a server that lists it
         uploaded = _upload(
             client,
             _prefix(namespace) + "/packs",
@@ -181,7 +187,7 @@ def push(
             chunk_size=chunk_size,
             timeout=timeout,
         )
-        expected_pack = "sha256:" + pack[len(MAGIC) : len(MAGIC) + 32].hex()
+        expected_pack = _pack4.pack_digest(pack)
         objects, pack_id = _upload_result(
             uploaded, expected_objects=len(missing), expected_pack=expected_pack
         )
@@ -191,7 +197,7 @@ def push(
             _prefix(namespace) + "/refs/" + quote(destination, safe=""),
             allowed=(200, 409),
             max_seconds=timeout,
-            json={"expected_old": old, "new": local_oid},
+            json={"expected_old": old, "new": local_oid, **({"force": True} if force else {})},
         )
         if status == 409:
             raise ValueError("remote ref changed concurrently")

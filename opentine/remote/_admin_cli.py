@@ -13,7 +13,7 @@ import sys
 from dataclasses import asdict
 from typing import Any
 
-ACTIONS = ("refs", "delete-ref", "associations", "delete-objects", "purge")
+ACTIONS = ("refs", "delete-ref", "associations", "delete-objects", "purge", "reseal")
 
 
 def _scoped(parser: argparse.ArgumentParser) -> None:
@@ -54,9 +54,13 @@ def add_admin_parsers(serve: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Allow --grace-seconds below 60, which can race a push in progress",
     )
-    for parser in (delete_objects, purge):
-        parser.add_argument("--dry-run", action="store_true", help="Report without deleting")
-    for parser in (refs, delete_ref, associations, delete_objects, purge):
+    reseal = actions.add_parser(
+        "reseal", help="Rewrite stored objects as aes3 (for a 0.11 rollback) or aes4 (compressed)"
+    )
+    reseal.add_argument("--to", required=True, choices=("aes3", "aes4"))
+    for parser in (delete_objects, purge, reseal):
+        parser.add_argument("--dry-run", action="store_true", help="Report without changing")
+    for parser in (refs, delete_ref, associations, delete_objects, purge, reseal):
         _scoped(parser)
 
 
@@ -95,6 +99,10 @@ def cmd_serve_admin(args: argparse.Namespace, console: Any) -> None:
         result = {"associations": admin.associations(args.tenant, args.target)}
     elif action == "delete-objects":
         result = asdict(admin.delete_objects(args.tenant, _oids(args), dry_run=args.dry_run))
+    elif action == "reseal":
+        from opentine.remote._admin_reseal import reseal
+
+        result = asdict(reseal(admin.objects, args.tenant, args.to, dry_run=args.dry_run))
     else:
         purge = admin.purge(args.tenant, grace_seconds=args.grace_seconds, dry_run=args.dry_run)
         result = asdict(purge)

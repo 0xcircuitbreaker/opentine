@@ -1,4 +1,7 @@
-"""Deterministic compressed v3 packs and missing-object negotiation."""
+"""Deterministic compressed v3 packs and missing-object negotiation.
+
+Readers also accept ``TINEPACK4`` (``_pack4``), sent to peers that advertise it.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ from opentine.kernel import (
     validate_json_shape,
     validate_links,
 )
+from opentine.repository import _pack4
 from opentine.repository._pack_walk import include_associations, walk
 from opentine.repository._semantic_view import semantic_view
 from opentine.repository._traversal import MAX_TRAVERSAL_OBJECTS
@@ -164,6 +168,8 @@ def inspect_pack(
 ) -> tuple[str, list[tuple[str, bytes]], list[str]]:
     if len(data) > max_pack:
         raise KernelError("pack exceeds maximum transfer size")
+    if data.startswith(_pack4.MAGIC4):
+        return _pack4.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS)
     if not data.startswith(MAGIC) or len(data) < len(MAGIC) + 32:
         raise KernelError("invalid pack header")
     expected = data[len(MAGIC) : len(MAGIC) + 32]

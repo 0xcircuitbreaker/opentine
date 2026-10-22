@@ -23,7 +23,7 @@ from opentine.remote._object_file import object_file_size, read_object_file
 from opentine.remote._object_list import iter_objects, list_objects
 from opentine.remote._ref_backend import SQLiteRefMixin
 from opentine.remote._schema import initialize
-from opentine.remote._sealed import OBJECT, seal, unseal
+from opentine.remote._sealed import OBJECT, seal_object, storage_codec, unseal
 from opentine.remote.interfaces import KeyProvider, RetentionHook
 from opentine.repository._refs import normalize_ref
 
@@ -49,10 +49,22 @@ def valid_ref(name: str) -> str:
 
 
 class FilesystemObjectStore:
-    def __init__(self, root: str | Path, keys: KeyProvider, retention: RetentionHook | None = None):
+    def __init__(
+        self,
+        root: str | Path,
+        keys: KeyProvider,
+        retention: RetentionHook | None = None,
+        *,
+        codec: str | None = "default",
+        uncompressed_tenants: frozenset[str] | set[str] = frozenset(),
+    ):
         self.root = Path(root).resolve()
         self.keys = keys
         self.retention = retention
+        # Objects are compressed, then sealed (TINEAES4), unless the operator
+        # turns it off (``TINE_REMOTE_STORAGE_CODEC=off``) or for named tenants.
+        self.codec = storage_codec(codec)
+        self.uncompressed_tenants = frozenset(uncompressed_tenants)
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, tenant: str, oid: str) -> Path:
@@ -96,7 +108,8 @@ class FilesystemObjectStore:
         fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
         try:
             with os.fdopen(fd, "wb") as handle:
-                handle.write(seal(self.keys, OBJECT, tenant, oid, data))
+                codec = None if tenant in self.uncompressed_tenants else self.codec
+                handle.write(seal_object(self.keys, tenant, oid, data, codec))
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
