@@ -21,6 +21,7 @@ from opentine.remote._jwks import (
     DEFAULT_REFRESH_INTERVAL,
     KeySet,
     OIDCError,
+    https_fetch,
 )
 from opentine.remote._jwt_claims import validate_claims
 
@@ -171,8 +172,14 @@ class JWTVerifier:
 
     @classmethod
     def from_discovery(
-        cls, issuer: str, audience: str, fetch: Callable[[str], bytes], **kwargs: Any
+        cls,
+        issuer: str,
+        audience: str,
+        fetch: Callable[[str], bytes] | None = None,
+        **kwargs: Any,
     ) -> JWTVerifier:
+        # The default fetch is bounded: HTTPS only, no redirects, a total deadline.
+        fetch = fetch or https_fetch
         if not issuer.startswith("https://"):
             raise OIDCError("OIDC discovery requires an HTTPS issuer")
         config = _document(

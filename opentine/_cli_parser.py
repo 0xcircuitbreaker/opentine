@@ -5,13 +5,18 @@ from __future__ import annotations
 import argparse
 
 from opentine._canon import FORMAT_VERSION
+from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_export import add_export_parser
+from opentine._cli_gitlink import add_gitlink_parsers
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
+from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
+from opentine._cli_media import add_media_parser
 from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._cli_storage import add_storage_parsers
+from opentine._cli_unify import add_unify_args
 from opentine._cli_who import add_actions_parsers
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
@@ -129,8 +134,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     stats.add_argument("--limit", type=int, default=20, help="Max groups to show; 0 for all")
 
-    tag = sub.add_parser("tag", help="Add, remove, or list tags")
-    tag.add_argument("run_id")
+    tag = sub.add_parser("tag", help="Tag a v3 run (tags/NAME), or edit a legacy run's labels")
+    tag.add_argument("run_id", nargs="?", metavar="NAME_OR_RUN")
     tag.add_argument("--add", action="append", default=[])
     tag.add_argument("--remove", action="append", default=[])
     tag.add_argument("--list", action="store_true")
@@ -225,7 +230,12 @@ def _build_parser() -> argparse.ArgumentParser:
     add_harnesses_parser(sub)
     add_storage_parsers(sub)
     add_actions_parsers(sub)
+    add_gitlink_parsers(sub)
+    add_bisect_parser(sub)
+    add_media_parser(sub)
+    add_hook_parser(sub)
     add_repo_parsers(sub)
+    add_unify_args(sub)
     return parser
 
 

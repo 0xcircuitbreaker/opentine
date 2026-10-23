@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from opentine._canon import _canonical_bytes, atomic_write_text
+from opentine.billing._catalog_verify import SCHEME_V2, signed_message
 
 
 def main() -> int:
@@ -29,7 +30,8 @@ def main() -> int:
     private = serialization.load_pem_private_key(args.key.read_bytes(), password=None)
     if not isinstance(private, Ed25519PrivateKey):
         raise TypeError("catalog signing key is not Ed25519")
-    signature = base64.b64encode(private.sign(_canonical_bytes(body))).decode("ascii")
+    message = signed_message(SCHEME_V2, body)
+    signature = base64.b64encode(private.sign(message)).decode("ascii")
     public = private.public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw
     )
@@ -44,12 +46,17 @@ def main() -> int:
         f'    "key_id": "{args.key_id}",',
         raw,
     )
+    raw, algorithm_count = re.subn(
+        r'(?m)^    "algorithm": "[^"]+",$',
+        f'    "algorithm": "{SCHEME_V2}",',
+        raw,
+    )
     raw, signature_count = re.subn(
         r'(?m)^    "value": "[^"]+"$',
         f'    "value": "{signature}"',
         raw,
     )
-    if (id_count, key_count, signature_count) != (1, 1, 1):
+    if (id_count, algorithm_count, key_count, signature_count) != (1, 1, 1, 1):
         raise ValueError("catalog signature fields were not unique")
     atomic_write_text(args.catalog, raw, fsync=True)
     print(f"catalog_id=sha256:{digest}")

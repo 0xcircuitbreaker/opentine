@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from opentine import _tineignore as tineignore
 from opentine.tools._git_guard import HARDENED_CONFIG, git_env
 from opentine.tools._process import run_bounded
 
@@ -42,10 +43,11 @@ def _git(cwd: Path, *arguments: str) -> tuple[str, str | None]:
 def code_manifest(path: str | Path = ".") -> dict[str, Any]:
     root = Path(path).resolve()
     commit_raw, commit_error = _git(root, "rev-parse", "HEAD")
-    patch, patch_error = _git(root, "diff", "--binary", "--no-ext-diff", "--no-textconv")
-    staged, staged_error = _git(
-        root, "diff", "--binary", "--cached", "--no-ext-diff", "--no-textconv"
-    )
+    # Unquoted paths in diff headers, so .tineignore can match non-ASCII names;
+    # paths with quotes, backslashes or controls stay C-quoted and are unquoted.
+    plain = ("-c", "core.quotePath=false", "diff", "--binary", "--no-ext-diff", "--no-textconv")
+    patch, patch_error = _git(root, *plain)
+    staged, staged_error = _git(root, *plain, "--cached")
     status, status_error = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
     records = status.split("\0", MAX_STATUS_ENTRIES + 1)
     if records and not records[-1]:
@@ -54,6 +56,23 @@ def code_manifest(path: str | Path = ".") -> dict[str, Any]:
     if status_overflow:
         records = records[:MAX_STATUS_ENTRIES]
     untracked = sorted(record[3:] for record in records if record.startswith("?? "))
+    # .tineignore: excluded paths never enter the capture, redacted ones keep
+    # their name but lose their hunks. Applied before `dirty` and the errors.
+    # .tineignore lives at the worktree root, and git reports paths relative to
+    # it, so a capture started from a subdirectory must load the root's rules.
+    top, top_error = _git(root, "rev-parse", "--show-toplevel")
+    try:
+        if top_error and (patch or staged or untracked):
+            raise OSError(f"worktree root unknown: {top_error}")
+        rules = tineignore.load(Path(top.strip()) if top.strip() else root)
+        ignore_error = None
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        # Fail closed: a broken .tineignore must not capture what it meant to hide.
+        rules, ignore_error, patch, staged = None, f"{exc}; patches not captured", "", ""
+    if rules:
+        patch = tineignore.filter_patch(patch, rules)
+        staged = tineignore.filter_patch(staged, rules)
+        untracked = tineignore.filter_paths(untracked, rules)
     errors = {
         name: error
         for name, error in {
@@ -61,6 +80,7 @@ def code_manifest(path: str | Path = ".") -> dict[str, Any]:
             "patch": patch_error,
             "staged_patch": staged_error,
             "status": status_error,
+            "tineignore": ignore_error,
             "status_entries": "status entry limit exceeded" if status_overflow else None,
             "untracked": (
                 f"{len(untracked)} untracked paths are listed but their contents are not captured"

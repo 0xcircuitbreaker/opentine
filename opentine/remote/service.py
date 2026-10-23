@@ -12,7 +12,7 @@ from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
-from opentine.remote._ref_policy import ref_permission
+from opentine.remote._ref_policy import FORCE, fast_forward_violation, ref_permission
 from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
 from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref, validate_ref_listing
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
@@ -26,6 +26,7 @@ from opentine.remote.interfaces import (
     IndexBackend,
     ObjectStore,
 )
+from opentine.repository import _pack4
 from opentine.repository._pack_fit import fitted_pack, typed_selection
 from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository._semantic_view import SemanticView
@@ -42,7 +43,9 @@ class RemoteService:
         *,
         admission: AdmissionPolicy | None = None,
         audit: AuditSink | None = None,
+        fast_forward_heads: bool = False,
     ):
+        self.fast_forward_heads = fast_forward_heads
         self.objects = objects
         self.index = index
         self.identities = identities
@@ -52,13 +55,17 @@ class RemoteService:
         if not callable(getattr(self.audit, "append", None)):
             raise TypeError("remote service requires an AuditSink")
 
-    @staticmethod
-    def capabilities() -> dict[str, Any]:
+    def capabilities(self) -> dict[str, Any]:
         return {
             "authentication": ["bearer", "oidc"],
             "filters": ["depth", "run", "object_type"],
+            "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
             "object_format": "opentine-v3",
+            # ``pack_format`` stays what 0.11 clients read; newer ones choose from
+            # ``pack_formats`` (``repository._pack4``).
+            "pack_codecs": _pack4.local_codecs(),
             "pack_format": "TINEPACK3",
+            "pack_formats": [_pack4.V4, _pack4.V3],
             "protocol": "opentine-remote/1",
             "resumable_upload": True,
             "roles": ["reader", "writer", "admin"],
@@ -185,6 +192,8 @@ class RemoteService:
         name: str,
         new_oid: str,
         expected_old: str | None,
+        *,
+        force: bool = False,
     ) -> bool:
         self._authorize(identity, "update_ref", tenant)
         name = normalize_ref(name)
@@ -200,6 +209,15 @@ class RemoteService:
         validate_ref_target(name, target.object_type, target.payload())
         if target.object_type == "annotation":
             admit_annotation_ref(tenant, self.objects, self.index, name, target)
+        repo = TenantRepo(tenant, self.objects, self.index)
+        rewrite = fast_forward_violation(
+            repo, name, expected_old, new_oid, enabled=self.fast_forward_heads
+        )
+        if rewrite:  # a fast-forward-only head moved to an unrelated run (_ref_policy)
+            if not force:
+                self._audit(identity, tenant, "update_ref", "non-fast-forward", {"name": name})
+                raise PermissionError("non-fast-forward update of a protected head")
+            self._authorize(identity, FORCE, tenant)
         self.admission.admit(
             identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}
         )
@@ -208,7 +226,7 @@ class RemoteService:
             identity,
             tenant,
             "update_ref",
-            "ok" if changed else "conflict",
+            ("forced" if rewrite else "ok") if changed else "conflict",
             {"expected_old": expected_old, "name": name, "new": new_oid},
         )
         return changed

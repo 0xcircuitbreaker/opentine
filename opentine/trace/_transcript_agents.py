@@ -29,6 +29,7 @@ from opentine.trace._transcript_common import (
     MAX_SOURCE_BYTES,
     SHAPE_ERRORS,
     bounded_id,
+    event,
     records,
 )
 from opentine.trace.schema import TraceEvent
@@ -86,7 +87,8 @@ def with_subagents(
         seen.add(identity)
         size = _size(path)
         agent = bounded_id(path.stem.removeprefix("agent-"), "agentId")
-        builder = make_builder(trace_id, f"agent-{agent}/", links.get(agent))
+        edge = _edge(trace_id, agent, links.get(agent), combined)
+        builder = make_builder(trace_id, f"agent-{agent}/", edge.span_id)
         if size > budget:
             left_out += 1
             continue
@@ -97,10 +99,12 @@ def with_subagents(
             left_out += 1
             continue
         found = builder.chain.events if builder.chain else []
-        if len(combined) + len(found) > MAX_EVENTS:
+        if len(combined) + len(found) + 1 > MAX_EVENTS:
             left_out += 1
             continue
-        combined.extend(found)
+        if found:  # the typed edge first, then the subagent's own events under it
+            combined.append(edge)
+            combined.extend(found)
     if duplicates:
         first = combined[0]
         attributes = dict(first.attributes or {})
@@ -114,6 +118,26 @@ def with_subagents(
         note_import_warning(attributes, f"{left_out} subagent transcript(s) not imported")
         combined[0] = replace(first, attributes=attributes)
     return combined
+
+
+def _edge(trace_id: str, agent: str, spawner: str | None, events: list[TraceEvent]) -> TraceEvent:
+    """A typed ``subagent`` event: the delegating tool call -> the subagent's steps.
+
+    Without it a subagent's first event hung directly under the tool call, and
+    nothing in the run said "a separate agent did this" -- the edge carries the
+    agent id, so the delegation survives import, storage and export as a link.
+    """
+    when = next((item.timestamp for item in events if item.span_id == spawner), 0.0)
+    return event(
+        "subagent",
+        when,
+        trace_id,
+        f"agent-{agent}/spawn",
+        parent=spawner,
+        actor=agent,
+        inputs={"agent_id": agent},
+        attributes={"source": "claude-code-transcript", "claude_code.subagent": True},
+    )
 
 
 def _identity(path: Path) -> tuple[Any, ...] | None:

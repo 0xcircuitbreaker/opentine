@@ -14,6 +14,7 @@ from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
+from opentine.repository import _pack4
 from opentine.repository.pack import MAX_PACK_BYTES, OMITTED_HEADER
 
 
@@ -142,9 +143,14 @@ class RemoteApp(UploadRoutes):
             )
         if resource.startswith("refs/") and method == "PUT":
             name = unquote(resource[5:])
-            request = self._json(environ, "expected_old", "new")
+            request = self._json(environ, "expected_old", "force", "new")
             changed = self.service.update_ref(
-                identity, tenant, name, request["new"], request.get("expected_old")
+                identity,
+                tenant,
+                name,
+                request["new"],
+                request.get("expected_old"),
+                force=request.get("force") is True,
             )
             status = "200 OK" if changed else "409 Conflict"
             return self._json_response(start_response, status, {"updated": changed})
@@ -160,7 +166,9 @@ class RemoteApp(UploadRoutes):
                 )
             return self._json_response(start_response, "200 OK", {"missing": missing})
         if resource == "fetch" and method == "POST":
-            request = self._json(environ, "depth", "haves", "object_types", "wants")
+            request = self._json(
+                environ, "depth", "haves", "object_types", "pack_codecs", "pack_formats", "wants"
+            )
             raw_types = request.get("object_types") or []
             if not isinstance(raw_types, list) or not all(
                 isinstance(item, str) and item in OBJECT_TYPES for item in raw_types
@@ -177,9 +185,13 @@ class RemoteApp(UploadRoutes):
                     object_types=set(raw_types) or None,
                     omitted=omitted,
                 )
+                fmt, codec = _pack4.choose(request.get("pack_formats"), request.get("pack_codecs"))
+                if fmt == _pack4.V4 and codec:  # only a client that asked for it gets v4
+                    data = _pack4.from_v3(data, codec)
             # Additive: older clients ignore it; newer ones report runs whose
             # attestations (or annotations) did not fit in the pack.
             headers = [(OMITTED_HEADER, str(len(omitted)))] if omitted else []
+            headers.append((_pack4.FORMAT_HEADER, fmt))
             pack_type = "application/vnd.opentine.pack"
             return self._response(start_response, "200 OK", data, pack_type, headers)
         if resource == "packs" and method == "POST":

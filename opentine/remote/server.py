@@ -44,10 +44,14 @@ def reference_app(
     reanchor_audit_head: str | None = None,
     max_request_bytes: int = 16 * 1024 * 1024,
     max_upload_bytes: int = 256 * 1024 * 1024,
+    fast_forward_heads: bool = False,
+    uncompressed_tenants: tuple[str, ...] = (),
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
-    objects = FilesystemObjectStore(state / "objects", key_provider)
+    objects = FilesystemObjectStore(
+        state / "objects", key_provider, uncompressed_tenants=frozenset(uncompressed_tenants)
+    )
     chain_key = audit_key
     if chain_key is None:
         derive = getattr(key_provider, "derive_audit_key", None)
@@ -66,6 +70,7 @@ def reference_app(
         identities,
         authorization or RoleAuthorizationPolicy(),
         admission=admission,
+        fast_forward_heads=fast_forward_heads,
     )
     return RemoteApp(
         service,
@@ -95,6 +100,18 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         "--writer-promotes",
         action="store_true",
         help="Let writers move promotions/* and existing tags/* (admin-only by default)",
+    )
+    parser.add_argument(
+        "--fast-forward-heads",
+        action="store_true",
+        help="Refuse non-fast-forward heads/* moves unless an admin pushes with --force",
+    )
+    parser.add_argument(
+        "--uncompressed-tenant",
+        action="append",
+        default=[],
+        metavar="TENANT",
+        help="Store this tenant's objects sealed but uncompressed (repeatable)",
     )
     parser.add_argument("--timeout", type=int, default=30, help="Per-connection socket timeout (s)")
     parser.add_argument(
@@ -155,6 +172,8 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         max_upload_bytes=args.max_upload_mb * 1024 * 1024,
         migrate_legacy_audit=args.migrate_legacy_audit,
         reanchor_audit_head=args.reanchor_audit_head,
+        fast_forward_heads=args.fast_forward_heads,
+        uncompressed_tenants=tuple(args.uncompressed_tenant),
     )
     handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
     handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)

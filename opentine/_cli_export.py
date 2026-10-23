@@ -48,12 +48,12 @@ from typing import Any
 
 import httpx
 
-from opentine._canon import atomic_write_text
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_json import emit, serialize
 from opentine._cli_text import endpoint_for_display
-from opentine._codec_io import atomic_write_bytes, standard_frame
+from opentine._codec_io import standard_frame
+from opentine._export_write import unsafe_destination, write_private
 from opentine._graph_serde import run_from_dict, run_to_dict
 from opentine.core import Run
 from opentine.redaction import redact_value
@@ -63,7 +63,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp")
+EXPORT_FORMATS = ("otel-json", "otlp", "atif")
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -162,14 +162,11 @@ def _write(document: dict[str, Any], output: Path | None, compress: str | None =
         return
     # Atomic replace, like every other artifact writer: a symlink at the
     # destination is replaced, never written through.
-    if compress:
-        text = (serialize(document) + "\n").encode()
-        atomic_write_bytes(output, standard_frame(text, compress))
-    else:
-        atomic_write_text(output, serialize(document) + "\n")
-    console.print(
-        f"[{BRAND}]# Exported[/] {len(_spans(document))} span(s) [{BRAND}]to[/] {_terminal(output)}"
-    )
+    text = (serialize(document) + "\n").encode()
+    write_private(output, standard_frame(text, compress) if compress else text)
+    shown = f"{len(document['steps'])} ATIF step(s)" if "steps" in document else None
+    shown = shown or f"{len(_spans(document))} span(s)"
+    console.print(f"[{BRAND}]# Exported[/] {shown} [{BRAND}]to[/] {_terminal(output)}")
 
 
 def _shown(url: str) -> str:
@@ -208,6 +205,9 @@ def cmd_export(args: argparse.Namespace) -> None:
     output = Path(args.output) if args.output else None
     if output is not None:
         _require_output_slot(output, args.force)
+        if reason := unsafe_destination(output):
+            console.print(f"[red]Refusing to export: {reason}: {_terminal(output)}[/]")
+            raise SystemExit(1)
     path = _find_run(args.run_id)
     if not path:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
@@ -221,7 +221,14 @@ def cmd_export(args: argparse.Namespace) -> None:
         # as separate strings, where the free-text pass alone cannot pair them.
         run = Run.load(path)
         run = run_from_dict(run_to_dict(run, redact=True), type(run))
-        document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
+        if args.format == "atif":  # Harbor's trajectory format, written to a file only
+            if endpoint is not None:
+                raise ValueError("--format atif writes a file; it cannot be pushed to --endpoint")
+            from opentine._atif_export import to_atif
+
+            document = redact_value(to_atif(run))
+        else:
+            document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
         # The write and the push are inside the same guard as the conversion:
         # ``serialize`` refuses a document it cannot render faithfully (nesting
         # past the format bound, or a cycle) rather than writing a truncation

@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/3",
-  "generated_at": "2026-10-20T00:00:00Z",
-  "verified_at": "2026-10-20",
+  "generated_at": "2026-10-22T00:00:00Z",
+  "verified_at": "2026-10-22",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -2703,12 +2703,96 @@
       "source_urls": ["https://developers.openai.com/api/docs/pricing"],
       "verified_at": "2026-10-20",
       "metadata": {"note": "Pricing page transcription: '$0.0045 / minute'."}
+    },
+    {
+      "id": "xai:grok-imagine-image:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-image",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"images": "0.02"},
+      "units": {"images": "image"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.02 / image'. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-imagine-image-2.0:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-image-2.0",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"images": "0.04"},
+      "units": {"images": "image"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.04 / image'. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-imagine-image-quality:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-image-quality",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"images": "0.05"},
+      "units": {"images": "image"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.05 / image'. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-imagine-video-1.5-lite:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-video-1.5-lite",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"video_seconds": "0.020"},
+      "units": {"video_seconds": "second"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.020 / sec', billed per generated second. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-imagine-video-1.5:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-video-1.5",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"video_seconds": "0.080"},
+      "units": {"video_seconds": "second"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.080 / sec', billed per generated second. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-imagine-video:2026-10-22",
+      "provider": "xai",
+      "model": "grok-imagine-video",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"video_seconds": "0.050"},
+      "units": {"video_seconds": "second"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Imagine Pricing' table: '$0.050 / sec', billed per generated second. No launch date published; effective_from is the verification date."}
+    },
+    {
+      "id": "xai:grok-voice-3.0:2026-10-22",
+      "provider": "xai",
+      "model": "grok-voice-3.0",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"realtime_minutes": "0.08"},
+      "units": {"realtime_minutes": "minute"},
+      "source_urls": ["https://docs.x.ai/docs/models"],
+      "verified_at": "2026-10-22",
+      "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Voice Pricing': 'Speech to Speech (grok-voice-3.0) $0.08 / min ($4.80 / hr) $0.004 / text input'. Only the per-minute charge is carded: the '$0.004 / text input' unit is not stated precisely enough to card, so text-input charges are not included."}
     }
   ],
-  "catalog_id": "sha256:48927c79d8478279a84ec1bc6e7e400c06025a4e0e74a8d1dac4012ca614b082",
+  "catalog_id": "sha256:f2493f0b821025bf7c45459518762ecc1e5c11d7a2399be8cff442ec7e790289",
   "signature": {
-    "algorithm": "ed25519",
+    "algorithm": "ed25519/opentine.pricing-catalog.v2",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "AYDAtT0OX6QSwm2D4r/LAYNFKrysrtpUsd/FBWZJzeiYy1/ACAoE+aETj8gK45eSvfxpH5w3dYYUg4BtvIXgBg=="
+    "value": "09fUwSP4AeA2lcjLGIwF197kDN9cyFa+ivvJXnFTriPQrV+IdJEFDLq+RF9BUqNa0kzgz5oEGM5Bh+zz6lv/AA=="
   }
 }

@@ -381,7 +381,10 @@ def test_promote_has_no_force_flag_and_never_may(fresh_repo):
     # that declares it or in the module that would have to read it back.
     written = Path(cli.__file__).with_name("_repo_cli_write.py").read_text(encoding="utf-8")
     declared = Path(cli.__file__).with_name("_repo_cli_parser.py").read_text(encoding="utf-8")
-    assert '"--force"' not in declared and "args.force" not in written
+    # `push --force` (admin non-fast-forward, 0.12) is the one legitimate --force here.
+    forces = [line for line in declared.splitlines() if '"--force"' in line]
+    assert all(line.lstrip().startswith("push.add_argument") for line in forces), forces
+    assert "args.force" not in written
 
 
 # --- refusals ----------------------------------------------------------------

@@ -281,8 +281,6 @@ def release_key(monkeypatch):
     """A test key trusted as a catalog signer, and a signer for catalogs."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from opentine._canon import _canonical_bytes
-
     private = Ed25519PrivateKey.generate()
     public = base64.b64encode(private.public_key().public_bytes_raw()).decode()
     monkeypatch.setitem(_catalog_verify.TRUSTED_KEYS, "test-release", public)
@@ -295,8 +293,13 @@ def release_key(monkeypatch):
                 card["rates"] = {**card["rates"], "input": input_rate}
         body = {k: v for k, v in data.items() if k not in {"catalog_id", "signature"}}
         data["catalog_id"] = "sha256:" + catalog_hash(data)
-        value = base64.b64encode(private.sign(_canonical_bytes(body))).decode()
-        data["signature"] = {"algorithm": "ed25519", "key_id": "test-release", "value": value}
+        message = _catalog_verify.signed_message(_catalog_verify.SCHEME_V2, body)
+        value = base64.b64encode(private.sign(message)).decode()
+        data["signature"] = {
+            "algorithm": _catalog_verify.SCHEME_V2,
+            "key_id": "test-release",
+            "value": value,
+        }
         return json.dumps(data).encode()
 
     return sign

@@ -59,7 +59,8 @@ def test_auth_rbac_namespace_encryption_cas_and_append_only_audit(tmp_path: Path
     assert service.list_refs(reader, "acme") == {"heads/main": run}
 
     encrypted = objects._path("acme", oid).read_bytes()
-    assert encrypted.startswith(b"TINEAES3")
+    # 0.12: compressed, then sealed (TINEAES4); TINEAES3 when compression is off.
+    assert encrypted.startswith((b"TINEAES3", b"TINEAES4"))
     assert b"remote secret payload" not in encrypted
     assert objects.get("acme", oid) == local.raw(oid)
 

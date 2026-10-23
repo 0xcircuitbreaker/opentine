@@ -1,6 +1,10 @@
 """Gemini ``usageMetadata`` normalization, including per-modality buckets.
 
-Prompt audio is split out because Gemini prices it apart from text. Output is
+Prompt audio is split out because Gemini prices it apart from text. Prompt
+image and video tokens are split out too (``input_image``/``input_video``): the
+billing engine folds them back into ``input`` on a Gemini card that prices them
+like text and states no rate of its own, so existing cards and overlays price
+exactly as before. Output is
 split by modality too -- ``output_image``, ``output_audio``, ``output_video`` --
 because image, speech and video output are priced apart from text output
 (nano-banana image models, native-audio and Omni video). A text-only response
@@ -50,6 +54,13 @@ def google_usage(raw: Any) -> Usage:
     if cached > prompt or prompt_audio > prompt or audio_cache > min(cached, prompt_audio):
         raise ValueError("provider usage cache/audio sub-buckets exceed prompt token totals")
     audio_input = prompt_audio - audio_cache
+    media_input = {}
+    for name in ("image", "video"):
+        fresh = prompt_modalities.get(name, 0) - cache_modalities.get(name, 0)
+        if fresh > 0:
+            media_input[f"input_{name}"] = fresh
+    if audio_input + sum(media_input.values()) > prompt - cached:
+        media_input = {}  # inconsistent breakdown: keep everything in ``input``
     output_modalities = _google_modalities(
         raw, "candidates_tokens_details", "candidatesTokensDetails"
     )
@@ -62,11 +73,12 @@ def google_usage(raw: Any) -> Usage:
         for name, count in {
             "input_audio": audio_input,
             "cache_read_audio": audio_cache,
+            **media_input,
             **media_output,
         }.items()
         if count
     }
-    fresh_input = prompt - cached - audio_input
+    fresh_input = prompt - cached - audio_input - sum(media_input.values())
     if fresh_input + tool_use > _MAX_SAFE_INTEGER:
         extra["input_tool_use"] = tool_use
     else:

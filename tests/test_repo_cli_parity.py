@@ -77,6 +77,17 @@ TOOL_TO_VERB = {
 #: Listing them keeps "the CLI has a verb MCP lacks" from being a silent,
 #: growing category: a new one must be added here, with a reason.
 CLI_ONLY_VERBS = {
+    # 0.12 git-parity porcelain: operator-side ref/config verbs, not MCP tools.
+    "branch",
+    "cherry-pick",
+    "config",
+    "log",
+    "pull",
+    "rebase",
+    "reflog",
+    "remote",
+    "reset",
+    "verify-tag",
     "clone",
     "fetch",
     "fsck",

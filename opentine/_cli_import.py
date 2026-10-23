@@ -14,8 +14,8 @@ Formats
                    serialized framework log records, as a JSON array or JSONL.
 ``otel-logs``      OTLP/JSON logs (Claude Code, Codex and Gemini CLI events).
 ``claude-code-transcript`` ``codex-session`` ``gemini-session`` ``qwen-session``
-                   an agent CLI's own session log; ``--from-default-location``
-                   lists them and resolves ``latest`` or an id prefix.
+``atif`` ``opencode-session`` an agent's session log (opencode.db[::id]);
+                   ``--from-default-location`` lists them; ``latest`` or an id prefix.
 ``auto``           (the default) recognize the source by its shape.
 
 Persistence — at least one target is required
@@ -63,12 +63,12 @@ from opentine._pricing_pass import price_events
 from opentine.core import Run
 from opentine.repo import Repo
 from opentine.repository._annotations import write_run_annotation
+from opentine.trace._import_detect import TRANSCRIPT_FORMATS
 from opentine.trace._transcript_common import capture_marker
 from opentine.trace.recorder import Recorder
 from opentine.trace.schema import TraceEvent
 
 FRAMEWORK_FORMATS = ("langchain", "llamaindex", "autogen", "crewai", "openai-agents")
-TRANSCRIPT_FORMATS = ("claude-code-transcript", "codex-session", "gemini-session", "qwen-session")
 IMPORT_FORMATS = (
     "auto",
     "otel-json",

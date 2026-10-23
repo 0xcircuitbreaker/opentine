@@ -564,6 +564,36 @@
       "checklist": [
         6
       ],
+      "expect": "accept",
+      "id": "pack.inspect.v4-one-object-one-boundary",
+      "input": {
+        "blob": "frames/23aae798ec6e5ef478bbf950420b4d52ef6a51ad17dff58114eaeabfc484c5a3.pack",
+        "sha256": "23aae798ec6e5ef478bbf950420b4d52ef6a51ad17dff58114eaeabfc484c5a3"
+      },
+      "intent": "a TINEPACK4 frame (binary header, one compressed body) carries the same object set and shallow boundaries as the v3 frame; readers accept both magics",
+      "op": "pack.inspect",
+      "output": {
+        "objects": [
+          "event:sha256:caf08d2a763207de229c0791833cb7bd446ee3e2492dd390ec57456770db5361"
+        ],
+        "pack_id": "sha256:3b73c2db8890c68aac48d34ece91594e5247231a7aedfb07b0cc0010e24598ac",
+        "shallow": [
+          "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008"
+        ]
+      },
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEPACK4\\x00;s\\xc2\\xdb\\x88\\x90\\xc6\\x8a\\xacH\\xd3N\\xce\\x91YNRG#\\x1az\\xed\\xfb\\x07\\xb0\\xcc\\x00\\x10\\xe2E\\x98\\xac\\xd9\\x01{\"codec\":\"zlib\",\"objects\":[[\"event:sha256:caf08d2a763207de229c0791833cb7bd446ee3e2492dd390ec57456770db5361\",272]],\"shallow\":[\"blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008\"],\"version\":1}TINEZ1\\x00\\x01\\x90\\x02x\\xda\\xb5\\x8fM\\x0e\\xc2 \\x10\\x85\\xf7\\x1ec\\xd6]@\\x85\\xd2r\\x15c\\x1a\\x98\\x99Z\\xb4B#\\xd4\\xc44\\xbd\\xbbx\\x08W//_\\xf2~v\\xe0\\x88\\x89B\\xbc\\x81\\x85{N\\x11\\x1a\\xc88\\xf3\\xd3\\x81\\x95\\x0d\\x94\\xcf\\xca\\x15\\xf0\\x9bc\\x81\\xe3\\xb4\\x03\\xa6\\\\\\xc0\\x8a\\x06B\\\\\\xb72\\xfa%\\xf9\\xca\\x7fb\\xf3\\xecZ\\xddY\\xd4\\xad\\x968)l\\x85db\\xa3\\xb0\\xe7\\xb3\\xee\\x14aG\\xa2e=\\x18\\xf4\\x95M\\x9e\\x06\\xe9ze\\x84r\\x83\\x94f0\\xdax\\x12...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        6
+      ],
       "expect": "reject",
       "id": "pack.inspect.version-true",
       "input": {

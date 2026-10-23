@@ -1,5 +1,240 @@
 # Changelog
 
+## 0.12.0 — 2026-10-22 — Git for agent runs: blame, bisect, git integration, porcelain, interop
+
+opentine now works the way git users expect. A commit can name the agent runs
+that produced it, `tine blame` says which run, step, model and tool call wrote a
+line, and `tine bisect` finds the run or step where things went wrong. Remotes,
+branches, tags, the reflog, `pull`, `reset`, aliases and hooks behave like their
+git namesakes, and the plain verbs (`log`, `show`, `diff`, `tag`) act on a
+repository first. Agent sessions can be captured with no setup, ATIF and
+OpenCode sessions import, media endpoints are called and priced directly, and
+transfers and server storage are compressed.
+
+### Upgrade notes
+
+- **Pricing catalogs are signed with a domain-separated scheme**
+  (`ed25519/opentine.pricing-catalog.v2`): the signature covers
+  `opentine.pricing-catalog.v2:` followed by the canonical body, so it cannot be
+  confused with an artifact or attestation signature. Older (v1) signatures still
+  verify for catalogs generated before 2026-11-01 by the existing release key;
+  anything newer must be v2. **opentine 0.11 and older cannot read a v2-signed
+  catalog file**, so a user or workspace catalog signed by 0.12 needs 0.12.
+- **The remote stores new objects compressed, then sealed (TINEAES4)**, with the
+  codec and the uncompressed size bound into the authenticated data. A 0.11
+  server cannot read TINEAES4. Before rolling a server back, run
+  `tine serve --root R --tenant T reseal --to aes3` for each tenant and set
+  `TINE_REMOTE_STORAGE_CODEC=off`. `TINE_REMOTE_STORAGE_CODEC=off|zlib|zstd` and
+  `tine serve --uncompressed-tenant T` turn compression off server-wide or per
+  tenant. TINEAES1–3 objects keep opening.
+- **Transfers negotiate TINEPACK4**, a binary compressed pack. A 0.12 client only
+  offers it to a server that advertises it, and a 0.12 server only answers with it
+  when asked, so 0.11 clients and servers keep exchanging TINEPACK3 in both
+  directions.
+- **The plain verbs act on a repository first.** `tine show`, `diff`, `tag` and
+  `log` read the v3 repository when one is found (`fork` with `--ref`, `search`
+  with `--repo`). An existing file path or a legacy run id still selects the old
+  file behaviour, and `--legacy` forces it; the `repo-*` names keep working.
+- **Aliases, hooks and remote token files only take effect in a repository this
+  machine has trusted.** `tine config --trust` records the exact bytes of
+  `.tine/porcelain.json` outside the repository; any edit not made through `tine`
+  makes them inert again, so a cloned repository cannot run anything. Hooks are
+  also off until `hooks.enabled` is set.
+- **`tine export --output` writes owner-only (0600) files**, also when `--force`
+  replaces an existing file, and refuses a destination that exists and is a
+  directory, FIFO or device.
+- **OIDC discovery fetches through a bounded HTTPS client by default**
+  (`opentine.remote._jwks.https_fetch`): no redirects, no proxy environment, a
+  1 MiB cap and a total deadline. Pass `fetch=` to use your own.
+- **The remote can enforce fast-forward-only `heads/*`**: `tine serve
+  --fast-forward-heads`. It is off by default, because an ordinary `put_run`
+  repoints `heads/main` at an unrelated new run. With it on, a non-fast-forward
+  move is refused unless an admin pushes with `tine push --force`; both outcomes
+  are audited.
+- New verbs (README count 64): `git`, `blame`, `bisect`, `remote`, `pull`,
+  `branch`, `verify-tag`, `reflog`, `reset`, `config`, `rebase`, `cherry-pick`,
+  `hook`, `media` (and the porcelain `log`).
+
+### Added
+
+- **Runs linked to git commits.**
+  - `tine git install-hook [--global]` adds a `prepare-commit-msg` hook that
+    appends a `Tine-Run: <run>` trailer for every recorded run that wrote one of
+    the staged files since the last commit. It never blocks a commit and never
+    replaces a hook you already have: an existing hook is kept as
+    `prepare-commit-msg.tine-chained` and runs first. `--global` uses your global
+    `core.hooksPath`, or opentine's own hooks directory with pass-through shims
+    so each repository's own hooks keep running.
+  - `tine git note COMMIT [RUN...]` records runs, model and cost under
+    `refs/notes/tine`, for example after a rebase rewrote the message.
+  - `tine git log --commit SHA | --pr N` (also `tine log --commit/--pr`) lists the
+    runs behind a commit or a GitHub pull request (`--pr` uses `gh`).
+- **`tine blame PATH[:LINE] [--git]`** names the run, step, model, agent and tool
+  call that wrote a file or a line, by matching the line against each recorded
+  write (Write content, Edit/MultiEdit text, `apply_patch` hunks). `--git` starts
+  from `git blame`: commit, then its trailers and notes, then the step.
+- **`tine bisect`** finds the first bad run along a fork lineage, in an explicit
+  run list (`--runs`, e.g. one task across models), or the first bad step of one
+  run (`--steps RUN`). `bisect run --eval CMD` uses an evaluator's exit code like
+  `git bisect run`; `bisect run --score NAME>=X` uses recorded evaluation scores.
+  In a repository each verdict is recorded on the run as an annotation.
+- **Git-style porcelain.**
+  - `tine remote add/ls/rm/rename` (a remote stores a path to a token file, never
+    the token, and refuses URLs with credentials, a query or a fragment); `fetch`
+    and `push` accept remote names and `--all`; `tine pull` fetches and only
+    fast-forwards.
+  - `tine branch`, `tine tag NAME [RUN] [-s|-d|-f]` (signed tags) and
+    `tine verify-tag`, `tine reflog`, `tine reset REF RUN [--expect]`. Every
+    change is compare-and-swap, and a deleted branch or tag can be brought back
+    with `reflog` and `reset`.
+  - `tine config get/set/--list/--unset/--trust` and `alias.*` (an alias never
+    shadows a built-in verb).
+  - `tine log --graph --all --oneline` draws the fork tree with model, status,
+    steps and cost.
+  - Client hooks `pre-record`, `post-run`, `pre-push`, `post-fetch`: opt-in,
+    trust-gated, regular files only, a scrubbed environment (no API keys) and a
+    timeout; a failing `pre-*` hook aborts.
+  - `.tineignore` drops paths from the captured diff, or replaces their content
+    (`redact:`).
+  - `tine rebase RUN --onto-model M [--from-step N]` prepares a fork of a run on
+    another model, and `tine cherry-pick RUN:STEP --onto RUN2` copies one step
+    onto another run; both write `experiments/...` refs and leave the sources
+    untouched.
+- **Zero-config capture: `tine hook install --global --repo PATH`** adds a
+  session-end hook to Claude Code (`settings.json`), Codex (`hooks.json`) and
+  Gemini CLI (`settings.json`) that imports every finished session. `--agent`
+  narrows it, `--dry-run` previews, `tine hook uninstall --global` removes only
+  opentine's entry, and `tine hook status --global` reports. Other hooks are never
+  edited, the original file is backed up to `<file>.tine-backup`, and invalid or
+  symlinked config files are refused untouched.
+- **ATIF import and export.** `tine import` reads Harbor's Agent Trajectory
+  Interchange Format (v1.0–v1.8, auto-detected), including embedded subagent
+  trajectories, and `tine export --format atif` writes an ATIF-v1.8 trajectory.
+  Usage converts both ways without loss; the file's `cost_usd` is kept as an
+  attribute and never used as the price.
+- **OpenCode import.** `tine import ~/.local/share/opencode/opencode.db[::<id>]`
+  (or `tine import latest --from-default-location --format opencode-session`)
+  imports an OpenCode session and its child sessions. The database is opened
+  read-only, only the session, message and part tables are read, an unrecognised
+  schema is refused by name, and rows, sessions, depth and bytes are bounded.
+- **Media endpoints.** `tine media image|speech|transcribe` and
+  `opentine.models.media` call OpenAI image generation (gpt-image), text-to-speech
+  and transcription, and xAI Grok Imagine images. Each call is a model step that
+  `tine price` re-prices exactly; outputs are stored as size and SHA-256, never
+  inline. The usual transport rules apply: no redirects, a 64 MiB body cap,
+  identity encoding, keys only over TLS or loopback, and a custom `--base-url`
+  needs `--api-key-env`.
+- **xAI media cards** (231 cards): grok-imagine-image ($0.02), -2.0 ($0.04),
+  -quality ($0.05) per image; grok-imagine-video-1.5-lite ($0.020/s), -1.5
+  ($0.080/s), grok-imagine-video ($0.050/s); grok-voice-3.0 ($0.08/min).
+- **TINEPACK4 and TINEAES4** (see Upgrade notes). A v4 pack is about 8–12%
+  smaller than v3 on text runs, and zstd is used when both ends have it.
+- **Conformance:** a TINEPACK4 reader vector joins the suite, which now ships
+  **524 conformance vectors**; 195 of the 524 refuse input, and the adapter
+  contract still has one entry point: 33 ops.
+
+### Changed
+
+- Imported Claude Code subagent transcripts, OpenCode child sessions and ATIF
+  subagent trajectories are linked through a typed `subagent` step under the tool
+  call that delegated them, so the delegation survives import, storage and export.
+- Gemini image and video prompt tokens are recorded separately (`input_image`,
+  `input_video`). A Google card that prices them like text and states no rate of
+  its own folds them back into `input`, so existing cards, overlays and recorded
+  runs price exactly as before.
+
+### Security
+
+- **Commit trailers carry only well-formed run ids.** A run id containing a
+  newline can no longer add a forged trailer (such as `Signed-off-by`) to a
+  commit message; ids must fully match the run-id grammar.
+- **`.tineignore` applies from any subdirectory.** Capture loads the rules from
+  the git worktree root (where git reports paths from), and drops the patches if
+  the root cannot be determined.
+
+- **Hooks never import code from the project directory.** The installed
+  `prepare-commit-msg` hook and the `tine hook` agent commands run Python in
+  isolated mode (`-I`), so a cloned repository shipping its own `opentine/`
+  package is not executed on commit or session end.
+- **A harmless config write never trusts a cloned `porcelain.json`.**
+  `tine remote add`/`rm`/`rename` and `tine config set`/`--unset` keep trust
+  only if the file was already trusted; planted `hooks.*`, `alias.*` and
+  token-file entries stay inert until `tine config --trust`.
+- **Trust covers the hook programs too.** The recorded digest hashes
+  `porcelain.json` and every file under `.tine/hooks/`; a hook edited, added or
+  removed after trust (a project update, a re-clone) revokes it until reviewed.
+- **A cloned project's remote never receives your token.** A named remote
+  resolves only from a trusted `porcelain.json`, so `tine pull`, `tine fetch
+  origin` and `tine push origin` in an untrusted project refuse instead of
+  sending `TINE_REMOTE_TOKEN` or `--token` to a URL the project chose; a literal
+  URL still works.
+- **The commit hook credits only runs you pointed it at.** It reads the runs
+  directory or repository recorded by `tine git install-hook` (`git config
+  tine.runsDir` / `tine.repo`, or `--runs-dir`/`--repo`), never a cloned work
+  tree's own `.tine/` or `.tine_runs/`, and ignores writes stamped in the
+  future. Installed globally, it still runs each repository's own
+  `prepare-commit-msg`, and every client hook gets a pass-through shim.
+- Pricing catalog signatures are domain-separated (see Upgrade notes). Key
+  rotation stays a documented procedure; the release key is unchanged.
+- Every git call the link commands make uses the shell tool's hardening: the
+  binary bound with `shutil.which`, no fsmonitor, hooks, pager, external diff or
+  transports, and an environment without `GIT_*`, pager or editor variables.
+  Revisions that could be read as options are refused, and anything read back
+  from git (trailers, notes) is used only if it matches the run-id grammar.
+- The installed commit hook only reads the (redacted) action index and swallows
+  every failure, so it can never block or alter a commit beyond adding trailers.
+- Repository hooks, aliases and remote token files are trust-gated per machine
+  and per byte of configuration, so cloning a repository never runs its hooks.
+- `tine hook install` never edits another tool's hooks and refuses symlinked or
+  invalid config files; ATIF subagent references to other files or URLs are never
+  followed; the OpenCode database is opened read-only and its credential tables
+  are never read.
+- The TINEPACK4 reader checks the checksum, the header size, the object count and
+  the total declared size before inflating, and inflates with exactly that size
+  as the limit. TINEAES4 caps the declared size before decrypting.
+- Exports of run content no longer inherit a world-readable mode, and OIDC
+  discovery no longer depends on the caller supplying a bounded fetch.
+- `tine bisect run --score` now applies search's evaluation trust rules: a
+  signed evaluation outranks unsigned ones, unsigned scores outside ±1e6 count
+  for nothing, and the new `--signed-only` ignores unsigned evaluations. Before,
+  any MCP client could write an unsigned evaluation that decided the bisect.
+- `.tineignore` now matches paths git C-quotes in diff headers (non-ASCII,
+  quotes, backslashes); captures run git with `core.quotePath=false`, quoted
+  headers are unquoted, both sides of a rename are checked, and a header that
+  cannot be parsed drops its section instead of capturing it.
+- `tine blame --git` and the git-link hook never run a repository's own
+  `filter.*.clean` or `diff.*.textconv` programs: blame reads the committed
+  `HEAD` with `--no-textconv`, and git-link calls set `core.attributesFile`
+  to the null device.
+- The first `tine config`/`tine remote` write no longer trusts `.tine/hooks/`
+  files a clone shipped without a porcelain file; it leaves them untrusted and
+  points to `tine config --trust`.
+- A TINEPACK4 header whose `shallow` field is not a list of strings is refused
+  as an invalid pack rather than raising `TypeError`.
+- Transcription usage without an input-token breakdown bills its input tokens
+  as audio instead of dropping them; non-finite or negative durations are
+  treated as unreported.
+
+### Still open
+
+- `tine rebase` prepares the fork on the new model; it does not re-execute the
+  steps (resume it yourself). `post-run`/`pre-record` hooks fire from rebase and
+  cherry-pick, not yet from the recorder.
+- `tine pull` only fast-forwards; there is no merge of diverged run histories.
+- OS sandbox backends for the python tool (Landlock, bubblewrap) are deferred:
+  the 0.12 prototypes left host IPC (UNIX sockets) reachable, so they were not
+  shipped. The python tool remains resource containment, not an OS sandbox.
+- Windows on-disk path cases (junctions, UNC, 8.3 names) are covered by
+  normaliser tests, not yet by a Windows-only CI slice.
+- Veo and Imagen have no published prices and no adapter; xAI text-to-speech and
+  speech-to-text, xAI video/voice adapters and the OpenAI realtime adapter are not
+  built.
+- ATIF export flattens subagents into one trajectory instead of emitting
+  `subagent_trajectories`. Qwen Code and other CLIs get no global hook (no
+  documented session-end hook).
+- Blame matches a line by its text, so identical lines are attributed to the
+  newest write, and shell-made writes are blamed at file level only.
+
 ## 0.11.0 — 2026-10-20 — Agent actions, multimodal pricing, storage compression
 
 You can now ask which agents did what. `tine who` finds every agent, model or

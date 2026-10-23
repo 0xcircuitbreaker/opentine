@@ -49,6 +49,12 @@ UNIT_DIMENSIONS = {
     "requests": "request",
 }
 SCHEMA_V3 = "opentine-pricing/3"
+#: Gemini splits prompt image/video tokens out of ``input`` (0.12). Google prices
+#: them like text input on every current line, so a Google card that states no
+#: rate and no ``same_rate_as`` for them folds them back into ``input``: cards and
+#: overlays written before the split price a run exactly as they did.
+_TEXT_PRICED_INPUT = {"input_image", "input_video"}
+_TEXT_PRICED_PROVIDERS = {"google", "vertex"}
 _FEATURES = ("units", "same_rate_as")
 _MILLION = Decimal(1_000_000)
 
@@ -127,6 +133,14 @@ def resolve_rate(
     rate = rates.get(dimension)
     if rate is None and dimension in card.same_rate_as:
         base = card.same_rate_as[dimension]
+        rate = rates.get(base)
+    if (
+        rate is None
+        and dimension in _TEXT_PRICED_INPUT
+        and getattr(card, "provider", "") in _TEXT_PRICED_PROVIDERS
+        and _unit(card, dimension) is None
+    ):
+        base = "input"
         rate = rates.get(base)
     unit = _unit(card, dimension, base) or TOKEN
     per_unit = {_family(dimension), _family(base)} & UNIT_DIMENSIONS.keys()

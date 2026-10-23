@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import time
@@ -17,7 +18,7 @@ from opentine.repository._paths import durable_directory, internal_path
 MAX_REFLOG_BYTES = 1024 * 1024
 
 
-def reflog_entry(normalized: str, old: str | None, new_oid: str, actor: str) -> bytes:
+def reflog_entry(normalized: str, old: str | None, new_oid: str | None, actor: str) -> bytes:
     """Serialize and validate a reflog row before its corresponding ref commits."""
     if not isinstance(actor, str):
         raise TypeError("reflog actor must be a string")
@@ -73,3 +74,33 @@ def _rotate(log_path: Path, size: int, entry: bytes) -> None:
         os.replace(temporary, log_path)
     finally:
         Path(temporary).unlink(missing_ok=True)
+
+
+#: The rows ``read_reflog`` returns at most, newest first.
+MAX_REFLOG_ROWS = 10_000
+
+
+def read_reflog(base: Path, normalized: str, *, limit: int = MAX_REFLOG_ROWS) -> list[dict]:
+    """The ref's history, newest first; malformed rows are skipped, never trusted.
+
+    A reflog is history, not authority (SPEC §2.6): rows are shown to the operator
+    and used only to *offer* a reset target, which ``update_ref`` then checks.
+    """
+    log_path = internal_path(base, "logs", *Path(normalized).parts)
+    try:
+        with log_path.open("rb") as handle:
+            data = handle.read(MAX_REFLOG_BYTES + 1)
+    except FileNotFoundError:
+        return []
+    rows: list[dict] = []
+    for line in reversed(data.splitlines()):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        # "new" is None on a row a deletion wrote.
+        if isinstance(row, dict) and isinstance(row.get("new"), (str, type(None))):
+            rows.append(row)
+            if len(rows) >= limit:
+                break
+    return rows

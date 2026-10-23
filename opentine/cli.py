@@ -8,6 +8,7 @@ import sys
 from collections.abc import Callable
 
 import opentine._cli_common as _common
+from opentine._cli_bisect import COMMANDS as BISECT_COMMANDS
 from opentine._cli_common import (
     BRAND,
     BRAND_DIM,
@@ -28,10 +29,14 @@ from opentine._cli_common import (
 from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_export import cmd_export
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
+from opentine._cli_git_refs import cmd_tag_v3
+from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
 from opentine._cli_guard import guarded_dispatch
 from opentine._cli_harnesses import cmd_harnesses
+from opentine._cli_hook import COMMANDS as HOOK_COMMANDS
 from opentine._cli_import import cmd_import
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
+from opentine._cli_media import COMMANDS as MEDIA_COMMANDS
 from opentine._cli_migrate import cmd_migrate
 from opentine._cli_parser import _add_filter_args, _add_harness_args, _build_parser
 from opentine._cli_render import (
@@ -53,6 +58,7 @@ from opentine._cli_security import (
 )
 from opentine._cli_stats import cmd_stats
 from opentine._cli_storage import STORAGE_COMMANDS
+from opentine._cli_unify import expand_alias, tag_is_v3, v3_argv
 from opentine._cli_who import COMMANDS as ACTION_COMMANDS
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
@@ -85,6 +91,10 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "tag": cmd_tag,
     "verify": cmd_verify,
     **ACTION_COMMANDS,
+    **GITLINK_COMMANDS,
+    **BISECT_COMMANDS,
+    **MEDIA_COMMANDS,
+    **HOOK_COMMANDS,
 }
 
 
@@ -92,6 +102,7 @@ def main(argv: list[str] | None = None) -> None:
     """Run one ``tine`` invocation; *argv* defaults to the process arguments."""
     _common.RUNS_DIR = RUNS_DIR
     parser = _build_parser()
+    argv = expand_alias(parser, list(sys.argv[1:] if argv is None else argv))
     args = parser.parse_args(argv)
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
@@ -99,6 +110,16 @@ def main(argv: list[str] | None = None) -> None:
 
 
 def _dispatch(parser, args) -> None:
+    # Plain verbs act on the v3 repository when their arguments name things in it.
+    if args.command == "tag" and tag_is_v3(args):
+        args.name = args.run_id
+        args.repo = args.repo or "."
+        cmd_repo(args, console, cmd_tag_v3)
+        return
+    if args.command in {"show", "diff", "search", "fork"} and (argv := v3_argv(args)):
+        args = parser.parse_args(argv)
+    if args.command == "tag" and args.run_id is None:
+        parser.error("tag: name a legacy run (with --add/--remove/--list) or run inside a v3 repo")
     if args.command in LEGACY_COMMANDS:
         LEGACY_COMMANDS[args.command](args)
     elif args.command in REPO_COMMANDS:

@@ -432,7 +432,9 @@ def test_a_full_walk_still_runs_and_catches_interior_tampering(tmp_path, monkeyp
 
 def test_object_ciphertexts_open_only_in_their_own_slot(tmp_path):
     keys = LocalKeyProvider(KEY)
-    objects = FilesystemObjectStore(tmp_path / "objects", keys)
+    # TINEAES3 explicitly (compression off); 0.12's TINEAES4 is pinned in
+    # test_remote_0_12.py with the same slot checks.
+    objects = FilesystemObjectStore(tmp_path / "objects", keys, codec=None)
     local = Repo.init(tmp_path / "local")
     first, second = (local.put("blob", text, redact=False) for text in (b"alpha", b"beta"))
     for oid in (first, second):

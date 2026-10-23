@@ -14,6 +14,7 @@ expires.
 
 from __future__ import annotations
 
+import json
 import math
 import threading
 import time
@@ -23,6 +24,9 @@ from typing import Any
 MAX_JWKS_KEYS = 100
 DEFAULT_REFRESH_INTERVAL = 60.0
 DEFAULT_MAX_KEY_AGE = 3600.0
+#: An OIDC discovery or JWKS document is a few KiB; this bounds a hostile one.
+MAX_DOCUMENT_BYTES = 1024 * 1024
+DEFAULT_FETCH_SECONDS = 10.0
 
 
 class OIDCError(PermissionError):
@@ -40,6 +44,42 @@ def parse_keys(jwks: Any) -> dict[str, dict[str, Any]]:
             raise OIDCError("JWKS key ids must be unique non-empty strings")
         parsed[kid] = key
     return parsed
+
+
+def https_fetch(
+    url: str, *, seconds: float = DEFAULT_FETCH_SECONDS, limit: int = MAX_DOCUMENT_BYTES
+) -> bytes:
+    """A bounded fetch for OIDC discovery and JWKS: the default to pass as ``fetch``.
+
+    The verifier takes the fetch from its caller, so a fetch with no deadline let
+    one slow issuer stall every token check (the refetch holds the key-set lock).
+    This one refuses non-HTTPS URLs and redirects, ignores proxy environment
+    variables, caps the body, requires a JSON content type and enforces a *total*
+    deadline -- not a per-read one a trickling server can stretch indefinitely.
+    """
+    import httpx
+
+    from opentine.repository._http import read_json, run_request
+
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise OIDCError("OIDC documents must be fetched over HTTPS")
+    session = httpx.Client(timeout=seconds, follow_redirects=False, trust_env=False)
+
+    def operation() -> bytes:
+        with session.stream("GET", url, headers={"Accept": "application/json"}) as response:
+            if response.status_code != 200:
+                raise OIDCError(f"OIDC document fetch returned HTTP {response.status_code}")
+            kind = response.headers.get("content-type", "").split(";")[0].strip().lower()
+            if kind != "application/json" and not kind.endswith("+json"):
+                raise OIDCError("OIDC document must be served as JSON")
+            return json.dumps(read_json(response, limit=limit, max_seconds=seconds)).encode()
+
+    try:
+        return run_request(session, seconds, "OIDC document", operation)
+    except ValueError as exc:
+        raise OIDCError(str(exc)) from exc
+    finally:
+        session.close()
 
 
 def _seconds(value: Any) -> bool:

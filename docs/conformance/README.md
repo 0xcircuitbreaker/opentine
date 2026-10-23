@@ -1,6 +1,6 @@
 # The OpenTine conformance vector suite
 
-Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 523 vectors that an
+Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 524 vectors that an
 implementation in any language can run to demonstrate it reads, writes and
 verifies OpenTine data the way the specification says.
 
