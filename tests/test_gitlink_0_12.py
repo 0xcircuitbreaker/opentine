@@ -286,7 +286,9 @@ def test_the_hook_reads_the_runs_the_user_configured_at_install(repo, capsys):
     run = _write_run(repo, "runconf01", "a.py", "x = 1\n")
     installed = _json(capsys, ["git", "install-hook"])
     assert Path(installed["runs_dir"]).is_absolute()
-    assert _git(repo, "config", "--get", "tine.runsDir").strip() == installed["runs_dir"]
+    # git may store the path with forward slashes on Windows: compare as paths.
+    stored = _git(repo, "config", "--get", "tine.runsDir").strip()
+    assert Path(stored) == Path(installed["runs_dir"])
     assert f"Tine-Run: {run.id}" in _trailers_in(repo, "a.py")
 
 
