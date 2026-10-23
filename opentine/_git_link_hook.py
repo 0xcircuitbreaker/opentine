@@ -153,7 +153,7 @@ def matches(written: str, root: Path, staged: str) -> bool:
     written = written.replace("\\", "/").rstrip("/")
     if not written:
         return False
-    if os.path.isabs(written) or written.startswith("~"):
+    if os.path.isabs(written) or written.startswith(("/", "~")):  # rooted (3.13+ Windows)
         target = (root / staged).as_posix()
         return os.path.normcase(os.path.expanduser(written)) == os.path.normcase(target)
     clean = written[2:] if written.startswith("./") else written
