@@ -360,3 +360,18 @@ def test_tineignore_applies_when_capturing_from_a_subdirectory(repo):
     (repo / "sub" / "a.txt").write_text("b\n", encoding="utf-8")
     manifest = json.dumps(code_manifest(repo / "sub"))
     assert "TOKEN=abc" not in manifest and "+b" in manifest
+
+
+def test_every_help_page_prints_on_a_windows_cp1252_console():
+    import argparse
+
+    from opentine._cli_parser import _build_parser
+
+    def walk(parser, path):
+        parser.format_help().encode("cp1252")  # raises on e.g. U+2192
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                for name, sub in action.choices.items():
+                    walk(sub, f"{path} {name}")
+
+    walk(_build_parser(), "tine")

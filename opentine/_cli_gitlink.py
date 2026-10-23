@@ -197,7 +197,7 @@ def cmd_blame(args: argparse.Namespace) -> None:
 
 
 def add_gitlink_parsers(sub: Any) -> None:
-    group = sub.add_parser("git", help="Link runs to git commits: hook, notes, commit → runs")
+    group = sub.add_parser("git", help="Link runs to git commits: hook, notes, commit -> runs")
     git_sub = group.add_subparsers(dest="git_command")
     install = git_sub.add_parser("install-hook", help="Add Tine-Run trailers to commit messages")
     install.add_argument("--global", dest="global_", action="store_true", help="For every repo")
