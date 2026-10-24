@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from opentine import _codec
 from opentine.kernel import ObjectEnvelope, validate_links
 from tests.conformance.cases import ACCEPT, VERDICT, Case, Family, P
 from tests.test_backwards_compat import GOLDEN
@@ -34,6 +35,12 @@ def _run_object(golden) -> tuple[str, list[str]]:
 def _cases() -> tuple[Case, ...]:
     found: list[Case] = []
     for golden in GOLDEN:
+        # 0.12+ writes .tine artifacts and repository objects in the compressed
+        # stored form (``TINEZ1``). The conformance vectors define the canonical
+        # bytes only, so those releases are gated by tests/test_backwards_compat.py
+        # and not mirrored here.
+        if _codec.is_wrapped(golden.artifact("artifact.tine").read_bytes()[:16]):
+            continue
         version = golden.version.replace("_", "-")
         object_path, links = _run_object(golden)
         found.append(

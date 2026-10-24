@@ -10,7 +10,6 @@ packed object.
 from __future__ import annotations
 
 import os
-import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -19,6 +18,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
 from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import oid_of, pack_set
 from opentine.repository._paths import atomic_bytes, internal_path
@@ -72,59 +72,31 @@ def _remove_loose(repo, oid: str) -> None:
     repo._object_path(oid).unlink(missing_ok=True)
 
 
-_STALE_SECONDS = 24 * 60 * 60
-
-
 @contextmanager
 def gc_lock(root: Path) -> Iterator[None]:
     """One gc or repack at a time per repository.
 
     Two concurrent packers could each delete loose objects the other has not
-    yet packed and published. The lock is a file created exclusively; a lock
-    left by a crashed gc is taken over once its process is gone (POSIX) or it
-    is a day old, and ``OPENTINE_GC_BREAK_LOCK=1`` overrides it explicitly.
+    yet packed and published. The lock is a file created exclusively that
+    records pid/host/time; a lock left by a crashed gc is taken over only once
+    its process is provably gone on this host (POSIX and Windows alike, never by
+    age), and ``OPENTINE_GC_BREAK_LOCK=1`` overrides it explicitly.
     """
     path = internal_path(root, "gc.lock")
-    stamp = f"{os.getpid()} {int(time.time())}\n".encode("ascii")
-    for _ in range(2):
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-            break
-        except FileExistsError:
-            if not _stale(path):
-                raise KernelError(
-                    "another tine gc is running on this repository "
-                    "(set OPENTINE_GC_BREAK_LOCK=1 if it is not)"
-                ) from None
-            path.unlink(missing_ok=True)
-    else:
-        raise KernelError("could not take the gc lock")
+    if os.environ.get("OPENTINE_GC_BREAK_LOCK") == "1":
+        path.unlink(missing_ok=True)
     try:
-        os.write(fd, stamp)
+        fd = acquire(path, 0o600)
+    except FileExistsError:
+        raise KernelError(
+            f"another tine gc is running on this repository ({path}); if none is, "
+            "delete that file or set OPENTINE_GC_BREAK_LOCK=1"
+        ) from None
+    try:
         os.close(fd)
         yield
     finally:
         path.unlink(missing_ok=True)
-
-
-def _stale(path: Path) -> bool:
-    if os.environ.get("OPENTINE_GC_BREAK_LOCK") == "1":
-        return True
-    try:
-        pid_text, when_text = path.read_text(encoding="ascii").split()
-        pid, when = int(pid_text), int(when_text)
-    except (OSError, ValueError):
-        return False  # being written right now, or unreadable: assume live
-    if time.time() - when > _STALE_SECONDS:
-        return True
-    if os.name == "posix":
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return True
-        except OSError:
-            return False
-    return False
 
 
 def gc(

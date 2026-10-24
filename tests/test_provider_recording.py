@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from opentine import Repo, Run, StepKind
+from opentine import Repo, Run, StepKind, _codec
 from opentine._step_serde import step_from_dict, step_to_dict
 from opentine.billing import Usage
 from opentine.models._metered import metered_response
@@ -116,7 +116,10 @@ def test_a_step_without_a_provider_writes_no_provider_key(tmp_path):
 @pytest.mark.parametrize("version", RELEASED)
 def test_a_released_artifact_loads_empty_and_re_serializes_byte_for_byte(version: str):
     """The compatibility gate, at the granularity the new field can break it."""
-    raw = json.loads((COMPAT / version / "artifact.tine").read_text())
+    data = (COMPAT / version / "artifact.tine").read_bytes()
+    if _codec.is_wrapped(data):  # releases from 0.11 on may store .tine compressed
+        data = _codec.unwrap(data, limit=1 << 26)
+    raw = json.loads(data)
     run = Run.load(COMPAT / version / "artifact.tine")
 
     assert {step.provider for step in run.steps} == {""}

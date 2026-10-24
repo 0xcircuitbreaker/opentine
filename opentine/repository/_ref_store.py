@@ -8,6 +8,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
+from opentine.repository._lockfile import acquire
 from opentine.repository._paths import durable_directory, internal_path
 from opentine.repository._reflog import append_reflog, reflog_entry
 
@@ -69,11 +70,13 @@ def commit_ref(
     # cleanup delete, the live lock held by a writer of "x.new".
     write_path = ref_path.with_name(ref_path.name + "..lock")
     try:
-        guard_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        # The lock records pid/host/time; one left by a crashed writer on this
+        # host is broken automatically, anything else is reported, never guessed.
+        guard_fd = acquire(lock_path)
     except FileExistsError as exc:
         raise ValueError(
-            f"ref {normalized!r} is locked by a concurrent write; if no writer is "
-            f"running, remove {lock_path.name!r} from the repository refs directory"
+            f"ref {normalized!r} is locked by a concurrent writer ({lock_path}); if no "
+            "opentine process is writing this repository, delete that file"
         ) from exc
     write_fd = -1
     ref_replaced = False

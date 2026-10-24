@@ -214,7 +214,7 @@ def _check_positionals(subcommand: str, positionals: list[str], root: _Where) ->
         return f"git {subcommand} must write inside the shell root" if outside else None
     if subcommand in policy.NETWORK:  # remotes and refspecs, not paths
         return None
-    return pathspec_refusal(subcommand, positionals, lambda value: _contained(value, root))
+    return pathspec_refusal(subcommand, positionals, lambda value: _contained(value, root), root)
 
 
 def refusal(
