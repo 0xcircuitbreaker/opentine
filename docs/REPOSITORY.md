@@ -608,9 +608,11 @@ and an existing version-1 repository is never written compressed until
   sessions). Redundant copies of received transfer packs are removed unless
   `--keep-transfer-packs`.
 - `tine gc` and `tine repack` hold `.tine/gc.lock`, so two packers never
-  race; a lock left by a crashed gc is taken over once its process is gone
-  (POSIX) or after a day (`OPENTINE_GC_BREAK_LOCK=1` forces it). An
-  interrupted gc loses nothing and can be re-run.
+  race. The lock (like every ref lock) records pid, host and start time; a
+  lock left by a crashed process on the same host is taken over once that
+  process is provably gone, on every platform and never by age alone
+  (`OPENTINE_GC_BREAK_LOCK=1` forces it). Any other lock is reported with its
+  path. An interrupted gc loses nothing and can be re-run.
 - `tine repack` merges every local pack into one.
 - `tine archive create FILE` writes the whole repository (objects, refs,
   shallow boundaries) as one compressed file; `tine archive restore FILE DEST`

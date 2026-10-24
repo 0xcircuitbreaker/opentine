@@ -449,8 +449,11 @@ def test_a_second_gc_is_refused_while_one_holds_the_lock(tmp_path, compress_on):
 def test_a_stale_gc_lock_from_a_dead_process_is_taken_over(tmp_path, compress_on, monkeypatch):
     repo = Repo.init(tmp_path / "r")
     repo.put_run(_run(), ref="heads/main")
+    from opentine.repository import _lockfile
+
     lock = repo.path / "gc.lock"
-    lock.write_text("1 0\n", encoding="ascii")  # a day-old stamp
+    lock.write_text("1 0\n", encoding="ascii")  # a legacy stamp from a gc that died
+    monkeypatch.setattr(_lockfile, "pid_alive", lambda pid: False)
     assert gc(repo).packed > 0
     assert not lock.exists()
 
