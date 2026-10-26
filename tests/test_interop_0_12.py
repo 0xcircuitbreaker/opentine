@@ -378,8 +378,16 @@ def test_atif_import_saves_priced_from_catalog_with_subagent_edges_and_exports_b
     main(["export", str(saved), "--format", "atif", "--output", str(out)])
     document = json.loads(out.read_text())
     assert document["schema_version"] == "ATIF-v1.8"
-    assert any(step.get("extra", {}).get("opentine.kind") == "subagent"
-               for step in document["steps"])  # fmt: skip
+    # 0.13: the subagent is an embedded trajectory, referenced from its tool result.
+    (child,) = document["subagent_trajectories"]
+    refs = [ref["trajectory_id"] for step in document["steps"]
+            for result in (step.get("observation") or {}).get("results", [])
+            for ref in result.get("subagent_trajectory_ref", [])]  # fmt: skip
+    assert refs == [child["trajectory_id"]] and child["steps"]
+    from opentine._atif import atif_events
+
+    again = atif_events(out)
+    assert sum(event.kind == "subagent" for event in again) == 1
 
 
 def test_atif_export_refuses_an_endpoint(tmp_path):

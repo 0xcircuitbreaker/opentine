@@ -6,7 +6,11 @@ every finished Claude Code, Codex or Gemini CLI session is imported into the
 repository with ``tine import latest --from-default-location``. ``--agent``
 narrows it (repeatable), ``--dry-run`` prints the change instead of making it,
 and ``uninstall`` removes only what ``install`` added. Installing twice changes
-nothing; a user's other hooks are never edited.
+nothing; a user's other hooks are never edited. ``status`` (no ``--global``
+needed) lists the events each CLI has opentine commands on. ``--agent hermes``
+only prints a ``config.yaml`` snippet (:mod:`opentine._cli_hook_hermes`).
+``tine hook event --repo PATH`` is what the plugin's subagent hooks run: it
+journals one payload read from stdin (:mod:`opentine._hook_journal`).
 """
 
 from __future__ import annotations
@@ -17,20 +21,28 @@ from collections.abc import Callable
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
-from opentine._cli_hook_agents import AGENTS, read_config, with_ours, without_ours, write_config
+from opentine._cli_hook_agents import (
+    AGENTS,
+    MARKER,
+    read_config,
+    with_ours,
+    without_ours,
+    write_config,
+)
+from opentine._cli_hook_hermes import hermes
 
 
 def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
     parser = subparsers.add_parser(
         "hook", help="Install agent-CLI hooks that import every finished session"
     )
-    parser.add_argument("action", choices=("install", "uninstall", "status"))
+    parser.add_argument("action", choices=("install", "uninstall", "status", "event"))
     parser.add_argument(
         "--global", dest="global_", action="store_true",
         help="Edit the user-level hook files (the only scope supported)",
     )  # fmt: skip
     parser.add_argument(
-        "--agent", action="append", choices=sorted(AGENTS),
+        "--agent", action="append", choices=sorted([*AGENTS, "hermes"]),
         help="Only this agent CLI (repeatable; default: every one)",
     )  # fmt: skip
     parser.add_argument("--repo", help="v3 repository the sessions are imported into (install)")
@@ -55,21 +67,42 @@ def _repo(value: str | None) -> Path:
         raise _fail(f"not an opentine repository: {_terminal(path)} ({_terminal(exc)})") from exc
 
 
+def _ours_by_event(document: dict) -> list[str]:
+    """The hook events holding an opentine command (``MARKER`` or ``hook event``)."""
+    hooks = document.get("hooks") if isinstance(document.get("hooks"), dict) else {}
+    found = []
+    for event, groups in hooks.items():
+        for group in groups if isinstance(groups, list) else []:
+            inner = group.get("hooks") if isinstance(group, dict) else None
+            text = json.dumps(inner) if isinstance(inner, list) else ""
+            if MARKER in text or "opentine.cli" in text:
+                found.append(str(event))
+                break
+    return found
+
+
 def cmd_hook(args: argparse.Namespace) -> None:
-    if not args.global_:
+    if args.action == "event":  # run by an agent CLI: the payload is on stdin only
+        from opentine._hook_journal import run_event
+
+        raise SystemExit(run_event(args.repo))
+    if not args.global_ and args.action != "status":
         raise _fail("pass --global: hooks are installed in your user-level agent settings")
-    names = args.agent or sorted(AGENTS)
+    names = args.agent or sorted([*AGENTS, "hermes"])
     repo = _repo(args.repo) if args.action == "install" else None
     failed = False
     for name in names:
+        if name == "hermes":
+            hermes(args.action, repo)
+            continue
         agent = AGENTS[name]
         path = agent.config()
         try:
             document = read_config(path)
             if args.action == "status":
-                _, count = without_ours(document)
-                state = "installed" if count else "not installed"
-                console.print(f"  {name:<12} {state:<14} {_terminal(path)}")
+                events = _ours_by_event(document)
+                state = ",".join(events) if events else "not installed"
+                console.print(f"  {name:<12} {state:<30} {_terminal(path)}", markup=False)
                 continue
             if args.action == "install":
                 assert repo is not None

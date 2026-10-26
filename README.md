@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.
 
 ## CLI Reference
 
-`tine` ships 69 subcommands. Each one prints its own `--help`, which is
+`tine` ships 71 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 
@@ -773,6 +773,8 @@ tine cherry-pick <run>:<step> --onto <run>       Copy one step onto another run
 tine fan-out <run> --vary model=a,b -- CMD ...   Fork N ways from one step, run them concurrently
 tine run --parallel 4 --harness codex --prompt P Run one invocation N times at once (--jobs, --budget)
 tine worktree add <path> <ref> [--git]           An isolated directory per branch; list/remove/prune
+tine fleet up fleet.toml --trust                 Run a declared fleet (fan-out or supervisor/workers)
+tine fleet status|stop|cost <id>                 Members, a stop that kills every process tree, cost
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces
@@ -789,7 +791,19 @@ tine hook install --global --repo ~/agent-runs   # --dry-run to preview, --agent
 ```
 
 Claude Code, Codex and Gemini CLI then import each finished session into the
-repository. `tine hook uninstall --global` removes only opentine's hook.
+repository. `tine hook uninstall --global` removes only opentine's hook, and
+`tine hook status` lists the events each CLI has installed. For Hermes Agent the
+installer prints a `config.yaml` snippet instead of editing your YAML.
+
+```text
+tine plugin export ./opentine-plugin --repo ~/agent-runs   # a Claude Code plugin directory
+claude --plugin-dir ./opentine-plugin
+```
+
+The plugin bundles the session-end import, `SubagentStart`/`SubagentStop`
+hooks that journal subagent ids for `tine import --fleet`, read-only skills, and
+a `.mcp.json` that starts opentine's MCP server with `--read-only`. It is never
+written into `~/.claude`.
 
 Media models:
 
@@ -810,6 +824,10 @@ tine import latest --from-default-location --save run.tine       # import the ne
 tine import <trace> --format otel-json --price --save run.tine   # price it from the catalog
 tine import trajectory.json --format atif --repo .               # Harbor ATIF (v1.0-v1.8)
 tine import ~/.local/share/opencode/opencode.db --repo .         # OpenCode sessions (read-only)
+tine import session.jsonl --fleet --repo .                       # Claude Code: a run per subagent
+tine import trajectory_samples.jsonl --repo .                    # Hermes Agent (FILE::N picks one)
+tine import session.log --adapter NAME --repo .                  # an allowlisted AdapterSpec
+tine harnesses --check                                           # check every importer adapter
 tine export <run> --format atif --output trajectory.json         # ATIF v1.8
 tine export <run> > spans.json
 tine export <run> --output spans.json

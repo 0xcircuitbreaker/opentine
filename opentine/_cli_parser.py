@@ -7,6 +7,7 @@ import argparse
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_export import add_export_parser
+from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_hook import add_hook_parser
@@ -14,6 +15,7 @@ from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
+from opentine._cli_plugin import add_plugin_parser
 from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._cli_storage import add_storage_parsers
@@ -230,6 +232,8 @@ def _build_parser() -> argparse.ArgumentParser:
     add_bisect_parser(sub)
     add_media_parser(sub)
     add_hook_parser(sub)
+    add_plugin_parser(sub)
+    add_fleet_parser(sub)
     add_repo_parsers(sub)
     add_unify_args(sub)
     return parser

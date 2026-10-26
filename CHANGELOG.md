@@ -180,6 +180,59 @@ the new metadata key and manifest files.
   **550 conformance vectors**; 209 of the 550 refuse input, and the adapter
   contract still has one entry point: 36 ops.
 
+### Harness integrations and fleets (no format change)
+
+Additive run metadata only (`agent_identity`, `opentine.fleet`); older readers
+see ordinary runs and forks.
+
+- **`tine import --fleet`** (Claude Code, needs `--repo`): the session's own
+  events become the root run and each subagent a child run forked at the tool
+  step that spawned it (a nested subagent forks from its parent subagent).
+  Every member records an `opentine-agent/1` identity with `parent`,
+  `parent_run` and `spawn_step`; the root carries the `opentine.fleet`
+  manifest. A subagent with no spawning step (a stop without a start) becomes a
+  standalone child. Agent ids are clamped before naming
+  `heads/fleet/<root>/a-<agent>`. The fleet's cost counts shared steps once and
+  equals the single-run import's cost. Nested subagent links are now followed
+  in plain imports too.
+- **Transcript imports record an agent identity** (Claude Code, Codex, Gemini
+  CLI, Qwen Code, OpenCode, ATIF, Hermes) instead of reading as `legacy:`.
+- **`hermes-trajectory` importer** for Hermes Agent's ShareGPT-style JSONL
+  trajectories (`<tool_call>`/`<tool_response>`/`<think>` blocks; the last
+  record, or `FILE::N`). Detected by `--format auto`. Trajectories carry no
+  token counts, so their model steps stay unpriced. Tool blocks are bounded in
+  count and size and parsed with the stdlib JSON decoder only.
+- **`tine plugin export DIR --repo PATH`** writes a Claude Code plugin:
+  exec-form hooks running `python -I -m opentine.cli` (SessionEnd import,
+  SubagentStart/SubagentStop journal), read-only skills, and a `.mcp.json`
+  starting the MCP server with `--read-only`. It refuses to write inside
+  `~/.claude` or `$CLAUDE_CONFIG_DIR`, refuses symlinks and non-empty
+  directories without `--force`, and warns when the old-style hook would
+  import each session twice.
+- **`tine hook event`** journals subagent hook payloads read from stdin only
+  (clamped ids, `<repo>/journal/subagents.jsonl`, capped at 8 MiB, always exits
+  0). **`tine hook status`** no longer needs `--global` and lists the events
+  each CLI has installed. `--agent hermes` prints a `config.yaml` snippet and
+  never edits YAML.
+- **`python -m opentine.mcp_server --read-only`** registers an allowlist of
+  read tools only; write tools, and any tool added later, are left out.
+- **`AdapterSpec` SDK** (`opentine.adapters`): a harness importer in one file.
+  Third-party adapters are `opentine.adapters` entry points and are never
+  loaded unless allowlisted in `$XDG_CONFIG_HOME/opentine/adapters.json`; one
+  cannot shadow a built-in. The core enforces the source byte cap, the event
+  cap and the result type. `tine import --adapter NAME` and
+  `tine harnesses --check [NAME]`.
+- **ATIF export emits `subagent_trajectories`** instead of flattening: each
+  subagent's steps become an embedded trajectory referenced from the spawning
+  tool step's result, and import back as a typed subagent edge.
+- **`tine fleet up|status|stop|cost`** runs a declared `fleet.toml` (fan-out
+  or supervisor/workers) on the parallel executor. The manifest is refused
+  until `--trust` records the SHA-256 of its exact bytes; any edit revokes
+  trust. Commands are argument lists only, members see only allowlisted
+  environment variables, `cwd` stays inside the manifest's directory, workers
+  get the supervisor's parent link, and `stop` kills every member's process
+  tree. `fleet cost --repo PATH RUN` totals an imported fleet.
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

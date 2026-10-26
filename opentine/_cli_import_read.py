@@ -76,8 +76,16 @@ def read_events(source: str, source_format: str) -> list[TraceEvent]:
     return detect_and_read(source, source_format)[1]
 
 
-def detect_and_read(source: str, source_format: str) -> tuple[str, list[TraceEvent]]:
+def detect_and_read(
+    source: str, source_format: str, adapter: str | None = None
+) -> tuple[str, list[TraceEvent]]:
     """``(format, events)``: *source* through its importer, detecting ``auto``."""
+    if adapter:  # an AdapterSpec, run under the core caps (never stdin)
+        from opentine.harnesses._adapter_spec import resolve, run_adapter
+
+        if source == STDIN:
+            raise ValueError("--adapter reads a file path, not stdin")
+        return f"adapter:{adapter}", run_adapter(resolve(adapter), source)
     if source_format == "jsonl":
         # The JSONL importer does its own bounded, streaming read of a path;
         # stdin gets the same per-line bound instead of whole-line buffering.

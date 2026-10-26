@@ -48,7 +48,30 @@ def harness_rows() -> list[dict[str, object]]:
     return rows
 
 
+def check_adapters(only: str | None) -> int:
+    """``tine harnesses --check [NAME]``: every importer adapter's conformance."""
+    from opentine.harnesses._adapter_spec import builtin_specs, check, external_specs
+
+    external, skipped = external_specs()
+    specs = {**builtin_specs(), **external}
+    if only and only not in specs and only not in skipped:
+        console.print(f"[red]no adapter {escape(only)}[/]")
+        return 1
+    failed = 0
+    for name in sorted({*specs, *skipped}):
+        if only and name != only:
+            continue
+        origin = "built-in" if specs.get(name) and specs[name].description == "built-in" else "ext"
+        issues = check(specs[name]) if name in specs else [skipped[name]]
+        failed += bool(issues) and "not allowlisted" not in skipped.get(name, "")
+        state = "ok" if not issues else "; ".join(issues)
+        console.print(f"  {name:<24} {origin:<9} {state}", markup=False)
+    return 1 if failed else 0
+
+
 def cmd_harnesses(args: argparse.Namespace) -> None:
+    if getattr(args, "check", None):
+        raise SystemExit(check_adapters(None if args.check == "*" else args.check))
     rows = harness_rows()
     if getattr(args, "installed", False):
         rows = [row for row in rows if row["installed"]]
@@ -78,6 +101,10 @@ def cmd_harnesses(args: argparse.Namespace) -> None:
 def add_harnesses_parser(sub: argparse._SubParsersAction) -> None:
     harnesses = sub.add_parser("harnesses", help="List agent CLIs `tine run --harness` can record")
     harnesses.add_argument("--installed", action="store_true", help="Only CLIs found on PATH")
+    harnesses.add_argument(
+        "--check", nargs="?", const="*", metavar="ADAPTER",
+        help="Check importer adapters (built-in and allowlisted entry points)",
+    )  # fmt: skip
     harnesses.add_argument(
         "--json", action="store_true", help="Emit a machine-readable JSON object"
     )
