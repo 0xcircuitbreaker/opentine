@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.13.0 — unreleased
+## 0.13.0 — 2026-10-26
 
 ### Footprint I (no format change)
 
