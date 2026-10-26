@@ -233,6 +233,26 @@ see ordinary runs and forks.
   get the supervisor's parent link, and `stop` kills every member's process
   tree. `fleet cost --repo PATH RUN` totals an imported fleet.
 
+### Security
+
+- **`tine prune` refuses (deletes nothing) when a stored object it must walk
+  cannot be read** -- corrupt bytes, or a pack whose codec (zstd) is not
+  installed. Only a truly absent object is skipped; before, everything reachable
+  only through an unreadable object could be deleted.
+- **Prune's age floor is now 70 minutes** (was 60 s), above the hourly
+  pack-freshen throttle, so a packed object a live recorder just reused can no
+  longer be pruned from under it.
+- **Ref transaction recovery tolerates a journal that vanishes after listing**
+  (finished by its owner or another recoverer) instead of failing the write
+  with `FileNotFoundError`.
+- **`--lineage --verified-only` follows only edges recomputed from the runs and
+  signed manifests**; an index row only nominates a run, so a forged row can no
+  longer graft an unrelated verified agent onto a lineage. Residual: the
+  parent's manifest lists spawn steps, not which child each spawned, so another
+  trusted-key run naming a real spawn step is still accepted.
+- **`tine fleet status`/`cost` escape member agent names, statuses and costs**,
+  and a member's reported cost is stored only if it is a number.
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

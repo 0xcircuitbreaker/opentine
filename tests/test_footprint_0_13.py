@@ -231,7 +231,7 @@ def test_prune_keeps_young_and_refreshed_objects(tmp_path):
     _age(repo)
     os.utime(repo._object_path(loose_again))  # fresh again
     repo.put("blob", b"old packed, about to be reused")  # a writer dedups: freshens the pack
-    plan = prune(repo, delete=True, min_age=0, git_links=False)  # floor: 60 s
+    plan = prune(repo, delete=True, min_age=0, git_links=False)  # floor: MIN_GRACE
     assert repo.has(young) and repo.has(old_packed) and repo.has(loose_again)
     assert old_loose in plan.candidates or repo.has(old_loose)
 
@@ -409,3 +409,56 @@ def test_reflog_expiry_is_conservative_and_keeps_the_current_target(tmp_path):
     _backdate_reflog(repo, "heads/main", 200)
     lock.write_text(f"{os.getpid()} host 0\n")  # a live writer holds the ref
     assert expire_reflogs(repo.path, 30, 0) == 0
+
+
+def _chain(repo):
+    leaf = repo.put("blob", b"leaf-data-marker")
+    mid = repo.put("blob", f"points at {leaf}".encode())
+    (repo.path / "myroot.txt").write_text(mid)  # a root file names only *mid*
+    return mid, leaf
+
+
+def test_prune_refuses_when_a_stored_intermediate_object_is_corrupt(tmp_path):
+    repo = Repo.init(tmp_path / "r", compression=None)
+    mid, leaf = _chain(repo)
+    assert prune(repo, min_age=60, git_links=False).candidates == []
+    repo._object_path(mid).write_bytes(b"garbage")
+    _age(repo, 86400)
+    with pytest.raises(UnsafePlan, match="cannot read stored object"):
+        prune(repo, delete=True, min_age=60, git_links=False)
+    assert repo._object_path(leaf).exists()
+
+
+def test_prune_refuses_when_a_pack_codec_is_unavailable(tmp_path, monkeypatch):
+    from opentine import _codec
+    from opentine.repository._packs import PackSet
+
+    repo = _repo(tmp_path)
+    mid, _ = _chain(repo)
+    gc(repo)
+    leaf_loose = repo.put("blob", b"loose, only reachable through the pack")
+    assert not repo._object_path(mid).exists()  # mid is packed now
+    _paths.atomic_bytes(repo.path / "myroot.txt", mid.encode())
+    _age(repo, 86400)
+
+    def missing(self, digest, number):
+        raise _codec.CodecError("zstd is not installed")
+
+    monkeypatch.setattr(PackSet, "block", missing)
+    with pytest.raises(UnsafePlan):
+        prune(repo, delete=True, min_age=60, git_links=False)
+    assert repo._object_path(leaf_loose).exists()
+
+
+def test_prune_grace_is_above_the_pack_freshen_throttle(tmp_path):
+    from opentine.repository._gc_prune import MIN_GRACE
+    from opentine.repository._storage import _PACK_FRESHEN
+
+    assert MIN_GRACE > _PACK_FRESHEN
+    repo = _repo(tmp_path)
+    reused = repo.put("blob", b"unreachable, packed, about to be reused")
+    gc(repo)
+    _age(repo, 1800)  # touched half an hour ago: the throttle skips a re-touch
+    repo.put("blob", b"unreachable, packed, about to be reused")
+    plan = prune(repo, delete=True, min_age=864, git_links=False)  # --older-than 0.01
+    assert reused not in plan.candidates and repo.has(reused)

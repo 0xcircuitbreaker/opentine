@@ -6,7 +6,8 @@ Safety rules (each one has a test):
 * roots are scanned conservatively (see ``_prune_roots``) and an unreadable
   root source refuses the delete;
 * an object is a candidate only when it is unreachable *and* was last written
-  at least ``min_age`` seconds ago (never less than :data:`MIN_GRACE`). Its age
+  at least ``min_age`` seconds ago (never less than :data:`MIN_GRACE`, which exceeds the hourly
+  pack-freshen throttle). Its age
   is its loose file's mtime, or its pack's: a writer that finds an object
   already stored re-touches it (``_storage._freshen``), so an object a live
   recorder is about to reference again is young, never a candidate;
@@ -30,9 +31,14 @@ from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import pack_set
 from opentine.repository._paths import internal_path
 from opentine.repository._prune_roots import file_roots, git_roots, reachable
+from opentine.repository._storage import _PACK_FRESHEN
 
-#: The floor on how young an unreachable object may be and still be pruned.
-MIN_GRACE = 60.0
+#: The floor on how young an unreachable object may be and still be pruned. A
+#: writer re-touches a *pack* at most once per ``_PACK_FRESHEN`` seconds, so a
+#: packed object a live recorder just reused can look that old; the floor sits
+#: above the throttle (plus a margin for clock skew and slow writers), or prune
+#: could delete it from under the recorder.
+MIN_GRACE = float(_PACK_FRESHEN) + 600.0
 DEFAULT_MIN_AGE = 14 * 86400.0
 
 

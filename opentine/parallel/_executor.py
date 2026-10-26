@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import threading
 import time
@@ -54,6 +55,10 @@ class Outcome:
     detail: str = ""
 
 
+#: What a member may report as its cost: a decimal number, nothing else.
+_NUMBER = re.compile(r"[0-9.eE+-]{1,64}")
+
+
 def read_cost(path: Path | None) -> str | None:
     if path is None:
         return None
@@ -64,7 +69,8 @@ def read_cost(path: Path | None) -> str | None:
         return None
     if not raw.strip():
         return None
-    return raw.decode("ascii", "replace").strip() if len(raw) <= MAX_COST_FILE else "NaN"
+    text = raw.decode("ascii", "replace").strip() if len(raw) <= MAX_COST_FILE else ""
+    return text if _NUMBER.fullmatch(text) else "NaN"  # a number, never terminal text
 
 
 class Executor:

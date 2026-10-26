@@ -8,7 +8,15 @@ verdict comes from :func:`opentine._actions_verdict.verify` every time.
 A **lineage link** (child -> parent) is trusted only from both sides: the child
 is verified, the parent run it names is verified with the ref the child claims,
 and the parent's signed manifest records the child's ``spawn_step`` as a
-subagent spawn. A child cannot adopt a parent on its own say-so.
+subagent spawn. A child cannot adopt a parent on its own say-so. The edge
+itself (child ref, parent ref) is recomputed from the reloaded child run, never
+taken from an index row: a row only nominates a run id to check.
+
+Accepted residual: the parent's signed manifest lists spawn *step ids* only, not
+which child each spawned, so a second verified run (signed by a trusted key)
+that names a real spawn step of a verified parent is accepted as its subagent
+too. Binding a spawn to the child instance needs the child's id inside the
+parent's signed manifest, a format change left for a later release.
 """
 
 from __future__ import annotations
@@ -72,20 +80,26 @@ class TrustResolver:
 
     def lineage_ok(self, run_id: str) -> bool:
         """The run's parent link is verified from both sides."""
+        return self.lineage_edge(run_id) is not None
+
+    def lineage_edge(self, run_id: str) -> tuple[str, str] | None:
+        """``(child ref, parent ref)`` recomputed from the run, if verified both ways."""
         child = self.run(run_id)
         record = identity.run_identity(child) if child is not None else None
         if not record or not record["parent"] or not record["parent_run"]:
-            return False
+            return None
         if not self.trust(run_id).verified or not self.trust(record["parent_run"]).verified:
-            return False
+            return None
         parent = self.run(record["parent_run"])
         if parent is None or not identity.same_ref(
             identity.run_agent_ref(parent), record["parent"]
         ):
-            return False
+            return None
         stored = load_manifest(self.base, record["parent_run"])
         spawns = stored.get("body", {}).get("spawns", []) if isinstance(stored, dict) else []
-        return isinstance(spawns, list) and record["spawn_step"] in spawns
+        if not isinstance(spawns, list) or record["spawn_step"] not in spawns:
+            return None
+        return identity.run_agent_ref(child), record["parent"]
 
 
 def lineage_refs(
@@ -97,16 +111,19 @@ def lineage_refs(
     """*root* and every ref descending from it over ``(run_id, ref, parent_ref)`` edges.
 
     Iterative, so a deep or cyclic claimed chain cannot exhaust the stack. With
-    *resolver*, only links :meth:`TrustResolver.lineage_ok` accepts are followed.
+    *resolver*, an edge's run id is only a nomination: the ``(ref, parent)`` pair
+    followed is the one :meth:`TrustResolver.lineage_edge` recomputes and
+    verifies from the run and the signed manifests, never the row's own.
     """
+    if resolver is not None:
+        nominated = dict.fromkeys(run_id for run_id, _, _ in edges)
+        edges = [(run_id, *edge) for run_id in nominated if (edge := resolver.lineage_edge(run_id))]
     pending = [(run_id, ref, parent) for run_id, ref, parent in edges if ref and parent]
     found = {root}
     for _ in range(MAX_LINEAGE_ROUNDS):
         grew = False
         for run_id, ref, parent in pending:
             if ref in found or not any(identity.same_ref(parent, item) for item in found):
-                continue
-            if resolver is not None and not resolver.lineage_ok(run_id):
                 continue
             found.add(ref)
             grew = True

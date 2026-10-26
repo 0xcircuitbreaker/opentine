@@ -82,9 +82,10 @@ def _status(args: argparse.Namespace) -> int:
     for row in rows:
         console.print(f"[{BRAND}]{row['id']}[/] {_terminal(row['name'])}")
         for member in row["members"]:
-            cost = f" ${member['cost']}" if member["cost"] is not None else ""
-            console.print(f"  [{member['key']}] {member['vary']['agent']:<20} "
-                          f"{member['status']:<8}{cost}", markup=False)  # fmt: skip
+            cost = f" ${_terminal(member['cost'])}" if member["cost"] is not None else ""
+            agent, status = _terminal(member["vary"]["agent"]), _terminal(member["status"])
+            console.print(f"  [{_terminal(member['key'])}] {agent:<20} "
+                          f"{status:<8}{cost}", markup=False)  # fmt: skip
     return 0
 
 
@@ -115,7 +116,7 @@ def _cost(args: argparse.Namespace) -> int:
         sys.stdout.write(json.dumps(out) + "\n")
     else:
         note = f" ({unknown} member(s) reported no cost)" if unknown else ""
-        console.print(f"fleet {_terminal(fleet_id)}: ${total}{note}")
+        console.print(f"fleet {_terminal(fleet_id)}: ${_terminal(total)}{note}")
     return 0
 
 

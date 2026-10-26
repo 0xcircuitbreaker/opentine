@@ -247,3 +247,26 @@ def test_explicit_ref_is_not_overwritten_without_force(porcelain, capsys, argv):
 def test_explicit_new_ref_needs_no_force(porcelain, capsys):
     out = _cli_json(capsys, ["rebase", "heads/main", "--onto-model", "m2", "--ref", "heads/n"])
     assert porcelain.read_ref("heads/n") == out["run_id"]
+
+
+def test_recover_tolerates_journals_finished_after_listing(repo, monkeypatch):
+    from opentine.repository._paths import internal_path
+
+    directory = internal_path(repo.path, "txn")
+    directory.mkdir(parents=True, exist_ok=True)
+    gone = directory / f"{'a' * 32}.json"  # listed, then finished by its owner
+    real = txn._journals
+    listed = [[gone]]
+    monkeypatch.setattr(txn, "_journals", lambda base: listed.pop() if listed else real(base))
+    assert txn.recover(repo.path) == []
+    assert not gone.with_suffix(".lock").exists()
+    corrupt = directory / f"{'b' * 32}.json"
+    corrupt.write_bytes(b"garbage")
+
+    def vanished(src, dst):  # another recoverer rejected it first
+        Path(src).unlink()
+        raise FileNotFoundError(src)
+
+    monkeypatch.setattr(txn.os, "replace", vanished)
+    txn.recover(repo.path)  # no FileNotFoundError
+    assert not corrupt.with_suffix(".lock").exists()

@@ -9,18 +9,17 @@ Protocol, per transaction ``T``:
 4. replace each ref and append its reflog row;
 5. delete the journal, then the locks.
 
-A crash before 3 changed nothing: the dead locks are broken by the next writer
-(a roll *back*). A crash after 3 leaves a journal whose owner is provably dead;
-the next ref write anywhere in the repository rolls it *forward* before doing
-its own work. Roll-forward is itself compare-and-swap: a ref already at its new
-value is skipped, one at its old value is moved, anything else (changed by a
-writer that broke a dead lock in the gap) is left alone. A journal that does not
-parse, names an illegal ref or an absent object is never applied: it is renamed
-``T.rejected`` so it is kept for inspection and stops blocking writers.
+A crash before 3 changed nothing (the next writer breaks the dead locks); after
+3, the next ref write rolls the journal *forward* first, by compare-and-swap: a
+ref at its new value is skipped, one at its old value is moved, anything else
+(changed by a writer that broke a dead lock in the gap) is left alone. A journal
+that does not parse, names an illegal ref or an absent object is never applied:
+it is renamed ``T.rejected`` (kept for inspection, no longer blocking writers).
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -150,6 +149,8 @@ def recover(base: Path) -> list[str]:
         except ValueError:
             continue  # another recoverer took it first
         try:
+            if not journal.exists():
+                continue  # finished by its owner, or recovered, since listing
             try:
                 if not _TXN_ID.fullmatch(txn_id):
                     raise ValueError("journal name is not a transaction id")
@@ -158,7 +159,8 @@ def recover(base: Path) -> list[str]:
                 record = parse_journal(base, raw, txn_id)
             except (OSError, ValueError, UnicodeDecodeError):
                 # Kept for inspection, never applied, and no longer blocking.
-                os.replace(journal, journal.with_name(f"{txn_id}.rejected"))
+                with contextlib.suppress(FileNotFoundError):  # gone meanwhile
+                    os.replace(journal, journal.with_name(f"{txn_id}.rejected"))
                 handled.append(txn_id)
                 continue
             for name in sorted(row["ref"] for row in record["updates"]):

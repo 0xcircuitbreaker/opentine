@@ -266,9 +266,11 @@ def test_lineage_walk_is_iterative_and_checks_links():
     edges.append(("loop", root, f"agt_{3000:032x}"))
     assert len(lineage_refs(root, edges)) == 3001
 
+    rows = {run_id: (ref, parent) for run_id, ref, parent in edges}
+
     class Refuse:
-        def lineage_ok(self, run_id):
-            return run_id != "r1"
+        def lineage_edge(self, run_id):
+            return None if run_id == "r1" else rows[run_id]
 
     assert len(lineage_refs(root, edges, resolver=Refuse())) == 2
 
@@ -293,6 +295,36 @@ def test_lineage_verified_only_with_ed25519(home, capsys):
     shown = _json(capsys, "agent", "show", "run-f")
     assert shown["trust"] == "verified" and shown["lineage_verified"] is False
     assert _json(capsys, "agent", "show", "run-c")["lineage_verified"] is True
+
+
+def test_forged_index_edge_cannot_graft_an_agent_onto_a_lineage(home, capsys):
+    cli.main(["keygen", "--agent", "lead"])
+    parent = _run("run-p", _record(), spawn=True)
+    ref = identity.agent_ref(_record())
+    step = build_body(parent)["spawns"][0]
+    kid = identity.build(
+        harness="claude-code", model="m", parent=ref, parent_run="run-p", spawn_step=step
+    )
+    other = identity.build(harness="claude-code", model="unrelated")
+    for run in (parent, _run("run-c", kid), _run("run-x", other)):
+        run.save(home / f"{run.id}.tine")
+        cli.main(["actions", run.id, "--sign", "--agent", "lead"])
+    capsys.readouterr()
+    rows = _json(capsys, "who", "--list", "--lineage", ref, "--verified-only")["actions"]
+    assert {row["run_id"] for row in rows} == {"run-p", "run-c"}
+    db = sqlite3.connect(home / "actions.sqlite")
+    with db:  # the real, verified child now "claims" the unrelated agent's ref
+        db.execute(
+            "UPDATE actions SET agent_ref = ?, parent_ref = ? WHERE run_id = 'run-c'",
+            (identity.agent_ref(other), ref),
+        )
+    db.close()
+    rows = _json(capsys, "who", "--list", "--lineage", ref, "--verified-only")["actions"]
+    assert "run-x" not in {row["run_id"] for row in rows}
+    db = sqlite3.connect(home / "actions.sqlite")
+    planted = db.execute("SELECT agent_ref FROM actions WHERE run_id = 'run-c'").fetchall()
+    db.close()
+    assert {row[0] for row in planted} == {identity.agent_ref(other)}  # the row was read
 
 
 def test_hostile_agent_strings_are_escaped(home, capsys):

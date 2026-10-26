@@ -221,3 +221,27 @@ def test_dry_run_lists_members_without_trust_or_running(tmp_path, capsys):
         cli.main(["fleet", "up", str(path), "--dry-run"])
     assert exit_.value.code == 0 and "coder" in capsys.readouterr().out
     assert not (tmp_path / ".tine_fleet").exists()
+
+
+def test_fleet_status_and_cost_escape_member_text(tmp_path, capsys):
+    from opentine.parallel._executor import read_cost
+
+    hostile = tmp_path / "cost.txt"
+    hostile.write_bytes(b"1\x1b[2J")
+    assert read_cost(hostile) == "NaN"  # only a number is ever stored
+    hostile.write_bytes(b" 0.125\n")
+    assert read_cost(hostile) == "0.125"
+    path = _fanout(tmp_path, count=1)
+    with pytest.raises(SystemExit):
+        cli.main(["fleet", "up", str(path), "--trust"])
+    directory = tmp_path / ".tine_fleet"
+    (state_file,) = directory.glob("*.json")
+    data = json.loads(state_file.read_text())  # e.g. a state file committed to a clone
+    data["members"][0]["vary"]["agent"] = "\x1b]0;PWNED\x07\x1b[31mRED"
+    data["members"][0]["cost"] = "1\x1b[2J"
+    state_file.write_text(json.dumps(data))
+    capsys.readouterr()
+    with pytest.raises(SystemExit):
+        cli.main(["fleet", "status", "--dir", str(directory)])
+    out = capsys.readouterr().out
+    assert "RED" in out and "\x1b" not in out and "\x07" not in out

@@ -13,8 +13,8 @@ namespace or record a later release adds is still honoured:
 
 Reachability follows the kernel's links *and* any object id that appears in an
 object's bytes, so a reference carried in a blob or an attribute is kept too.
-A root source that cannot be read makes the plan *unsafe*: prune then deletes
-nothing.
+A root source, or a stored object, that cannot be read makes the plan *unsafe*:
+prune then deletes nothing.
 """
 
 from __future__ import annotations
@@ -88,7 +88,11 @@ def git_roots(worktree: Path) -> set[str]:
 
 
 def reachable(repo, roots: set[str]) -> set[str]:
-    """Every stored object reachable from *roots* (missing ones are skipped)."""
+    """Every stored object reachable from *roots*.
+
+    Only a truly absent object is skipped; one that is stored but cannot be
+    read raises :class:`UnsafePlan`.
+    """
     seen: set[str] = set()
     stack = sorted(roots)
     while stack:
@@ -97,12 +101,22 @@ def reachable(repo, roots: set[str]) -> set[str]:
             continue
         try:
             raw = repo.raw(oid)
-        except (KeyError, ValueError, OSError):
+        except KeyError:
             continue  # not stored here: a shallow boundary, or an id in prose
+        except (ValueError, OSError) as exc:
+            if not repo.has(oid):
+                continue  # vanished or not an object id this store can hold
+            # Stored but unreadable (corrupt, or its codec is unavailable): its
+            # links are unknown, so anything below it might be deleted wrongly.
+            raise UnsafePlan(f"cannot read stored object {oid}: {exc}") from exc
+        try:  # also checks the bytes against the id: a corrupt copy is caught
+            envelope = ObjectEnvelope.decode(raw, oid)
+        except (KernelError, ValueError) as exc:
+            raise UnsafePlan(f"cannot read stored object {oid}: {exc}") from exc
         seen.add(oid)
         links = {match.decode("ascii") for match in OID_BYTES.findall(raw)}
         try:
-            links.update(validate_links(ObjectEnvelope.decode(raw, oid)))
+            links.update(validate_links(envelope))
         except (KernelError, ValueError):
             pass
         stack.extend(link for link in links if link not in seen)

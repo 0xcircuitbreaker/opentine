@@ -31,7 +31,7 @@ def add_du_parsers(sub: argparse._SubParsersAction) -> None:
         type=float,
         default=14.0,
         metavar="DAYS",
-        help="Only objects last written this many days ago (default 14; floor 60 s)",
+        help="Only objects last written this many days ago (default 14; floor 70 min)",
     )
     prune.add_argument(
         "--no-git-links",
