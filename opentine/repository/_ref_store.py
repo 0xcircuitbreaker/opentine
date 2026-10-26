@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 import stat
-import time
 from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
+from opentine.repository import _winretry
 from opentine.repository._paths import durable_directory, internal_path
 from opentine.repository._reflog import append_reflog, reflog_entry
 
@@ -17,16 +17,10 @@ MAX_REF_BYTES = 256
 
 def read_ref_oid(base: Path, normalized: str) -> str | None:
     path = internal_path(base, "refs", *Path(normalized).parts)
-    for attempt in range(50):
-        try:
-            fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-            break
-        except FileNotFoundError:
-            return None
-        except PermissionError:  # Windows: the ref is mid-replace (delete pending)
-            if os.name != "nt" or attempt == 49:
-                raise
-            time.sleep(0.002)
+    try:  # Windows: a ref mid-replace (delete pending) is briefly unopenable
+        fd = _winretry.open_fd(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except FileNotFoundError:
+        return None
     try:
         info = os.fstat(fd)
         # Reject a *hardlinked* ref (nlink > 1), not an unlinked one. A concurrent
@@ -54,22 +48,6 @@ def read_ref_oid(base: Path, normalized: str) -> str | None:
         raise KernelError("repository ref is not canonically encoded")
     parse_oid(oid)
     return oid
-
-
-def _replace(source: Path, target: Path) -> None:
-    """``os.replace``, retried briefly on Windows sharing violations.
-
-    On Windows a rename fails while any process holds either file open, and
-    readers (``read_ref``, prune's root scan) open ref files for a moment.
-    """
-    for attempt in range(50):
-        try:
-            os.replace(source, target)
-            return
-        except PermissionError:
-            if os.name != "nt" or attempt == 49:
-                raise
-            time.sleep(0.02)
 
 
 def commit_ref(
@@ -117,7 +95,7 @@ def commit_ref(
             handle.write((new_oid + "\n").encode("ascii"))
             handle.flush()
             os.fsync(handle.fileno())
-        _replace(write_path, ref_path)
+        _winretry.replace(write_path, ref_path)  # readers hold refs open briefly
         ref_replaced = True
         _fsync_dir(ref_path.parent)
         append_reflog(base, normalized, entry)
@@ -129,9 +107,10 @@ def commit_ref(
                 except OSError:
                     pass
         try:
-            write_path.unlink(missing_ok=True)
-        except PermissionError:  # Windows: a reader still holds it; it is not a ref
+            _winretry.unlink(write_path)
+        except PermissionError:  # still held: it is not a ref, and O_EXCL reports it
             pass
-        lock_path.unlink(missing_ok=True)
+        # Lock contenders (and prune's scan) read the lock briefly; outlast them.
+        _winretry.unlink(lock_path)
         if ref_replaced:
             _fsync_dir(ref_path.parent)

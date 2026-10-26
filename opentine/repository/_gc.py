@@ -17,6 +17,7 @@ from pathlib import Path
 
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
+from opentine.repository import _winretry
 from opentine.repository._config import (
     STORAGE_V3,
     STORAGE_VERSION,
@@ -131,7 +132,7 @@ def gc_lock(root: Path) -> Iterator[None]:
         os.close(fd)
         yield
     finally:
-        path.unlink(missing_ok=True)
+        _winretry.unlink(path)  # contenders read the stamp briefly (Windows)
 
 
 def gc(

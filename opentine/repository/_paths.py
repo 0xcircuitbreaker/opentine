@@ -11,6 +11,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError
+from opentine.repository import _winretry
 
 
 def linklike(path: Path) -> bool:
@@ -123,7 +124,7 @@ def atomic_bytes(path: Path, data: bytes) -> None:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        _winretry.replace(temporary, path)  # Windows: a reader may hold the target
         _fsync_dir(path.parent)
     finally:
         try:

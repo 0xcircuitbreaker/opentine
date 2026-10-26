@@ -24,6 +24,7 @@ import re
 from pathlib import Path
 
 from opentine.kernel import KernelError, ObjectEnvelope, validate_links
+from opentine.repository import _winretry
 from opentine.repository._paths import internal_path
 
 OID_BYTES = re.compile(rb"(?:blob|event|run|attestation|annotation):sha256:[0-9a-f]{64}")
@@ -41,8 +42,9 @@ def _scan_file(path: Path, found: set[str]) -> None:
         size = path.lstat().st_size
         if size > MAX_ROOT_FILE:
             raise UnsafePlan(f"{path.name}: root file too large to scan ({size} bytes)")
-        with open(path, "rb") as handle:
-            data = handle.read(MAX_ROOT_FILE + 1)
+        # Windows: a ref or lock mid-replace is briefly unreadable; a denial that
+        # persists past the retries still makes the plan unsafe (fail closed).
+        data = _winretry.read_bytes(path, MAX_ROOT_FILE + 1)
     except FileNotFoundError:
         return
     except OSError as exc:

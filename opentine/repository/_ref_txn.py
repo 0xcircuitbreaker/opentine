@@ -28,6 +28,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, canonical_json, parse_oid
+from opentine.repository import _winretry
 from opentine.repository._lockfile import acquire, provably_dead
 from opentine.repository._paths import durable_directory, internal_path
 from opentine.repository._ref_store import read_ref_oid
@@ -63,9 +64,10 @@ def _write_ref(base: Path, name: str, new_oid: str) -> None:
             handle.write((new_oid + "\n").encode("ascii"))
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(staging, path)
+        # Retried: failing here, after the commit point, leaves a half-applied txn.
+        _winretry.replace(staging, path)
     finally:
-        staging.unlink(missing_ok=True)
+        _winretry.unlink(staging)
     _fsync_dir(path.parent)
 
 
@@ -154,26 +156,24 @@ def recover(base: Path) -> list[str]:
             try:
                 if not _TXN_ID.fullmatch(txn_id):
                     raise ValueError("journal name is not a transaction id")
-                with open(journal, "rb") as handle:
-                    raw = handle.read(MAX_JOURNAL_BYTES + 1)
+                raw = _winretry.read_bytes(journal, MAX_JOURNAL_BYTES + 1)
                 record = parse_journal(base, raw, txn_id)
             except (OSError, ValueError, UnicodeDecodeError):
                 # Kept for inspection, never applied, and no longer blocking.
                 with contextlib.suppress(FileNotFoundError):  # gone meanwhile
-                    os.replace(journal, journal.with_name(f"{txn_id}.rejected"))
+                    _winretry.replace(journal, journal.with_name(f"{txn_id}.rejected"))
                 handled.append(txn_id)
                 continue
             for name in sorted(row["ref"] for row in record["updates"]):
                 held.append(_lock(_ref_lock(base, name)))
             _apply(base, record, f"txn-recover:{record['actor']}"[:4096])
-            journal.unlink(missing_ok=True)
+            _winretry.unlink(journal)
             _fsync_dir(journal.parent)
             handled.append(txn_id)
         except ValueError:
             continue  # a ref is held by a live writer; the next write retries
         finally:
-            for path in reversed(held):
-                path.unlink(missing_ok=True)
+            _release(held)
     return handled
 
 
@@ -212,10 +212,10 @@ def update_refs(base: Path, updates: list[tuple[str, str, str | None]], actor: s
                 os.fsync(handle.fileno())
             _fsync_dir(directory)
         except BaseException:
-            journal.unlink(missing_ok=True)  # never committed: nothing to roll forward
+            _winretry.unlink(journal)  # never committed: nothing to roll forward
             raise
         _apply(base, record, actor)
-        journal.unlink()
+        _winretry.unlink(journal)
         _fsync_dir(directory)
     finally:
         # A failure after the commit point keeps the journal: with these locks
@@ -224,8 +224,7 @@ def update_refs(base: Path, updates: list[tuple[str, str, str | None]], actor: s
 
 
 def _release(held: list[Path]) -> None:
-    for path in reversed(held):
-        path.unlink(missing_ok=True)
+    _winretry.unlink_all(list(reversed(held)))
 
 
 def locked_after_recovery(base: Path, locks: list[Path]) -> list[Path]:

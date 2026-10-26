@@ -235,6 +235,12 @@ see ordinary runs and forks.
 
 ### Security
 
+- **Ref transactions stay atomic on Windows.** A reader holding a ref or lock
+  file open made a post-commit rename fail, leaving a paired update half applied
+  and locks behind. Ref, journal, lock and prune reads/writes now retry Windows
+  sharing violations (bounded, then fail closed), and lock release never strands
+  the remaining locks.
+
 - **`tine prune` refuses (deletes nothing) when a stored object it must walk
   cannot be read** -- corrupt bytes, or a pack whose codec (zstd) is not
   installed. Only a truly absent object is skipped; before, everything reachable
