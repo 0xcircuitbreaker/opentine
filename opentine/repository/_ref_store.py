@@ -17,10 +17,16 @@ MAX_REF_BYTES = 256
 
 def read_ref_oid(base: Path, normalized: str) -> str | None:
     path = internal_path(base, "refs", *Path(normalized).parts)
-    try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-    except FileNotFoundError:
-        return None
+    for attempt in range(50):
+        try:
+            fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            break
+        except FileNotFoundError:
+            return None
+        except PermissionError:  # Windows: the ref is mid-replace (delete pending)
+            if os.name != "nt" or attempt == 49:
+                raise
+            time.sleep(0.002)
     try:
         info = os.fstat(fd)
         # Reject a *hardlinked* ref (nlink > 1), not an unlinked one. A concurrent

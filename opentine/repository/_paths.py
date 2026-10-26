@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import stat
 import tempfile
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -107,14 +108,16 @@ def ensure_layout(tine: Path) -> None:
 
 def atomic_bytes(path: Path, data: bytes) -> None:
     """Atomically write bytes after the caller has confined ``path``."""
-    for attempt in range(3):
+    for attempt in range(200):
         durable_directory(path.parent)
         try:
             fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
             break
         except FileNotFoundError:  # gc removed the then-empty fan-out directory
-            if attempt == 2:
+            if attempt == 199:
                 raise
+            if attempt >= 3:  # a gc is sweeping hard: back off briefly
+                time.sleep(0.001 * attempt)
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
