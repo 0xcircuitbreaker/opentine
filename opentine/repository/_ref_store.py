@@ -8,7 +8,6 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository._lockfile import acquire
 from opentine.repository._paths import durable_directory, internal_path
 from opentine.repository._reflog import append_reflog, reflog_entry
 
@@ -69,20 +68,22 @@ def commit_ref(
     # sibling ref "<ref>.new", so updating "x" would fail against, and then in its
     # cleanup delete, the live lock held by a writer of "x.new".
     write_path = ref_path.with_name(ref_path.name + "..lock")
+    from opentine.repository._ref_txn import locked_after_recovery
+
     try:
         # The lock records pid/host/time; one left by a crashed writer on this
         # host is broken automatically, anything else is reported, never guessed.
-        guard_fd = acquire(lock_path)
-    except FileExistsError as exc:
+        # A crashed multi-ref transaction is rolled forward first (_ref_txn).
+        locked_after_recovery(base, [lock_path])
+    except ValueError as exc:
         raise ValueError(
             f"ref {normalized!r} is locked by a concurrent writer ({lock_path}); if no "
             "opentine process is writing this repository, delete that file"
         ) from exc
+    guard_fd = -1
     write_fd = -1
     ref_replaced = False
     try:
-        with os.fdopen(guard_fd, "wb"):
-            guard_fd = -1
         old = read_ref_oid(base, normalized)
         if check_expected and old != expected_old:
             raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")

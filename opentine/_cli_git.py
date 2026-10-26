@@ -117,12 +117,14 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     rebase.add_argument("--from-step", default="1", help="Keep steps 1..N (default 1)")
     rebase.add_argument("--prompt", help="Also override the prompt")
     rebase.add_argument("--ref", help="Default experiments/rebase/<id>")
+    rebase.add_argument("--force", action="store_true", help="Move an existing --ref")
     _common(rebase)
 
     pick = sub.add_parser("cherry-pick", help="Copy one step onto the end of another run")
     pick.add_argument("pick", metavar="RUN:STEP")
     pick.add_argument("--onto", required=True, metavar="RUN")
     pick.add_argument("--ref", help="Default experiments/cherry-pick/<id>")
+    pick.add_argument("--force", action="store_true", help="Move an existing --ref")
     _common(pick)
 
 

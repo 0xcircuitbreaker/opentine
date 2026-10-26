@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.
 
 ## CLI Reference
 
-`tine` ships 66 subcommands. Each one prints its own `--help`, which is
+`tine` ships 68 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 
@@ -763,6 +763,9 @@ tine config --list / alias.<name>                Porcelain settings, aliases and
 tine log --graph --all --oneline                 The fork tree with model, status and cost
 tine rebase <run> --onto-model <model>           Fork a run onto another model
 tine cherry-pick <run>:<step> --onto <run>       Copy one step onto another run
+tine fan-out <run> --vary model=a,b -- CMD ...   Fork N ways from one step, run them concurrently
+tine run --parallel 4 --harness codex --prompt P Run one invocation N times at once (--jobs, --budget)
+tine worktree add <path> <ref> [--git]           An isolated directory per branch; list/remove/prune
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces

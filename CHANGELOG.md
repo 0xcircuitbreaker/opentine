@@ -77,6 +77,66 @@ back to 0.3.0, and v2 and v3 packs side by side.
   now **535 conformance vectors**; 204 of the 535 refuse input, and the
   adapter contract grows by one entry point: 34 ops.
 
+### Branch engine: crash-safe refs, fan-out and worktrees
+
+- **`Repo.update_refs`**: move several refs at once, all or none. Every row is
+  compare-and-swap. Locks are taken in sorted order, then a journal
+  (`txn/<id>.json`, `opentine-ref-txn/1`) is written durably as the commit
+  point, then the refs and their reflog rows. A writer killed before the
+  journal changed nothing; one killed after it is rolled forward by the next
+  ref write anywhere in the repository (`Repo.recover_refs()` does it on
+  demand). Roll-forward is itself compare-and-swap and never clobbers a ref
+  moved since. A malformed or tampered journal (illegal ref, missing object,
+  wrong type, extra fields) is never applied: it is renamed `<id>.rejected`.
+- **Ref deletes take a stamped lock.** `tine branch -d` and the other delete
+  paths wrote an empty `.lock`, which a crash left behind for good; they now
+  record pid/host/time like every other ref lock, so a dead one is broken.
+- **`tine fan-out RUN [--from-step N] --vary model=a,b [--repeat K] -- CMD`**:
+  one fork per member from a single fork point. The run is walked once for all
+  N forks, every `experiments/fanout/<id>/<n>` ref is written in one
+  transaction, and the fan-out is recorded as an annotation on RUN
+  (`opentine.fanout.<id>`, no new object type). CMD runs per member as an argv
+  list (never a shell) with `{model}`, `{run}`, `{ref}`, `{index}` and every
+  `--vary` name substituted in one non-recursive pass. A value that would
+  stand alone as an argument and starts with `-` is refused. Without CMD the
+  forks are only prepared.
+- **`tine run --parallel N`** runs the same `tine run` invocation N times
+  (times every `--vary` combination), each member saving its own run;
+  `--save` and the autosave flags are refused with it.
+- Both take `--jobs` (never exceeded), `--timeout` per member, `--budget USD`,
+  `--env NAME`, `--log-dir`, `--json` (NDJSON status, one object per event,
+  never argv, env or variation values) and `--resume ID`. Members start in a
+  fresh process group (Linux subreaper) or a kill-on-close Job Object
+  (Windows) and are killed with their whole process tree on timeout, budget,
+  stop or Ctrl-C, and after a normal exit too.
+- **Shared budget ledger** (`budget.SharedLedger`): members report their
+  cumulative cost in `$OPENTINE_FANOUT_COST_FILE` (`tine run` writes it);
+  reports are taken under one lock and can never double-count. Once the total
+  reaches `--budget`, running members are killed and nothing else starts. With
+  a budget set, a member that ends without a readable cost closes the budget
+  too (fail closed).
+- **Member environment is an allowlist**: `PATH`, `HOME`, locale, temp and the
+  Windows system variables, plus the `OPENTINE_FANOUT_*`/`OPENTINE_VARY_*`
+  variables. API keys and signing keys reach a member only when named with
+  `--env`.
+- **`--resume ID`** reruns only the members that did not finish (`ok` or
+  `failed`). The state file (`.tine/fanouts/<id>.json`, or
+  `.tine_runs/parallel/` for `run --parallel`) is validated field by field and
+  holds no command: resume takes the command again and refuses one whose
+  digest differs, so a planted state file cannot choose what runs. The spend
+  already recorded counts against the budget.
+- **`tine worktree add PATH REF [--git [COMMIT]]`, `list`, `remove [--force]`,
+  `prune`**: an isolated directory per branch, registered at
+  `.tine/worktrees/<name>.json` (a prune root) and marked with a
+  `.tine-worktree` file. `--git` also makes it a detached `git worktree`.
+  Names are one safe component; a symlinked target, one inside the repository,
+  or a non-empty directory is refused. `remove` deletes a directory only when
+  its own marker names this repository and worktree, so an edited registry
+  cannot point it at another directory; `prune` only drops registrations.
+  `tine fan-out --worktree-dir DIR` gives every member its own worktree.
+- **`tine rebase`/`tine cherry-pick --ref NAME`** refuse to move an existing ref
+  unless `--force` is given (0.12.1 review).
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

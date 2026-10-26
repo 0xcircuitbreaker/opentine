@@ -64,9 +64,15 @@ def _step(events: list[str], step: str) -> str:
     return events[index - 1]
 
 
-def _place(repo: Repo, ref: str | None, space: str, run_id: str) -> str:
+def _place(repo: Repo, ref: str | None, space: str, run_id: str, force: bool = False) -> str:
     name = normalize_ref(ref or f"experiments/{space}/{run_id.split(':')[-1][:12]}")
-    repo.update_ref(name, run_id, expected_old=repo.read_ref(name), actor=space)
+    old = repo.read_ref(name)
+    # An explicit --ref names a ref the operator may already use for something
+    # else: silently moving it lost that history (0.12.1 review). The default
+    # experiments/<space>/<id> name is content-derived, so rewriting it is a no-op.
+    if ref is not None and old is not None and old != run_id and not force:
+        raise ValueError(f"ref {name!r} already exists ({old}); pass --force to move it")
+    repo.update_ref(name, run_id, expected_old=old, actor=space)
     return name
 
 
@@ -79,7 +85,7 @@ def cmd_rebase(args: argparse.Namespace, console) -> None:
     if args.prompt is not None:
         overrides["prompt"] = args.prompt
     new = repo.fork(source, keep, overrides=overrides)
-    ref = _place(repo, args.ref, "rebase", new)
+    ref = _place(repo, args.ref, "rebase", new, getattr(args, "force", False))
     _hooks.run_hook(repo.path, "post-run", {"OPENTINE_RUN": new, "OPENTINE_REF": ref})
     if getattr(args, "json", False):
         emit({"command": "rebase", "source": source, "run_id": new, "ref": ref})
@@ -116,7 +122,7 @@ def cmd_cherry_pick(args: argparse.Namespace, console) -> None:
     run["events"] = [*run["events"], new_event]
     run["tips"] = [new_event]
     new = repo.put("run", run)
-    ref = _place(repo, args.ref, "cherry-pick", new)
+    ref = _place(repo, args.ref, "cherry-pick", new, getattr(args, "force", False))
     _hooks.run_hook(repo.path, "post-run", {"OPENTINE_RUN": new, "OPENTINE_REF": ref})
     if getattr(args, "json", False):
         emit({"command": "cherry-pick", "event": event, "onto": onto, "run_id": new, "ref": ref})

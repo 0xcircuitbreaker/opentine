@@ -279,6 +279,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_release_inventory.py": "git",
     "tests/test_security_0_11_git.py": "git",
     "tests/test_trace_capture_bounds.py": "git",
+    "tests/test_worktree_0_13.py": "git",
 }
 
 #: Modules that reason about a ``.git`` directory.  A ``.git`` that exists is not a

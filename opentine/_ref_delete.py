@@ -10,7 +10,6 @@ a reflog row whose ``new`` is ``null`` -- the deletion stays recoverable with
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from opentine._canon import _fsync_dir
@@ -25,11 +24,14 @@ def delete_ref(base: Path, name: str, expected_old: str, *, actor: str = "local"
     normalized = normalize_ref(name)
     ref_path = internal_path(Path(base), "refs", *Path(normalized).parts)
     lock_path = ref_path.with_name(ref_path.name + ".lock")
+    from opentine.repository._ref_txn import locked_after_recovery
+
+    # Stamped like commit_ref's lock (a crash no longer wedges the ref), and a
+    # crashed multi-ref transaction is rolled forward before the delete.
     try:
-        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-    except FileExistsError as exc:
+        locked_after_recovery(Path(base), [lock_path])
+    except ValueError as exc:
         raise ValueError(f"ref {normalized!r} is locked by a concurrent write") from exc
-    os.close(fd)
     try:
         old = read_ref_oid(Path(base), normalized)
         if old is None:

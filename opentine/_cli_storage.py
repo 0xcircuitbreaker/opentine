@@ -23,8 +23,12 @@ def _size(count: int) -> str:
 
 def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
     from opentine._cli_du import add_du_parsers
+    from opentine._cli_fanout import add_fanout_parsers
+    from opentine._cli_worktree import add_worktree_parser
 
     add_du_parsers(sub)
+    add_fanout_parsers(sub)  # after `run`, which it extends with --parallel
+    add_worktree_parser(sub)
     for name, text in (
         ("gc", "Pack loose repository objects into compressed packs"),
         ("repack", "Rewrite every object (loose and packed) into one pack"),
@@ -169,8 +173,22 @@ def cmd_compress(args: argparse.Namespace) -> None:
     console.print(f"[{BRAND}]# {verb}[/] {changed} file(s): {_size(before)} → {_size(after)}")
 
 
+def _fanout(args: argparse.Namespace) -> None:
+    from opentine._cli_fanout import cmd_fanout
+
+    cmd_fanout(args)
+
+
+def _worktree(args: argparse.Namespace) -> None:
+    from opentine._cli_worktree import cmd_worktree
+
+    cmd_worktree(args)
+
+
 STORAGE_COMMANDS = {
     **DU_COMMANDS,
+    "fan-out": _fanout,
+    "worktree": _worktree,
     "archive": cmd_archive,
     "compress": cmd_compress,
     "gc": cmd_gc,

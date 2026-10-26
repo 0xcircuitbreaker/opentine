@@ -184,6 +184,32 @@ class Repo:
             actor,
         )
 
+    def update_refs(
+        self, updates: list[tuple[str, str, str | None]], *, actor: str = "local"
+    ) -> None:
+        """Move every ``(ref, new_oid, expected_old)`` atomically, or none of them.
+
+        Each row is compare-and-swap (``expected_old=None``: the ref must not
+        exist). A crash mid-update is rolled forward by the next ref write; see
+        :mod:`opentine.repository._ref_txn`.
+        """
+        from opentine.repository._ref_txn import update_refs
+
+        rows = []
+        for name, new_oid, expected_old in updates:
+            normalized = self._ref_name(name)
+            validate_ref_oid(normalized, new_oid)
+            target = self.get(new_oid)
+            validate_ref_target(normalized, target.object_type, target.payload())
+            rows.append((normalized, new_oid, expected_old))
+        update_refs(self.path, rows, actor)
+
+    def recover_refs(self) -> list[str]:
+        """Roll forward any ref transaction a crashed writer left; return its ids."""
+        from opentine.repository._ref_txn import recover
+
+        return recover(self.path)
+
     def list_refs(self) -> dict[str, str]:
         refs: dict[str, str] = {}
         root = internal_path(self.path, "refs")
