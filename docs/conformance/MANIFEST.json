@@ -448,6 +448,19 @@
       "verdict": 0
     },
     {
+      "core": 11,
+      "count": 11,
+      "file": "vectors/29-localpack.json",
+      "name": "localpack",
+      "ops": [
+        "localpack.read"
+      ],
+      "reject": 9,
+      "section": "2.8",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 20,
       "count": 20,
       "file": "vectors/31-artifact-v2.json",
@@ -539,10 +552,11 @@
     }
   ],
   "files": {
-    "PROTOCOL.md": "9a526a4135631ce42001105f0fbe06bddbb17fd4aef55da29d8a2620e654ad5b",
-    "README.md": "9da4f523b1070f157496cdd5c6cc033cbd20e37b969237d06e46f681b784a195",
-    "REASON_CODES.md": "c132417dc8878dd12f752e14f5a0987c6d6ca0f3d2e9f63918ae13f435e45b1b",
+    "PROTOCOL.md": "1b8823701f2acc9a67e8b3d370b2ebac18d4a0f2a33f7b7daacd05f273e1c89d",
+    "README.md": "ef2b8d7565b22e2e1e4c66d32e288f6ed32c0850b1032a42ee7a387536e284f3",
+    "REASON_CODES.md": "401a3ec367a53ee2c5ca09395c3718c27a9f2d5fd2511f71c832794e59371df2",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
+    "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
     "blobs/3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee.bin": "3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee",
     "blobs/9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350.bin": "9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350",
     "blobs/d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24.bin": "d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24",
@@ -813,6 +827,7 @@
     "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
     "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
     "vectors/28-pack.json": "0f7194ed6e505e1e69727e60f5900ff97d12ae64c77c21a1a7bea212eda682d7",
+    "vectors/29-localpack.json": "6f1cf700f52c0c24456bdea593d16061fb701e119cafee55720fdef63b7f24a9",
     "vectors/31-artifact-v2.json": "f83c46167d41a9e0e319fed34d4faebc428dc7abbf787869a6bab837a84c7f83",
     "vectors/35-integrity.json": "c31947dc24bbad8d0da04edaedf672dc8e56a6b030e6a6744b27ee9dc4d6ef3e",
     "vectors/42-signing.json": "128ac717112ba02ca80832bcec73967ecf757486bac49e04313b1f9479456079",
@@ -1030,6 +1045,27 @@
       "summary": "SPEC 1.5 link fields, their type rules, and their existence",
       "unordered": [
         "links"
+      ]
+    },
+    "localpack.read": {
+      "args": [
+        "pack_b64"
+      ],
+      "input": [
+        "blob",
+        "bytes_b64"
+      ],
+      "output": [
+        "pack_id",
+        "objects"
+      ],
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "summary": "SPEC 2.8 storage-v3 local pack: binary index, blocks, stored forms",
+      "unordered": [
+        "objects"
       ]
     },
     "object.load": {
@@ -1374,12 +1410,12 @@
   "spec_version": "0.9.0",
   "suite_version": 1,
   "totals": {
-    "cases": 524,
-    "core": 514,
-    "families": 25,
-    "ops": 33,
-    "reason_codes": 95,
-    "reject": 195,
+    "cases": 535,
+    "core": 525,
+    "families": 26,
+    "ops": 34,
+    "reason_codes": 104,
+    "reject": 204,
     "stress": 10,
     "verdict": 51
   }

@@ -9,14 +9,16 @@ from pathlib import Path
 
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
+from opentine.repository._config import read_config, storage_version
+from opentine.repository._pack_v3 import build_pack_v3
+from opentine.repository._pack_v3_index import PACK3_MAGIC
 from opentine.repository._packs import (
     _NAME,
     BLOCK_BYTES,
-    MAX_INDEX_BYTES,
     PACK_MAGIC,
     PackSet,
-    _parse_index,
     _read_file,
+    load_index,
 )
 from opentine.repository._paths import atomic_bytes, internal_path
 
@@ -56,9 +58,20 @@ def build_pack(
     return digest, bytes(body), _codec.wrap(index, codec, force=True)
 
 
-def write_pack(root: Path, objects: list[tuple[str, bytes]], codec: str, level: int | None) -> str:
-    """Write *objects* as one pack (body first, then the index that publishes it)."""
-    digest, body, index = build_pack(objects, codec, level)
+def write_pack(
+    root: Path,
+    objects: list[tuple[str, bytes]],
+    codec: str,
+    level: int | None,
+    version: int = 1,
+) -> str:
+    """Write *objects* as one pack (body first, then the index that publishes it).
+
+    *version* 3 writes the storage-v3 pack (``_pack_v3``); only a repository
+    whose descriptor is version 3 may hold one.
+    """
+    build = build_pack_v3 if version == 3 else build_pack
+    digest, body, index = build(objects, codec, level)
     atomic_bytes(internal_path(root, "packs", f"{digest}.tpk"), body)
     atomic_bytes(internal_path(root, "packs", f"{digest}.tidx"), index)
     return digest
@@ -66,13 +79,20 @@ def write_pack(root: Path, objects: list[tuple[str, bytes]], codec: str, level: 
 
 def load_pack(root: Path, digest: str) -> PackSet:
     """A reader over exactly one pack, for checking it before it is trusted."""
-    body_path = internal_path(root, "packs", f"{digest}.tpk")
-    data = _read_file(internal_path(root, "packs", f"{digest}.tidx"), limit=MAX_INDEX_BYTES)
-    blocks, entries = _parse_index(data, digest, body_path.stat().st_size)
+    blocks, entries, version = load_index(root, digest)
     single = PackSet(root)
     single.fingerprint, single.blocks = (), {digest: blocks}
-    single.where = {oid: (digest, *place) for oid, place in entries.items()}
+    single.where = {oid: (digest, *place[:3]) for oid, place in entries.items()}
+    single.v3 = {digest: entries} if version == 3 else {}
     return single
+
+
+def pack_version(root: Path, digest: str) -> int:
+    """1 or 3, from the ``.tpk`` magic (the index must agree)."""
+    head = _read_file(internal_path(root, "packs", f"{digest}.tpk"), 0, 8, limit=8)
+    if head not in (PACK_MAGIC, PACK3_MAGIC):
+        raise KernelError("pack file has an unknown magic")
+    return 3 if head == PACK3_MAGIC else 1
 
 
 def _file_digest(path: Path) -> str:
@@ -95,6 +115,7 @@ def verify_packs(root: Path) -> list[str]:
     except FileNotFoundError:
         return errors
     digests = {name[:64] for name in names}
+    v3_allowed = storage_version(read_config(internal_path(root, "config.json"))) == 3
     for digest in sorted(digests):
         tpk, tidx = f"{digest}.tpk", f"{digest}.tidx"
         if tpk not in names or tidx not in names:
@@ -105,6 +126,14 @@ def verify_packs(root: Path) -> list[str]:
             if _file_digest(body_path) != digest:
                 raise KernelError("pack file does not match its name")
             single = load_pack(root, digest)
+            version = pack_version(root, digest)
+            if version != (3 if single.v3 else 1):
+                raise KernelError("pack file and index formats differ")
+            if version == 3 and not v3_allowed:
+                raise KernelError(
+                    "storage-v3 pack in a repository below storage version 3 (opentine "
+                    "0.12 cannot read it); rerun `tine gc --downgrade` or `tine gc --upgrade`"
+                )
             for oid in single.in_block_order():
                 single.read(oid)
         except (KernelError, OSError, ValueError) as exc:

@@ -45,6 +45,38 @@ still reads every format back to 0.3.0.
   Each log is rewritten under its ref's own lock, and a ref that is locked is
   skipped.
 
+### Footprint II: storage version 3 (opt-in)
+
+The one format change in 0.13, and only when asked for: `tine gc --upgrade`.
+Object ids, digests and signatures do not change. opentine 0.12 and older
+refuse a version-3 repository at open (`repository config is incompatible`);
+`tine gc --downgrade` returns it to version 2. 0.13 still reads every format
+back to 0.3.0, and v2 and v3 packs side by side.
+
+- **v3 packs**: blocks of up to 16 MiB, one object kind per block, blobs and
+  events in recording order. A block of several objects is capped at 16 MiB
+  inflated, checked against the index before inflating. Readers keep a small
+  cache of inflated blocks (64 MiB).
+- **Run snapshots as deltas**: a snapshot is stored as the previous snapshot
+  in its block plus the newly appended events (and any changed fields), with
+  a full snapshot at least every 32. Chains are walked iteratively and capped
+  at 64; a delta never starts a block, so a chain cannot loop.
+- **Slim events**: fields holding their empty default are left out in the
+  pack and restored on read.
+- **Binary pack index** with a trailing SHA-256, exact-length and tiling checks
+  before any field is trusted.
+- Every read rebuilds the canonical bytes and checks them (and every delta
+  base) against the object id, failing closed. `fsck` reads every object of
+  every pack and reports a v3 pack in a repository below version 3.
+- On the recorded-session benchmark (20 runs × 30 events, 13.5 MB of
+  canonical objects) `tine gc --upgrade` takes the repository from about
+  89 KB to about 38 KB per run on disk; the packs alone go from 74 KB to
+  23 KB per run (reflogs and the index are most of the rest).
+- Conformance: new `localpack.read` op and `29-localpack.json` vectors
+  (binary index, blocks, stored forms, delta and bomb bounds). The suite is
+  now **535 conformance vectors**; 204 of the 535 refuse input, and the
+  adapter contract grows by one entry point: 34 ops.
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

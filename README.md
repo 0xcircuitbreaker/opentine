@@ -1005,7 +1005,7 @@ Reference:
 
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.1/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
-- [conformance/](docs/conformance/README.md): 524 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
+- [conformance/](docs/conformance/README.md): 535 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.1/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.1/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.1/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.

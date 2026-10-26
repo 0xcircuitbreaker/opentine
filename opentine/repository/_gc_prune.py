@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 from opentine import _codec
 from opentine.kernel import KernelError
-from opentine.repository._gc import GC_LEVEL, gc_lock
+from opentine.repository._gc import GC_LEVEL, gc_lock, pack_format
 from opentine.repository._gc_tidy import loose_entries, remove_empty_dir
 from opentine.repository._objects import iter_typed_object_oids
 from opentine.repository._pack_write import load_pack, write_pack
@@ -138,7 +138,8 @@ def _rewrite_packs(repo, victims: set[str], cutoff: float, result: PrunePlan) ->
     if codec in (None, "none") or not _codec.available(codec):
         codec = _codec.default_codec()
     if objects:
-        digest = write_pack(repo.path, objects, codec, GC_LEVEL if codec == "zstd" else 9)
+        level = GC_LEVEL if codec == "zstd" else 9
+        digest = write_pack(repo.path, objects, codec, level, pack_format(repo))
         check = load_pack(repo.path, digest)
         for oid, raw in objects:
             if check.read(oid) != raw:

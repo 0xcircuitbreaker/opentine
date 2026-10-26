@@ -17,7 +17,14 @@ from pathlib import Path
 
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
-from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository._config import (
+    STORAGE_V3,
+    STORAGE_VERSION,
+    STORAGE_VERSIONS,
+    V3_NOTE,
+    read_config,
+    storage_version,
+)
 from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
@@ -59,11 +66,33 @@ def enable_storage(repo, codec: str) -> None:
     """Upgrade a version-1 descriptor to version 2 with *codec*, keeping other keys."""
     path = internal_path(repo.path, "config.json")
     config = read_config(path)
-    if config.get("version") == STORAGE_VERSION:
+    if config.get("version") in STORAGE_VERSIONS:
         return
     config.update(version=STORAGE_VERSION, storage={"compression": codec})
     atomic_bytes(path, canonical_json(config) + b"\n")
     repo._storage_codec = codec
+
+
+def set_storage_version(repo, version: int, codec: str) -> None:
+    """Write descriptor *version* (2 or 3), keeping every other key."""
+    path = internal_path(repo.path, "config.json")
+    config = read_config(path)
+    config.update(version=version, storage={"compression": codec})
+    config.pop("note", None)
+    if version == STORAGE_V3:
+        config["note"] = V3_NOTE
+    atomic_bytes(path, canonical_json(config) + b"\n")
+    repo._storage_codec = codec
+
+
+def pack_format(repo) -> int:
+    """The pack format a write uses now: 3 in a v3 repository, else 1.
+
+    Read from the descriptor each time, never cached: a process that opened the
+    repository before an upgrade or downgrade must follow it.
+    """
+    config = read_config(internal_path(repo.path, "config.json"))
+    return 3 if storage_version(config) == STORAGE_V3 else 1
 
 
 def _loose_oids(repo, min_age: float = 0.0) -> list[str]:
@@ -114,25 +143,40 @@ def gc(
     keep_transfer_packs: bool = False,
     min_age: float = 0.0,
     merge_packs: list[str] | None = None,
+    upgrade: bool = False,
+    downgrade: bool = False,
 ) -> GcResult:
     """Pack loose objects (only those *min_age* seconds old or older).
 
     ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
+    ``upgrade`` moves the repository to storage version 3 and rewrites every
+    pack in that format; ``downgrade`` rewrites every pack in the version-1
+    pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
+    Neither ever happens implicitly.
     """
+    if upgrade and downgrade:
+        raise ValueError("choose one of --upgrade and --downgrade")
     configured = getattr(repo, "_storage_codec", None)
     chosen = codec or (configured if configured not in (None, "none") else None)
     chosen = chosen or _codec.default_codec()
     if not _codec.available(chosen):
         raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
     with gc_lock(repo.path):
-        return _gc_locked(repo, repack, chosen, level, keep_transfer_packs, min_age, merge_packs)
+        if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
+            set_storage_version(repo, STORAGE_V3, chosen)
+        args = (repo, repack or upgrade or downgrade, chosen, level, keep_transfer_packs)
+        result = _gc_locked(*args, min_age, merge_packs, 1 if downgrade else None)
+        if downgrade:  # descriptor last: until then 0.12 must keep refusing
+            set_storage_version(repo, STORAGE_VERSION, chosen)
+        return result
 
 
 def _gc_locked(
-    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, min_age, merge_packs
+    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, min_age, merge_packs, fmt
 ) -> GcResult:
     before = footprint(repo.path)
     enable_storage(repo, chosen)
+    fmt = fmt or pack_format(repo)
     packs = pack_set(repo.path)
     packs.refresh()
     held = {place[0] for place in packs.where.values()}
@@ -148,7 +192,7 @@ def _gc_locked(
         objects.append((oid, raw))
     removed_packs = 0
     if objects:
-        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9)
+        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9, fmt)
         check = load_pack(repo.path, digest)
         expected = dict(objects)
         for oid in check.in_block_order():  # read back before anything is deleted

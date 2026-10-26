@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import os
 
-from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository._config import STORAGE_VERSIONS, read_config
 from opentine.repository._gc_tidy import old_loose
 from opentine.repository._paths import internal_path
 
@@ -48,7 +48,7 @@ def threshold(repo) -> int | None:
         config = read_config(internal_path(repo.path, "config.json"))
     except (OSError, ValueError):
         return None
-    if config.get("version") != STORAGE_VERSION:
+    if config.get("version") not in STORAGE_VERSIONS:
         return None
     setting = config.get("auto_pack", True)
     if setting is False:

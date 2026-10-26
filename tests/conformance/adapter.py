@@ -1,4 +1,4 @@
-"""The 33 conformance ops, answered by the reference implementation.
+"""The 34 conformance ops, answered by the reference implementation.
 
 This module, ``adapter_repo`` and ``adapter_write`` are the only place an
 **answer** is produced. A third-party adapter replaces exactly these three files

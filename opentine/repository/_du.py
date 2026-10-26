@@ -39,7 +39,8 @@ def object_sizes(repo) -> dict[str, tuple[int, int, bool]]:
     packs.refresh()
     for oid, (digest, number, _, length) in packs.where.items():
         _, stored_len, raw_len = packs.blocks[digest][number]
-        sizes[oid] = (length, round(length * stored_len / raw_len) if raw_len else 0, False)
+        size = packs.v3[digest][oid][3] if digest in packs.v3 else length
+        sizes[oid] = (size, round(length * stored_len / raw_len) if raw_len else 0, False)
     for oid, _, info in loose_entries(repo.path):
         try:
             declared = canonical_size(repo, oid)

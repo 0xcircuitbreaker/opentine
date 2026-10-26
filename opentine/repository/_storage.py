@@ -70,10 +70,10 @@ def canonical_size(repo, oid: str) -> int | None:
     try:
         fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except FileNotFoundError:
-        found = pack_set(repo.path).locate(oid)
-        if found is None:
+        size = pack_set(repo.path).size(oid)
+        if size is None:
             raise KeyError(oid) from None
-        return found[3]
+        return size
     except OSError as exc:
         raise KernelError("repository object cannot be safely opened") from exc
     with os.fdopen(fd, "rb") as handle:

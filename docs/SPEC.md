@@ -574,6 +574,20 @@ refuse version 2. `Repo.init` writes version 2 by default; with
 `OPENTINE_COMPRESS=0` or `tine --no-compress` it writes version 1 byte for byte
 as shown above.
 
+Since 0.13 a descriptor may carry `"version": 3` (with the same `storage` key,
+and an informational `"note"` that readers ignore). Version 3 is opt-in only,
+written by `tine gc --upgrade`, never by `Repo.init`, auto-pack or a plain
+`tine gc`. A version-3 repository may additionally hold storage-v3 local packs
+(§2.8, "Pack v3"); its loose objects are stored exactly as in version 2.
+A reader that supports only versions 1 and 2 MUST refuse version 3; opentine
+0.11–0.12 do so at open with `repository config is incompatible`, and 0.13
+names the newer version when it meets one above 3. `tine gc --downgrade`
+rewrites every pack in the version-1 pack format and then writes
+`"version": 2`, after which 0.11–0.12 open the repository again. Upgrade writes
+the descriptor *before* the first v3 pack, and downgrade writes it *after* the
+last v3 pack is gone, so an interrupted run never leaves 0.12 a repository it
+opens but cannot read; `fsck` reports a v3 pack under a lower version.
+
 ## 2.3 `objects/`
 
 For `oid = TYPE:sha256:HEX`, the loose object lives at:
@@ -834,6 +848,52 @@ SHA-256 of the `.tpk` bytes.
 A packed object MUST be checked against its id when read. Local packs are a
 storage detail: they never cross the network, and transfer packs (TINEPACK3)
 always carry canonical bytes.
+
+### Pack v3 (storage version 3, 0.13+)
+
+A version-3 repository may also hold v3 packs, named the same way. A reader
+tells the formats apart by magic; a version-3 repository may hold both.
+
+- **`.tpk`:** `TINELP3\n` followed by blocks, each a wrapped body. A block
+  holds objects of **one kind**. A block of several objects inflates to at most
+  16 MiB (`MAX_BLOCK_BYTES`); a single object may have a block of its own up to
+  the object limit. Writers order blobs and events by recording order and run
+  snapshots by session and length, and default to 16 MiB blocks.
+- **`.tidx`:** binary, big-endian:
+
+  ```text
+  "TINEIX3\n"  pack-sha256[32]  u32 block_count  u32 object_count
+  block_count  × (u32 stored_len, u32 inflated_len, u8 kind)
+  object_count × (u8 kind, digest[32], u32 block, u32 start, u32 length,
+                  u32 canonical_size, u8 encoding)
+  sha256[32] of every preceding byte
+  ```
+
+  `kind` indexes `annotation, attestation, blob, event, run` (alphabetical, so
+  entry byte order is id order). The length MUST be exactly
+  `48 + 9·blocks + 50·objects + 32` and the trailing SHA-256 MUST match before
+  any field is used. Entries are strictly sorted; blocks tile the `.tpk` from
+  offset 8; each entry's kind equals its block's; a block's entries tile it
+  from 0 and sum to its `inflated_len`. A block's frame MUST declare exactly
+  `inflated_len` before it is inflated.
+- **`encoding`** (the stored form; canonical bytes are always rebuilt):
+  - `0` full: the canonical envelope; `length == canonical_size`.
+  - `1` run delta (runs only): the run's header line, LF, then canonical JSON
+    `{"append": {key: [items]}, "drop": [keys], "set": {key: value}}`. Its base
+    is the object stored immediately before it in the same block (so it never
+    starts a block and a chain cannot loop). Rebuild: parse the base body,
+    delete `drop`, extend each non-empty list in `append`, assign `set`, and
+    canonicalize. A reader resolves at most 64 deltas for one object.
+  - `2` slim event (events only): the event with the fields that hold their
+    default left out (`actor ""`, `attributes {}`, `billing {}`,
+    `causal_ids []`, `cost 0`, `duration 0`, `parent_ids []`, `usage {}`);
+    a reader adds every missing one back and canonicalizes. Storing a default
+    is refused.
+
+Every rebuilt object — a delta's base included — MUST equal its
+`canonical_size` and hash to its id, or the read fails. Ids, digests and
+signatures are therefore unchanged by the stored form; vectors:
+`29-localpack.json`.
 
 ## 2.9 `fsck`
 
@@ -1311,7 +1371,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 524 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 535 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 

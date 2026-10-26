@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (95)
+## The codes (104)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -93,6 +93,15 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `link.run-manifests-not-object` | 1.5.3 | -- | a manifests value that is not an object | coerce a list of pairs into a mapping |
 | `link.run-roots-tips-invalid` | 1.5.3 | -- | a run roots/tips list that is not a duplicate-free list of event oids | de-duplicate or filter the list |
 | `link.run-roots-tips-not-subset` | 1.5.3 | -- | a roots or tips entry that is not in events | add the stray entry to events |
+| `localpack.block-size` | 2.8 | -- | a block of several objects declared to inflate past 16 MiB | inflate it anyway and cut at the limit |
+| `localpack.delta-no-base` | 2.8 | -- | a run delta stored first in its block, where no base precedes it | look the base up elsewhere in the pack or repository |
+| `localpack.delta-too-deep` | 2.8 | -- | a run delta chain longer than 64 | resolve it recursively without a bound |
+| `localpack.encoding-kind` | 2.8 | -- | a stored-form code used for a kind it does not apply to | decode it anyway |
+| `localpack.index-checksum` | 2.8 | -- | a storage-v3 .tidx whose trailing SHA-256 does not cover the bytes before it | trust the fields anyway, or recompute the checksum |
+| `localpack.index-length` | 2.8 | -- | a .tidx whose length is not exactly header + 9 per block + 50 per object + 32 | read the entries that fit, or ignore trailing bytes |
+| `localpack.index-order` | 2.8 | -- | index entries not strictly sorted by object id | sort them, or keep the first of a duplicate |
+| `localpack.object-id-mismatch` | 2.8 | -- | an object rebuilt from its stored form whose bytes or size do not match its id | return the rebuilt bytes |
+| `localpack.slim-default` | 2.8 | -- | a slim event that stores a field holding its default value | accept the redundant field |
 | `metrics.meter-not-finite` | 1.5.2 | `_run_graph._meter` | a cost/duration/time_unix that is not finite and (except time_unix) non-negative | clamp a negative meter to zero, or accept a value float() cannot represent |
 | `metrics.meter-too-long` | 1.5.2 | -- | a numeric-meter string longer than 128 characters | truncate the string and parse the prefix |
 | `metrics.token-dimension-unsafe` | 1.5.2 | `_run_graph._MAX_SAFE_INTEGER` = 9007199254740991 | a known token dimension that is fractional or above 2**53-1 | round a fractional token count |

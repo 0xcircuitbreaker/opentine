@@ -38,6 +38,18 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             help="Keep the copies of received transfer packs (redundant once packed)",
         )
         command.add_argument("--json", action="store_true")
+        change = command.add_mutually_exclusive_group()
+        change.add_argument(
+            "--upgrade",
+            action="store_true",
+            help="Opt in to storage version 3 (smaller packs; opentine 0.12 and older "
+            "then refuse the repository until --downgrade)",
+        )
+        change.add_argument(
+            "--downgrade",
+            action="store_true",
+            help="Rewrite every pack for storage version 2, which opentine 0.11-0.12 read",
+        )
     archive = sub.add_parser("archive", help="Write or restore a whole-repository archive")
     actions = archive.add_subparsers(dest="archive_action", required=True)
     create = actions.add_parser("create", help="Archive a repository into one compressed file")
@@ -85,6 +97,8 @@ def _gc_run(gc, args: argparse.Namespace):
         repack=args.command == "repack",
         codec=args.codec,
         keep_transfer_packs=args.keep_transfer_packs,
+        upgrade=args.upgrade,
+        downgrade=args.downgrade,
     )
 
 
@@ -97,6 +111,9 @@ def _report_gc(args: argparse.Namespace, result) -> None:
         f"{_size(result.bytes_before)} → {_size(result.bytes_after)} "
         f"(on disk {_size(result.disk_before)} → {_size(result.disk_after)})"
     )
+    if args.upgrade or args.downgrade:
+        version = 3 if args.upgrade else 2
+        console.print(f"  repository is now at storage version {version}")
     if result.removed_transfer_packs:
         console.print(f"  removed {result.removed_transfer_packs} received transfer pack copy(ies)")
 
