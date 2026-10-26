@@ -189,7 +189,7 @@ def test_a_delta_rebuilding_other_bytes_is_refused(tmp_path):
     base_oid, base = runs[0]
     forged = [(base_oid, base, 0, len(base)), (runs[1][0], _delta(), 1, len(runs[1][1]))]
     digest = _install(repo, forged)
-    with pytest.raises(KernelError, match="size does not match|does not match its id"):
+    with pytest.raises(KernelError, match="size does not match|does not match its id|run delta"):
         load_pack(repo.path, digest).read(runs[1][0])
     assert load_pack(repo.path, digest).read(base_oid) == base
 

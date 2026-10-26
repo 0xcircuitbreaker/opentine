@@ -129,7 +129,8 @@ def test_hook_event_reads_stdin_only_and_clamps_ids(repo, monkeypatch):
 
 @pytest.mark.parametrize(
     "raw", [b"", b"not json", b"[]", b'{"hook_event_name": "PreToolUse", "agent_id": "a"}',
-            b'{"hook_event_name": "SubagentStart"}', b"[" * 50_000, b"x" * 300_000]
+            b'{"hook_event_name": "SubagentStart"}', b"[" * 50_000, b"x" * 300_000],
+    ids=lambda raw: f"{len(raw)}b",  # short ids: Windows caps PYTEST_CURRENT_TEST
 )  # fmt: skip
 def test_hook_event_ignores_anything_else_and_never_fails(repo, raw):
     from opentine import _hook_journal as journal

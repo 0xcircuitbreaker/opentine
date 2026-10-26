@@ -257,7 +257,7 @@ def test_prune_honours_every_root_kind(tmp_path, monkeypatch):
     monkeypatch.setattr(_prune_roots, "in_git_checkout", lambda worktree: True)
 
     monkeypatch.setattr(_git_link, "git", lambda *a, **k: f"note\n{noted}\n")
-    (repo.path / "shallow").write_text(shallow + "\n")
+    (repo.path / "shallow").write_bytes((shallow + "\n").encode("ascii"))
     (repo.path / "worktrees" / "w1").mkdir(parents=True)
     (repo.path / "worktrees" / "w1" / "HEAD").write_text(worktree + "\n")
     junk = repo.put("blob", b"nobody names me")

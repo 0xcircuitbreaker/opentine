@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import time
 from pathlib import Path
 
 from opentine._canon import _fsync_dir
@@ -47,6 +48,22 @@ def read_ref_oid(base: Path, normalized: str) -> str | None:
         raise KernelError("repository ref is not canonically encoded")
     parse_oid(oid)
     return oid
+
+
+def _replace(source: Path, target: Path) -> None:
+    """``os.replace``, retried briefly on Windows sharing violations.
+
+    On Windows a rename fails while any process holds either file open, and
+    readers (``read_ref``, prune's root scan) open ref files for a moment.
+    """
+    for attempt in range(50):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if os.name != "nt" or attempt == 49:
+                raise
+            time.sleep(0.02)
 
 
 def commit_ref(
@@ -94,7 +111,7 @@ def commit_ref(
             handle.write((new_oid + "\n").encode("ascii"))
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(write_path, ref_path)
+        _replace(write_path, ref_path)
         ref_replaced = True
         _fsync_dir(ref_path.parent)
         append_reflog(base, normalized, entry)
@@ -105,7 +122,10 @@ def commit_ref(
                     os.close(descriptor)
                 except OSError:
                     pass
-        write_path.unlink(missing_ok=True)
+        try:
+            write_path.unlink(missing_ok=True)
+        except PermissionError:  # Windows: a reader still holds it; it is not a ref
+            pass
         lock_path.unlink(missing_ok=True)
         if ref_replaced:
             _fsync_dir(ref_path.parent)
