@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_du import DU_COMMANDS
 
 _CODECS = ("zstd", "zlib")
 
@@ -21,6 +22,9 @@ def _size(count: int) -> str:
 
 
 def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
+    from opentine._cli_du import add_du_parsers
+
+    add_du_parsers(sub)
     for name, text in (
         ("gc", "Pack loose repository objects into compressed packs"),
         ("repack", "Rewrite every object (loose and packed) into one pack"),
@@ -149,6 +153,7 @@ def cmd_compress(args: argparse.Namespace) -> None:
 
 
 STORAGE_COMMANDS = {
+    **DU_COMMANDS,
     "archive": cmd_archive,
     "compress": cmd_compress,
     "gc": cmd_gc,

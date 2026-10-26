@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import os
 import stat
+import time
 
 from opentine import _codec
 from opentine.kernel import KernelError
 from opentine.repository._packs import MAX_OBJECT_BYTES, pack_set
-from opentine.repository._paths import install_verified
+from opentine.repository._paths import install_verified, internal_path
 
 
 def _read_loose(path) -> bytes | None:
@@ -107,7 +108,8 @@ def write_object(repo, oid: str, raw: bytes) -> bool:
     is refused, as before); a packed copy was checked against its id on read.
     """
     path = repo._object_path(oid)
-    if not path.exists() and pack_set(repo.path).locate(oid) is not None:
+    if not path.exists() and (found := pack_set(repo.path).locate(oid)) is not None:
+        _freshen(internal_path(repo.path, "packs", f"{found[0]}.tpk"), _PACK_FRESHEN)
         return False
 
     def same(existing: bytes) -> bool:
@@ -116,10 +118,31 @@ def write_object(repo, oid: str, raw: bytes) -> bool:
         except _codec.CodecError:
             return False
 
-    return install_verified(
+    written = install_verified(
         path,
         encode_for_storage(repo, raw),
         "object",
         equivalent=same,
         read_limit=MAX_OBJECT_BYTES + 64,
     )
+    if not written:
+        _freshen(path, 0)
+    return written
+
+
+#: A packed object's age is its pack's mtime; re-touch a pack at most hourly.
+_PACK_FRESHEN = 3600
+
+
+def _freshen(path, slack: float) -> None:
+    """Mark an object as just written again, so ``tine prune`` keeps it.
+
+    A writer that finds an object already stored writes nothing; without this an
+    unreachable old copy it is about to reference could be pruned in between.
+    """
+    try:
+        if slack and time.time() - os.stat(path).st_mtime < slack:
+            return
+        os.utime(path)
+    except OSError:
+        pass  # read-only store: nothing can be pruned from it either

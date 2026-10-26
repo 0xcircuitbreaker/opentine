@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.13.0 — unreleased
+
+### Footprint I (no format change)
+
+No on-disk format change: 0.12 reads every repository 0.13 writes, and 0.13
+still reads every format back to 0.3.0.
+
+- **Auto-pack.** `Recorder.finalize()` packs cold loose objects once 256 (by
+  default) have piled up. It only runs on repositories already at storage
+  descriptor version 2; a version-1 repository is never upgraded. Loose
+  objects younger than 60 s are never packed. It takes the gc lock without
+  waiting and is skipped if a gc is running. It never fails a recording. Small
+  packs are merged so pack sizes stay a geometric progression. Turn it off
+  with `OPENTINE_AUTO_PACK=0`, or set a threshold with `OPENTINE_AUTO_PACK=N`
+  or `"auto_pack": false | {"objects": N}` in `config.json` (0.12 ignores the
+  key).
+- **gc removes the empty fan-out directories it leaves** (`objects/<kind>/<xx>`),
+  and the empty directories older releases left behind. A writer that races
+  the removal retries.
+- **`tine du`**: footprint by kind, run or ref (`--by`). It shows canonical
+  and stored bytes, loose and packed objects, fan-out directories, refs, logs
+  and indexes. `--json` is supported.
+- **`tine prune`**: a dry run by default; `--delete` removes. Only objects
+  that are unreachable and older than `--older-than` (default 14 days, never
+  under 60 s) are candidates. Roots include:
+  - every ref (including tags) and every reflog row
+  - annotations and attestations
+  - the shallow boundary and `worktrees/`
+  - any other repository file outside the object store
+  - runs named by the git checkout's `Tine-Run` trailers and `refs/notes/tine`
+
+  If a root source can't be read, prune deletes nothing.
+- **Pruning is safe against a live writer.** Re-storing an object that already
+  exists now refreshes it: a loose file's mtime, or a pack's at most hourly.
+  An object a writer is about to reference again is therefore never old
+  enough to prune. The delete takes the gc lock, plans again, checks each age
+  again, and rewrites packs (writing and reading back first) instead of
+  editing them.
+- **Reflog expiry** runs with `tine prune`. It is conservative by default:
+  rows older than 90 days *and* beyond the newest 100 per ref go. The row for
+  the ref's current target always stays, and tag reflogs never expire. Set it
+  with `--reflog-expire DAYS` or `"reflog": {"expire_days": N, "keep": N}`.
+  Each log is rewritten under its ref's own lock, and a ref that is locked is
+  skipped.
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

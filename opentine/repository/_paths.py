@@ -107,8 +107,14 @@ def ensure_layout(tine: Path) -> None:
 
 def atomic_bytes(path: Path, data: bytes) -> None:
     """Atomically write bytes after the caller has confined ``path``."""
-    durable_directory(path.parent)
-    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    for attempt in range(3):
+        durable_directory(path.parent)
+        try:
+            fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+            break
+        except FileNotFoundError:  # gc removed the then-empty fan-out directory
+            if attempt == 2:
+                raise
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)

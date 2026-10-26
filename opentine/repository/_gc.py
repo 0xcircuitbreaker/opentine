@@ -18,6 +18,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
 from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import oid_of, pack_set
@@ -45,7 +46,10 @@ def footprint(tine: Path) -> tuple[int, int]:
     for name in ("objects", "packs"):
         for directory, _, files in os.walk(internal_path(tine, name)):
             for file in files:
-                info = os.lstat(os.path.join(directory, file))
+                try:
+                    info = os.lstat(os.path.join(directory, file))
+                except FileNotFoundError:  # a writer's temporary file, renamed meanwhile
+                    continue
                 total += info.st_size
                 disk += getattr(info, "st_blocks", 0) * 512 or info.st_size
     return total, disk
@@ -62,14 +66,16 @@ def enable_storage(repo, codec: str) -> None:
     repo._storage_codec = codec
 
 
-def _loose_oids(repo) -> list[str]:
-    return [oid for oid in repo.iter_oids() if repo._object_path(oid).is_file()]
+def _loose_oids(repo, min_age: float = 0.0) -> list[str]:
+    return sorted(old_loose(repo.path, min_age))
 
 
 def _remove_loose(repo, oid: str) -> None:
-    # The emptied prefix directory is left in place: removing it could race a
-    # concurrent writer that has just created it to install a new object.
-    repo._object_path(oid).unlink(missing_ok=True)
+    # The emptied fan-out directory goes too (rmdir removes only an empty one); a
+    # writer that raced it recreates it (``atomic_bytes`` retries).
+    path = repo._object_path(oid)
+    path.unlink(missing_ok=True)
+    remove_empty_dir(path.parent)
 
 
 @contextmanager
@@ -106,24 +112,34 @@ def gc(
     codec: str | None = None,
     level: int | None = GC_LEVEL,
     keep_transfer_packs: bool = False,
+    min_age: float = 0.0,
+    merge_packs: list[str] | None = None,
 ) -> GcResult:
+    """Pack loose objects (only those *min_age* seconds old or older).
+
+    ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
+    """
     configured = getattr(repo, "_storage_codec", None)
     chosen = codec or (configured if configured not in (None, "none") else None)
     chosen = chosen or _codec.default_codec()
     if not _codec.available(chosen):
         raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
     with gc_lock(repo.path):
-        return _gc_locked(repo, repack, chosen, level, keep_transfer_packs)
+        return _gc_locked(repo, repack, chosen, level, keep_transfer_packs, min_age, merge_packs)
 
 
-def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool) -> GcResult:
+def _gc_locked(
+    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, min_age, merge_packs
+) -> GcResult:
     before = footprint(repo.path)
     enable_storage(repo, chosen)
     packs = pack_set(repo.path)
     packs.refresh()
-    old_packs = sorted({place[0] for place in packs.where.values()}) if repack else []
-    loose = _loose_oids(repo)
-    selected = sorted(set(loose) | (set(packs.oids()) if repack else set()))
+    held = {place[0] for place in packs.where.values()}
+    old_packs = sorted(held if repack else held & set(merge_packs or ()))
+    loose = _loose_oids(repo, min_age)
+    carried = {oid for oid, place in packs.where.items() if place[0] in old_packs}
+    selected = sorted(set(loose) | carried)
     objects: list[tuple[str, bytes]] = []
     for oid in selected:
         raw = repo.raw(oid)
@@ -156,6 +172,7 @@ def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool
                 internal_path(repo.path, "packs", name).unlink()
                 transfer += 1
     packs.refresh()
+    sweep_empty_fanout(repo.path)
     after = footprint(repo.path)
     return GcResult(
         len(objects), len(loose), removed_packs, transfer, *before[:1], after[0],

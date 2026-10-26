@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.12.
 
 ## CLI Reference
 
-`tine` ships 64 subcommands. Each one prints its own `--help`, which is
+`tine` ships 66 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 
@@ -731,6 +731,8 @@ tine touched --path 'src/**/secrets*'            Which agents wrote or deleted a
 tine audit --policy agents.toml                  Check actions against deny/warn rules; exit 1 on deny
 tine gc                                          Pack a repository's objects (about 18x less disk)
 tine repack                                      Merge packs into one
+tine du --by run                                 Disk usage by kind, run or ref
+tine prune --delete                              Remove unreachable objects (dry run without --delete)
 tine archive create repo.tine-archive            One compressed file for a whole repository
 tine compress run.tine --decompress              Rewrite .tine files plain (or compressed)
 tine export <run> --output spans.json.zst --compress zstd

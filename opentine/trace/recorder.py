@@ -10,6 +10,7 @@ from typing import Any
 
 from opentine._import_billing import distrust_source_billing
 from opentine._unicode_text import assert_unicode_text
+from opentine.repository._autopack import maybe_autopack
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
 from opentine.trace._span_state import resumed_span_map, validated_span_map
@@ -201,7 +202,9 @@ class Recorder:
         payload = dict(self._payload)
         payload["status"] = status
         payload["finished_at"] = time.time()
-        return self._advance(payload)
+        run_id = self._advance(payload)
+        maybe_autopack(self.repo)  # cold objects only; never raises
+        return run_id
 
     def fork(
         self,
