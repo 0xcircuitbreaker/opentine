@@ -423,6 +423,9 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["keygen", "--out", "k.hex"], ["--stdout"], "refused"),
     (["keygen", "--out", "k.hex"], ["--hmac"], "honoured"),
     (["keygen", "--out", "k.hex", "--hmac"], ["--pub", "k.pub"], "refused"),
+    # --agent picks its own files under the user config dir (tested with a temp
+    # XDG_CONFIG_HOME in test_agent_identity_0_13), so only the refusal runs here.
+    (["keygen", "--out", "k.hex"], ["--agent", "coder"], "refused"),
     # tine migrate
     (["migrate", "legacy.tine"], ["--save", "out.tine"], "honoured"),
     (["migrate", "legacy.tine"], ["--in-place"], "honoured"),

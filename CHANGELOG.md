@@ -73,9 +73,8 @@ back to 0.3.0, and v2 and v3 packs side by side.
   89 KB to about 38 KB per run on disk; the packs alone go from 74 KB to
   23 KB per run (reflogs and the index are most of the rest).
 - Conformance: new `localpack.read` op and `29-localpack.json` vectors
-  (binary index, blocks, stored forms, delta and bomb bounds). The suite is
-  now **535 conformance vectors**; 204 of the 535 refuse input, and the
-  adapter contract grows by one entry point: 34 ops.
+  (binary index, blocks, stored forms, delta and bomb bounds); the adapter
+  contract grows by one op.
 
 ### Branch engine: crash-safe refs, fan-out and worktrees
 
@@ -136,6 +135,50 @@ back to 0.3.0, and v2 and v3 packs side by side.
   `tine fan-out --worktree-dir DIR` gives every member its own worktree.
 - **`tine rebase`/`tine cherry-pick --ref NAME`** refuse to move an existing ref
   unless `--force` is given (0.12.1 review).
+
+### Agent identity and signed actions
+
+Additive: old runs, repositories and indexes keep working, and 0.12 ignores
+the new metadata key and manifest files.
+
+- **`opentine-agent/1` identities.** A harness run now records
+  `metadata.agent_identity`: harness, model, provider, a digest of the agent's
+  definition files (`CLAUDE.md`, `.claude/agents/*.md`, `AGENTS.md`, ... --
+  hashed, never stored), an optional signing-key fingerprint, a per-run
+  instance nonce, and a claimed parent link for subagents. Its stable ref is
+  `agt_` + 128 bits. A run without one is `legacy:<harness>`, shown as unsigned.
+- **`tine agent id | show | trust | keys`.** `id` computes the ref an agent
+  would record; `show RUN|agt_...` prints identity, trust state and whether a
+  lineage link is verified; `trust` trusts `.tine/agents.toml`.
+- **`tine keygen --agent NAME`** writes an Ed25519 key to
+  `$XDG_CONFIG_HOME/opentine/agent-keys/` (0600), outside every repository.
+- **`.tine/agents.toml`** pins agent key fingerprints. Like `porcelain.json` it
+  is inert in a clone until `tine agent trust`; any edit revokes the trust.
+- **`tine-actions/1` signed action manifests.** `tine actions RUN --sign`
+  (`--agent NAME`, `--ed25519-key-file`, `--key-file`/`--key-env`) writes a
+  hash-chained manifest of the run's actions, bound to the run id and a digest
+  of its step graph, and signed with the existing `sign_block`. `--verify`
+  (`--pubkey`, `--pin`, HMAC key flags) recomputes it from the run.
+- **Every output shows a trust state**: `unsigned`, `verified`, `mismatch` or
+  `unknown-key` -- in `who`, `touched`, `actions`, `audit` and `agent show`.
+- **`tine audit --require-signed`** fails unless every run's manifest
+  verifies; `--pin` adds trusted keys.
+- **`tine who` / `touched`** gain `--agent-ref` (full refs only; prefixes are
+  refused), `--lineage REF` (an iterative walk over claimed parent links) and
+  `--verified-only`; `--by agent_ref` groups by ref.
+- The action index is now `ACTIONS_SCHEMA` 4 (agent refs). It is a cache, so
+  an older index is rebuilt on first use.
+- Security: a manifest moved onto another run is `mismatch`; a key other than
+  the identity's `key_fpr` is `mismatch`; a lineage link counts only when both
+  runs verify and the parent's signed manifest lists the child's spawn step;
+  look-alike names are NFKC-normalised before hashing and flagged when shown;
+  a planted `verified` column or `agent_ref` row in the sqlite index is
+  ignored, because every trust state is recomputed from the run and manifest;
+  agent strings reach the terminal escaped.
+- Conformance: `48-actions.json` and `49-agent.json` vectors, ops `agent.ref`
+  and `actions.chain`, and SPEC §4.8 and §4.9. The suite is now
+  **550 conformance vectors**; 209 of the 550 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
 
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 

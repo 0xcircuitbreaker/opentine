@@ -965,7 +965,8 @@ non-empty. `integrity` is added by the writer (§3.5). Other reserved keys:
 `autosave` (draft checkpoints only; stripped on a final save), `migration`
 (append-only migration chain), `fork` (0.4.0 fork-act identity basis),
 `fork_reason`, `budget_state`, `warnings`, `replay`, `context`,
-`next_harness`, `forked_from`, `fork_point`.
+`next_harness`, `forked_from`, `fork_point`, and `agent_identity` (0.13.0, an
+`opentine-agent/1` record, §4.9).
 
 ## 3.5 The integrity digest
 
@@ -1255,6 +1256,82 @@ and (for `ed25519`) the `cryptography` extra not being installed.
 A block is always verified **under the scheme it names**: a `tine-sig/1` block
 keeps its narrower v1 view forever, and only a v2 block gets v2's coverage.
 
+## 4.8 `tine-actions/1` — signed action manifest (0.13.0+)
+
+A manifest is a JSON object `{"body": ..., "signature": block}` stored beside
+the runs (never inside the run, whose content it signs), at
+`<runs dir>/manifests/<sha256(run id)>.json` or `.tine/actions/<sha256(run id)>.json`.
+The body:
+
+```json
+{"scheme": "tine-actions/1", "run_id", "run_digest", "agent_ref", "identity",
+ "entries": [{"seq", "step_id", "tool", "verbs", "digest", "chain"}],
+ "spawns": [step ids], "head"}
+```
+
+* `digest` is the SHA-256 of the v3 canonical JSON (§0.2) of the action's
+  redacted record with its meters (`cost`, `ts`) zeroed; which fields a record
+  holds is the reference implementation's action extractor, so a verifier
+  **recomputes the body from the run** and compares it whole.
+* `chain`: the seed is `sha256("tine-actions/1" 0x00 run_id)` and each link is
+  `sha256(hex(previous) ":" hex(digest))` over ASCII hex; `head` is the last link
+  (the seed when there are no entries). Dropping, reordering or editing an entry
+  changes `head`.
+* `run_id` and `run_digest` (SHA-256 of the v3 canonical JSON of
+  `{"graph": <redacted step graph>, "run_id": ...}`) bind the manifest to one run:
+  moved onto another run, even one with identical actions, it no longer matches.
+* `identity` is the run's §4.9 record (or `null`); when it names a `key_fpr`, the
+  signing key MUST be that key or the verdict is `mismatch`.
+
+The signature is a §4.1 block with `scheme` `tine-actions/1` and `signer` equal to
+the body's `agent_ref`. Unlike §4.3–§4.5 the message uses the **v3**
+canonicalizer: `message = b"opentine.actions.v1:" + canonical_json({"body": body,
+"header": header})`, a domain prefix no other family shares.
+
+The trust state shown for a run is one of four, mapped from §4.7:
+`unsigned` (no manifest or no block), `mismatch` (body differs from the
+recomputed one, `mismatch`/`error` verdict, or wrong key), `unknown-key` (`no-key`,
+or a valid `verified-tofu` by a key not pinned), `verified` (a supplied, pinned
+or locally owned key). A verdict is never read from a cache.
+
+**Worked vector** (HMAC-SHA256, key = the 32 ASCII bytes
+`0123456789abcdef0123456789abcdef`; body and header as in
+`docs/conformance/vectors/48-actions.json` `actions.worked-vector`):
+
+```text
+value = 901dcbee199515ad2dc86517342d092de071976398682a99dafe09787940d20c
+chain("run-alpha", [11..11, 22..22]) =
+  963de1e1d55419da3cac3e160cafb87df23a2f627882f59b5df66d60197a60cf,
+  b1204cc7b91bf888baf15a663731b611002f8f8300718d76f4c644e29a1c3de7
+```
+
+## 4.9 `opentine-agent/1` — agent identity record (0.13.0+)
+
+Stored at run `metadata.agent_identity`. Exactly these eleven string fields:
+`scheme` (`"opentine-agent/1"`), `harness` (non-empty), `harness_version`,
+`model`, `provider`, `definition_digest` (`""` or `sha256:` + 64 lower hex),
+`key_fpr` (`""` or `sha256:` + 64 lower hex, §4.6 Ed25519 fingerprint),
+`instance` (`""` or 32 lower hex, a per-run nonce), `parent` (`""` or a full agent
+ref), `parent_run`, `spawn_step`. Name fields are at most 128 characters and MUST
+already be NFKC-normalised, trimmed and free of control characters; a reader
+refuses rather than normalises a record that is not. An unknown key is refused.
+
+The **agent ref** is `"agt_"` + the first 32 hex characters of
+`sha256(b"opentine.agent.v1:" + canonical_json({"definition_digest",
+"harness", "key_fpr", "model"}))` (v3 canonicalizer). `instance` and the lineage
+fields are excluded, so every run of one agent shares a ref. Refs are compared
+in full; a prefix is never a ref. `definition_digest` hashes the agent's
+definition files (relative POSIX path and SHA-256 of the bytes with CRLF folded
+to LF) — the content is never recorded. A run without a valid record has the
+ref `legacy:<harness label>`.
+
+A record is a claim. A lineage link (child → parent) is trusted only when both
+runs' §4.8 manifests verify, the parent run's ref equals the child's `parent`,
+and the parent's signed `spawns` list contains the child's `spawn_step`.
+
+**Worked vector:** the record in `49-agent.json` `agent.worked-vector` has the ref
+`agt_7151540cb1895e1d66ae5b90f9a5012d`.
+
 ---
 
 # Part 5 — The compatibility contract
@@ -1371,7 +1448,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 535 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 550 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 

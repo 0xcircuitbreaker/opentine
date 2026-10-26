@@ -24,6 +24,7 @@ from typing import Any
 from opentine._actions_parse import MAX_COMMAND_CHARS, command_text, mcp_parts, programs, verbs
 from opentine._actions_targets import arg_paths, command_paths, hosts
 from opentine._actions_writes import written_paths
+from opentine._agent_identity import run_agent_ref, run_identity
 from opentine._canon import _redact
 from opentine._index_types import run_agent
 from opentine.graph import Run, StepKind
@@ -31,7 +32,7 @@ from opentine.policies import run_redaction
 from opentine.redaction import redact_text, redact_value
 
 #: Bump when extraction changes: a stored index built by another version rebuilds.
-ACTIONS_SCHEMA = 3
+ACTIONS_SCHEMA = 4
 MAX_ACTIONS_PER_RUN = 20_000
 _SESSION_KEYS = ("session_id", "sessionId", "thread_id", "conversation_id")
 _SUBAGENT_KEYS = ("agent_id", "subagent", "subagent_type", "parent_tool_use_id")
@@ -67,6 +68,10 @@ class Action:
     cost: float = 0.0
     redacted: bool = False
     clipped: bool = False
+    #: The run's ``opentine-agent/1`` ref (``legacy:<label>`` without one) and its
+    #: claimed parent ref. Claims: see ``_agent_trust`` for what makes them evidence.
+    agent_ref: str = ""
+    parent_ref: str = ""
 
     @property
     def writes(self) -> list[str]:
@@ -112,7 +117,7 @@ def _raw_programs(step: Any) -> list[str]:
     return [name for name in names if _PROGRAM.fullmatch(name) and redact_text(name) == name]
 
 
-def _action(run: Run, step: Any, seq: int, agent: str, session: str) -> Action | None:
+def _action(run: Run, step: Any, seq: int, agent: str, session: str, refs: tuple) -> Action | None:
     inputs = redact_value(_redact(step.inputs if isinstance(step.inputs, dict) else {}))
     tool_info = redact_value(_redact(step.tool_info if isinstance(step.tool_info, dict) else {}))
     if not isinstance(inputs, dict):
@@ -168,12 +173,16 @@ def _action(run: Run, step: Any, seq: int, agent: str, session: str) -> Action |
         cost=_number(step.cost),
         redacted="[REDACTED" in command or "[REDACTED" in " ".join(paths),
         clipped=clipped,
+        agent_ref=refs[0],
+        parent_ref=refs[1],
     )
 
 
 def extract_actions(run: Run) -> tuple[list[Action], bool]:
     """Every tool call in *run* as an :class:`Action`, and whether the cap cut them."""
     agent = run_agent(run)
+    record = run_identity(run)
+    refs = (run_agent_ref(run), record["parent"] if record else "")
     metadata = run.metadata if isinstance(run.metadata, dict) else {}
     session = _first(metadata, _SESSION_KEYS)
     actions: list[Action] = []
@@ -182,7 +191,7 @@ def extract_actions(run: Run) -> tuple[list[Action], bool]:
             if len(actions) >= MAX_ACTIONS_PER_RUN:
                 return actions, True
             try:
-                action = _action(run, step, seq, agent, session)
+                action = _action(run, step, seq, agent, session, refs)
             except (TypeError, ValueError, RecursionError):
                 continue  # one malformed recorded step never hides the rest
             if action is not None:

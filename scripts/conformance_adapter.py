@@ -38,6 +38,12 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Unterminated", "artifact.malformed-json"),
     ),
     "config.validate": (("JSON structure exceeds", "config.malformed"),),
+    "agent.ref": (
+        ("unknown field in agent identity", "agent.unknown-field"),
+        ("agent identity needs a harness", "agent.harness-missing"),
+        ("is not normalised", "agent.not-normalised"),
+        ("is malformed", "agent.field-malformed"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.

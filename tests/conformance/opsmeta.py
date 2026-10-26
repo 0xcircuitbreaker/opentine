@@ -1,4 +1,4 @@
-"""What each of the 34 ops consumes and produces, for ``MANIFEST.json``.
+"""What each of the 36 ops consumes and produces, for ``MANIFEST.json``.
 
 A third-party runner reads this table, not this file: it is emitted into
 ``MANIFEST.ops`` so an implementer can tell, without reading Python, which ops
@@ -272,7 +272,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["message_b64", "value"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.2 signed message under one of the three schemes",
+        "summary": "SPEC 4.2 signed message under one of the four schemes",
     },
     "sig.verify": {
         "profile": VERIFIER,
@@ -318,5 +318,23 @@ OP_META: dict[str, dict[str, object]] = {
         "unordered": [],
         "requires": [],
         "summary": "SPEC 1.4 credential redaction over decoded JSON (optional)",
+    },
+    "agent.ref": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ref", "hashed_b64"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.9: validate an opentine-agent/1 record and derive its agt_ ref",
+    },
+    "actions.chain": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["chain"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.8: the tine-actions/1 entry hash chain, seeded from the run id",
     },
 }

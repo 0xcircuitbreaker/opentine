@@ -97,6 +97,8 @@ EXPECTED_COUNTS = {
     "vectors/35-integrity.json": (12, 0),
     "vectors/42-signing.json": (37, 4),
     "vectors/47-verdict.json": (20, 0),
+    "vectors/48-actions.json": (6, 0),
+    "vectors/49-agent.json": (9, 5),
     "vectors/51-compat.json": (40, 0),
     "vectors/99-repair.json": (14, 14),
 }

@@ -18,31 +18,12 @@ from pathlib import Path
 
 from opentine import _actions_trust as trust
 from opentine._actions import ACTIONS_SCHEMA, Action, extract_actions
+from opentine._actions_schema import COLUMNS, SCHEMA
 from opentine._version import __version__
 from opentine.graph import Run
 
 _STAMP = f"{ACTIONS_SCHEMA}:{__version__}"
-_COLUMNS = (
-    "run_id step_id seq tool verbs agent session subagent model provider ts mcp_server "
-    "mcp_tool argv0 programs command error cost redacted clipped"
-).split()
-_SCHEMA = f"""
-CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS sources (
-    source TEXT PRIMARY KEY, stamp TEXT NOT NULL, run_id TEXT NOT NULL DEFAULT '',
-    unreadable INTEGER NOT NULL DEFAULT 0, truncated INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE IF NOT EXISTS actions (
-    id INTEGER PRIMARY KEY, source TEXT NOT NULL, {", ".join(_COLUMNS)});
-CREATE TABLE IF NOT EXISTS paths (
-    action_id INTEGER NOT NULL, path TEXT NOT NULL, written INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE IF NOT EXISTS hosts (action_id INTEGER NOT NULL, host TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS actions_source ON actions(source);
-CREATE INDEX IF NOT EXISTS actions_tool ON actions(tool);
-CREATE INDEX IF NOT EXISTS paths_action ON paths(action_id);
-CREATE INDEX IF NOT EXISTS paths_path ON paths(path);
-CREATE INDEX IF NOT EXISTS hosts_action ON hosts(action_id);
-CREATE INDEX IF NOT EXISTS hosts_host ON hosts(host);
-"""
+_COLUMNS, _SCHEMA = COLUMNS, SCHEMA
 
 
 @dataclass(frozen=True)
@@ -197,6 +178,21 @@ class ActionIndex:
                 )
             ]
             yield Action(**values)
+
+    def edges(self) -> list[tuple[str, str, str]]:
+        """Distinct ``(run_id, agent_ref, parent_ref)`` claims, for lineage walks."""
+        sql = "SELECT DISTINCT run_id, agent_ref, parent_ref FROM actions"
+        return [tuple(row) for row in self.db.execute(sql)]
+
+    def run_ids(self) -> list[str]:
+        return [row[0] for row in self.db.execute("SELECT run_id FROM sources WHERE run_id != ''")]
+
+    def source_file(self, run_id: str, runs_dir: Path) -> Path | None:
+        """The runs-directory file indexed for *run_id* (legacy sources only)."""
+        row = self.db.execute("SELECT source FROM sources WHERE run_id = ?", (run_id,)).fetchone()
+        if row is None or "/" in row[0] or "\\" in row[0] or not row[0].endswith(".tine"):
+            return None
+        return runs_dir / row[0]
 
     def count(self, where: str = "", params: tuple = ()) -> int:
         return self.db.execute(f"SELECT count(*) FROM actions {where}", params).fetchone()[0]

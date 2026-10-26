@@ -44,10 +44,14 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (104)
+## The codes (108)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
+| `agent.field-malformed` | 4.9 | -- | a digest, fingerprint, nonce or parent ref that is not its exact full-length form | accept a prefix or upper-case spelling of a ref or fingerprint |
+| `agent.harness-missing` | 4.9 | -- | a record with an empty harness | derive a ref for an agent that names no harness |
+| `agent.not-normalised` | 4.9 | -- | a name field that NFKC normalisation, trimming or control-stripping would change | normalise it silently, so two spellings claim one ref |
+| `agent.unknown-field` | 4.9 | -- | an opentine-agent/1 record with a key outside the eleven defined fields | drop the unknown key and derive a ref from the rest |
 | `artifact.duplicate-key` | 3.7 | -- | a duplicate object key anywhere in the artifact | apply last-wins, the parser differential this rule exists to refuse |
 | `artifact.integer-too-many-digits` | 3.1 | `_artifact_io.MAX_TINE_INTEGER_DIGITS` = 4096 | an integer literal with more than 4096 decimal digits | parse it as a float |
 | `artifact.lone-surrogate` | 3.7 | -- | an artifact whose parsed text holds an unpaired surrogate | substitute U+FFFD |

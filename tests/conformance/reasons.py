@@ -687,6 +687,31 @@ REASONS: dict[str, Reason] = {
         "building a message over a document that is not an object",
         "sign the string form of whatever was supplied",
     ),
+    # --- agent identity (4.9) ------------------------------------------------- #
+    "agent.unknown-field": R(
+        "4.9",
+        None,
+        "an opentine-agent/1 record with a key outside the eleven defined fields",
+        "drop the unknown key and derive a ref from the rest",
+    ),
+    "agent.not-normalised": R(
+        "4.9",
+        None,
+        "a name field that NFKC normalisation, trimming or control-stripping would change",
+        "normalise it silently, so two spellings claim one ref",
+    ),
+    "agent.field-malformed": R(
+        "4.9",
+        None,
+        "a digest, fingerprint, nonce or parent ref that is not its exact full-length form",
+        "accept a prefix or upper-case spelling of a ref or fingerprint",
+    ),
+    "agent.harness-missing": R(
+        "4.9",
+        None,
+        "a record with an empty harness",
+        "derive a ref for an agent that names no harness",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

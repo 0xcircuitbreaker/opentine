@@ -11,6 +11,7 @@ from typing import Any
 from opentine.autosave import Autosaver
 from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind
+from opentine.harnesses._identity_meta import harness_metadata
 from opentine.harnesses._record_depth import _recordable, escaped_text
 from opentine.harnesses._types import (
     HarnessAdapter,
@@ -226,15 +227,13 @@ class OpentineHarness:
                     "replay": ["cache"],
                     "resume": bool(getattr(self.harness, "supports_resume", False)),
                 },
-                metadata={"context": _jsonable(context or {}), "harness": self.harness.name},
+                metadata=harness_metadata(self.harness, context),
             )
             self._last_step_id = None
         else:
             self.run.status = RunStatus.running
             self.run.model_info = self.run.model_info or self.harness.model_info
-            self.run.metadata.update(
-                {"context": _jsonable(context or {}), "harness": self.harness.name}
-            )
+            self.run.metadata.update(harness_metadata(self.harness, context, self.run.metadata))
         return self.run
 
     def _require_run(self) -> Run:
