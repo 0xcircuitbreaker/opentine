@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.13.1 — 2026-10-28
+
+### Fixed
+
+- **Windows: a file mid-replace no longer reads as a path escape.** The
+  repository containment check resolved paths without the sharing-violation
+  retry the rest of 0.13 uses, so a reader that raced another process's
+  `os.replace` could get a transient `PermissionError` and report
+  "repository path escapes its root". `tine prune` then refused to run
+  (failing closed, nothing deleted). The resolve is now retried, and a denial
+  that persists is reported as "repository path cannot be inspected".
+
+### Compatibility
+
+- Golden compat fixtures for 0.13.0, generated from the published wheel, join
+  the release gate: 0.13.1 reads every artifact and repository 0.13.0 writes.
+
 ## 0.13.0 — 2026-10-26
 
 ### Footprint I (no format change)
