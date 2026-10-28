@@ -58,8 +58,13 @@ def internal_path(root: Path, *parts: str) -> Path:
         if index < len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
             raise KernelError(f"repository path has a non-directory parent: {relative}")
     try:
-        candidate.resolve(strict=False).relative_to(root.resolve(strict=True))
-    except (OSError, RuntimeError, ValueError) as exc:
+        # Windows: resolving a file mid-replace by another process is a transient
+        # sharing violation, not an escape; retry it before failing closed.
+        resolved = _winretry.retry(lambda: candidate.resolve(strict=False))
+        resolved.relative_to(_winretry.retry(lambda: root.resolve(strict=True)))
+    except OSError as exc:
+        raise KernelError(f"repository path cannot be inspected: {relative}") from exc
+    except (RuntimeError, ValueError) as exc:
         raise KernelError("repository path escapes its root") from exc
     return candidate
 

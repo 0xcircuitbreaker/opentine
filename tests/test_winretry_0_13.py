@@ -181,3 +181,31 @@ def test_retry_is_bounded(monkeypatch):
     with pytest.raises(PermissionError):
         _winretry.retry(denied)
     assert len(calls) == _winretry.ATTEMPTS and 1 < sum(naps) < 5
+
+
+def test_containment_check_retries_a_transient_resolve_denial(repo, monkeypatch):
+    from opentine.repository._paths import internal_path
+
+    real_resolve, calls = Path.resolve, []
+
+    def flaky(self, strict=False):
+        calls.append(self)
+        if len(calls) <= 2:
+            raise PermissionError(13, "delete pending")
+        return real_resolve(self, strict=strict)
+
+    monkeypatch.setattr(Path, "resolve", flaky)
+    assert internal_path(repo.path, "refs") == repo.path / "refs"
+    assert len(calls) > 2
+
+
+def test_a_persistent_resolve_denial_is_not_reported_as_an_escape(repo, monkeypatch):
+    from opentine.kernel import KernelError
+    from opentine.repository._paths import internal_path
+
+    def denied(self, strict=False):
+        raise PermissionError(13, "denied")
+
+    monkeypatch.setattr(Path, "resolve", denied)
+    with pytest.raises(KernelError, match="cannot be inspected"):
+        internal_path(repo.path, "refs")
