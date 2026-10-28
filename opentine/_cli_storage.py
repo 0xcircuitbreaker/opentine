@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_du import DU_COMMANDS
 
 _CODECS = ("zstd", "zlib")
 
@@ -21,6 +22,13 @@ def _size(count: int) -> str:
 
 
 def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
+    from opentine._cli_du import add_du_parsers
+    from opentine._cli_fanout import add_fanout_parsers
+    from opentine._cli_worktree import add_worktree_parser
+
+    add_du_parsers(sub)
+    add_fanout_parsers(sub)  # after `run`, which it extends with --parallel
+    add_worktree_parser(sub)
     for name, text in (
         ("gc", "Pack loose repository objects into compressed packs"),
         ("repack", "Rewrite every object (loose and packed) into one pack"),
@@ -34,6 +42,18 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             help="Keep the copies of received transfer packs (redundant once packed)",
         )
         command.add_argument("--json", action="store_true")
+        change = command.add_mutually_exclusive_group()
+        change.add_argument(
+            "--upgrade",
+            action="store_true",
+            help="Opt in to storage version 3 (smaller packs; opentine 0.12 and older "
+            "then refuse the repository until --downgrade)",
+        )
+        change.add_argument(
+            "--downgrade",
+            action="store_true",
+            help="Rewrite every pack for storage version 2, which opentine 0.11-0.12 read",
+        )
     archive = sub.add_parser("archive", help="Write or restore a whole-repository archive")
     actions = archive.add_subparsers(dest="archive_action", required=True)
     create = actions.add_parser("create", help="Archive a repository into one compressed file")
@@ -81,6 +101,8 @@ def _gc_run(gc, args: argparse.Namespace):
         repack=args.command == "repack",
         codec=args.codec,
         keep_transfer_packs=args.keep_transfer_packs,
+        upgrade=args.upgrade,
+        downgrade=args.downgrade,
     )
 
 
@@ -93,6 +115,9 @@ def _report_gc(args: argparse.Namespace, result) -> None:
         f"{_size(result.bytes_before)} → {_size(result.bytes_after)} "
         f"(on disk {_size(result.disk_before)} → {_size(result.disk_after)})"
     )
+    if args.upgrade or args.downgrade:
+        version = 3 if args.upgrade else 2
+        console.print(f"  repository is now at storage version {version}")
     if result.removed_transfer_packs:
         console.print(f"  removed {result.removed_transfer_packs} received transfer pack copy(ies)")
 
@@ -148,7 +173,22 @@ def cmd_compress(args: argparse.Namespace) -> None:
     console.print(f"[{BRAND}]# {verb}[/] {changed} file(s): {_size(before)} → {_size(after)}")
 
 
+def _fanout(args: argparse.Namespace) -> None:
+    from opentine._cli_fanout import cmd_fanout
+
+    cmd_fanout(args)
+
+
+def _worktree(args: argparse.Namespace) -> None:
+    from opentine._cli_worktree import cmd_worktree
+
+    cmd_worktree(args)
+
+
 STORAGE_COMMANDS = {
+    **DU_COMMANDS,
+    "fan-out": _fanout,
+    "worktree": _worktree,
     "archive": cmd_archive,
     "compress": cmd_compress,
     "gc": cmd_gc,

@@ -517,6 +517,60 @@ REASONS: dict[str, Reason] = {
         'a top-level key set other than exactly {"objects","shallow","version"}',
         "ignore an unknown top-level key",
     ),
+    "localpack.index-checksum": R(
+        "2.8",
+        None,
+        "a storage-v3 .tidx whose trailing SHA-256 does not cover the bytes before it",
+        "trust the fields anyway, or recompute the checksum",
+    ),
+    "localpack.index-length": R(
+        "2.8",
+        None,
+        "a .tidx whose length is not exactly header + 9 per block + 50 per object + 32",
+        "read the entries that fit, or ignore trailing bytes",
+    ),
+    "localpack.index-order": R(
+        "2.8",
+        None,
+        "index entries not strictly sorted by object id",
+        "sort them, or keep the first of a duplicate",
+    ),
+    "localpack.block-size": R(
+        "2.8",
+        None,
+        "a block of several objects declared to inflate past 16 MiB",
+        "inflate it anyway and cut at the limit",
+    ),
+    "localpack.delta-no-base": R(
+        "2.8",
+        None,
+        "a run delta stored first in its block, where no base precedes it",
+        "look the base up elsewhere in the pack or repository",
+    ),
+    "localpack.delta-too-deep": R(
+        "2.8",
+        None,
+        "a run delta chain longer than 64",
+        "resolve it recursively without a bound",
+    ),
+    "localpack.object-id-mismatch": R(
+        "2.8",
+        None,
+        "an object rebuilt from its stored form whose bytes or size do not match its id",
+        "return the rebuilt bytes",
+    ),
+    "localpack.encoding-kind": R(
+        "2.8",
+        None,
+        "a stored-form code used for a kind it does not apply to",
+        "decode it anyway",
+    ),
+    "localpack.slim-default": R(
+        "2.8",
+        None,
+        "a slim event that stores a field holding its default value",
+        "accept the redundant field",
+    ),
     "pack.version-unsupported": R(
         "2.8",
         None,
@@ -632,6 +686,31 @@ REASONS: dict[str, Reason] = {
         None,
         "building a message over a document that is not an object",
         "sign the string form of whatever was supplied",
+    ),
+    # --- agent identity (4.9) ------------------------------------------------- #
+    "agent.unknown-field": R(
+        "4.9",
+        None,
+        "an opentine-agent/1 record with a key outside the eleven defined fields",
+        "drop the unknown key and derive a ref from the rest",
+    ),
+    "agent.not-normalised": R(
+        "4.9",
+        None,
+        "a name field that NFKC normalisation, trimming or control-stripping would change",
+        "normalise it silently, so two spellings claim one ref",
+    ),
+    "agent.field-malformed": R(
+        "4.9",
+        None,
+        "a digest, fingerprint, nonce or parent ref that is not its exact full-length form",
+        "accept a prefix or upper-case spelling of a ref or fingerprint",
+    ),
+    "agent.harness-missing": R(
+        "4.9",
+        None,
+        "a record with an empty harness",
+        "derive a ref for an agent that names no harness",
     ),
 }
 

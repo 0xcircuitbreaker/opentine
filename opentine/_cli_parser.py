@@ -7,12 +7,15 @@ import argparse
 from opentine._canon import FORMAT_VERSION
 from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_export import add_export_parser
+from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
+from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
+from opentine._cli_plugin import add_plugin_parser
 from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._cli_storage import add_storage_parsers
@@ -97,12 +100,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sign.add_argument("--force", action="store_true")
 
-    keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair, or an HMAC key")
-    keygen.add_argument("--out", help="Write the private key here (mode 0600)")
-    keygen.add_argument("--pub")
-    keygen.add_argument("--force", action="store_true", help="Overwrite an existing key file")
-    keygen.add_argument("--hmac", action="store_true", help="A 32-byte HMAC key, as hex")
-    keygen.add_argument("--stdout", action="store_true", help="Print the private key instead")
+    add_keygen_parser(sub)
 
     migrate = sub.add_parser("migrate", help="Upgrade a legacy .tine file")
     migrate.add_argument("run_id")
@@ -234,6 +232,8 @@ def _build_parser() -> argparse.ArgumentParser:
     add_bisect_parser(sub)
     add_media_parser(sub)
     add_hook_parser(sub)
+    add_plugin_parser(sub)
+    add_fleet_parser(sub)
     add_repo_parsers(sub)
     add_unify_args(sub)
     return parser

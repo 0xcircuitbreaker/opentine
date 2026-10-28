@@ -14,6 +14,8 @@ import socket
 import time
 from pathlib import Path
 
+from opentine.repository import _winretry
+
 _MAX_STAMP = 512
 
 
@@ -86,8 +88,8 @@ def _break(path: Path) -> None:
     aside = path.with_name(f"{path.name}.stale-{os.getpid()}-{time.monotonic_ns()}..lock")
     try:
         os.rename(path, aside)
-    except FileNotFoundError:
-        return
+    except (FileNotFoundError, PermissionError):
+        return  # gone, or (Windows) open in a contender's check: acquire reports it
     try:
         if not provably_dead(aside):
             try:
@@ -95,7 +97,7 @@ def _break(path: Path) -> None:
             except OSError:
                 pass
     finally:
-        aside.unlink(missing_ok=True)
+        _winretry.unlink(aside)
 
 
 def acquire(path: Path, mode: int = 0o644) -> int:
@@ -104,7 +106,8 @@ def acquire(path: Path, mode: int = 0o644) -> int:
     """
     for attempt in range(2):
         try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+            # Windows: a lock being deleted is briefly unopenable (delete pending).
+            fd = _winretry.open_fd(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
         except FileExistsError:
             if attempt or not provably_dead(path):
                 raise
@@ -114,7 +117,7 @@ def acquire(path: Path, mode: int = 0o644) -> int:
             os.write(fd, stamp())
         except BaseException:
             os.close(fd)
-            path.unlink(missing_ok=True)
+            _winretry.unlink(path)
             raise
         return fd
     raise FileExistsError(str(path))  # pragma: no cover - loop always returns or raises

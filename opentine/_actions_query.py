@@ -17,7 +17,17 @@ from typing import Any
 from opentine._actions import Action
 from opentine._actions_db import ActionIndex
 
-GROUP_KEYS = ("agent", "model", "provider", "session", "subagent", "run", "tool", "program")
+GROUP_KEYS = (
+    "agent",
+    "agent_ref",
+    "model",
+    "provider",
+    "session",
+    "subagent",
+    "run",
+    "tool",
+    "program",
+)
 MAX_RESULTS = 100_000
 _GLOB = re.compile(r"[*?\[]")
 _DURATION = re.compile(r"^(\d{1,9})([smhdw])$")
@@ -46,6 +56,8 @@ class ActionQuery:
     until: float | None = None
     errors: bool = False
     writes: bool = False
+    #: Exact, full-length agent refs (``--agent-ref`` / ``--lineage``); never a prefix.
+    agent_refs: list[str] = field(default_factory=list)
 
 
 def parse_time(value: str, *, now: float | None = None) -> float:
@@ -94,6 +106,9 @@ def compile_query(query: ActionQuery) -> tuple[str, tuple[Any, ...]]:
             clauses.append(_text(column, value, params))
     for term in query.cmd:
         clauses.append(_text("command", term, params))
+    if query.agent_refs:
+        params.extend(query.agent_refs)
+        clauses.append(f"agent_ref IN ({', '.join('?' for _ in query.agent_refs)})")
     if query.program:
         clauses.append(_member("programs", query.program, params))
     if query.verb:
@@ -166,9 +181,16 @@ def _key(action: Action, by: str, program: str | None) -> str:
 
 
 def group(
-    actions: list[Action], by: list[str], *, program: str | None = None
+    actions: list[Action],
+    by: list[str],
+    *,
+    program: str | None = None,
+    trust: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Count *actions* per combination of the *by* fields, busiest group first."""
+    """Count *actions* per combination of the *by* fields, busiest group first.
+
+    With *trust* (run id -> state), each group lists the states of its runs.
+    """
     groups: dict[tuple[str, ...], dict[str, Any]] = {}
     for action in actions:
         key = tuple(_key(action, field_name, program) or "-" for field_name in by)
@@ -192,7 +214,10 @@ def group(
     rows = []
     for entry in groups.values():
         runs = sorted(entry.pop("runs"))
-        rows.append({**entry, "run_count": len(runs), "sample_runs": runs[:5]})
+        row = {**entry, "run_count": len(runs), "sample_runs": runs[:5]}
+        if trust is not None:
+            row["trust"] = ",".join(sorted({trust.get(run, "unsigned") for run in runs}))
+        rows.append(row)
     rows.sort(key=lambda row: (-row["actions"], [str(row[name]) for name in by]))
     return rows
 

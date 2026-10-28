@@ -448,6 +448,19 @@
       "verdict": 0
     },
     {
+      "core": 11,
+      "count": 11,
+      "file": "vectors/29-localpack.json",
+      "name": "localpack",
+      "ops": [
+        "localpack.read"
+      ],
+      "reject": 9,
+      "section": "2.8",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 20,
       "count": 20,
       "file": "vectors/31-artifact-v2.json",
@@ -502,6 +515,33 @@
       "verdict": 20
     },
     {
+      "core": 6,
+      "count": 6,
+      "file": "vectors/48-actions.json",
+      "name": "actions",
+      "ops": [
+        "actions.chain",
+        "sig.message"
+      ],
+      "reject": 0,
+      "section": "4.8",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 9,
+      "count": 9,
+      "file": "vectors/49-agent.json",
+      "name": "agent",
+      "ops": [
+        "agent.ref"
+      ],
+      "reject": 5,
+      "section": "4.9",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 40,
       "count": 40,
       "file": "vectors/51-compat.json",
@@ -539,10 +579,11 @@
     }
   ],
   "files": {
-    "PROTOCOL.md": "9a526a4135631ce42001105f0fbe06bddbb17fd4aef55da29d8a2620e654ad5b",
-    "README.md": "9da4f523b1070f157496cdd5c6cc033cbd20e37b969237d06e46f681b784a195",
-    "REASON_CODES.md": "c132417dc8878dd12f752e14f5a0987c6d6ca0f3d2e9f63918ae13f435e45b1b",
+    "PROTOCOL.md": "964a0ee654e6ab00f59981f6659d80aa5f637ddeb1d19fe195d0c2b6078df82b",
+    "README.md": "65812f49f1fef08ad70a5c7312a8c8ad5880d4476a0d02f78c02cbc20c20946a",
+    "REASON_CODES.md": "bcdd383115e72156ff575a7e3271c874d949660861dee87dc1f6c28153dd5e54",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
+    "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
     "blobs/3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee.bin": "3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee",
     "blobs/9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350.bin": "9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350",
     "blobs/d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24.bin": "d1b378cac56b4356703c75aa30dc93b6995037b6fd753d7f8dae04ebcb8d2a24",
@@ -813,14 +854,17 @@
     "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
     "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
     "vectors/28-pack.json": "0f7194ed6e505e1e69727e60f5900ff97d12ae64c77c21a1a7bea212eda682d7",
+    "vectors/29-localpack.json": "6f1cf700f52c0c24456bdea593d16061fb701e119cafee55720fdef63b7f24a9",
     "vectors/31-artifact-v2.json": "f83c46167d41a9e0e319fed34d4faebc428dc7abbf787869a6bab837a84c7f83",
     "vectors/35-integrity.json": "c31947dc24bbad8d0da04edaedf672dc8e56a6b030e6a6744b27ee9dc4d6ef3e",
     "vectors/42-signing.json": "128ac717112ba02ca80832bcec73967ecf757486bac49e04313b1f9479456079",
     "vectors/47-verdict.json": "56a625428e03c1d8c61669425811f2c08fb7c179d70713388b5154b715478a95",
+    "vectors/48-actions.json": "bd5036729d6e1a31bf6f7b99cfceeee581f61c3dc244e877f33f76bfaac60de9",
+    "vectors/49-agent.json": "c8ee81220b5fbc9d5a52797f72b7d3367725cb19718af6d0968ec54c30035a76",
     "vectors/51-compat.json": "f5b4183d90b30fa646dd64978a8a17b71c4adf32f7b73f0006335159cb2fc4d8",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.12.1",
+  "generated_by": "opentine 0.13.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -844,6 +888,33 @@
     "pack.MAX_PACK_BODY_BYTES": "268 435 456 bytes of *inflated* manifest. Expressing it needs a frame whose compressed bytes are zlib-version-dependent, and the suite's determinism rule forbids pinning compressor output -- pack frames are reader inputs generated once, never a writer expectation. MAX_PACK_BYTES, which is checked against the frame length before anything is inflated, IS vectored (bounds.pack.over-256-mib)."
   },
   "ops": {
+    "actions.chain": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "chain"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.8: the tine-actions/1 entry hash chain, seeded from the run id",
+      "unordered": []
+    },
+    "agent.ref": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ref",
+        "hashed_b64"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.9: validate an opentine-agent/1 record and derive its agt_ ref",
+      "unordered": []
+    },
     "annotation.chain": {
       "args": [
         "present",
@@ -1030,6 +1101,27 @@
       "summary": "SPEC 1.5 link fields, their type rules, and their existence",
       "unordered": [
         "links"
+      ]
+    },
+    "localpack.read": {
+      "args": [
+        "pack_b64"
+      ],
+      "input": [
+        "blob",
+        "bytes_b64"
+      ],
+      "output": [
+        "pack_id",
+        "objects"
+      ],
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "summary": "SPEC 2.8 storage-v3 local pack: binary index, blocks, stored forms",
+      "unordered": [
+        "objects"
       ]
     },
     "object.load": {
@@ -1323,7 +1415,7 @@
       ],
       "profile": "verifier",
       "requires": [],
-      "summary": "SPEC 4.2 signed message under one of the three schemes",
+      "summary": "SPEC 4.2 signed message under one of the four schemes",
       "unordered": []
     },
     "sig.verify": {
@@ -1374,12 +1466,12 @@
   "spec_version": "0.9.0",
   "suite_version": 1,
   "totals": {
-    "cases": 524,
-    "core": 514,
-    "families": 25,
-    "ops": 33,
-    "reason_codes": 95,
-    "reject": 195,
+    "cases": 550,
+    "core": 540,
+    "families": 28,
+    "ops": 36,
+    "reason_codes": 108,
+    "reject": 209,
     "stress": 10,
     "verdict": 51
   }

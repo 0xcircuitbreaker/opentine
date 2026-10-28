@@ -197,6 +197,34 @@ def op_pack_manifest(inp, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def op_localpack_read(inp, args: dict[str, Any]) -> dict[str, Any]:
+    """SPEC 2.8 "Pack v3": a binary ``.tidx`` (the input) over ``args.pack_b64``.
+
+    Accepts only if the index parses and every object it lists rebuilds to bytes
+    that match its id; answers each object with the SHA-256 of those bytes.
+    """
+    import hashlib
+
+    from opentine.repository._pack_write import load_pack, pack_version
+
+    body = base64.b64decode(args["pack_b64"], validate=True)
+    digest = hashlib.sha256(body).hexdigest()
+    with tempfile.TemporaryDirectory() as scratch:
+        root = Path(scratch)
+        (root / "packs").mkdir()
+        (root / "packs" / f"{digest}.tpk").write_bytes(body)
+        (root / "packs" / f"{digest}.tidx").write_bytes(inp.bytes_())
+        if pack_version(root, digest) != 3:
+            raise ValueError("not a storage-v3 pack")
+        single = load_pack(root, digest)
+        if not single.v3:
+            raise ValueError("not a storage-v3 index")
+        objects = [
+            [oid, hashlib.sha256(single.read(oid)).hexdigest()] for oid in single.in_block_order()
+        ]
+    return {"pack_id": digest, "objects": sorted(objects)}
+
+
 def op_pack_install(inp, args: dict[str, Any]) -> dict[str, Any]:
     from opentine.repository.store import Repo
 
@@ -226,4 +254,5 @@ OPS = {
     "pack.inspect": op_pack_inspect,
     "pack.manifest": op_pack_manifest,
     "pack.install": op_pack_install,
+    "localpack.read": op_localpack_read,
 }

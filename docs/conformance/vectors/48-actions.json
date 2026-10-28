@@ -1,0 +1,268 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.chain.other-run",
+      "input": {
+        "value": {
+          "digests": [
+            "1111111111111111111111111111111111111111111111111111111111111111",
+            "2222222222222222222222222222222222222222222222222222222222222222"
+          ],
+          "run_id": "run-beta"
+        }
+      },
+      "intent": "the same digests under another run id give a different chain",
+      "must_differ": true,
+      "op": "actions.chain",
+      "output": {
+        "chain": [
+          "b0e4f8fa9490c6a04f04b345c02c4986c3d2075b6fc1fab52c49ad7c2ea6e842",
+          "ef22dbf6ed79975555aaa23897a7eec5f1992114677b16889409726f50159cd9"
+        ]
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "twin": "actions.chain.worked-vector",
+      "x_display": "{\"digests\": [\"1111111111111111111111111111111111111111111111111111111111111111\", \"2222222222222222222222222222222222222222222222222222222222222222\"], \"run_id\": \"run-beta\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.chain.truncated",
+      "input": {
+        "value": {
+          "digests": [
+            "1111111111111111111111111111111111111111111111111111111111111111"
+          ],
+          "run_id": "run-alpha"
+        }
+      },
+      "intent": "dropping the last entry leaves a chain whose head differs",
+      "must_differ": true,
+      "op": "actions.chain",
+      "output": {
+        "chain": [
+          "963de1e1d55419da3cac3e160cafb87df23a2f627882f59b5df66d60197a60cf"
+        ]
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "twin": "actions.chain.worked-vector",
+      "x_display": "{\"digests\": [\"1111111111111111111111111111111111111111111111111111111111111111\"], \"run_id\": \"run-alpha\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.chain.worked-vector",
+      "input": {
+        "value": {
+          "digests": [
+            "1111111111111111111111111111111111111111111111111111111111111111",
+            "2222222222222222222222222222222222222222222222222222222222222222"
+          ],
+          "run_id": "run-alpha"
+        }
+      },
+      "intent": "each link is sha256(previous:digest), seeded by the run",
+      "op": "actions.chain",
+      "output": {
+        "chain": [
+          "963de1e1d55419da3cac3e160cafb87df23a2f627882f59b5df66d60197a60cf",
+          "b1204cc7b91bf888baf15a663731b611002f8f8300718d76f4c644e29a1c3de7"
+        ]
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "x_display": "{\"digests\": [\"1111111111111111111111111111111111111111111111111111111111111111\", \"2222222222222222222222222222222222222222222222222222222222222222\"], \"run_id\": \"run-alpha\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-actions/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.run-id-moved",
+      "input": {
+        "value": {
+          "document": {
+            "agent_ref": "agt_55555555555555555555555555555555",
+            "entries": [
+              {
+                "chain": "3333333333333333333333333333333333333333333333333333333333333333",
+                "digest": "1111111111111111111111111111111111111111111111111111111111111111",
+                "seq": {
+                  "$i": "0"
+                },
+                "step_id": "step-1",
+                "tool": "Bash",
+                "verbs": [
+                  "exec"
+                ]
+              }
+            ],
+            "head": "3333333333333333333333333333333333333333333333333333333333333333",
+            "identity": null,
+            "run_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "run_id": "run-beta",
+            "scheme": "tine-actions/1",
+            "spawns": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "agent-key",
+            "scheme": "tine-actions/1",
+            "signed_at": "2026-10-26T00:00:00Z",
+            "signer": "agt_55555555555555555555555555555555"
+          }
+        }
+      },
+      "intent": "the run id is inside the signed body, so a manifest cannot be moved to another run",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYWN0aW9ucy52MTp7ImJvZHkiOnsiYWdlbnRfcmVmIjoiYWd0XzU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1IiwiZW50cmllcyI6W3siY2hhaW4iOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiZGlnZXN0IjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInNlcSI6MCwic3RlcF9pZCI6InN0ZXAtMSIsInRvb2wiOiJCYXNoIiwidmVyYnMiOlsiZXhlYyJdfV0sImhlYWQiOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiaWRlbnRpdHkiOm51bGwsInJ1bl9kaWdlc3QiOiI0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0IiwicnVuX2lkIjoicnVuLWJldGEiLCJzY2hlbWUiOiJ0aW5lLWFjdGlvbnMvMSIsInNwYXducyI6W119LCJoZWFkZXIiOnsiYWxnIjoiaG1hYy1zaGEyNTYiLCJrZXlfaWQiOiJhZ2VudC1rZXkiLCJzY2hlbWUiOiJ0aW5lLWFjdGlvbnMvMSIsInNpZ25lZF9hdCI6IjIwMjYtMTAtMjZUMDA6MDA6MDBaIiwic2lnbmVyIjoiYWd0XzU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1In19",
+        "value": "98fc3385decec86512d09ac05ad40dc2bbd1d0a9379d935e956a6f9c4aa2d22f"
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "twin": "actions.worked-vector",
+      "x_display": "{\"document\": {\"agent_ref\": \"agt_55555555555555555555555555555555\", \"entries\": [{\"chain\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"digest\": \"1111111111111111111111111111111111111111111111111111111111111111\", \"seq\": {\"$i\": \"0\"}, \"step_id\": \"step-1\", \"tool\": \"Bash\", \"verbs\": [\"exec\"]}], \"head\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"identity\":...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-actions/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.signer-changed",
+      "input": {
+        "value": {
+          "document": {
+            "agent_ref": "agt_55555555555555555555555555555555",
+            "entries": [
+              {
+                "chain": "3333333333333333333333333333333333333333333333333333333333333333",
+                "digest": "1111111111111111111111111111111111111111111111111111111111111111",
+                "seq": {
+                  "$i": "0"
+                },
+                "step_id": "step-1",
+                "tool": "Bash",
+                "verbs": [
+                  "exec"
+                ]
+              }
+            ],
+            "head": "3333333333333333333333333333333333333333333333333333333333333333",
+            "identity": null,
+            "run_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "run_id": "run-alpha",
+            "scheme": "tine-actions/1",
+            "spawns": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "agent-key",
+            "scheme": "tine-actions/1",
+            "signed_at": "2026-10-26T00:00:00Z",
+            "signer": "agt_66666666666666666666666666666666"
+          }
+        }
+      },
+      "intent": "the header signer (the agent ref) is covered",
+      "must_differ": true,
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYWN0aW9ucy52MTp7ImJvZHkiOnsiYWdlbnRfcmVmIjoiYWd0XzU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1IiwiZW50cmllcyI6W3siY2hhaW4iOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiZGlnZXN0IjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInNlcSI6MCwic3RlcF9pZCI6InN0ZXAtMSIsInRvb2wiOiJCYXNoIiwidmVyYnMiOlsiZXhlYyJdfV0sImhlYWQiOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiaWRlbnRpdHkiOm51bGwsInJ1bl9kaWdlc3QiOiI0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0IiwicnVuX2lkIjoicnVuLWFscGhhIiwic2NoZW1lIjoidGluZS1hY3Rpb25zLzEiLCJzcGF3bnMiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiYWdlbnQta2V5Iiwic2NoZW1lIjoidGluZS1hY3Rpb25zLzEiLCJzaWduZWRfYXQiOiIyMDI2LTEwLTI2VDAwOjAwOjAwWiIsInNpZ25lciI6ImFndF82NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NiJ9fQ==",
+        "value": "007ed217a7bc2def9a9213af4077b68a9812b8843f9e6e23ba9c65c1509753ae"
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "twin": "actions.worked-vector",
+      "x_display": "{\"document\": {\"agent_ref\": \"agt_55555555555555555555555555555555\", \"entries\": [{\"chain\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"digest\": \"1111111111111111111111111111111111111111111111111111111111111111\", \"seq\": {\"$i\": \"0\"}, \"step_id\": \"step-1\", \"tool\": \"Bash\", \"verbs\": [\"exec\"]}], \"head\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"identity\":...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-actions/1"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "actions.worked-vector",
+      "input": {
+        "value": {
+          "document": {
+            "agent_ref": "agt_55555555555555555555555555555555",
+            "entries": [
+              {
+                "chain": "3333333333333333333333333333333333333333333333333333333333333333",
+                "digest": "1111111111111111111111111111111111111111111111111111111111111111",
+                "seq": {
+                  "$i": "0"
+                },
+                "step_id": "step-1",
+                "tool": "Bash",
+                "verbs": [
+                  "exec"
+                ]
+              }
+            ],
+            "head": "3333333333333333333333333333333333333333333333333333333333333333",
+            "identity": null,
+            "run_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "run_id": "run-alpha",
+            "scheme": "tine-actions/1",
+            "spawns": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "agent-key",
+            "scheme": "tine-actions/1",
+            "signed_at": "2026-10-26T00:00:00Z",
+            "signer": "agt_55555555555555555555555555555555"
+          }
+        }
+      },
+      "intent": "the signed message is opentine.actions.v1: + v3 canonical JSON of body and header",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYWN0aW9ucy52MTp7ImJvZHkiOnsiYWdlbnRfcmVmIjoiYWd0XzU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1IiwiZW50cmllcyI6W3siY2hhaW4iOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiZGlnZXN0IjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInNlcSI6MCwic3RlcF9pZCI6InN0ZXAtMSIsInRvb2wiOiJCYXNoIiwidmVyYnMiOlsiZXhlYyJdfV0sImhlYWQiOiIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzIiwiaWRlbnRpdHkiOm51bGwsInJ1bl9kaWdlc3QiOiI0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0IiwicnVuX2lkIjoicnVuLWFscGhhIiwic2NoZW1lIjoidGluZS1hY3Rpb25zLzEiLCJzcGF3bnMiOltdfSwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiYWdlbnQta2V5Iiwic2NoZW1lIjoidGluZS1hY3Rpb25zLzEiLCJzaWduZWRfYXQiOiIyMDI2LTEwLTI2VDAwOjAwOjAwWiIsInNpZ25lciI6ImFndF81NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NTU1NSJ9fQ==",
+        "value": "901dcbee199515ad2dc86517342d092de071976398682a99dafe09787940d20c"
+      },
+      "profile": "verifier",
+      "section": "4.8",
+      "tier": "core",
+      "x_display": "{\"document\": {\"agent_ref\": \"agt_55555555555555555555555555555555\", \"entries\": [{\"chain\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"digest\": \"1111111111111111111111111111111111111111111111111111111111111111\", \"seq\": {\"$i\": \"0\"}, \"step_id\": \"step-1\", \"tool\": \"Bash\", \"verbs\": [\"exec\"]}], \"head\": \"3333333333333333333333333333333333333333333333333333333333333333\", \"identity\":...",
+      "x_reference": null
+    }
+  ],
+  "family": "actions",
+  "section": "4.8",
+  "suite_version": 1
+}

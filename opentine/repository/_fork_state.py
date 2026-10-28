@@ -54,6 +54,10 @@ def _closure(repo: Repo, from_event: str, operation: str) -> set[str]:
     return keep
 
 
+def fork_closure(repo: Repo, source_id: str, from_event: str) -> frozenset[str]:
+    return frozenset(_closure(repo, from_event, f"forking run {source_id}"))
+
+
 def _retained_model(repo: Repo, events: list[str]) -> str | None:
     for event in reversed(events):
         model = repo.get(event).payload().get("model")
@@ -151,9 +155,13 @@ def fork_payload(
     payload: dict[str, Any],
     from_event: str,
     overrides: dict[str, Any] | None,
+    *,
+    closure: frozenset[str] | None = None,
 ) -> dict[str, Any]:
+    """The forked run payload; *closure* (from :func:`fork_closure`) lets N forks
+    of one fork point share a single walk of the run (``tine fan-out``)."""
     applied = _overrides(overrides)
-    keep = _closure(repo, from_event, f"forking run {source_id}")
+    keep = closure if closure is not None else fork_closure(repo, source_id, from_event)
     events = [event for event in payload["events"] if event in keep]
     forked = {name: payload[name] for name in _FORK_FIELDS if name in payload}
     forked["events"] = events

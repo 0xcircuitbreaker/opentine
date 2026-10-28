@@ -10,6 +10,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import canonical_json
+from opentine.repository import _winretry
 from opentine.repository._paths import durable_directory, internal_path
 
 #: Per-ref reflog bound. A reflog is history, never authority (SPEC §2.6), and
@@ -71,7 +72,7 @@ def _rotate(log_path: Path, size: int, entry: bytes) -> None:
             handle.write(tail + entry)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, log_path)
+        _winretry.replace(temporary, log_path)  # prune's scan may hold it open
     finally:
         Path(temporary).unlink(missing_ok=True)
 

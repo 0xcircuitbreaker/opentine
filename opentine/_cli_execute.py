@@ -35,6 +35,10 @@ from opentine.harnesses import OpentineHarness
 
 
 def cmd_run(args: argparse.Namespace) -> None:
+    from opentine._cli_fanout import cmd_run_parallel
+
+    if cmd_run_parallel(args):
+        return
     # --model is checked first so a command line naming two modes is refused by
     # the mode that can see both, rather than half-run by whichever wins here.
     if getattr(args, "model", None):

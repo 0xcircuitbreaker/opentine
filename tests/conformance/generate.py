@@ -23,9 +23,11 @@ from typing import Any
 
 from opentine._version import __version__ as OPENTINE_VERSION
 from tests.conformance import (
+    cases_agent,
     cases_artifact,
     cases_canon,
     cases_compat,
+    cases_localpack,
     cases_objects,
     cases_repair,
     cases_repo,
@@ -61,10 +63,12 @@ FAMILY_MODULES = (
     cases_canon,
     cases_objects,
     cases_repo,
+    cases_localpack,
     cases_artifact,
     cases_signing,
     cases_compat,
     cases_repair,
+    cases_agent,
 )
 
 

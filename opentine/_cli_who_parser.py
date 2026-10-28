@@ -6,6 +6,9 @@ import argparse
 from typing import Any
 
 from opentine._actions_query import GROUP_KEYS
+from opentine._cli_actions_sign import add_sign_args
+from opentine._cli_agent import add_agent_parser
+from opentine._cli_who_trust import add_trust_args
 
 _FILTERS = (
     ("--tool", "Tool name (substring, or a glob with * ? [)"),
@@ -42,15 +45,19 @@ def add_actions_parsers(sub: Any) -> None:
     who.add_argument("--by", default="agent,model", help=f"Group by: {', '.join(GROUP_KEYS)}")
     who.add_argument("--list", action="store_true", help="List matching actions, not groups")
     who.add_argument("--limit", type=int, default=50, help="Rows to show; 0 for all")
+    add_trust_args(who)
     _add_scope(who)
     actions = sub.add_parser("actions", help="One run's actions, in order")
     actions.add_argument("run_id")
     actions.add_argument("--verb", help="Only actions with this verb")
+    add_sign_args(actions)
+    add_trust_args(actions, filters=False)
     _add_scope(actions)
     touched = sub.add_parser("touched", help="Which agents wrote or deleted a path")
     touched.add_argument("--path", required=True, help="Path substring or glob")
     touched.add_argument("--by", default="agent,model", help=f"Group by: {', '.join(GROUP_KEYS)}")
     touched.add_argument("--since")
+    add_trust_args(touched)
     _add_scope(touched)
     audit = sub.add_parser("audit", help="Check what agents did against a policy file")
     audit.add_argument("--policy", required=True, metavar="FILE", help="TOML or JSON rule file")
@@ -58,7 +65,14 @@ def add_actions_parsers(sub: Any) -> None:
     audit.add_argument(
         "--allow-partial", action="store_true", help="Pass even if some runs were not fully read"
     )
+    audit.add_argument(
+        "--require-signed",
+        action="store_true",
+        help="Fail unless every run has a verified tine-actions/1 manifest",
+    )
+    add_trust_args(audit, filters=False)
     _add_scope(audit)
+    add_agent_parser(sub)
 
 
 __all__ = ["_FILTERS", "add_actions_parsers"]

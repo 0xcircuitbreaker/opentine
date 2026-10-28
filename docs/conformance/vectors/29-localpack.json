@@ -1,0 +1,349 @@
+{
+  "cases": [
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA8="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.block.oversized",
+      "input": {
+        "bytes_b64": "VElORUlYMwo1bZRA/Og6TKe7OOr9q7foOPg5xpaUXCSJhTa3eg6qCQAAAAEAAAACAAAAQgEAAAECAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgAC//////////////////////////////////////////8AAAAAAAAAMgD//88A///PAHTEMwYPZboy64zAHUTCUXjFJd6xShqZtwR0xeGvaYPE",
+        "sha256": "b2c3c56738e9097f71071e6bbe0773ea1c635da0626c670b3940153cefb2fc29"
+      },
+      "intent": "a block of several objects inflates to at most 16 MiB, checked before inflating",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.block-size",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n5m\\x94@\\xfc\\xe8:L\\xa7\\xbb8\\xea\\xfd\\xab\\xb7\\xe88\\xf89\\xc6\\x96\\x94\\\\$\\x89\\x856\\xb7z\\x0e\\xaa\\x09\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x02\\x00\\x00\\x00B\\x01\\x00\\x00\\x01\\x02\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x02\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\xff\\xff\\xcf\\x00\\xff\\xff\\xcf\\x00t\\xc43\\x06\\x0fe\\xba2\\xeb\\x8c\\xc0\\x1dD\\xc2Qx\\xc5%\\xde\\xb1J\\x1a\\x99\\xb7\\x04t\\xc5\\xe1\\xafi\\x83\\xc4",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index block is oversized"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAAVp42g2LvQqAMAwGdx/jm7u45lXEobTBHzANbRWl5N3NeNzdAEsq+ZANhLMVQUBLO18RNAf0T9lFvQU2DURVlgwa4IelN9CCF6sF5FrUafWbuwdmP0B4HYk="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.delta.at-block-start",
+      "input": {
+        "bytes_b64": "VElORUlYMwp96v99dj/GguLhlIBxypWMP3OoDDwkxaXy+5Z+QK78DQAAAAEAAAABAAAAYAAAAFoEBE86KThYuQoh7cDR/6gPh575Xq+7QRECSMDEV5/Praj6AAAAAAAAAAAAAABaAAABBQFTBWYhXgOjYILiiZdcj5GsuMlcAgq0A9kOOKmbACkmFg==",
+        "sha256": "ce92162075eae8f7b331a7bd609f4ef83d56baf22cae627b29eda72e60ae37f3"
+      },
+      "intent": "a run delta's base is the object stored before it in its block, so none may lead",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.delta-no-base",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n}\\xea\\xff}v?\\xc6\\x82\\xe2\\xe1\\x94\\x80q\\xca\\x95\\x8c?s\\xa8\\x0c<$\\xc5\\xa5\\xf2\\xfb\\x96~@\\xae\\xfc\\x0d\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00`\\x00\\x00\\x00Z\\x04\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00Z\\x00\\x00\\x01\\x05\\x01S\\x05f!^\\x03\\xa3`\\x82\\xe2\\x89\\x97\\\\\\x8f\\x91\\xac\\xb8\\xc9\\\\\\x02\\n\\xb4\\x03\\xd9\\x0e8\\xa9\\x9b\\x00)&\\x16",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index run delta has no base before it in its block"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAAb8BeNqVjcEKAjEMRO9+xpx72Wt/RUTKNmgF07DJLiwl/25WEc9eZ97MGyCee218Q8ZDOyNB5zs9C/KUYLtQFMvK8NMAbcSmyOdLUKTaOl9bDUCPmRVb9UPzcRjzJm/ax1+aIkIct8MT6tLlK7SIfpod7i+oCj8A"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.delta.rebuilds-other-bytes",
+      "input": {
+        "bytes_b64": "VElORUlYMwr8jHY8gtIea0VEcklS7PeGrnSI+q6q4vtiKTWpmUAZVQAAAAEAAAACAAAAfwAAAL8EBBWy1YgPEe3IHo9A8A41kbyBwLZFs6tErcEo8oiDg5xVAAAAAAAAAAAAAABnAAAAZwAETzopOFi5CiHtwNH/qA+Hnvler7tBEQJIwMRXn8+tqPoAAAAAAAAAZwAAAFgAAAEFAYQIffWOkLGsPx9zuO3w6PEDTKOi2ANSmFZgWGtMaq2J",
+        "sha256": "606191818ea2929bd750b2a5124b84c77b819b4b3e985184e5260e2e46ce1629"
+      },
+      "intent": "every rebuilt object is checked against its id; a delta that rebuilds other bytes is refused, never returned",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.object-id-mismatch",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\xfc\\x8cv<\\x82\\xd2\\x1ekEDrIR\\xec\\xf7\\x86\\xaet\\x88\\xfa\\xae\\xaa\\xe2\\xfbb)5\\xa9\\x99@\\x19U\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x7f\\x00\\x00\\x00\\xbf\\x04\\x04\\x15\\xb2\\xd5\\x88\\x0f\\x11\\xed\\xc8\\x1e\\x8f@\\xf0\\x0e5\\x91\\xbc\\x81\\xc0\\xb6E\\xb3\\xabD\\xad\\xc1(\\xf2\\x88\\x83\\x83\\x9cU\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00g\\x00\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00X\\x00\\x00\\x01\\x05\\x01\\x84\\x08}\\xf5\\x8e\\x90\\xb1\\xac?\\x1fs\\xb8\\xed\\xf0\\xe8\\xf1\\x03L\\xa3\\xa2\\xd8\\x03R\\x98V`XkLj\\xad\\x89",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "packed object size does not match its index: run:sha256:4f3a293858b90a21edc0d1ffa80f879ef95eafbb41110248c0c4579fcfada8fa"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAAY0veNq12M1KxDAUQOG9j3HXXcy9+VH7KiJSpkErmIZJRpDSd590QHDr4izT3p6sPtpmk5TP67zkdxnls65ZBqnnj/Q1yaiDtJ+S+o3LNcv+sEn6TrlVGV9e+1SqdVnz2zL3gXo81qZ2rcfi1FdtKffBffvXDlMpKffitg8yX9byu1frl/7soLIzYaPCjgp7KhyocKTCj1T4iQo/U2E9YWXMnmL4FNOnGD/F/CkGUDGBihFUzKBhBo17/2EGDTNomEHDDBpm0DCDhhk0zKDDDDrMoOM+QjGDDjPoMIMOM+gwgw4z6DCDHjPoMYMeM+i5P0HMoMcMesygxwx6zKDHDAbMYMAMBsxgwAwG7jgGMxgwgwEzGDCDATMYMYMRMxgxgxEzGDGDkTsTPQzeANPDqVI="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.delta.too-deep",
+      "input": {
+        "blob": "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin",
+        "sha256": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a"
+      },
+      "intent": "a reader resolves at most 64 deltas for one object, iteratively: every object here is genuine, and the first 64 deltas read back before the 65th is refused",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.delta-too-deep",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\xe12\\xb0a\\xfa/\\xed\\xc1\\xb1v\\x069\\xc7}CG\\x90\\xf6qy\\xb8\\xc8\\x1aP^\\xec\\xca5\\xa6sy\\x8a\\x00\\x00\\x00\\x01\\x00\\x00\\x00C\\x00\\x00\\x018\\x00\\x00\\x17\\x8d\\x04\\x04\\x00\\xda\\xe8\\xe8\\x08\\x03~F\\xeb\\x931\\xb7\\xd8(1\\xf0.\\x1b\\x88h0\\xec\\x93\\x84\\xad\\xa0\\x90\\\\;\\xe4\\x99\\xef\\x00\\x00\\x00\\x00\\x00\\x00\\n1\\x00\\x00\\x00Z\\x00\\x00\\x00c\\x01\\x04\\x073s\\xc9>\\xf05\\xe3S&\\xbf\\xbfL\\x11\\x893\\xcb\\x1cX\\xc6Aoe\\xedF\\xfc\\xd9\\xb1\\x06\\xea\\xdc\\xda\\x00\\x00\\x00\\x00\\x00\\x00\\x14\\x09\\x00\\x00\\x00Z\\x00\\x00\\x00c\\x01\\x04\\x0c.G\\xbf\\x7f\\xe4\\xa8a\\xfc\\xb6\\xf2}\\xef`\\xc9MA\\x0eQ\\x93/\\x12FNg\\x8b\\x9a\\x96G\\xd5\\xa7t\\x00\\x00\\x00\\x00\\x00\\x00\\x01m\\x00\\x00\\x00Y\\x00\\x00\\x00b\\x01\\x04\\x12M\\x02\\xc7\\x10\\xb0 O\\xcc#\\xedl\\xa7\\xc0\\xb2\\x85\\x97\\xf5\\x0b\\xbb\\\\\\x14\\xa1\\xb8\\xab\\xf6\\x85H\\x06\\xb8_>\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x9f\\x00\\x00\\x00Z\\x00\\x00\\x00c\\x01\\x04\\x13]\\xcaeiO \\xb5\\xffF4\\x8eEpO\\xb5\\xe4\\xce\\xb7b\\xaa4\\x04\\x9b\\x8cJ\\x0c\\x1c(g(D\\x00\\x00\\x00\\x00\\x00\\x00\\x173\\x00\\x00\\x00Z\\x00\\x00\\x00c\\x01\\x04\\x14\\xa2.\\xd9\\x90\\xfe\\x03\\xcbpD7\\xee\\x88\\x02\\xc8\\xd3\\x17q\\x81\\xe4y\\x93|V\\x1eh\\x1b\\x82\\x96.\\\\7\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xbb\\x00\\x00\\x00Y\\x00\\x00\\x00b\\x01\\x04\\x15\\xd9\\x8f\\xcc\\x87\\x9b-/\"~x\\xcdD/T\\xc1\\xd8W\\xe5\\xc1\\xfbz\\x1f\\xd2\\x9c\\x9f\\xfb\\x96\\xf5_\\x1du\\x00\\x00\\x00\\x00\\x00\\x00\\x16\\xd9\\x00\\x00...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "packed run delta chain is too deep: run:sha256:15d98fcc879b2d2f227e78cd442f54c1d857e5c1fb7a1fd29c9ffb96f55f1d75"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA8="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.encoding.not-for-kind",
+      "input": {
+        "bytes_b64": "VElORUlYMwo1bZRA/Og6TKe7OOr9q7foOPg5xpaUXCSJhTa3eg6qCQAAAAEAAAABAAAAQgAAADICAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgLZQDanxXzAElyq//L/1xp6UQojZfHpYFjcGbr0e+gUzw==",
+        "sha256": "daebf1be4ec31dbfb49da09b7e9ce046a95377852537dba0f5d2b7bd2768a2f0"
+      },
+      "intent": "run deltas are for runs and slim forms for events; a blob holds its bytes",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.encoding-kind",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n5m\\x94@\\xfc\\xe8:L\\xa7\\xbb8\\xea\\xfd\\xab\\xb7\\xe88\\xf89\\xc6\\x96\\x94\\\\$\\x89\\x856\\xb7z\\x0e\\xaa\\x09\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x02\\xd9@6\\xa7\\xc5|\\xc0\\x12\\\\\\xaa\\xff\\xf2\\xff\\xd7\\x1azQ\\n#e\\xf1\\xe9`X\\xdc\\x19\\xba\\xf4{\\xe8\\x14\\xcf",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index entry is malformed"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA9USU5FWjEAAbkCeNqljskKwjAURfd+xlt3kZexza+ISIZXW4ekmCBI6b8bcCO4Etfn3MNdgVLIcU4nsHAuOUEHJUx0c2Cxg/pcqAF6UKqw7VYIuVSwrIPLnGIjtxzp2jaLuzflOMcCdn/Y1j+zNeev6lu3ZXJcaSsHxZBpThx7rqQ0znFGNArpgxcuigGR8egHHo0elRZoUPYo/KiDFM7A7yc/v20v8PxhwFRJTkVaMQABoAR42q1RzU7DMAy+8xg+95D/tH0VNE1u7LAilkZLhoSqvjspE+MCBxA3y/78/dgrcAoLzekJRnguS4IOSjjxGWGUHdS3zG1wuSbYHlbgV061wPh4aCguZV7ScaYGKPtaxXotN3TaCdv6nD/Q2/orGcyZU6Ndtw7osuRPwdpaXx5u1VhOqKwbzWCFFE6xkr2yxnhEJZijNlOYNJIepBSKpkGRd9E6Lb00vdRTdMFo9HC42/1v4u2v8X/KypbYi6AFCaHY9ZpQCmLrpiAwUq9xoKh2t1IPSqCz3kZLkYlMsJ6apW8Oe/9fWM75hSsTbNs71kynFA=="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.index.checksum",
+      "input": {
+        "bytes_b64": "VElORUlYMwqQ6KJK/NJi+5EUOYgn3RcnQA1SwZ0eb2gAr5bKwNf3AAAAAAMAAAAHAAAAQgAAADICAAAAqgAAATkDAAAA/AAAAiAEAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgADSVAQYuIYJUR6og7vNLyzrTkRAtuS129WMXFIE79sQ6cAAAABAAAAAAAAAFcAAABXAAOI1ksd6EC87HGoyKND59uHgfA3cMIktLHcEdFhtun3QQAAAAEAAAD8AAAAPQAAAKYCA+XecMMNAC5oPaEN5WvAr9g6nfKCVBOSCmV19d/t1MV9AAAAAQAAAFcAAAClAAAApQAEFbLViA8R7cgej0DwDjWRvIHAtkWzq0StwSjyiIODnFUAAAACAAAAAAAAAGcAAABnAARPOik4WLkKIe3A0f+oD4ee+V6vu0ERAkjAxFefz62o+gAAAAIAAABnAAAA/wAAAQUBBFGr+JCpm2VL+o2Z2D0ScVjhMHy9esan6Aya+Ltgrg6vAAAAAgAAAWYAAAC6AAABVwEeIzn2MlQlTHPqjGGUfeYUX+8cVRjPt04yRDP2p7nOXw==",
+        "sha256": "a8c60a0045150d0914789dbff64931bce788fadd4a98af616415193c017492d6"
+      },
+      "intent": "the index's trailing SHA-256 covers every byte before it",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.index-checksum",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\x90\\xe8\\xa2J\\xfc\\xd2b\\xfb\\x91\\x149\\x88'\\xdd\\x17'@\\x0dR\\xc1\\x9d\\x1eoh\\x00\\xaf\\x96\\xca\\xc0\\xd7\\xf7\\x00\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x07\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x00\\x00\\x00\\xaa\\x00\\x00\\x019\\x03\\x00\\x00\\x00\\xfc\\x00\\x00\\x02 \\x04\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x03IP\\x10b\\xe2\\x18%Dz\\xa2\\x0e\\xef4\\xbc\\xb3\\xad9\\x11\\x02\\xdb\\x92\\xd7oV1qH\\x13\\xbflC\\xa7\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00W\\x00\\x00\\x00W\\x00\\x03\\x88\\xd6K\\x1d\\xe8@\\xbc\\xecq\\xa8\\xc8\\xa3C\\xe7\\xdb\\x87\\x81\\xf07p\\xc2$\\xb4\\xb1\\xdc\\x11\\xd1a\\xb6\\xe9\\xf7A\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\xfc\\x00\\x00\\x00=\\x00\\x00\\x00\\xa6\\x02\\x03\\xe5\\xdep\\xc3\\x0d\\x00.h=\\xa1\\x0d\\xe5k\\xc0\\xaf\\xd8:\\x9d\\xf2\\x82T\\x13\\x92\\neu\\xf5\\xdf\\xed\\xd4\\xc5}\\x00\\x00\\x00\\x01\\x00\\x00\\x00W\\x00\\x00\\x00\\xa5\\x00\\x00\\x00\\xa5\\x00\\x04\\x15\\xb2\\xd5\\x88\\x0f\\x11\\xed\\xc8\\x1e\\x8f@\\xf0\\x0e5\\x91\\xbc\\x81\\xc0\\xb6E\\xb3\\xabD\\xad\\xc1(\\xf2\\x88\\x83\\x83\\x9cU\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00g\\x00\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x02\\x00\\x00\\x00g\\x00\\x00\\x00\\xff\\x00\\x00\\x01\\x05\\x01\\x04Q\\xab\\xf8\\x90\\xa9\\x9beK\\xfa\\x8d\\x99\\xd8=\\x12qX\\xe10|\\xbdz\\xc6\\xa7\\xe8...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index checksum does not match"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA9USU5FWjEAAbkCeNqljskKwjAURfd+xlt3kZexza+ISIZXW4ekmCBI6b8bcCO4Etfn3MNdgVLIcU4nsHAuOUEHJUx0c2Cxg/pcqAF6UKqw7VYIuVSwrIPLnGIjtxzp2jaLuzflOMcCdn/Y1j+zNeev6lu3ZXJcaSsHxZBpThx7rqQ0znFGNArpgxcuigGR8egHHo0elRZoUPYo/KiDFM7A7yc/v20v8PxhwFRJTkVaMQABoAR42q1RzU7DMAy+8xg+95D/tH0VNE1u7LAilkZLhoSqvjspE+MCBxA3y/78/dgrcAoLzekJRnguS4IOSjjxGWGUHdS3zG1wuSbYHlbgV061wPh4aCguZV7ScaYGKPtaxXotN3TaCdv6nD/Q2/orGcyZU6Ndtw7osuRPwdpaXx5u1VhOqKwbzWCFFE6xkr2yxnhEJZijNlOYNJIepBSKpkGRd9E6Lb00vdRTdMFo9HC42/1v4u2v8X/KypbYi6AFCaHY9ZpQCmLrpiAwUq9xoKh2t1IPSqCz3kZLkYlMsJ6apW8Oe/9fWM75hSsTbNs71kynFA=="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.index.truncated",
+      "input": {
+        "bytes_b64": "VElORUlYMwqQ6KJK/NJi+5EUOYgn3RcnQA1SwZ0eb2gAr5bKwNf3AAAAAAMAAAAHAAAAQgAAADICAAAAqgAAATkDAAAA/AAAAiAEAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgADSVAQYuIYJUR6og7vNLyzrTkRAtuS129WMXFIE79sQ6cAAAABAAAAAAAAAFcAAABXAAOI1ksd6EC87HGoyKND59uHgfA3cMIktLHcEdFhtun3QQAAAAEAAAD8AAAAPQAAAKYCA+XecMMNAC5oPaEN5WvAr9g6nfKCVBOSCmV19d/t1MV9AAAAAQAAAFcAAAClAAAApQAEFbLViA8R7cgej0DwDjWRvIHAtkWzq0StwSjyiIODnFUAAAACAAAAAAAAAGcAAABnAARPOik4WLkKIe3A0f+oD4ee+V6vu0ERAkjAxFefz62o+gAAAAIAAABnAAAA/wAAAQUBBFGr+JCpm2VL+o2Z2D0ScVjhMHy9esan6Aya+Ltgrg6vAAAAAgAAAWYAAAC6AAABV3cemPbCAg3SNn8E4g39c+vgdb5EyCdd1yPSzOFSWi9L",
+        "sha256": "745f0c211f7c8d489e772572716cd6cc943b16f16369e4e3cd2b68bad434d4ca"
+      },
+      "intent": "the length is exactly header + 9 per block + 50 per object + 32",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.index-length",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\x90\\xe8\\xa2J\\xfc\\xd2b\\xfb\\x91\\x149\\x88'\\xdd\\x17'@\\x0dR\\xc1\\x9d\\x1eoh\\x00\\xaf\\x96\\xca\\xc0\\xd7\\xf7\\x00\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x07\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x00\\x00\\x00\\xaa\\x00\\x00\\x019\\x03\\x00\\x00\\x00\\xfc\\x00\\x00\\x02 \\x04\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x03IP\\x10b\\xe2\\x18%Dz\\xa2\\x0e\\xef4\\xbc\\xb3\\xad9\\x11\\x02\\xdb\\x92\\xd7oV1qH\\x13\\xbflC\\xa7\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00W\\x00\\x00\\x00W\\x00\\x03\\x88\\xd6K\\x1d\\xe8@\\xbc\\xecq\\xa8\\xc8\\xa3C\\xe7\\xdb\\x87\\x81\\xf07p\\xc2$\\xb4\\xb1\\xdc\\x11\\xd1a\\xb6\\xe9\\xf7A\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\xfc\\x00\\x00\\x00=\\x00\\x00\\x00\\xa6\\x02\\x03\\xe5\\xdep\\xc3\\x0d\\x00.h=\\xa1\\x0d\\xe5k\\xc0\\xaf\\xd8:\\x9d\\xf2\\x82T\\x13\\x92\\neu\\xf5\\xdf\\xed\\xd4\\xc5}\\x00\\x00\\x00\\x01\\x00\\x00\\x00W\\x00\\x00\\x00\\xa5\\x00\\x00\\x00\\xa5\\x00\\x04\\x15\\xb2\\xd5\\x88\\x0f\\x11\\xed\\xc8\\x1e\\x8f@\\xf0\\x0e5\\x91\\xbc\\x81\\xc0\\xb6E\\xb3\\xabD\\xad\\xc1(\\xf2\\x88\\x83\\x83\\x9cU\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00g\\x00\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x02\\x00\\x00\\x00g\\x00\\x00\\x00\\xff\\x00\\x00\\x01\\x05\\x01\\x04Q\\xab\\xf8\\x90\\xa9\\x9beK\\xfa\\x8d\\x99\\xd8=\\x12qX\\xe10|\\xbdz\\xc6\\xa7\\xe8...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index is truncated or has trailing bytes"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA9USU5FWjEAAbkCeNqljskKwjAURfd+xlt3kZexza+ISIZXW4ekmCBI6b8bcCO4Etfn3MNdgVLIcU4nsHAuOUEHJUx0c2Cxg/pcqAF6UKqw7VYIuVSwrIPLnGIjtxzp2jaLuzflOMcCdn/Y1j+zNeev6lu3ZXJcaSsHxZBpThx7rqQ0znFGNArpgxcuigGR8egHHo0elRZoUPYo/KiDFM7A7yc/v20v8PxhwFRJTkVaMQABoAR42q1RzU7DMAy+8xg+95D/tH0VNE1u7LAilkZLhoSqvjspE+MCBxA3y/78/dgrcAoLzekJRnguS4IOSjjxGWGUHdS3zG1wuSbYHlbgV061wPh4aCguZV7ScaYGKPtaxXotN3TaCdv6nD/Q2/orGcyZU6Ndtw7osuRPwdpaXx5u1VhOqKwbzWCFFE6xkr2yxnhEJZijNlOYNJIepBSKpkGRd9E6Lb00vdRTdMFo9HC42/1v4u2v8X/KypbYi6AFCaHY9ZpQCmLrpiAwUq9xoKh2t1IPSqCz3kZLkYlMsJ6apW8Oe/9fWM75hSsTbNs71kynFA=="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.index.unsorted",
+      "input": {
+        "bytes_b64": "VElORUlYMwqQ6KJK/NJi+5EUOYgn3RcnQA1SwZ0eb2gAr5bKwNf3AAAAAAMAAAAHAAAAQgAAADICAAAAqgAAATkDAAAA/AAAAiAEA0lQEGLiGCVEeqIO7zS8s605EQLbktdvVjFxSBO/bEOnAAAAAQAAAAAAAABXAAAAVwACxSUc9MIB7edMjjVk3G0C5ZfLwg+9kahHBKkReXV70AgAAAAAAAAAAAAAADIAAAAyAAOI1ksd6EC87HGoyKND59uHgfA3cMIktLHcEdFhtun3QQAAAAEAAAD8AAAAPQAAAKYCA+XecMMNAC5oPaEN5WvAr9g6nfKCVBOSCmV19d/t1MV9AAAAAQAAAFcAAAClAAAApQAEFbLViA8R7cgej0DwDjWRvIHAtkWzq0StwSjyiIODnFUAAAACAAAAAAAAAGcAAABnAARPOik4WLkKIe3A0f+oD4ee+V6vu0ERAkjAxFefz62o+gAAAAIAAABnAAAA/wAAAQUBBFGr+JCpm2VL+o2Z2D0ScVjhMHy9esan6Aya+Ltgrg6vAAAAAgAAAWYAAAC6AAABVwHX2Ocs6bwO4YKx0u2jb6QnkxYO2cWfm89AUqQEctsJMA==",
+        "sha256": "2237d8dec4b20459425c2cb5a77ee09ab57977381b54a7f30f9a429bb62bc3b2"
+      },
+      "intent": "objects are sorted by id with no duplicates",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.index-order",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\x90\\xe8\\xa2J\\xfc\\xd2b\\xfb\\x91\\x149\\x88'\\xdd\\x17'@\\x0dR\\xc1\\x9d\\x1eoh\\x00\\xaf\\x96\\xca\\xc0\\xd7\\xf7\\x00\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x07\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x00\\x00\\x00\\xaa\\x00\\x00\\x019\\x03\\x00\\x00\\x00\\xfc\\x00\\x00\\x02 \\x04\\x03IP\\x10b\\xe2\\x18%Dz\\xa2\\x0e\\xef4\\xbc\\xb3\\xad9\\x11\\x02\\xdb\\x92\\xd7oV1qH\\x13\\xbflC\\xa7\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00W\\x00\\x00\\x00W\\x00\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x03\\x88\\xd6K\\x1d\\xe8@\\xbc\\xecq\\xa8\\xc8\\xa3C\\xe7\\xdb\\x87\\x81\\xf07p\\xc2$\\xb4\\xb1\\xdc\\x11\\xd1a\\xb6\\xe9\\xf7A\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\xfc\\x00\\x00\\x00=\\x00\\x00\\x00\\xa6\\x02\\x03\\xe5\\xdep\\xc3\\x0d\\x00.h=\\xa1\\x0d\\xe5k\\xc0\\xaf\\xd8:\\x9d\\xf2\\x82T\\x13\\x92\\neu\\xf5\\xdf\\xed\\xd4\\xc5}\\x00\\x00\\x00\\x01\\x00\\x00\\x00W\\x00\\x00\\x00\\xa5\\x00\\x00\\x00\\xa5\\x00\\x04\\x15\\xb2\\xd5\\x88\\x0f\\x11\\xed\\xc8\\x1e\\x8f@\\xf0\\x0e5\\x91\\xbc\\x81\\xc0\\xb6E\\xb3\\xabD\\xad\\xc1(\\xf2\\x88\\x83\\x83\\x9cU\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00g\\x00\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x02\\x00\\x00\\x00g\\x00\\x00\\x00\\xff\\x00\\x00\\x01\\x05\\x01\\x04Q\\xab\\xf8\\x90\\xa9\\x9beK\\xfa\\x8d\\x99\\xd8=\\x12qX\\xe10|\\xbdz\\xc6\\xa7\\xe8...",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "pack index entries are not sorted and unique"
+      }
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA9USU5FWjEAAbkCeNqljskKwjAURfd+xlt3kZexza+ISIZXW4ekmCBI6b8bcCO4Etfn3MNdgVLIcU4nsHAuOUEHJUx0c2Cxg/pcqAF6UKqw7VYIuVSwrIPLnGIjtxzp2jaLuzflOMcCdn/Y1j+zNeev6lu3ZXJcaSsHxZBpThx7rqQ0znFGNArpgxcuigGR8egHHo0elRZoUPYo/KiDFM7A7yc/v20v8PxhwFRJTkVaMQABoAR42q1RzU7DMAy+8xg+95D/tH0VNE1u7LAilkZLhoSqvjspE+MCBxA3y/78/dgrcAoLzekJRnguS4IOSjjxGWGUHdS3zG1wuSbYHlbgV061wPh4aCguZV7ScaYGKPtaxXotN3TaCdv6nD/Q2/orGcyZU6Ndtw7osuRPwdpaXx5u1VhOqKwbzWCFFE6xkr2yxnhEJZijNlOYNJIepBSKpkGRd9E6Lb00vdRTdMFo9HC42/1v4u2v8X/KypbYi6AFCaHY9ZpQCmLrpiAwUq9xoKh2t1IPSqCz3kZLkYlMsJ6apW8Oe/9fWM75hSsTbNs71kynFA=="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "localpack.read.blob-events-run-snapshots",
+      "input": {
+        "bytes_b64": "VElORUlYMwqQ6KJK/NJi+5EUOYgn3RcnQA1SwZ0eb2gAr5bKwNf3AAAAAAMAAAAHAAAAQgAAADICAAAAqgAAATkDAAAA/AAAAiAEAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgADSVAQYuIYJUR6og7vNLyzrTkRAtuS129WMXFIE79sQ6cAAAABAAAAAAAAAFcAAABXAAOI1ksd6EC87HGoyKND59uHgfA3cMIktLHcEdFhtun3QQAAAAEAAAD8AAAAPQAAAKYCA+XecMMNAC5oPaEN5WvAr9g6nfKCVBOSCmV19d/t1MV9AAAAAQAAAFcAAAClAAAApQAEFbLViA8R7cgej0DwDjWRvIHAtkWzq0StwSjyiIODnFUAAAACAAAAAAAAAGcAAABnAARPOik4WLkKIe3A0f+oD4ee+V6vu0ERAkjAxFefz62o+gAAAAIAAABnAAAA/wAAAQUBBFGr+JCpm2VL+o2Z2D0ScVjhMHy9esan6Aya+Ltgrg6vAAAAAgAAAWYAAAC6AAABVwEeIzn2MlQlTHPqjGGUfeYUX+8cVRjPt04yRDP2p7nOXg==",
+        "sha256": "1216a53759f4b0445f23b913df1f1a342eb88d173ea73363899617bafa2f956a"
+      },
+      "intent": "the reference writer's pack: one block per kind, run snapshots of a session as deltas against the snapshot stored just before them, a default-free event",
+      "op": "localpack.read",
+      "output": {
+        "objects": [
+          [
+            "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+            "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+          ],
+          [
+            "event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7",
+            "ac4fb1e09f4646fdb8fd4bf4976ceb2d92de1d3bbb5853a15b6eff45128f0a2f"
+          ],
+          [
+            "event:sha256:88d64b1de840bcec71a8c8a343e7db8781f03770c224b4b1dc11d161b6e9f741",
+            "590e80c21ad08ecfda70da7733b6bf4208e7711db0d59b97e96f8266cd9ce405"
+          ],
+          [
+            "event:sha256:e5de70c30d002e683da10de56bc0afd83a9df2825413920a6575f5dfedd4c57d",
+            "c6e95a2468d1f1a49f7f0ec73f20d4ce1bc43965f7a4671d3b474ba16e423878"
+          ],
+          [
+            "run:sha256:15b2d5880f11edc81e8f40f00e3591bc81c0b645b3ab44adc128f28883839c55",
+            "d105b9c9dbb0f068a7ad8b1213be894140c9265c674dfd2eabb1d435849af1e8"
+          ],
+          [
+            "run:sha256:4f3a293858b90a21edc0d1ffa80f879ef95eafbb41110248c0c4579fcfada8fa",
+            "297c9ea0aa7ae932ad5232b3cf16505868bb88334f3b2d48de0471e16b523630"
+          ],
+          [
+            "run:sha256:51abf890a99b654bfa8d99d83d127158e1307cbd7ac6a7e80c9af8bb60ae0eaf",
+            "5134f98000e7ee98cd846743108870a32edfd702a6764d43fe57a85128fb2472"
+          ]
+        ],
+        "pack_id": "90e8a24afcd262fb9114398827dd1727400d52c19d1e6f6800af96cac0d7f700"
+      },
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\x90\\xe8\\xa2J\\xfc\\xd2b\\xfb\\x91\\x149\\x88'\\xdd\\x17'@\\x0dR\\xc1\\x9d\\x1eoh\\x00\\xaf\\x96\\xca\\xc0\\xd7\\xf7\\x00\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x07\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x00\\x00\\x00\\xaa\\x00\\x00\\x019\\x03\\x00\\x00\\x00\\xfc\\x00\\x00\\x02 \\x04\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x03IP\\x10b\\xe2\\x18%Dz\\xa2\\x0e\\xef4\\xbc\\xb3\\xad9\\x11\\x02\\xdb\\x92\\xd7oV1qH\\x13\\xbflC\\xa7\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00W\\x00\\x00\\x00W\\x00\\x03\\x88\\xd6K\\x1d\\xe8@\\xbc\\xecq\\xa8\\xc8\\xa3C\\xe7\\xdb\\x87\\x81\\xf07p\\xc2$\\xb4\\xb1\\xdc\\x11\\xd1a\\xb6\\xe9\\xf7A\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\xfc\\x00\\x00\\x00=\\x00\\x00\\x00\\xa6\\x02\\x03\\xe5\\xdep\\xc3\\x0d\\x00.h=\\xa1\\x0d\\xe5k\\xc0\\xaf\\xd8:\\x9d\\xf2\\x82T\\x13\\x92\\neu\\xf5\\xdf\\xed\\xd4\\xc5}\\x00\\x00\\x00\\x01\\x00\\x00\\x00W\\x00\\x00\\x00\\xa5\\x00\\x00\\x00\\xa5\\x00\\x04\\x15\\xb2\\xd5\\x88\\x0f\\x11\\xed\\xc8\\x1e\\x8f@\\xf0\\x0e5\\x91\\xbc\\x81\\xc0\\xb6E\\xb3\\xabD\\xad\\xc1(\\xf2\\x88\\x83\\x83\\x9cU\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00g\\x00\\x00\\x00g\\x00\\x04O:)8X\\xb9\\n!\\xed\\xc0\\xd1\\xff\\xa8\\x0f\\x87\\x9e\\xf9^\\xaf\\xbbA\\x11\\x02H\\xc0\\xc4W\\x9f\\xcf\\xad\\xa8\\xfa\\x00\\x00\\x00\\x02\\x00\\x00\\x00g\\x00\\x00\\x00\\xff\\x00\\x00\\x01\\x05\\x01\\x04Q\\xab\\xf8\\x90\\xa9\\x9beK\\xfa\\x8d\\x99\\xd8=\\x12qX\\xe10|\\xbdz\\xc6\\xa7\\xe8...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAATJ42qtWSs1Lzk/JzEtXslIqSixX0lEqTs5IzU1UsjLUUSqpLEgFiifl5Ccp1XJlpObk5HMBAKJUEA8="
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "localpack.read.single-object",
+      "input": {
+        "bytes_b64": "VElORUlYMwo1bZRA/Og6TKe7OOr9q7foOPg5xpaUXCSJhTa3eg6qCQAAAAEAAAABAAAAQgAAADICAsUlHPTCAe3nTI41ZNxtAuWXy8IPvZGoRwSpEXl1e9AIAAAAAAAAAAAAAAAyAAAAMgCAb11PHsvnJt8XsAsUj7Z7J6UyCxm00bUmhc2BWVoWiA==",
+        "sha256": "a2d2b18ec9f71c7b4e41cad3b964548ee5867edbd0bb4e92fb0e88cfa27db4be"
+      },
+      "intent": "the smallest pack: one full object in one block",
+      "op": "localpack.read",
+      "output": {
+        "objects": [
+          [
+            "blob:sha256:c5251cf4c201ede74c8e3564dc6d02e597cbc20fbd91a84704a91179757bd008",
+            "6851fe459f1b48648233a07cf0bcd59755f6985015391cfa6ac22b2baa33d962"
+          ]
+        ],
+        "pack_id": "356d9440fce83a4ca7bb38eafdabb7e838f839c696945c24898536b77a0eaa09"
+      },
+      "profile": "reader",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n5m\\x94@\\xfc\\xe8:L\\xa7\\xbb8\\xea\\xfd\\xab\\xb7\\xe88\\xf89\\xc6\\x96\\x94\\\\$\\x89\\x856\\xb7z\\x0e\\xaa\\x09\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00B\\x00\\x00\\x002\\x02\\x02\\xc5%\\x1c\\xf4\\xc2\\x01\\xed\\xe7L\\x8e5d\\xdcm\\x02\\xe5\\x97\\xcb\\xc2\\x0f\\xbd\\x91\\xa8G\\x04\\xa9\\x11yu{\\xd0\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x002\\x00\\x00\\x002\\x00\\x80o]O\\x1e\\xcb\\xe7&\\xdf\\x17\\xb0\\x0b\\x14\\x8f\\xb6{'\\xa52\\x0b\\x19\\xb4\\xd1\\xb5&\\x85\\xcd\\x81YZ\\x16\\x88",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "pack_b64": "VElORUxQMwpUSU5FWjEAAaYBeNpFjcEOAiEMRO9+xpw56JVfMcZ0odmtImygmJgN/27x4vF1pm8OcA4lSl7h8Wglw6GFjV8Ef3HQz84W8JuzYpwOUNBS7WI1Uq2ydOUGfwyHRVL6eSYE6o3SXaKF15txaQp/doi9kortTHhKjibTUpIJd6o28/8xw8pTN77cjjcE"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.slim.stores-a-default",
+      "input": {
+        "bytes_b64": "VElORUlYMwrcemnwbL7xeqaAOkwvsI+thlEnlUD8/d2EPQ+KRaA6vwAAAAEAAAABAAAAiwAAAKYDA4jWSx3oQLzscajIo0Pn24eB8DdwwiS0sdwR0WG26fdBAAAAAAAAAAAAAACmAAAApgItqHZYvsJbwsCT34V/jD14YaItnnJDUZWl7N0WIGTrVA==",
+        "sha256": "8aab8d58b5a63fbc24a875055d9e753317a3ba3552777717126961408eacdcb9"
+      },
+      "intent": "a slim event leaves every default-valued field out; storing one is refused",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.slim-default",
+      "requires": [
+        "zlib"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n\\xdczi\\xf0l\\xbe\\xf1z\\xa6\\x80:L/\\xb0\\x8f\\xad\\x86Q'\\x95@\\xfc\\xfd\\xdd\\x84=\\x0f\\x8aE\\xa0:\\xbf\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x8b\\x00\\x00\\x00\\xa6\\x03\\x03\\x88\\xd6K\\x1d\\xe8@\\xbc\\xecq\\xa8\\xc8\\xa3C\\xe7\\xdb\\x87\\x81\\xf07p\\xc2$\\xb4\\xb1\\xdc\\x11\\xd1a\\xb6\\xe9\\xf7A\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xa6\\x00\\x00\\x00\\xa6\\x02-\\xa8vX\\xbe\\xc2[\\xc2\\xc0\\x93\\xdf\\x85\\x7f\\x8c=xa\\xa2-\\x9erCQ\\x95\\xa5\\xec\\xdd\\x16 d\\xebT",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "slim event stores a default it should omit"
+      }
+    }
+  ],
+  "family": "localpack",
+  "section": "2.8",
+  "suite_version": 1
+}

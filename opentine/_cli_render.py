@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 from pathlib import Path
 
 from rich.table import Table
@@ -98,9 +100,18 @@ def _save_run_receipt(run: Run, save: str | None, force: bool = False) -> Path:
     if save:
         _require_output_slot(output, force)
     run.save(output)
+    _report_cost(run)
     console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
     _print_run_tree(run)
     return output
+
+
+def _report_cost(run: Run) -> None:
+    """Tell a ``tine fan-out``/``run --parallel`` coordinator what this run cost."""
+    path = os.environ.get("OPENTINE_FANOUT_COST_FILE")
+    if path:
+        with contextlib.suppress(OSError):
+            Path(path).write_text(repr(float(run.cost_breakdown().total_cost)), "ascii")
 
 
 def _has_filters(query: Query) -> bool:

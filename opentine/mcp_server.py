@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import math
+import sys
 from itertools import islice
 from pathlib import Path
 from typing import Any
 
+from opentine._mcp_readonly import ReadOnlyTools
 from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
 from opentine._mcp_safety import confined_run as _confined_run
@@ -68,7 +70,6 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
     root = Path(runs_dir).resolve()
     if not root.exists():
         return []
-
     summaries: list[dict[str, Any]] = []
     paths, truncated = _scan_runs(root)
     found = [run for path in paths if (run := _confined_run(root, path))]
@@ -201,10 +202,13 @@ def diff_runs_text(run_a: str, run_b: str, runs_dir: str | Path = ".tine_runs") 
     return _bounded_text(lines)
 
 
-def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "."):
-    """Create an MCP server. Requires the optional ``mcp`` package (SDK 1.x or 2.x)."""
+def create_server(
+    runs_dir: str | Path = ".tine_runs", repo_path: str | Path = ".", *, read_only: bool = False
+):
+    """Create an MCP server (``read_only``: allowlisted read tools only). Needs ``mcp``."""
     server = server_class()("opentine")
     mcp = safe_errors(server)  # every tool error reaches the client sanitized
+    mcp = ReadOnlyTools(mcp) if read_only else mcp  # an allowlist of read tools
 
     @mcp.tool()
     def list_runs() -> list[dict[str, Any]]:
@@ -235,12 +239,11 @@ def create_server(runs_dir: str | Path = ".tine_runs", repo_path: str | Path = "
     from opentine._mcp_actions import register_actions_and_repository
 
     register_actions_and_repository(mcp, runs_dir, repo_path)
-
     return server
 
 
 def main() -> None:  # pragma: no cover - exercised manually with MCP clients
-    create_server().run()
+    create_server(read_only="--read-only" in sys.argv[1:]).run()
 
 
 if __name__ == "__main__":  # pragma: no cover

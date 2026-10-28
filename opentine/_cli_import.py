@@ -53,19 +53,19 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
+from opentine._cli_import_fleet import add_extra_args, check_fleet, import_fleet
 from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spelling of "-"
 from opentine._cli_import_read import detect_and_read
 from opentine._cli_import_read import read_events as read_events  # re-exported entry point
 from opentine._cli_import_sessions import print_sessions, resolve
 from opentine._cli_json_surface import emit_import
 from opentine._import_billing import distrust_source_billing, mark_unpriced
+from opentine._import_write import record
 from opentine._pricing_pass import price_events
 from opentine.core import Run
 from opentine.repo import Repo
-from opentine.repository._annotations import write_run_annotation
 from opentine.trace._import_detect import TRANSCRIPT_FORMATS
 from opentine.trace._transcript_common import capture_marker
-from opentine.trace.recorder import Recorder
 from opentine.trace.schema import TraceEvent
 
 FRAMEWORK_FORMATS = ("langchain", "llamaindex", "autogen", "crewai", "openai-agents")
@@ -110,6 +110,7 @@ def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
     parser.add_argument(
         "--force", action="store_true", help="Replace an existing --save destination"
     )
+    add_extra_args(parser)  # --fleet, --adapter
     parser.add_argument(
         "--price",
         action="store_true",
@@ -120,6 +121,7 @@ def add_import_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
 
 def _refuse_unusable_flags(args: argparse.Namespace) -> None:
     """Refuse a flag this invocation cannot honour instead of dropping it."""
+    check_fleet(args)
     if not args.save and not args.repo:
         console.print(
             "[red]Nothing to write: pass --save PATH for a portable .tine artifact, "
@@ -143,21 +145,9 @@ def _refuse_unusable_flags(args: argparse.Namespace) -> None:
         )
 
 
-def _record(repo: Repo, events: list[TraceEvent], ref: str, capture: dict | None) -> str:
-    recorder = Recorder.start(repo, ref=ref, capture=False)
-    recorder.import_events(events, trusted_billing=True)  # distrusted + priced above
-    run_id = recorder.finalize()
-    if capture:
-        # A transcript is the agent's own, agent-writable account of itself.
-        write_run_annotation(repo, run_id, {"capture": capture}, [])
-    return run_id
-
-
-def _persist(
-    repo: Repo, events: list[TraceEvent], ref: str, output: Path | None, capture: dict | None
-) -> Run:
+def _persist(repo: Repo, events: list[TraceEvent], ref, output, capture, source_format) -> Run:
     """Record the events and read the run back, before any scratch repo is gone."""
-    run = repo.load_run(_record(repo, events, ref, capture))
+    run = repo.load_run(record(repo, events, ref, capture, source_format))
     if output is not None:
         run.save(output)
     return run
@@ -195,7 +185,7 @@ def cmd_import(args: argparse.Namespace) -> None:
     repo_path = None
     capture = None
     try:
-        source_format, events = detect_and_read(args.source, args.format)
+        source_format, events = detect_and_read(args.source, args.format, args.adapter)
     except (OSError, RecursionError, ValueError) as exc:
         raise _refused(exc) from exc
     if not events:
@@ -206,7 +196,7 @@ def cmd_import(args: argparse.Namespace) -> None:
             f"as --format {_terminal(source_format)}.[/]"
         )
         raise SystemExit(1)
-    if source_format in TRANSCRIPT_FORMATS:
+    if source_format in TRANSCRIPT_FORMATS or args.adapter:
         capture = capture_marker(source_format)
     events = distrust_source_billing(events)  # an import never claims a free call
     if getattr(args, "price", False):
@@ -222,10 +212,14 @@ def cmd_import(args: argparse.Namespace) -> None:
         if args.repo:
             repo = Repo.open(args.repo)
             repo_path = repo.path
-            run = _persist(repo, events, ref, output, capture)
+            if getattr(args, "fleet", False):
+                return import_fleet(args, repo, events, ref, capture, source_format)
+            run = _persist(repo, events, ref, output, capture, source_format)
         else:
             with tempfile.TemporaryDirectory(prefix="tine-import-") as scratch:
-                run = _persist(Repo.init(Path(scratch) / "import"), events, ref, output, capture)
+                run = _persist(
+                    Repo.init(Path(scratch) / "import"), events, ref, output, capture, source_format
+                )
     except (OSError, RecursionError, ValueError) as exc:
         raise _refused(exc) from exc
     if getattr(args, "json", False):

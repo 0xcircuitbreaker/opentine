@@ -1,4 +1,4 @@
-"""The 33 conformance ops, answered by the reference implementation.
+"""The 34 conformance ops, answered by the reference implementation.
 
 This module, ``adapter_repo`` and ``adapter_write`` are the only place an
 **answer** is produced. A third-party adapter replaces exactly these three files
@@ -26,6 +26,7 @@ import hmac
 from dataclasses import dataclass
 from typing import Any
 
+from opentine._actions_manifest import signed_message as actions_message
 from opentine._artifact_io import parse_artifact_json
 from opentine._attest_view import ATTEST_SCHEMES, SIGNATURE_KEY
 from opentine._attest_view import signed_message as attest_message
@@ -44,6 +45,7 @@ from opentine.kernel import (
     validate_links,
 )
 from opentine.redaction import redact_blob, redact_value
+from tests.conformance import adapter_agent as agent_ops
 from tests.conformance import adapter_repo as repo_ops
 from tests.conformance import adapter_write as write_ops
 from tests.conformance.keys import KEYS
@@ -176,6 +178,7 @@ _MESSAGE_BUILDERS = {
     "tine-sig/1": artifact_message,
     "tine-sig/2": artifact_message,
     "tine-attest/1": attest_message,
+    "tine-actions/1": actions_message,
 }
 
 
@@ -256,4 +259,5 @@ OPS = {
     "redact.value": op_redact_value,
     **repo_ops.OPS,
     **write_ops.OPS,
+    **agent_ops.OPS,
 }

@@ -17,7 +17,16 @@ from pathlib import Path
 
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
-from opentine.repository._config import STORAGE_VERSION, read_config
+from opentine.repository import _winretry
+from opentine.repository._config import (
+    STORAGE_V3,
+    STORAGE_VERSION,
+    STORAGE_VERSIONS,
+    V3_NOTE,
+    read_config,
+    storage_version,
+)
+from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import oid_of, pack_set
@@ -45,7 +54,10 @@ def footprint(tine: Path) -> tuple[int, int]:
     for name in ("objects", "packs"):
         for directory, _, files in os.walk(internal_path(tine, name)):
             for file in files:
-                info = os.lstat(os.path.join(directory, file))
+                try:
+                    info = os.lstat(os.path.join(directory, file))
+                except FileNotFoundError:  # a writer's temporary file, renamed meanwhile
+                    continue
                 total += info.st_size
                 disk += getattr(info, "st_blocks", 0) * 512 or info.st_size
     return total, disk
@@ -55,21 +67,45 @@ def enable_storage(repo, codec: str) -> None:
     """Upgrade a version-1 descriptor to version 2 with *codec*, keeping other keys."""
     path = internal_path(repo.path, "config.json")
     config = read_config(path)
-    if config.get("version") == STORAGE_VERSION:
+    if config.get("version") in STORAGE_VERSIONS:
         return
     config.update(version=STORAGE_VERSION, storage={"compression": codec})
     atomic_bytes(path, canonical_json(config) + b"\n")
     repo._storage_codec = codec
 
 
-def _loose_oids(repo) -> list[str]:
-    return [oid for oid in repo.iter_oids() if repo._object_path(oid).is_file()]
+def set_storage_version(repo, version: int, codec: str) -> None:
+    """Write descriptor *version* (2 or 3), keeping every other key."""
+    path = internal_path(repo.path, "config.json")
+    config = read_config(path)
+    config.update(version=version, storage={"compression": codec})
+    config.pop("note", None)
+    if version == STORAGE_V3:
+        config["note"] = V3_NOTE
+    atomic_bytes(path, canonical_json(config) + b"\n")
+    repo._storage_codec = codec
+
+
+def pack_format(repo) -> int:
+    """The pack format a write uses now: 3 in a v3 repository, else 1.
+
+    Read from the descriptor each time, never cached: a process that opened the
+    repository before an upgrade or downgrade must follow it.
+    """
+    config = read_config(internal_path(repo.path, "config.json"))
+    return 3 if storage_version(config) == STORAGE_V3 else 1
+
+
+def _loose_oids(repo, min_age: float = 0.0) -> list[str]:
+    return sorted(old_loose(repo.path, min_age))
 
 
 def _remove_loose(repo, oid: str) -> None:
-    # The emptied prefix directory is left in place: removing it could race a
-    # concurrent writer that has just created it to install a new object.
-    repo._object_path(oid).unlink(missing_ok=True)
+    # The emptied fan-out directory goes too (rmdir removes only an empty one); a
+    # writer that raced it recreates it (``atomic_bytes`` retries).
+    path = repo._object_path(oid)
+    path.unlink(missing_ok=True)
+    remove_empty_dir(path.parent)
 
 
 @contextmanager
@@ -96,7 +132,7 @@ def gc_lock(root: Path) -> Iterator[None]:
         os.close(fd)
         yield
     finally:
-        path.unlink(missing_ok=True)
+        _winretry.unlink(path)  # contenders read the stamp briefly (Windows)
 
 
 def gc(
@@ -106,24 +142,49 @@ def gc(
     codec: str | None = None,
     level: int | None = GC_LEVEL,
     keep_transfer_packs: bool = False,
+    min_age: float = 0.0,
+    merge_packs: list[str] | None = None,
+    upgrade: bool = False,
+    downgrade: bool = False,
 ) -> GcResult:
+    """Pack loose objects (only those *min_age* seconds old or older).
+
+    ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
+    ``upgrade`` moves the repository to storage version 3 and rewrites every
+    pack in that format; ``downgrade`` rewrites every pack in the version-1
+    pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
+    Neither ever happens implicitly.
+    """
+    if upgrade and downgrade:
+        raise ValueError("choose one of --upgrade and --downgrade")
     configured = getattr(repo, "_storage_codec", None)
     chosen = codec or (configured if configured not in (None, "none") else None)
     chosen = chosen or _codec.default_codec()
     if not _codec.available(chosen):
         raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
     with gc_lock(repo.path):
-        return _gc_locked(repo, repack, chosen, level, keep_transfer_packs)
+        if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
+            set_storage_version(repo, STORAGE_V3, chosen)
+        args = (repo, repack or upgrade or downgrade, chosen, level, keep_transfer_packs)
+        result = _gc_locked(*args, min_age, merge_packs, 1 if downgrade else None)
+        if downgrade:  # descriptor last: until then 0.12 must keep refusing
+            set_storage_version(repo, STORAGE_VERSION, chosen)
+        return result
 
 
-def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool) -> GcResult:
+def _gc_locked(
+    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, min_age, merge_packs, fmt
+) -> GcResult:
     before = footprint(repo.path)
     enable_storage(repo, chosen)
+    fmt = fmt or pack_format(repo)
     packs = pack_set(repo.path)
     packs.refresh()
-    old_packs = sorted({place[0] for place in packs.where.values()}) if repack else []
-    loose = _loose_oids(repo)
-    selected = sorted(set(loose) | (set(packs.oids()) if repack else set()))
+    held = {place[0] for place in packs.where.values()}
+    old_packs = sorted(held if repack else held & set(merge_packs or ()))
+    loose = _loose_oids(repo, min_age)
+    carried = {oid for oid, place in packs.where.items() if place[0] in old_packs}
+    selected = sorted(set(loose) | carried)
     objects: list[tuple[str, bytes]] = []
     for oid in selected:
         raw = repo.raw(oid)
@@ -132,7 +193,7 @@ def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool
         objects.append((oid, raw))
     removed_packs = 0
     if objects:
-        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9)
+        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9, fmt)
         check = load_pack(repo.path, digest)
         expected = dict(objects)
         for oid in check.in_block_order():  # read back before anything is deleted
@@ -156,6 +217,7 @@ def _gc_locked(repo, repack: bool, chosen: str, level, keep_transfer_packs: bool
                 internal_path(repo.path, "packs", name).unlink()
                 transfer += 1
     packs.refresh()
+    sweep_empty_fanout(repo.path)
     after = footprint(repo.path)
     return GcResult(
         len(objects), len(loose), removed_packs, transfer, *before[:1], after[0],

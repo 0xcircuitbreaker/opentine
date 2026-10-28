@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+from opentine import _cli_who_trust as who_trust
 from opentine._actions import extract_actions
 from opentine._actions_db import ActionIndex, SyncReport
 from opentine._actions_policy import evaluate, load_policy
@@ -24,6 +25,8 @@ from opentine._actions_query import (
     redacted_misses,
 )
 from opentine._actions_source import open_repo, open_runs_dir
+from opentine._cli_actions_sign import require_signed, sign_or_verify
+from opentine._cli_agent import cmd_agent
 from opentine._cli_common import _find_run, _runs_dir, _terminal, console
 from opentine._cli_who_parser import _FILTERS, add_actions_parsers
 from opentine._cli_who_render import emit_or_print, print_audit, render_actions, render_groups
@@ -68,6 +71,25 @@ def _coverage(index: ActionIndex, query: ActionQuery) -> dict[str, int]:
     return {**index.coverage(), "redacted_unmatched": redacted_misses(index, query)}
 
 
+def _matched(args: argparse.Namespace, query: ActionQuery) -> tuple[list, dict, dict]:
+    """Matching actions (re-checked, see ``_cli_who_trust``), coverage, trust states."""
+    index, report = _open(args)
+    with index:
+        try:
+            trust = who_trust.resolver(args, index)
+            who_trust.apply_refs(args, query, index, trust)
+        except (OSError, ValueError) as exc:
+            _fail(str(exc))
+        matched = find(index, query)
+        coverage = _coverage(index, query)
+        verified_only = bool(getattr(args, "verified_only", False))
+        matched = who_trust.screen(
+            matched, trust, verified_only=verified_only, by_ref=bool(query.agent_refs)
+        )
+        states = who_trust.states(matched, trust)
+    return matched, coverage, states
+
+
 def cmd_who(args: argparse.Namespace) -> None:
     try:
         query = _query(args)
@@ -75,24 +97,21 @@ def cmd_who(args: argparse.Namespace) -> None:
     except ActionQueryError as exc:
         _fail(str(exc))
         return
-    index, report = _open(args)
-    with index:
-        matched = find(index, query)
-        coverage = _coverage(index, query)
+    matched, coverage, states = _matched(args, query)
     limit = args.limit if args.limit and args.limit > 0 else None
     if args.list:
         emit_or_print(
             args,
             "who",
             {
-                "actions": [a.to_dict() for a in matched[:limit]],
+                "actions": [{**a.to_dict(), "trust": states[a.run_id]} for a in matched[:limit]],
                 "matched": len(matched),
                 "coverage": coverage,
             },
-            lambda: render_actions("Matching actions", matched[:limit], coverage),
+            lambda: render_actions("Matching actions", matched[:limit], coverage, trust=states),
         )
         return
-    groups = group(matched, keys, program=query.program)[:limit]
+    groups = group(matched, keys, program=query.program, trust=states)[:limit]
     emit_or_print(
         args,
         "who",
@@ -110,11 +129,8 @@ def cmd_touched(args: argparse.Namespace) -> None:
     except ActionQueryError as exc:
         _fail(str(exc))
         return
-    index, report = _open(args)
-    with index:
-        matched = find(index, query)
-        coverage = _coverage(index, query)
-    groups = group(matched, keys)
+    matched, coverage, states = _matched(args, query)
+    groups = group(matched, keys, trust=states)
     emit_or_print(
         args,
         "touched",
@@ -148,14 +164,25 @@ def cmd_actions(args: argparse.Namespace) -> None:
     except (KeyError, OSError, ValueError) as exc:
         _fail(f"Cannot load run: {exc}")
         return
+    if args.sign or args.verify:
+        sign_or_verify(args, run)
+        return
     actions, truncated = extract_actions(run)
     if args.verb:
         actions = [action for action in actions if args.verb in action.verbs]
+    resolver = who_trust.resolver(args)
+    resolver.adopt(run)
+    trust = resolver.trust(run.id).state
     emit_or_print(
         args,
         "actions",
-        {"run_id": run.id, "actions": [a.to_dict() for a in actions], "truncated": truncated},
-        lambda: render_actions(f"Actions in {run.id}", actions, None, timeline=True),
+        {
+            "run_id": run.id,
+            "actions": [a.to_dict() for a in actions],
+            "truncated": truncated,
+            "trust": trust,
+        },
+        lambda: render_actions(f"Actions in {run.id} ({trust})", actions, None, timeline=True),
     )
 
 
@@ -176,6 +203,7 @@ def cmd_audit(args: argparse.Namespace) -> None:
         coverage["redacted_commands"] = index.count(
             "WHERE redacted = 1 AND (verbs LIKE '%,exec,%' OR verbs LIKE '%,other,%')"
         )
+        trust = require_signed(args, index)
     partial = any(
         coverage[key] for key in ("unreadable_runs", "truncated_runs", "redacted_commands")
     )
@@ -190,7 +218,7 @@ def cmd_audit(args: argparse.Namespace) -> None:
         for v in violations
     ]
     failed = bool(denied) or (args.strict and bool(violations))
-    failed = failed or (partial and not args.allow_partial)
+    failed = failed or (partial and not args.allow_partial) or bool(trust["unverified"])
     emit_or_print(
         args,
         "audit",
@@ -200,13 +228,20 @@ def cmd_audit(args: argparse.Namespace) -> None:
             "ok": not failed,
             "partial": partial,
             "coverage": coverage,
+            "signatures": trust,
         },
-        lambda: print_audit(violations, len(rules), coverage),
+        lambda: print_audit(violations, len(rules), coverage, trust),
     )
     if failed:
         raise SystemExit(1)
 
 
-COMMANDS = {"who": cmd_who, "actions": cmd_actions, "touched": cmd_touched, "audit": cmd_audit}
+COMMANDS = {
+    "agent": cmd_agent,
+    "who": cmd_who,
+    "actions": cmd_actions,
+    "touched": cmd_touched,
+    "audit": cmd_audit,
+}
 
 __all__ = ["COMMANDS", "add_actions_parsers", "cmd_actions", "cmd_audit", "cmd_touched", "cmd_who"]

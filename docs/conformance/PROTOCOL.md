@@ -4,7 +4,7 @@
 program is the only thing you have to build to run this suite; the runner, the
 scoring, the pairing and the report already exist.
 
-One process handles the whole run. Process-per-vector was rejected: 524 cases
+One process handles the whole run. Process-per-vector was rejected: 550 cases
 must be fast, and a read-a-line / write-a-line loop is the cheapest thing to
 implement correctly in Rust, Go or TypeScript.
 
@@ -130,7 +130,7 @@ recipe is exactly as trustworthy as a literal. Check it before you use it.
 
 ## The ops
 
-`MANIFEST.ops` is the machine-readable table: for each of the 33 ops it gives
+`MANIFEST.ops` is the machine-readable table: for each of the 36 ops it gives
 the profile, the input spellings it may receive, the arg names it may be given,
 the output field names, which of those are unordered, and any capability *every*
 case of that op requires. The `input` and `requires` columns are derived from the

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository._lockfile import acquire
+from opentine.repository import _winretry
 from opentine.repository._paths import durable_directory, internal_path
 from opentine.repository._reflog import append_reflog, reflog_entry
 
@@ -17,8 +17,8 @@ MAX_REF_BYTES = 256
 
 def read_ref_oid(base: Path, normalized: str) -> str | None:
     path = internal_path(base, "refs", *Path(normalized).parts)
-    try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:  # Windows: a ref mid-replace (delete pending) is briefly unopenable
+        fd = _winretry.open_fd(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except FileNotFoundError:
         return None
     try:
@@ -69,20 +69,22 @@ def commit_ref(
     # sibling ref "<ref>.new", so updating "x" would fail against, and then in its
     # cleanup delete, the live lock held by a writer of "x.new".
     write_path = ref_path.with_name(ref_path.name + "..lock")
+    from opentine.repository._ref_txn import locked_after_recovery
+
     try:
         # The lock records pid/host/time; one left by a crashed writer on this
         # host is broken automatically, anything else is reported, never guessed.
-        guard_fd = acquire(lock_path)
-    except FileExistsError as exc:
+        # A crashed multi-ref transaction is rolled forward first (_ref_txn).
+        locked_after_recovery(base, [lock_path])
+    except ValueError as exc:
         raise ValueError(
             f"ref {normalized!r} is locked by a concurrent writer ({lock_path}); if no "
             "opentine process is writing this repository, delete that file"
         ) from exc
+    guard_fd = -1
     write_fd = -1
     ref_replaced = False
     try:
-        with os.fdopen(guard_fd, "wb"):
-            guard_fd = -1
         old = read_ref_oid(base, normalized)
         if check_expected and old != expected_old:
             raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
@@ -93,7 +95,7 @@ def commit_ref(
             handle.write((new_oid + "\n").encode("ascii"))
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(write_path, ref_path)
+        _winretry.replace(write_path, ref_path)  # readers hold refs open briefly
         ref_replaced = True
         _fsync_dir(ref_path.parent)
         append_reflog(base, normalized, entry)
@@ -104,7 +106,11 @@ def commit_ref(
                     os.close(descriptor)
                 except OSError:
                     pass
-        write_path.unlink(missing_ok=True)
-        lock_path.unlink(missing_ok=True)
+        try:
+            _winretry.unlink(write_path)
+        except PermissionError:  # still held: it is not a ref, and O_EXCL reports it
+            pass
+        # Lock contenders (and prune's scan) read the lock briefly; outlast them.
+        _winretry.unlink(lock_path)
         if ref_replaced:
             _fsync_dir(ref_path.parent)

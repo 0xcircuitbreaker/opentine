@@ -61,7 +61,25 @@ def _claim(force: bool, *paths: str | None) -> None:
             _refuse(f"{_terminal(existing)} already exists; pass --force.")
 
 
+def _agent_paths(args: argparse.Namespace) -> None:
+    """``--agent NAME``: the key goes to this user's agent-key directory, nowhere else."""
+    from opentine._agent_keys import key_paths
+
+    if args.out or args.pub or args.stdout or args.hmac:
+        _refuse(
+            "--agent cannot be combined with --out/--pub/--stdout/--hmac: it writes its own files."
+        )
+    try:
+        private, public = key_paths(args.agent)
+    except ValueError as exc:
+        _refuse(_terminal(exc))
+    private.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    args.out, args.pub = str(private), str(public)
+
+
 def cmd_keygen(args: argparse.Namespace) -> None:
+    if getattr(args, "agent", None):
+        _agent_paths(args)
     _refuse_flags(args)
     if getattr(args, "hmac", False):
         _claim(args.force, args.out)
@@ -90,4 +108,16 @@ def cmd_keygen(args: argparse.Namespace) -> None:
         console.print(f"public (hex): {public}")
 
 
-__all__ = ["HMAC_KEY_BYTES", "cmd_keygen"]
+def add_keygen_parser(sub) -> None:
+    keygen = sub.add_parser("keygen", help="Generate an Ed25519 keypair, or an HMAC key")
+    keygen.add_argument("--out", help="Write the private key here (mode 0600)")
+    keygen.add_argument("--pub")
+    keygen.add_argument("--force", action="store_true", help="Overwrite an existing key file")
+    keygen.add_argument("--hmac", action="store_true", help="A 32-byte HMAC key, as hex")
+    keygen.add_argument("--stdout", action="store_true", help="Print the private key instead")
+    keygen.add_argument(
+        "--agent", metavar="NAME", help="An agent signing key, kept in the user config dir"
+    )
+
+
+__all__ = ["HMAC_KEY_BYTES", "add_keygen_parser", "cmd_keygen"]

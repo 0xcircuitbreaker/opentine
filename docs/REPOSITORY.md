@@ -614,6 +614,15 @@ and an existing version-1 repository is never written compressed until
   (`OPENTINE_GC_BREAK_LOCK=1` forces it). Any other lock is reported with its
   path. An interrupted gc loses nothing and can be re-run.
 - `tine repack` merges every local pack into one.
+- `tine gc --upgrade` (0.13+, opt-in, never automatic) moves a repository to
+  storage version 3: packs of large single-kind blocks, run snapshots stored as
+  their parent plus the newly appended events, events without their empty
+  default fields, and a binary index. Every read rebuilds the original bytes
+  and checks them against the object id. About 2x smaller than version-2 packs
+  on recorded sessions. **opentine 0.12 and older refuse a version-3
+  repository** (`repository config is incompatible`); `tine gc --downgrade`
+  rewrites it for version 2 so they can open it again. Later `gc`, `repack`,
+  auto-pack and `prune` keep writing v3 packs in a version-3 repository.
 - `tine archive create FILE` writes the whole repository (objects, refs,
   shallow boundaries) as one compressed file; `tine archive restore FILE DEST`
   verifies the pack digest and every object id and sets refs through the

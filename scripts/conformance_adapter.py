@@ -38,6 +38,12 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Unterminated", "artifact.malformed-json"),
     ),
     "config.validate": (("JSON structure exceeds", "config.malformed"),),
+    "agent.ref": (
+        ("unknown field in agent identity", "agent.unknown-field"),
+        ("agent identity needs a harness", "agent.harness-missing"),
+        ("is not normalised", "agent.not-normalised"),
+        ("is malformed", "agent.field-malformed"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.
@@ -115,6 +121,16 @@ _CODES: tuple[tuple[str, str], ...] = (
     ("pack exceeds maximum transfer size", "pack.oversized"),
     ("pack has unresolved link", "pack.unresolved-link"),
     ("pack shallow boundaries do not match", "pack.shallow-not-link-closure"),
+    ("pack index checksum does not match", "localpack.index-checksum"),
+    ("pack index is truncated or has trailing bytes", "localpack.index-length"),
+    ("pack index entries are not sorted and unique", "localpack.index-order"),
+    ("pack index block is oversized", "localpack.block-size"),
+    ("run delta has no base before it", "localpack.delta-no-base"),
+    ("packed run delta chain is too deep", "localpack.delta-too-deep"),
+    ("packed object size does not match its index", "localpack.object-id-mismatch"),
+    ("packed object does not match its id", "localpack.object-id-mismatch"),
+    ("pack index entry is malformed", "localpack.encoding-kind"),
+    ("slim event stores a default", "localpack.slim-default"),
     ("payload must be an object", "sig.payload-not-object"),
     ("metadata must be an object", "sig.payload-not-object"),
 )

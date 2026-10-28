@@ -15,6 +15,7 @@ from typing import Any
 from rich.table import Table
 
 from opentine._actions import Action
+from opentine._agent_identity import lookalike
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_json import emit
 
@@ -64,10 +65,13 @@ def render_groups(
     table = Table(title=f"{matched} matching action(s)", header_style=f"bold {BRAND}")
     for key in keys:
         table.add_column(key)
+    trusted = any("trust" in row for row in groups)
     for column in ("actions", "errors", "runs", "first", "last", "sample runs"):
         table.add_column(
             column, justify="right" if column in ("actions", "errors", "runs") else "left"
         )
+    if trusted:
+        table.add_column("trust")
     for row in groups:
         table.add_row(
             *[_terminal(row[key]) for key in keys],
@@ -77,6 +81,7 @@ def render_groups(
             _when(row["first"]),
             _when(row["last"]),
             _terminal(", ".join(run[:12] for run in row["sample_runs"])),
+            *([_terminal(row.get("trust", ""))] if trusted else []),
         )
     console.print(table)
     _coverage_note(coverage)
@@ -90,8 +95,19 @@ def _detail(action: Action) -> str:
     return ", ".join([*action.paths, *action.hosts])
 
 
+def _agent(action: Action) -> str:
+    # A name that is not plain ASCII after NFKC may imitate another agent's.
+    flag = " (!look-alike)" if lookalike(action.agent) else ""
+    return _terminal(action.agent or "-") + flag
+
+
 def render_actions(
-    title: str, actions: list[Action], coverage: dict[str, int] | None, *, timeline: bool = False
+    title: str,
+    actions: list[Action],
+    coverage: dict[str, int] | None,
+    *,
+    timeline: bool = False,
+    trust: dict[str, str] | None = None,
 ) -> None:
     if not actions:
         console.print("[dim]No actions.[/]")
@@ -101,7 +117,7 @@ def render_actions(
     columns = (
         ("#", "time", "tool", "verb", "detail")
         if timeline
-        else ("run", "agent", "model", "tool", "verb", "detail")
+        else ("run", "agent", "trust", "model", "tool", "verb", "detail")
     )
     for column in columns:
         table.add_column(column)
@@ -114,7 +130,8 @@ def render_actions(
         else:
             table.add_row(
                 _terminal(action.run_id[:12]),
-                _terminal(action.agent or "-"),
+                _agent(action),
+                _terminal((trust or {}).get(action.run_id, "unsigned")),
                 _terminal(action.model or "-"),
                 _terminal(action.tool),
                 verbs,
@@ -124,7 +141,23 @@ def render_actions(
     _coverage_note(coverage)
 
 
-def print_audit(violations: list[Any], rules: int, coverage: dict[str, int]) -> None:
+def _signatures(trust: dict[str, Any] | None) -> None:
+    if not trust:
+        return
+    counts: dict[str, int] = {}
+    for state in trust["states"].values():
+        counts[state] = counts.get(state, 0) + 1
+    summary = ", ".join(f"{count} {state}" for state, count in sorted(counts.items()))
+    console.print(f"Signatures: {_terminal(summary or 'no runs')}.")
+    for run_id in trust["unverified"]:
+        state = trust["states"][run_id]
+        console.print(f"[red]not verified[/] {_terminal(run_id[:64])}: {_terminal(state)}")
+
+
+def print_audit(
+    violations: list[Any], rules: int, coverage: dict[str, int], trust: dict | None = None
+) -> None:
+    _signatures(trust)
     partial = any(
         coverage.get(key) for key in ("unreadable_runs", "truncated_runs", "redacted_commands")
     )
@@ -142,7 +175,7 @@ def print_audit(violations: list[Any], rules: int, coverage: dict[str, int]) -> 
         detail = action.command or ", ".join(action.paths) or action.tool
         console.print(
             f"[{color}]{violation.rule.level}[/] {_terminal(violation.rule.id)}: "
-            f"{_terminal(action.agent or '-')} {_terminal(action.run_id[:16])} "
+            f"{_agent(action)} {_terminal(action.run_id[:16])} "
             f"{_terminal(action.tool)} {_terminal(detail[:200])}"
         )
 

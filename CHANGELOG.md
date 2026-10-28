@@ -1,5 +1,264 @@
 # Changelog
 
+## 0.13.0 — 2026-10-26
+
+### Footprint I (no format change)
+
+No on-disk format change: 0.12 reads every repository 0.13 writes, and 0.13
+still reads every format back to 0.3.0.
+
+- **Auto-pack.** `Recorder.finalize()` packs cold loose objects once 256 (by
+  default) have piled up. It only runs on repositories already at storage
+  descriptor version 2; a version-1 repository is never upgraded. Loose
+  objects younger than 60 s are never packed. It takes the gc lock without
+  waiting and is skipped if a gc is running. It never fails a recording. Small
+  packs are merged so pack sizes stay a geometric progression. Turn it off
+  with `OPENTINE_AUTO_PACK=0`, or set a threshold with `OPENTINE_AUTO_PACK=N`
+  or `"auto_pack": false | {"objects": N}` in `config.json` (0.12 ignores the
+  key).
+- **gc removes the empty fan-out directories it leaves** (`objects/<kind>/<xx>`),
+  and the empty directories older releases left behind. A writer that races
+  the removal retries.
+- **`tine du`**: footprint by kind, run or ref (`--by`). It shows canonical
+  and stored bytes, loose and packed objects, fan-out directories, refs, logs
+  and indexes. `--json` is supported.
+- **`tine prune`**: a dry run by default; `--delete` removes. Only objects
+  that are unreachable and older than `--older-than` (default 14 days, never
+  under 60 s) are candidates. Roots include:
+  - every ref (including tags) and every reflog row
+  - annotations and attestations
+  - the shallow boundary and `worktrees/`
+  - any other repository file outside the object store
+  - runs named by the git checkout's `Tine-Run` trailers and `refs/notes/tine`
+
+  If a root source can't be read, prune deletes nothing.
+- **Pruning is safe against a live writer.** Re-storing an object that already
+  exists now refreshes it: a loose file's mtime, or a pack's at most hourly.
+  An object a writer is about to reference again is therefore never old
+  enough to prune. The delete takes the gc lock, plans again, checks each age
+  again, and rewrites packs (writing and reading back first) instead of
+  editing them.
+- **Reflog expiry** runs with `tine prune`. It is conservative by default:
+  rows older than 90 days *and* beyond the newest 100 per ref go. The row for
+  the ref's current target always stays, and tag reflogs never expire. Set it
+  with `--reflog-expire DAYS` or `"reflog": {"expire_days": N, "keep": N}`.
+  Each log is rewritten under its ref's own lock, and a ref that is locked is
+  skipped.
+
+### Footprint II: storage version 3 (opt-in)
+
+The one format change in 0.13, and only when asked for: `tine gc --upgrade`.
+Object ids, digests and signatures do not change. opentine 0.12 and older
+refuse a version-3 repository at open (`repository config is incompatible`);
+`tine gc --downgrade` returns it to version 2. 0.13 still reads every format
+back to 0.3.0, and v2 and v3 packs side by side.
+
+- **v3 packs**: blocks of up to 16 MiB, one object kind per block, blobs and
+  events in recording order. A block of several objects is capped at 16 MiB
+  inflated, checked against the index before inflating. Readers keep a small
+  cache of inflated blocks (64 MiB).
+- **Run snapshots as deltas**: a snapshot is stored as the previous snapshot
+  in its block plus the newly appended events (and any changed fields), with
+  a full snapshot at least every 32. Chains are walked iteratively and capped
+  at 64; a delta never starts a block, so a chain cannot loop.
+- **Slim events**: fields holding their empty default are left out in the
+  pack and restored on read.
+- **Binary pack index** with a trailing SHA-256, exact-length and tiling checks
+  before any field is trusted.
+- Every read rebuilds the canonical bytes and checks them (and every delta
+  base) against the object id, failing closed. `fsck` reads every object of
+  every pack and reports a v3 pack in a repository below version 3.
+- On the recorded-session benchmark (20 runs × 30 events, 13.5 MB of
+  canonical objects) `tine gc --upgrade` takes the repository from about
+  89 KB to about 38 KB per run on disk; the packs alone go from 74 KB to
+  23 KB per run (reflogs and the index are most of the rest).
+- Conformance: new `localpack.read` op and `29-localpack.json` vectors
+  (binary index, blocks, stored forms, delta and bomb bounds); the adapter
+  contract grows by one op.
+
+### Branch engine: crash-safe refs, fan-out and worktrees
+
+- **`Repo.update_refs`**: move several refs at once, all or none. Every row is
+  compare-and-swap. Locks are taken in sorted order, then a journal
+  (`txn/<id>.json`, `opentine-ref-txn/1`) is written durably as the commit
+  point, then the refs and their reflog rows. A writer killed before the
+  journal changed nothing; one killed after it is rolled forward by the next
+  ref write anywhere in the repository (`Repo.recover_refs()` does it on
+  demand). Roll-forward is itself compare-and-swap and never clobbers a ref
+  moved since. A malformed or tampered journal (illegal ref, missing object,
+  wrong type, extra fields) is never applied: it is renamed `<id>.rejected`.
+- **Ref deletes take a stamped lock.** `tine branch -d` and the other delete
+  paths wrote an empty `.lock`, which a crash left behind for good; they now
+  record pid/host/time like every other ref lock, so a dead one is broken.
+- **`tine fan-out RUN [--from-step N] --vary model=a,b [--repeat K] -- CMD`**:
+  one fork per member from a single fork point. The run is walked once for all
+  N forks, every `experiments/fanout/<id>/<n>` ref is written in one
+  transaction, and the fan-out is recorded as an annotation on RUN
+  (`opentine.fanout.<id>`, no new object type). CMD runs per member as an argv
+  list (never a shell) with `{model}`, `{run}`, `{ref}`, `{index}` and every
+  `--vary` name substituted in one non-recursive pass. A value that would
+  stand alone as an argument and starts with `-` is refused. Without CMD the
+  forks are only prepared.
+- **`tine run --parallel N`** runs the same `tine run` invocation N times
+  (times every `--vary` combination), each member saving its own run;
+  `--save` and the autosave flags are refused with it.
+- Both take `--jobs` (never exceeded), `--timeout` per member, `--budget USD`,
+  `--env NAME`, `--log-dir`, `--json` (NDJSON status, one object per event,
+  never argv, env or variation values) and `--resume ID`. Members start in a
+  fresh process group (Linux subreaper) or a kill-on-close Job Object
+  (Windows) and are killed with their whole process tree on timeout, budget,
+  stop or Ctrl-C, and after a normal exit too.
+- **Shared budget ledger** (`budget.SharedLedger`): members report their
+  cumulative cost in `$OPENTINE_FANOUT_COST_FILE` (`tine run` writes it);
+  reports are taken under one lock and can never double-count. Once the total
+  reaches `--budget`, running members are killed and nothing else starts. With
+  a budget set, a member that ends without a readable cost closes the budget
+  too (fail closed).
+- **Member environment is an allowlist**: `PATH`, `HOME`, locale, temp and the
+  Windows system variables, plus the `OPENTINE_FANOUT_*`/`OPENTINE_VARY_*`
+  variables. API keys and signing keys reach a member only when named with
+  `--env`.
+- **`--resume ID`** reruns only the members that did not finish (`ok` or
+  `failed`). The state file (`.tine/fanouts/<id>.json`, or
+  `.tine_runs/parallel/` for `run --parallel`) is validated field by field and
+  holds no command: resume takes the command again and refuses one whose
+  digest differs, so a planted state file cannot choose what runs. The spend
+  already recorded counts against the budget.
+- **`tine worktree add PATH REF [--git [COMMIT]]`, `list`, `remove [--force]`,
+  `prune`**: an isolated directory per branch, registered at
+  `.tine/worktrees/<name>.json` (a prune root) and marked with a
+  `.tine-worktree` file. `--git` also makes it a detached `git worktree`.
+  Names are one safe component; a symlinked target, one inside the repository,
+  or a non-empty directory is refused. `remove` deletes a directory only when
+  its own marker names this repository and worktree, so an edited registry
+  cannot point it at another directory; `prune` only drops registrations.
+  `tine fan-out --worktree-dir DIR` gives every member its own worktree.
+- **`tine rebase`/`tine cherry-pick --ref NAME`** refuse to move an existing ref
+  unless `--force` is given (0.12.1 review).
+
+### Agent identity and signed actions
+
+Additive: old runs, repositories and indexes keep working, and 0.12 ignores
+the new metadata key and manifest files.
+
+- **`opentine-agent/1` identities.** A harness run now records
+  `metadata.agent_identity`: harness, model, provider, a digest of the agent's
+  definition files (`CLAUDE.md`, `.claude/agents/*.md`, `AGENTS.md`, ... --
+  hashed, never stored), an optional signing-key fingerprint, a per-run
+  instance nonce, and a claimed parent link for subagents. Its stable ref is
+  `agt_` + 128 bits. A run without one is `legacy:<harness>`, shown as unsigned.
+- **`tine agent id | show | trust | keys`.** `id` computes the ref an agent
+  would record; `show RUN|agt_...` prints identity, trust state and whether a
+  lineage link is verified; `trust` trusts `.tine/agents.toml`.
+- **`tine keygen --agent NAME`** writes an Ed25519 key to
+  `$XDG_CONFIG_HOME/opentine/agent-keys/` (0600), outside every repository.
+- **`.tine/agents.toml`** pins agent key fingerprints. Like `porcelain.json` it
+  is inert in a clone until `tine agent trust`; any edit revokes the trust.
+- **`tine-actions/1` signed action manifests.** `tine actions RUN --sign`
+  (`--agent NAME`, `--ed25519-key-file`, `--key-file`/`--key-env`) writes a
+  hash-chained manifest of the run's actions, bound to the run id and a digest
+  of its step graph, and signed with the existing `sign_block`. `--verify`
+  (`--pubkey`, `--pin`, HMAC key flags) recomputes it from the run.
+- **Every output shows a trust state**: `unsigned`, `verified`, `mismatch` or
+  `unknown-key` -- in `who`, `touched`, `actions`, `audit` and `agent show`.
+- **`tine audit --require-signed`** fails unless every run's manifest
+  verifies; `--pin` adds trusted keys.
+- **`tine who` / `touched`** gain `--agent-ref` (full refs only; prefixes are
+  refused), `--lineage REF` (an iterative walk over claimed parent links) and
+  `--verified-only`; `--by agent_ref` groups by ref.
+- The action index is now `ACTIONS_SCHEMA` 4 (agent refs). It is a cache, so
+  an older index is rebuilt on first use.
+- Security: a manifest moved onto another run is `mismatch`; a key other than
+  the identity's `key_fpr` is `mismatch`; a lineage link counts only when both
+  runs verify and the parent's signed manifest lists the child's spawn step;
+  look-alike names are NFKC-normalised before hashing and flagged when shown;
+  a planted `verified` column or `agent_ref` row in the sqlite index is
+  ignored, because every trust state is recomputed from the run and manifest;
+  agent strings reach the terminal escaped.
+- Conformance: `48-actions.json` and `49-agent.json` vectors, ops `agent.ref`
+  and `actions.chain`, and SPEC §4.8 and §4.9. The suite is now
+  **550 conformance vectors**; 209 of the 550 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+### Harness integrations and fleets (no format change)
+
+Additive run metadata only (`agent_identity`, `opentine.fleet`); older readers
+see ordinary runs and forks.
+
+- **`tine import --fleet`** (Claude Code, needs `--repo`): the session's own
+  events become the root run and each subagent a child run forked at the tool
+  step that spawned it (a nested subagent forks from its parent subagent).
+  Every member records an `opentine-agent/1` identity with `parent`,
+  `parent_run` and `spawn_step`; the root carries the `opentine.fleet`
+  manifest. A subagent with no spawning step (a stop without a start) becomes a
+  standalone child. Agent ids are clamped before naming
+  `heads/fleet/<root>/a-<agent>`. The fleet's cost counts shared steps once and
+  equals the single-run import's cost. Nested subagent links are now followed
+  in plain imports too.
+- **Transcript imports record an agent identity** (Claude Code, Codex, Gemini
+  CLI, Qwen Code, OpenCode, ATIF, Hermes) instead of reading as `legacy:`.
+- **`hermes-trajectory` importer** for Hermes Agent's ShareGPT-style JSONL
+  trajectories (`<tool_call>`/`<tool_response>`/`<think>` blocks; the last
+  record, or `FILE::N`). Detected by `--format auto`. Trajectories carry no
+  token counts, so their model steps stay unpriced. Tool blocks are bounded in
+  count and size and parsed with the stdlib JSON decoder only.
+- **`tine plugin export DIR --repo PATH`** writes a Claude Code plugin:
+  exec-form hooks running `python -I -m opentine.cli` (SessionEnd import,
+  SubagentStart/SubagentStop journal), read-only skills, and a `.mcp.json`
+  starting the MCP server with `--read-only`. It refuses to write inside
+  `~/.claude` or `$CLAUDE_CONFIG_DIR`, refuses symlinks and non-empty
+  directories without `--force`, and warns when the old-style hook would
+  import each session twice.
+- **`tine hook event`** journals subagent hook payloads read from stdin only
+  (clamped ids, `<repo>/journal/subagents.jsonl`, capped at 8 MiB, always exits
+  0). **`tine hook status`** no longer needs `--global` and lists the events
+  each CLI has installed. `--agent hermes` prints a `config.yaml` snippet and
+  never edits YAML.
+- **`python -m opentine.mcp_server --read-only`** registers an allowlist of
+  read tools only; write tools, and any tool added later, are left out.
+- **`AdapterSpec` SDK** (`opentine.adapters`): a harness importer in one file.
+  Third-party adapters are `opentine.adapters` entry points and are never
+  loaded unless allowlisted in `$XDG_CONFIG_HOME/opentine/adapters.json`; one
+  cannot shadow a built-in. The core enforces the source byte cap, the event
+  cap and the result type. `tine import --adapter NAME` and
+  `tine harnesses --check [NAME]`.
+- **ATIF export emits `subagent_trajectories`** instead of flattening: each
+  subagent's steps become an embedded trajectory referenced from the spawning
+  tool step's result, and import back as a typed subagent edge.
+- **`tine fleet up|status|stop|cost`** runs a declared `fleet.toml` (fan-out
+  or supervisor/workers) on the parallel executor. The manifest is refused
+  until `--trust` records the SHA-256 of its exact bytes; any edit revokes
+  trust. Commands are argument lists only, members see only allowlisted
+  environment variables, `cwd` stays inside the manifest's directory, workers
+  get the supervisor's parent link, and `stop` kills every member's process
+  tree. `fleet cost --repo PATH RUN` totals an imported fleet.
+
+### Security
+
+- **Ref transactions stay atomic on Windows.** A reader holding a ref or lock
+  file open made a post-commit rename fail, leaving a paired update half applied
+  and locks behind. Ref, journal, lock and prune reads/writes now retry Windows
+  sharing violations (bounded, then fail closed), and lock release never strands
+  the remaining locks.
+
+- **`tine prune` refuses (deletes nothing) when a stored object it must walk
+  cannot be read** -- corrupt bytes, or a pack whose codec (zstd) is not
+  installed. Only a truly absent object is skipped; before, everything reachable
+  only through an unreadable object could be deleted.
+- **Prune's age floor is now 70 minutes** (was 60 s), above the hourly
+  pack-freshen throttle, so a packed object a live recorder just reused can no
+  longer be pruned from under it.
+- **Ref transaction recovery tolerates a journal that vanishes after listing**
+  (finished by its owner or another recoverer) instead of failing the write
+  with `FileNotFoundError`.
+- **`--lineage --verified-only` follows only edges recomputed from the runs and
+  signed manifests**; an index row only nominates a run, so a forged row can no
+  longer graft an unrelated verified agent onto a lineage. Residual: the
+  parent's manifest lists spawn steps, not which child each spawned, so another
+  trusted-key run naming a real spawn step is still accepted.
+- **`tine fleet status`/`cost` escape member agent names, statuses and costs**,
+  and a member's reported cost is stored only if it is a number.
+
 ## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
 
 Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a

@@ -99,6 +99,8 @@ def with_subagents(
             left_out += 1
             continue
         found = builder.chain.events if builder.chain else []
+        for nested, span in builder.agents.items():  # a subagent's own subagents (0.13)
+            links.setdefault(nested, span)
         if len(combined) + len(found) + 1 > MAX_EVENTS:
             left_out += 1
             continue

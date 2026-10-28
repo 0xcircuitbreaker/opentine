@@ -1,0 +1,311 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "agent.cyrillic-lookalike",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "cl\u0430ude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a look-alike harness name (Cyrillic a) is a different agent, never the same ref",
+      "must_differ": true,
+      "op": "agent.ref",
+      "output": {
+        "hashed_b64": "b3BlbnRpbmUuYWdlbnQudjE6eyJkZWZpbml0aW9uX2RpZ2VzdCI6InNoYTI1NjpjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkIiwiaGFybmVzcyI6ImNs0LB1ZGUtY29kZSIsImtleV9mcHIiOiIiLCJtb2RlbCI6ImNsYXVkZS1vcHVzLTUtNSJ9",
+        "ref": "agt_3ede76d1e3e3dff9b718112c61ce40f5"
+      },
+      "profile": "verifier",
+      "section": "4.9",
+      "tier": "core",
+      "twin": "agent.worked-vector",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"cl\\u0430ude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "agent.fullwidth-harness",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "\uff43laude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a name NFKC would change is refused, not normalised in place",
+      "op": "agent.ref",
+      "profile": "verifier",
+      "reason": "agent.not-normalised",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"\\uff43laude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": {
+        "exception": "IdentityError",
+        "message": "agent identity field 'harness' is not normalised"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "agent.instance-and-lineage-excluded",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "efefefefefefefefefefefefefefefef",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "agt_0123456789abcdef0123456789abcdef",
+          "parent_run": "run-p",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "instance, parent and spawn fields do not change the ref",
+      "must_differ": false,
+      "op": "agent.ref",
+      "output": {
+        "hashed_b64": "b3BlbnRpbmUuYWdlbnQudjE6eyJkZWZpbml0aW9uX2RpZ2VzdCI6InNoYTI1NjpjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkIiwiaGFybmVzcyI6ImNsYXVkZS1jb2RlIiwia2V5X2ZwciI6IiIsIm1vZGVsIjoiY2xhdWRlLW9wdXMtNS01In0=",
+        "ref": "agt_7151540cb1895e1d66ae5b90f9a5012d"
+      },
+      "profile": "verifier",
+      "section": "4.9",
+      "tier": "core",
+      "twin": "agent.worked-vector",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"efefefefefefefefefefefefefefefef\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"agt_0123456789abcdef0123456789abcdef\", \"parent_run\": \"run-p\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "agent.key-bound",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "sha256:abababababababababababababababababababababababababababababababab",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "binding a signing key fingerprint gives a different agent",
+      "must_differ": true,
+      "op": "agent.ref",
+      "output": {
+        "hashed_b64": "b3BlbnRpbmUuYWdlbnQudjE6eyJkZWZpbml0aW9uX2RpZ2VzdCI6InNoYTI1NjpjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkIiwiaGFybmVzcyI6ImNsYXVkZS1jb2RlIiwia2V5X2ZwciI6InNoYTI1NjphYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwibW9kZWwiOiJjbGF1ZGUtb3B1cy01LTUifQ==",
+        "ref": "agt_e4750c45abb42e9811354f0e26857527"
+      },
+      "profile": "verifier",
+      "section": "4.9",
+      "tier": "core",
+      "twin": "agent.worked-vector",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"sha256:abababababababababababababababababababababababababababababababab\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "agent.no-harness",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a record must name a harness",
+      "op": "agent.ref",
+      "profile": "verifier",
+      "reason": "agent.harness-missing",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": {
+        "exception": "IdentityError",
+        "message": "agent identity needs a harness"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "agent.parent-prefix",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "agt_01234567",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a parent ref shorter than agt_ + 32 hex is refused",
+      "op": "agent.ref",
+      "profile": "verifier",
+      "reason": "agent.field-malformed",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"agt_01234567\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": {
+        "exception": "IdentityError",
+        "message": "agent identity field 'parent' is malformed"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "agent.unknown-field",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "role": "admin",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a record with an undefined key is refused",
+      "op": "agent.ref",
+      "profile": "verifier",
+      "reason": "agent.unknown-field",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"role\": \"admin\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": {
+        "exception": "IdentityError",
+        "message": "unknown field in agent identity"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "agent.upper-case-fingerprint",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "SHA256:ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "a fingerprint is lower-case hex in full",
+      "op": "agent.ref",
+      "profile": "verifier",
+      "reason": "agent.field-malformed",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"SHA256:ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": {
+        "exception": "IdentityError",
+        "message": "agent identity field 'key_fpr' is malformed"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "agent.worked-vector",
+      "input": {
+        "value": {
+          "definition_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "harness": "claude-code",
+          "harness_version": "",
+          "instance": "",
+          "key_fpr": "",
+          "model": "claude-opus-5-5",
+          "parent": "",
+          "parent_run": "",
+          "provider": "anthropic",
+          "scheme": "opentine-agent/1",
+          "spawn_step": ""
+        }
+      },
+      "intent": "the ref hashes harness, definition, model, key",
+      "op": "agent.ref",
+      "output": {
+        "hashed_b64": "b3BlbnRpbmUuYWdlbnQudjE6eyJkZWZpbml0aW9uX2RpZ2VzdCI6InNoYTI1NjpjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkIiwiaGFybmVzcyI6ImNsYXVkZS1jb2RlIiwia2V5X2ZwciI6IiIsIm1vZGVsIjoiY2xhdWRlLW9wdXMtNS01In0=",
+        "ref": "agt_7151540cb1895e1d66ae5b90f9a5012d"
+      },
+      "profile": "verifier",
+      "section": "4.9",
+      "tier": "core",
+      "x_display": "{\"definition_digest\": \"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"harness\": \"claude-code\", \"harness_version\": \"\", \"instance\": \"\", \"key_fpr\": \"\", \"model\": \"claude-opus-5-5\", \"parent\": \"\", \"parent_run\": \"\", \"provider\": \"anthropic\", \"scheme\": \"opentine-agent/1\", \"spawn_step\": \"\"}",
+      "x_reference": null
+    }
+  ],
+  "family": "agent",
+  "section": "4.9",
+  "suite_version": 1
+}

@@ -10,6 +10,7 @@ metadata (outside the digest) and is never authoritative.
 from __future__ import annotations
 
 import math
+import threading
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -115,3 +116,75 @@ class CostBreakdown:
     by_model: dict[str, float] = field(default_factory=dict)
     by_kind: dict[str, float] = field(default_factory=dict)
     by_ref: dict[str, float] = field(default_factory=dict)
+
+
+class SharedLedger:
+    """One cost budget shared by concurrent members (``tine fan-out --budget``).
+
+    Fail-closed and race-free: every read-modify-write holds one lock, a member
+    reports its *cumulative* cost (so a repeated or reordered report can never
+    double-count, and a report can never lower what was spent), and once the
+    total reaches the limit -- or a member's cost is unknown or malformed while a
+    limit is set -- the ledger is closed for good: :meth:`admit` refuses every
+    further start and :attr:`closed` tells running members to stop.
+    """
+
+    def __init__(self, max_cost: float | None = None, spent: dict[str, str] | None = None):
+        if max_cost is not None:
+            Budget(max_cost=max_cost)  # the same validation as a run budget
+        self.limit = None if max_cost is None else Decimal(str(max_cost))
+        self._lock = threading.Lock()
+        self._spent: dict[str, Decimal] = {}
+        self.reason: str | None = None
+        for member, value in (spent or {}).items():
+            self.report(member, value)
+
+    def _close(self, reason: str) -> None:
+        if self.reason is None:
+            self.reason = reason
+
+    @property
+    def closed(self) -> bool:
+        return self.reason is not None
+
+    def admit(self) -> bool:
+        """Whether one more member may start now."""
+        with self._lock:
+            return self.reason is None
+
+    def report(self, member: str, cumulative: object) -> bool:
+        """Record *member*'s cumulative cost; False once the budget is spent."""
+        with self._lock:
+            try:
+                value = Decimal(str(cumulative).strip())
+            except ArithmeticError:
+                value = Decimal("NaN")
+            if not value.is_finite() or value < 0:
+                if self.limit is not None:
+                    self._close("cost_completeness")
+                return self.reason is None
+            self._spent[member] = max(self._spent.get(member, Decimal(0)), value)
+            if self.limit is not None and self.total_locked() >= self.limit:
+                self._close("cost")
+            return self.reason is None
+
+    def unknown(self, member: str) -> None:
+        """A member finished without a cost: with a limit, nobody else starts."""
+        with self._lock:
+            if self.limit is not None and member not in self._spent:
+                self._close("cost_completeness")
+
+    def stop(self, reason: str = "stopped") -> None:
+        with self._lock:
+            self._close(reason)
+
+    def total_locked(self) -> Decimal:
+        return sum(self._spent.values(), Decimal(0))
+
+    def total(self) -> Decimal:
+        with self._lock:
+            return self.total_locked()
+
+    def spent(self) -> dict[str, str]:
+        with self._lock:
+            return {member: str(value) for member, value in self._spent.items()}

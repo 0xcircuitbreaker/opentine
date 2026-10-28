@@ -28,6 +28,8 @@ from opentine._cli_common import (
 )
 from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_export import cmd_export
+from opentine._cli_fanout import split_command
+from opentine._cli_fleet import COMMANDS as FLEET_COMMANDS
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
@@ -39,6 +41,7 @@ from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_media import COMMANDS as MEDIA_COMMANDS
 from opentine._cli_migrate import cmd_migrate
 from opentine._cli_parser import _add_filter_args, _add_harness_args, _build_parser
+from opentine._cli_plugin import COMMANDS as PLUGIN_COMMANDS
 from opentine._cli_render import (
     STATUS_COLORS,
     _budget_str,
@@ -95,6 +98,8 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **BISECT_COMMANDS,
     **MEDIA_COMMANDS,
     **HOOK_COMMANDS,
+    **PLUGIN_COMMANDS,
+    **FLEET_COMMANDS,
 }
 
 
@@ -103,7 +108,10 @@ def main(argv: list[str] | None = None) -> None:
     _common.RUNS_DIR = RUNS_DIR
     parser = _build_parser()
     argv = expand_alias(parser, list(sys.argv[1:] if argv is None else argv))
-    args = parser.parse_args(argv)
+    head, tail = split_command(argv)  # `tine fan-out ... -- CMD`: CMD is never parsed
+    args = parser.parse_args(head)
+    args.member_command = tail
+    args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
     guarded_dispatch(lambda: _dispatch(parser, args))
