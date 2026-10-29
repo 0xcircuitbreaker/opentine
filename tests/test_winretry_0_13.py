@@ -209,3 +209,32 @@ def test_a_persistent_resolve_denial_is_not_reported_as_an_escape(repo, monkeypa
     monkeypatch.setattr(Path, "resolve", denied)
     with pytest.raises(KernelError, match="cannot be inspected"):
         internal_path(repo.path, "refs")
+
+
+def test_an_extended_length_resolve_is_the_same_path_not_an_escape(repo, monkeypatch):
+    # Python 3.11 on Windows: realpath of a file mid-replace returns \\?\C:\...
+    from opentine.repository._paths import internal_path
+
+    real_resolve = Path.resolve
+
+    def extended(self, strict=False):
+        resolved = real_resolve(self, strict=strict)
+        return resolved if self == repo.path else Path("\\\\?\\" + str(resolved))
+
+    monkeypatch.setattr(Path, "resolve", extended)
+    assert internal_path(repo.path, "refs") == repo.path / "refs"
+
+
+def test_an_extended_unc_resolve_still_fails_closed(repo, monkeypatch):
+    from opentine.kernel import KernelError
+    from opentine.repository._paths import internal_path
+
+    real_resolve = Path.resolve
+
+    def unc(self, strict=False):
+        resolved = real_resolve(self, strict=strict)
+        return resolved if self == repo.path else Path("\\\\?\\UNC\\host\\share\\x")
+
+    monkeypatch.setattr(Path, "resolve", unc)
+    with pytest.raises(KernelError, match="escapes its root"):
+        internal_path(repo.path, "refs")

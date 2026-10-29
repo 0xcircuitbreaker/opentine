@@ -9,8 +9,11 @@
   retry the rest of 0.13 uses, so a reader that raced another process's
   `os.replace` could get a transient `PermissionError` and report
   "repository path escapes its root". `tine prune` then refused to run
-  (failing closed, nothing deleted). The resolve is now retried, and a denial
-  that persists is reported as "repository path cannot be inspected".
+  (failing closed, nothing deleted). Python 3.11 also resolves such a file to
+  its extended-length `\\?\C:\...` spelling, which the check compared against
+  the plain root. The resolve is now retried, the extended prefix is dropped
+  before comparing (`\\?\UNC\` paths still fail closed), and a denial that
+  persists is reported as "repository path cannot be inspected".
 
 ### Compatibility
 
