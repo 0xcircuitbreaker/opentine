@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.2 — 2026-10-29
+
+### Fixes
+
+- **The remote server's audit anchor survives Windows sharing violations.**
+  When one process read the `audit-head` anchor while another replaced it,
+  Windows could refuse the replace with "Access is denied", so the audit chain
+  failed to verify. Anchor reads and writes now retry transient sharing
+  violations, as repository files already do.
+
+### Compatibility
+
+- Golden compat fixtures from the published 0.14.1 wheel.
+
 ## 0.14.1 — 2026-10-29
 
 ### Footprint
