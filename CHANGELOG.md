@@ -38,6 +38,20 @@
 
 No on-disk format change: 0.13.x reads every repository 0.14 writes.
 
+- **`put_run` no longer re-validates the whole repository on every write.**
+  The put-run preflight, the unheaded-annotation fallback and the pack walk
+  each listed every annotation (and every fan-out directory) through a
+  per-entry confined-path check, so writing N runs cost O(N^2). Object
+  directory listings are now reused while the directory's `lstat`
+  fingerprint (type, inode, mtime, ctime) is unchanged and it was not
+  modified in the last 3 s (git's racy-index rule); any change forces a full,
+  validated rescan, and every object read is still checked on its own path.
+  Rescans validate entries from `scandir` instead of re-resolving each path,
+  and confined-path checks no longer pay Python 3.14's linear
+  `relative_to`. 300 runs (25 steps, shared prompts, forks): 323 s -> 206 s;
+  per-`put_run` at N=300: 1186 ms -> 759 ms (first ten: ~600-800 ms), now
+  flat in repository size.
+
 - **`put_run`, `fork` and run annotations auto-pack.** They share the
   recorder's post-write hook (same `OPENTINE_AUTO_PACK` / `auto_pack`
   settings, cold objects only, never a version-1 repository). Below the

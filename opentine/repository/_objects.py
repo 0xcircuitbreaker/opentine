@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from opentine.kernel import OBJECT_TYPES, KernelError, ObjectEnvelope
+from opentine.repository import _dir_cache
 from opentine.repository._packs import pack_set
 from opentine.repository._paths import internal_path
 
@@ -41,27 +42,76 @@ def _suffixes(directory: Path) -> Iterator[str]:
 
 def _validate_layout(root: Path) -> dict[str, list[str]]:
     objects = internal_path(root, "objects")
+    object_types = _dir_cache.cached(objects, lambda: _scan_types(root, objects))
+    layout: dict[str, list[str]] = {}
+    for object_type in object_types:
+        directory = objects / object_type
+        prefixes = _dir_cache.cached(directory, lambda: _scan_prefixes(root, object_type))
+        layout[object_type] = list(prefixes)
+    return layout
+
+
+def _children(directory: Path) -> Iterator[os.DirEntry]:
+    try:
+        with os.scandir(directory) as entries:
+            yield from entries
+    except OSError as exc:
+        raise KernelError("repository object directory cannot be enumerated") from exc
+
+
+def _real_dir(entry: os.DirEntry) -> bool:
+    """What internal_path accepts as a child directory of a validated directory."""
+    junction = getattr(entry, "is_junction", None)
+    if entry.is_symlink() or (callable(junction) and junction()):
+        raise KernelError("repository path contains a symlink")
+    return entry.is_dir(follow_symlinks=False)
+
+
+def _scan_types(root: Path, objects: Path) -> tuple[str, ...]:
     object_types: list[str] = []
-    for object_type in _entries(objects):
-        if object_type not in OBJECT_TYPES:
+    for entry in _children(objects):
+        if entry.name not in OBJECT_TYPES:
             # A name that is not an object type holds no objects: one stray
             # .DS_Store must not take down fsck, search, and pack (refs/ policy).
             continue
-        if not internal_path(root, "objects", object_type).is_dir():
+        if not _real_dir(entry):
             raise KernelError("repository object-type path is not a directory")
-        object_types.append(object_type)
-    layout: dict[str, list[str]] = {}
-    for object_type in object_types:
-        directory = internal_path(root, "objects", object_type)
-        prefixes: list[str] = []
-        for prefix in _entries(directory):
-            if len(prefix) != 2 or any(char not in _HEX for char in prefix):
-                continue  # not a legal object prefix, so not part of the store
-            if not internal_path(root, "objects", object_type, prefix).is_dir():
-                raise KernelError("repository object prefix is not a directory")
-            prefixes.append(prefix)
-        layout[object_type] = sorted(prefixes)
-    return layout
+        object_types.append(entry.name)
+    return tuple(object_types)
+
+
+def _scan_prefixes(root: Path, object_type: str) -> tuple[str, ...]:
+    directory = internal_path(root, "objects", object_type)
+    prefixes: list[str] = []
+    for entry in _children(directory):
+        prefix = entry.name
+        if len(prefix) != 2 or any(char not in _HEX for char in prefix):
+            continue  # not a legal object prefix, so not part of the store
+        if not _real_dir(entry):
+            raise KernelError("repository object prefix is not a directory")
+        prefixes.append(prefix)
+    return tuple(sorted(prefixes))
+
+
+def _typed_suffixes(root: Path, object_type: str, prefix: str) -> tuple[str, ...]:
+    """Validated object-file suffixes in one fan-out directory (see _dir_cache)."""
+
+    def scan() -> tuple[str, ...]:
+        directory = internal_path(root, "objects", object_type, prefix)
+        found: list[str] = []
+        for entry in _children(directory):
+            suffix = entry.name
+            if len(suffix) == 62 and all(char in _HEX for char in suffix):
+                if entry.is_symlink():
+                    raise KernelError("repository path contains a symlink")
+                if not entry.is_file(follow_symlinks=False):
+                    raise KernelError("repository object path is not a regular file")
+                if entry.stat(follow_symlinks=False).st_nlink > 1:
+                    raise KernelError("repository path contains a hard-linked file")
+            found.append(suffix)
+        return tuple(sorted(found))
+
+    return _dir_cache.cached(Path(root) / "objects" / object_type / prefix, scan)
 
 
 def iter_object_oids(
@@ -122,16 +172,12 @@ def iter_typed_object_oids(
     scanned = 0
     for object_type in sorted(object_types):
         for prefix in layout.get(object_type, []):
-            directory = internal_path(root, "objects", object_type, prefix)
-            for suffix in _suffixes(directory):
+            for suffix in _typed_suffixes(root, object_type, prefix):
                 scanned += 1
                 if scanned > limit:
                     raise ValueError("typed object scan exceeds its object limit")
                 if len(suffix) != 62 or any(char not in _HEX for char in suffix):
                     continue
-                path = internal_path(root, "objects", object_type, prefix, suffix)
-                if not path.is_file():
-                    raise KernelError("repository object path is not a regular file")
                 yield f"{object_type}:sha256:{prefix}{suffix}"
     for oid in pack_set(root).oids(object_types):
         if internal_path(root, "objects", *_loose_parts(oid)).is_file():
