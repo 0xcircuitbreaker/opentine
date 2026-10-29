@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.14.1 — unreleased
+
+### Footprint
+
+No on-disk format change: 0.13.x and 0.14.0 read every repository 0.14.1
+writes.
+
+- **A recording burst no longer piles up loose snapshots.** Each append writes
+  a full run snapshot, and 0.14.0 packed only objects at least 60 s old, so a
+  fast session stayed loose. The recorder now packs the objects its own `Repo`
+  stored, whatever their age, once `auto_pack` of them are loose, and
+  `finalize` folds the session's packs into one. Packing never deletes: the
+  pack is written and read back before a loose copy goes, the new pack keeps
+  every object young for `tine prune`, and other writers' young objects and
+  `put_run` / annotate stay on the cold-only path. 640 events in one burst
+  (zstd, version 2): peak 16.6 MB -> 2.5 MB on disk, 16.7 MB -> 0.6 MB
+  finalized (version 3: 2.4 MB / 0.24 MB; zlib: 6.1 MB / 5.8 MB). Recording
+  is about a third slower while it packs (v2 33 s -> 44 s for 640 events).
+- **`gc --upgrade` is linear in a session's snapshots.** Reading a pack in
+  order rebuilt every run delta from its block's start; it now starts from the
+  snapshot just read (already checked against its id; the depth limit still
+  counts the whole chain), gc reads packed objects in block order, and the
+  pack writer parses each snapshot once. Every object is still rebuilt and
+  hashed on write and on read-back. First `gc --upgrade`: 300 events 15.0 s
+  -> 3.1 s, 640 events 61 s -> 9.6 s.
+- `tests/test_footprint_0_14_1.py` guards a burst budget and counts the
+  `gc --upgrade` delta work.
+
 ## 0.14.0 — 2026-10-29
 
 ### Security

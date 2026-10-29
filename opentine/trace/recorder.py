@@ -10,7 +10,7 @@ from typing import Any
 
 from opentine._import_billing import distrust_source_billing
 from opentine._unicode_text import assert_unicode_text
-from opentine.repository._autopack import after_write, maybe_autopack
+from opentine.repository._autopack import after_write, settle
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
 from opentine.trace._span_state import resumed_span_map, validated_span_map
@@ -132,7 +132,7 @@ class Recorder:
         # snapshots are prunable; a long session auto-packs its cold ones live.
         self._advance(updated, log=False)
         self.span_map[key] = event_id
-        after_write(self.repo)
+        after_write(self.repo, own=True)  # bursts pack their own objects
         return event_id
 
     def import_events(
@@ -206,7 +206,7 @@ class Recorder:
         payload["status"] = status
         payload["finished_at"] = time.time()
         run_id = self._advance(payload)
-        maybe_autopack(self.repo)  # cold objects only; never raises
+        settle(self.repo)  # folds a burst's own packs into one; never raises
         return run_id
 
     def fork(

@@ -22,6 +22,7 @@ def store_envelope(repo, envelope: ObjectEnvelope) -> str:
     write_object(repo, envelope.oid, envelope.encode())
     # An estimate of new loose objects for the auto-pack hook (_autopack.after_write).
     repo.__dict__["_autopack_writes"] = repo.__dict__.get("_autopack_writes", 0) + 1
+    repo.__dict__.setdefault("_autopack_own", set()).add(envelope.oid)  # see after_write
     return envelope.oid
 
 

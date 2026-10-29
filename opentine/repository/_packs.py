@@ -83,6 +83,7 @@ class PackSet:
         self.v3: dict[str, dict[str, tuple[int, int, int, int, int]]] = {}
         self._recent: OrderedDict[tuple[str, int], bytes] = OrderedDict()
         self._ends: dict[str, dict[tuple[int, int], str]] = {}
+        self._rebuilt: tuple[str, dict[str, tuple[bytes, int]]] = ("", {})
 
     def _scan(self) -> tuple:
         directory = internal_path(self.root, "packs")
@@ -126,6 +127,7 @@ class PackSet:
         self.fingerprint = fingerprint if complete else None
         self._recent.clear()
         self._ends = {}
+        self._rebuilt = ("", {})
 
     def locate(self, oid: str) -> tuple[str, int, int, int] | None:
         if self.fingerprint is None:
@@ -179,7 +181,13 @@ class PackSet:
         if digest in self.v3:
             from opentine.repository._pack_v3 import resolve
 
-            return resolve(oid, lambda key: self._stored3(digest, key))
+            if self._rebuilt[0] != digest:  # run bytes of one pack, checked by resolve
+                self._rebuilt = (digest, {})
+            known = self._rebuilt[1]
+            raw = resolve(oid, lambda key: self._stored3(digest, key), known)
+            while len(known) > 4:
+                del known[next(iter(known))]
+            return raw
         _, number, start, length = found
         raw = self._slice(digest, number, start, length, oid)
         if oid_of(raw) != oid:
