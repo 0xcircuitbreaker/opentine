@@ -58,7 +58,7 @@ def _lock(path: Path) -> Path:
 def _write_ref(base: Path, name: str, new_oid: str) -> None:
     path = _ref_path(base, name)
     staging = path.with_name(path.name + "..lock")  # see commit_ref for the name
-    fd = os.open(staging, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    fd = os.open(staging, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write((new_oid + "\n").encode("ascii"))
@@ -204,7 +204,7 @@ def update_refs(base: Path, updates: list[tuple[str, str, str | None]], actor: s
                 )
             rows.append({"new": new_oid, "old": old, "ref": name})
         record = {"actor": actor, "format": TXN_FORMAT, "id": txn_id, "updates": rows}
-        fd = os.open(journal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        fd = os.open(journal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         try:
             with os.fdopen(fd, "wb") as handle:
                 handle.write(canonical_json(record))

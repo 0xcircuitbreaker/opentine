@@ -13,6 +13,7 @@ import re
 from typing import Any
 
 from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
+from opentine._redact_b64 import b64_text_step
 from opentine._redact_edits import Edit, Step, run, sub_step
 from opentine._redact_fields import FIELD, NAME_TAIL, quoted_field_edits
 from opentine._redact_flags import flag_edits
@@ -162,6 +163,7 @@ STEPS: list[Step] = [
     private_key_edits,
     ppk_edits,  # PuTTY key files carry no PEM marker (``_redact_ppk``)
     B64_KEY_STEP,
+    b64_text_step(lambda value: _scan(value)),  # other base64-wrapped secrets
     _quoted_field_edits,
     *(sub_step(p, _keep_ends) for p in (_NAMED_HEADER, _REVERSED_NAMED_HEADER, _HEADER_PAIR)),
     *(sub_step(p, _keep_ends) for p in (_QUOTED_HEADER_LINE, _QUOTED_HEADER, _QUOTED_TOKEN)),

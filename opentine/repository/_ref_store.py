@@ -89,7 +89,7 @@ def commit_ref(
         if check_expected and old != expected_old:
             raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
         entry = reflog_entry(normalized, old, new_oid, actor)
-        write_fd = os.open(write_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        write_fd = os.open(write_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(write_fd, "wb") as handle:
             write_fd = -1
             handle.write((new_oid + "\n").encode("ascii"))

@@ -13,7 +13,7 @@ from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
 from opentine._mcp_safety import confined_run as _confined_run
 from opentine._mcp_safety import hidden_name as _hidden_name
-from opentine._mcp_safety import safe_errors, server_class, total_bytes
+from opentine._mcp_safety import safe_errors, scrubbed, server_class, total_bytes
 from opentine.core import Run
 
 MAX_MCP_SCAN_RUNS = 5_000
@@ -117,7 +117,7 @@ def list_run_summaries(runs_dir: str | Path = ".tine_runs") -> list[dict[str, An
 
 def format_run_for_llm(run: Run) -> str:
     """Render a run as concise text that an IDE agent can use as context."""
-    steps = run.steps
+    steps = (run := scrubbed(run)).steps  # legacy runs may hold unredacted secrets
     lines = [
         f"Run: {_clip(run.id)}",
         f"Status: {run.status.value}",

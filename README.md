@@ -803,7 +803,10 @@ claude --plugin-dir ./opentine-plugin
 The plugin bundles the session-end import, `SubagentStart`/`SubagentStop`
 hooks that journal subagent ids for `tine import --fleet`, read-only skills, and
 a `.mcp.json` that starts opentine's MCP server with `--read-only`. It is never
-written into `~/.claude`.
+written into `~/.claude`. The bundle is machine-local: its hooks name this
+Python interpreter and the repository by absolute path (your user name and
+directory layout included), and its files are written 0600. Export it on each
+machine instead of sharing or publishing it.
 
 Media models:
 

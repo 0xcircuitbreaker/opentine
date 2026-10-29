@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.14.0 — unreleased
+
+### Security
+
+- **MCP output is re-scrubbed.** `show_run` and the `run://` resource now pass
+  a run back through the writer's redaction before rendering it, as `tine
+  export` does, so a legacy (pre-0.9.1) or hand-written unredacted `.tine` no
+  longer hands its secrets to the client's model.
+- **`tine run --model` failures are display-safe.** URLs in the error text
+  lose their userinfo, query and fragment (`--base-url` / `OLLAMA_HOST`
+  credentials echoed by httpx), and the rest is redacted (provider error
+  bodies that quote part of a key).
+- **An invalid `OLLAMA_HOST` names only its scheme**, never the value, which
+  may carry `user:password@`.
+- **Base64-wrapped credentials are redacted.** A standalone, padded base64
+  run (24-8192 characters, at most 64 per value) that decodes to printable
+  UTF-8 is scanned like plain text and replaced whole on a hit. Binary
+  payloads and ordinary text are kept; URL-safe and unpadded base64 are not
+  unwrapped (a documented limit).
+- **`tine run --parallel` members start with `python -P`**, so an `opentine/`
+  package in the project directory no longer shadows the installed one.
+- **Fan-out member logs are private.** Logs are created 0600 without
+  following symlinks, and `--log-dir` is created 0700: they hold raw member
+  output, keys passed by `--env` included.
+- **Repository refs, reflogs and directories are private.** New refs, ref
+  staging and journal files and reflogs are written 0600, directories inside
+  `.tine` are created 0700, and the `.tine-worktree` marker is 0600.
+- **`tine plugin export` writes 0600 files and 0700 directories**, and its
+  help and the README now say the bundle is machine-local: it embeds the
+  interpreter's and the repository's absolute paths.
+- **Allowlisted adapters must be installed.** An entry point whose
+  distribution was found in the working directory (`python -m` puts it on
+  `sys.path`), or whose provenance is unknown, is skipped and not loaded.
+
 ## 0.13.1 — 2026-10-28
 
 ### Fixed

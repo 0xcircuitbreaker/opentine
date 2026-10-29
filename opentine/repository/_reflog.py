@@ -51,7 +51,8 @@ def append_reflog(base: Path, normalized: str, entry: bytes) -> None:
     if size + len(entry) > MAX_REFLOG_BYTES:
         _rotate(log_path, size, entry)
     else:
-        with log_path.open("ab") as handle:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_BINARY", 0)
+        with os.fdopen(os.open(log_path, flags, 0o600), "ab") as handle:
             handle.write(entry)
             handle.flush()
             os.fsync(handle.fileno())

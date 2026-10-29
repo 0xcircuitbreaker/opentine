@@ -107,7 +107,9 @@ def durable_directory(path: Path) -> None:
         missing.append(current)
         current = current.parent
     for directory in reversed(missing):
-        directory.mkdir(exist_ok=True)
+        # Private inside a repository, like its objects; a project directory
+        # created above one (``tine init new/dir``) keeps the umask's mode.
+        directory.mkdir(mode=0o700 if ".tine" in directory.parts else 0o777, exist_ok=True)
         _fsync_dir(directory.parent)
 
 

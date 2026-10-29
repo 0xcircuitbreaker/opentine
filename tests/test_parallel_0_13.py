@@ -401,7 +401,7 @@ def test_member_argv_strips_fan_out_flags_including_abbreviations():
 
     argv = ["run", "s.py", "--parallel", "3", "--jobs=2", "--vary", "model=a", "--json",
             "--save", "o.tine", "--budg", "1"]  # fmt: skip
-    assert _member_argv(argv)[3:] == ["run", "s.py", "--save", "o.tine"]
+    assert _member_argv(argv)[4:] == ["run", "s.py", "--save", "o.tine"]
 
 
 def test_run_parallel_refuses_a_shared_save_path(repo):

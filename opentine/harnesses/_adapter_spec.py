@@ -93,6 +93,23 @@ def problems(spec: Any) -> list[str]:
     return found
 
 
+def _from_cwd(point: Any) -> bool:
+    """Whether *point*'s distribution was found on a ``sys.path`` entry that is the cwd.
+
+    The allowlist is by name, and ``python -m`` puts the cwd first on sys.path:
+    a cloned repo's ``*.dist-info/entry_points.txt`` claiming an allowlisted name
+    would run its module. Installed distributions (a project-local ``.venv``
+    included) live in a site directory, never in the cwd itself.
+    """
+    dist = getattr(point, "dist", None)
+    if dist is None:
+        return True  # provenance unknown: not loaded
+    try:
+        return Path(dist.locate_file("")).resolve() == Path.cwd().resolve()
+    except (OSError, ValueError, NotImplementedError):
+        return True
+
+
 def external_specs(allowed: frozenset[str] | None = None) -> tuple[dict[str, AdapterSpec], dict]:
     """``(specs, skipped)``: allowlisted entry points loaded; the rest named, unloaded."""
     allowed = allowlist() if allowed is None else allowed
@@ -105,6 +122,9 @@ def external_specs(allowed: frozenset[str] | None = None) -> tuple[dict[str, Ada
             continue
         if point.name in builtins:
             skipped[point.name] = "shadows a built-in (not loaded)"
+            continue
+        if _from_cwd(point):
+            skipped[point.name] = "found in the working directory (not loaded)"
             continue
         try:
             spec = point.load()

@@ -16,11 +16,16 @@ and ``.mcp.json`` at the plugin root.
   ``tine import --fleet`` (:mod:`opentine._hook_journal`).
 * ``.mcp.json`` starts ``opentine.mcp_server --read-only``: allowlisted read
   tools only (:mod:`opentine._mcp_readonly`).
+* The bundle is **machine-local**: it names this interpreter and the
+  repository by absolute path (so the user name and directory layout too).
+  Export it on each machine; do not publish or share it. Files are written
+  0600 and directories 0700.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -111,6 +116,15 @@ def forbidden_roots() -> list[Path]:
     return [root.resolve() for root in roots]
 
 
+def _write_private(path: Path, data: bytes) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0)
+    fd = os.open(path, flags | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "wb") as handle:
+        if hasattr(os, "fchmod"):  # an existing file (--force) keeps its old mode
+            os.fchmod(handle.fileno(), 0o600)
+        handle.write(data)
+
+
 def write(target: Path, repo: Path, *, force: bool = False) -> list[Path]:
     """Write the bundle under *target* (new or empty unless *force*); the paths."""
     if target.is_symlink():
@@ -131,10 +145,10 @@ def write(target: Path, repo: Path, *, force: bool = False) -> list[Path]:
             folder = resolved / parent
             if folder.is_symlink():
                 raise ValueError(f"{folder} is a symlink; refusing to write through it")
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         if path.is_symlink():
             raise ValueError(f"{path} is a symlink; refusing to overwrite it")
-        path.write_text(text, encoding="utf-8")
+        _write_private(path, text.encode("utf-8"))
         written.append(path)
     return written
 

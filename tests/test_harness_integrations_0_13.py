@@ -8,6 +8,8 @@ from __future__ import annotations
 import io
 import json
 import sys
+import sysconfig
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -241,7 +243,15 @@ def _events(source):
     return [TraceEvent(kind="model", timestamp=1.0, trace_id="t", span_id="s", model="m")]
 
 
+class _SiteDist:  # an installed distribution: found in a site directory, not the cwd
+    @staticmethod
+    def locate_file(path):
+        return Path(sysconfig.get_paths()["purelib"], path)
+
+
 class _Point:
+    dist = _SiteDist()
+
     def __init__(self, name, target):
         self.name, self.target, self.loaded = name, target, False
 

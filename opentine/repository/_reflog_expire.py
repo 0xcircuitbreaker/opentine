@@ -89,7 +89,7 @@ def _expire_one(root: Path, name: str, path: Path, cutoff_ns: int, keep: int, dr
     try:
         if not dry:
             if not ref_path.parent.is_dir():
-                ref_path.parent.mkdir(parents=True, exist_ok=True)
+                ref_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.close(acquire(lock_path))
             held = True
         lines = [line for line in path.read_bytes().splitlines() if line.strip()]
