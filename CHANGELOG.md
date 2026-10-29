@@ -14,6 +14,14 @@
   the plain root. The resolve is now retried, the extended prefix is dropped
   before comparing (`\\?\UNC\` paths still fail closed), and a denial that
   persists is reported as "repository path cannot be inspected".
+- **A pack being renamed in is no longer hidden from a running process.** If a
+  pack index could not be opened while another process's gc was still
+  renaming it into place, the pack was skipped and that listing cached, so the
+  process treated the pack's objects as missing until the directory changed
+  again (a live recorder then failed with "missing linked object"). Index
+  loads now retry sharing violations on Windows, and a listing with an
+  unreadable index is not cached, so the next lookup rescans. A corrupt index
+  is still skipped and reported by `tine fsck`.
 
 ### Compatibility
 

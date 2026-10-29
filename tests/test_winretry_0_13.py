@@ -238,3 +238,25 @@ def test_an_extended_unc_resolve_still_fails_closed(repo, monkeypatch):
     monkeypatch.setattr(Path, "resolve", unc)
     with pytest.raises(KernelError, match="escapes its root"):
         internal_path(repo.path, "refs")
+
+
+def test_a_pack_index_unreadable_for_a_moment_is_not_hidden_for_good(tmp_path, monkeypatch):
+    from opentine.repository import _packs
+    from opentine.repository._gc import gc
+
+    monkeypatch.setattr(_winretry, "WINDOWS", False)  # no retry: the next lookup must recover
+    store = Repo.init(tmp_path)
+    oid = store.put("blob", b"packed")
+    gc(store, min_age=0)
+    real_load, failures = _packs.load_index, []
+
+    def once(root, digest):
+        if not failures:
+            failures.append(digest)
+            raise PermissionError(13, "being renamed in")
+        return real_load(root, digest)
+
+    monkeypatch.setattr(_packs, "load_index", once)
+    packs = _packs.PackSet(store.path)
+    assert packs.locate(oid) is not None  # the miss rescans instead of caching the gap
+    assert failures
