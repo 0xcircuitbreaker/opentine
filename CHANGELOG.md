@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.13.1 — 2026-10-28
+
+### Fixed
+
+- **Windows: a file mid-replace no longer reads as a path escape.** The
+  repository containment check resolved paths without the sharing-violation
+  retry the rest of 0.13 uses, so a reader that raced another process's
+  `os.replace` could get a transient `PermissionError` and report
+  "repository path escapes its root". `tine prune` then refused to run
+  (failing closed, nothing deleted). Python 3.11 also resolves such a file to
+  its extended-length `\\?\C:\...` spelling, which the check compared against
+  the plain root. The resolve is now retried, the extended prefix is dropped
+  before comparing (`\\?\UNC\` paths still fail closed), and a denial that
+  persists is reported as "repository path cannot be inspected".
+- **A pack being renamed in is no longer hidden from a running process.** If a
+  pack index could not be opened while another process's gc was still
+  renaming it into place, the pack was skipped and that listing cached, so the
+  process treated the pack's objects as missing until the directory changed
+  again (a live recorder then failed with "missing linked object"). Index
+  loads now retry sharing violations on Windows, and a listing with an
+  unreadable index is not cached, so the next lookup rescans. A corrupt index
+  is still skipped and reported by `tine fsck`.
+
+### Compatibility
+
+- Golden compat fixtures for 0.13.0, generated from the published wheel, join
+  the release gate: 0.13.1 reads every artifact and repository 0.13.0 writes.
+
 ## 0.13.0 — 2026-10-26
 
 ### Footprint I (no format change)

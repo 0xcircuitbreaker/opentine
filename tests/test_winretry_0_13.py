@@ -181,3 +181,82 @@ def test_retry_is_bounded(monkeypatch):
     with pytest.raises(PermissionError):
         _winretry.retry(denied)
     assert len(calls) == _winretry.ATTEMPTS and 1 < sum(naps) < 5
+
+
+def test_containment_check_retries_a_transient_resolve_denial(repo, monkeypatch):
+    from opentine.repository._paths import internal_path
+
+    real_resolve, calls = Path.resolve, []
+
+    def flaky(self, strict=False):
+        calls.append(self)
+        if len(calls) <= 2:
+            raise PermissionError(13, "delete pending")
+        return real_resolve(self, strict=strict)
+
+    monkeypatch.setattr(Path, "resolve", flaky)
+    assert internal_path(repo.path, "refs") == repo.path / "refs"
+    assert len(calls) > 2
+
+
+def test_a_persistent_resolve_denial_is_not_reported_as_an_escape(repo, monkeypatch):
+    from opentine.kernel import KernelError
+    from opentine.repository._paths import internal_path
+
+    def denied(self, strict=False):
+        raise PermissionError(13, "denied")
+
+    monkeypatch.setattr(Path, "resolve", denied)
+    with pytest.raises(KernelError, match="cannot be inspected"):
+        internal_path(repo.path, "refs")
+
+
+def test_an_extended_length_resolve_is_the_same_path_not_an_escape(repo, monkeypatch):
+    # Python 3.11 on Windows: realpath of a file mid-replace returns \\?\C:\...
+    from opentine.repository._paths import internal_path
+
+    real_resolve = Path.resolve
+
+    def extended(self, strict=False):
+        resolved = real_resolve(self, strict=strict)
+        return resolved if self == repo.path else Path("\\\\?\\" + str(resolved))
+
+    monkeypatch.setattr(Path, "resolve", extended)
+    assert internal_path(repo.path, "refs") == repo.path / "refs"
+
+
+def test_an_extended_unc_resolve_still_fails_closed(repo, monkeypatch):
+    from opentine.kernel import KernelError
+    from opentine.repository._paths import internal_path
+
+    real_resolve = Path.resolve
+
+    def unc(self, strict=False):
+        resolved = real_resolve(self, strict=strict)
+        return resolved if self == repo.path else Path("\\\\?\\UNC\\host\\share\\x")
+
+    monkeypatch.setattr(Path, "resolve", unc)
+    with pytest.raises(KernelError, match="escapes its root"):
+        internal_path(repo.path, "refs")
+
+
+def test_a_pack_index_unreadable_for_a_moment_is_not_hidden_for_good(tmp_path, monkeypatch):
+    from opentine.repository import _packs
+    from opentine.repository._gc import gc
+
+    monkeypatch.setattr(_winretry, "WINDOWS", False)  # no retry: the next lookup must recover
+    store = Repo.init(tmp_path)
+    oid = store.put("blob", b"packed")
+    gc(store, min_age=0)
+    real_load, failures = _packs.load_index, []
+
+    def once(root, digest):
+        if not failures:
+            failures.append(digest)
+            raise PermissionError(13, "being renamed in")
+        return real_load(root, digest)
+
+    monkeypatch.setattr(_packs, "load_index", once)
+    packs = _packs.PackSet(store.path)
+    assert packs.locate(oid) is not None  # the miss rescans instead of caching the gap
+    assert failures

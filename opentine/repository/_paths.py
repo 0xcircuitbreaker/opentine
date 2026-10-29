@@ -20,6 +20,18 @@ def linklike(path: Path) -> bool:
     return path.is_symlink() or (callable(junction) and junction())
 
 
+def _plain(path: Path) -> Path:
+    """Drop the ``\\\\?\\`` prefix Windows realpath adds for a file it cannot open.
+
+    Python 3.11's ``realpath`` falls back to the extended-length form when a
+    file is mid-replace or delete-pending; the bare drive path is the same file.
+    """
+    text = str(path)
+    if text.startswith("\\\\?\\") and not text.startswith("\\\\?\\UNC\\"):
+        return Path(text[4:])
+    return path
+
+
 def internal_path(root: Path, *parts: str) -> Path:
     """Return an internal path after rejecting traversal and symlink components."""
     root = Path(root)
@@ -58,8 +70,13 @@ def internal_path(root: Path, *parts: str) -> Path:
         if index < len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
             raise KernelError(f"repository path has a non-directory parent: {relative}")
     try:
-        candidate.resolve(strict=False).relative_to(root.resolve(strict=True))
-    except (OSError, RuntimeError, ValueError) as exc:
+        # Windows: resolving a file mid-replace by another process is a transient
+        # sharing violation, not an escape; retry it before failing closed.
+        resolved = _winretry.retry(lambda: candidate.resolve(strict=False))
+        _plain(resolved).relative_to(_plain(_winretry.retry(lambda: root.resolve(strict=True))))
+    except OSError as exc:
+        raise KernelError(f"repository path cannot be inspected: {relative}") from exc
+    except (RuntimeError, ValueError) as exc:
         raise KernelError("repository path escapes its root") from exc
     return candidate
 

@@ -25,6 +25,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError, object_id
 from opentine.repository import _pack_v3_index as v3index
+from opentine.repository import _winretry
 from opentine.repository._pack_index import (  # noqa: F401 -- re-exported
     BLOCK_BYTES,
     MAX_INDEX_BYTES,
@@ -103,18 +104,26 @@ class PackSet:
         where: dict[str, tuple[str, int, int, int]] = {}
         blocks: dict[str, list] = {}
         v3: dict[str, dict] = {}
+        complete = True
         for name, _, _ in fingerprint:
             digest = name[:64]
             try:
-                table, entries, version = load_index(self.root, digest)
-            except (OSError, ValueError):  # KernelError and CodecError included
+                table, entries, version = _winretry.retry(lambda: load_index(self.root, digest))
+            except ValueError:  # KernelError and CodecError included
                 continue  # its objects read as missing; fsck names the broken pack
+            except OSError:
+                # Unreadable for now (another process is renaming it in, or it is
+                # gone): skip it, but don't remember this listing, or that pack's
+                # objects would stay invisible to this process.
+                complete = False
+                continue
             blocks[digest] = table
             if version == 3:
                 v3[digest] = entries
             for oid, place in entries.items():
                 where.setdefault(oid, (digest, *place[:3]))
-        self.fingerprint, self.where, self.blocks, self.v3 = fingerprint, where, blocks, v3
+        self.where, self.blocks, self.v3 = where, blocks, v3
+        self.fingerprint = fingerprint if complete else None
         self._recent.clear()
         self._ends = {}
 
