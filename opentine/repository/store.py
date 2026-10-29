@@ -169,6 +169,7 @@ class Repo:
         expected_old: str | None | object = _UNSET,
         *,
         actor: str = "local",
+        log: bool = True,
     ) -> None:
         normalized = self._ref_name(name)
         validate_ref_oid(normalized, new_oid)
@@ -182,6 +183,7 @@ class Repo:
             None if expected_old is _UNSET else expected_old,
             expected_old is not _UNSET,
             actor,
+            log=log,
         )
 
     def update_refs(

@@ -13,6 +13,7 @@ so, since all three modes end in ``_cli_render._save_run_receipt``.
 from __future__ import annotations
 
 import argparse
+import re
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import (
@@ -22,6 +23,27 @@ from opentine._cli_flags import (
     refuse_unhonoured,
 )
 from opentine._cli_render import _save_run_receipt
+from opentine._cli_text import endpoint_for_display
+from opentine.redaction import redact_value
+
+_URL = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://[^\s'\"<>]+")
+
+
+def _display_safe(exc: BaseException) -> str:
+    """*exc*'s text fit for a terminal or CI log.
+
+    httpx names the full request URL (``--base-url`` / ``OLLAMA_HOST`` userinfo
+    and query included) and provider SDKs quote the response body, which may
+    echo part of a key: URLs lose credentials and query, the rest is redacted.
+    """
+
+    def endpoint(match: re.Match[str]) -> str:
+        try:
+            return endpoint_for_display(match.group(0))
+        except ValueError:
+            return "<url>"
+
+    return _terminal(redact_value(_URL.sub(endpoint, str(exc))))
 
 
 def cmd_run_model(args: argparse.Namespace) -> None:
@@ -37,19 +59,19 @@ def cmd_run_model(args: argparse.Namespace) -> None:
             args.model, getattr(args, "base_url", None), getattr(args, "api_key_env", None)
         )
     except (UnknownProvider, ValueError) as exc:
-        console.print(f"[red]{_terminal(exc)}[/]")
+        console.print(f"[red]{_display_safe(exc)}[/]")
         raise SystemExit(1) from exc
     console.print(f"[{BRAND}]# Running {_terminal(model.name)}...[/]\n")
     try:
         run = Agent(model=model).run_sync(args.prompt)
     except ImportError as exc:
         # The adapter's own guidance, e.g. "pip install opentine[anthropic]".
-        console.print(f"[red]Missing dependency:[/] {_terminal(exc)}")
+        console.print(f"[red]Missing dependency:[/] {_display_safe(exc)}")
         raise SystemExit(1) from exc
     except Exception as exc:
         # A missing key, a refusal, a rate limit: the provider's own rejection,
         # reported as one line rather than as a traceback.
-        console.print(f"[red]Model run failed:[/] {_terminal(exc)}")
+        console.print(f"[red]Model run failed:[/] {_display_safe(exc)}")
         raise SystemExit(1) from exc
     # args.force, like args.save, because this mode's tail *is* the script
     # mode's tail: the third `tine run` mode may not be the one that overwrites.

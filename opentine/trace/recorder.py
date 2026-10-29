@@ -10,7 +10,7 @@ from typing import Any
 
 from opentine._import_billing import distrust_source_billing
 from opentine._unicode_text import assert_unicode_text
-from opentine.repository._autopack import maybe_autopack
+from opentine.repository._autopack import after_write, maybe_autopack
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
 from opentine.trace._span_state import resumed_span_map, validated_span_map
@@ -100,8 +100,8 @@ class Recorder:
     def payload(self) -> dict[str, Any]:
         return copy.deepcopy(self._payload)
 
-    def _advance(self, payload: dict[str, Any]) -> str:
-        self.run_id = advance_run(self.repo, self.ref, self.run_id, self._payload, payload)
+    def _advance(self, payload: dict[str, Any], *, log: bool = True) -> str:
+        self.run_id = advance_run(self.repo, self.ref, self.run_id, self._payload, payload, log)
         self._payload = payload
         return self.run_id
 
@@ -128,8 +128,11 @@ class Recorder:
         updated["roots"] = roots if parents else [*roots, event_id]
         old_tips = [tip for tip in run.get("tips") or [] if tip not in parents]
         updated["tips"] = [*old_tips, event_id]
-        self._advance(updated)
+        # No reflog row per event (start/import/finalize log one), so superseded
+        # snapshots are prunable; a long session auto-packs its cold ones live.
+        self._advance(updated, log=False)
         self.span_map[key] = event_id
+        after_write(self.repo)
         return event_id
 
     def import_events(
@@ -240,11 +243,7 @@ class Recorder:
         )
 
     def approve(self, *, approver: str, note: str = "") -> str:
-        return self.repo.attest(
-            self.run_id,
-            {"kind": "approval", "note": note},
-            signer=approver,
-        )
+        return self.repo.attest(self.run_id, {"kind": "approval", "note": note}, signer=approver)
 
     def promote(self, name: str, *, expected_old: str | None = None) -> None:
         self.repo.promote(self.run_id, name, expected_old=expected_old)

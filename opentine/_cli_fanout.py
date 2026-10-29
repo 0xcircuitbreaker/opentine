@@ -110,8 +110,8 @@ def _state(directory: Path, args, template: list[str], members, source: dict) ->
 
 def _drive(state: State, template: list[str], args, cwd_for=lambda member: None) -> None:
     log_dir = Path(args.log_dir) if args.log_dir else None
-    if log_dir:
-        log_dir.mkdir(parents=True, exist_ok=True)
+    if log_dir:  # member logs hold raw output (keys passed by --env included)
+        log_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     reporter = Reporter(state.id, json_lines=args.json)
     jobs = args.jobs or len(state.data["members"])
     code = drive(
@@ -198,7 +198,10 @@ def _member_argv(argv: list[str]) -> list[str]:
             skip = name in takes_value and "=" not in token
             continue
         kept.append(token)
-    return [sys.executable, "-m", "opentine.cli", *kept]
+    # -P: with -m Python puts the cwd first on sys.path, so an opentine/ planted
+    # in the project would shadow the installed package in every member. Not -I:
+    # members run the user's script, which may rely on PYTHONPATH / PYTHONUTF8.
+    return [sys.executable, "-P", "-m", "opentine.cli", *kept]
 
 
 def cmd_run_parallel(args: argparse.Namespace) -> bool:

@@ -29,7 +29,9 @@ def normalize_host(raw: str | None) -> str:
         if ":" not in authority.rsplit("]", 1)[-1]:
             rest = rest.replace(authority, f"{authority}:11434", 1)
     if scheme.lower() not in ("http", "https"):
-        raise ValueError(f"OLLAMA_HOST must be an http(s) address, got {raw!r}")
+        # Only the scheme is named: the value may carry ``user:password@``.
+        shown = scheme if scheme.isalpha() and len(scheme) <= 16 else "an unrecognised"
+        raise ValueError(f"OLLAMA_HOST must be an http(s) address, got {shown} scheme")
     return f"{scheme.lower()}://{rest}".rstrip("/")
 
 

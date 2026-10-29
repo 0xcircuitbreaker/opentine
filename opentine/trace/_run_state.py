@@ -53,6 +53,7 @@ def advance_run(
     current: str,
     previous: dict[str, Any],
     payload: dict[str, Any],
+    log: bool = True,
 ) -> str:
     """Persist a deterministically updated run without rewalking prior events."""
     envelope = ObjectEnvelope.create("run", payload)
@@ -61,7 +62,7 @@ def advance_run(
     update = getattr(repo, "_update_ref_validated", None)
     if callable(store) and callable(update):
         next_run = store(envelope)
-        update(ref, next_run, envelope, expected_old=current)
+        update(ref, next_run, envelope, expected_old=current, log=log)
         return next_run
     next_run = repo.put("run", payload)
     repo.update_ref(ref, next_run, expected_old=current)

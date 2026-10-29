@@ -23,6 +23,10 @@ SAFE_DIRECTORIES_ENV = "OPENTINE_SAFE_DIRECTORIES"
 def find_repository(path: str | Path = ".") -> Path:
     """The ``.tine`` directory (or bare repository root) *path* belongs to."""
     source = Path(path).expanduser()
+    if str(path) not in ("", ".") and not os.path.lexists(source):
+        # A path the caller named that does not exist used to be resolved and its
+        # *parents* searched, so a typo silently opened an ancestor repository.
+        raise KernelError(f"repository path does not exist: {path}")
     if source.name == ".tine" and linklike(source):
         raise KernelError("repository root cannot be a symlink")
     candidate = source.resolve()

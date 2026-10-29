@@ -32,6 +32,15 @@ def _plain(path: Path) -> Path:
     return path
 
 
+def _relative(path: Path, root: Path) -> tuple[str, ...]:
+    """``path.relative_to(root).parts`` without 3.14's linear ``root in parents`` scan."""
+    parts, base = path.parts, root.parts
+    head = tuple(os.path.normcase(part) for part in parts[: len(base)])
+    if len(parts) < len(base) or head != tuple(os.path.normcase(part) for part in base):
+        raise ValueError(f"{path!s} is not relative to {root!s}")
+    return parts[len(base) :]
+
+
 def internal_path(root: Path, *parts: str) -> Path:
     """Return an internal path after rejecting traversal and symlink components."""
     root = Path(root)
@@ -42,7 +51,7 @@ def internal_path(root: Path, *parts: str) -> Path:
         raise KernelError("repository root is missing") from exc
     candidate = root.joinpath(*parts)
     try:
-        relative = candidate.relative_to(root)
+        relative = Path(*_relative(candidate, root))
     except ValueError as exc:
         raise KernelError("repository path escapes its root") from exc
     if any(part in {"", ".", ".."} for part in relative.parts):
@@ -73,7 +82,7 @@ def internal_path(root: Path, *parts: str) -> Path:
         # Windows: resolving a file mid-replace by another process is a transient
         # sharing violation, not an escape; retry it before failing closed.
         resolved = _winretry.retry(lambda: candidate.resolve(strict=False))
-        _plain(resolved).relative_to(_plain(_winretry.retry(lambda: root.resolve(strict=True))))
+        _relative(_plain(resolved), _plain(_winretry.retry(lambda: root.resolve(strict=True))))
     except OSError as exc:
         raise KernelError(f"repository path cannot be inspected: {relative}") from exc
     except (RuntimeError, ValueError) as exc:
@@ -107,7 +116,9 @@ def durable_directory(path: Path) -> None:
         missing.append(current)
         current = current.parent
     for directory in reversed(missing):
-        directory.mkdir(exist_ok=True)
+        # Private inside a repository, like its objects; a project directory
+        # created above one (``tine init new/dir``) keeps the umask's mode.
+        directory.mkdir(mode=0o700 if ".tine" in directory.parts else 0o777, exist_ok=True)
         _fsync_dir(directory.parent)
 
 

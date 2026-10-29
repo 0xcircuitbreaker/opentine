@@ -731,6 +731,10 @@ Append-only, one **canonical JSON object (§0.2) followed by LF** per row:
 > atomically replaces the file with its newest whole rows (about half the
 > bound) plus the new row, so the oldest history is dropped. A reader MUST NOT
 > assume a log reaches back to a ref's first row.
+>
+> Since 0.14 a live recorder (`Recorder.append`) moves its ref **without** a
+> reflog row; the session's start, `import_events` and `finalize` each log
+> one. A reader MUST NOT assume every past value of a ref has a row.
 
 ## 2.7 `shallow`
 

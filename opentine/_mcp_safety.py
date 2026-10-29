@@ -147,6 +147,17 @@ def server_class() -> Any:
     return MCPServer
 
 
+def scrubbed(run: Any) -> Any:
+    """*run* passed back through the writer's redaction, as ``tine export`` does.
+
+    A .tine written before 0.9.1 (or outside ``save_run``) still holds the
+    secrets its writer kept; MCP output reaches the client's model as is.
+    """
+    from opentine._graph_serde import run_from_dict, run_to_dict
+
+    return run_from_dict(run_to_dict(run, redact=True), type(run))
+
+
 def total_bytes(paths: list[Path]) -> int:
     """The bytes *paths* hold: what MCP forks have already written, summed.
 

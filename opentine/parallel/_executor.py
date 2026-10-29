@@ -22,6 +22,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import BinaryIO
 
 from opentine.budget import SharedLedger
 from opentine.tools import _subreaper
@@ -32,6 +33,18 @@ from opentine.tools._process import _attach_kill_job, _cleanup_owned, _group_fla
 FINISHED = frozenset({"ok", "failed"})
 STATUSES = FINISHED | {"pending", "timeout", "budget", "stopped", "skipped", "error"}
 MAX_COST_FILE = 64
+
+
+_LOG_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_BINARY", 0)
+
+
+def _open_log(path: Path) -> BinaryIO:
+    """*path* opened for appending, 0600 and never through a symlink.
+
+    A member log holds the member's raw output -- keys passed by ``--env`` too.
+    """
+    fd = os.open(path, _LOG_FLAGS | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    return os.fdopen(fd, "ab")
 
 
 @dataclass
@@ -150,7 +163,7 @@ class Executor:
         refuse_batch_injection(member.argv)
         if member.cost_file is not None:
             member.cost_file.unlink(missing_ok=True)  # a resumed member starts at zero
-        out = open(member.log, "ab") if member.log else subprocess.DEVNULL  # noqa: SIM115
+        out = _open_log(member.log) if member.log else subprocess.DEVNULL
         try:
             launch = subprocess.Popen if os.name == "nt" else _subreaper.popen
             process = launch(

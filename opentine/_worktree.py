@@ -104,7 +104,7 @@ def add(repo, path: str | Path, ref: str, *, name: str | None = None, git: str |
 
             run_git(repo.worktree, "worktree", "add", "--detach", "--", str(target), git)
         marker = target / MARKER
-        fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(fd, "wb") as handle:
             handle.write(json.dumps(entry, sort_keys=True).encode())
         durable_directory(entry_path.parent)

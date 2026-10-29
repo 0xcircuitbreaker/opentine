@@ -4,6 +4,9 @@ Writes the bundle (:mod:`opentine._plugin_bundle`) into a directory you name --
 never into ``~/.claude`` or ``$CLAUDE_CONFIG_DIR`` -- for ``claude --plugin-dir
 DIR`` or a marketplace. When the old-style ``tine hook install`` SessionEnd hook
 is also present, it says so: both would import every session twice.
+
+The bundle is machine-local: it names this interpreter and the repository by
+absolute path, so export it on each machine rather than sharing it.
 """
 
 from __future__ import annotations
@@ -16,7 +19,15 @@ from opentine._cli_common import BRAND, _terminal, console
 
 
 def add_plugin_parser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser("plugin", help="Export the opentine Claude Code plugin")
+    parser = subparsers.add_parser(
+        "plugin",
+        help="Export the opentine Claude Code plugin",
+        description=(
+            "Write the opentine Claude Code plugin into DIR. The bundle is machine-local: "
+            "it embeds this interpreter's and the repository's absolute paths (your user "
+            "name and directory layout), so export it per machine and do not share it."
+        ),
+    )
     parser.add_argument("action", choices=("export",))
     parser.add_argument("target", metavar="DIR", help="Directory to write the plugin into")
     parser.add_argument("--repo", required=True, help="v3 repository the hooks record into")

@@ -1,5 +1,85 @@
 # Changelog
 
+## 0.14.0 — 2026-10-29
+
+### Security
+
+- **MCP output is re-scrubbed.** `show_run` and the `run://` resource now pass
+  a run back through the writer's redaction before rendering it, as `tine
+  export` does, so a legacy (pre-0.9.1) or hand-written unredacted `.tine` no
+  longer hands its secrets to the client's model.
+- **`tine run --model` failures are display-safe.** URLs in the error text
+  lose their userinfo, query and fragment (`--base-url` / `OLLAMA_HOST`
+  credentials echoed by httpx), and the rest is redacted (provider error
+  bodies that quote part of a key).
+- **An invalid `OLLAMA_HOST` names only its scheme**, never the value, which
+  may carry `user:password@`.
+- **Base64-wrapped credentials are redacted.** A standalone, padded base64
+  run (24-8192 characters, at most 64 per value) that decodes to printable
+  UTF-8 is scanned like plain text and replaced whole on a hit. Binary
+  payloads and ordinary text are kept; URL-safe and unpadded base64 are not
+  unwrapped (a documented limit).
+- **`tine run --parallel` members start with `python -P`**, so an `opentine/`
+  package in the project directory no longer shadows the installed one.
+- **Fan-out member logs are private.** Logs are created 0600 without
+  following symlinks, and `--log-dir` is created 0700: they hold raw member
+  output, keys passed by `--env` included.
+- **Repository refs, reflogs and directories are private.** New refs, ref
+  staging and journal files and reflogs are written 0600, directories inside
+  `.tine` are created 0700, and the `.tine-worktree` marker is 0600.
+- **`tine plugin export` writes 0600 files and 0700 directories**, and its
+  help and the README now say the bundle is machine-local: it embeds the
+  interpreter's and the repository's absolute paths.
+- **Allowlisted adapters must be installed.** An entry point whose
+  distribution was found in the working directory (`python -m` puts it on
+  `sys.path`), or whose provenance is unknown, is skipped and not loaded.
+
+### Footprint
+
+No on-disk format change: 0.13.x reads every repository 0.14 writes.
+
+- **`put_run` no longer re-validates the whole repository on every write.**
+  The put-run preflight, the unheaded-annotation fallback and the pack walk
+  each listed every annotation (and every fan-out directory) through a
+  per-entry confined-path check, so writing N runs cost O(N^2). Object
+  directory listings are now reused while the directory's `lstat`
+  fingerprint (type, inode, mtime, ctime) is unchanged and it was not
+  modified in the last 3 s (git's racy-index rule); any change forces a full,
+  validated rescan, and every object read is still checked on its own path.
+  Rescans validate entries from `scandir` instead of re-resolving each path,
+  and confined-path checks no longer pay Python 3.14's linear
+  `relative_to`. 300 runs (25 steps, shared prompts, forks): 323 s -> 206 s;
+  per-`put_run` at N=300: 1186 ms -> 759 ms (first ten: ~600-800 ms), now
+  flat in repository size.
+
+- **`put_run`, `fork` and run annotations auto-pack.** They share the
+  recorder's post-write hook (same `OPENTINE_AUTO_PACK` / `auto_pack`
+  settings, cold objects only, never a version-1 repository). Below the
+  threshold it costs a counter check (~0.4 us per write after one scan per
+  `Repo`). 300 runs written over time: 25.8 MB on disk loose -> 6.8 MB.
+- **Live recordings no longer grow quadratically while they run.** Appends
+  trigger the same hook, so cold superseded snapshots are packed
+  mid-session: a 640-event session peaked at 16.8 MB on disk, now 2.8 MB
+  (at about one event per second).
+- **One reflog row per recording, not per event.** `Recorder.append` moves
+  the ref without a reflog row; start, `import_events`, `finalize` and every
+  other ref move still log one. A 640-event session's reflog: 640+ rows (152 KiB)
+  -> 2 rows; the superseded snapshots become unreachable and `tine prune` can
+  drop them.
+- **`gc` and `tine du` count all of `.tine`.** gc's `bytes_before/after`
+  now include `refs/`, `logs/`, `fanouts/` and `txn/` (most of a packed
+  repository's disk); `tine du` adds `fanouts` and `txn` rows.
+- **`gc --upgrade` on a repository already at version 3** with only
+  format-3 packs no longer rewrites them into a byte-identical pack
+  (300-event session: 25.4 s -> 0.0 s); loose objects still pack.
+- **`gc` removes finished fan-out state** (`.tine/fanouts/<id>.json` and
+  `<id>/`, every member `ok` or `failed`) once it is 7 days old.
+- **`Repo.open(path)` with an explicit path that does not exist fails**
+  (`KernelError`) instead of opening a repository in an ancestor
+  directory. `Repo.open()` / `"."` still discover upward.
+- A CI size-budget test (`tests/test_footprint_budget_0_14.py`) guards the
+  above.
+
 ## 0.13.1 — 2026-10-28
 
 ### Fixed
