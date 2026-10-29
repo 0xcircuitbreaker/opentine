@@ -102,8 +102,8 @@ def pack_format(repo) -> int:
     return 3 if storage_version(config) == STORAGE_V3 else 1
 
 
-def _loose_oids(repo, min_age: float = 0.0) -> list[str]:
-    return sorted(old_loose(repo.path, min_age))
+def _loose_oids(repo, min_age: float = 0.0, own: frozenset[str] = frozenset()) -> list[str]:
+    return sorted(old_loose(repo.path, min_age, own=own))
 
 
 def _remove_loose(repo, oid: str) -> None:
@@ -152,6 +152,7 @@ def gc(
     merge_packs: list[str] | None = None,
     upgrade: bool = False,
     downgrade: bool = False,
+    own: frozenset[str] = frozenset(),
 ) -> GcResult:
     """Pack loose objects (only those *min_age* seconds old or older).
 
@@ -159,7 +160,7 @@ def gc(
     ``upgrade`` moves the repository to storage version 3 and rewrites every
     pack in that format; ``downgrade`` rewrites every pack in the version-1
     pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
-    Neither ever happens implicitly.
+    Neither ever happens implicitly. *own* oids are packed whatever their age.
     """
     if upgrade and downgrade:
         raise ValueError("choose one of --upgrade and --downgrade")
@@ -175,7 +176,7 @@ def gc(
         if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
             set_storage_version(repo, STORAGE_V3, chosen)
         args = (repo, rewrite, chosen, level, keep_transfer_packs)
-        result = _gc_locked(*args, min_age, merge_packs, 1 if downgrade else None)
+        result = _gc_locked(*args, (min_age, own), merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)
         tidy_fanouts(repo.path)  # finished fan-out state past its grace period
@@ -192,7 +193,7 @@ def _is_v3(repo, codec: str) -> bool:
 
 
 def _gc_locked(
-    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, min_age, merge_packs, fmt
+    repo, repack: bool, chosen: str, level, keep_transfer_packs: bool, selection, merge_packs, fmt
 ) -> GcResult:
     before = footprint(repo.path)
     enable_storage(repo, chosen)
@@ -201,15 +202,16 @@ def _gc_locked(
     packs.refresh()
     held = {place[0] for place in packs.where.values()}
     old_packs = sorted(held if repack else held & set(merge_packs or ()))
-    loose = _loose_oids(repo, min_age)
+    loose = _loose_oids(repo, *selection)  # (min_age, own oids)
     carried = {oid for oid, place in packs.where.items() if place[0] in old_packs}
-    selected = sorted(set(loose) | carried)
-    objects: list[tuple[str, bytes]] = []
-    for oid in selected:
-        raw = repo.raw(oid)
+    # Packed objects are read in block order: a run delta then resolves from the
+    # snapshot read just before it, not from its block's start (0.14.1).
+    raws: dict[str, bytes] = {}
+    for oid in [*packs.in_block_order(sorted(carried)), *sorted(set(loose) - carried)]:
+        raws[oid] = raw = repo.raw(oid)
         if oid_of(raw) != oid:
             raise KernelError(f"refusing to pack a corrupt object: {oid}")
-        objects.append((oid, raw))
+    objects = sorted(raws.items())
     removed_packs = 0
     if objects:
         digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9, fmt)

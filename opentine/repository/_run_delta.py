@@ -109,12 +109,23 @@ def unslim_event(stored: bytes) -> bytes:
 # --- run delta -------------------------------------------------------------
 
 
-def run_delta(raw: bytes, base_raw: bytes) -> bytes | None:
-    """*raw* as a delta against *base_raw*, or ``None`` when it would not pay."""
+def run_delta(
+    raw: bytes,
+    base_raw: bytes,
+    target: dict[str, Any] | None = None,
+    base: dict[str, Any] | None = None,
+) -> bytes | None:
+    """*raw* as a delta against *base_raw*, or ``None`` when it would not pay.
+
+    *target* / *base* may pass the bodies already parsed by ``_object`` (a pack
+    writer parses each snapshot once, not three times); they are not modified.
+    The delta is still kept only if applying it to *base_raw* rebuilds *raw*.
+    """
     try:
         header, body = split(raw)
         base_header, base_body = split(base_raw)
-        target, base = _object(body), _object(base_body)
+        target = _object(body) if target is None else target
+        base = _object(base_body) if base is None else base
     except KernelError:
         return None
     if header != base_header:
@@ -136,7 +147,7 @@ def run_delta(raw: bytes, base_raw: bytes) -> bytes | None:
     if len(stored) >= len(raw):
         return None
     try:
-        rebuilt = apply_delta(base_raw, parse_delta(stored))
+        rebuilt = apply_delta(base_raw, parse_delta(stored), base)
     except KernelError:
         return None
     return stored if rebuilt == raw else None
@@ -160,9 +171,10 @@ def parse_delta(stored: bytes) -> dict[str, Any]:
     return delta
 
 
-def apply_delta(base_raw: bytes, delta: dict[str, Any]) -> bytes:
+def apply_delta(base_raw: bytes, delta: dict[str, Any], base: dict | None = None) -> bytes:
+    """*base_raw* with *delta* applied; *base* is its body already parsed (kept as is)."""
     header, body = split(base_raw)
-    value = _object(body)
+    value = _object(body) if base is None else dict(base)
     for key in delta["drop"]:
         if key not in value:
             raise KernelError("run delta drops a key its base lacks")

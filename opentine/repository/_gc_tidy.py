@@ -58,12 +58,18 @@ def loose_entries(root: Path) -> Iterator[tuple[str, Path, os.stat_result]]:
                 yield f"{kind}:sha256:{prefix}{name}", path, info
 
 
-def old_loose(root: Path, min_age: float, *, limit: int | None = None) -> list[str]:
-    """Loose oids last written (or freshened) at least *min_age* seconds ago."""
+def old_loose(
+    root: Path, min_age: float, *, limit: int | None = None, own: frozenset[str] = frozenset()
+) -> list[str]:
+    """Loose oids last written (or freshened) at least *min_age* seconds ago.
+
+    Oids in *own* (written by the calling process, see ``_autopack``) are
+    included whatever their age.
+    """
     cutoff = time.time() - min_age
     found: list[str] = []
     for oid, _, info in loose_entries(root):
-        if info.st_mtime <= cutoff:
+        if info.st_mtime <= cutoff or oid in own:
             found.append(oid)
             if limit is not None and len(found) >= limit:
                 break

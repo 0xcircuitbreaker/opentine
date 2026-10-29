@@ -30,11 +30,15 @@ DEFAULT_BLOCK_BYTES = 16 * 1024 * 1024
 _ORDER = {"blob": 0, "event": 1, "run": 2, "annotation": 3, "attestation": 4}
 
 
-def _body(raw: bytes) -> dict:
+def _parsed(raw: bytes) -> dict | None:
     try:
         return forms._object(forms.split(raw)[1])
     except KernelError:
-        return {}
+        return None
+
+
+def _body(raw: bytes) -> dict:
+    return _parsed(raw) or {}
 
 
 def _ranks(runs: list[tuple[tuple, dict]], raws: dict[str, bytes]) -> dict[str, int]:
@@ -70,9 +74,11 @@ def stored_forms(objects: list[tuple[str, bytes]]) -> list[tuple[str, bytes, int
     """
     raws = dict(objects)
     runs = []
+    parsed: dict[str, dict | None] = {}  # each snapshot body parsed once
     for oid, raw in objects:
         if oid.startswith("run:"):
-            body = _body(raw)
+            parsed[oid] = _parsed(raw)
+            body = parsed[oid] or {}
             events = body.get("events")
             count = len(events) if isinstance(events, list) else 0
             runs.append(((_ORDER["run"], str(body.get("session_id", "")), count, oid), body))
@@ -95,7 +101,7 @@ def stored_forms(objects: list[tuple[str, bytes]]) -> list[tuple[str, bytes, int
                 stored, encoding = slim, forms.EVENT_SLIM
         elif kind == "run" and previous and previous[0] == session and session:
             if previous[3] < forms.KEYFRAME_INTERVAL:
-                delta = forms.run_delta(raw, previous[2])
+                delta = forms.run_delta(raw, previous[2], parsed[oid], parsed[previous[1]])
                 if delta is not None:
                     stored, encoding, depth = delta, forms.RUN_DELTA, previous[3] + 1
         if kind == "run":
@@ -147,7 +153,11 @@ def build_pack_v3(
     return digest, bytes(body), encode_index(digest, blocks, entries)
 
 
-def resolve(oid: str, stored: Callable[[str], tuple[bytes, int, int, str | None]]) -> bytes:
+def resolve(
+    oid: str,
+    stored: Callable[[str], tuple[bytes, int, int, str | None]],
+    known: dict[str, tuple[bytes, int]] | None = None,
+) -> bytes:
     """The canonical bytes of *oid*, rebuilt from its stored form and checked.
 
     *stored* returns ``(bytes, encoding, canonical size, predecessor)`` for an
@@ -156,12 +166,20 @@ def resolve(oid: str, stored: Callable[[str], tuple[bytes, int, int, str | None]
     predecessor, so a chain only moves towards its block's start and cannot
     loop; it is walked iteratively and refused past ``MAX_DELTA_DEPTH``. Every
     object rebuilt on the way, the base included, must match its id and size.
+
+    *known* maps oids of this same pack to (bytes, delta depth) already rebuilt
+    and checked against their id (0.14.1): a chain stops at the first such base
+    instead of re-applying every delta back to its block's start, which made
+    reading a whole pack in order quadratic in the chain length. The depth
+    limit still counts every delta down to the block's full snapshot. The
+    rebuilt object is added to it; the caller bounds its size.
     """
     from opentine.repository._packs import oid_of
 
     chain: list[tuple[str, dict, bytes, int]] = []
+    known = {} if known is None else known
     current = oid
-    while True:
+    while current not in known:
         data, encoding, size, base = stored(current)
         if encoding != forms.RUN_DELTA:
             break
@@ -171,13 +189,22 @@ def resolve(oid: str, stored: Callable[[str], tuple[bytes, int, int, str | None]
             raise KernelError(f"packed run delta starts its block: {current}")
         chain.append((current, forms.parse_delta(data), forms.split(data)[0], size))
         current = base
-    raw = forms.unslim_event(data) if encoding == forms.EVENT_SLIM else data
-    _check(current, raw, size, oid_of)
+    depth = len(chain)
+    if current in known:
+        raw, below = known[current]  # rebuilt and checked against its id before
+        depth += below
+        if depth > forms.MAX_DELTA_DEPTH:
+            raise KernelError(f"packed run delta chain is too deep: {oid}")
+    else:
+        raw = forms.unslim_event(data) if encoding == forms.EVENT_SLIM else data
+        _check(current, raw, size, oid_of)
     for target, delta, header, target_size in reversed(chain):
         if forms.split(raw)[0] != header:
             raise KernelError(f"packed run delta header differs from its base: {target}")
         raw = forms.apply_delta(raw, delta)
         _check(target, raw, target_size, oid_of)
+    if oid.startswith("run:"):
+        known[oid] = (raw, depth)
     return raw
 
 
