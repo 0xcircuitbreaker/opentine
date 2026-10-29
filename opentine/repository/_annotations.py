@@ -9,6 +9,7 @@ from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid
 from opentine.redaction import redact_value
+from opentine.repository._autopack import after_write
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -242,4 +243,5 @@ def write_run_annotation(
         redact=False,
     )
     repo.update_ref(name, oid, expected_old=ref_head)
+    after_write(repo)  # auto-pack once enough cold loose objects piled up
     return oid

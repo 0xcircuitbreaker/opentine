@@ -80,13 +80,13 @@ def usage(repo, by: str = "kind") -> dict:
             "file_bytes": pack_bytes,
         },
     }
-    for name in ("refs", "logs", "indexes"):
+    for name in ("refs", "logs", "indexes", "fanouts", "txn"):
         files, total = _tree_bytes(root, name)
         report[name] = {"files": files, "bytes": total}
     report["total_bytes"] = (
         report["loose"]["stored_bytes"]
         + pack_bytes
-        + sum(report[n]["bytes"] for n in ("refs", "logs", "indexes"))
+        + sum(report[n]["bytes"] for n in ("refs", "logs", "indexes", "fanouts", "txn"))
     )
     if by == "kind":
         kinds = sorted({oid.split(":", 1)[0] for oid in sizes})

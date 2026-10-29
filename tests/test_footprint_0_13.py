@@ -214,10 +214,11 @@ def test_prune_is_a_dry_run_unless_told_to_delete(tmp_path, capsys):
     before = _all_raw(repo)
     cli.main(["prune", "--repo", str(repo.path), "--json", "--no-git-links"])
     dry = json.loads(capsys.readouterr().out)
-    assert dry["dry_run"] and dry["candidates"] == 1 and _all_raw(repo) == before
+    # The junk blob plus (0.14) the 3 mid-session snapshots no reflog row keeps.
+    assert dry["dry_run"] and dry["candidates"] == 4 and _all_raw(repo) == before
     cli.main(["prune", "--repo", str(repo.path), "--json", "--no-git-links", "--delete"])
     done = json.loads(capsys.readouterr().out)
-    assert done["deleted"] == 1 and not repo.has(junk)
+    assert done["deleted"] == 4 and not repo.has(junk)
     assert Repo.open(repo.path).fsck().ok
 
 

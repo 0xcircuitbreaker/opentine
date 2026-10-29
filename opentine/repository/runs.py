@@ -12,6 +12,7 @@ from opentine._unicode_text import assert_unicode_text
 from opentine._v3_guards import as_mapping, text_field
 from opentine.policies import run_redaction
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
+from opentine.repository._autopack import after_write
 from opentine.repository._migration_preflight import preflight_run
 from opentine.repository._run_blobs import (
     apply_legacy_migration,
@@ -136,6 +137,7 @@ def _put_run(
     if ref:
         old = repo.read_ref(ref)
         repo.update_ref(ref, run_id, expected_old=old)
+    after_write(repo)  # auto-pack once enough cold loose objects piled up
     return RunObjectResult(run_id, event_map, annotation_id)
 
 

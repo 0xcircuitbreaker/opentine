@@ -10,6 +10,7 @@ from opentine.kernel import parse_oid, validate_links
 from opentine.repository._access import get_object as _get
 from opentine.repository._associations import evaluations as _evaluations
 from opentine.repository._attest import attest as _attest
+from opentine.repository._autopack import after_write
 from opentine.repository._context import ContextBudget
 from opentine.repository._diff_budget import DiffBudget
 from opentine.repository._fork_state import fork_payload
@@ -219,6 +220,7 @@ def fork_run(
     run_id = repo.put("run", forked)
     if ref:
         repo.update_ref(ref, run_id, expected_old=repo.read_ref(ref))
+    after_write(repo)  # auto-pack once enough cold loose objects piled up
     return run_id
 
 

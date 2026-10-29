@@ -23,6 +23,7 @@ Rules, each one a compatibility or safety guarantee:
 from __future__ import annotations
 
 import os
+import time
 
 from opentine.repository._config import STORAGE_VERSIONS, read_config
 from opentine.repository._gc_tidy import old_loose
@@ -34,6 +35,9 @@ DEFAULT_THRESHOLD = 256
 MIN_AGE = 60.0
 #: Small packs are merged once a repository holds more than this many.
 MAX_PACKS = 8
+#: The post-write hook rescans loose objects at most this often (seconds): an
+#: object is never cold before MIN_AGE, so scanning more often finds nothing new.
+RESCAN_INTERVAL = MIN_AGE / 4
 _OFF = {"0", "off", "false", "no"}
 
 
@@ -109,3 +113,29 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE):
         return gc(repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True)
     except Exception:  # noqa: BLE001 - housekeeping never fails a recording
         return None
+
+
+def after_write(repo) -> None:
+    """The shared post-write hook (``put_run``, ``fork``, annotate, recorder appends).
+
+    Cheap below the threshold: :func:`maybe_autopack`'s scan of the loose
+    objects runs once per ``Repo`` instance, then again only after about
+    *threshold* more objects were stored through it (counted in
+    ``store_envelope``) and at least :data:`RESCAN_INTERVAL` seconds later.
+    Never raises.
+    """
+    state = repo.__dict__
+    try:
+        written = state.get("_autopack_writes", 0)
+        last = state.get("_autopack_scan")
+        if last is not None:
+            limit = state.get("_autopack_limit") or DEFAULT_THRESHOLD
+            if written < limit or time.monotonic() - last < RESCAN_INTERVAL:
+                return
+        state["_autopack_writes"] = 0
+        state["_autopack_scan"] = time.monotonic()
+        state["_autopack_limit"] = threshold(repo)
+        if state["_autopack_limit"] is not None:
+            maybe_autopack(repo)
+    except Exception:  # noqa: BLE001 - housekeeping never fails a write
+        return

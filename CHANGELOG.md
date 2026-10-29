@@ -34,6 +34,38 @@
   distribution was found in the working directory (`python -m` puts it on
   `sys.path`), or whose provenance is unknown, is skipped and not loaded.
 
+### Footprint
+
+No on-disk format change: 0.13.x reads every repository 0.14 writes.
+
+- **`put_run`, `fork` and run annotations auto-pack.** They share the
+  recorder's post-write hook (same `OPENTINE_AUTO_PACK` / `auto_pack`
+  settings, cold objects only, never a version-1 repository). Below the
+  threshold it costs a counter check (~0.4 us per write after one scan per
+  `Repo`). 300 runs written over time: 25.8 MB on disk loose -> 6.8 MB.
+- **Live recordings no longer grow quadratically while they run.** Appends
+  trigger the same hook, so cold superseded snapshots are packed
+  mid-session: a 640-event session peaked at 16.8 MB on disk, now 2.8 MB
+  (at about one event per second).
+- **One reflog row per recording, not per event.** `Recorder.append` moves
+  the ref without a reflog row; start, `import_events`, `finalize` and every
+  other ref move still log one. A 640-event session's reflog: 640+ rows (152 KiB)
+  -> 2 rows; the superseded snapshots become unreachable and `tine prune` can
+  drop them.
+- **`gc` and `tine du` count all of `.tine`.** gc's `bytes_before/after`
+  now include `refs/`, `logs/`, `fanouts/` and `txn/` (most of a packed
+  repository's disk); `tine du` adds `fanouts` and `txn` rows.
+- **`gc --upgrade` on a repository already at version 3** with only
+  format-3 packs no longer rewrites them into a byte-identical pack
+  (300-event session: 25.4 s -> 0.0 s); loose objects still pack.
+- **`gc` removes finished fan-out state** (`.tine/fanouts/<id>.json` and
+  `<id>/`, every member `ok` or `failed`) once it is 7 days old.
+- **`Repo.open(path)` with an explicit path that does not exist fails**
+  (`KernelError`) instead of opening a repository in an ancestor
+  directory. `Repo.open()` / `"."` still discover upward.
+- A CI size-budget test (`tests/test_footprint_budget_0_14.py`) guards the
+  above.
+
 ## 0.13.1 — 2026-10-28
 
 ### Fixed

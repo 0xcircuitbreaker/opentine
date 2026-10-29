@@ -78,7 +78,7 @@ def cmd_du(args: argparse.Namespace) -> None:
         f"  packed  {packed['objects']} object(s), {_size(packed['file_bytes'])} "
         f"in {packed['files']} file(s)"
     )
-    for name in ("refs", "logs", "indexes"):
+    for name in ("refs", "logs", "indexes", "fanouts", "txn"):
         console.print(f"  {name:<7} {_size(report[name]['bytes'])}")
     section = report[f"by_{args.by}"]
     rows = (

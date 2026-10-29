@@ -19,6 +19,8 @@ def store_envelope(repo, envelope: ObjectEnvelope) -> str:
     from opentine.repository._storage import write_object
 
     write_object(repo, envelope.oid, envelope.encode())
+    # An estimate of new loose objects for the auto-pack hook (_autopack.after_write).
+    repo.__dict__["_autopack_writes"] = repo.__dict__.get("_autopack_writes", 0) + 1
     return envelope.oid
 
 

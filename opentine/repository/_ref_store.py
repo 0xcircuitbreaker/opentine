@@ -57,7 +57,14 @@ def commit_ref(
     expected_old: str | None,
     check_expected: bool,
     actor: str,
+    *,
+    log: bool = True,
 ) -> None:
+    """Compare-and-swap one ref; ``log=False`` skips its reflog row.
+
+    The reflog is history, not authority (SPEC 2.6): a live recorder logs its
+    session's first and final positions, not one row per appended event.
+    """
     ref_path = internal_path(base, "refs", *Path(normalized).parts)
     durable_directory(ref_path.parent)
     lock_path = ref_path.with_name(ref_path.name + ".lock")
@@ -98,7 +105,8 @@ def commit_ref(
         _winretry.replace(write_path, ref_path)  # readers hold refs open briefly
         ref_replaced = True
         _fsync_dir(ref_path.parent)
-        append_reflog(base, normalized, entry)
+        if log:
+            append_reflog(base, normalized, entry)
     finally:
         for descriptor in (guard_fd, write_fd):
             if descriptor >= 0:

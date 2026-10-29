@@ -26,6 +26,7 @@ from opentine.repository._config import (
     read_config,
     storage_version,
 )
+from opentine.repository._fanout_tidy import tidy_fanouts
 from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
@@ -33,6 +34,7 @@ from opentine.repository._packs import oid_of, pack_set
 from opentine.repository._paths import atomic_bytes, internal_path
 
 GC_LEVEL = 19  # packs are written once and read many times
+FOOTPRINT_DIRS = ("objects", "packs", "refs", "logs", "fanouts", "txn")
 
 
 @dataclass(frozen=True)
@@ -49,9 +51,13 @@ class GcResult:
 
 
 def footprint(tine: Path) -> tuple[int, int]:
-    """(file bytes, allocated disk bytes) of the object and pack directories."""
+    """(file bytes, allocated disk bytes) of objects, packs, refs, reflogs and state.
+
+    Refs and reflogs are counted since 0.14: after a gc they are most of a
+    repository's disk (one 4 KiB block per ref and per reflog file).
+    """
     total = disk = 0
-    for name in ("objects", "packs"):
+    for name in FOOTPRINT_DIRS:
         for directory, _, files in os.walk(internal_path(tine, name)):
             for file in files:
                 try:
@@ -163,13 +169,26 @@ def gc(
     if not _codec.available(chosen):
         raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
     with gc_lock(repo.path):
+        # Already v3 with only format-3 packs: --upgrade has nothing to rewrite (it
+        # used to repack everything into a byte-identical pack); loose still packs.
+        rewrite = repack or downgrade or (upgrade and not _is_v3(repo, chosen))
         if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
             set_storage_version(repo, STORAGE_V3, chosen)
-        args = (repo, repack or upgrade or downgrade, chosen, level, keep_transfer_packs)
+        args = (repo, rewrite, chosen, level, keep_transfer_packs)
         result = _gc_locked(*args, min_age, merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)
+        tidy_fanouts(repo.path)  # finished fan-out state past its grace period
         return result
+
+
+def _is_v3(repo, codec: str) -> bool:
+    config = read_config(internal_path(repo.path, "config.json"))
+    if storage_version(config) != STORAGE_V3 or repo._storage_codec != codec:
+        return False
+    packs = pack_set(repo.path)
+    packs.refresh()
+    return set(packs.blocks) <= set(packs.v3)
 
 
 def _gc_locked(
