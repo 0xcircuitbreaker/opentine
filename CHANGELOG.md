@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.17.0 — unreleased
+## 0.17.0 — 2026-10-30
 
 "Simplify, part 2": `log` and `show` are the front door for read-only browsing.
 Nothing was removed or renamed; every pre-0.17 command, subcommand and flag still
@@ -37,6 +37,14 @@ parses and reaches the same handler.
   Commands without `--json` ignore the setting. An invalid env value or a
   malformed settings file is a one-line error (exit 1), never a fallback. With
   no setting, output is byte-identical to 0.16.
+
+### Release
+
+- **Release files are install-tested on Linux, macOS and Windows before
+  publishing.** A new `artifact-smoke` job installs the exact validated wheel
+  and sdist on each OS and runs the CLI smoke test; the GitHub release and the
+  PyPI upload both wait on it. (CI already smoke-tested a wheel it built itself
+  on every OS.)
 
 ## 0.16.2 — 2026-10-30
 

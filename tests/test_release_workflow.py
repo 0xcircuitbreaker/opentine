@@ -26,11 +26,23 @@ def test_publish_reuses_one_validated_distribution_pair():
     assert workflow.count("uv build --no-build-isolation --sdist") == 1
     assert workflow.count("uv build --no-build-isolation --wheel") == 1
     assert "uv build --no-build-isolation --wheel dist/opentine-*.tar.gz" in workflow
-    assert workflow.count("name: opentine-release-distributions") == 3
-    assert "needs: [build, github-release]" in workflow
+    assert workflow.count("name: opentine-release-distributions") == 4
+    assert "needs: [build, artifact-smoke, github-release]" in workflow
     assert "packages-dir: dist" in workflow
     assert workflow.count("uv build --no-build-isolation") == 2
     assert "GH_REPO: ${{ github.repository }}" in workflow
+
+
+def test_release_artifacts_are_installed_on_every_os_before_publishing():
+    # 0.17: the exact files about to be released are installed and smoke-tested
+    # on Linux, macOS and Windows; the GitHub release and PyPI both wait on it.
+    workflow = _workflow("publish.yml")
+    smoke = workflow.split("\n  artifact-smoke:\n", 1)[1].split("\n  github-release:\n", 1)[0]
+    assert "os: [ubuntu-24.04, macos-latest, windows-latest]" in smoke
+    assert "OPENTINE_WHEEL_SMOKE_DIST: release-dist" in smoke
+    assert "scripts/wheel_smoke.py" in smoke
+    assert "id-token" not in smoke and "contents: write" not in smoke
+    assert "needs: [build, artifact-smoke]" in workflow
 
 
 def test_pypi_trusted_publishing_is_environment_gated_and_tokenless():
