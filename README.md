@@ -912,6 +912,10 @@ tine repo-log|repo-show|repo-diff|repo-search|context ... --json
 tine repo-fork|repo-resume|attest|evaluate|promote ... --json
 ```
 
+Scripts and agents that always want JSON can set it once:
+`tine config set output.format json` (or `OPENTINE_OUTPUT=json`); `--text` then
+forces the human rendering for one call. See [docs/CLI.md](docs/CLI.md).
+
 `--json` replaces the rich rendering with exactly one JSON object on stdout;
 without it the human rendering is unchanged. Every one of these objects is
 written by the single serializer `opentine/_cli_json.py:serialize` — keys

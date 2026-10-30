@@ -2908,4 +2908,28 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "price", "run_id": "r1", "at": "2026-07-15", "json": True},
     ),
+    (
+        "plain:config set output.format json",
+        "plain",
+        ["config", "set", "output.format", "json"],
+        "opentine._user_settings:cmd_user_config",
+        False,
+        {"command": "config", "key": "set", "value": "output.format", "setting_value": "json"},
+    ),
+    (
+        "plain:config get output.format",
+        "plain",
+        ["config", "get", "output.format"],
+        "opentine._user_settings:cmd_user_config",
+        False,
+        {"command": "config", "key": "get", "value": "output.format"},
+    ),
+    (
+        "plain:config unset output.format",
+        "plain",
+        ["config", "unset", "output.format"],
+        "opentine._user_settings:cmd_user_config",
+        False,
+        {"command": "config", "key": "unset", "value": "output.format"},
+    ),
 )

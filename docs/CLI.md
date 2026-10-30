@@ -71,6 +71,27 @@ named trust policies for `tine verify --policy NAME` (see below).
 `tine agent id|show|trust|keys` are unchanged. `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
 
+## Default output format
+
+```
+tine config set output.format json    # every command with --json now emits JSON
+tine config get output.format         # prints json; exit 1 when unset
+tine config unset output.format
+OPENTINE_OUTPUT=text tine show RUN    # the env var wins over the file
+tine show RUN --text                  # human output for this call only
+```
+
+`output.format` is `text` or `json`, stored only in the user's
+`$XDG_CONFIG_HOME/opentine/settings.json` (written 0600; a repository cannot set
+it). Precedence: an explicit `--json` or `--text` on the command, then
+`OPENTINE_OUTPUT`, then the file, then text. Every command that has `--json` also
+has `--text`; giving both is an error. Commands without `--json` ignore the
+setting and never read the file. A value other than `text`/`json` in the env var
+or the file, or a malformed file, stops the command with a one-line error (exit
+1) instead of guessing. `tine config set|get|unset` are the user settings;
+`tine config KEY [VALUE]` still edits the repository's porcelain keys. With no
+setting, every command's output is unchanged.
+
 ## Trust policies
 
 ```

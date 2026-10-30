@@ -97,9 +97,14 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     reset.add_argument("--expect", metavar="OID", help="Refuse unless the ref holds this oid")
     _common(reset, json=False)
 
-    config = sub.add_parser("config", help="Get or set porcelain settings and aliases")
-    config.add_argument("key", nargs="?")
+    config = sub.add_parser(
+        "config",
+        help="Get or set porcelain settings and aliases; set|get|unset user settings",
+        epilog="User settings (not per repository): tine config set output.format json|text",
+    )
+    config.add_argument("key", nargs="?", help="A repository key, or set|get|unset")
     config.add_argument("value", nargs="?")
+    config.add_argument("setting_value", nargs="?", help=argparse.SUPPRESS)
     config.add_argument("--list", "-l", action="store_true")
     config.add_argument("--unset", action="store_true")
     config.add_argument("--trust", action="store_true", help="Trust this repo's porcelain file")

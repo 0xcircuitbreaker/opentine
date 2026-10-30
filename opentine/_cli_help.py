@@ -11,6 +11,7 @@ import sys
 
 from opentine._cli_groups import add_group_parsers
 from opentine._cli_registry import VISIBLE, advanced
+from opentine._user_settings import add_text_flags
 
 _HINT = "Run `tine help --all` for every command, `tine help COMMAND` for one."
 
@@ -46,6 +47,7 @@ def finish_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     sub.help = _HINT
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.epilog = "\n".join(["everyday commands:", *_everyday(summaries)])
+    add_text_flags(parser)  # `--text` beside every `--json` (0.17 output.format)
     return parser
 
 

@@ -27,6 +27,16 @@ parses and reaches the same handler.
   `--legacy`/`--repo` with `--cost`/`--price`.
 - `tine ls`, `tine search`, `tine cost` and `tine price` keep working silently;
   the compatibility table (tests/cli_compat_table.py) pins the new spellings too.
+- **A default output format.** `tine config set output.format json` (or
+  `OPENTINE_OUTPUT=json`, which wins over the file) makes every command that has
+  `--json` emit JSON without the flag; `tine config get|unset output.format`
+  read and clear it. The setting is user-scoped
+  (`$XDG_CONFIG_HOME/opentine/settings.json`, 0600), never per repository. A new
+  `--text` beside every `--json` forces the human output for one call; an
+  explicit `--json`/`--text` always wins, and both together are an error.
+  Commands without `--json` ignore the setting. An invalid env value or a
+  malformed settings file is a one-line error (exit 1), never a fallback. With
+  no setting, output is byte-identical to 0.16.
 
 ## 0.16.2 — 2026-10-30
 

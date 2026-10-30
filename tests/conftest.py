@@ -21,6 +21,10 @@ def pytest_configure(config):
     # read or corrupt stored bytes directly, so they pin the plain form; the
     # compression tests (test_compression_0_11.py) turn it back on themselves.
     os.environ.setdefault("OPENTINE_COMPRESS", "0")
+    # 0.17: a developer shell exporting OPENTINE_OUTPUT=json would turn every
+    # --json-capable command's default output into JSON; the output-format tests
+    # set it themselves.
+    os.environ.pop("OPENTINE_OUTPUT", None)
     # Also pin a fixed, wide console WIDTH. The CLI's Rich console captures its
     # width at import: from the controlling terminal in an interactive dev shell
     # (wide), or 80 when stdout is not a tty (CI). A long message or temp path
