@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from opentine._cli_groups import add_group_parsers
 from opentine._cli_registry import VISIBLE, advanced
 
 _HINT = "Run `tine help --all` for every command, `tine help COMMAND` for one."
@@ -35,6 +36,8 @@ def finish_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     helper = sub.add_parser("help", help="Show help for tine or one command")
     helper.add_argument("topic", nargs="?", metavar="COMMAND")
     helper.add_argument("--all", action="store_true", help="List every command by section")
+    summaries = {action.dest: action.help or "" for action in sub._choices_actions}
+    add_group_parsers(sub, summaries)
     summaries = {action.dest: action.help or "" for action in sub._choices_actions}
     parser.tine_summaries = summaries  # type: ignore[attr-defined]
     # Only the help listing reads _choices_actions; parsing reads sub.choices.

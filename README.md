@@ -690,10 +690,19 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.15.
 
 ## CLI Reference
 
-`tine` ships 73 subcommands; `tine --help` lists the 19 everyday ones by
+`tine` ships 74 subcommands; `tine --help` lists the 20 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
+
+**Command groups.** Since 0.16 related verbs are also reachable under a noun
+group: `tine repo init|config|worktree|branch|reset|reflog|archive|pack|serve`,
+`tine repo migrate [--to-v3]` (`migrate` / `migrate-v3`),
+`tine repo storage du|gc|repack|prune|compress|fsck|reindex` and
+`tine repo integrate hook|plugin|harnesses|git`. A group spelling is rewritten to
+the old verb before parsing, so it takes the same flags and gives the same output
+and exit code; the old top-level spellings keep working unchanged. `tine repo
+--help` (or `tine help repo`) lists the group.
 
 Portable `.tine` artifacts:
 

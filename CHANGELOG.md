@@ -13,6 +13,15 @@
   no longer shadows it.
 - A pinned compatibility table (tests/cli_compat_table.py) proves every existing
   verb, subcommand and representative flag still reaches the same handler.
+- New `tine repo` group: `tine repo storage gc` is `tine gc`, `tine repo migrate
+  --to-v3` is `tine migrate-v3`, `tine repo integrate hook` is `tine hook`, and
+  so on for init, config, worktree, branch, reset, reflog, archive, pack, serve,
+  du, repack, prune, compress, fsck and reindex. The group words are rewritten to
+  the old verb before parsing, so both spellings reach the same handler with the
+  same arguments; the old spellings still work silently. A built-in group name
+  wins over a porcelain `alias.repo`, with a warning on stderr.
+- Fixed: in a v3 repository `tine show REF --json` dropped `--json` when it
+  routed to `repo-show`, printing the human rendering instead of JSON.
 
 ## 0.15.0 — 2026-10-29
 

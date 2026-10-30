@@ -602,6 +602,13 @@ plain repository hold the same objects. `OPENTINE_COMPRESS=0` or
 and an existing version-1 repository is never written compressed until
 `tine gc` upgrades it.
 
+The maintenance verbs below are also spelled under the `repo` group (0.16+):
+`tine repo storage gc`, `tine repo storage repack`, `tine repo storage du`,
+`tine repo storage prune`, `tine repo storage compress`, `tine repo storage fsck`
+and `tine repo storage reindex` are exactly `tine gc`, `tine repack`, `tine du`,
+`tine prune`, `tine compress`, `tine fsck` and `tine reindex`; both spellings
+take the same flags.
+
 - `tine gc` moves loose objects into compressed local packs
   (`.tine/packs/*.tpk` + `.tidx`): a pack is written and read back object by
   object before anything loose is deleted (about 18x less disk on real

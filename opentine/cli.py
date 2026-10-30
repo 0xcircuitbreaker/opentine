@@ -33,6 +33,9 @@ from opentine._cli_fleet import COMMANDS as FLEET_COMMANDS
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
+from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
+from opentine._cli_groups import notice as group_notice
+from opentine._cli_groups import rewrite as group_rewrite
 from opentine._cli_guard import guarded_dispatch
 from opentine._cli_harnesses import cmd_harnesses
 from opentine._cli_help import COMMANDS as HELP_COMMANDS
@@ -102,6 +105,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,
     **HELP_COMMANDS,
+    **GROUP_COMMANDS,
 }
 
 
@@ -118,7 +122,10 @@ def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argpar
     """Alias expansion and the parse ``main`` does, without running anything."""
     parser = parser or _build_parser()
     argv = expand_alias(parser, list(argv))
-    head, tail = split_command(argv)  # `tine fan-out ... -- CMD`: CMD is never parsed
+    group_notice(argv)
+    head, tail = split_command(
+        group_rewrite(argv)
+    )  # `tine repo storage gc` -> `tine gc`  # `tine fan-out ... -- CMD`: CMD is never parsed
     args = parser.parse_args(head)
     args.member_command = tail
     args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
