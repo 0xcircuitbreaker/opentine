@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import argparse
 
+from opentine._cli_bundle import COMMANDS as BUNDLE_COMMANDS
+from opentine._cli_bundle import add_bundle_parsers
 from opentine._cli_git_log import cmd_log
 from opentine._cli_git_refs import (
     cmd_branch,
@@ -34,6 +36,7 @@ COMMANDS = {
     "remote": cmd_remote,
     "reset": cmd_reset,
     "verify-tag": cmd_verify_tag,
+    **BUNDLE_COMMANDS,
 }
 
 
@@ -44,6 +47,7 @@ def _common(parser: argparse.ArgumentParser, *, json: bool = True) -> None:
 
 
 def add_git_parsers(sub: argparse._SubParsersAction) -> None:
+    add_bundle_parsers(sub)
     remote = sub.add_parser("remote", help="Manage named remotes (stored in .tine/porcelain.json)")
     actions = remote.add_subparsers(dest="remote_action")
     add = actions.add_parser("add", help="Add a remote")

@@ -35,6 +35,23 @@
   `--cert-oidc-issuer`, `--fulcio-root FILE` and `--rekor-key FILE`; the result is
   reported as `verified-keyless`. The token is never printed or written.
 
+### Serverless
+
+- **`tine bundle`: share runs without an opentine server.** `tine bundle create
+  FILE [REFS...|--all]` writes one self-verifying file (the existing transfer
+  pack plus a manifest of refs and a SHA-256 over everything; associations such
+  as annotations and attestations ride along). `tine bundle verify FILE` checks
+  it without importing; `tine bundle unbundle FILE` (alias `import`) imports it
+  into `remotes/<name>/*` (`--as NAME`), fail-closed on any digest mismatch,
+  untrusted ref names refused, all-or-nothing, and never moving an existing ref
+  to a non-descendant without `--force`. Re-importing is a no-op.
+- **Plain git remotes.** `tine bundle push REMOTE [REFS...]` and `tine bundle
+  fetch REMOTE` store the bundle at `refs/tine/bundle` on any git remote
+  (GitHub, Gitea, a bare repository, Radicle's git, a local path). git runs with
+  an argument list, a scrubbed environment, hardened config, only the
+  file/https/ssh protocols and a timeout; fetched data is size-capped and
+  verified before any local ref moves. See docs/REPOSITORY.md.
+
 ## 0.14.2 — 2026-10-29
 
 ### Fixes

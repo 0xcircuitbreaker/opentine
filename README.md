@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.14.
 
 ## CLI Reference
 
-`tine` ships 71 subcommands. Each one prints its own `--help`, which is
+`tine` ships 72 subcommands. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 

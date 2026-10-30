@@ -673,6 +673,41 @@ Authenticated clients ignore ambient proxy variables so local development
 credentials are not forwarded unexpectedly. Push uploads verified missing
 objects before attempting the CAS ref update.
 
+## Serverless sharing: bundles and plain git remotes
+
+Since 0.15, runs can be shared with no opentine server.
+
+- `tine bundle create FILE [REFS...] | --all` writes one self-verifying file:
+  `TINEBUNDLE1` magic, a SHA-256 over the rest, a canonical JSON manifest
+  (`format`, the pack's SHA-256 and length, `ref -> object id`) and an ordinary
+  transfer pack. The pack carries each run's associations (annotations and
+  attestations) exactly as a fetch would. `--all` bundles every local ref except
+  `remotes/*`; a bare name means `heads/NAME`.
+- `tine bundle verify FILE` checks it without a repository: size caps, both
+  digests, canonical manifest, every ref name through `normalize_ref` (no `..`,
+  absolute, upper-case, control characters or `remotes/*`), every ref target
+  present in the pack, and every packed object against its id.
+- `tine bundle unbundle FILE` (alias `import`) verifies, installs the objects and
+  moves refs **only** under `remotes/<name>/…` (`heads/` dropped, like fetch);
+  `<name>` is `--as NAME` or derived from the file name. A tracking ref that
+  already exists moves only to a descendant (its `forked_from` chain) unless
+  `--force`; refs move atomically (all or none). Re-importing is a no-op.
+- `tine bundle push REMOTE [REFS...]` and `tine bundle fetch REMOTE [--as NAME]`
+  carry a bundle over any git remote (GitHub, Gitea, a bare repository,
+  Radicle's git, a local path). The remote gets one ref, `refs/tine/bundle`: a
+  commit whose tree is a single `bundle.tine` blob, parented on the commit it
+  replaces, so a push that raced another is refused by git's fast-forward check.
+  git runs in a throwaway bare repository with an argument list, a scrubbed
+  environment, the hardened `-c` set, only the `file`/`https`/`ssh` protocols
+  (no `ext::`, no option-shaped remotes) and `--timeout` (default 120 s). The
+  fetched blob is size-checked before it is read and fully verified before any
+  local ref moves. Credentials come from your normal git/ssh setup.
+
+Bundles are capped at the transfer-pack limit (256 MiB) plus a 4 MiB manifest.
+Unlike `tine archive` (whole repository, new destination only), a bundle carries
+chosen refs into an existing repository. Each `bundle push` uploads a full
+snapshot of the chosen refs, not a delta.
+
 ## Reference self-hosted remote
 
 Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
