@@ -38,13 +38,16 @@ def _tine(cwd: Path, argv: list[str]) -> tuple[int, str, str]:
         "PYTHONPATH": _ROOT,
         "COLUMNS": "120",
         "NO_COLOR": "1",
+        # Windows pipes default to the ANSI code page; pin UTF-8 so both verbs
+        # print the same bytes on every OS.
+        "PYTHONIOENCODING": "utf-8",
     }
     done = subprocess.run(
         [sys.executable, "-c", "from opentine.cli import main; main()", *argv],
         cwd=cwd,
         env=env,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         timeout=120,
     )
     return done.returncode, done.stdout, done.stderr
@@ -71,7 +74,7 @@ PAIRS = (
 def test_new_spelling_is_byte_identical(pair, runs) -> None:
     old, new = pair
     want = _tine(runs, old)
-    assert want[1], "the old verb printed nothing; the comparison would be vacuous"
+    assert want[1], f"the old verb printed nothing (exit {want[0]}): {want[2]}"
     assert _tine(runs, new) == want
 
 

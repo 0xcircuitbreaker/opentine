@@ -8,6 +8,7 @@ setting every command's output must be byte-identical to an unconfigured CLI.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -62,7 +63,8 @@ def test_no_setting_is_byte_identical(ws, capsys, monkeypatch) -> None:
 def test_file_setting_defaults_json(ws, capsys) -> None:
     explicit = _run(capsys, "show", "run.tine", "--json")
     assert _run(capsys, "config", "set", "output.format", "json")[0] == 0
-    assert settings_file().stat().st_mode & 0o077 == 0
+    if os.name != "nt":  # POSIX modes only; Windows has no group/other bits
+        assert settings_file().stat().st_mode & 0o077 == 0
     assert _run(capsys, "config", "get", "output.format")[1] == "json\n"
     assert _run(capsys, "show", "run.tine") == explicit
     assert _is_json(_run(capsys, "pricing", "list")[1])
