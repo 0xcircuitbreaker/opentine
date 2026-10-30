@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import os
 import stat
 import tempfile
@@ -142,8 +143,11 @@ def atomic_bytes(path: Path, data: bytes) -> None:
         try:
             fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
             break
-        except FileNotFoundError:  # gc removed the then-empty fan-out directory
-            if attempt == 199:
+        except OSError as exc:
+            # gc removed the then-empty fan-out directory; macOS may report a
+            # create inside a directory being unlinked as EINVAL, not ENOENT.
+            vanished = exc.errno == errno.EINVAL and not path.parent.is_dir()
+            if not (isinstance(exc, FileNotFoundError) or vanished) or attempt == 199:
                 raise
             if attempt >= 3:  # a gc is sweeping hard: back off briefly
                 time.sleep(0.001 * attempt)

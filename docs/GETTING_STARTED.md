@@ -267,6 +267,14 @@ already ends there. The push prints a receipt naming the endpoint, span count,
 and HTTP status, and exits non-zero if the collector is unreachable or answers
 anything but 2xx.
 
+Sign content-free provenance for a run, an in-toto Statement in a DSSE
+envelope, and check it later against the run:
+
+```bash
+tine export first.tine --format intoto --ed25519-key-file signing.key --output first.intoto.jsonl
+tine verify first.tine --attestation first.intoto.jsonl --pubkey signing.key.pub
+```
+
 Because a run carries prompts and completions, a cleartext push is refused
 unless the endpoint host is a **literal loopback IP** — `127.0.0.1` or `[::1]`,
 not the name `localhost` — or `--allow-insecure` says otherwise.

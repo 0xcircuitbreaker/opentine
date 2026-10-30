@@ -438,6 +438,7 @@ the same shape `--format otel-json` reads, so import and export are inverses:
 tine export run.tine --output spans.json
 tine export run.tine --format atif --output trajectory.json
 tine export run.tine --endpoint http://127.0.0.1:4318 --service-name my-agent
+tine export run.tine --format intoto --agent me --output run.intoto.jsonl  # signed provenance
 ```
 
 Spans carry `gen_ai.operation.name`, request/response model, nanosecond

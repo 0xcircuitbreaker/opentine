@@ -50,6 +50,7 @@ import httpx
 
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
+from opentine._cli_intoto import add_intoto_export_args, export_intoto
 from opentine._cli_json import emit, serialize
 from opentine._cli_text import endpoint_for_display
 from opentine._codec_io import standard_frame
@@ -63,7 +64,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif")
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto")
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -99,6 +100,7 @@ def add_export_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
         action="store_true",
         help="Permit a cleartext http:// endpoint (a loopback IP like 127.0.0.1 needs no opt-in)",
     )
+    add_intoto_export_args(parser)  # signed in-toto/DSSE provenance: _cli_intoto
     return parser
 
 
@@ -200,6 +202,8 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
 
 
 def cmd_export(args: argparse.Namespace) -> None:
+    if export_intoto(args):  # handled there, or its signing flags refused here
+        return
     endpoint = _endpoint(args)
     _refuse_unusable_flags(args, endpoint)
     output = Path(args.output) if args.output else None

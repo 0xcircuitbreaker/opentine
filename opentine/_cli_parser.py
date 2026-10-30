@@ -12,6 +12,7 @@ from opentine._cli_gitlink import add_gitlink_parsers
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
+from opentine._cli_intoto import add_attestation_verify_args
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
@@ -208,11 +209,10 @@ def _build_parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id")
 
     importer = add_import_parser(sub)
-    # `export` is the other direction and takes no --json: its whole output *is*
-    # the OTLP/JSON document, so a second JSON object would compete with it.
     add_export_parser(sub)
+    add_attestation_verify_args(verify)
 
-    # --json is purely additive: without it each of these renders exactly as before.
+    # --json is purely additive (not on `export`, whose output is the document itself).
     # `replay` earns it only through --verify, whose verdict is a result a script
     # reads; a plain replay's output is the artifact it writes. `import` writes an
     # artifact too, but its result is the run id a caller must then address, and

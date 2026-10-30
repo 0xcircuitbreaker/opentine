@@ -88,6 +88,8 @@ CLI_ONLY_VERBS = {
     "remote",
     "reset",
     "verify-tag",
+    # 0.15 serverless sharing: writes files and talks to git remotes.
+    "bundle",
     "clone",
     "fetch",
     "fsck",

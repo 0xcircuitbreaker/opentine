@@ -48,6 +48,7 @@ def test_repo_commands_are_all_callable_handlers() -> None:
     assert set(REPO_COMMANDS) == {
         "attest",
         "branch",
+        "bundle",
         "cherry-pick",
         "clone",
         "config",

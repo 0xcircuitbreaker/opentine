@@ -463,3 +463,42 @@ def test_prune_grace_is_above_the_pack_freshen_throttle(tmp_path):
     repo.put("blob", b"unreachable, packed, about to be reused")
     plan = prune(repo, delete=True, min_age=864, git_links=False)  # --older-than 0.01
     assert reused not in plan.candidates and repo.has(reused)
+
+
+def test_atomic_write_retries_when_macos_reports_a_vanished_dir_as_einval(tmp_path, monkeypatch):
+    import errno
+    import shutil
+    import tempfile
+
+    from opentine.repository import _paths
+
+    target = tmp_path / "objects" / "ae" / "obj"
+    target.parent.mkdir(parents=True)
+    real = tempfile.mkstemp
+    calls = []
+
+    def racing(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:  # a concurrent gc sweeps the fan-out directory mid-create
+            shutil.rmtree(target.parent)
+            raise OSError(errno.EINVAL, "Invalid argument")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(_paths.tempfile, "mkstemp", racing)
+    _paths.atomic_bytes(target, b"data")
+    assert target.read_bytes() == b"data" and len(calls) == 2
+
+
+def test_atomic_write_does_not_swallow_einval_while_the_directory_exists(tmp_path, monkeypatch):
+    import errno
+
+    from opentine.repository import _paths
+
+    target = tmp_path / "obj"
+
+    def broken(*args, **kwargs):
+        raise OSError(errno.EINVAL, "Invalid argument")
+
+    monkeypatch.setattr(_paths.tempfile, "mkstemp", broken)
+    with pytest.raises(OSError):
+        _paths.atomic_bytes(target, b"data")

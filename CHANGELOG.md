@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.15.0 — 2026-10-29
+
+### Verifiable
+
+- **in-toto provenance for a run.** `tine export RUN --format intoto
+  --ed25519-key-file KEY` (or `--agent NAME`) writes a signed DSSE envelope
+  (`.intoto.jsonl`) carrying an in-toto Statement v1. Its subject is the run's
+  sha256 content address — the digest `tine verify` prints — and its predicate
+  (`https://opentine.dev/attestation/run/v1`) records run id, status, models,
+  providers, step count, fork lineage, token and cost totals, agent ref and the
+  opentine version. It is content-free: no prompt, completion or tool payload
+  is included, and every string is redacted. An unsigned statement is never written.
+- **`tine verify RUN --attestation FILE`** checks such an envelope, fail-closed:
+  the DSSE signature must verify under `--pubkey`, a `--pin`-ned fingerprint or
+  `--trust-embedded-key` (reported as `verified-tofu`), and the run's recomputed
+  digest must equal the statement's subject. `--json` reports the signature
+  verdict, key id and subject check; any failure exits 1.
+- **`did:key` agent identities.** Ed25519 keys are now also spelled as
+  `did:key:z6Mk...`: `tine agent keys` and `tine agent id --agent NAME` show
+  it, and it is the DSSE `keyid`. A `did:key` names a key, not an owner; pin it
+  before trusting it.
+- **Transparency-log receipts.** `tine export ... --format intoto --rekor [URL]`
+  logs the envelope in Rekor (default `https://rekor.sigstore.dev`) and writes a
+  Sigstore bundle v0.3 with the receipt. `tine verify --attestation FILE
+  --rekor-key FILE` checks the receipt offline: SET, RFC 6962 inclusion proof,
+  signed checkpoint, and that the logged entry is this envelope. `--require-receipt`
+  fails closed when there is no receipt, no key or an invalid receipt. `--json`
+  gains `receipt: {status, log_index, integrated_time, reason}`. Bare envelopes and
+  bundles both verify.
+- **Sigstore keyless signing.** `--keyless` gets a short-lived Fulcio certificate
+  for an OIDC identity (`--identity-token`, `SIGSTORE_ID_TOKEN` or the GitHub
+  Actions ambient token) and always logs to Rekor. To verify, pass `--cert-identity`,
+  `--cert-oidc-issuer`, `--fulcio-root FILE` and `--rekor-key FILE`; the result is
+  reported as `verified-keyless`. The token is never printed or written.
+
+### Serverless
+
+- **`tine bundle`: share runs without an opentine server.** `tine bundle create
+  FILE [REFS...|--all]` writes one self-verifying file (the existing transfer
+  pack plus a manifest of refs and a SHA-256 over everything; associations such
+  as annotations and attestations ride along). `tine bundle verify FILE` checks
+  it without importing; `tine bundle unbundle FILE` (alias `import`) imports it
+  into `remotes/<name>/*` (`--as NAME`), fail-closed on any digest mismatch,
+  untrusted ref names refused, all-or-nothing, and never moving an existing ref
+  to a non-descendant without `--force`. Re-importing is a no-op.
+- **Plain git remotes.** `tine bundle push REMOTE [REFS...]` and `tine bundle
+  fetch REMOTE` store the bundle at `refs/tine/bundle` on any git remote
+  (GitHub, Gitea, a bare repository, Radicle's git, a local path). git runs with
+  an argument list, a scrubbed environment, hardened config, only the
+  file/https/ssh protocols and a timeout; fetched data is size-capped and
+  verified before any local ref moves. See docs/REPOSITORY.md.
+
 ## 0.14.2 — 2026-10-29
 
 ### Fixes
