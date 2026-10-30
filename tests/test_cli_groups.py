@@ -28,9 +28,32 @@ def test_group_spelling_matches_old_spelling(pair, request) -> None:
 
 
 def test_every_group_word_has_a_pair() -> None:
-    spelled = {tuple(new[1:3]) for _, _, new in PAIRS} | {(new[1],) for _, _, new in PAIRS}
-    for key in _cli_registry.GROUPS["repo"][1]:
-        assert key in spelled, key
+    for group, (_, words) in _cli_registry.GROUPS.items():
+        mine = [new for _, _, new in PAIRS if new[0] == group]
+        spelled = {tuple(new[1:3]) for new in mine} | {(new[1],) for new in mine}
+        for key in words:
+            assert key in spelled, (group, key)
+
+
+def test_agent_group_keeps_its_own_subcommands(plain) -> None:  # noqa: F811
+    for word in ("id", "show", "trust", "keys"):
+        assert _cli_groups.rewrite(["agent", word, "x"]) == ["agent", word, "x"]
+    words = {key[0] for key in _cli_registry.GROUPS["agent"][1]}
+    assert words.isdisjoint({"id", "show", "trust", "keys"})
+    _, args = cli.parse(["agent", "who", "--json"])
+    assert args.command == "who" and args.json
+
+
+def test_verify_routes_a_bundle_file_only(plain) -> None:  # noqa: F811
+    from opentine._bundle import MAGIC
+
+    (plain / "b.tbundle").write_bytes(MAGIC + b"x" * 40)
+    (plain / "r.tine").write_bytes(b"{}")
+    assert _resolved(["verify", "b.tbundle"]) == _resolved(["bundle", "verify", "b.tbundle"])
+    assert _cli_groups.rewrite(["verify", "r.tine"]) == ["verify", "r.tine"]
+    assert _cli_groups.rewrite(["verify", "missing"]) == ["verify", "missing"]
+    flagged = ["verify", "b.tbundle", "--require-signature"]
+    assert _cli_groups.rewrite(flagged) == flagged
 
 
 def test_original_argv_is_recorded(plain) -> None:  # noqa: F811

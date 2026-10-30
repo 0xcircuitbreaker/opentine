@@ -19,11 +19,13 @@ import argparse
 import os
 import sys
 
-from opentine._cli_registry import DEPRECATED, GROUPS, NODES, SWITCHES
+from opentine._cli_registry import DEPRECATED, EXTENDED, GROUPS, NODES, SWITCHES
 
 
 def rewrite(argv: list[str]) -> list[str]:
     """The old-verb argv a group spelling stands for; any other argv is unchanged."""
+    if bundle := _bundle_target(argv):
+        return ["bundle", "verify", bundle]
     if not argv or argv[0] not in GROUPS:
         return argv
     group, words = argv[0], GROUPS[argv[0]][1]
@@ -33,6 +35,22 @@ def rewrite(argv: list[str]) -> list[str]:
             rest = argv[1 + size :]
             return [*_switch((group, *key), rest, words[key]), *_drop((group, *key), rest)]
     return argv
+
+
+def _bundle_target(argv: list[str]) -> str | None:
+    """``tine verify FILE`` on a ``tine bundle`` file is ``tine bundle verify FILE``.
+
+    Only the bare two-word form is routed: run-verify flags mean a run.
+    """
+    if len(argv) != 2 or argv[0] != "verify" or argv[1].startswith("-"):
+        return None
+    from opentine._bundle import MAGIC
+
+    try:
+        with open(argv[1], "rb") as handle:
+            return argv[1] if handle.read(len(MAGIC)) == MAGIC else None
+    except OSError:
+        return None
 
 
 def _head(rest: list[str]) -> list[str]:
@@ -64,9 +82,15 @@ def notice(argv: list[str]) -> None:
 def add_group_parsers(sub: argparse._SubParsersAction, summaries: dict[str, str]) -> None:
     """One listing-only subparser per group, children summarised from their verbs."""
     for group, (summary, words) in GROUPS.items():
-        parser = sub.add_parser(group, help=summary, description=summary)
         nodes: dict[tuple[str, ...], argparse._SubParsersAction] = {}
-        nodes[()] = parser.add_subparsers(dest=f"{group}_command", metavar="SUBCOMMAND")
+        if group in EXTENDED:  # list the words under the verb's own subcommands
+            parser = sub.choices[group]
+            nodes[()] = next(
+                a for a in parser._actions if isinstance(a, argparse._SubParsersAction)
+            )
+        else:
+            parser = sub.add_parser(group, help=summary, description=summary)
+            nodes[()] = parser.add_subparsers(dest=f"{group}_command", metavar="SUBCOMMAND")
         for key, prefix in words.items():
             for depth in range(1, len(key)):
                 if key[:depth] not in nodes:
@@ -93,6 +117,6 @@ def cmd_group(args: argparse.Namespace) -> None:
     target.print_help()
 
 
-COMMANDS = {group: cmd_group for group in GROUPS}
+COMMANDS = {group: cmd_group for group in GROUPS if group not in EXTENDED}
 
 __all__ = ["COMMANDS", "add_group_parsers", "cmd_group", "notice", "rewrite"]

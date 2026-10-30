@@ -20,6 +20,15 @@
   the old verb before parsing, so both spellings reach the same handler with the
   same arguments; the old spellings still work silently. A built-in group name
   wins over a porcelain `alias.repo`, with a warning on stderr.
+- New `tine share` group (push, fetch, pull, clone, remote, bundle, archive) and
+  `tine trust` group (sign, keygen, attest, evaluate, promote, verify-tag);
+  `tine agent` also takes who, actions, touched, blame and audit, while
+  `agent id|show|trust|keys` are unchanged. `tine --help` now shows `share` and
+  `trust` in place of the individual verbs; the old spellings stay parseable and
+  are listed by `tine help --all`. See docs/CLI.md for every old -> new spelling.
+- `tine verify FILE` where FILE is a `tine bundle` file (TINEBUNDLE1 magic, no
+  other arguments) now runs `tine bundle verify FILE` instead of failing as an
+  unknown run.
 - Fixed: in a v3 repository `tine show REF --json` dropped `--json` when it
   routed to `repo-show`, printing the human rendering instead of JSON.
 

@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from opentine._cli_common import _find_run
-from opentine._cli_registry import GROUPS
+from opentine._cli_registry import EXTENDED, GROUPS
 from opentine.repo import Repo
 from opentine.repository.ops import resolve_target
 
@@ -122,7 +122,7 @@ def expand_alias(parser: argparse.ArgumentParser, argv: list[str]) -> list[str]:
     if not argv or argv[0].startswith("-"):
         return argv
     sub = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
-    if argv[0] in sub.choices and argv[0] not in GROUPS:
+    if argv[0] in sub.choices and (argv[0] not in GROUPS or argv[0] in EXTENDED):
         return argv
     repo = _repo(argparse.Namespace(repo="."))
     if repo is None:
