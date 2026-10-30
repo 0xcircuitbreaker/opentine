@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from opentine._cli_git_sync import is_ancestor
-from opentine.kernel import KernelError, canonical_json, parse_oid, validate_json_shape
+from opentine.kernel import KernelError, _parse_int, canonical_json, parse_oid, validate_json_shape
 from opentine.repo import Repo
 from opentine.repository._pack_fit import fitted_pack
 from opentine.repository._refs import normalize_ref, validate_ref_oid
@@ -96,7 +96,7 @@ def read_file(path: str | Path, limit: int = MAX_BUNDLE_BYTES) -> bytes:
 def _manifest(raw: bytes) -> dict:
     try:
         validate_json_shape(raw)
-        payload = json.loads(raw)
+        payload = json.loads(raw, parse_int=_parse_int)
         if canonical_json(payload) != raw:
             raise BundleError("bundle manifest is not canonical")
     except (KernelError, ValueError, RecursionError, UnicodeDecodeError) as exc:
