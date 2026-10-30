@@ -14,6 +14,7 @@ from pathlib import Path
 
 from opentine._canon import _fsync_dir, atomic_write_text
 from opentine.kernel import canonical_json
+from opentine.repository import _winretry
 
 
 def _tighten_fd(fd: int) -> None:
@@ -107,7 +108,7 @@ def _read_small(path: Path, maximum: int, *, private: bool = False) -> bytes:
     # reopened store would verify its chain with the wrong key or refuse to open.
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
     try:
-        fd = os.open(path, flags)
+        fd = _winretry.retry(lambda: os.open(path, flags))
     except FileNotFoundError:
         raise
     except OSError as exc:
@@ -183,4 +184,7 @@ def read_anchor(path: Path, key: bytes) -> str | None:
 
 def write_anchor(path: Path, head: str, key: bytes) -> None:
     value = {"algorithm": "hmac-sha256", "head": head, "mac": _anchor_mac(head, key)}
-    atomic_write_text(path, json.dumps(value, sort_keys=True, separators=(",", ":")), fsync=True)
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"))
+    # A concurrent reader holds the anchor open on Windows, so the replace can
+    # hit a sharing violation; retry the whole write until the reader is done.
+    _winretry.retry(lambda: atomic_write_text(path, text, fsync=True))
