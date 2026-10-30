@@ -10,6 +10,7 @@ from opentine._cli_export import add_export_parser
 from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
+from opentine._cli_help import finish_parser
 from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_intoto import add_attestation_verify_args
@@ -182,8 +183,7 @@ def _build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--save")
     replay.add_argument("--force", action="store_true")
     replay.add_argument("--compare", action="store_true")
-    # --verify replays into a temporary workspace and compares; it writes an
-    # artifact only when --save names one.
+    # --verify replays into a temp workspace; it writes only when --save names one.
     replay.add_argument(
         "--verify",
         action="store_true",
@@ -236,7 +236,7 @@ def _build_parser() -> argparse.ArgumentParser:
     add_fleet_parser(sub)
     add_repo_parsers(sub)
     add_unify_args(sub)
-    return parser
+    return finish_parser(parser)
 
 
 def _add_filter_args(parser: argparse.ArgumentParser) -> None:

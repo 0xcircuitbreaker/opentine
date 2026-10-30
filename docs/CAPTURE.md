@@ -5,6 +5,10 @@ below produces the same thing — a run of `TraceEvent`s, content-addressed, tha
 `tine show`, `tine repo-diff`, `tine replay --verify`, and `tine export` all
 understand.
 
+Advanced verbs appear here in their 0.16 group spelling (`tine repo …`, `tine share …`,
+`tine trust …`, `tine agent …`); the older top-level spellings such as `tine fsck` or
+`tine promote` still work unchanged. The full mapping is in [CLI.md](CLI.md).
+
 | Your situation | The on-ramp | Timing |
 |---|---|---|
 | Anything emitting OTel GenAI spans | `tine import --format otel-json` | after the fact |
@@ -267,13 +271,13 @@ plausible but wrong causal edges. CrewAI logs are imported post hoc instead.
 `tine run --harness` wraps an external agent CLI and records its steps:
 
 ```bash
-tine harnesses --installed            # which agent CLIs are here, and what each records
+tine repo integrate harnesses --installed  # which agent CLIs are here, and what each records
 tine run --harness codex --prompt "Inspect this repo" --save run.tine
 tine run --harness gemini --prompt "Summarize README.md" --save run.tine
 tine run --harness generic --harness-command "agent run" --prompt "Fix tests"
 ```
 
-`tine harnesses` lists every harness name, the command it runs, whether the CLI
+`tine repo integrate harnesses` lists every harness name, the command it runs, whether the CLI
 is installed, and what a recorded run holds (`--installed`, `--json`). The
 catalogued CLIs run in their documented headless JSON modes:
 
@@ -501,8 +505,8 @@ writes count as `file.write` with their paths: redirects (`>`, `>>`, `&>`),
 `touch` and `chmod`/`chown`/`chgrp` targets; the whole command is marked, so
 `touched` can over-report a read in the same command line but never misses a
 listed writer. A URL's host is kept even when redaction rewrote its
-userinfo. `tine who`,
-`tine actions`, `tine touched` and `tine audit --policy` query them through a
+userinfo. `tine agent who`,
+`tine agent actions`, `tine agent touched` and `tine agent audit --policy` query them through a
 rebuildable SQLite index; MCP clients use `find_actions`. Gemini output
 modalities (image, audio, video) and OpenAI audio/image token details are
 recorded as separate usage dimensions, and OTel

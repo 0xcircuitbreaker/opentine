@@ -57,6 +57,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "key_file": ("--key-file", None),
     "keyless": ("--keyless", False),
     "mode": ("--mode", "cache"),
+    "no_policy": ("--no-policy", False),
     "model": ("--model", None),
     "out": ("--out", None),
     "output": ("--output", None),
@@ -70,6 +71,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "require_receipt": ("--require-receipt", False),
     "save": ("--save", None),
     "trust_embedded_key": ("--trust-embedded-key", False),
+    "trust_policy": ("--policy", None),
     "verify": ("--verify", False),
 }
 
@@ -99,8 +101,10 @@ KEY_MATERIAL_FLAGS = ("key_env", "key_file", "pubkey", "trust_embedded_key")
 
 def given(args: argparse.Namespace, dests: Iterable[str]) -> list[str]:
     """Option strings among *dests* the user supplied (value differs from default)."""
-    supplied = []
+    supplied, from_policy = [], getattr(args, "policy_fields", ())
     for dest in dests:
+        if dest in from_policy:  # a trust policy's field is not a flag the user typed
+            continue
         flag, default = FLAG_DEFAULTS[dest]
         if getattr(args, dest, default) != default:
             supplied.append(flag)

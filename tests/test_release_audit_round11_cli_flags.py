@@ -71,6 +71,7 @@ def _source(path: Path) -> Run:
 def workspace(monkeypatch, tmp_path: Path) -> Path:
     """A directory holding every artifact and key the four commands need."""
     monkeypatch.setenv(KEY_ENV, HMAC_KEY)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))  # no trust policies
     monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / ".tine_runs")
     monkeypatch.chdir(tmp_path)
     run = _source(tmp_path / "source.tine")
@@ -421,6 +422,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--pubkey", "ed.pub"], "refused"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--trust-embedded-key"], "refused"),
     (["verify", "ed.tine", "--pubkey", "ed.pub"], ["--trust-embedded-key"], "refused"),
+    # 0.16: --policy NAME reads the user's trust-policies.json (none here, so the
+    # name is unknown and refused out loud); --no-policy contradicts --policy.
+    (["verify", "ed.tine"], ["--policy", "prod"], "honoured"),
+    (["verify", "ed.tine", "--policy", "prod"], ["--no-policy"], "refused"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),

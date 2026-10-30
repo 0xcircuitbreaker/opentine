@@ -19,9 +19,11 @@ the ``repo-*`` form and re-parsing, so both spellings share one parser.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from opentine._cli_common import _find_run
+from opentine._cli_registry import EXTENDED, GROUPS
 from opentine.repo import Repo
 from opentine.repository.ops import resolve_target
 
@@ -67,7 +69,7 @@ def v3_argv(args: argparse.Namespace) -> list[str] | None:
     """The ``repo-*`` argv this plain-verb invocation means, or None for legacy."""
     command = args.command
     if command == "show" and (repo := _v3(args, [args.run_id])):
-        return ["repo-show", args.run_id, "--repo", str(repo.worktree)]
+        return ["repo-show", args.run_id, *_tail(args, repo)]
     if command == "diff" and (repo := _v3(args, [args.run_a, args.run_b])):
         flags = ["--exit-code"] if args.exit_code else []
         return ["repo-diff", args.run_a, args.run_b, *flags, *_tail(args, repo)]
@@ -120,7 +122,7 @@ def expand_alias(parser: argparse.ArgumentParser, argv: list[str]) -> list[str]:
     if not argv or argv[0].startswith("-"):
         return argv
     sub = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
-    if argv[0] in sub.choices:
+    if argv[0] in sub.choices and (argv[0] not in GROUPS or argv[0] in EXTENDED):
         return argv
     repo = _repo(argparse.Namespace(repo="."))
     if repo is None:
@@ -128,6 +130,9 @@ def expand_alias(parser: argparse.ArgumentParser, argv: list[str]) -> list[str]:
     try:
         expansion = porcelain.effective(repo.path).get(f"alias.{argv[0]}")
     except ValueError:
+        return argv
+    if expansion and argv[0] in sub.choices:  # a group name: the builtin wins, loudly
+        print(f"tine: alias.{argv[0]} is shadowed by the builtin `tine {argv[0]}`", file=sys.stderr)
         return argv
     return [*shlex.split(expansion), *argv[1:]] if expansion else argv
 

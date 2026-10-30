@@ -65,6 +65,8 @@ def add_sigstore_verify_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--cert-identity", metavar="SAN", help="Keyless: expected signer identity")
     parser.add_argument("--cert-oidc-issuer", metavar="URL", help="Keyless: expected OIDC issuer")
     parser.add_argument("--fulcio-root", metavar="FILE", help="Keyless: Fulcio root/intermediates")
+    parser.add_argument("--policy", dest="trust_policy", metavar="NAME", help="Trust policy")
+    parser.add_argument("--no-policy", action="store_true", help="Ignore trust.default")
 
 
 def _token(args: argparse.Namespace) -> str:

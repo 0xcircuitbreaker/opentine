@@ -33,8 +33,12 @@ from opentine._cli_fleet import COMMANDS as FLEET_COMMANDS
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
+from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
+from opentine._cli_groups import notice as group_notice
+from opentine._cli_groups import rewrite as group_rewrite
 from opentine._cli_guard import guarded_dispatch
 from opentine._cli_harnesses import cmd_harnesses
+from opentine._cli_help import COMMANDS as HELP_COMMANDS
 from opentine._cli_hook import COMMANDS as HOOK_COMMANDS
 from opentine._cli_import import cmd_import
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
@@ -100,38 +104,64 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,
+    **HELP_COMMANDS,
+    **GROUP_COMMANDS,
 }
 
 
 def main(argv: list[str] | None = None) -> None:
     """Run one ``tine`` invocation; *argv* defaults to the process arguments."""
     _common.RUNS_DIR = RUNS_DIR
-    parser = _build_parser()
-    argv = expand_alias(parser, list(sys.argv[1:] if argv is None else argv))
-    head, tail = split_command(argv)  # `tine fan-out ... -- CMD`: CMD is never parsed
-    args = parser.parse_args(head)
-    args.member_command = tail
-    args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
+    parser, args = parse(list(sys.argv[1:] if argv is None else argv))
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
     guarded_dispatch(lambda: _dispatch(parser, args))
 
 
-def _dispatch(parser, args) -> None:
+def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
+    """Alias expansion and the parse ``main`` does, without running anything."""
+    parser = parser or _build_parser()
+    argv = expand_alias(parser, list(argv))
+    group_notice(argv)
+    head, tail = split_command(
+        group_rewrite(argv)
+    )  # `tine repo storage gc` -> `tine gc`  # `tine fan-out ... -- CMD`: CMD is never parsed
+    args = parser.parse_args(head)
+    args.member_command = tail
+    args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
+    return parser, args
+
+
+def resolve(parser, args) -> tuple[Callable | None, argparse.Namespace, bool]:
+    """``(handler, args, via_repo)`` the dispatcher would call; the handler is not run.
+
+    *via_repo* handlers take ``(args, console)`` through ``cmd_repo``. A None handler
+    means a bare ``tine`` (or, for a non-None command, an unrouted choice).
+    """
     # Plain verbs act on the v3 repository when their arguments name things in it.
     if args.command == "tag" and tag_is_v3(args):
         args.name = args.run_id
         args.repo = args.repo or "."
-        cmd_repo(args, console, cmd_tag_v3)
-        return
+        return cmd_tag_v3, args, True
     if args.command in {"show", "diff", "search", "fork"} and (argv := v3_argv(args)):
         args = parser.parse_args(argv)
     if args.command == "tag" and args.run_id is None:
         parser.error("tag: name a legacy run (with --add/--remove/--list) or run inside a v3 repo")
+    if owned := getattr(args, "group_handler", None):  # `tine trust policy ...`
+        return owned, args, False
     if args.command in LEGACY_COMMANDS:
-        LEGACY_COMMANDS[args.command](args)
-    elif args.command in REPO_COMMANDS:
-        cmd_repo(args, console)
+        return LEGACY_COMMANDS[args.command], args, False
+    if args.command in REPO_COMMANDS:
+        return REPO_COMMANDS[args.command], args, True
+    return None, args, False
+
+
+def _dispatch(parser, args) -> None:
+    handler, args, via_repo = resolve(parser, args)
+    if handler is not None and via_repo:
+        cmd_repo(args, console, handler)
+    elif handler is not None:
+        handler(args)
     elif args.command is None:
         console.print(f"\n  [{BRAND}]opentine[/] — git for agent runs\n")
         parser.print_help()
@@ -193,6 +223,8 @@ __all__ = [
     "cmd_verify",
     "console",
     "main",
+    "parse",
+    "resolve",
 ]
 
 
