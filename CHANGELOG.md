@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.0 — unreleased
+## 0.16.0 — 2026-10-30
 
 "Simplify": a smaller front door to the same CLI. Nothing was removed or renamed;
 every pre-0.16 command, subcommand and flag still parses and reaches the same handler.
