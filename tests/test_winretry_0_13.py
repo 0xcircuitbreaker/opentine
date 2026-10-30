@@ -260,3 +260,24 @@ def test_a_pack_index_unreadable_for_a_moment_is_not_hidden_for_good(tmp_path, m
     packs = _packs.PackSet(store.path)
     assert packs.locate(oid) is not None  # the miss rescans instead of caching the gap
     assert failures
+
+
+def test_gc_removes_a_loose_object_a_reader_still_holds(tmp_path, monkeypatch):
+    from opentine.repository import _gc
+
+    repo = Repo.init(tmp_path / "r")
+    oid = repo.put("blob", b'{"a":1}', redact=False)
+    path = repo._object_path(oid)
+    monkeypatch.setattr(_winretry, "WINDOWS", True)
+    monkeypatch.setattr(_winretry, "_sleep", lambda _s: None)
+    real, left = os.unlink, [3]
+
+    def held(target, *args, **kwargs):
+        if left[0] and str(target) == str(path):
+            left[0] -= 1
+            raise PermissionError(32, "being used by another process")
+        return real(target, *args, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", held)
+    _gc._remove_loose(repo, oid)
+    assert not path.exists() and left[0] == 0
