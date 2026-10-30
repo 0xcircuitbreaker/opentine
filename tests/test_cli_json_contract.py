@@ -286,14 +286,20 @@ def test_shared_receipt_writes_the_default_location_and_returns_it(
 
 
 def test_readme_states_the_real_subcommand_count() -> None:
-    """README's headline number is the router's, not a number someone remembered."""
+    """README's headline numbers are the router's, not numbers someone remembered."""
+    from opentine._cli_registry import VISIBLE_COMMANDS
+
     readme = ROOT / "README.md"
     if not readme.is_file():  # pragma: no cover - source checkout only
         pytest.skip("README.md is not part of an installed distribution")
-    stated = re.findall(r"`tine` ships (\d+) subcommands", readme.read_text(encoding="utf-8"))
+    text = readme.read_text(encoding="utf-8")
+    stated = re.findall(r"`tine` ships (\d+) subcommands", text)
+    visible = re.findall(r"`tine --help` lists the (\d+) everyday", text)
 
     assert len(stated) == 1, "README must state the subcommand count exactly once"
-    assert int(stated[0]) == len(cli.LEGACY_COMMANDS) + len(REPO_COMMANDS)
+    total = len(cli.LEGACY_COMMANDS) + len(REPO_COMMANDS)
+    assert int(stated[0]) == total and total >= 72, "a released verb went missing"
+    assert len(visible) == 1 and int(visible[0]) == len(VISIBLE_COMMANDS)
 
 
 def test_plumbing_verbs_take_no_json_flag(capsys) -> None:

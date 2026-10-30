@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.0 — unreleased
+
+### Simplify
+
+- `tine --help` now lists only the everyday commands, grouped by section (Record,
+  Inspect, Branch, Trust, Collaborate, Agents, Repository, Help). Every other
+  command is still there, parses exactly as before and prints its own `--help`.
+- New `tine help [--all] [COMMAND]`: `tine help --all` lists every command by
+  section (Everyday / Advanced) with a one-line summary; `tine help COMMAND`
+  prints that command's help. `help` is a built-in, so a porcelain `alias.help`
+  no longer shadows it.
+- A pinned compatibility table (tests/cli_compat_table.py) proves every existing
+  verb, subcommand and representative flag still reaches the same handler.
+
 ## 0.15.0 — 2026-10-29
 
 ### Verifiable
