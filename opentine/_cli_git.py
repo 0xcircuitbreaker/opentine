@@ -105,7 +105,7 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     config.add_argument("--trust", action="store_true", help="Trust this repo's porcelain file")
     _common(config)
 
-    log = sub.add_parser("log", help="Run history; --graph draws forks across refs")
+    log = sub.add_parser("log", help="Run history; --graph forks, --search, --legacy lists all")
     log.add_argument("ref", nargs="?")
     log.add_argument("--graph", action="store_true")
     log.add_argument("--all", action="store_true", help="Every run ref, not just one")

@@ -31,6 +31,7 @@ from opentine._cli_export import cmd_export
 from opentine._cli_fanout import split_command
 from opentine._cli_fleet import COMMANDS as FLEET_COMMANDS
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
+from opentine._cli_fold import rewrite as fold_rewrite
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
 from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
@@ -126,7 +127,7 @@ def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argpar
     head, tail = split_command(
         group_rewrite(argv)
     )  # `tine repo storage gc` -> `tine gc`  # `tine fan-out ... -- CMD`: CMD is never parsed
-    args = parser.parse_args(head)
+    args = parser.parse_args(fold_rewrite(parser, head))  # `tine log --search Q` -> `tine search Q`
     args.member_command = tail
     args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
     return parser, args

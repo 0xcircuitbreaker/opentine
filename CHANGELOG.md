@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.17.0 — unreleased
+
+"Simplify, part 2": `log` and `show` are the front door for read-only browsing.
+Nothing was removed or renamed; every pre-0.17 command, subcommand and flag still
+parses and reaches the same handler.
+
+**Migrating:** no action needed. Docs now teach `tine log --search` and
+`tine show RUN --cost`; the old -> new table is in [docs/CLI.md](docs/CLI.md).
+
+### Simplify
+
+- **`tine log` lists and searches.** `tine log --search QUERY` is `tine search
+  QUERY` (with `--json`, `--repo`, `--legacy`), and `tine log --legacy` is
+  `tine ls`; the `ls` filters (`--tag`, `--model`, `--status`, `--cost-min`,
+  `--cost-max`, `--since`, `--until`, `--grep`) work on `log` and imply
+  `--legacy`, with `--limit` and `--json` carried over. A plain `tine log` still
+  reads the v3 repository, unchanged.
+- **`tine show` reports cost.** `tine show RUN --cost` is `tine cost RUN`, and
+  `tine show RUN --price [--at DATE]` is `tine price RUN [--at DATE]`.
+- The folded spelling is rewritten to the old verb before parsing, so both give
+  byte-identical output and exit code. Combinations the old verb cannot honour
+  are usage errors (exit 2) rather than silently dropped: `--cost` with
+  `--price`, `--at` without `--price`, `--search` with `--graph`/`--all`/
+  `--oneline`/`--limit`/`--commit`/`--pr`/a REF or an `ls` filter, and
+  `--legacy`/`--repo` with `--cost`/`--price`.
+- `tine ls`, `tine search`, `tine cost` and `tine price` keep working silently;
+  the compatibility table (tests/cli_compat_table.py) pins the new spellings too.
+
 ## 0.16.2 — 2026-10-30
 
 0.16.1 was not published either: its release CI caught a rare Windows race

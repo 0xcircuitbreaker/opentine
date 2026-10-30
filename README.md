@@ -145,7 +145,7 @@ run.save("result.tine")
 ```bash
 tine show result.tine
 tine verify result.tine
-tine cost result.tine
+tine show result.tine --cost
 tine fork result.tine --from-step 0 --save retry.tine
 tine replay result.tine --mode cache --save replayed.tine
 tine diff result.tine retry.tine
@@ -163,13 +163,14 @@ dictionary to store them, and nothing in the kernel — verify, fork, diff, repl
 — reads them. Dollars are applied afterwards, by a separate signed catalog:
 
 ```bash
-tine cost run.tine                    # the cost recorded at capture time
-tine price run.tine                   # re-derive it now from (provider, model, usage)
-tine price run.tine --at 2026-07-15   # …against the catalog effective that day
+tine show run.tine --cost             # the cost recorded at capture time
+tine show run.tine --price            # re-derive it now from (provider, model, usage)
+tine show run.tine --price --at 2026-07-15  # …against the catalog effective that day
 tine import trace.json --format otel-json --price --save run.tine
 ```
 
-`tine cost` sums what was recorded when the run happened; `tine price` computes
+`tine show --cost` (`tine cost`) sums what was recorded when the run happened;
+`tine show --price` (`tine price`) computes
 the cost post-hoc from the record and writes nothing, so an imported or uncosted
 run can be priced too, and a step no card covers is reported `unknown` rather
 than as free. A provider OpenTine has never heard of still produces a complete,
@@ -735,8 +736,8 @@ tine run --model anthropic --prompt P        Call a bundled model adapter direct
 tine run --harness codex --prompt P          Record an external CLI agent as a run
 tine repo integrate harnesses                List agent CLIs --harness can drive, installed ones, fidelity
 tine show <run>                              Pretty-print a run tree
-tine cost <run>                              Show cost, tokens, and budget state as recorded
-tine price <run> --at 2026-07-15             Re-price a run from the catalog (also prices imports)
+tine show <run> --cost                       Show cost, tokens, and budget state as recorded
+tine show <run> --price --at 2026-07-15      Re-price a run from the catalog (also prices imports)
 tine verify <run>                            Verify integrity, and authenticity when a key is given
 tine trust sign <run> --key-env TINE_KEY     Sign an artifact (hmac-sha256 or ed25519)
 tine trust keygen --out key --pub key.pub    Generate an Ed25519 keypair (private key 0600)
@@ -747,8 +748,8 @@ tine replay <run> --verify                   Check the replay reproduces the run
 tine diff <run_a> <run_b>                    Compare two runs step by step; --exit-code for 0/1
 tine resume <run>                            Continue a run whose manifest declares resume support
 tine repo migrate <run> --in-place           Upgrade a legacy artifact to format v2
-tine ls --tag prod --limit 20                List indexed runs from .tine_runs
-tine search "tag:prod model:kimi"            Query that index
+tine log --legacy --tag prod --limit 20      List indexed runs from .tine_runs
+tine log --search "tag:prod model:kimi"      Query that index
 tine tag <run> --add prod                    Add, remove, or list tags
 tine repo storage reindex                    Rebuild .tine_runs/index.json
 ```

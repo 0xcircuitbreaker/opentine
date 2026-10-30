@@ -48,6 +48,23 @@ the same output and exit code. The old spellings keep working unchanged.
 | `tine migrate-v3` | `tine repo migrate --to-v3` |
 | `tine bundle verify FILE` | `tine verify FILE` (FILE is a bundle, no other arguments) |
 
+Since 0.17 `log` and `show` also front the read-only verbs. The folded flag is
+rewritten to the old verb before parsing, so both spellings give the same output
+and exit code; a flag the old verb does not take is a usage error (exit 2), as
+are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
+`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, REF).
+
+| Old spelling | New spelling |
+| --- | --- |
+| `tine search QUERY` | `tine log --search QUERY` |
+| `tine ls` | `tine log --legacy` |
+| `tine ls --tag T --model M ...` | `tine log --tag T --model M ...` (an `ls` filter implies `--legacy`) |
+| `tine cost RUN` | `tine show RUN --cost` |
+| `tine price RUN [--at DATE]` | `tine show RUN --price [--at DATE]` |
+
+`tine log` without these flags is unchanged: it reads the v3 repository, while
+`--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.
+
 `tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
 named trust policies for `tine verify --policy NAME` (see below).
 

@@ -139,6 +139,7 @@ def expand_alias(parser: argparse.ArgumentParser, argv: list[str]) -> list[str]:
 
 def add_unify_args(sub: argparse._SubParsersAction) -> None:
     """``--legacy`` and ``--repo`` on the plain verbs, plus the v3 ``tag`` flags."""
+    from opentine._cli_fold import add_fold_args
     from opentine._repo_cli_keys import add_key_args
 
     for name in ("show", "diff", "search", "fork", "tag"):
@@ -154,6 +155,7 @@ def add_unify_args(sub: argparse._SubParsersAction) -> None:
     tag.add_argument("-m", "--message", help="v3: a message in the signed claim")
     tag.add_argument("--signer", help="v3: the signer recorded on a signed tag")
     add_key_args(tag, signing=True)
+    add_fold_args(sub)  # `log --search`, `show --cost`, ... (opentine/_cli_fold.py)
 
 
 __all__ = ["add_unify_args", "expand_alias", "tag_is_v3", "v3_argv"]
