@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.2 — 2026-10-30
+
+0.16.1 was not published either: its release CI caught a rare Windows race
+fixed here. 0.16.2 is the first release with the 0.16.0 and 0.16.1 changes.
+
+### Fixes
+
+- **A live recorder no longer reports a stored object missing while another
+  process merges packs.** When a gc merge deleted a pack just as another
+  process listed the packs, that process skipped the vanished pack and, after
+  one rescan, could miss the merged pack that replaced it, failing a write
+  with "missing linked object". A miss now rescans until a listing completes
+  (bounded), so the object is found in its new pack. Seen on Windows CI; the
+  same window exists on Linux and macOS.
+
 ## 0.16.1 — 2026-10-30
 
 0.16.0 was not published: its release CI failed on the Windows gc race fixed

@@ -281,3 +281,43 @@ def test_gc_removes_a_loose_object_a_reader_still_holds(tmp_path, monkeypatch):
     monkeypatch.setattr(os, "unlink", held)
     _gc._remove_loose(repo, oid)
     assert not path.exists() and left[0] == 0
+
+
+def test_a_pack_merged_away_mid_scan_does_not_hide_its_objects(tmp_path, monkeypatch):
+    # 0.16.2: another process's gc merge deletes a listed pack while this process
+    # scans; the listing skips it and the merged pack may land only on a later
+    # scan. A single rescan used to report the object missing ("missing linked
+    # object" in a live recorder on Windows CI).
+    from opentine.repository import _packs
+    from opentine.repository._gc import gc
+
+    store = Repo.init(tmp_path / "r")
+    oid = store.put("blob", b'{"a":1}', redact=False)
+    gc(store, min_age=0)
+    real_load, failures = _packs.load_index, []
+
+    def vanishing(root, digest):
+        if len(failures) < 3:
+            failures.append(digest)
+            raise FileNotFoundError(2, "merged away")
+        return real_load(root, digest)
+
+    monkeypatch.setattr(_packs, "load_index", vanishing)
+    packs = _packs.PackSet(store.path)
+    assert packs.locate(oid) is not None
+    assert len(failures) == 3
+
+
+def test_a_complete_listing_still_reports_a_missing_object_at_once(tmp_path, monkeypatch):
+    from opentine.repository import _packs
+    from opentine.repository._gc import gc
+
+    store = Repo.init(tmp_path / "r")
+    store.put("blob", b'{"a":1}', redact=False)
+    gc(store, min_age=0)
+    packs = _packs.PackSet(store.path)
+    scans = []
+    real_scan = packs._scan
+    monkeypatch.setattr(packs, "_scan", lambda: scans.append(1) or real_scan())
+    assert packs.locate("blob:sha256:" + "0" * 64) is None
+    assert len(scans) == 2  # the first load, then one rescan on the miss
