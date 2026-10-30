@@ -7,6 +7,7 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
+from opentine._cli_intoto import cmd_verify_attestation
 from opentine._cli_keygen import cmd_keygen
 from opentine._cli_verify_report import (
     emit_verify,
@@ -29,6 +30,8 @@ def cmd_verify(args: argparse.Namespace) -> None:
         KEY_MATERIAL_FLAGS,
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
+    if getattr(args, "attestation", None):
+        return cmd_verify_attestation(args)
     path = _find_run(args.run_id)
     as_json = getattr(args, "json", False)
     if not path:

@@ -264,6 +264,14 @@ What a valid attestation signature proves: the target, claim, signer, evidence a
 
 MCP's `attest_run` and `evaluate_run` deliberately take **no** key options: an MCP client is acting on run content it just read, and untrusted text must not be able to sign as an operator. Signing is an operator-surface capability only.
 
+## in-toto attestations (DSSE, 0.15)
+
+`tine export RUN --format intoto` signs an in-toto Statement v1 in a DSSE envelope with an Ed25519 key (`--ed25519-key-file` or `--agent NAME`); there is no unsigned or HMAC form. The signature covers the DSSE pre-authentication encoding (`DSSEv1 <len> application/vnd.in-toto+json <len> <body>`), so it cannot be lifted to or from an artifact (`opentine.signature.v1:`) or attestation (`opentine.attestation.v1:`) signature. The subject is the run artifact's sha256 integrity digest; export refuses a run that fails its integrity check.
+
+The predicate is **content-free provenance**: identifiers, counts, model/provider names, lineage ids and usage totals. Prompts, completions and tool payloads are never included, and every string goes through the writer's redaction, so an attestation can be published where the run cannot.
+
+`tine verify RUN --attestation FILE` is fail-closed: it exits 1 unless a signature verifies under `--pubkey`, a `--pin` match, or `--trust-embedded-key` (`verified-tofu`), **and** the run's recomputed digest equals the subject. Giving no key is a refusal, not a report. HMAC flags are refused. The `keyid` is a `did:key` derived from the signing key; it is self-asserted, like an embedded key, and proves nothing about who holds the key until that key is pinned. A valid envelope proves the statement is unchanged since a key holder signed it and that it names these exact run bytes. It does not prove that the run's metadata is true.
+
 ## Fork identity (v2)
 
 A run id read from an artifact is **untrusted input**, exactly like every other

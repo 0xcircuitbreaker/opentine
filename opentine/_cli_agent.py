@@ -69,7 +69,13 @@ def _id(args: argparse.Namespace) -> None:
     ref = identity.agent_ref(record)
     lines = [ref, f"harness {_name(record['harness'])}  model {_name(record['model'])}"]
     lines += [f"definition {record['definition_digest'] or '-'} ({len(files)} file(s))"]
-    _out(args, {"agent_ref": ref, "identity": record, "files": files}, lines)
+    payload = {"agent_ref": ref, "identity": record, "files": files}
+    if args.agent:  # the bound key, spelled as a did:key other tooling can read
+        from opentine.did_key import did_from_pub_hex
+
+        payload["did"] = did_from_pub_hex(key_paths(args.agent)[1].read_text(encoding="ascii"))
+        lines.append(f"did {payload['did'] or '-'}")
+    _out(args, payload, lines)
 
 
 def _show_ref(args: argparse.Namespace, ref: str) -> None:
@@ -139,8 +145,11 @@ def _trust(args: argparse.Namespace) -> None:
 
 
 def _keys(args: argparse.Namespace) -> None:
-    pins = sorted(local_fingerprints())
-    _out(args, {"keys": pins, "dir": str(key_dir())}, pins or ["No agent keys."])
+    from opentine.did_key import local_dids
+
+    pins, dids = sorted(local_fingerprints()), local_dids(key_dir())
+    lines = [f"{pin}  {dids.get(pin, '-')}" for pin in pins] or ["No agent keys."]
+    _out(args, {"keys": pins, "dids": dids, "dir": str(key_dir())}, lines)
 
 
 def cmd_agent(args: argparse.Namespace) -> None:

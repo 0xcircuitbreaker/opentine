@@ -23,6 +23,7 @@ from pathlib import Path
 
 # dest -> (option string, parser default)
 FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
+    "agent": ("--agent", None),
     "allow_insecure": ("--allow-insecure", False),
     "api_key_env": ("--api-key-env", None),
     "autosave": ("--autosave", None),
@@ -30,8 +31,10 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "autosave_seconds": ("--autosave-seconds", 0.0),
     "base_url": ("--base-url", None),
     "compare": ("--compare", False),
+    "compress": ("--compress", None),
     "cwd": ("--cwd", None),
     "ed25519_key_file": ("--ed25519-key-file", None),
+    "endpoint": ("--endpoint", None),
     "force": ("--force", False),
     "harness": ("--harness", None),
     "harness_arg": ("--harness-arg", []),

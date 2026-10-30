@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.15.0 — unreleased
+
+### Verifiable
+
+- **in-toto provenance for a run.** `tine export RUN --format intoto
+  --ed25519-key-file KEY` (or `--agent NAME`) writes a signed DSSE envelope
+  (`.intoto.jsonl`) carrying an in-toto Statement v1. Its subject is the run's
+  sha256 content address — the digest `tine verify` prints — and its predicate
+  (`https://opentine.dev/attestation/run/v1`) records run id, status, models,
+  providers, step count, fork lineage, token and cost totals, agent ref and the
+  opentine version. It is content-free: no prompt, completion or tool payload
+  is included, and every string is redacted. An unsigned statement is never written.
+- **`tine verify RUN --attestation FILE`** checks such an envelope, fail-closed:
+  the DSSE signature must verify under `--pubkey`, a `--pin`-ned fingerprint or
+  `--trust-embedded-key` (reported as `verified-tofu`), and the run's recomputed
+  digest must equal the statement's subject. `--json` reports the signature
+  verdict, key id and subject check; any failure exits 1.
+- **`did:key` agent identities.** Ed25519 keys are now also spelled as
+  `did:key:z6Mk...`: `tine agent keys` and `tine agent id --agent NAME` show
+  it, and it is the DSSE `keyid`. A `did:key` names a key, not an owner; pin it
+  before trusting it.
+
 ## 0.14.2 — 2026-10-29
 
 ### Fixes
