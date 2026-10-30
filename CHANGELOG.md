@@ -2,6 +2,9 @@
 
 ## 0.16.1 — 2026-10-30
 
+0.16.0 was not published: its release CI failed on the Windows gc race fixed
+here. 0.16.1 is the first release with the 0.16.0 changes below.
+
 ### Fixes
 
 - **gc no longer fails on Windows when a reader holds a loose object open.**
