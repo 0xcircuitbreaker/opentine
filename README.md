@@ -152,7 +152,7 @@ tine diff result.tine retry.tine
 ```
 
 `Run.load()` reads v1 and v2, migrates v1 in memory, and writes v2. HMAC-SHA256
-and Ed25519 signatures are implemented through `tine sign`, `tine keygen`, and
+and Ed25519 signatures are implemented through `tine trust sign`, `tine trust keygen`, and
 fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.15.0/docs/TINE_FORMAT.md).
 
 ## The model-agnostic core
@@ -389,14 +389,14 @@ gateway may route paid hosted APIs.
 
 ```bash
 tine init .
-tine migrate-v3 result.tine --repo . --ref heads/main
-tine fsck --repo .
+tine repo migrate --to-v3 result.tine --repo . --ref heads/main
+tine repo storage fsck --repo .
 tine repo-log heads/main --repo .
 tine repo-fork heads/main --from-event event:sha256:... --ref experiments/alt --repo .
 tine repo-resume heads/main --ref experiments/live --repo .
-tine promote experiments/alt --name released --repo .
+tine trust promote experiments/alt --name released --repo .
 tine object run:sha256:... --repo . --resolve-blobs
-tine pack --repo . --output run.pack
+tine repo pack --repo . --output run.pack
 ```
 
 Every v3 MCP tool has a CLI verb and vice versa, and the map is a CI gate. The
@@ -561,12 +561,12 @@ person at the terminal is authenticated by having the shell, a model reached
 over MCP is not.
 
 ```bash
-tine keygen --hmac --out ~/.keys/release.hmac            # a strong shared secret
-tine attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
+tine trust keygen --hmac --out ~/.keys/release.hmac      # a strong shared secret
+tine trust attest heads/main --signer release-manager --claim '{"kind":"approval"}' \
     --key-file ~/.keys/release.hmac --key-id release-2026   # signs the claim
-tine evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
-tine promote heads/main --name production            # creates the release gate
-tine promote <run-oid> --name production --expected-old <current-oid>   # moves it
+tine trust evaluate heads/main --evaluator judge --score quality=0.9 --score safety=1
+tine trust promote heads/main --name production      # creates the release gate
+tine trust promote <run-oid> --name production --expected-old <current-oid>  # moves it
 tine repo-verify heads/main --key-file ~/.keys/release.hmac \
     --signer release-manager --claim '{"kind":"approval"}'   # the release gate
 ```
@@ -579,7 +579,7 @@ Adding the CLI verb does not widen the MCP surface — `allow_promotion` stays
 `False` — it just stops the operator having to write Python to do their job.
 Attestations are content-addressed, and from 0.9.0 they can also be **signed**:
 give `attest`/`evaluate` a key (`--key-env`/`--key-file`/`--ed25519-key-file`,
-exactly as `tine sign` takes one) and the signer label is bound to that key at
+exactly as `tine trust sign` takes one) and the signer label is bound to that key at
 `tine-attest/1`, covering the target run, the claim, the signer, and the
 evidence. `tine repo-verify` checks one attestation or every attestation on a
 run, with `tine verify`'s own verdicts (`verified`, `unsigned`, `no-key`,
@@ -602,7 +602,7 @@ metadata/audit records.
 ```bash
 export TINE_REMOTE_TOKEN="$(openssl rand -hex 32)"
 export TINE_KMS_KEY="$(openssl rand -base64 32)"
-tine serve --root /srv/opentine --cert cert.pem --key key.pem
+tine repo serve --root /srv/opentine --cert cert.pem --key key.pem
 ```
 
 TLS is mandatory unless `--insecure-dev` is explicit, and `--insecure-dev`
@@ -626,8 +626,8 @@ the commit and checkpoint update. Other anchor recovery requires an exact
 Protect the audit key, checkpoint, and backups.
 
 ```bash
-tine push https://runs.example --tenant team --repo .
-tine clone https://runs.example ./clone --tenant team
+tine share push https://runs.example --tenant team --repo .
+tine share clone https://runs.example ./clone --tenant team
 ```
 
 ## Harnesses and tools
@@ -654,7 +654,7 @@ graph LR
 OpenTine can capture external CLI agents:
 
 ```bash
-tine harnesses --installed            # which agent CLIs are here, and what a run of each records
+tine repo integrate harnesses --installed  # which agent CLIs are here, and what a run of each records
 tine run --harness gemini --prompt "Inspect this repo" --save run.tine
 tine run --harness qwen-code --prompt "Summarize README.md" --save run.tine
 tine run --harness generic --harness-command "agent run" --prompt "Fix tests"
@@ -695,6 +695,23 @@ section and `tine help --all` lists every one. Each one prints its own `--help`,
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
 
+Everyday commands (`tine --help`):
+
+```text
+Record        tine run, tine import         capture agent runs
+Inspect       tine log, tine show           read history and runs
+Branch        tine fork, tine replay        explore from any step
+Trust         tine verify, tine trust       verify and sign what was recorded
+Collaborate   tine share                    push, fetch, clone and bundle runs
+Agents        tine agent                    agent identities, keys and history
+Repository    tine init, tine repo          set up, maintain and integrate a repository
+Help          tine help [--all] [COMMAND]   find every other command
+```
+
+Named trust policies keep verification flags in one place: store them once with
+`tine trust policy set prod --pubkey release.pub`, then `tine verify RUN --policy prod`
+(see [SECURITY_MODEL.md](docs/SECURITY_MODEL.md)).
+
 **Command groups.** Since 0.16 related verbs are also reachable under a noun
 group: `tine repo init|config|worktree|branch|reset|reflog|archive|pack|serve`,
 `tine repo migrate [--to-v3]` (`migrate` / `migrate-v3`),
@@ -703,8 +720,8 @@ group: `tine repo init|config|worktree|branch|reset|reflog|archive|pack|serve`,
 `tine share push|fetch|pull|clone|remote|bundle|archive`;
 `tine trust sign|keygen|attest|evaluate|promote|verify-tag`; and
 `tine agent who|actions|touched|blame|audit` next to the existing
-`tine agent id|show|trust|keys`. `tine verify FILE` on a `tine bundle` file runs
-`tine bundle verify FILE`. A group spelling is rewritten to
+`tine agent id|show|trust|keys`. `tine verify FILE` on a `tine share bundle` file runs
+`tine share bundle verify FILE`. A group spelling is rewritten to
 the old verb before parsing, so it takes the same flags and gives the same output
 and exit code; the old top-level spellings keep working unchanged. `tine repo
 --help` (or `tine help repo`) lists the group. The full old -> new table is in
@@ -713,56 +730,56 @@ and exit code; the old top-level spellings keep working unchanged. `tine repo
 Portable `.tine` artifacts:
 
 ```text
-tine run <script.py>                  Execute a Python script and save the Run it builds
-tine run --model anthropic --prompt P Call a bundled model adapter directly, no script
-tine run --harness codex --prompt P   Record an external CLI agent as a run
-tine harnesses                        List agent CLIs --harness can drive, installed ones, fidelity
-tine show <run>                       Pretty-print a run tree
-tine cost <run>                       Show cost, tokens, and budget state as recorded
-tine price <run> --at 2026-07-15      Re-price a run from the catalog (also prices imports)
-tine verify <run>                     Verify integrity, and authenticity when a key is given
-tine sign <run> --key-env TINE_KEY    Sign an artifact (hmac-sha256 or ed25519)
-tine keygen --out key --pub key.pub   Generate an Ed25519 keypair (private key 0600)
-tine keygen --hmac --out release.hmac Generate a 32-byte HMAC key
-tine fork <run> --from-step 3         Branch from a step and continue there
-tine replay <run> --mode cache        Reuse recorded steps; --mode rerun re-executes
-tine replay <run> --verify            Check the replay reproduces the run: exit 0/1
-tine diff <run_a> <run_b>             Compare two runs step by step; --exit-code for 0/1
-tine resume <run>                     Continue a run whose manifest declares resume support
-tine migrate <run> --in-place         Upgrade a legacy artifact to format v2
-tine ls --tag prod --limit 20         List indexed runs from .tine_runs
-tine search "tag:prod model:kimi"     Query that index
-tine tag <run> --add prod             Add, remove, or list tags
-tine reindex                          Rebuild .tine_runs/index.json
+tine run <script.py>                         Execute a Python script and save the Run it builds
+tine run --model anthropic --prompt P        Call a bundled model adapter directly, no script
+tine run --harness codex --prompt P          Record an external CLI agent as a run
+tine repo integrate harnesses                List agent CLIs --harness can drive, installed ones, fidelity
+tine show <run>                              Pretty-print a run tree
+tine cost <run>                              Show cost, tokens, and budget state as recorded
+tine price <run> --at 2026-07-15             Re-price a run from the catalog (also prices imports)
+tine verify <run>                            Verify integrity, and authenticity when a key is given
+tine trust sign <run> --key-env TINE_KEY     Sign an artifact (hmac-sha256 or ed25519)
+tine trust keygen --out key --pub key.pub    Generate an Ed25519 keypair (private key 0600)
+tine trust keygen --hmac --out release.hmac  Generate a 32-byte HMAC key
+tine fork <run> --from-step 3                Branch from a step and continue there
+tine replay <run> --mode cache               Reuse recorded steps; --mode rerun re-executes
+tine replay <run> --verify                   Check the replay reproduces the run: exit 0/1
+tine diff <run_a> <run_b>                    Compare two runs step by step; --exit-code for 0/1
+tine resume <run>                            Continue a run whose manifest declares resume support
+tine repo migrate <run> --in-place           Upgrade a legacy artifact to format v2
+tine ls --tag prod --limit 20                List indexed runs from .tine_runs
+tine search "tag:prod model:kimi"            Query that index
+tine tag <run> --add prod                    Add, remove, or list tags
+tine repo storage reindex                    Rebuild .tine_runs/index.json
 ```
 
 Agent actions, storage:
 
 ```text
-tine who --program rm --by agent,model           Which agents ran a program, grouped
-tine who --host '*.amazonaws.com' --by agent     Which agents called a host
-tine who --mcp 'github/create_*' --since 7d      Which agents used an MCP tool
-tine actions <run>                               One run's tool calls in order
-tine touched --path 'src/**/secrets*'            Which agents wrote or deleted a path
-tine audit --policy agents.toml                  Check actions against deny/warn rules; exit 1 on deny
-tine audit --policy p.toml --require-signed      Also fail unless every run's action manifest verifies
-tine agent id --harness claude-code --model M    The agt_ ref an agent records (definition files hashed)
-tine agent show <run|agt_ref>                    Identity, trust state and lineage of a run or agent
-tine keygen --agent coder                        An agent signing key, kept in the user config dir
-tine actions <run> --sign --agent coder          Sign the run's actions (tine-actions/1)
-tine actions <run> --verify --pin sha256:...     Trust state: verified, unsigned, mismatch or unknown-key
-tine who --lineage agt_... --verified-only       An agent and its subagents, verified runs only
-tine gc                                          Pack a repository's objects (about 18x less disk)
-tine repack                                      Merge packs into one
-tine du --by run                                 Disk usage by kind, run or ref
-tine prune --delete                              Remove unreachable objects (dry run without --delete)
-tine archive create repo.tine-archive            One compressed file for a whole repository
-tine compress run.tine --decompress              Rewrite .tine files plain (or compressed)
+tine agent who --program rm --by agent,model        Which agents ran a program, grouped
+tine agent who --host '*.amazonaws.com' --by agent  Which agents called a host
+tine agent who --mcp 'github/create_*' --since 7d   Which agents used an MCP tool
+tine agent actions <run>                            One run's tool calls in order
+tine agent touched --path 'src/**/secrets*'         Which agents wrote or deleted a path
+tine agent audit --policy agents.toml               Check actions against deny/warn rules; exit 1 on deny
+tine agent audit --policy p.toml --require-signed   Also fail unless every run's action manifest verifies
+tine agent id --harness claude-code --model M       The agt_ ref an agent records (definition files hashed)
+tine agent show <run|agt_ref>                       Identity, trust state and lineage of a run or agent
+tine trust keygen --agent coder                     An agent signing key, kept in the user config dir
+tine agent actions <run> --sign --agent coder       Sign the run's actions (tine-actions/1)
+tine agent actions <run> --verify --pin sha256:...  Trust state: verified, unsigned, mismatch or unknown-key
+tine agent who --lineage agt_... --verified-only    An agent and its subagents, verified runs only
+tine repo storage gc                                Pack a repository's objects (about 18x less disk)
+tine repo storage repack                            Merge packs into one
+tine repo storage du --by run                       Disk usage by kind, run or ref
+tine repo storage prune --delete                    Remove unreachable objects (dry run without --delete)
+tine repo archive create repo.tine-archive          One compressed file for a whole repository
+tine repo storage compress run.tine --decompress    Rewrite .tine files plain (or compressed)
 tine export <run> --output spans.json.zst --compress zstd
 ```
 
 `.tine` files and repositories are stored compressed by default (about 5x
-smaller on real sessions; `tine gc` packs a repository about 18x on disk).
+smaller on real sessions; `tine repo storage gc` packs a repository about 18x on disk).
 Object ids, digests and signatures stay over the uncompressed bytes. Use
 `tine --no-compress` or `OPENTINE_COMPRESS=0` to write the plain form that
 releases before 0.11 read. On Python 3.11-3.13, `pip install opentine[zstd]`
@@ -771,48 +788,48 @@ enables zstd; zlib is used otherwise.
 Git for agent runs:
 
 ```text
-tine git install-hook [--global]                 Add Tine-Run trailers to commits made by recorded runs
-tine git note <commit> [run...]                  Record runs on a commit under refs/notes/tine
-tine log --commit <sha> | --pr <n>               The runs behind a commit or a GitHub PR
-tine blame src/app.py:42 [--git]                 Which run, step, model and tool call wrote a line
+tine repo integrate git install-hook [--global]       Add Tine-Run trailers to commits made by recorded runs
+tine repo integrate git note <commit> [run...]        Record runs on a commit under refs/notes/tine
+tine log --commit <sha> | --pr <n>                    The runs behind a commit or a GitHub PR
+tine agent blame src/app.py:42 [--git]                Which run, step, model and tool call wrote a line
 tine bisect start <bad> <good> [--runs ...|--steps <run>]
-tine bisect run --eval "pytest -q"               Find the first bad run or step (or --score NAME>=X)
-tine remote add origin https://host/tenant       Named remotes; fetch/push/pull accept the name, push --all
-tine pull origin                                 Fetch and fast-forward only
-tine branch [-d] <name> [run]                    Branches are heads/* refs
-tine tag <name> [run] [-s]                       Tag a run; -s signs it; tine verify-tag <name>
-tine reflog [ref] / tine reset <ref> <run>       Every ref move is recorded and recoverable
-tine config --list / alias.<name>                Porcelain settings, aliases and hooks (trust-gated)
-tine log --graph --all --oneline                 The fork tree with model, status and cost
-tine rebase <run> --onto-model <model>           Fork a run onto another model
-tine cherry-pick <run>:<step> --onto <run>       Copy one step onto another run
-tine fan-out <run> --vary model=a,b -- CMD ...   Fork N ways from one step, run them concurrently
-tine run --parallel 4 --harness codex --prompt P Run one invocation N times at once (--jobs, --budget)
-tine worktree add <path> <ref> [--git]           An isolated directory per branch; list/remove/prune
-tine fleet up fleet.toml --trust                 Run a declared fleet (fan-out or supervisor/workers)
-tine fleet status|stop|cost <id>                 Members, a stop that kills every process tree, cost
+tine bisect run --eval "pytest -q"                    Find the first bad run or step (or --score NAME>=X)
+tine share remote add origin https://host/tenant      Named remotes; fetch/push/pull accept the name, push --all
+tine share pull origin                                Fetch and fast-forward only
+tine repo branch [-d] <name> [run]                    Branches are heads/* refs
+tine tag <name> [run] [-s]                            Tag a run; -s signs it; tine trust verify-tag <name>
+tine repo reflog [ref] / tine repo reset <ref> <run>  Every ref move is recorded and recoverable
+tine repo config --list / alias.<name>                Porcelain settings, aliases and hooks (trust-gated)
+tine log --graph --all --oneline                      The fork tree with model, status and cost
+tine rebase <run> --onto-model <model>                Fork a run onto another model
+tine cherry-pick <run>:<step> --onto <run>            Copy one step onto another run
+tine fan-out <run> --vary model=a,b -- CMD ...        Fork N ways from one step, run them concurrently
+tine run --parallel 4 --harness codex --prompt P      Run one invocation N times at once (--jobs, --budget)
+tine repo worktree add <path> <ref> [--git]           An isolated directory per branch; list/remove/prune
+tine fleet up fleet.toml --trust                      Run a declared fleet (fan-out or supervisor/workers)
+tine fleet status|stop|cost <id>                      Members, a stop that kills every process tree, cost
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces
 their content with `redact:<glob>`. Aliases, client hooks
 (`.tine/hooks/{pre-record,post-run,pre-push,post-fetch}`) and remote token files
-only take effect after `tine config --trust` on this machine, so a cloned
+only take effect after `tine repo config --trust` on this machine, so a cloned
 repository never runs anything.
 
 ### Capture every agent session automatically
 
 ```text
 tine init ~/agent-runs
-tine hook install --global --repo ~/agent-runs   # --dry-run to preview, --agent to narrow
+tine repo integrate hook install --global --repo ~/agent-runs  # --dry-run to preview, --agent to narrow
 ```
 
 Claude Code, Codex and Gemini CLI then import each finished session into the
-repository. `tine hook uninstall --global` removes only opentine's hook, and
-`tine hook status` lists the events each CLI has installed. For Hermes Agent the
+repository. `tine repo integrate hook uninstall --global` removes only opentine's hook, and
+`tine repo integrate hook status` lists the events each CLI has installed. For Hermes Agent the
 installer prints a `config.yaml` snippet instead of editing your YAML.
 
 ```text
-tine plugin export ./opentine-plugin --repo ~/agent-runs   # a Claude Code plugin directory
+tine repo integrate plugin export ./opentine-plugin --repo ~/agent-runs  # a Claude Code plugin directory
 claude --plugin-dir ./opentine-plugin
 ```
 
@@ -838,19 +855,19 @@ Interoperability:
 tine import <trace> --format otel-json --save run.tine
 tine import - --format jsonl --repo . --ref heads/main
 tine import agent.log --format langchain --save run.tine
-tine import --from-default-location                              # newest agent-CLI sessions on this machine
-tine import latest --from-default-location --save run.tine       # import the newest one
-tine import <trace> --format otel-json --price --save run.tine   # price it from the catalog
-tine import trajectory.json --format atif --repo .               # Harbor ATIF (v1.0-v1.8)
-tine import ~/.local/share/opencode/opencode.db --repo .         # OpenCode sessions (read-only)
-tine import session.jsonl --fleet --repo .                       # Claude Code: a run per subagent
-tine import trajectory_samples.jsonl --repo .                    # Hermes Agent (FILE::N picks one)
-tine import session.log --adapter NAME --repo .                  # an allowlisted AdapterSpec
-tine harnesses --check                                           # check every importer adapter
-tine export <run> --format atif --output trajectory.json         # ATIF v1.8
+tine import --from-default-location                             # newest agent-CLI sessions on this machine
+tine import latest --from-default-location --save run.tine      # import the newest one
+tine import <trace> --format otel-json --price --save run.tine  # price it from the catalog
+tine import trajectory.json --format atif --repo .              # Harbor ATIF (v1.0-v1.8)
+tine import ~/.local/share/opencode/opencode.db --repo .        # OpenCode sessions (read-only)
+tine import session.jsonl --fleet --repo .                      # Claude Code: a run per subagent
+tine import trajectory_samples.jsonl --repo .                   # Hermes Agent (FILE::N picks one)
+tine import session.log --adapter NAME --repo .                 # an allowlisted AdapterSpec
+tine repo integrate harnesses --check                           # check every importer adapter
+tine export <run> --format atif --output trajectory.json        # ATIF v1.8
 tine export <run> > spans.json
 tine export <run> --output spans.json
-tine export <run> --endpoint http://127.0.0.1:4318          # local OTLP collector
+tine export <run> --endpoint http://127.0.0.1:4318              # local OTLP collector
 tine export <run> --endpoint https://collector.example/v1/traces
 ```
 
@@ -887,7 +904,7 @@ Machine-readable output:
 tine show|verify|ls|search|stats|cost|price ... --json
 tine replay <run> --verify --json
 tine diff <run_a> <run_b> [--json] [--exit-code]
-tine import <trace> --format FMT [--save PATH] [--repo PATH] [--price] --json
+tine import <trace> [--format FMT] [--save PATH] [--repo PATH] [--price] --json
 tine tag <run> [--list] --json
 tine pricing list|show|check|update ... --json
 tine repo-log|repo-show|repo-diff|repo-search|context ... --json
@@ -938,9 +955,9 @@ V3 repository:
 
 ```text
 tine init [path] [--bare]
-tine migrate-v3 <run.tine> --repo . --ref heads/main [--allow-unverified] \
+tine repo migrate --to-v3 <run.tine> --repo . --ref heads/main [--allow-unverified] \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] [--pin FINGERPRINT]...
-tine fsck --repo . [--shallow]
+tine repo storage fsck --repo . [--shallow]
 tine repo-log [ref] --repo . [--limit N] [--json]
 tine repo-show <ref-or-run-oid> --repo . [--json]
 tine repo-diff <left> <right> --repo . [--exit-code] [--json]
@@ -949,16 +966,16 @@ tine context <event-oid> --repo . [--depth N] [--json]
 tine repo-fork <ref-or-run-oid> --from-event <oid> --ref REF \
     [--model M] [--prompt P] [--policy JSON] [--repo .] [--json]
 tine repo-resume <ref-or-run-oid> --ref REF [--repo .] [--json]
-tine attest <ref-or-run-oid> --signer NAME (--claim JSON | --claim-file PATH) \
+tine trust attest <ref-or-run-oid> --signer NAME (--claim JSON | --claim-file PATH) \
     [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
-tine evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
+tine trust evaluate <ref-or-run-oid> --evaluator NAME --score NAME=VALUE... \
     [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
-tine promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
+tine trust promote <ref-or-run-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid|ref-or-run-oid> --repo . \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
     [--pin FINGERPRINT]... [--require-signature] [--signer NAME]... [--claim JSON] [--json]
 tine object <object-id> --repo . [--resolve-blobs]
-tine pack --repo . --output run.pack [object-id ...]
+tine repo pack --repo . --output run.pack [object-id ...]
 ```
 
 A v3 verb takes a `repo-` prefix only where a legacy v2 verb already owns the
@@ -970,13 +987,13 @@ repo-fork` branches a run object and moves a repository ref.
 Self-hosted remote:
 
 ```text
-tine serve --root DIR --cert cert.pem --key key.pem [--insecure-dev] [--writer-promotes]
-tine serve --root DIR [--tenant T] refs | delete-ref NAME [--expect OID] | associations OID
-tine serve --root DIR [--tenant T] delete-objects OID... [--from FILE|-] [--dry-run]
-tine serve --root DIR [--tenant T] purge [--grace-seconds N] [--dry-run]
-tine fetch <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--depth N]
-tine push <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--remote-ref R]
-tine clone <remote> <path> [--tenant T] [--token-file PATH] [--ref R] [--depth N]
+tine repo serve --root DIR --cert cert.pem --key key.pem [--insecure-dev] [--writer-promotes]
+tine repo serve --root DIR [--tenant T] refs | delete-ref NAME [--expect OID] | associations OID
+tine repo serve --root DIR [--tenant T] delete-objects OID... [--from FILE|-] [--dry-run]
+tine repo serve --root DIR [--tenant T] purge [--grace-seconds N] [--dry-run]
+tine share fetch <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--depth N]
+tine share push <remote> --repo . [--tenant T] [--token-file PATH] [--ref R] [--remote-ref R]
+tine share clone <remote> <path> [--tenant T] [--token-file PATH] [--ref R] [--depth N]
 ```
 
 Flag details that are easy to get wrong:
@@ -996,11 +1013,11 @@ Flag details that are easy to get wrong:
   the replay retains — the ancestors of `--from-step`, the same slice `--verify`
   expects. With `--harness` the run is re-executed twice and the two artifacts
   compared, which is how a nondeterministic agent is caught.
-- `tine migrate` only previews unless `--in-place` or `--save` is given, and it
+- `tine repo migrate` only previews unless `--in-place` or `--save` is given, and it
   drops any existing signature, so re-sign after migrating. Its single `--force`
   does two jobs: it overwrites an existing `--save` destination, and it waives
   the refusal to migrate a source whose integrity digest already failed.
-- `tine sign` spells the destination guard `--overwrite`, not `--force`. Its
+- `tine trust sign` spells the destination guard `--overwrite`, not `--force`. Its
   separate `--force` waives the pre-sign integrity refusal, so it can produce a
   valid signature over a body that already failed verification.
 - `tine verify` fails closed as soon as any of `--key-env`, `--key-file`,
@@ -1012,7 +1029,7 @@ Flag details that are easy to get wrong:
   id, `status:` is exact, and `cost:` accepts `>`, `>=`, `<`, `<=`, and
   `min..max`. `tine ls` exposes the same filters as flags, with `--since` and
   `--until` for the date bounds.
-- `tine ls`, `tine search`, `tine tag`, and `tine reindex` read the legacy file
+- `tine ls`, `tine search`, `tine tag`, and `tine repo storage reindex` read the legacy file
   index under `.tine_runs`, not a v3 repository.
 
 ## Validation

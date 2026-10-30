@@ -4,6 +4,10 @@ From `pip install` to a verified, forked, promoted agent run. Every command on
 this page exists in the shipped CLI; `tine <verb> --help` is authoritative if
 this page ever drifts.
 
+Advanced verbs appear here in their 0.16 group spelling (`tine repo …`, `tine share …`,
+`tine trust …`, `tine agent …`); the older top-level spellings such as `tine fsck` or
+`tine promote` still work unchanged. The full mapping is in [CLI.md](CLI.md).
+
 Contents:
 
 1. [Install](#1-install)
@@ -128,7 +132,7 @@ tine stats --group-by model
 
 `tine search` understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
 `before:` predicates plus free text; `cost:` accepts `>`, `>=`, `<`, `<=`, and
-`min..max`. `tine ls` exposes the same filters as flags. `tine reindex` rebuilds
+`min..max`. `tine ls` exposes the same filters as flags. `tine repo storage reindex` rebuilds
 `.tine_runs/index.json` if it drifts.
 
 These four read the legacy file index, not a v3 repository — a run you moved
@@ -173,11 +177,11 @@ objects, refs that move under compare-and-swap, reflogs, packs, and indexes.
 ```bash
 mkdir agent-history && cd agent-history
 tine init .
-tine migrate-v3 ../first.tine --repo . --ref heads/main
-tine fsck --repo .
+tine repo migrate --to-v3 ../first.tine --repo . --ref heads/main
+tine repo storage fsck --repo .
 ```
 
-`tine migrate-v3` prints the new run oid and an old→new event map. It keeps the
+`tine repo migrate --to-v3` prints the new run oid and an old→new event map. It keeps the
 original artifact byte-exact as a legacy blob and records its original
 integrity/signature result; a source that fails verification is refused unless
 `--allow-unverified` is explicit.
@@ -215,10 +219,10 @@ tine repo-diff heads/main experiments/terse --repo . --exit-code
 Attach immutable judgements, then move a release gate:
 
 ```bash
-tine evaluate experiments/terse --evaluator judge --score quality=0.9 --repo .
-tine attest experiments/terse --signer release-manager \
+tine trust evaluate experiments/terse --evaluator judge --score quality=0.9 --repo .
+tine trust attest experiments/terse --signer release-manager \
     --claim '{"kind":"approval"}' --repo .
-tine promote experiments/terse --name production --repo .
+tine trust promote experiments/terse --name production --repo .
 ```
 
 `promote` defaults to *expect no existing ref*. Moving a promotion that already
@@ -226,7 +230,7 @@ exists requires `--expected-old` naming the value being replaced, and there is
 no `--force`:
 
 ```bash
-tine promote <run-oid> --name production --expected-old <current-oid> --repo .
+tine trust promote <run-oid> --name production --expected-old <current-oid> --repo .
 ```
 
 Evaluation and approval attestations are content-addressed, but the `signer`
@@ -238,7 +242,7 @@ Search and re-verify at any point:
 ```bash
 tine repo-search "one sentence" --repo .
 tine context event:sha256:... --repo .   # only an event's causal ancestors
-tine fsck --repo .                       # recompute every id, ref, and link
+tine repo storage fsck --repo .          # recompute every id, ref, and link
 ```
 
 `python examples/v3_repository.py` runs this entire section offline and prints

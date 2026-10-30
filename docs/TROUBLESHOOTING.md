@@ -1,5 +1,9 @@
 # Troubleshooting
 
+Advanced verbs appear here in their 0.16 group spelling (`tine repo …`, `tine share …`,
+`tine trust …`, `tine agent …`); the older top-level spellings such as `tine fsck` or
+`tine promote` still work unchanged. The full mapping is in [CLI.md](CLI.md).
+
 ## `tine verify` Fails
 
 - `missing integrity digest`: the file was created before integrity metadata was added or was hand-edited without metadata.
@@ -34,7 +38,7 @@ Two cases report `unknown` even though a rate card exists, and both say so in
 
 Both are described in [PRICING.md](PRICING.md).
 
-## `tine fsck` Reports Missing Links
+## `tine repo storage fsck` Reports Missing Links
 
 A shallow clone is not the cause. A depth-limited fetch records every cut link in
 `.tine/shallow`, and `fsck` treats a recorded boundary ID as present, so a
@@ -46,8 +50,8 @@ deleted `.tine/shallow`. Deleting that file does not materialize history — it
 converts every boundary into `missing linked object: OID` and takes `fsck` from
 clean to failing.
 
-Use `tine fetch REMOTE` to retrieve the objects, without `--depth` for the full
-history. `tine fsck --shallow` is unrelated to shallow clones and is not a fix:
+Use `tine share fetch REMOTE` to retrieve the objects, without `--depth` for the full
+history. `tine repo storage fsck --shallow` is unrelated to shallow clones and is not a fix:
 it skips link, pack, run-graph, and cycle checking. Do not hand-edit loose
 objects or refs.
 
@@ -64,7 +68,7 @@ boundary; deepen the fetch (fetch/clone with a higher or no --depth) to retrieve
 ```
 
 `load_run`, `fork`, `resume`, and recording a new step into a cut run all raise
-that error with the operation named. Deepen with `tine fetch REMOTE` without
+that error with the operation named. Deepen with `tine share fetch REMOTE` without
 `--depth`, or clone again without one.
 
 The readers that do not refuse also do not mark what they omitted. `SemanticDiff`
@@ -85,13 +89,13 @@ address**. The check parses the host as an IP address, so `http://127.0.0.1:8787
 and `http://[::1]:8787` are accepted with no opt-in, while
 `http://localhost:8787` — the same machine, spelled as a name — is refused. This
 is the first thing most developers hit, because `localhost` is the conventional
-spelling and `tine serve` listens on `127.0.0.1` by default.
+spelling and `tine repo serve` listens on `127.0.0.1` by default.
 
-Use the literal address, or pass `--allow-insecure` to `tine fetch`, `tine push`,
-and `tine clone`. Bearer credentials are attached to a plaintext loopback client,
+Use the literal address, or pass `--allow-insecure` to `tine share fetch`, `tine share push`,
+and `tine share clone`. Bearer credentials are attached to a plaintext loopback client,
 so confine both forms to development.
 
-## `tine serve` Exits Before Listening
+## `tine repo serve` Exits Before Listening
 
 The server checks its preconditions in this order and exits without starting if
 any fails:
@@ -162,15 +166,15 @@ Two messages, both exiting 1 before any work is done:
   `tine run --harness ... --autosave-interval` without `--autosave`,
   `tine fork --prompt` without `--harness`, `tine replay --inspect` with
   `--compare`, `tine replay --json`/`--ignore-cost-drift` without `--verify`,
-  `tine migrate --dry-run` with `--save`, `tine sign --overwrite`
-  without `--save`, `tine keygen --force` without `--out` or `--pub`, and
+  `tine repo migrate --dry-run` with `--save`, `tine trust sign --overwrite`
+  without `--save`, `tine trust keygen --force` without `--out` or `--pub`, and
   `tine import --force` without `--save` all produce it. `tine import --ref`
   without `--repo` is refused for the same reason in its own words: a `--save`
   artifact is a file, not a ref.
 - `FLAG_A and FLAG_B cannot be combined: only one takes effect` — two flags
   compete for one slot. `--key-env` with `--key-file`, any two of
   `--key-env`/`--key-file`/`--pubkey`/`--trust-embedded-key` on `tine verify`,
-  and `--in-place` with `--save` on `tine migrate`.
+  and `--in-place` with `--save` on `tine repo migrate`.
 
 These are deliberate. Exiting 0 after silently dropping `--save` writes the
 artifact somewhere other than where it was asked to go, and letting precedence

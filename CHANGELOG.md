@@ -2,49 +2,62 @@
 
 ## 0.16.0 — unreleased
 
+"Simplify": a smaller front door to the same CLI. Nothing was removed or renamed;
+every pre-0.16 command, subcommand and flag still parses and reaches the same handler.
+
+**Migrating:** no action needed. Docs now teach the group spellings
+(`tine repo storage gc`, `tine share push`, `tine trust sign`, `tine agent who`, ...);
+the full old -> new table is in [docs/CLI.md](docs/CLI.md).
+
 ### Simplify
 
-- `tine --help` now lists only the everyday commands, grouped by section (Record,
-  Inspect, Branch, Trust, Collaborate, Agents, Repository, Help). Every other
-  command is still there, parses exactly as before and prints its own `--help`.
-- New `tine help [--all] [COMMAND]`: `tine help --all` lists every command by
-  section (Everyday / Advanced) with a one-line summary; `tine help COMMAND`
-  prints that command's help. `help` is a built-in, so a porcelain `alias.help`
-  no longer shadows it.
-- A pinned compatibility table (tests/cli_compat_table.py) proves every existing
-  verb, subcommand and representative flag still reaches the same handler.
-- New `tine repo` group: `tine repo storage gc` is `tine gc`, `tine repo migrate
-  --to-v3` is `tine migrate-v3`, `tine repo integrate hook` is `tine hook`, and
-  so on for init, config, worktree, branch, reset, reflog, archive, pack, serve,
-  du, repack, prune, compress, fsck and reindex. The group words are rewritten to
-  the old verb before parsing, so both spellings reach the same handler with the
-  same arguments; the old spellings still work silently. A built-in group name
-  wins over a porcelain `alias.repo`, with a warning on stderr.
-- New `tine share` group (push, fetch, pull, clone, remote, bundle, archive) and
-  `tine trust` group (sign, keygen, attest, evaluate, promote, verify-tag);
-  `tine agent` also takes who, actions, touched, blame and audit, while
-  `agent id|show|trust|keys` are unchanged. `tine --help` now shows `share` and
-  `trust` in place of the individual verbs; the old spellings stay parseable and
-  are listed by `tine help --all`. See docs/CLI.md for every old -> new spelling.
-- `tine verify FILE` where FILE is a `tine bundle` file (TINEBUNDLE1 magic, no
-  other arguments) now runs `tine bundle verify FILE` instead of failing as an
-  unknown run.
-- Named trust policies: `tine trust policy set NAME --pubkey F [--pin SHA256]
-  [--rekor-key F] [--require-receipt] [--cert-identity SAN --cert-oidc-issuer URL
-  --fulcio-root F]`, plus `list`, `show`, `rm` and `default NAME|--clear` (list
-  and show take `--json`). `tine verify RUN [--attestation F] --policy NAME`
-  supplies those flags; flags typed on the command line override policy fields
-  (any key flag replaces the policy's key). `trust.default` applies when no key,
-  receipt or keyless flag and no `--policy` is given; `--no-policy` turns it off.
-  An unknown policy exits 1. `verify --json` gains `"policy": NAME` only when a
-  policy was used. Policies live only in the user's
-  `$XDG_CONFIG_HOME/opentine/trust-policies.json` (0600; refused when symlinked,
-  group/world-writable or not owned by the user); paths are stored absolute and
-  rechecked on use. `--trust-embedded-key` is never a policy field. A
-  repository's `porcelain.json` cannot set or select one: `tine config trust.*`
-  and `policy.*` are refused, and such keys in a cloned file are ignored.
-- Fixed: in a v3 repository `tine show REF --json` dropped `--json` when it
-  routed to `repo-show`, printing the human rendering instead of JSON.
+- **Everyday help.** `tine --help` lists only the everyday commands, grouped by
+  section (Record, Inspect, Branch, Trust, Collaborate, Agents, Repository, Help).
+  `tine help --all` lists every command (Everyday / Advanced) with a one-line
+  summary, and `tine help COMMAND` prints one command's help. `help` is a built-in,
+  so a porcelain `alias.help` no longer shadows it.
+- **Command groups.** Related verbs are also reachable under a noun group:
+  - `tine repo` — init, config, worktree, branch, reset, reflog, archive, pack,
+    serve, `migrate [--to-v3]` (`migrate` / `migrate-v3`),
+    `storage du|gc|repack|prune|compress|fsck|reindex` and
+    `integrate hook|plugin|harnesses|git`;
+  - `tine share` — push, fetch, pull, clone, remote, bundle, archive;
+  - `tine trust` — sign, keygen, attest, evaluate, promote, verify-tag (and `policy`, below);
+  - `tine agent` — now also who, actions, touched, blame and audit, next to the
+    unchanged id, show, trust and keys.
+
+  A group spelling is rewritten to the old verb before parsing, so both take the
+  same flags and give the same output and exit code. The old spellings keep working
+  silently. A built-in group name wins over a porcelain alias of the same name, with
+  a warning on stderr. A pinned compatibility table (tests/cli_compat_table.py)
+  proves every existing verb, subcommand and representative flag still reaches the
+  same handler.
+- **Named trust policies.** `tine trust policy set NAME` stores verify trust roots
+  (`--pubkey`, `--pin`, `--rekor-key`, `--require-receipt`, `--cert-identity`,
+  `--cert-oidc-issuer`, `--fulcio-root`); `list`, `show` (both `--json`), `rm` and
+  `default NAME|--clear` manage them. `tine verify RUN [--attestation F] --policy NAME`
+  applies one; flags on the command line override policy fields (any key flag
+  replaces the policy's key). `trust.default` applies when no key, receipt or
+  keyless flag and no `--policy` is given, and `--no-policy` turns it off. An unknown
+  policy exits 1, and `verify --json` gains `"policy": NAME` only when one was used.
+  Policies are user-scoped only, in `$XDG_CONFIG_HOME/opentine/trust-policies.json`
+  (0600; refused when symlinked, group/world-writable or not owned by the user);
+  paths are stored absolute and rechecked on use, and `--trust-embedded-key` is never
+  a policy field. A repository's `porcelain.json` cannot set or select one:
+  `tine config trust.*` and `policy.*` are refused, and such keys in a cloned file
+  are ignored.
+- **Verify a bundle directly.** `tine verify FILE`, where FILE is a `tine bundle`
+  file (TINEBUNDLE1 magic, no other arguments), runs `tine bundle verify FILE`
+  instead of failing as an unknown run.
+- **Docs.** README, GETTING_STARTED, CAPTURE, REPOSITORY, TROUBLESHOOTING and
+  SECURITY_MODEL teach the group spellings and `tine verify --policy`; README gains
+  an "Everyday commands" block. Every `tine ...` example in README.md and docs/*.md
+  is now checked to parse (tests/test_docs_examples_0_16.py).
+
+### Fixes
+
+- In a v3 repository `tine show REF --json` dropped `--json` when it routed to
+  `repo-show`, printing the human rendering instead of JSON.
 
 ## 0.15.0 — 2026-10-29
 

@@ -9,6 +9,10 @@
 OpenTine 0.3.0 stores agent history under `.tine/` using Git-shaped concepts,
 while retaining portable `*.tine` v2 compatibility files.
 
+Advanced verbs appear here in their 0.16 group spelling (`tine repo …`, `tine share …`,
+`tine trust …`, `tine agent …`); the older top-level spellings such as `tine fsck` or
+`tine promote` still work unchanged. The full mapping is in [CLI.md](CLI.md).
+
 ## Object model
 
 The immutable object types are:
@@ -121,7 +125,7 @@ and pins that single exception, so a second one cannot appear by accident.
 
 The two families never share state. `tine fork` branches a run *file* and writes
 `.tine_runs/<run-id>.tine`; `tine repo-fork` branches a run *object* and moves a
-repository ref. A v2 artifact reaches the v3 side only through `tine migrate-v3`.
+repository ref. A v2 artifact reaches the v3 side only through `tine repo migrate --to-v3`.
 
 ## Read verbs and their `--json` contract
 
@@ -246,12 +250,12 @@ untrusted run content must not be able to move a release gate, but the person at
 the terminal already holds the repository.
 
 ```bash
-tine attest <run-ref-or-oid> --signer NAME (--claim JSON | --claim-file PATH) \
+tine trust attest <run-ref-or-oid> --signer NAME (--claim JSON | --claim-file PATH) \
     [--evidence OID]... [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] \
     [--key-id ID] [--repo .] [--json]
-tine evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... \
+tine trust evaluate <run-ref-or-oid> --evaluator NAME --score NAME=VALUE... \
     [--key-env VAR | --key-file PATH | --ed25519-key-file PATH] [--key-id ID] [--json]
-tine promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
+tine trust promote <run-ref-or-oid> --name NAME [--expected-old OID] [--json]
 tine repo-verify <attestation-oid | run-ref-or-oid> \
     [--key-env VAR | --key-file PATH | --pubkey PATH | --trust-embedded-key] \
     [--pin FINGERPRINT]... [--require-signature] [--signer NAME]... [--claim JSON] \
@@ -415,7 +419,7 @@ confinement is real, and it stays where it is: at the MCP boundary, in
 ref an MCP client picks is chosen from run content it just read, so an
 unconfined fork tool would make "fork onto `heads/main`" a one-step
 prompt-injection payload. An operator at a terminal already holds the
-repository and can move any ref with `tine promote` or a direct write, so
+repository and can move any ref with `tine trust promote` or a direct write, so
 confining the CLI would buy no security and would only push people around it.
 The CLI still validates the ref name (canonicalizing it *before* the write, so a
 malformed ref is refused rather than reported after the object exists).
@@ -465,7 +469,7 @@ not a terminal, and a consumer must see the bytes as recorded.
 
 ```bash
 tine init .
-tine migrate-v3 legacy.tine --repo . --ref heads/imported
+tine repo migrate --to-v3 legacy.tine --repo . --ref heads/imported
 ```
 
 With a key flag (`--key-env`/`--key-file`/`--pubkey`/`--trust-embedded-key`/`--pin`)
@@ -519,7 +523,7 @@ walks only parent and causal links needed for an event. Forking can replace
 model, prompt, or policy from the last good event. Evaluations and approvals
 are content-addressed, tamper-evident attestations; the `signer` is self-asserted
 unless the attestation is signed at `tine-attest/1`, which an operator does with
-`tine attest --key-file …` and checks with `tine repo-verify`. Promotion is a CAS
+`tine trust attest --key-file …` and checks with `tine repo-verify`. Promotion is a CAS
 ref update.
 
 When an MCP server starts inside a repository, it adds `search_runs`,
@@ -533,7 +537,7 @@ choosing. `fork_run_v3` and `resume_run_v3` may write only `experiments/*`
 refs; the namespace is checked on the canonical ref name, so mainline,
 promotion, tag, and remote-tracking refs stay operator-only.
 
-Promotion being an operator CLI verb (`tine promote`) does not change that
+Promotion being an operator CLI verb (`tine trust promote`) does not change that
 default. The two surfaces are trusted differently on purpose: an operator at a
 terminal already holds the repository, while a model over MCP is acting on
 content it read out of that repository. `allow_promotion` remains `False`.
@@ -553,9 +557,9 @@ mapped to a tool nor listed as deliberately CLI-only.
 | `semantic_diff` | `tine repo-diff` |
 | `fork_run_v3` | `tine repo-fork` |
 | `resume_run_v3` | `tine repo-resume` |
-| `evaluate_run` | `tine evaluate` |
-| `attest_run` | `tine attest` |
-| `promote_run` | `tine promote` |
+| `evaluate_run` | `tine trust evaluate` |
+| `attest_run` | `tine trust attest` |
+| `promote_run` | `tine trust promote` |
 
 The CLI-only verbs are `init`, `fsck`, `pack`, `migrate-v3`, `fetch`, `push`,
 and `clone` — repository administration and transport, each handing out a
@@ -577,7 +581,7 @@ so making the surfaces agree turns CI red and forces the argument to be re-made.
    the operator typed and what it resolved to, because it is an audit artifact.
    Shared keys always carry the same values.
 4. **The CLI refuses non-finite evaluation scores; MCP passes them through.**
-   `tine evaluate --score q=nan` is refused at the argument door, naming the
+   `tine trust evaluate --score q=nan` is refused at the argument door, naming the
    flag, before any engine call, because `repo-search` averages scores.
    `evaluate_run` takes an already-typed `dict[str, float]` and adds no check of
    its own, so the value travels into `canonical_json` and is refused there as a
@@ -600,7 +604,7 @@ otherwise). Object ids stay over the canonical bytes, so a compressed and a
 plain repository hold the same objects. `OPENTINE_COMPRESS=0` or
 `tine --no-compress` creates the plain version-1 layout older releases read,
 and an existing version-1 repository is never written compressed until
-`tine gc` upgrades it.
+`tine repo storage gc` upgrades it.
 
 The maintenance verbs below are also spelled under the `repo` group (0.16+):
 `tine repo storage gc`, `tine repo storage repack`, `tine repo storage du`,
@@ -609,29 +613,29 @@ and `tine repo storage reindex` are exactly `tine gc`, `tine repack`, `tine du`,
 `tine prune`, `tine compress`, `tine fsck` and `tine reindex`; both spellings
 take the same flags.
 
-- `tine gc` moves loose objects into compressed local packs
+- `tine repo storage gc` moves loose objects into compressed local packs
   (`.tine/packs/*.tpk` + `.tidx`): a pack is written and read back object by
   object before anything loose is deleted (about 18x less disk on real
   sessions). Redundant copies of received transfer packs are removed unless
   `--keep-transfer-packs`.
-- `tine gc` and `tine repack` hold `.tine/gc.lock`, so two packers never
+- `tine repo storage gc` and `tine repo storage repack` hold `.tine/gc.lock`, so two packers never
   race. The lock (like every ref lock) records pid, host and start time; a
   lock left by a crashed process on the same host is taken over once that
   process is provably gone, on every platform and never by age alone
   (`OPENTINE_GC_BREAK_LOCK=1` forces it). Any other lock is reported with its
   path. An interrupted gc loses nothing and can be re-run.
-- `tine repack` merges every local pack into one.
-- `tine gc --upgrade` (0.13+, opt-in, never automatic) moves a repository to
+- `tine repo storage repack` merges every local pack into one.
+- `tine repo storage gc --upgrade` (0.13+, opt-in, never automatic) moves a repository to
   storage version 3: packs of large single-kind blocks, run snapshots stored as
   their parent plus the newly appended events, events without their empty
   default fields, and a binary index. Every read rebuilds the original bytes
   and checks them against the object id. About 2x smaller than version-2 packs
   on recorded sessions. **opentine 0.12 and older refuse a version-3
-  repository** (`repository config is incompatible`); `tine gc --downgrade`
+  repository** (`repository config is incompatible`); `tine repo storage gc --downgrade`
   rewrites it for version 2 so they can open it again. Later `gc`, `repack`,
   auto-pack and `prune` keep writing v3 packs in a version-3 repository.
-- `tine archive create FILE` writes the whole repository (objects, refs,
-  shallow boundaries) as one compressed file; `tine archive restore FILE DEST`
+- `tine repo archive create FILE` writes the whole repository (objects, refs,
+  shallow boundaries) as one compressed file; `tine repo archive restore FILE DEST`
   verifies the pack digest and every object id and sets refs through the
   normal validated path, into a new repository only.
 
@@ -684,22 +688,22 @@ objects before attempting the CAS ref update.
 
 Since 0.15, runs can be shared with no opentine server.
 
-- `tine bundle create FILE [REFS...] | --all` writes one self-verifying file:
+- `tine share bundle create FILE [REFS...] | --all` writes one self-verifying file:
   `TINEBUNDLE1` magic, a SHA-256 over the rest, a canonical JSON manifest
   (`format`, the pack's SHA-256 and length, `ref -> object id`) and an ordinary
   transfer pack. The pack carries each run's associations (annotations and
   attestations) exactly as a fetch would. `--all` bundles every local ref except
   `remotes/*`; a bare name means `heads/NAME`.
-- `tine bundle verify FILE` checks it without a repository: size caps, both
+- `tine share bundle verify FILE` checks it without a repository: size caps, both
   digests, canonical manifest, every ref name through `normalize_ref` (no `..`,
   absolute, upper-case, control characters or `remotes/*`), every ref target
   present in the pack, and every packed object against its id.
-- `tine bundle unbundle FILE` (alias `import`) verifies, installs the objects and
+- `tine share bundle unbundle FILE` (alias `import`) verifies, installs the objects and
   moves refs **only** under `remotes/<name>/…` (`heads/` dropped, like fetch);
   `<name>` is `--as NAME` or derived from the file name. A tracking ref that
   already exists moves only to a descendant (its `forked_from` chain) unless
   `--force`; refs move atomically (all or none). Re-importing is a no-op.
-- `tine bundle push REMOTE [REFS...]` and `tine bundle fetch REMOTE [--as NAME]`
+- `tine share bundle push REMOTE [REFS...]` and `tine share bundle fetch REMOTE [--as NAME]`
   carry a bundle over any git remote (GitHub, Gitea, a bare repository,
   Radicle's git, a local path). The remote gets one ref, `refs/tine/bundle`: a
   commit whose tree is a single `bundle.tine` blob, parented on the commit it
@@ -711,7 +715,7 @@ Since 0.15, runs can be shared with no opentine server.
   local ref moves. Credentials come from your normal git/ssh setup.
 
 Bundles are capped at the transfer-pack limit (256 MiB) plus a 4 MiB manifest.
-Unlike `tine archive` (whole repository, new destination only), a bundle carries
+Unlike `tine repo archive` (whole repository, new destination only), a bundle carries
 chosen refs into an existing repository. Each `bundle push` uploads a full
 snapshot of the chosen refs, not a delta.
 
@@ -732,7 +736,7 @@ and its authenticated head outside SQLite, the listing and annotation ceilings,
 and the operator responsibilities that remain — are specified in
 [SECURITY_MODEL.md](SECURITY_MODEL.md) and are not restated here.
 
-`tine serve --root DIR [--tenant T] ACTION` runs operator maintenance on that
+`tine repo serve --root DIR [--tenant T] ACTION` runs operator maintenance on that
 storage instead of serving: `refs`, `delete-ref NAME [--expect OID]`,
 `associations OID`, `delete-objects OID… [--from FILE|-] [--dry-run]` and
 `purge [--grace-seconds N] [--dry-run]`, each printing JSON. It needs
@@ -741,7 +745,7 @@ each keeps and refuses.
 
 A fetch response may carry `Opentine-Associations-Omitted: N` — N runs whose
 annotations or attestations did not all fit in the pack. Clients that predate
-it ignore it; `tine fetch` reports it as `associations_omitted`. Associations are
+it ignore it; `tine share fetch` reports it as `associations_omitted`. Associations are
 budgeted by object count, encoded pack bytes, source bytes and the
 shallow-boundary list a depth-limited pack carries, so an association
 set that does not fit is left out rather than failing the fetch. A pack that
@@ -768,12 +772,12 @@ over-limit record makes the unheaded fallback adopt nothing instead of failing.
 So do two or more independent unheaded chain tips for one run (with a
 warning); the next tag of that run writes a fresh head under its
 `annotations/<digest>` ref.
-Unheaded lookups use the non-authoritative target caches in `.tine/indexes/`. `tine clone` refuses a target that already holds refs or objects
+Unheaded lookups use the non-authoritative target caches in `.tine/indexes/`. `tine share clone` refuses a target that already holds refs or objects
 (use `fetch`). A remote URL may not carry `user:pass@`, a query or a fragment —
 checked on the URL as given, before an embedded tenant
 (`…/v1/tenants/acme`) is split off; pass the token with `--token-file` or
 `TINE_REMOTE_TOKEN` — a remote tenant must match `[a-z0-9][a-z0-9._-]*`, and
-remote errors name only the HTTP status and path. `tine serve purge --grace-seconds N` with
+remote errors name only the HTTP status and path. `tine repo serve purge --grace-seconds N` with
 N below 60 needs `--force` (or `--dry-run`).
 
 `POST /search` returns `{"objects": [...], "truncated": bool}` — at most 1,000
@@ -789,4 +793,4 @@ claims of this reference server.
 
 ## Linking runs to git
 
-A commit names the runs that produced it with `Tine-Run: <run>` trailers (added by the hook `tine git install-hook` installs) or a note under `refs/notes/tine` (`tine git note`). In a repository the run is named by its object id; in a runs directory by its run id. `tine git log --commit SHA` and `tine blame FILE:LINE --git` follow those links back to runs and steps. Nothing about the link is stored in opentine's own objects: trailers and notes are plain git and travel with `git push` (push `refs/notes/tine` explicitly, as with any notes ref).
+A commit names the runs that produced it with `Tine-Run: <run>` trailers (added by the hook `tine repo integrate git install-hook` installs) or a note under `refs/notes/tine` (`tine repo integrate git note`). In a repository the run is named by its object id; in a runs directory by its run id. `tine repo integrate git log --commit SHA` and `tine agent blame FILE:LINE --git` follow those links back to runs and steps. Nothing about the link is stored in opentine's own objects: trailers and notes are plain git and travel with `git push` (push `refs/notes/tine` explicitly, as with any notes ref).

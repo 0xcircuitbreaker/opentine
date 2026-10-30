@@ -215,7 +215,7 @@ The digest covers the redacted artifact body outside the `metadata` object. It d
 
 ## Signing (`tine-sig/2`)
 
-`tine sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. Which parts of the artifact that view covers is the **scheme**, recorded in the signature block:
+`tine trust sign` / `Run.save(sign_key=...)` adds a signature at `metadata.integrity.signature`. It commits to a single canonical *signed view* recomputed from the artifact's content — not to the stored digest — so a body edit plus a digest rewrite still fails verification. Which parts of the artifact that view covers is the **scheme**, recorded in the signature block:
 
 - **`tine-sig/2`** (0.7.1+, what new signatures use): the whole body, the signature header, and **every `metadata` key except `metadata.integrity`** — including `tags`, `fork_reason`, and any key an application sets. `integrity` is excluded because it holds the signature block itself.
 - **`tine-sig/1`** (0.3.0–0.7.0): the whole body, the header, and an **allowlist** of eleven metadata keys — `model_info`, `system_prompt`, `user_prompt`, `forked_from`, `fork_point`, `warnings`, `replay`, `context`, `next_harness`, `migration`, `fork`. Everything else in `metadata`, `tags` included, was unauthenticated: it could be rewritten and the signature still verified.
@@ -224,10 +224,10 @@ This build still verifies `tine-sig/1` blocks, unchanged and under their own nar
 
 The **integrity digest is unchanged and still excludes the whole `metadata` object.** That is not a hole in authenticity: the digest is unkeyed, so anyone who can edit the file can recompute it — it means "consistent", not "genuine". Authenticity of metadata comes from the v2 signature. On an *unsigned* artifact, a metadata edit still leaves `Run.verify_integrity` reporting success, exactly as a body edit with a recomputed digest does.
 
-Signing is always an explicit act: any plain re-save — including `tine tag`, which rewrites the artifact — **removes** the signature block rather than re-attaching a signature the current writer did not produce. `tine tag` says so when it does this. Under v2 a re-tag is also a real content change, so an out-of-band edit to `tags` now reports *mismatch*: re-run `tine sign` afterwards, and treat "no signature" as a state to check for, not merely "mismatch".
+Signing is always an explicit act: any plain re-save — including `tine tag`, which rewrites the artifact — **removes** the signature block rather than re-attaching a signature the current writer did not produce. `tine tag` says so when it does this. Under v2 a re-tag is also a real content change, so an out-of-band edit to `tags` now reports *mismatch*: re-run `tine trust sign` afterwards, and treat "no signature" as a state to check for, not merely "mismatch".
 
-- **HMAC-SHA256** (stdlib, no extra dependency): shared-secret authenticity. Keys shorter than 16 bytes are refused, and a key that looks guessable (under about 128 bits by an alphabet × length estimate — `passwordpassword` is about 75) is announced on stderr; `tine keygen --hmac --out FILE` writes 32 random bytes as hex. Keys come from `--key-env` or `--key-file`; they are never written into the artifact. A public key is never HMAC material: `--key-file` refuses a `*.pub` file or a PEM/OpenSSH public key, since the public half as the shared secret would let anyone sign. A key file readable by group or others is announced (POSIX).
-- **Ed25519**: public-key signatures. Verifying against the artifact's own embedded key is reported as `verified-tofu` (trust-on-first-use) — the key is self-asserted, not authenticated. Every Ed25519 verdict names its key by fingerprint (`sha256:` + the SHA-256 of the raw 32 bytes), and `--pin FINGERPRINT` (repeatable; the full digest) turns trust-on-first-use into a check against keys the operator chose: a pinned key is `verified`, any other `mismatch`. A small-order public key — which verifies a crafted signature over every message under OpenSSL's cofactorless check — or a non-canonical encoding of one is refused as `error` wherever a key is trusted. `tine keygen` writes the private key to `--out` (mode 0600) and prints it only with `--stdout`.
+- **HMAC-SHA256** (stdlib, no extra dependency): shared-secret authenticity. Keys shorter than 16 bytes are refused, and a key that looks guessable (under about 128 bits by an alphabet × length estimate — `passwordpassword` is about 75) is announced on stderr; `tine trust keygen --hmac --out FILE` writes 32 random bytes as hex. Keys come from `--key-env` or `--key-file`; they are never written into the artifact. A public key is never HMAC material: `--key-file` refuses a `*.pub` file or a PEM/OpenSSH public key, since the public half as the shared secret would let anyone sign. A key file readable by group or others is announced (POSIX).
+- **Ed25519**: public-key signatures. Verifying against the artifact's own embedded key is reported as `verified-tofu` (trust-on-first-use) — the key is self-asserted, not authenticated. Every Ed25519 verdict names its key by fingerprint (`sha256:` + the SHA-256 of the raw 32 bytes), and `--pin FINGERPRINT` (repeatable; the full digest) turns trust-on-first-use into a check against keys the operator chose: a pinned key is `verified`, any other `mismatch`. A small-order public key — which verifies a crafted signature over every message under OpenSSL's cofactorless check — or a non-canonical encoding of one is refused as `error` wherever a key is trusted. `tine trust keygen` writes the private key to `--out` (mode 0600) and prints it only with `--stdout`.
 - `tine verify` is **fail-closed**: supplying any key (`--key-env`/`--key-file`/`--pubkey`), `--trust-embedded-key`, `--pin`, or `--require-signature` makes an unsigned, unsupported, or mismatched artifact exit non-zero. `--trust-embedded-key` is itself a request to check authenticity, so it arms the check exactly as a supplied key does. Without any of them, `tine verify` checks the digest only — and on a signed artifact says *signature present but NOT checked* (JSON `signature_present: true`, `signature_checked: false`) rather than letting an `OK` read as "authentic".
 
 What a valid signature **does** prove: the signed view for the block's own scheme — the body plus all metadata under `tine-sig/2`, the body plus the allowlist under `tine-sig/1` — has not changed since signing by a holder of the key.
@@ -236,14 +236,14 @@ What it does **not** prove:
 - HMAC is symmetric — it gives intra-group authenticity, **not** non-repudiation; anyone with the shared key could have produced it.
 - The `signer` label and an embedded Ed25519 key are self-asserted; OpenTine has no key→identity binding, PKI, or revocation.
 - A *stripped* signature is byte-indistinguishable from a never-signed artifact, so the file alone cannot prove it *should* be signed — establish that expectation out of band.
-- It does not prove the artifact was integrity-clean when it was signed. `tine sign` refuses an artifact whose stored digest does not match its body, but `--force` waives that refusal, so a signature records what the signer accepted rather than that the signer checked it.
+- It does not prove the artifact was integrity-clean when it was signed. `tine trust sign` refuses an artifact whose stored digest does not match its body, but `--force` waives that refusal, so a signature records what the signer accepted rather than that the signer checked it.
 - Signing provides no confidentiality (artifacts are not encrypted).
 
 ## Attestation signing (`tine-attest/1`)
 
 A v3 `attestation` is the object that says *someone approved this run*. Through 0.8.1 its `signer` was a bare label: anyone who could write to the repository could write `signer: security-team`, and nothing could tell. From 0.9.0 an attestation can be **signed**, with the same algorithms, key flags and verdicts as artifact signing.
 
-`tine attest` / `tine evaluate` / `Repo.attest(..., key=...)` store a signature block at the attestation payload's `signature` key. The block commits to a canonical *signed view* of the attestation, recomputed from the stored object at verification time:
+`tine trust attest` / `tine trust evaluate` / `Repo.attest(..., key=...)` store a signature block at the attestation payload's `signature` key. The block commits to a canonical *signed view* of the attestation, recomputed from the stored object at verification time:
 
 - **covered:** every payload key except `signature` — `target_id` (which run), `claim` (what is asserted), `signer` (whose assertion), `evidence_ids` (what backs it), and any field a later writer adds — plus the signature header (`alg`, `key_id`, `scheme`, `signed_at`, `signer`). Editing the claim, retargeting the approval at another run, renaming the signer, adding or dropping evidence, or downgrading the algorithm all report **mismatch**.
 - **excluded:** the signature `value` itself (it is what is being computed; the rest of the block is inside the view), and the object id and envelope. The oid is the digest of the stored payload *including* the signature, so it cannot be signed — and needs no coverage, because content addressing already makes payload → oid tamper-evident and the payload is signed in full.
@@ -260,7 +260,7 @@ What a valid attestation signature proves: the target, claim, signer, evidence a
 
 **Gate on the claim, not on the run.** Unscoped, every attestation on the run must verify — so a single unsigned note from any writer blocks the gate, and a verified *rejection* passed exactly as an approval did, because the check never looked at what was signed. `--signer NAME` (repeatable) and `--claim JSON` (the attestation's claim must contain these keys with these values) select the attestations a gate is about; it then passes when at least one selected attestation verifies, and the others are reported but neither pass nor block it. Either flag arms the check. A release gate should be scoped: `tine repo-verify heads/main --pubkey release.pub --signer security-team --claim '{"result": "pass"}'`. Every row carries its `claim`.
 
-**One signature, one object.** A signature block is accepted only in the exact form `tine attest` writes: the header keys, the lowercase-hex `value`, and — for Ed25519 — the lowercase-hex `public_key`, which must be the key that verified. An extra key, re-cased hex, or another embedded key is `error`/`mismatch`, so one signature cannot mint several attestation ids. A block with a `null` field, or an Ed25519 block without its own lowercase-hex `public_key`, is malformed whichever key checks it. `verify_attestation` (and `tine verify`'s library half) accepts exactly one of `hmac_key`, `public_key`, `trust_embedded`; given several, the block's own `alg` would pick which of the caller's keys is trusted.
+**One signature, one object.** A signature block is accepted only in the exact form `tine trust attest` writes: the header keys, the lowercase-hex `value`, and — for Ed25519 — the lowercase-hex `public_key`, which must be the key that verified. An extra key, re-cased hex, or another embedded key is `error`/`mismatch`, so one signature cannot mint several attestation ids. A block with a `null` field, or an Ed25519 block without its own lowercase-hex `public_key`, is malformed whichever key checks it. `verify_attestation` (and `tine verify`'s library half) accepts exactly one of `hmac_key`, `public_key`, `trust_embedded`; given several, the block's own `alg` would pick which of the caller's keys is trusted.
 
 MCP's `attest_run` and `evaluate_run` deliberately take **no** key options: an MCP client is acting on run content it just read, and untrusted text must not be able to sign as an operator. Signing is an operator-surface capability only.
 
@@ -276,7 +276,19 @@ The predicate is **content-free provenance**: identifiers, counts, model/provide
 
 **Keyless (Fulcio).** `--keyless` signs with an ephemeral ECDSA P-256 key, which a Fulcio v2 certificate binds to an OIDC identity (`--identity-token`, `SIGSTORE_ID_TOKEN`, or the GitHub Actions ambient token for audience `sigstore`). It always logs to Rekor. The token is sent only in the Fulcio request body. It is never printed or written, and it is scrubbed from errors. A keyless bundle verifies only with `--cert-identity` (exact SAN match), `--cert-oidc-issuer` (extension 1.3.6.1.4.1.57264.1.8, or legacy .1.1), `--fulcio-root` (PEM file with the Fulcio root and intermediates; the chain must end at a self-signed certificate in that file) and `--rekor-key`. The receipt must verify, the certificate must be a code-signing certificate, and every certificate on the chain must be valid at the logged `integratedTime`. SCTs (certificate transparency) are not checked.
 
-**Trust policies (0.16).** `tine trust policy set NAME ...` stores a named set of verify trust roots (`pubkey`, `pin`, `rekor_key`, `require_receipt`, `cert_identity`, `cert_oidc_issuer`, `fulcio_root`) and `tine verify --policy NAME` (or `trust.default`) applies them. Policies are **user-scoped only**: they live in `$XDG_CONFIG_HOME/opentine/trust-policies.json`, written atomically at 0600, and the file is refused (verify exits 1, never falls back) when it is a symlink, not a regular file, group- or world-writable, or owned by another user (the last two on POSIX). A trust root decides which signatures count as authentic, so letting the thing being verified choose it would be circular: a repository's `.tine/porcelain.json` travels with a clone and can never define or select a policy. `tine config trust.*`/`policy.*` is refused, and such keys in a cloned or hand-edited file are ignored even after `tine config --trust`. Paths are stored absolute and rechecked on every use. `--trust-embedded-key` (TOFU) is deliberately not a policy field, so trusting a key the artifact supplies stays an explicit per-call decision. Flags typed on the command line override policy fields; any key flag replaces the policy's key as a unit, so the policy and the command line never combine two keys.
+**Trust policies (0.16).** `tine trust policy set NAME ...` stores a named set of verify trust roots (`pubkey`, `pin`, `rekor_key`, `require_receipt`, `cert_identity`, `cert_oidc_issuer`, `fulcio_root`) and `tine verify --policy NAME` (or `trust.default`) applies them. Policies are **user-scoped only**: they live in `$XDG_CONFIG_HOME/opentine/trust-policies.json`, written atomically at 0600, and the file is refused (verify exits 1, never falls back) when it is a symlink, not a regular file, group- or world-writable, or owned by another user (the last two on POSIX). A trust root decides which signatures count as authentic, so letting the thing being verified choose it would be circular: a repository's `.tine/porcelain.json` travels with a clone and can never define or select a policy. `tine repo config trust.*`/`policy.*` is refused, and such keys in a cloned or hand-edited file are ignored even after `tine repo config --trust`. Paths are stored absolute and rechecked on every use. `--trust-embedded-key` (TOFU) is deliberately not a policy field, so trusting a key the artifact supplies stays an explicit per-call decision. Flags typed on the command line override policy fields; any key flag replaces the policy's key as a unit, so the policy and the command line never combine two keys.
+
+The easy path is to store the trust roots once and name them on every verify:
+
+```bash
+tine trust policy set prod --pubkey ~/keys/release.pub --rekor-key ~/keys/rekor.pem --require-receipt
+tine verify run.tine --policy prod                                   # signature under prod's key
+tine verify RUN --attestation run.intoto.jsonl --policy prod         # attestation + Rekor receipt
+tine trust policy default prod                                       # a bare `tine verify` now uses prod
+tine verify run.tine --no-policy                                     # except when told not to
+```
+
+Old spellings (`tine sign`, `tine keygen`, `tine attest`, …) still work; see [CLI.md](CLI.md).
 
 ## Fork identity (v2)
 
@@ -353,7 +365,7 @@ a remote cannot plant a note through its ref for a run it only names as a
 shallow boundary. For a run
 that was already held, the remote's head is kept as
 `remotes/<name>/annotations/<digest>` and adopted only on request
-(`tine fetch --adopt-annotations`), so a co-writer on a shared remote cannot
+(`tine share fetch --adopt-annotations`), so a co-writer on a shared remote cannot
 relabel a run you already hold by pushing an annotation ref. The unadopted record is bounded: a foreign annotation that no longer fits is
 not installed (with a warning), and a damaged or over-limit record makes the
 fallback adopt nothing rather than fail. Unheaded lookups read only the run's
@@ -390,7 +402,7 @@ injected, in which case the integrator is responsible for equivalent signature
 and claim validation. Authorization combines a tenant namespace with
 reader/writer/admin roles. Moving `promotions/*`, and moving or replacing an
 existing `tags/*` ref, also needs `promote` / `retag`, which only `admin` holds
-unless the operator sets `writer_promotes` (`tine serve --writer-promotes`);
+unless the operator sets `writer_promotes` (`tine repo serve --writer-promotes`);
 creating a tag is a writer's. An OIDC tenant claim must be a valid tenant name.
 `azp` must be absent (single audience), the audience, or one of the verifier's
 `authorized_parties`.
@@ -472,7 +484,7 @@ annotations ahead of its attestations, and reports the runs left short
 read before a worker takes one of the server-wide install slots, so a slow
 upload cannot hold them.
 
-Operator maintenance is offline: `tine serve --root DIR ACTION` opens the
+Operator maintenance is offline: `tine repo serve --root DIR ACTION` opens the
 server's storage directly to list refs, delete a ref (CAS), list or delete
 objects that no ref reaches except as associations, or purge objects no ref
 reaches. There is no HTTP endpoint for any of it, so no token — admin role
@@ -515,7 +527,7 @@ credentials, a query or a fragment — checked on the URL as given, before an
 embedded tenant is split off, and the tenant must match the server's tenant
 grammar — remote errors name only the HTTP status and
 path, and `--token-file` warns when the file is readable by group or others.
-`tine serve purge --grace-seconds` below 60 needs `--force` (or `--dry-run`).
+`tine repo serve purge --grace-seconds` below 60 needs `--force` (or `--dry-run`).
 
 The local authenticated-head file detects database-only rollback, but a host
 administrator who restores both SQLite and that file to an earlier valid pair
@@ -666,9 +678,9 @@ the host process has.
 
 ## Git links, porcelain hooks and sandboxes (0.12)
 
-The git-link commands (`tine git`, `tine blame --git`) run git with the same hardened configuration and scrubbed environment as the shell tool. The installed hook runs `python -I -m opentine.cli git trailers` (isolated, so a repository's own files are never imported) and swallows every failure, so it can never block a commit; it only reads the action index (redacted data) and appends trailers. Anything read back from git is used only if it matches the run-id grammar.
+The git-link commands (`tine repo integrate git`, `tine agent blame --git`) run git with the same hardened configuration and scrubbed environment as the shell tool. The installed hook runs `python -I -m opentine.cli git trailers` (isolated, so a repository's own files are never imported) and swallows every failure, so it can never block a commit; it only reads the action index (redacted data) and appends trailers. Anything read back from git is used only if it matches the run-id grammar.
 
-Repository aliases, client hooks and remote token files take effect only after `tine config --trust` on this machine, which records the exact bytes of `.tine/porcelain.json` under `$XDG_CONFIG_HOME/opentine/trusted-repos.json`; any other edit makes them inert, so a cloned repository never runs anything. Hooks run with a scrubbed environment and a timeout.
+Repository aliases, client hooks and remote token files take effect only after `tine repo config --trust` on this machine, which records the exact bytes of `.tine/porcelain.json` under `$XDG_CONFIG_HOME/opentine/trusted-repos.json`; any other edit makes them inert, so a cloned repository never runs anything. Hooks run with a scrubbed environment and a timeout.
 
 ## Known Non-Goals
 
