@@ -110,7 +110,7 @@ def _remove_loose(repo, oid: str) -> None:
     # The emptied fan-out directory goes too (rmdir removes only an empty one); a
     # writer that raced it recreates it (``atomic_bytes`` retries).
     path = repo._object_path(oid)
-    path.unlink(missing_ok=True)
+    _winretry.unlink(path)  # a reader may still hold it open (Windows)
     remove_empty_dir(path.parent)
 
 

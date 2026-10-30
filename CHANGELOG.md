@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.1 — 2026-10-30
+
+0.16.0 was not published: its release CI failed on the Windows gc race fixed
+here. 0.16.1 is the first release with the 0.16.0 changes below.
+
+### Fixes
+
+- **gc no longer fails on Windows when a reader holds a loose object open.**
+  Removing a packed loose object could hit a sharing violation ("being used
+  by another process") while a concurrent recorder or reader had it open.
+  The removal now retries transient sharing violations, as other repository
+  file operations already do.
+- A timing test for the OTel agent billing walk repeats its comparison before
+  failing, so one stalled sample on a loaded CI runner no longer fails it.
+
 ## 0.16.0 — 2026-10-30
 
 "Simplify": a smaller front door to the same CLI. Nothing was removed or renamed;

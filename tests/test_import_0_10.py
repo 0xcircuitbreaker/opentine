@@ -1274,8 +1274,13 @@ def test_the_agent_billing_walk_is_linear_in_a_span_chain():
         return best
 
     elapsed(200)  # warm
-    small, large = elapsed(1500), elapsed(6000)
-    assert large < max(small, 0.02) * 8  # 4x spans: linear ~4x, quadratic ~16x
+    ratios = []
+    for _ in range(3):  # a loaded CI runner can stall one sample; quadratic never passes
+        small, large = elapsed(1500), elapsed(6000)
+        ratios.append(large / max(small, 0.02))
+        if ratios[-1] < 8:  # 4x spans: linear ~4x, quadratic ~16x
+            break
+    assert min(ratios) < 8, ratios
 
 
 # --- final pass 6: one subagent file on disk is read once; budget charged up front ---
