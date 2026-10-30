@@ -408,6 +408,12 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "ed.tine"], ["--trust-embedded-key"], "honoured"),
     (["verify", "ed.tine"], ["--pin", "sha256:" + "0" * 64], "honoured"),
     (["verify", "ed.tine", "--pubkey", "ed.pub"], ["--attestation", "none.jsonl"], "honoured"),
+    # 0.15.0: receipt and keyless checks only exist for an --attestation.
+    (["verify", "ed.tine"], ["--require-receipt"], "refused"),
+    (["verify", "ed.tine"], ["--rekor-key", "ed.pub"], "refused"),
+    (["verify", "ed.tine"], ["--cert-identity", "ops@example.com"], "refused"),
+    (["verify", "ed.tine"], ["--cert-oidc-issuer", "https://issuer.example"], "refused"),
+    (["verify", "ed.tine"], ["--fulcio-root", "ed.pub"], "refused"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--pin", "sha256:" + "0" * 64], "refused"),
     # v0.5.0 D2: --json replaces the human rendering with one machine-readable object.
     (["verify", "source.tine"], ["--json"], "honoured"),

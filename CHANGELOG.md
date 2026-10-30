@@ -21,6 +21,19 @@
   `did:key:z6Mk...`: `tine agent keys` and `tine agent id --agent NAME` show
   it, and it is the DSSE `keyid`. A `did:key` names a key, not an owner; pin it
   before trusting it.
+- **Transparency-log receipts.** `tine export ... --format intoto --rekor [URL]`
+  logs the envelope in Rekor (default `https://rekor.sigstore.dev`) and writes a
+  Sigstore bundle v0.3 with the receipt. `tine verify --attestation FILE
+  --rekor-key FILE` checks the receipt offline: SET, RFC 6962 inclusion proof,
+  signed checkpoint, and that the logged entry is this envelope. `--require-receipt`
+  fails closed when there is no receipt, no key or an invalid receipt. `--json`
+  gains `receipt: {status, log_index, integrated_time, reason}`. Bare envelopes and
+  bundles both verify.
+- **Sigstore keyless signing.** `--keyless` gets a short-lived Fulcio certificate
+  for an OIDC identity (`--identity-token`, `SIGSTORE_ID_TOKEN` or the GitHub
+  Actions ambient token) and always logs to Rekor. To verify, pass `--cert-identity`,
+  `--cert-oidc-issuer`, `--fulcio-root FILE` and `--rekor-key FILE`; the result is
+  reported as `verified-keyless`. The token is never printed or written.
 
 ## 0.14.2 — 2026-10-29
 

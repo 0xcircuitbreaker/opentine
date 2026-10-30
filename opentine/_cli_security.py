@@ -32,6 +32,14 @@ def cmd_verify(args: argparse.Namespace) -> None:
     )
     if getattr(args, "attestation", None):
         return cmd_verify_attestation(args)
+    from opentine._cli_sigstore import VERIFY_DESTS
+
+    refuse_unhonoured(
+        args,
+        VERIFY_DESTS,
+        mode="without --attestation",
+        hint="They check an in-toto attestation's receipt or certificate.",
+    )
     path = _find_run(args.run_id)
     as_json = getattr(args, "json", False)
     if not path:
