@@ -17,11 +17,13 @@ from opentine._cli_verify_report import (
 )
 from opentine._key_hygiene import ed25519_private, hmac_key
 from opentine._signing_pins import apply_pins, normalize_pins, used_key_fingerprint
+from opentine._trust_policy import apply as apply_trust_policy
 from opentine.core import Run, short_id
 from opentine.signing import SignatureError, ed25519_public_from_file
 
 
 def cmd_verify(args: argparse.Namespace) -> None:
+    apply_trust_policy(args)  # before every refusal: policy fields are not typed flags
     refuse_conflict(
         args, ("key_env", "key_file"), hint="Both name an HMAC key; pass the one you mean."
     )
@@ -45,7 +47,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
     if not path:
         result = Run.verify_integrity(args.run_id)
         if as_json:
-            emit_verify(args.run_id, result, None)
+            emit_verify(args.run_id, result, None, policy=getattr(args, "policy_used", None))
             raise SystemExit(1)
         console.print(f"[red]FAILED[/] {_terminal(args.run_id)}: {_terminal(result.reason)}")
         raise SystemExit(1)
@@ -57,7 +59,10 @@ def cmd_verify(args: argparse.Namespace) -> None:
         armed = result.ok and signature_requested(args)
         signature, fingerprint = signature_result(args, path) if armed else (None, None)
         unchecked = unchecked_signature(path) if result.ok and not armed else None
-        emit_verify(path, result, signature, fingerprint=fingerprint, unchecked=unchecked)
+        policy = getattr(args, "policy_used", None)
+        emit_verify(
+            path, result, signature, fingerprint=fingerprint, unchecked=unchecked, policy=policy
+        )
         if not result.ok or (signature is not None and not signature.ok):
             raise SystemExit(1)
         return

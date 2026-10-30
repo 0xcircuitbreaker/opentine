@@ -101,6 +101,19 @@ def add_group_parsers(sub: argparse._SubParsersAction, summaries: dict[str, str]
                     nodes[key[:depth]] = child.add_subparsers(metavar="SUBCOMMAND")
             text = summaries.get(prefix[0], "")
             nodes[key[:-1]].add_parser(key[-1], help=text, add_help=False)
+        if adder := OWNED.get(group):  # a real subcommand, not a rewrite
+            adder(nodes[()])
+
+
+def _add_trust_policy(group_sub: argparse._SubParsersAction) -> None:
+    from opentine._cli_trust_policy import add_policy_parser
+
+    add_policy_parser(group_sub)
+
+
+# Group words with their own parser and handler (``group_handler`` on the
+# Namespace, honoured by ``cli.resolve``) instead of an argv rewrite.
+OWNED = {"trust": _add_trust_policy}
 
 
 def cmd_group(args: argparse.Namespace) -> None:

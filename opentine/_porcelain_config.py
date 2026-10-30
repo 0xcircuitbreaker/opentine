@@ -3,12 +3,11 @@
 They live in ``.tine/porcelain.json``, beside -- never inside -- the format
 descriptor ``config.json`` (SPEC §2.2); they change only what the ``tine``
 porcelain does on this machine. Aliases, hooks, a remote's ``token_file`` and
-named remotes can make it act or send credentials, and a ``.tine`` directory can
-arrive inside a cloned project, so the file is **inert until trusted**: trust is
-a hash of its exact bytes and of every file under ``.tine/hooks/``, recorded in
-``$XDG_CONFIG_HOME/opentine/trusted-repos.json`` (like direnv's ``.envrc``).
-Writes through ``tine config`` / ``tine remote`` keep existing trust; any other
-edit revokes it until ``tine config --trust`` is run again.
+named remotes can act or send credentials, and ``.tine`` can arrive in a clone, so
+the file is **inert until trusted**: a hash of its bytes and ``.tine/hooks/`` files,
+recorded in ``$XDG_CONFIG_HOME/opentine/trusted-repos.json`` (like direnv).
+Writes through ``tine config``/``tine remote`` keep trust; other edits revoke it.
+``trust.*``/``policy.*`` keys are refused: trust policies are user-scoped only.
 """
 
 from __future__ import annotations
@@ -31,8 +30,8 @@ MAX_BYTES = 64 * 1024
 MAX_VALUE = 4096
 REMOTE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 CONFIG_KEY = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}(\.[a-z0-9][a-z0-9_.-]{0,127})+")
-#: Keys whose value only takes effect in a trusted file (they act on their own).
-TRUSTED_KEYS = ("alias.", "hooks.")
+TRUSTED_KEYS = ("alias.", "hooks.")  # only from a trusted file: they act on their own
+RESERVED_KEYS = ("trust.", "policy.")  # verify trust roots: never from a repository
 
 
 def _path(repo_path: Path) -> Path:
@@ -130,6 +129,8 @@ def save(repo_path: Path, settings: dict[str, Any]) -> None:
     path = _path(repo_path)
     keep_trust = trusted(repo_path) or (not path.exists() and not _hooks_shipped(repo_path))
     value = _validated(settings)
+    if reserved := sorted(key for key in value["config"] if key.startswith(RESERVED_KEYS)):
+        raise ValueError(f"{reserved[0]!r} is user-scoped: use `tine trust policy`")
     text = json.dumps(value, indent=2, sort_keys=True) + "\n"
     if len(text.encode()) > MAX_BYTES:
         raise ValueError(f"{FILE_NAME} would exceed {MAX_BYTES} bytes")

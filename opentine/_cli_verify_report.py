@@ -64,6 +64,7 @@ def emit_verify(
     *,
     fingerprint: str | None = None,
     unchecked: Any = None,
+    policy: str | None = None,
 ) -> None:
     present = signature is not None or unchecked is not None
     emit(
@@ -93,6 +94,7 @@ def emit_verify(
                 "key_fingerprint": fingerprint,
                 "reason": signature.reason,
             },
+            **({"policy": policy} if policy else {}),  # only when a trust policy was used
         }
     )
 

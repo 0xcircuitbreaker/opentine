@@ -163,10 +163,10 @@ def _report(args, attestation, path, result, subject_error, receipt) -> None:
     receipt_ok = receipt is None or receipt.ok
     ok = result.ok and subject_error is None and receipt_ok
     if getattr(args, "json", False):
-        from opentine._cli_json import emit
+        from opentine._trust_policy import emit_for
 
         statement = result.statement or {}
-        emit(
+        emit_for(args)(
             {
                 "command": "verify",
                 "attestation": str(attestation),

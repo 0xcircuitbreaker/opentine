@@ -48,5 +48,31 @@ the same output and exit code. The old spellings keep working unchanged.
 | `tine migrate-v3` | `tine repo migrate --to-v3` |
 | `tine bundle verify FILE` | `tine verify FILE` (FILE is a bundle, no other arguments) |
 
+`tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
+named trust policies for `tine verify --policy NAME` (see below).
+
 `tine agent id|show|trust|keys` are unchanged. `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
+
+## Trust policies
+
+```
+tine trust policy set prod --pubkey ~/keys/release.pub --rekor-key ~/keys/rekor.pem --require-receipt
+tine trust policy set ci --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com \
+    --fulcio-root ~/keys/fulcio.pem --rekor-key ~/keys/rekor.pem
+tine trust policy list [--json]
+tine trust policy show prod [--json]
+tine trust policy default prod        # or: --clear; no argument prints it
+tine trust policy rm ci
+tine verify RUN --attestation a.intoto.jsonl --policy prod
+tine verify RUN --no-policy           # ignore trust.default for this call
+```
+
+A policy holds `pubkey`, `pin`, `rekor_key`, `require_receipt`, `cert_identity`,
+`cert_oidc_issuer` and `fulcio_root`. Flags given on the command line win over the
+policy; any key flag (`--pubkey`, `--pin`, `--key-env`, `--key-file`,
+`--trust-embedded-key`) replaces the policy's key as a whole. Fields that do not
+apply (keyless fields for a key-signed attestation, receipt fields for a plain run
+verify) are unused rather than refused. The default policy applies only when no key,
+receipt or keyless flag and no `--policy` is given. `--trust-embedded-key` cannot
+be stored in a policy.

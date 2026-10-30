@@ -147,6 +147,8 @@ def resolve(parser, args) -> tuple[Callable | None, argparse.Namespace, bool]:
         args = parser.parse_args(argv)
     if args.command == "tag" and args.run_id is None:
         parser.error("tag: name a legacy run (with --add/--remove/--list) or run inside a v3 repo")
+    if owned := getattr(args, "group_handler", None):  # `tine trust policy ...`
+        return owned, args, False
     if args.command in LEGACY_COMMANDS:
         return LEGACY_COMMANDS[args.command], args, False
     if args.command in REPO_COMMANDS:

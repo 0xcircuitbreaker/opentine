@@ -29,6 +29,20 @@
 - `tine verify FILE` where FILE is a `tine bundle` file (TINEBUNDLE1 magic, no
   other arguments) now runs `tine bundle verify FILE` instead of failing as an
   unknown run.
+- Named trust policies: `tine trust policy set NAME --pubkey F [--pin SHA256]
+  [--rekor-key F] [--require-receipt] [--cert-identity SAN --cert-oidc-issuer URL
+  --fulcio-root F]`, plus `list`, `show`, `rm` and `default NAME|--clear` (list
+  and show take `--json`). `tine verify RUN [--attestation F] --policy NAME`
+  supplies those flags; flags typed on the command line override policy fields
+  (any key flag replaces the policy's key). `trust.default` applies when no key,
+  receipt or keyless flag and no `--policy` is given; `--no-policy` turns it off.
+  An unknown policy exits 1. `verify --json` gains `"policy": NAME` only when a
+  policy was used. Policies live only in the user's
+  `$XDG_CONFIG_HOME/opentine/trust-policies.json` (0600; refused when symlinked,
+  group/world-writable or not owned by the user); paths are stored absolute and
+  rechecked on use. `--trust-embedded-key` is never a policy field. A
+  repository's `porcelain.json` cannot set or select one: `tine config trust.*`
+  and `policy.*` are refused, and such keys in a cloned file are ignored.
 - Fixed: in a v3 repository `tine show REF --json` dropped `--json` when it
   routed to `repo-show`, printing the human rendering instead of JSON.
 
