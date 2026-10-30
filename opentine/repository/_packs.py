@@ -39,6 +39,8 @@ from opentine.repository._paths import internal_path
 
 #: Inflated blocks kept per repository; v3 blocks are up to 16 MiB each.
 CACHE_BYTES = 64 * 1024 * 1024
+#: Rescans on a miss while listings keep coming back incomplete.
+_RESCANS = 8
 _NAME = re.compile(r"^([0-9a-f]{64})\.(tpk|tidx)$")
 _CACHE: dict[str, PackSet] = {}
 
@@ -133,9 +135,16 @@ class PackSet:
         if self.fingerprint is None:
             self.refresh()
         found = self.where.get(oid)
-        if found is None:
+        # A miss rescans. A listing that skipped a pack another process deleted
+        # mid-scan (a gc merge) is incomplete: its replacement may not have been
+        # listed yet, so scan again before calling the object missing.
+        for _ in range(_RESCANS):
+            if found is not None:
+                break
             self.refresh()
             found = self.where.get(oid)
+            if self.fingerprint is not None:
+                break
         return found
 
     def block(self, digest: str, number: int) -> bytes:
