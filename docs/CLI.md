@@ -48,11 +48,49 @@ the same output and exit code. The old spellings keep working unchanged.
 | `tine migrate-v3` | `tine repo migrate --to-v3` |
 | `tine bundle verify FILE` | `tine verify FILE` (FILE is a bundle, no other arguments) |
 
+Since 0.17 `log` and `show` also front the read-only verbs. The folded flag is
+rewritten to the old verb before parsing, so both spellings give the same output
+and exit code; a flag the old verb does not take is a usage error (exit 2), as
+are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
+`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, REF).
+
+| Old spelling | New spelling |
+| --- | --- |
+| `tine search QUERY` | `tine log --search QUERY` |
+| `tine ls` | `tine log --legacy` |
+| `tine ls --tag T --model M ...` | `tine log --tag T --model M ...` (an `ls` filter implies `--legacy`) |
+| `tine cost RUN` | `tine show RUN --cost` |
+| `tine price RUN [--at DATE]` | `tine show RUN --price [--at DATE]` |
+
+`tine log` without these flags is unchanged: it reads the v3 repository, while
+`--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.
+
 `tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
 named trust policies for `tine verify --policy NAME` (see below).
 
 `tine agent id|show|trust|keys` are unchanged. `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
+
+## Default output format
+
+```
+tine config set output.format json    # every command with --json now emits JSON
+tine config get output.format         # prints json; exit 1 when unset
+tine config unset output.format
+OPENTINE_OUTPUT=text tine show RUN    # the env var wins over the file
+tine show RUN --text                  # human output for this call only
+```
+
+`output.format` is `text` or `json`, stored only in the user's
+`$XDG_CONFIG_HOME/opentine/settings.json` (written 0600; a repository cannot set
+it). Precedence: an explicit `--json` or `--text` on the command, then
+`OPENTINE_OUTPUT`, then the file, then text. Every command that has `--json` also
+has `--text`; giving both is an error. Commands without `--json` ignore the
+setting and never read the file. A value other than `text`/`json` in the env var
+or the file, or a malformed file, stops the command with a one-line error (exit
+1) instead of guessing. `tine config set|get|unset` are the user settings;
+`tine config KEY [VALUE]` still edits the repository's porcelain keys. With no
+setting, every command's output is unchanged.
 
 ## Trust policies
 

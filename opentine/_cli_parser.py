@@ -69,7 +69,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Checkpoint every T seconds (--harness runs only)",
     )
 
-    show = sub.add_parser("show", help="Pretty-print a run tree")
+    show = sub.add_parser("show", help="Pretty-print a run tree; --cost or --price for its cost")
     show.add_argument("run_id")
 
     verify = sub.add_parser("verify", help="Verify integrity and optionally authenticity")

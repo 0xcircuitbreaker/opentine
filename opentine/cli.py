@@ -31,6 +31,7 @@ from opentine._cli_export import cmd_export
 from opentine._cli_fanout import split_command
 from opentine._cli_fleet import COMMANDS as FLEET_COMMANDS
 from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
+from opentine._cli_fold import rewrite as fold_rewrite
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
 from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
@@ -67,6 +68,7 @@ from opentine._cli_stats import cmd_stats
 from opentine._cli_storage import STORAGE_COMMANDS
 from opentine._cli_unify import expand_alias, tag_is_v3, v3_argv
 from opentine._cli_who import COMMANDS as ACTION_COMMANDS
+from opentine._user_settings import apply_output_format, cmd_user_config, is_user_config
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
 from opentine.repo_cli import REPO_COMMANDS, cmd_repo
@@ -126,7 +128,8 @@ def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argpar
     head, tail = split_command(
         group_rewrite(argv)
     )  # `tine repo storage gc` -> `tine gc`  # `tine fan-out ... -- CMD`: CMD is never parsed
-    args = parser.parse_args(head)
+    args = parser.parse_args(fold_rewrite(parser, head))  # `tine log --search Q` -> `tine search Q`
+    apply_output_format(args, head)  # output.format / OPENTINE_OUTPUT default --json
     args.member_command = tail
     args.tine_argv = argv  # `tine run --parallel` re-runs this invocation per member
     return parser, args
@@ -147,6 +150,10 @@ def resolve(parser, args) -> tuple[Callable | None, argparse.Namespace, bool]:
         args = parser.parse_args(argv)
     if args.command == "tag" and args.run_id is None:
         parser.error("tag: name a legacy run (with --add/--remove/--list) or run inside a v3 repo")
+    if is_user_config(args):  # `tine config set output.format json`: no repository
+        return cmd_user_config, args, False
+    if args.command == "config" and args.setting_value is not None:
+        parser.error(f"unrecognized arguments: {args.setting_value}")
     if owned := getattr(args, "group_handler", None):  # `tine trust policy ...`
         return owned, args, False
     if args.command in LEGACY_COMMANDS:

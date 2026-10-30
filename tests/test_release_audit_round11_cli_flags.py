@@ -468,6 +468,10 @@ EXEMPT = """
 3. `tine verify RUN --require-signature` alongside a key: redundant rather than
    ignored.  Supplying a key already arms the fail-closed check, so the outcome
    is identical either way -- the flag never loses to another flag.
+4. `tine verify RUN --text` (0.17): forces the human rendering over a user
+   output.format/OPENTINE_OUTPUT default, so with no default it is the default
+   rendering.  It is added beside every --json centrally and its precedence and
+   --json conflict are tested in test_output_format_0_17.py.
 """
 
 
@@ -523,7 +527,7 @@ def test_the_sweep_covers_every_flag_of_the_commands_this_module_owns():
             for option in action.option_strings:
                 if option in ("-h", "--help") or option in exercised:
                     continue
-                if option == "--dry-run":  # exemption 1, argued in EXEMPT
+                if option in ("--dry-run", "--text"):  # exemptions 1 and 4, in EXEMPT
                     continue
                 missing.append(f"tine {command} {option}")
     assert not missing, f"flags outside the round-11 sweep table: {missing}"

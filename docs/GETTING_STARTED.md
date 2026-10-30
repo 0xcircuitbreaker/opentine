@@ -105,13 +105,14 @@ run.save("first.tine")
 ## 3. Read the run
 
 ```bash
-tine show first.tine       # the run tree: model steps, tool calls, outcomes
-tine cost first.tine       # cost, tokens, and budget state
-tine price first.tine      # re-derive the cost now, from what was recorded
-tine verify first.tine     # recompute the integrity digest
+tine show first.tine           # the run tree: model steps, tool calls, outcomes
+tine show first.tine --cost    # cost, tokens, and budget state
+tine show first.tine --price   # re-derive the cost now, from what was recorded
+tine verify first.tine         # recompute the integrity digest
 ```
 
-`tine cost` reports the cost recorded at capture; `tine price` recomputes it
+`tine show --cost` reports the cost recorded at capture; `tine show --price`
+recomputes it
 post-hoc from the run's `(provider, model, usage)` against the pricing catalog —
 `--at YYYY-MM-DD` prices against the catalog effective that day — and writes
 nothing. That is how a run imported from somebody else's trace gets a price.
@@ -124,15 +125,15 @@ Runs are indexed **only while they live in `.tine_runs`** — the directory a
 `tine run` without `--save` writes to. For those, four more verbs work:
 
 ```bash
-tine ls --limit 5
+tine log --legacy --limit 5
 tine tag .tine_runs/<run-id>.tine --add prod
-tine search "tag:prod model:gpt"
+tine log --search "tag:prod model:gpt"
 tine stats --group-by model
 ```
 
-`tine search` understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
+`tine log --search` (`tine search`) understands `tag:`, `model:`, `status:`, `cost:`, `after:`, and
 `before:` predicates plus free text; `cost:` accepts `>`, `>=`, `<`, `<=`, and
-`min..max`. `tine ls` exposes the same filters as flags. `tine repo storage reindex` rebuilds
+`min..max`. `tine log --legacy` (`tine ls`) takes the same filters as flags. `tine repo storage reindex` rebuilds
 `.tine_runs/index.json` if it drifts.
 
 These four read the legacy file index, not a v3 repository — a run you moved

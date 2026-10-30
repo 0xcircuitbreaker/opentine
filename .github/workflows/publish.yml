@@ -105,9 +105,52 @@ jobs:
           compression-level: 0
           retention-days: 7
 
+  artifact-smoke:
+    name: Install the release artifacts (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: "3.14.4"
+      OPENTINE_WHEEL_SMOKE_DIST: release-dist
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+
+    steps:
+      # CI smoke-tests a wheel it built itself on every OS; this installs the
+      # exact validated files that are about to be published, on each OS,
+      # before anything is released.
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+          enable-cache: false
+
+      - name: Set up Python
+        run: uv python install 3.14.4
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Download validated distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: opentine-release-distributions
+          path: release-dist
+
+      - name: Wheel smoke test
+        run: uv run python scripts/wheel_smoke.py
+
   github-release:
     name: Attest and create GitHub release
-    needs: build
+    needs: [build, artifact-smoke]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -143,7 +186,7 @@ jobs:
 
   pypi:
     name: Publish to PyPI with Trusted Publishing
-    needs: [build, github-release]
+    needs: [build, artifact-smoke, github-release]
     runs-on: ubuntu-24.04
     environment:
       name: pypi

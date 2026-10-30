@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.17.0 — 2026-10-30
+
+"Simplify, part 2": `log` and `show` are the front door for read-only browsing.
+Nothing was removed or renamed; every pre-0.17 command, subcommand and flag still
+parses and reaches the same handler.
+
+**Migrating:** no action needed. Docs now teach `tine log --search` and
+`tine show RUN --cost`; the old -> new table is in [docs/CLI.md](docs/CLI.md).
+
+### Simplify
+
+- **`tine log` lists and searches.** `tine log --search QUERY` is `tine search
+  QUERY` (with `--json`, `--repo`, `--legacy`), and `tine log --legacy` is
+  `tine ls`; the `ls` filters (`--tag`, `--model`, `--status`, `--cost-min`,
+  `--cost-max`, `--since`, `--until`, `--grep`) work on `log` and imply
+  `--legacy`, with `--limit` and `--json` carried over. A plain `tine log` still
+  reads the v3 repository, unchanged.
+- **`tine show` reports cost.** `tine show RUN --cost` is `tine cost RUN`, and
+  `tine show RUN --price [--at DATE]` is `tine price RUN [--at DATE]`.
+- The folded spelling is rewritten to the old verb before parsing, so both give
+  byte-identical output and exit code. Combinations the old verb cannot honour
+  are usage errors (exit 2) rather than silently dropped: `--cost` with
+  `--price`, `--at` without `--price`, `--search` with `--graph`/`--all`/
+  `--oneline`/`--limit`/`--commit`/`--pr`/a REF or an `ls` filter, and
+  `--legacy`/`--repo` with `--cost`/`--price`.
+- `tine ls`, `tine search`, `tine cost` and `tine price` keep working silently;
+  the compatibility table (tests/cli_compat_table.py) pins the new spellings too.
+- **A default output format.** `tine config set output.format json` (or
+  `OPENTINE_OUTPUT=json`, which wins over the file) makes every command that has
+  `--json` emit JSON without the flag; `tine config get|unset output.format`
+  read and clear it. The setting is user-scoped
+  (`$XDG_CONFIG_HOME/opentine/settings.json`, 0600), never per repository. A new
+  `--text` beside every `--json` forces the human output for one call; an
+  explicit `--json`/`--text` always wins, and both together are an error.
+  Commands without `--json` ignore the setting. An invalid env value or a
+  malformed settings file is a one-line error (exit 1), never a fallback. With
+  no setting, output is byte-identical to 0.16.
+
+### Release
+
+- **Release files are install-tested on Linux, macOS and Windows before
+  publishing.** A new `artifact-smoke` job installs the exact validated wheel
+  and sdist on each OS and runs the CLI smoke test; the GitHub release and the
+  PyPI upload both wait on it. (CI already smoke-tested a wheel it built itself
+  on every OS.)
+
 ## 0.16.2 — 2026-10-30
 
 0.16.1 was not published either: its release CI caught a rare Windows race
