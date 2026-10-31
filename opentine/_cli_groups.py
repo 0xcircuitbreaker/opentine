@@ -107,8 +107,10 @@ def add_group_parsers(sub: argparse._SubParsersAction, summaries: dict[str, str]
 
 def _add_trust_policy(group_sub: argparse._SubParsersAction) -> None:
     from opentine._cli_trust_policy import add_policy_parser
+    from opentine._cli_trust_root import add_root_parser
 
     add_policy_parser(group_sub)
+    add_root_parser(group_sub)
 
 
 # Group words with their own parser and handler (``group_handler`` on the

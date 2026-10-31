@@ -2932,4 +2932,25 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "config", "key": "unset", "value": "output.format"},
     ),
+    (
+        "plain:trust root update --root r.json --repo-url https://tuf.example",
+        "plain",
+        ["trust", "root", "update", "--root", "r.json", "--repo-url", "https://tuf.example"],
+        "opentine._cli_trust_root:cmd_trust_root",
+        False,
+        {
+            "command": "trust",
+            "root_command": "update",
+            "tuf_root": "r.json",
+            "repo_url": "https://tuf.example",
+        },
+    ),
+    (
+        "plain:verify r1 --attestation a.json --trusted-root tr.json",
+        "plain",
+        ["verify", "r1", "--attestation", "a.json", "--trusted-root", "tr.json"],
+        "opentine._cli_security:cmd_verify",
+        False,
+        {"command": "verify", "attestation": "a.json", "trusted_root": "tr.json"},
+    ),
 )

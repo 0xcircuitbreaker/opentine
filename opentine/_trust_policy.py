@@ -2,7 +2,8 @@
 
 A policy names the trust roots ``tine verify`` would otherwise take from flags
 (``--pubkey``, ``--pin``, ``--rekor-key``, ``--require-receipt``,
-``--cert-identity``, ``--cert-oidc-issuer``, ``--fulcio-root``). They live only in
+``--cert-identity``, ``--cert-oidc-issuer``, ``--fulcio-root``, and 0.18's
+``--ct-key``/``--require-sct`` and ``--trusted-root``). They live only in
 ``$XDG_CONFIG_HOME/opentine/trust-policies.json``: written 0600, and refused when
 the file is a symlink, not a regular file, group/world-writable or not owned by
 the current user. A repository's ``.tine/porcelain.json`` can neither define nor
@@ -30,12 +31,30 @@ from typing import Any
 FILE_NAME = "trust-policies.json"
 MAX_BYTES = 256 * 1024
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
-PATH_FIELDS = ("pubkey", "rekor_key", "fulcio_root")
+PATH_FIELDS = ("pubkey", "rekor_key", "fulcio_root", "trusted_root")
 TEXT_FIELDS = ("cert_identity", "cert_oidc_issuer")
-FIELDS = ("pubkey", "pin", "rekor_key", "require_receipt", *TEXT_FIELDS, "fulcio_root")
+SCT_FIELDS = ("ct_key", "require_sct")
+FIELDS = (
+    "pubkey",
+    "pin",
+    "rekor_key",
+    "require_receipt",
+    *TEXT_FIELDS,
+    "fulcio_root",
+    *SCT_FIELDS,
+    "trusted_root",
+)
 KEY_DESTS = ("key_env", "key_file", "pubkey", "pin", "trust_embedded_key")
 #: Any of these given on the command line means the caller chose trust explicitly.
-EXPLICIT_DESTS = (*KEY_DESTS, "require_receipt", "rekor_key", *TEXT_FIELDS, "fulcio_root")
+EXPLICIT_DESTS = (
+    *KEY_DESTS,
+    "require_receipt",
+    "rekor_key",
+    *TEXT_FIELDS,
+    "fulcio_root",
+    *SCT_FIELDS,
+    "trusted_root",
+)
 
 
 class PolicyError(ValueError):
@@ -131,8 +150,14 @@ def check_policy(name: str, policy: Any) -> dict[str, Any]:
     for field in TEXT_FIELDS:
         if field in policy and not (isinstance(policy[field], str) and 0 < len(policy[field])):
             raise PolicyError(f"policy {name!r}: {field} must be a non-empty string")
-    if "require_receipt" in policy and not isinstance(policy["require_receipt"], bool):
-        raise PolicyError(f"policy {name!r}: require_receipt must be true or false")
+    for field in ("require_receipt", "require_sct"):
+        if field in policy and not isinstance(policy[field], bool):
+            raise PolicyError(f"policy {name!r}: {field} must be true or false")
+    if "trusted_root" in policy and {"rekor_key", "fulcio_root", "ct_key"} & set(policy):
+        raise PolicyError(f"policy {name!r}: trusted_root replaces rekor_key/fulcio_root/ct_key")
+    cts = policy.get("ct_key", [])
+    if not isinstance(cts, list) or not all(isinstance(p, str) and os.path.isabs(p) for p in cts):
+        raise PolicyError(f"policy {name!r}: ct_key must be a list of absolute paths")
     pins = policy.get("pin", [])
     if not isinstance(pins, list) or not all(isinstance(pin, str) for pin in pins):
         raise PolicyError(f"policy {name!r}: pin must be a list of sha256:HEX strings")
@@ -179,14 +204,15 @@ def apply(args: argparse.Namespace) -> None:
     if name not in table["policies"]:
         _fail(f"unknown policy {name!r}; see `tine trust policy list`")
     policy, applied = table["policies"][name], []
-    for field in PATH_FIELDS:
-        if field in policy and not os.path.isfile(policy[field]):
-            _fail(f"policy {name!r}: {field} {policy[field]} is not a readable file")
+    paths = [(f, policy[f]) for f in PATH_FIELDS if f in policy]
+    for field, path in paths + [("ct_key", p) for p in policy.get("ct_key", [])]:
+        if not os.path.isfile(path):
+            _fail(f"policy {name!r}: {field} {path} is not a readable file")
     keyed = bool(given(args, KEY_DESTS))
     for field, value in policy.items():
         if (field in ("pubkey", "pin") and keyed) or given(args, (field,)):
             continue
-        setattr(args, field, list(value) if field == "pin" else value)
+        setattr(args, field, list(value) if field in ("pin", "ct_key") else value)
         applied.append(field)
     args.policy_fields = tuple(applied)
     args.policy_used = name

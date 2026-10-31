@@ -33,6 +33,9 @@ def cmd_verify(args: argparse.Namespace) -> None:
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
     if getattr(args, "attestation", None):
+        from opentine._keyless_root import refuse_root_conflicts
+
+        refuse_root_conflicts(args)
         return cmd_verify_attestation(args)
     from opentine._cli_sigstore import VERIFY_DESTS
 

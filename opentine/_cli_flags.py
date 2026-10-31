@@ -34,6 +34,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "cert_oidc_issuer": ("--cert-oidc-issuer", None),
     "compare": ("--compare", False),
     "compress": ("--compress", None),
+    "ct_key": ("--ct-key", None),
     "cwd": ("--cwd", None),
     "ed25519_key_file": ("--ed25519-key-file", None),
     "endpoint": ("--endpoint", None),
@@ -69,8 +70,10 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "rekor": ("--rekor", None),
     "rekor_key": ("--rekor-key", None),
     "require_receipt": ("--require-receipt", False),
+    "require_sct": ("--require-sct", False),
     "save": ("--save", None),
     "trust_embedded_key": ("--trust-embedded-key", False),
+    "trusted_root": ("--trusted-root", None),
     "trust_policy": ("--policy", None),
     "verify": ("--verify", False),
 }
