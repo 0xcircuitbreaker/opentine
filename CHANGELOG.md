@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.2 — 2026-10-31
+
+### Docs
+
+- **README visuals redone as animated SVG.** The hero terminal and the run
+  tree, previously Pillow GIFs, and the mermaid harness chart are now
+  hand-authored CSS-animated SVGs: sharp at any zoom, about 54 KB together
+  (the GIFs were about 840 KB), and still under `prefers-reduced-motion`. The
+  hero replays real `tine run` / `tine replay --verify` output, and the harness
+  diagram reflects the 25 shipped harnesses. `scripts/render_readme_svgs.py`
+  regenerates them; `--check` fails if the committed assets are stale.
+
 ## 0.18.1 — 2026-10-31
 
 ### Fixes
