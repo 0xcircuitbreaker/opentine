@@ -144,3 +144,23 @@ band (for the Sigstore public-good instance, from
 `metadata/root_history/` or `https://tuf-repo-cdn.sigstore.dev/N.root.json`
 compared against the signing ceremony). To start over, remove
 `$XDG_CONFIG_HOME/opentine/sigstore/tuf/`.
+
+## Agent Trace export (0.19)
+
+```
+tine export RUN --format agent-trace                    # record on stdout
+tine export RUN --format agent-trace --output trace.json
+```
+
+Writes one [Agent Trace](https://agent-trace.dev/) record (RFC 0.1.0, validated
+against `https://agent-trace.dev/schemas/v1/trace-record.json`). Each file the
+run's successful tool calls wrote is a `files` entry with one conversation per
+model, contributor `ai`, `model_id` spelled `provider/model` when the provider was
+recorded. Line ranges are emitted only when they are known: a whole-file write
+that is the run's last write to that path covers lines 1..N. Edits, patches and
+shell redirects get file-level attribution (an empty `ranges` array). Absolute
+paths are made relative to the enclosing repository (the nearest directory with
+`.git`, else the current directory); paths outside it are left out and counted.
+`vcs` and conversation `url` are omitted, since a run records neither; the run
+id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
+published schema accepts. `--endpoint` is refused.

@@ -851,6 +851,7 @@ tine import trajectory_samples.jsonl --repo .                   # Hermes Agent (
 tine import session.log --adapter NAME --repo .                 # an allowlisted AdapterSpec
 tine repo integrate harnesses --check                           # check every importer adapter
 tine export <run> --format atif --output trajectory.json        # ATIF v1.8
+tine export <run> --format agent-trace --output trace.json      # Agent Trace RFC 0.1
 tine export <run> > spans.json
 tine export <run> --output spans.json
 tine export <run> --endpoint http://127.0.0.1:4318              # local OTLP collector
@@ -883,6 +884,8 @@ prompts and completions, a cleartext push is refused unless the endpoint is a
 loopback IP (e.g. `127.0.0.1`) or `--allow-insecure` says otherwise — the same
 rule the v3 transport verbs apply. `--service-name` sets the `service.name` the spans arrive under.
 Exporting is read-only: the artifact is never rewritten.
+`--format agent-trace` writes an [Agent Trace](https://agent-trace.dev/) record
+of which files the run's tool calls wrote (see [docs/CLI.md](docs/CLI.md#agent-trace-export-019)).
 
 Machine-readable output:
 

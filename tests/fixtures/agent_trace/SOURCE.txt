@@ -1,0 +1,4 @@
+trace-record.schema.json
+  source: https://agent-trace.dev/schemas/v1/trace-record.json
+  fetched: 2026-10-31 (Agent Trace RFC 0.1.0)
+  sha256: f86ded10e845445a21093283092752192b6c614093168035da93a47f696ca5eb

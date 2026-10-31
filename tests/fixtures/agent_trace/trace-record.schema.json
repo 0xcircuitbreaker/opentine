@@ -1,0 +1,221 @@
+{
+  "$ref": "#/definitions/TraceRecord",
+  "definitions": {
+    "TraceRecord": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Agent Trace specification version (e.g., '1.0')"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for this trace record"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp when trace was recorded"
+        },
+        "vcs": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "git",
+                "jj",
+                "hg",
+                "svn"
+              ],
+              "description": "Version control system type (e.g., 'git', 'jj', 'hg')"
+            },
+            "revision": {
+              "type": "string",
+              "description": "Revision identifier (e.g., git commit SHA, jj change ID, hg changeset)"
+            }
+          },
+          "required": [
+            "type",
+            "revision"
+          ],
+          "additionalProperties": false,
+          "description": "Version control system information for this trace"
+        },
+        "tool": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the tool that produced the code"
+            },
+            "version": {
+              "type": "string",
+              "description": "Version of the tool"
+            }
+          },
+          "required": [
+            "name",
+            "version"
+          ],
+          "additionalProperties": false,
+          "description": "The tool that generated this trace"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Relative file path from repository root"
+              },
+              "conversations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL to look up the conversation that produced this code"
+                    },
+                    "contributor": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "human",
+                            "ai",
+                            "mixed",
+                            "unknown"
+                          ],
+                          "description": "The type of contributor"
+                        },
+                        "model_id": {
+                          "type": "string",
+                          "maxLength": 250,
+                          "description": "The model's unique identifier following models.dev convention (e.g., 'anthropic/claude-opus-4-5-20251101')"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ],
+                      "additionalProperties": false,
+                      "description": "The contributor for ranges in this conversation (can be overridden per-range)"
+                    },
+                    "ranges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "start_line": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "1-indexed start line number"
+                          },
+                          "end_line": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "1-indexed end line number"
+                          },
+                          "content_hash": {
+                            "type": "string",
+                            "description": "Hash of attributed content for position-independent tracking"
+                          },
+                          "contributor": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "human",
+                                  "ai",
+                                  "mixed",
+                                  "unknown"
+                                ],
+                                "description": "The type of contributor"
+                              },
+                              "model_id": {
+                                "type": "string",
+                                "maxLength": 250,
+                                "description": "The model's unique identifier following models.dev convention (e.g., 'anthropic/claude-opus-4-5-20251101')"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false,
+                            "description": "Override contributor for this specific range (e.g., for agent handoffs)"
+                          }
+                        },
+                        "required": [
+                          "start_line",
+                          "end_line"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "description": "Array of line ranges produced by this conversation"
+                    },
+                    "related": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "Type of related resource"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "URL to the related resource"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "url"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "description": "Other related resources"
+                    }
+                  },
+                  "required": [
+                    "ranges"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Array of conversations that contributed to this file"
+              }
+            },
+            "required": [
+              "path",
+              "conversations"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Array of files with attributed ranges"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional metadata for implementation-specific or vendor-specific data"
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "timestamp",
+        "files"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-trace.dev/schemas/v1/trace-record.json",
+  "title": "Agent Trace Record"
+}
