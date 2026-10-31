@@ -164,3 +164,25 @@ paths are made relative to the enclosing repository (the nearest directory with
 `vcs` and conversation `url` are omitted, since a run records neither; the run
 id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
 published schema accepts. `--endpoint` is refused.
+
+## Entire checkpoint import (0.19)
+
+```
+tine import . --format entire --save run.tine        # newest checkpoint, last session
+tine import .::a3b2c4d5e6f7/0 --format entire --repo runs
+```
+
+[Entire](https://entire.io) commits coding-agent sessions to the
+`entire/checkpoints/v1` branch (`<id[:2]>/<id[2:]>/metadata.json`, one numbered
+directory per session with `metadata.json`, `full.jsonl` and `prompt.txt`).
+SOURCE is the git repository; `::ID` picks a checkpoint by id or unique prefix and
+`/N` a session (0-based, in the summary's order). The branch is read with
+`git cat-file`, never checked out; `origin/entire/checkpoints/v1` is used when
+there is no local branch. `--format auto` recognizes a directory SOURCE. The
+session transcript is imported by the Claude Code, Codex or Gemini CLI importer;
+any other agent imports as one human step carrying its prompt, with an import
+warning. `attributes["entire"]` on the first step keeps the checkpoint and session
+ids, agent, model, strategy, branch, commit, files touched and Entire's token
+usage. `full.jsonl` holds the session up to that checkpoint, so the run is the
+session so far. Session metadata over 1 MiB and transcripts over 64 MiB are
+refused before they are read.

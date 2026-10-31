@@ -26,6 +26,7 @@ HARNESS_OF = {
     "opencode-session": "opencode",
     "atif": "atif",
     "hermes-trajectory": "hermes",
+    "entire": "entire",
 }
 
 

@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from opentine import cli
-from opentine._agent_trace import find_root, model_id, to_agent_trace
+from opentine._agent_trace import ROOT_MARKER, find_root, model_id, to_agent_trace
 from opentine.graph import Run, StepKind
 
 FIXTURES = Path(__file__).parent / "fixtures" / "agent_trace"
@@ -138,7 +138,7 @@ def test_model_id_and_root():
 
 def test_cli_export_writes_a_valid_record(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / ".git").mkdir()
+    (tmp_path / ROOT_MARKER).mkdir()
     saved = tmp_path / "run.tine"
     _run(tmp_path).save(saved)
     out = tmp_path / "trace.json"

@@ -104,6 +104,8 @@ def detect_and_read(
             return "opencode-session", TRANSCRIPT_IMPORTERS["opencode-session"](source)
     if source_format == "opencode-session":
         raise ValueError("opencode-session imports read an opencode.db path, not stdin")
+    if source_format == "auto" and source != STDIN and _is_entire_repo(source):
+        return "entire", TRANSCRIPT_IMPORTERS["entire"](source)
     if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:
         # Transcripts are read line by line from a path, each line bounded.
         return source_format, TRANSCRIPT_IMPORTERS[source_format](source)
@@ -128,6 +130,16 @@ def detect_and_read(
     if source_format == "otel-spans":
         return source_format, otel_genai_events(_records(text))
     return source_format, framework_events(_records(text), source_format)
+
+
+def _is_entire_repo(source: str) -> bool:
+    """A directory SOURCE (optionally ``::checkpoint``) is read as an Entire repo."""
+    from opentine.trace._import_entire import split_source
+
+    try:
+        return split_source(source)[0].is_dir()
+    except ValueError:
+        return False
 
 
 def _documents(text: str) -> object:

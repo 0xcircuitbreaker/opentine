@@ -42,6 +42,7 @@ from opentine._version import __version__
 SPEC_VERSION = "0.1"
 SCHEMA_URL = "https://agent-trace.dev/schemas/v1/trace-record.json"
 VENDOR_KEY = "io.github.0xcircuitbreaker.opentine"
+ROOT_MARKER = ".git"  # a checkout marks its root with this entry
 MAX_MODEL_ID = 250
 _FULL_KEYS = ("content", "file_text", "contents")
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "https://opentine.com/agent-trace")
@@ -147,7 +148,7 @@ def find_root(start: Path) -> Path:
     """The nearest ancestor holding ``.git`` (no subprocess), else *start* itself."""
     start = start.resolve()
     for candidate in (start, *start.parents):
-        if (candidate / ".git").exists():
+        if (candidate / ROOT_MARKER).exists():
             return candidate
     return start
 
