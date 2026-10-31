@@ -15,6 +15,7 @@ from typing import Any
 
 from opentine._atif import atif_events
 from opentine._atif_parse import is_atif
+from opentine.trace._import_entire import entire_events
 from opentine.trace._import_hermes import hermes_events, looks_like_hermes
 from opentine.trace._transcript_claude import claude_transcript_events, looks_like_claude
 from opentine.trace._transcript_codex import codex_session_events, looks_like_codex
@@ -31,6 +32,7 @@ TRANSCRIPT_IMPORTERS: dict[str, Callable[[Any], list[TraceEvent]]] = {
     "atif": atif_events,
     "opencode-session": opencode_events,  # a SQLite path only, never stdin text
     "hermes-trajectory": hermes_events,  # path or path::N; the last record by default
+    "entire": entire_events,  # a git repo path[::checkpoint[/session]], never stdin
 }
 TRANSCRIPT_FORMATS = tuple(TRANSCRIPT_IMPORTERS)
 _SNIFF_LINES = 64

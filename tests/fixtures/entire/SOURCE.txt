@@ -1,0 +1,23 @@
+Entire checkpoint branch format (tests/test_entire_import_0_19.py builds its
+fixture branch in-test from this layout; no bytes are vendored).
+
+Read from: https://github.com/entireio/cli
+Commit:    54b6a5cac34e5ff939e6e5871168da9ffd4d187a (2026-10-30,
+           describe: v0.12.3-nightly.202610310614.54b6a5cac)
+Files:     cmd/entire/cli/paths/paths.go       (branch name, file names)
+           api/checkpoint/metadata.go           (Metadata, CheckpointSummary,
+                                                 SessionFilePaths, layout doc)
+           cmd/entire/cli/checkpoint/id/id.go   (12-hex / 26-char ULID ids,
+                                                 Path() = id[:2] + "/" + id[2:])
+           cmd/entire/cli/agent/chunking.go     (full.jsonl.%03d chunks)
+           cmd/entire/cli/agent/registry.go     (agent type strings)
+           cmd/entire/cli/agent/types/token_usage.go
+
+Layout on refs/heads/entire/checkpoints/v1:
+  <id[:2]>/<id[2:]>/metadata.json      CheckpointSummary (sessions[].metadata =
+                                       "/<id[:2]>/<id[2:]>/<N>/metadata.json")
+  <id[:2]>/<id[2:]>/<N>/metadata.json  session Metadata (session_id, agent,
+                                       model, files_touched, token_usage, ...)
+  <id[:2]>/<id[2:]>/<N>/full.jsonl     raw agent transcript (+ .001 chunks;
+                                       full.log in old versions)
+  <id[:2]>/<id[2:]>/<N>/prompt.txt

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.19.0 — 2026-10-31
+
+### Interop
+
+- **`tine export RUN --format agent-trace`** writes an
+  [Agent Trace](https://agent-trace.dev/) record (RFC 0.1.0): the files a run's
+  tool calls wrote, attributed to contributor `ai` with the recorded
+  `provider/model`, and a link back to the run under `metadata["io.github.0xcircuitbreaker.opentine"]`.
+  Line ranges appear only where they are known (a final whole-file write);
+  edits and patches get file-level attribution, never guessed ranges. Output is
+  validated in tests against the published JSON schema, vendored under
+  `tests/fixtures/agent_trace/`.
+- **`tine import --format entire`** reads [Entire](https://entire.io)'s
+  `entire/checkpoints/v1` branch straight out of git (no checkout): `REPO`
+  imports the newest checkpoint's last session, `REPO::ID[/N]` a chosen one.
+  Claude Code, Codex and Gemini CLI transcripts go through the existing
+  transcript importers; other agents import their prompt. Checkpoint metadata
+  (ids, agent, model, files touched, Entire's token usage) rides on
+  `attributes["entire"]`. Sizes are checked before blobs are read; session paths
+  are matched against the sharded layout, never followed. `auto` recognizes a
+  directory SOURCE. Format read from entireio/cli @ 54b6a5c.
+
 ## 0.18.2 — 2026-10-31
 
 ### Docs

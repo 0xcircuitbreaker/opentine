@@ -6,11 +6,9 @@ direction, and the same converter runs it. The document is built by
 the ``otel-json`` importer, so a run exported here and imported back is the run
 that was exported — a round trip this command's tests assert rather than assume.
 
-Export is read-only over provenance. It loads a run through ``Run.load``, the
-public loader every release since 0.3.0 exposes, writes nothing back to the
-artifact, and introduces no artifact or repository format version. The lossy
-edges of the mapping itself are documented once, in
-:mod:`opentine.trace.exporters`, and are not restated here.
+Export is read-only over provenance: it loads a run through ``Run.load`` and
+writes nothing back. Mapping limits live in :mod:`opentine.trace.exporters`;
+``atif`` and ``agent-trace`` (0.19) are written by their own modules.
 
 Destinations
 ------------
@@ -64,7 +62,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto")
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace")
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -167,6 +165,7 @@ def _write(document: dict[str, Any], output: Path | None, compress: str | None =
     text = (serialize(document) + "\n").encode()
     write_private(output, standard_frame(text, compress) if compress else text)
     shown = f"{len(document['steps'])} ATIF step(s)" if "steps" in document else None
+    shown = shown or "files" in document and f"{len(document['files'])} Agent Trace file(s)"
     shown = shown or f"{len(_spans(document))} span(s)"
     console.print(f"[{BRAND}]# Exported[/] {shown} [{BRAND}]to[/] {_terminal(output)}")
 
@@ -223,9 +222,13 @@ def cmd_export(args: argparse.Namespace) -> None:
         # run goes through the writer's own redaction, field names included, before
         # it becomes spans: the ``gen_ai.prompt`` kvlist carries each name and value
         # as separate strings, where the free-text pass alone cannot pair them.
-        run = Run.load(path)
-        run = run_from_dict(run_to_dict(run, redact=True), type(run))
-        if args.format == "atif":  # Harbor's trajectory format, written to a file only
+        raw = Run.load(path)
+        run = run_from_dict(run_to_dict(raw, redact=True), type(raw))
+        if args.format == "agent-trace":  # counts read before redaction: _agent_trace
+            from opentine._agent_trace import cli_record
+
+            document = redact_value(cli_record(raw, endpoint))
+        elif args.format == "atif":  # Harbor's trajectory format, written to a file only
             if endpoint is not None:
                 raise ValueError("--format atif writes a file; it cannot be pushed to --endpoint")
             from opentine._atif_export import to_atif
@@ -233,10 +236,9 @@ def cmd_export(args: argparse.Namespace) -> None:
             document = redact_value(to_atif(run))
         else:
             document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
-        # The write and the push are inside the same guard as the conversion:
-        # ``serialize`` refuses a document it cannot render faithfully (nesting
-        # past the format bound, or a cycle) rather than writing a truncation
-        # marker, and that refusal has to exit 1 with a message like any other.
+        # Write and push share the conversion's guard: ``serialize`` refuses a
+        # document it cannot render faithfully (too deep, a cycle) rather than
+        # writing a truncation marker, and that refusal must exit 1 like any other.
         if endpoint is None:
             _write(document, output, getattr(args, "compress", None))
         else:

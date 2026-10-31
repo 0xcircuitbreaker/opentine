@@ -16,6 +16,7 @@ Formats
 ``claude-code-transcript`` ``codex-session`` ``gemini-session`` ``qwen-session``
 ``atif`` ``opencode-session`` an agent's session log (opencode.db[::id]);
                    ``--from-default-location`` lists them; ``latest`` or an id prefix.
+``entire``         a git repo with Entire's checkpoint branch (REPO[::ID[/N]]).
 ``auto``           (the default) recognize the source by its shape.
 
 Persistence — at least one target is required

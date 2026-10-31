@@ -144,3 +144,45 @@ band (for the Sigstore public-good instance, from
 `metadata/root_history/` or `https://tuf-repo-cdn.sigstore.dev/N.root.json`
 compared against the signing ceremony). To start over, remove
 `$XDG_CONFIG_HOME/opentine/sigstore/tuf/`.
+
+## Agent Trace export (0.19)
+
+```
+tine export RUN --format agent-trace                    # record on stdout
+tine export RUN --format agent-trace --output trace.json
+```
+
+Writes one [Agent Trace](https://agent-trace.dev/) record (RFC 0.1.0, validated
+against `https://agent-trace.dev/schemas/v1/trace-record.json`). Each file the
+run's successful tool calls wrote is a `files` entry with one conversation per
+model, contributor `ai`, `model_id` spelled `provider/model` when the provider was
+recorded. Line ranges are emitted only when they are known: a whole-file write
+that is the run's last write to that path covers lines 1..N. Edits, patches and
+shell redirects get file-level attribution (an empty `ranges` array). Absolute
+paths are made relative to the enclosing repository (the nearest directory with
+`.git`, else the current directory); paths outside it are left out and counted.
+`vcs` and conversation `url` are omitted, since a run records neither; the run
+id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
+published schema accepts. `--endpoint` is refused.
+
+## Entire checkpoint import (0.19)
+
+```
+tine import . --format entire --save run.tine        # newest checkpoint, last session
+tine import .::a3b2c4d5e6f7/0 --format entire --repo runs
+```
+
+[Entire](https://entire.io) commits coding-agent sessions to the
+`entire/checkpoints/v1` branch (`<id[:2]>/<id[2:]>/metadata.json`, one numbered
+directory per session with `metadata.json`, `full.jsonl` and `prompt.txt`).
+SOURCE is the git repository; `::ID` picks a checkpoint by id or unique prefix and
+`/N` a session (0-based, in the summary's order). The branch is read with
+`git cat-file`, never checked out; `origin/entire/checkpoints/v1` is used when
+there is no local branch. `--format auto` recognizes a directory SOURCE. The
+session transcript is imported by the Claude Code, Codex or Gemini CLI importer;
+any other agent imports as one human step carrying its prompt, with an import
+warning. `attributes["entire"]` on the first step keeps the checkpoint and session
+ids, agent, model, strategy, branch, commit, files touched and Entire's token
+usage. `full.jsonl` holds the session up to that checkpoint, so the run is the
+session so far. Session metadata over 1 MiB and transcripts over 64 MiB are
+refused before they are read.
