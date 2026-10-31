@@ -123,3 +123,28 @@ def test_a_transient_pack_listing_error_is_not_absence(tmp_path, monkeypatch):
     monkeypatch.setattr(_packs.PackSet, "_scan", scan)
     assert repo.has(run)
     assert not failures
+
+
+def test_a_delete_pending_lock_is_not_called_an_escape(monkeypatch, tmp_path):
+    """Windows resolves a delete-pending file into ``C:\\$Extend\\$Deleted``."""
+    import ntpath
+    import types
+    from pathlib import Path, PureWindowsPath
+
+    from opentine.repository import _paths
+
+    fake_os = types.SimpleNamespace(name="nt", path=ntpath)
+    monkeypatch.setattr(_paths, "os", fake_os)
+    assert _paths._delete_pending(PureWindowsPath(r"C:\$Extend\$Deleted\000A00000014F4D8"))
+    assert not _paths._delete_pending(PureWindowsPath(r"C:\Users\x\repo\gc.lock"))
+    monkeypatch.undo()
+
+    gone = Path(r"C:\$Extend\$Deleted\000A")
+    monkeypatch.setattr(_paths, "_delete_pending", lambda path: path == gone)
+    real = Path.resolve
+    monkeypatch.setattr(
+        Path,
+        "resolve",
+        lambda self, strict=False: gone if self.name == "gc.lock" else real(self, strict),
+    )
+    assert _paths.internal_path(tmp_path, "gc.lock") == tmp_path / "gc.lock"

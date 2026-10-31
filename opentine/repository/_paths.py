@@ -33,6 +33,16 @@ def _plain(path: Path) -> Path:
     return path
 
 
+def _delete_pending(path: Path) -> bool:
+    """Windows resolves a delete-pending file to ``C:\\$Extend\\$Deleted\\<id>``.
+
+    That is the same file on its way out (NTFS POSIX-delete semantics), not an
+    escape; the component walk has already ruled out links on the real path.
+    """
+    parts = [os.path.normcase(part) for part in path.parts[1:3]]
+    return os.name == "nt" and parts == ["$extend", "$deleted"]
+
+
 def _relative(path: Path, root: Path) -> tuple[str, ...]:
     """``path.relative_to(root).parts`` without 3.14's linear ``root in parents`` scan."""
     parts, base = path.parts, root.parts
@@ -83,6 +93,8 @@ def internal_path(root: Path, *parts: str) -> Path:
         # Windows: resolving a file mid-replace by another process is a transient
         # sharing violation, not an escape; retry it before failing closed.
         resolved = _winretry.retry(lambda: candidate.resolve(strict=False))
+        if _delete_pending(resolved):
+            return candidate
         _relative(_plain(resolved), _plain(_winretry.retry(lambda: root.resolve(strict=True))))
     except OSError as exc:
         raise KernelError(f"repository path cannot be inspected: {relative}") from exc
