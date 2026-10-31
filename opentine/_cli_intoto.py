@@ -203,7 +203,7 @@ def _report(args, attestation, path, result, subject_error, receipt) -> None:
 
 def _check(args, document):
     """``(EnvelopeResult, ReceiptResult | None)`` for one envelope or bundle line."""
-    from opentine._cli_sigstore import receipt_for, verify_keyless_cli
+    from opentine._cli_sigstore import KEYLESS_DESTS, receipt_for, verify_keyless_cli
     from opentine._fulcio_verify import leaf_from_material
     from opentine.did_key import public_from_did
     from opentine.intoto import verify_envelope
@@ -215,7 +215,7 @@ def _check(args, document):
         return verify_keyless_cli(args, envelope, leaf, entries)
     refuse_unhonoured(
         args,
-        ("cert_identity", "cert_oidc_issuer", "fulcio_root", "ct_key", "require_sct"),
+        KEYLESS_DESTS,
         mode="for an attestation signed by a key",
         hint="They check a keyless (Fulcio certificate) attestation.",
     )

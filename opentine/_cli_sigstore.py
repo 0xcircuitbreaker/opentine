@@ -9,10 +9,9 @@ trusted signing time.
 
 Verify: ``--rekor-key FILE`` checks any receipt offline; ``--require-receipt``
 fails closed without a valid one. A keyless bundle additionally needs
-``--cert-identity``, ``--cert-oidc-issuer`` and ``--fulcio-root``; with
-``--ct-key FILE`` (0.18) its certificate must also carry an embedded SCT from one
-of those CT logs (``--require-sct`` states that demand explicitly). The identity
-token is never printed, logged or written.
+``--cert-identity``, ``--cert-oidc-issuer`` and ``--fulcio-root``; ``--ct-key``
+(0.18) demands an embedded SCT, and ``--trusted-root`` takes all three key sets
+from a Sigstore trusted_root.json. The identity token is never printed or written.
 """
 
 from __future__ import annotations
@@ -32,12 +31,15 @@ VERIFY_DESTS = (
     "fulcio_root",
     "ct_key",
     "require_sct",
+    "trusted_root",
 )
 SCT_DESTS = ("ct_key", "require_sct")
 _KEYLESS_VERIFY = ("cert_identity", "cert_oidc_issuer", "fulcio_root")
+KEYLESS_DESTS = (*_KEYLESS_VERIFY, *SCT_DESTS, "trusted_root")
 
 __all__ = [
     "EXPORT_DESTS",
+    "KEYLESS_DESTS",
     "SCT_DESTS",
     "VERIFY_DESTS",
     "add_sigstore_export_args",
@@ -85,6 +87,9 @@ def add_sigstore_verify_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--require-sct", action="store_true", help="Keyless: fail unless an SCT verifies (--ct-key)"
+    )
+    parser.add_argument(
+        "--trusted-root", metavar="FILE", help="Keyless: Sigstore trusted_root.json"
     )
     parser.add_argument("--policy", dest="trust_policy", metavar="NAME", help="Trust policy")
     parser.add_argument("--no-policy", action="store_true", help="Ignore trust.default")
@@ -169,6 +174,7 @@ def receipt_for(args: argparse.Namespace, envelope: dict, entries: list, signer,
 def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: list):
     """``(EnvelopeResult, ReceiptResult)`` for a Fulcio-certificate bundle."""
     import hashlib
+    from datetime import UTC, datetime
 
     from cryptography.hazmat.primitives import serialization
 
@@ -181,16 +187,33 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
         mode="for a keyless attestation",
         hint="Its key is a Fulcio certificate: pass --cert-identity and --cert-oidc-issuer.",
     )
-    missing = [f"--{d.replace('_', '-')}" for d in _KEYLESS_VERIFY if not getattr(args, d, None)]
-    if missing or not getattr(args, "rekor_key", None):
-        reason = f"keyless attestation needs {', '.join(missing + ['--rekor-key'])}"
+    from opentine._keyless_root import trusted_root_path
+
+    root_path = trusted_root_path(args)
+    needed = _KEYLESS_VERIFY[:2] if root_path else _KEYLESS_VERIFY
+    missing = [f"--{d.replace('_', '-')}" for d in needed if not getattr(args, d, None)]
+    if missing or not (root_path or getattr(args, "rekor_key", None)):
+        keys = [] if root_path else ["--rekor-key"]
+        reason = f"keyless attestation needs {', '.join(missing + keys)}"
         return EnvelopeResult(False, "no-key", reason), None
-    receipt = receipt_for(args, envelope, entries, leaf.public_key(), need=True)
+    trusted = None
+    if root_path:
+        from opentine._keyless_root import load_root
+
+        trusted, receipt = load_root(root_path, envelope, entries, leaf.public_key())
+        if trusted is None:
+            return EnvelopeResult(False, "no-key", receipt.reason), None
+    else:
+        receipt = receipt_for(args, envelope, entries, leaf.public_key(), need=True)
     if not receipt.ok:
         return EnvelopeResult(False, "error", "keyless signature needs a verified receipt"), receipt
     try:
-        with open(args.fulcio_root, "rb") as handle:
-            roots = load_roots(handle.read(1 << 20))
+        if trusted is not None:
+            when = datetime.fromtimestamp(receipt.integrated_time, tz=UTC)
+            roots = trusted.fulcio_roots(when)
+        else:
+            with open(args.fulcio_root, "rb") as handle:
+                roots = load_roots(handle.read(1 << 20))
         verify_keyless(
             envelope,
             leaf,
@@ -199,7 +222,11 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
             issuer=args.cert_oidc_issuer,
             integrated_time=receipt.integrated_time,
         )
-        if getattr(args, "ct_key", None):
+        if trusted is not None:
+            from opentine._keyless_root import root_scts
+
+            root_scts(trusted, leaf, roots, required=bool(getattr(args, "require_sct", False)))
+        elif getattr(args, "ct_key", None):
             _check_sct(args.ct_key, leaf, roots)
         statement = _statement(_b64(envelope.get("payload")))
     except (OSError, ValueError) as exc:
@@ -213,23 +240,10 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
 
 def _check_sct(paths: list[str], leaf, roots) -> None:
     """Raise ``ValueError`` unless an embedded SCT verifies under a ``--ct-key`` log."""
-    from opentine._fulcio_sct import load_ct_keys, verify_scts
+    from opentine._fulcio_sct import load_ct_keys, verify_leaf_scts
 
     keys = []
     for path in paths:
         with open(path, "rb") as handle:
             keys += load_ct_keys(handle.read(1 << 20))
-    issuer = next((c for c in roots if c.subject == leaf.issuer and _issued(leaf, c)), None)
-    if issuer is None:
-        raise ValueError("the certificate's issuer is not in --fulcio-root; SCT not checked")
-    verify_scts(leaf, issuer, keys)
-
-
-def _issued(leaf, candidate) -> bool:
-    from cryptography.exceptions import InvalidSignature
-
-    try:
-        leaf.verify_directly_issued_by(candidate)
-    except (InvalidSignature, ValueError, TypeError):
-        return False
-    return True
+    verify_leaf_scts(leaf, roots, keys)

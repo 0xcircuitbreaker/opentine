@@ -32,6 +32,7 @@ def add_policy_parser(group_sub: argparse._SubParsersAction) -> None:
     put.add_argument("--fulcio-root", metavar="FILE", help="Keyless: Fulcio root/intermediates")
     put.add_argument("--ct-key", action="append", metavar="FILE", help="Keyless: CT log key(s)")
     put.add_argument("--require-sct", action="store_true", help="Keyless: demand an SCT")
+    put.add_argument("--trusted-root", metavar="FILE", help="Keyless: Sigstore trusted_root.json")
     for verb, help_text in (("list", "List policies"), ("show", "Show one policy")):
         child = sub.add_parser(verb, help=help_text)
         if verb == "show":
@@ -59,6 +60,9 @@ def _absolute_file(path: str, flag: str, reader) -> str:
     return str(target)
 
 
+_KEYLESS = ("cert_identity", "cert_oidc_issuer", "fulcio_root")
+
+
 def _policy_from(args: argparse.Namespace) -> dict:
     from opentine._fulcio_verify import load_roots
     from opentine._rekor_proof import load_log_key
@@ -83,17 +87,30 @@ def _policy_from(args: argparse.Namespace) -> dict:
             policy[field] = getattr(args, field)
     if args.fulcio_root:
         policy["fulcio_root"] = _absolute_file(args.fulcio_root, "--fulcio-root", pem(load_roots))
-    keyless = [f for f in ("cert_identity", "cert_oidc_issuer", "fulcio_root") if f in policy]
-    if keyless and (len(keyless) < 3 or "rekor_key" not in policy):
-        _fail("a keyless policy needs --cert-identity, --cert-oidc-issuer, --fulcio-root "
-              "and --rekor-key")  # fmt: skip
+    if args.trusted_root:
+        from opentine._trusted_root import parse_trusted_root
+
+        reader = pem(parse_trusted_root)
+        policy["trusted_root"] = _absolute_file(args.trusted_root, "--trusted-root", reader)
+    keyless = [f for f in (*_KEYLESS, "trusted_root") if f in policy]
+    rooted = "trusted_root" in policy or {"fulcio_root", "rekor_key"} <= set(policy)
+    if keyless and not ({"cert_identity", "cert_oidc_issuer"} <= set(policy) and rooted):
+        _fail("a keyless policy needs --cert-identity, --cert-oidc-issuer and --fulcio-root "
+              "with --rekor-key, or --trusted-root")  # fmt: skip
+    if (
+        "trusted_root" in policy
+        and {"rekor_key", "fulcio_root"} & set(policy)
+        or (args.ct_key and "trusted_root" in policy)
+    ):
+        _fail("--trusted-root replaces --rekor-key, --fulcio-root and --ct-key")
     if args.ct_key:
         from opentine._fulcio_sct import load_ct_keys
 
         policy["ct_key"] = [_absolute_file(p, "--ct-key", pem(load_ct_keys)) for p in args.ct_key]
     if args.require_sct:
         policy["require_sct"] = True
-    if ("require_sct" in policy and "ct_key" not in policy) or ("ct_key" in policy and not keyless):
+    sct_root = {"ct_key", "trusted_root"} & set(policy)
+    if ("require_sct" in policy and not sct_root) or ("ct_key" in policy and not keyless):
         _fail("--ct-key belongs to a keyless policy, and --require-sct needs --ct-key")
     if not ({"pubkey", "pin"} & set(policy) or keyless):
         _fail("a policy needs a trust root: --pubkey, --pin, or the keyless flags")

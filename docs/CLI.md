@@ -98,6 +98,8 @@ setting, every command's output is unchanged.
 tine trust policy set prod --pubkey ~/keys/release.pub --rekor-key ~/keys/rekor.pem --require-receipt
 tine trust policy set ci --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com \
     --fulcio-root ~/keys/fulcio.pem --rekor-key ~/keys/rekor.pem --ct-key ~/keys/ctlog.pem --require-sct
+tine trust policy set sigstore --cert-identity ci@example.com \
+    --cert-oidc-issuer https://token.actions.githubusercontent.com --trusted-root ~/keys/trusted_root.json
 tine trust policy list [--json]
 tine trust policy show prod [--json]
 tine trust policy default prod        # or: --clear; no argument prints it
@@ -108,10 +110,37 @@ tine verify RUN --no-policy           # ignore trust.default for this call
 
 A policy holds `pubkey`, `pin`, `rekor_key`, `require_receipt`, `cert_identity`,
 `cert_oidc_issuer`, `fulcio_root`, and (0.18) `ct_key` (a list of CT log key
-files) and `require_sct`. Flags given on the command line win over the
+files), `require_sct` and `trusted_root` (which replaces `rekor_key`,
+`fulcio_root` and `ct_key`). Flags given on the command line win over the
 policy; any key flag (`--pubkey`, `--pin`, `--key-env`, `--key-file`,
 `--trust-embedded-key`) replaces the policy's key as a whole. Fields that do not
 apply (keyless fields for a key-signed attestation, receipt fields for a plain run
 verify) are unused rather than refused. The default policy applies only when no key,
 receipt or keyless flag and no `--policy` is given. `--trust-embedded-key` cannot
 be stored in a policy.
+
+## Sigstore trusted root (0.18)
+
+```
+tine verify RUN --attestation a.sigstore.json --cert-identity ci@example.com \
+    --cert-oidc-issuer https://token.actions.githubusercontent.com --trusted-root trusted_root.json
+tine trust root update --root root.json [--repo-url https://tuf-repo-cdn.sigstore.dev] [--json]
+tine trust root update                # later runs: stored root and repository
+```
+
+`--trusted-root FILE` takes the Rekor keys (`tlogs`), Fulcio chains
+(`certificateAuthorities`) and CT log keys (`ctlogs`) from one Sigstore
+`trusted_root.json`, honouring each entry's `validFor` window. It is a usage
+error beside `--rekor-key`, `--fulcio-root` or `--ct-key`. When the root lists
+CT logs, an embedded SCT is required.
+
+`tine trust root update` is a minimal TUF client: it refreshes
+`trusted_root.json` into `$XDG_CONFIG_HOME/opentine/sigstore/`, after which that
+copy is the default for keyless `tine verify --attestation` calls that name no
+key file. Nothing is ever fetched implicitly. No TUF root is embedded: the first
+run needs `--root FILE`, an initial `root.json` you obtained and checked out of
+band (for the Sigstore public-good instance, from
+[sigstore/root-signing](https://github.com/sigstore/root-signing), e.g. its
+`metadata/root_history/` or `https://tuf-repo-cdn.sigstore.dev/N.root.json`
+compared against the signing ceremony). To start over, remove
+`$XDG_CONFIG_HOME/opentine/sigstore/tuf/`.

@@ -27,7 +27,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _MAX_KEYS = 64
 
-__all__ = ["ct_log_id", "load_ct_keys", "verify_scts"]
+__all__ = ["ct_log_id", "load_ct_keys", "verify_leaf_scts", "verify_scts"]
 
 
 def ct_log_id(key) -> bytes:
@@ -121,3 +121,19 @@ def verify_scts(leaf: x509.Certificate, issuer: x509.Certificate, keys: list) ->
     # Report the most specific failure: a known log's bad SCT beats an unknown log.
     unknown = "no embedded SCT is from a log in --ct-key"
     raise ValueError(next((r for r in reasons if r != unknown), unknown))
+
+
+def verify_leaf_scts(leaf: x509.Certificate, roots: list, keys: list) -> None:
+    """``verify_scts`` against the certificate in *roots* that issued *leaf*."""
+    issuer = next((c for c in roots if c.subject == leaf.issuer and _issued(leaf, c)), None)
+    if issuer is None:
+        raise ValueError("the certificate's issuer is not in --fulcio-root; SCT not checked")
+    verify_scts(leaf, issuer, keys)
+
+
+def _issued(leaf, candidate) -> bool:
+    try:
+        leaf.verify_directly_issued_by(candidate)
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+    return True

@@ -16,6 +16,21 @@
   attestation, and trust policies carry them as `ct_key`/`require_sct`
   (`tine trust policy set ... --ct-key FILE --require-sct`). Without the flags
   verification is unchanged.
+- **Sigstore trusted root.** `tine verify --attestation ... --trusted-root FILE`
+  takes the Rekor keys, Fulcio chains and CT log keys for a keyless attestation
+  from one Sigstore `trusted_root.json`, using each only inside its `validFor`
+  window (Rekor and CA by the verified `integratedTime`, CT by the leaf's
+  `notBefore`) and refusing a `logId` that is not its key's hash. When the root
+  lists CT logs, an embedded SCT is required. It is a usage error beside
+  `--rekor-key`/`--fulcio-root`/`--ct-key`, refused without `--attestation` and
+  for a key-signed attestation, and trust policies carry it as `trusted_root`.
+- **`tine trust root update [--root FILE] [--repo-url URL]`.** A minimal TUF 1.0
+  client (root chain walk with old- and new-key thresholds, timestamp →
+  snapshot → targets with version/length/hash checks, expiry, persisted rollback
+  protection; ed25519 and ECDSA P-256 keys) that installs `trusted_root.json`
+  into `$XDG_CONFIG_HOME/opentine/sigstore/`. That copy becomes the default for
+  keyless verification that names no key file. No TUF root is embedded: the
+  first run needs `--root FILE`. Nothing is fetched unless you run it.
 
 ## 0.17.1 — 2026-10-31
 

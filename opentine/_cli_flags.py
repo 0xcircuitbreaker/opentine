@@ -73,6 +73,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "require_sct": ("--require-sct", False),
     "save": ("--save", None),
     "trust_embedded_key": ("--trust-embedded-key", False),
+    "trusted_root": ("--trusted-root", None),
     "trust_policy": ("--policy", None),
     "verify": ("--verify", False),
 }

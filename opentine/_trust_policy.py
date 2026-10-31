@@ -3,7 +3,7 @@
 A policy names the trust roots ``tine verify`` would otherwise take from flags
 (``--pubkey``, ``--pin``, ``--rekor-key``, ``--require-receipt``,
 ``--cert-identity``, ``--cert-oidc-issuer``, ``--fulcio-root``, and 0.18's
-``--ct-key``/``--require-sct``). They live only in
+``--ct-key``/``--require-sct`` and ``--trusted-root``). They live only in
 ``$XDG_CONFIG_HOME/opentine/trust-policies.json``: written 0600, and refused when
 the file is a symlink, not a regular file, group/world-writable or not owned by
 the current user. A repository's ``.tine/porcelain.json`` can neither define nor
@@ -31,10 +31,19 @@ from typing import Any
 FILE_NAME = "trust-policies.json"
 MAX_BYTES = 256 * 1024
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
-PATH_FIELDS = ("pubkey", "rekor_key", "fulcio_root")
+PATH_FIELDS = ("pubkey", "rekor_key", "fulcio_root", "trusted_root")
 TEXT_FIELDS = ("cert_identity", "cert_oidc_issuer")
 SCT_FIELDS = ("ct_key", "require_sct")
-FIELDS = ("pubkey", "pin", "rekor_key", "require_receipt", *TEXT_FIELDS, "fulcio_root", *SCT_FIELDS)
+FIELDS = (
+    "pubkey",
+    "pin",
+    "rekor_key",
+    "require_receipt",
+    *TEXT_FIELDS,
+    "fulcio_root",
+    *SCT_FIELDS,
+    "trusted_root",
+)
 KEY_DESTS = ("key_env", "key_file", "pubkey", "pin", "trust_embedded_key")
 #: Any of these given on the command line means the caller chose trust explicitly.
 EXPLICIT_DESTS = (
@@ -44,6 +53,7 @@ EXPLICIT_DESTS = (
     *TEXT_FIELDS,
     "fulcio_root",
     *SCT_FIELDS,
+    "trusted_root",
 )
 
 
@@ -143,6 +153,8 @@ def check_policy(name: str, policy: Any) -> dict[str, Any]:
     for field in ("require_receipt", "require_sct"):
         if field in policy and not isinstance(policy[field], bool):
             raise PolicyError(f"policy {name!r}: {field} must be true or false")
+    if "trusted_root" in policy and {"rekor_key", "fulcio_root", "ct_key"} & set(policy):
+        raise PolicyError(f"policy {name!r}: trusted_root replaces rekor_key/fulcio_root/ct_key")
     cts = policy.get("ct_key", [])
     if not isinstance(cts, list) or not all(isinstance(p, str) and os.path.isabs(p) for p in cts):
         raise PolicyError(f"policy {name!r}: ct_key must be a list of absolute paths")
