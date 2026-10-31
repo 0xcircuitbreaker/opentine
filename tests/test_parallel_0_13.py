@@ -132,14 +132,17 @@ def test_ledger_closes_at_the_limit_and_fails_closed_on_unknown_cost():
 # -- executor -------------------------------------------------------------------------
 
 SLOT = """
-import os, sys
+import os, sys, time
 root, jobs = sys.argv[1], int(sys.argv[2])
-for slot in range(jobs + 1):
+slot = 0
+while slot <= jobs:
     try:
         os.mkdir(os.path.join(root, f"slot{slot}"))
         break
     except FileExistsError:
-        continue
+        slot += 1
+    except PermissionError:  # Windows: a slot another member just freed is delete-pending
+        time.sleep(0.01)
 open(os.path.join(root, f"took-{slot}-{os.getpid()}"), "w").close()
 for _ in range(200000):
     pass

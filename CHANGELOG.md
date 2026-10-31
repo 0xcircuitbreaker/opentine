@@ -15,6 +15,8 @@
   still fails closed. Pack reads that hit a pack merged away under them now
   rescan on any OS error, not only "not found". The 0.16.2 rescan fix covered a
   different, rarer path and never reached this one.
+- A parallel-executor test retries claiming a slot directory that Windows still
+  holds delete-pending, instead of failing the member.
 
 ## 0.17.0 — 2026-10-30
 
