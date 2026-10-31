@@ -14,16 +14,24 @@ import stat
 import time
 
 from opentine import _codec
-from opentine.kernel import KernelError
+from opentine.kernel import KernelError, parse_oid
 from opentine.repository._packs import MAX_OBJECT_BYTES, pack_set
 from opentine.repository._paths import install_verified, internal_path
 
+#: Passes over the loose store and the packs when a check hits a transient error.
+#: A gc in another process publishes its pack, then deletes the loose copies and
+#: their emptied fan-out directories; on Windows a path being deleted while any
+#: handle is open on it is *delete-pending*, and inspecting it is an access error
+#: (a ``KernelError`` from ``internal_path``), not "not found". Such an error is
+#: never absence: the object is in the pack the gc published first (0.17.1).
+_PASSES = 6
 
-def _read_loose(path) -> bytes | None:
-    try:
-        stored = path.read_bytes()
-    except FileNotFoundError:
-        return None
+
+def _pause(attempt: int) -> None:
+    time.sleep(min(0.002 * 2**attempt, 0.05))
+
+
+def _unwrap(stored: bytes) -> bytes:
     try:
         return _codec.unwrap(stored, limit=MAX_OBJECT_BYTES)
     except _codec.CodecError as exc:
@@ -32,27 +40,53 @@ def _read_loose(path) -> bytes | None:
 
 def read_object(repo, oid: str) -> bytes:
     """The canonical bytes of *oid*; ``KeyError`` when it is not stored."""
-    raw = _read_loose(repo._object_path(oid))
-    if raw is None:
+    parse_oid(oid)
+    for attempt in range(_PASSES):
+        error: Exception | None = None
+        try:
+            return _unwrap(repo._object_path(oid).read_bytes())
+        except FileNotFoundError:
+            pass
+        except (KernelError, OSError) as exc:  # being deleted by a gc (Windows), or hostile
+            error = exc
         try:
             raw = pack_set(repo.path).read(oid)
         except _codec.CodecError as exc:
             raise KernelError(f"packed object cannot be decoded: {exc}") from exc
-    if raw is None:
-        raise KeyError(oid)
-    return raw
+        except OSError as exc:
+            raw, error = None, error or exc
+        if raw is not None:
+            return raw
+        if error is None:
+            raise KeyError(oid)
+        if attempt == _PASSES - 1:
+            raise error
+        _pause(attempt)
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def object_exists(repo, oid: str) -> bool:
     try:
-        if repo._object_path(oid).is_file():
-            return True
+        parse_oid(oid)
     except KernelError:
         return False
-    try:
-        return pack_set(repo.path).locate(oid) is not None
-    except (KernelError, OSError, ValueError):
-        return False
+    for attempt in range(_PASSES):
+        unsure = False
+        try:
+            if repo._object_path(oid).is_file():
+                return True
+        except (KernelError, OSError):
+            unsure = True  # being deleted by a gc (Windows): its pack decides
+        try:
+            if pack_set(repo.path).locate(oid) is not None:
+                return True
+        except (KernelError, OSError, ValueError):
+            unsure = True
+        if not unsure:
+            return False
+        if attempt < _PASSES - 1:
+            _pause(attempt)
+    return False
 
 
 def is_loose_plain(repo, oid: str) -> bool:
