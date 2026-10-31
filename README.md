@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.18.1/docs/assets/readme-hero-terminal.gif" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.18.1/docs/assets/readme-hero-terminal.svg" alt="tine run captures an agent run as a content-addressed graph; tine replay --verify reproduces it with zero structural drift" width="820" />
 </p>
 
 A **tine** is the prong of a fork. OpenTine forks agent runs.
@@ -39,7 +39,7 @@ outcomes, each named by digest. Fork from any step to retry a different way;
 intact, no structural drift) — all without losing provenance.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.18.1/docs/assets/readme-run-tree.gif" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.18.1/docs/assets/readme-run-tree.svg" alt="OpenTine run tree: fork, retry, and verify without losing provenance" width="820" />
 </p>
 
 ## Install
@@ -633,24 +633,9 @@ tine share clone https://runs.example ./clone --tenant team
 
 ## Harnesses and tools
 
-```mermaid
-graph LR
-    Task["agent task"] --> Wrap["opentine capture"]
-    Wrap --> Codex["codex"]
-    Wrap --> Kimi["kimi-code"]
-    Wrap --> Generic["generic CLI"]
-    Wrap --> SDK["anthropic · openai<br/>google · ollama"]
-    Codex --> Tine
-    Kimi --> Tine
-    Generic --> Tine
-    SDK --> Tine
-    Tine[["portable .tine<br/>+ .tine/ repo"]] --> Verify["replay --verify"]
-    Tine --> Fork["fork · resume"]
-    Tine --> Diff["repo-diff · repo-search"]
-    Tine --> Attest["attest · promote"]
-    classDef hub fill:#d4a574,stroke:#b98a56,color:#1a1206,font-weight:bold;
-    class Tine hub;
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/0xcircuitbreaker/opentine/v0.18.1/docs/assets/readme-harnesses.svg" alt="An agent task runs through a harness (claude-code, codex, gemini, cursor, kimi-code, generic and 19 more) or an SDK (anthropic, openai, google, ollama) into a portable .tine file and .tine/ repository, which then supports replay --verify, fork and resume, repo-diff and repo-search, attest and promote" width="820" />
+</p>
 
 OpenTine can capture external CLI agents:
 
