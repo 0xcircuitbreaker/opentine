@@ -125,7 +125,7 @@ def _b64(value: Any, what: str) -> bytes:
         raise ValueError(f"{what} is not base64") from None
 
 
-def _log(item: Any, what: str) -> tuple[bytes, Any, _Window]:
+def _log(item: Any, what: str, strict: bool = True) -> tuple[bytes, Any, _Window] | None:
     if not isinstance(item, dict) or not isinstance(item.get("publicKey"), dict):
         raise ValueError(f"{what} has no publicKey")
     public = item["publicKey"]
@@ -137,6 +137,12 @@ def _log(item: Any, what: str) -> tuple[bytes, Any, _Window]:
         raise ValueError(f"{what} key type is not supported")
     key_id = _b64((item.get("logId") or {}).get("keyId"), f"{what} logId")
     if key_id != log_id(key):
+        # A Rekor v2 (tile) log derives its id from its checkpoint key name, not
+        # the key's SHA-256 (the public-good root lists one since 2025). Its
+        # entries never match a v1 receipt's logId, so skip it; CT log ids are
+        # fixed by RFC 6962 and stay strict.
+        if not strict:
+            return None
         raise ValueError(f"{what} logId is not the SHA-256 of its key")
     return key_id, key, _window(public, what)
 
@@ -173,8 +179,9 @@ def parse_trusted_root(raw: bytes) -> TrustedRoot:
         raise ValueError("trusted root is not JSON") from None
     if not isinstance(doc, dict) or doc.get("mediaType") not in MEDIA_TYPES:
         raise ValueError("not a Sigstore trusted root (unexpected mediaType)")
+    tlogs = [_log(t, f"tlogs[{i}]", strict=False) for i, t in enumerate(_list(doc, "tlogs"))]
     root = TrustedRoot(
-        tlogs=[_log(t, f"tlogs[{i}]") for i, t in enumerate(_list(doc, "tlogs"))],
+        tlogs=[log for log in tlogs if log is not None],
         authorities=[
             _authority(c, f"certificateAuthorities[{i}]")
             for i, c in enumerate(_list(doc, "certificateAuthorities"))

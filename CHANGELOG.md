@@ -20,7 +20,10 @@
   takes the Rekor keys, Fulcio chains and CT log keys for a keyless attestation
   from one Sigstore `trusted_root.json`, using each only inside its `validFor`
   window (Rekor and CA by the verified `integratedTime`, CT by the leaf's
-  `notBefore`) and refusing a `logId` that is not its key's hash. When the root
+  `notBefore`). A CT log whose `logId` is not its key's hash is refused; a
+  Rekor log whose id is derived otherwise (Rekor v2 tile logs, such as
+  `log2025-1` in the public-good root) is skipped, since no v1 receipt can name
+  it. When the root
   lists CT logs, an embedded SCT is required. It is a usage error beside
   `--rekor-key`/`--fulcio-root`/`--ct-key`, refused without `--attestation` and
   for a key-signed attestation, and trust policies carry it as `trusted_root`.
@@ -30,7 +33,11 @@
   protection; ed25519 and ECDSA P-256 keys) that installs `trusted_root.json`
   into `$XDG_CONFIG_HOME/opentine/sigstore/`. That copy becomes the default for
   keyless verification that names no key file. No TUF root is embedded: the
-  first run needs `--root FILE`. Nothing is fetched unless you run it.
+  first run needs `--root FILE`. Nothing is fetched unless you run it. Checked
+  live against `tuf-repo-cdn.sigstore.dev` (root v5 → v16).
+- A weekly, non-required `live-sigstore` workflow repeats that live update from
+  a pinned root, so a format change on Sigstore's side shows up early; CI and
+  the release gate never depend on it.
 
 ## 0.17.1 — 2026-10-31
 

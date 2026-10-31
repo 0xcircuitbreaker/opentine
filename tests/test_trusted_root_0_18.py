@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from opentine import Run, RunStatus, StepKind, cli, rekor
 from opentine._trusted_root import parse_trusted_root
@@ -167,12 +168,40 @@ def test_valid_for_windows_are_enforced(ws, capsys, windows, reason) -> None:
         assert payload["receipt"]["status"] == "no-key"
 
 
-def test_log_id_must_match_key(ws, capsys) -> None:
+def test_a_tlog_whose_id_is_not_its_key_hash_is_never_used(ws, capsys) -> None:
     root, log, fulcio = ws
     _export(fulcio)
     name = _write_root(root, make_root(log, fulcio, bad_id=True))
     code, payload = _verify(capsys, "--trusted-root", name)
-    assert code == 1 and "logId is not the SHA-256" in payload["signature"]["reason"]
+    assert code == 1 and "no tlogs" in payload["signature"]["reason"]
+
+
+def test_a_rekor_v2_log_beside_a_v1_log_does_not_reject_the_root(ws, capsys) -> None:
+    # The public-good trusted root lists log2025-1 (Rekor v2, ed25519) whose logId
+    # is derived from its checkpoint key name; 0.18 skips it rather than refusing
+    # the whole file (found by a live `tine trust root update`).
+    root, log, fulcio = ws
+    _export(fulcio)
+    doc = make_root(log, fulcio)
+    spki = (
+        Ed25519PrivateKey.generate()
+        .public_key()
+        .public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    )
+    doc["tlogs"].append(
+        {
+            "baseUrl": "https://log2025-1.rekor.example",
+            "hashAlgorithm": "SHA2_256",
+            "publicKey": {
+                "rawBytes": base64.b64encode(spki).decode(),
+                "keyDetails": "PKIX_ED25519",
+                "validFor": {"start": "2025-09-23T00:00:00Z"},
+            },
+            "logId": {"keyId": base64.b64encode(b"\x01" * 32).decode()},
+        }
+    )
+    code, payload = _verify(capsys, "--trusted-root", _write_root(root, doc))
+    assert code == 0, payload
 
 
 @pytest.mark.parametrize(
