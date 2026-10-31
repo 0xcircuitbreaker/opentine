@@ -67,7 +67,8 @@ def _relative(written: str, root: Path | None) -> str | None:
     path = written.replace("\\", "/")
     if not path or path.startswith("~"):
         return None
-    if os.path.isabs(path) or (len(path) > 1 and path[1] == ":"):
+    # A leading "/" is rooted everywhere; Windows 3.13+ isabs() says no drive, no root.
+    if path.startswith("/") or os.path.isabs(path) or (len(path) > 1 and path[1] == ":"):
         if root is None:
             return None
         try:
