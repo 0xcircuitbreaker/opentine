@@ -154,7 +154,7 @@ def test_run_verify_signature_matches_the_compat_vectors(tmp_path: Path) -> None
         assert result.state == record["output"]["state"], record["id"]
         assert bool(result.ok) == record["output"]["ok"], record["id"]
         checked += 1
-    assert checked == 16, "two signed artifacts per released version: the full-header "
+    assert checked == 28, "two signed artifacts per released version: the full-header "
     "block and the partial one SPEC 4.1's rebuild MUST turns on"
 
 
