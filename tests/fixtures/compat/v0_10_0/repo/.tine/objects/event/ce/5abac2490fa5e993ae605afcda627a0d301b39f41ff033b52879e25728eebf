@@ -1,0 +1,2 @@
+{"encoding":"json","schema":1,"type":"event"}
+{"billing":{},"causal_ids":[],"cost":0.012,"duration":0,"error":{},"input_blob":"blob:sha256:06447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446","kind":"model","legacy_step_id":"9d6d541ab99cff496d68bdd0d000a8faa01125bccfb08f2ce140c568fefb12a4","model":"anthropic/claude-sonnet-5","output_blob":"blob:sha256:1599abdb7601ede895dea984de6d1ca0bbdfa541d65a61b533645a7d29226125","parent_ids":[],"time_unix":1767225600,"tool":{},"usage":{"input":120,"output":60}}
