@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.18.1 — 2026-10-31
+
+### Fixes
+
+- **`tine trust root update` no longer stalls on a broken IPv6 route.** Each
+  repository request waited out the whole 30 s timeout on an unroutable IPv6
+  address before trying IPv4. Addresses are now tried IPv4 first, each with a
+  5 s connect budget, so a refresh takes about a second instead of minutes.
 
 ### Compatibility
 

@@ -291,3 +291,36 @@ def test_cli_update(repo, tmp_path, capsys, monkeypatch) -> None:
     cli.main(["trust", "root", "update", "--repo-url", URL, "--root", "root.json", "--json"])
     payload = json.loads(capsys.readouterr().out)
     assert payload["command"] == "trust root update" and payload["root"] == 1
+
+
+def test_an_unroutable_address_falls_through_to_the_next_ipv4_first(monkeypatch):
+    import socket
+
+    from opentine import _tuf_fetch
+
+    tried = []
+
+    class Sock:
+        def __init__(self, family, kind, proto):
+            self.family = family
+
+        def settimeout(self, value):
+            assert value <= _tuf_fetch.TIMEOUT_SECONDS
+
+        def connect(self, address):
+            tried.append(address[0])
+            if address[0] != "10.0.0.2":
+                raise TimeoutError("unroutable")
+
+        def close(self):
+            pass
+
+    infos = [
+        (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2001:db8::1", 443, 0, 0)),
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", 443)),
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.2", 443)),
+    ]
+    monkeypatch.setattr(_tuf_fetch.socket, "getaddrinfo", lambda *a, **k: list(infos))
+    monkeypatch.setattr(_tuf_fetch.socket, "socket", Sock)
+    assert _tuf_fetch._dial("example.test", 443, 30.0).family == socket.AF_INET
+    assert tried == ["10.0.0.1", "10.0.0.2"]
