@@ -176,8 +176,9 @@ class PackSet:
     def read(self, oid: str) -> bytes | None:
         try:
             return self._read(oid)
-        except (FileNotFoundError, KeyError):
-            # Another process repacked: the pack this process remembered is gone.
+        except (OSError, KeyError):
+            # Another process repacked: the pack this process remembered is gone
+            # (on Windows, delete-pending: an access error, not "not found").
             self.fingerprint = None
             self.refresh()
             return self._read(oid)

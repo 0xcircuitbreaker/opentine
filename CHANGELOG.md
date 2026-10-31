@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.17.1 — 2026-10-31
+
+### Fixes
+
+- **A live recorder no longer reports a stored object missing while gc runs
+  (Windows).** When gc packed a loose object and deleted the loose file, Windows
+  can briefly refuse to inspect that path (the file or its fan-out directory is
+  "delete pending" while another handle is open). The existence check read that
+  error as "absent" and never looked in the packs, so the recorder's next write
+  failed with "missing linked object". An error on the loose path now always
+  falls through to the packs, and an uncertain miss is re-checked a few times
+  (about 0.1 s at most) before an object is called missing; a persistent error
+  still fails closed. Pack reads that hit a pack merged away under them now
+  rescan on any OS error, not only "not found". The 0.16.2 rescan fix covered a
+  different, rarer path and never reached this one.
+- A parallel-executor test retries claiming a slot directory that Windows still
+  holds delete-pending, instead of failing the member.
+
 ## 0.17.0 — 2026-10-30
 
 "Simplify, part 2": `log` and `show` are the front door for read-only browsing.
