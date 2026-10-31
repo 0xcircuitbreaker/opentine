@@ -6,6 +6,181 @@
         9
       ],
       "expect": "accept",
+      "id": "compat.v0-10-0.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_10_0/artifact.tine",
+        "sha256": "47d962db470d63358233c0dbe4147ad06f6a7b4d29e49159747fe821b058d8b5"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_10_0 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9d6d541ab99cff496d68bdd0d000a8faa01125bccfb08f2ce140c568fefb12a4\",\\n      \"fcf9f91e0b2ca3493e9763a31aa3711358a4592e0905fcb22075dff8b67986df\",\\n      \"a2e8124b2d3785e90cb61d902d2ae466bcdad90927447e914ca2d89fba369c83\",\\n      \"8c5e30a3c0518a880418b10808b4513dcc569b258f72688bddf4b1dced79c7d4\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-10-0.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_10_0/artifact.tine",
+        "sha256": "47d962db470d63358233c0dbe4147ad06f6a7b4d29e49159747fe821b058d8b5"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "b00b8a83efe9553c3fc90bd5a08802ab1c7efef2bb00a1ed963b06ca90c9a993",
+        "algorithm": "sha256",
+        "expected": "b00b8a83efe9553c3fc90bd5a08802ab1c7efef2bb00a1ed963b06ca90c9a993",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9d6d541ab99cff496d68bdd0d000a8faa01125bccfb08f2ce140c568fefb12a4\",\\n      \"fcf9f91e0b2ca3493e9763a31aa3711358a4592e0905fcb22075dff8b67986df\",\\n      \"a2e8124b2d3785e90cb61d902d2ae466bcdad90927447e914ca2d89fba369c83\",\\n      \"8c5e30a3c0518a880418b10808b4513dcc569b258f72688bddf4b1dced79c7d4\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-10-0.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_10_0/artifact_signed_fork_reason.tine",
+        "sha256": "14938117662fc18b64a9ed7c56601d9d4befbdbacf8c95cf6a3d955df4db89e2"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:2c1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2",
+          "event:sha256:2c1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2",
+          "event:sha256:a84b26cc0fbeb509d0c7e06ffa6f7209cfbdf846cf90f25205fc6af9df818c3a",
+          "event:sha256:bbb72e3b077f0cee7be066dcafef511750d696b77757cedeee1217d3c575f64c",
+          "event:sha256:ce5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf",
+          "event:sha256:ce5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-10-0.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/run/8c/9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764",
+        "sha256": "0c3b03c0a7d82cfb5d785b4982610c96e52f75d0803f6eb60a6b507a3018f718"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:2c1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2",
+          "event:sha256:2c1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2",
+          "event:sha256:a84b26cc0fbeb509d0c7e06ffa6f7209cfbdf846cf90f25205fc6af9df818c3a",
+          "event:sha256:bbb72e3b077f0cee7be066dcafef511750d696b77757cedeee1217d3c575f64c",
+          "event:sha256:ce5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf",
+          "event:sha256:ce5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf"
+        ],
+        "oid": "run:sha256:8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:ce5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf\",\"event:sha256:bbb72e3b077f0cee7be066dcafef511750d696b77757cedeee1217d3c575f64c\",\"event:sha256:a84b26cc0fbeb509d0c7e06ffa6f7209cfbdf846cf90f25205fc6af9df818c3a\",\"event:sha256:2c1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-10-0.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_10_0/artifact_signed.tine",
+        "sha256": "9078f797e320c429b4c730736d42c6dcf7249405018f8ea25cf1dc393c5c33cb"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9d6d541ab99cff496d68bdd0d000a8faa01125bccfb08f2ce140c568fefb12a4\",\\n      \"fcf9f91e0b2ca3493e9763a31aa3711358a4592e0905fcb22075dff8b67986df\",\\n      \"a2e8124b2d3785e90cb61d902d2ae466bcdad90927447e914ca2d89fba369c83\",\\n      \"8c5e30a3c0518a880418b10808b4513dcc569b258f72688bddf4b1dced79c7d4\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
       "id": "compat.v0-3-0.artifact-parses",
       "input": {
         "path": "tests/fixtures/compat/v0_3_0/artifact.tine",
@@ -1398,6 +1573,881 @@
       "section": "5.1",
       "tier": "core",
       "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"203c1250b2daa7d5497a4f6712a2abf9e91fc7517b249518dadc3501bca9e2fb\",\\n      \"828fec0276ed9e6fe49f9b93b0c88a8128c15e6a22340204d297cd01b9c82e99\",\\n      \"41fc84444e9f2480e02c279a0d5350779ab96c3df11cf8534ee829006e76c504\",\\n      \"1046d0c7bd01be38c6c24ce705ab3f56da3b08f9b6bfc4cf7fb6561b1f51879d\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "compat.v0-8-2.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_2/artifact.tine",
+        "sha256": "536510340153a4c7d3be76434fac71331b873bfaace193a1b5dcc2dbffe7d916"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_8_2 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"cb5c56e0322db45e330f560b55ba9b471e6833c9b35460b1b5b5b390af07b9c1\",\\n      \"ba74563b2b229a1980db2bd17ea5f110c9a6e419c63f74abb5afea50bcf67e3f\",\\n      \"d80a89cc2fa07ac8a34cfc34cb49f321dcf3ddfc88fa3e9f6d29917ba8683031\",\\n      \"a648999905328d1c74b8cdb5a6839c1b79b2d909486a8cefb9ce762d472f5cbd\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-2.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_2/artifact.tine",
+        "sha256": "536510340153a4c7d3be76434fac71331b873bfaace193a1b5dcc2dbffe7d916"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "df014e24300a6fbb567234ed0c724fbc8db12f57eeb6074729585675e8fcc4f9",
+        "algorithm": "sha256",
+        "expected": "df014e24300a6fbb567234ed0c724fbc8db12f57eeb6074729585675e8fcc4f9",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"cb5c56e0322db45e330f560b55ba9b471e6833c9b35460b1b5b5b390af07b9c1\",\\n      \"ba74563b2b229a1980db2bd17ea5f110c9a6e419c63f74abb5afea50bcf67e3f\",\\n      \"d80a89cc2fa07ac8a34cfc34cb49f321dcf3ddfc88fa3e9f6d29917ba8683031\",\\n      \"a648999905328d1c74b8cdb5a6839c1b79b2d909486a8cefb9ce762d472f5cbd\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-2.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_2/artifact_signed_fork_reason.tine",
+        "sha256": "1196ed3df63e3d64461a344bacad3b392bbe4664f732052c0b6d1d0971f67243"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:847efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a",
+          "event:sha256:847efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a",
+          "event:sha256:a92f847bb279a70206790de016e52acc26aaa2a04911d3f854649f4f9223a2e6",
+          "event:sha256:aaae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9",
+          "event:sha256:aaae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9",
+          "event:sha256:cea8e799145ef57c9d4128bcad6184dffe4e053da6d9024dbfce5ab129bc5e21"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-8-2.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/run/69/2c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b",
+        "sha256": "290c0142c1391083f4ea80924e8e818fc1c389a5442ee2ca2b6e3a7ab328065a"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:847efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a",
+          "event:sha256:847efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a",
+          "event:sha256:a92f847bb279a70206790de016e52acc26aaa2a04911d3f854649f4f9223a2e6",
+          "event:sha256:aaae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9",
+          "event:sha256:aaae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9",
+          "event:sha256:cea8e799145ef57c9d4128bcad6184dffe4e053da6d9024dbfce5ab129bc5e21"
+        ],
+        "oid": "run:sha256:692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:aaae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9\",\"event:sha256:a92f847bb279a70206790de016e52acc26aaa2a04911d3f854649f4f9223a2e6\",\"event:sha256:cea8e799145ef57c9d4128bcad6184dffe4e053da6d9024dbfce5ab129bc5e21\",\"event:sha256:847efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-2.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_2/artifact_signed.tine",
+        "sha256": "96080a23a903aa3e44dd4142d7516beab9fa29282cd5fa1a876f39ee9e27dbe1"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"cb5c56e0322db45e330f560b55ba9b471e6833c9b35460b1b5b5b390af07b9c1\",\\n      \"ba74563b2b229a1980db2bd17ea5f110c9a6e419c63f74abb5afea50bcf67e3f\",\\n      \"d80a89cc2fa07ac8a34cfc34cb49f321dcf3ddfc88fa3e9f6d29917ba8683031\",\\n      \"a648999905328d1c74b8cdb5a6839c1b79b2d909486a8cefb9ce762d472f5cbd\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "compat.v0-8-3.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_3/artifact.tine",
+        "sha256": "0fe8d035f1ffbf8772c62f6a8b5b0717bdbbdfc5e361e8e5fdd302c55b1b7af2"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_8_3 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"357d658730f54ccb3ac5cb08512ab7fccc5c7d33f2ff932174b4af8cadcfcf72\",\\n      \"4ba583871747ce40ae8f182d720f9936a87ab38aa0cad41eaecb66b7685c7f05\",\\n      \"ea02c5230a7d9d417bba6d64514e522877232278307e1b44cbfe808266bb79fd\",\\n      \"72b390929eb822b8d8f6adf7cbe18345a9033c522cd35fbf1fdd8280a0605385\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-3.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_3/artifact.tine",
+        "sha256": "0fe8d035f1ffbf8772c62f6a8b5b0717bdbbdfc5e361e8e5fdd302c55b1b7af2"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "cbcbffa4641ec5c0eeaa9afe4f4413e6d3865cf8596af4ecdb5d2947582f4a20",
+        "algorithm": "sha256",
+        "expected": "cbcbffa4641ec5c0eeaa9afe4f4413e6d3865cf8596af4ecdb5d2947582f4a20",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"357d658730f54ccb3ac5cb08512ab7fccc5c7d33f2ff932174b4af8cadcfcf72\",\\n      \"4ba583871747ce40ae8f182d720f9936a87ab38aa0cad41eaecb66b7685c7f05\",\\n      \"ea02c5230a7d9d417bba6d64514e522877232278307e1b44cbfe808266bb79fd\",\\n      \"72b390929eb822b8d8f6adf7cbe18345a9033c522cd35fbf1fdd8280a0605385\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-3.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_3/artifact_signed_fork_reason.tine",
+        "sha256": "b8eb97ecc953496af88d4633323fce49e7844417f16b992dffe6544366aec675"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:84a7dd3a7c2e073bc89cbb152df164c92c4193a50d51c295cc796f8e8d230a92",
+          "event:sha256:927557d72f6162565c273f6fed61b771f9d7b5fba7887f12c79555a4c0ebb057",
+          "event:sha256:bf6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c",
+          "event:sha256:bf6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c",
+          "event:sha256:cfa2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3",
+          "event:sha256:cfa2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-8-3.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/run/72/ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8",
+        "sha256": "d8406366bf38148d611bd27c6df085ad995f48b619ae57f0d4fef445c4b15232"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:84a7dd3a7c2e073bc89cbb152df164c92c4193a50d51c295cc796f8e8d230a92",
+          "event:sha256:927557d72f6162565c273f6fed61b771f9d7b5fba7887f12c79555a4c0ebb057",
+          "event:sha256:bf6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c",
+          "event:sha256:bf6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c",
+          "event:sha256:cfa2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3",
+          "event:sha256:cfa2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3"
+        ],
+        "oid": "run:sha256:72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:bf6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c\",\"event:sha256:927557d72f6162565c273f6fed61b771f9d7b5fba7887f12c79555a4c0ebb057\",\"event:sha256:84a7dd3a7c2e073bc89cbb152df164c92c4193a50d51c295cc796f8e8d230a92\",\"event:sha256:cfa2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-8-3.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_8_3/artifact_signed.tine",
+        "sha256": "34e279a62c63d2a2bed97dee283d5c1fbe499b12de2f49c54dbebd6792a27702"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"357d658730f54ccb3ac5cb08512ab7fccc5c7d33f2ff932174b4af8cadcfcf72\",\\n      \"4ba583871747ce40ae8f182d720f9936a87ab38aa0cad41eaecb66b7685c7f05\",\\n      \"ea02c5230a7d9d417bba6d64514e522877232278307e1b44cbfe808266bb79fd\",\\n      \"72b390929eb822b8d8f6adf7cbe18345a9033c522cd35fbf1fdd8280a0605385\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-0.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_0/artifact.tine",
+        "sha256": "79c5df9ce580f214a5da903974cff39c100e219e796e650699e3207e92fcb545"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_9_0 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9e6ff5eb418a35e44b2aa86a59f53fc89a98af84fceedf80a436577c695b9af0\",\\n      \"883cad80975f2711e1b366d7ea69e1fb520e4d4b314edd9110b98ec34cf05a10\",\\n      \"c241c14cd6629a041c691abaa04a01f5f7135f911c42242d4404b62c85aef54a\",\\n      \"5b426251b96b2a8415f4f860c0aa4f70ea1f1272de975027ee3fc4d21b8623ad\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-0.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_0/artifact.tine",
+        "sha256": "79c5df9ce580f214a5da903974cff39c100e219e796e650699e3207e92fcb545"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "db26644ec077cf73414dc418fd2545d65cc9960ada6b5eb39ffae4c7fbcc9ef1",
+        "algorithm": "sha256",
+        "expected": "db26644ec077cf73414dc418fd2545d65cc9960ada6b5eb39ffae4c7fbcc9ef1",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9e6ff5eb418a35e44b2aa86a59f53fc89a98af84fceedf80a436577c695b9af0\",\\n      \"883cad80975f2711e1b366d7ea69e1fb520e4d4b314edd9110b98ec34cf05a10\",\\n      \"c241c14cd6629a041c691abaa04a01f5f7135f911c42242d4404b62c85aef54a\",\\n      \"5b426251b96b2a8415f4f860c0aa4f70ea1f1272de975027ee3fc4d21b8623ad\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-0.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_0/artifact_signed_fork_reason.tine",
+        "sha256": "bab297a0a57674150913c6a071126538d647ee242942ad96d1ec201a5326192c"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:0eed4da8f23f1ca11ba4141c391a40bb5b2e9b0d34f2201e890f84cafce1bd59",
+          "event:sha256:108e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87",
+          "event:sha256:108e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87",
+          "event:sha256:e37bb7c2c59ae5499d0cc60157cb5bec8ded1c0f586a2954843b122a06f3fc64",
+          "event:sha256:f3d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d",
+          "event:sha256:f3d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-0.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/run/0e/5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0",
+        "sha256": "7022ca42295fd7acec39289fde4882a25a013a052baa91729b450299f466cb99"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:0eed4da8f23f1ca11ba4141c391a40bb5b2e9b0d34f2201e890f84cafce1bd59",
+          "event:sha256:108e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87",
+          "event:sha256:108e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87",
+          "event:sha256:e37bb7c2c59ae5499d0cc60157cb5bec8ded1c0f586a2954843b122a06f3fc64",
+          "event:sha256:f3d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d",
+          "event:sha256:f3d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d"
+        ],
+        "oid": "run:sha256:0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:108e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87\",\"event:sha256:0eed4da8f23f1ca11ba4141c391a40bb5b2e9b0d34f2201e890f84cafce1bd59\",\"event:sha256:e37bb7c2c59ae5499d0cc60157cb5bec8ded1c0f586a2954843b122a06f3fc64\",\"event:sha256:f3d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-0.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_0/artifact_signed.tine",
+        "sha256": "db4221943ed6e25aa3885d97bdf5eb9cba9027d158c5eb2f47caba61aca8aba2"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"9e6ff5eb418a35e44b2aa86a59f53fc89a98af84fceedf80a436577c695b9af0\",\\n      \"883cad80975f2711e1b366d7ea69e1fb520e4d4b314edd9110b98ec34cf05a10\",\\n      \"c241c14cd6629a041c691abaa04a01f5f7135f911c42242d4404b62c85aef54a\",\\n      \"5b426251b96b2a8415f4f860c0aa4f70ea1f1272de975027ee3fc4d21b8623ad\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-1.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_1/artifact.tine",
+        "sha256": "1c3d6e5254c8155adecef5d1b4f40edcd17e3bbdf78d41a3003813babb5bbb52"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_9_1 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"a9d9021ceef12e6f70afc66f40a91cc54875f092333abee89d34662079c68926\",\\n      \"1366082b7871df4e7c69c39102f2bd7aeb89ad76a098e6dd25a58526e2c1a81b\",\\n      \"eea0b92fe23b85ed32c7ea5bdd20f1853d326788b4ccfd9abfeb28e86ade47cc\",\\n      \"18193777c2d8c7e5f46be40b234121aff0041469211caf08a1e78557bfeb228e\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-1.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_1/artifact.tine",
+        "sha256": "1c3d6e5254c8155adecef5d1b4f40edcd17e3bbdf78d41a3003813babb5bbb52"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "00c888017d57d22dd7cde273849a9993c6680f9a01458c44f6802d4cb9258e1a",
+        "algorithm": "sha256",
+        "expected": "00c888017d57d22dd7cde273849a9993c6680f9a01458c44f6802d4cb9258e1a",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"a9d9021ceef12e6f70afc66f40a91cc54875f092333abee89d34662079c68926\",\\n      \"1366082b7871df4e7c69c39102f2bd7aeb89ad76a098e6dd25a58526e2c1a81b\",\\n      \"eea0b92fe23b85ed32c7ea5bdd20f1853d326788b4ccfd9abfeb28e86ade47cc\",\\n      \"18193777c2d8c7e5f46be40b234121aff0041469211caf08a1e78557bfeb228e\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-1.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_1/artifact_signed_fork_reason.tine",
+        "sha256": "e43d4fd392f1347dfe2d1b045bb31c31f95f81a60b2426901ed9f93584929d6d"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:3847ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5",
+          "event:sha256:3847ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5",
+          "event:sha256:65f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b",
+          "event:sha256:65f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b",
+          "event:sha256:7bd12bd14e4ee43b2e18dd39082e1eb524c7b3ee22e2c06fbc97b940f7d7d821",
+          "event:sha256:d7aab02569c23d6524976373f6f0bc056db194fbc52bcaa061965cf3e826f9b8"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-1.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/run/ea/cd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4",
+        "sha256": "0db4e82900600ab65f3e6338f9139de5492c472c7e22781fafe2e428e8354ba3"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:3847ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5",
+          "event:sha256:3847ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5",
+          "event:sha256:65f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b",
+          "event:sha256:65f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b",
+          "event:sha256:7bd12bd14e4ee43b2e18dd39082e1eb524c7b3ee22e2c06fbc97b940f7d7d821",
+          "event:sha256:d7aab02569c23d6524976373f6f0bc056db194fbc52bcaa061965cf3e826f9b8"
+        ],
+        "oid": "run:sha256:eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:3847ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5\",\"event:sha256:7bd12bd14e4ee43b2e18dd39082e1eb524c7b3ee22e2c06fbc97b940f7d7d821\",\"event:sha256:d7aab02569c23d6524976373f6f0bc056db194fbc52bcaa061965cf3e826f9b8\",\"event:sha256:65f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-1.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_1/artifact_signed.tine",
+        "sha256": "bb7ccb36540f25559215afb62c808ea51aa3e73c66557b7d418858757bac12db"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"a9d9021ceef12e6f70afc66f40a91cc54875f092333abee89d34662079c68926\",\\n      \"1366082b7871df4e7c69c39102f2bd7aeb89ad76a098e6dd25a58526e2c1a81b\",\\n      \"eea0b92fe23b85ed32c7ea5bdd20f1853d326788b4ccfd9abfeb28e86ade47cc\",\\n      \"18193777c2d8c7e5f46be40b234121aff0041469211caf08a1e78557bfeb228e\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7,
+        9
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-2.artifact-parses",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_2/artifact.tine",
+        "sha256": "56f63caf43de7ae5d9e8c190075610ba783f33d0be61d5926c0aa5cf98d41831"
+      },
+      "intent": "a .tine artifact written by the published opentine v0_9_2 still parses under every reader bound this build enforces",
+      "op": "artifact.parse",
+      "output": {
+        "top_level_keys": [
+          "cache",
+          "created_at",
+          "format_version",
+          "graph",
+          "manifest",
+          "metadata",
+          "policies",
+          "refs",
+          "run_id",
+          "status",
+          "transcript"
+        ]
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"906fe7632dfeb05de562dd8093740fed81efe539784353ae9e2b255e14fb7d99\",\\n      \"bf33ec02b931996a9997c16fe24aa52ae0a44f533dfa559b348c024aab3f57eb\",\\n      \"8f4464c38f3cb03f46548364d421fec627300553aedc0c33b4ea4011aaa3a7c6\",\\n      \"ca93dd52a95a3fe8efc784fe4de82942710e656ba674cf625b0e3ce5808ca647\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        7
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-2.integrity-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_2/artifact.tine",
+        "sha256": "56f63caf43de7ae5d9e8c190075610ba783f33d0be61d5926c0aa5cf98d41831"
+      },
+      "intent": "and the integrity digest that release computed still recomputes to the same value, which is why neither canonicalization may be unified",
+      "op": "integrity.verify",
+      "output": {
+        "actual": "006059a79be55bb6e588ecf07cd695507280db696679fb4d06b5a9eaab8f9165",
+        "algorithm": "sha256",
+        "expected": "006059a79be55bb6e588ecf07cd695507280db696679fb4d06b5a9eaab8f9165",
+        "ok": true,
+        "reason": "ok"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"906fe7632dfeb05de562dd8093740fed81efe539784353ae9e2b255e14fb7d99\",\\n      \"bf33ec02b931996a9997c16fe24aa52ae0a44f533dfa559b348c024aab3f57eb\",\\n      \"8f4464c38f3cb03f46548364d421fec627300553aedc0c33b4ea4011aaa3a7c6\",\\n      \"ca93dd52a95a3fe8efc784fe4de82942710e656ba674cf625b0e3ce5808ca647\"\\n    ],\\n...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-2.partial-block-signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_2/artifact_signed_fork_reason.tine",
+        "sha256": "a5eaca59a48f7f47dc80c4fb81807c3bec7e0f8701a342d52b48ad424804837b"
+      },
+      "intent": "this release's other signed artifact stores a block with key_id, signer and signed_at absent, so verifying it exercises SPEC 4.1's rebuild MUST: a verifier that canonicalizes the keys the block carries, rather than the five-key header filled with nulls, reports mismatch here and verified on the full-header artifact beside it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": null,
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"f942906697b79db51a2cab6bad9375cf0a20f4021346f3ab5562b3fb9c10dc20\",\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\"\\n    ],\\n    \"steps\": {\\n      \"cd20bae182649fabc4ea047fb0ff53817803e34088cbcf21d51fd8685bbf1c2f\": {\\n        \"cost\": 0.0,\\n        \"duration\": 0.0,\\n        \"er...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "expected_oid": "run:sha256:aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58",
+        "shallow": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:9c8ad70600f643651c181ae31ef0ca54d1cfe2886622d2c19df8312908e90577",
+          "event:sha256:af54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f",
+          "event:sha256:af54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f",
+          "event:sha256:bd729068d194627358d2a0d7ce67a3bc9f7630f2c7f89238f02bc39bfc81414f",
+          "event:sha256:cc0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825",
+          "event:sha256:cc0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825"
+        ]
+      },
+      "checklist": [
+        3,
+        4,
+        5
+      ],
+      "expect": "accept",
+      "id": "compat.v0-9-2.repo-run-object-loads",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/run/aa/e507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58",
+        "sha256": "3de126a87d9d96f7164b8223dd86518830b62da6e38bcc9cdbf2640ad492a6ab"
+      },
+      "intent": "and the v3 run object that release stored still decodes to its own oid and satisfies every link rule",
+      "op": "object.load",
+      "output": {
+        "links": [
+          "blob:sha256:5c4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "blob:sha256:ecff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "blob:sha256:fd131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "event:sha256:9c8ad70600f643651c181ae31ef0ca54d1cfe2886622d2c19df8312908e90577",
+          "event:sha256:af54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f",
+          "event:sha256:af54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f",
+          "event:sha256:bd729068d194627358d2a0d7ce67a3bc9f7630f2c7f89238f02bc39bfc81414f",
+          "event:sha256:cc0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825",
+          "event:sha256:cc0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825"
+        ],
+        "oid": "run:sha256:aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58"
+      },
+      "profile": "reader",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\"encoding\":\"json\",\"schema\":1,\"type\":\"run\"}\\n{\"created_at\":1767225600,\"events\":[\"event:sha256:af54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f\",\"event:sha256:9c8ad70600f643651c181ae31ef0ca54d1cfe2886622d2c19df8312908e90577\",\"event:sha256:bd729068d194627358d2a0d7ce67a3bc9f7630f2c7f89238f02bc39bfc81414f\",\"event:sha256:cc0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825\"],...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact",
+        "key": "hmac_compat"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "compat.v0-9-2.signature-verifies",
+      "input": {
+        "path": "tests/fixtures/compat/v0_9_2/artifact_signed.tine",
+        "sha256": "50b923c45bdbd151d0adbd884e9c5982c22750e86f444264578fae7f2e7565c5"
+      },
+      "intent": "a genuine signature that release wrote still verifies byte-identically under the same key -- the reason tine-sig/1's metadata allowlist is frozen forever",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "compat-golden",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-01-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "5.1",
+      "tier": "core",
+      "x_display": "{\\n  \"cache\": {},\\n  \"created_at\": 1767225600.0,\\n  \"format_version\": 2,\\n  \"graph\": {\\n    \"order\": [\\n      \"906fe7632dfeb05de562dd8093740fed81efe539784353ae9e2b255e14fb7d99\",\\n      \"bf33ec02b931996a9997c16fe24aa52ae0a44f533dfa559b348c024aab3f57eb\",\\n      \"8f4464c38f3cb03f46548364d421fec627300553aedc0c33b4ea4011aaa3a7c6\",\\n      \"ca93dd52a95a3fe8efc784fe4de82942710e656ba674cf625b0e3ce5808ca647\"\\n    ],\\n...",
       "x_reference": null
     }
   ],

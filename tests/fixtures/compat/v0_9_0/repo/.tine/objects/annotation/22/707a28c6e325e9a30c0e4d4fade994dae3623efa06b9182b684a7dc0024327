@@ -1,0 +1,2 @@
+{"encoding":"json","schema":1,"type":"annotation"}
+{"compatibility":"run-metadata-v1","previous_id":null,"target_id":"run:sha256:0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0","value":{"metadata":{"model_info":"","note":"golden 0.9.0 cross-version fixture","project":"opentine","system_prompt":"You are a careful release assistant.","tags":["compat","golden","release"],"user_prompt":"Summarize what shipped in this release."},"tags":["compat","golden","release"]}}

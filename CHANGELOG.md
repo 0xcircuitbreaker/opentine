@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Compatibility
+
+- Golden compat fixtures for every published release since 0.3.0: 0.8.2,
+  0.8.3, 0.9.0, 0.9.1, 0.9.2, 0.10.0, 0.11.0, 0.12.1, 0.13.1, 0.14.2, 0.17.1
+  and 0.18.0 join the set (27 releases), each generated with its published
+  wheel. The suite is now **580 conformance vectors**;
+  209 of the 580 refuse input, and the adapter contract still has one entry
+  point: 36 ops.
+
 ## 0.18.0 — 2026-10-31
 
 ### Trust

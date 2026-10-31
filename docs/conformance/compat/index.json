@@ -1212,6 +1212,1063 @@
     {
       "artifacts": {
         "artifact.tine": {
+          "digest": "df014e24300a6fbb567234ed0c724fbc8db12f57eeb6074729585675e8fcc4f9",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "5b8e5f641ede583352ca5e7a1679a10e40b1c6084e67b170b49e8f96be21f680",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "b58de20a017d6b0f33153cb1dfa869612b934e2444b57214e7bc764929f2b6c5",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "f1c0180c8764716de25a58a3994698b5bd6f5983dca3719c9345af475793ebdd",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "630569210f6e30464aede757b3f990181b6b95001d427b23e4c232d1b5524b7e"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_8_2/artifact.tine",
+          "sha256": "536510340153a4c7d3be76434fac71331b873bfaace193a1b5dcc2dbffe7d916"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/artifact_signed.tine",
+          "sha256": "96080a23a903aa3e44dd4142d7516beab9fa29282cd5fa1a876f39ee9e27dbe1"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/artifact_signed_fork_reason.tine",
+          "sha256": "1196ed3df63e3d64461a344bacad3b392bbe4664f732052c0b6d1d0971f67243"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/fork.tine",
+          "sha256": "a1d0319acbfc7894de0ec810fd11448dc65edc8e0559e8495a88969de6049827"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/annotation/ff/5d9e0092d36fa77fb75ade777f081b66a5511815055a6343c62420cd7f72fe",
+          "sha256": "f611e9ac4fe459dcb3573488a53963f3cfc8ce5a1009c8ada24bf83d37ff76d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/ef/f3d972d0ec9b1bb01961de555e5db32ab9a7a9c510cc267f71dcb615a521ba",
+          "sha256": "23728aba68df097726609b0e0e9df8b58ae943f74e54909bb241143908d78589"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/event/84/7efdee8a173ebcffad8ece4d5ee28b3348e8b3ef6d0a318325eef7fba45f4a",
+          "sha256": "fde99ac620aab6e5f66267085ebfe453b223c22921fc113db49ff80a26df33fa"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/event/a9/2f847bb279a70206790de016e52acc26aaa2a04911d3f854649f4f9223a2e6",
+          "sha256": "6659f5913f6aea6db24cc37b787ec8c59a04074b32e58a2cb3e9db465ba3fc1b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/event/aa/ae0978e4fcfee97dd7db73666fc677696297820ad4a2adb509d7eefdcf4cb9",
+          "sha256": "88e1c85405195c1dff98caabc107daf0a8bf064339237d49ea0cbf62e16676a5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/event/ce/a8e799145ef57c9d4128bcad6184dffe4e053da6d9024dbfce5ab129bc5e21",
+          "sha256": "32c791c9d186d0911dd7b1b2b71f3b79f820392b4132e7694dbd8c71e56bbeda"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/run/69/2c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b",
+          "sha256": "290c0142c1391083f4ea80924e8e818fc1c389a5442ee2ca2b6e3a7ab328065a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/objects/run/e8/3237c077560c4ebe8374ae456e87deda1fe4686ce42a06efe5aebede07ce3e",
+          "sha256": "70b4cd1bd07c513f2c82ddc6bf48ae4c10c1932eb0cc079b2895c323e7d4b1d3"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/refs/annotations/692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b",
+          "sha256": "ce85faa0195f6ec72da691ec66c5f7b54e334d6d33f11e5cdc198093f1e754c0"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/refs/heads/experiment",
+          "sha256": "202f436c7d32d07017112f2fdc303402fe521a8fc1e458ef802ead600782ef4c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_2/repo/.tine/refs/heads/main",
+          "sha256": "c56be490498372bc68226b68c33751a2d622145aa49263e1a4b75364a0594e09"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_8_2",
+      "repo": {
+        "fork_oid": "run:sha256:e83237c077560c4ebe8374ae456e87deda1fe4686ce42a06efe5aebede07ce3e",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b",
+        "main_run_id": "compat-repo-source-v0_8_2",
+        "refs": {
+          "annotations/692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b": "annotation:sha256:ff5d9e0092d36fa77fb75ade777f081b66a5511815055a6343c62420cd7f72fe",
+          "heads/experiment": "run:sha256:e83237c077560c4ebe8374ae456e87deda1fe4686ce42a06efe5aebede07ce3e",
+          "heads/main": "run:sha256:692c9278f60640db57661fb770c80620b84d32c490605b668fcfa28d070f2a4b"
+        }
+      },
+      "version": "v0_8_2"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "cbcbffa4641ec5c0eeaa9afe4f4413e6d3865cf8596af4ecdb5d2947582f4a20",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "12c1b63a2d7865a27be7570e8733f305ce0b816fae54d510937b8b54e251572d",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "de5451157c9d8ea03ce7b5cb527a435789cf0f7b1a5acd96709c6c7312ba660e",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "9e94b4d88e87530084ac298687330adedf003ba7d7fa61519cfc508ad7149636",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "5dd2305640774723fcaaefdc515c8dd52c748367606635bdc1c6ecde88e504d4"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_8_3/artifact.tine",
+          "sha256": "0fe8d035f1ffbf8772c62f6a8b5b0717bdbbdfc5e361e8e5fdd302c55b1b7af2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/artifact_signed.tine",
+          "sha256": "34e279a62c63d2a2bed97dee283d5c1fbe499b12de2f49c54dbebd6792a27702"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/artifact_signed_fork_reason.tine",
+          "sha256": "b8eb97ecc953496af88d4633323fce49e7844417f16b992dffe6544366aec675"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/fork.tine",
+          "sha256": "2a247d99de8de8126d479926325a0f2a62edde5e3a95cb508e6bbd44bcbe9771"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/annotation/1c/92ca35a52ce261568018cf6dd0a06db5b236af0d31a30eb43a2a71b7ac0cc1",
+          "sha256": "faafb951c5859e7efded960ed5d8710a308a2016d0fc198b1c8bbb69e13a0e13"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/35/b0cd8bac909ab5eca0bc5ba413731111124c245e66673aa120cef34d784208",
+          "sha256": "1986016206b75fdf4d8b87adda83e5cb4016ae2617e0bb3ca4c0444c15273513"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/event/84/a7dd3a7c2e073bc89cbb152df164c92c4193a50d51c295cc796f8e8d230a92",
+          "sha256": "db3d8a02caa3b24d75ea5c40cab08831a2ee1df98b7d925a034892cbba36446f"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/event/92/7557d72f6162565c273f6fed61b771f9d7b5fba7887f12c79555a4c0ebb057",
+          "sha256": "7c7f8a8ecc26935fe4675170f17c0ad51f1569b7e365b2194a3064e31808adc4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/event/bf/6da7cb317f9cabe2b3e65fb5bf7b560a194948cd5bae567cfb62a74558604c",
+          "sha256": "629c205425b87e82cbb24379e6f1addfecf57703e1acf6c2e1bcd8a5f98f8bbb"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/event/cf/a2cdc5849dfbe9c402b864eb00676328b0c0d6cc024ff7781a30d2ce8b61f3",
+          "sha256": "ae39083a1021631f316b9b1c5fbd0b33c950f725f27d4221ce9abd528139c260"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/run/72/ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8",
+          "sha256": "d8406366bf38148d611bd27c6df085ad995f48b619ae57f0d4fef445c4b15232"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/objects/run/d9/660f668b1fc93a10860845e4d1486567304aecd490ba0117e11a969e442e6d",
+          "sha256": "cdaa3a80ddae8d9ba10efa5502253bcbeb37c8f235ca407e921ccc9c94371cc1"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/refs/annotations/72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8",
+          "sha256": "b05f9638d805da8e530881e54b61b25feb1ac6186905ce1d452a55e0e4b12350"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/refs/heads/experiment",
+          "sha256": "000eae2db2350b6131ab24370cec1cfefa3ca212e5239c6d6fde88e3d146fe8a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_8_3/repo/.tine/refs/heads/main",
+          "sha256": "1893bcc47f316d13365dba7f4104c6f7b3b595b042a10d66e64b02e65d7d51bb"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_8_3",
+      "repo": {
+        "fork_oid": "run:sha256:d9660f668b1fc93a10860845e4d1486567304aecd490ba0117e11a969e442e6d",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8",
+        "main_run_id": "compat-repo-source-v0_8_3",
+        "refs": {
+          "annotations/72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8": "annotation:sha256:1c92ca35a52ce261568018cf6dd0a06db5b236af0d31a30eb43a2a71b7ac0cc1",
+          "heads/experiment": "run:sha256:d9660f668b1fc93a10860845e4d1486567304aecd490ba0117e11a969e442e6d",
+          "heads/main": "run:sha256:72ee7e6e1ee554da8f3a3995d18ba9b8cc9f031258abc349d2d4d46b1be82bb8"
+        }
+      },
+      "version": "v0_8_3"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "db26644ec077cf73414dc418fd2545d65cc9960ada6b5eb39ffae4c7fbcc9ef1",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "285b82d2bcf04a9079474c9920038b73e0d790edfb114a73d0f8e3a63ad27689",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "e6a79ec2ba391a6b71e6dcf0a306ced49f4f005aeef786b29388659c3719c358",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "c38065c5f4c05a58f4645404fe897addb33478639b3da3149ff5eb8b8ba4e400",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "cdc0970711cff822b755a73d561f1dfe19b8ef73f3a1f200354ccbf558dcb855"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_9_0/artifact.tine",
+          "sha256": "79c5df9ce580f214a5da903974cff39c100e219e796e650699e3207e92fcb545"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/artifact_signed.tine",
+          "sha256": "db4221943ed6e25aa3885d97bdf5eb9cba9027d158c5eb2f47caba61aca8aba2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/artifact_signed_fork_reason.tine",
+          "sha256": "bab297a0a57674150913c6a071126538d647ee242942ad96d1ec201a5326192c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/fork.tine",
+          "sha256": "5e799e6e67e846e6cd6051b7222a0857cf79ca09a95a0067b3670e08cc1de042"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/annotation/22/707a28c6e325e9a30c0e4d4fade994dae3623efa06b9182b684a7dc0024327",
+          "sha256": "c601468a21ce2052d01815c41cd897e3610211cea701b91e49cb9f2169427749"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/72/68a36543d8a0b5180dea8aa62ec11adc68caf2049e2f31dd88a78c28fa139c",
+          "sha256": "0276d6e12fc5643437a2d9b43b4f5da9a3cfadae75c9c4a30533ad4458a441fe"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/event/0e/ed4da8f23f1ca11ba4141c391a40bb5b2e9b0d34f2201e890f84cafce1bd59",
+          "sha256": "fc7d13d1382e59d4b136b75266c83b78a62ca455a9ad00387a6784e89bf79d2f"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/event/10/8e519ae48e59378cb140dbe7c90c1a5b0adb0db9756aabfabeb8fa0e7d0d87",
+          "sha256": "b7eac28cce1d2d4d0949a6987e28dc9de6ec5d2c134a5c74eff3f17b0d537ee4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/event/e3/7bb7c2c59ae5499d0cc60157cb5bec8ded1c0f586a2954843b122a06f3fc64",
+          "sha256": "63a385057ab80549a88ef8f00d9dc379553995741a265e30ace7330713f27a21"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/event/f3/d1d476275c9323f2b2859e9d4684e3f1a18b08240fc20c2f46e3ea0e0eb40d",
+          "sha256": "8ebf73fc0c3519c1eabc674a9e1ad3cd415e1497f7cda44468a387d894f0e64d"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/run/0e/5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0",
+          "sha256": "7022ca42295fd7acec39289fde4882a25a013a052baa91729b450299f466cb99"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/objects/run/97/3c728f8613ef68fd047194eb143b5337e7444911f50e30b24ec42a24f8ca5c",
+          "sha256": "6f6188801d9492692b8a241c1ec369616d155bf2b5280467bb300fc853029a74"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/refs/annotations/0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0",
+          "sha256": "a06299b44675c26487761a788cf79f554461ac55fead87a382aae08b3c376c7f"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/refs/heads/experiment",
+          "sha256": "5b620f4b22a820debc649d34c7575aa1a89152f7b2c97208dd0d2e95da05929a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_0/repo/.tine/refs/heads/main",
+          "sha256": "81702c673821cbc5efcad5c84c13c508ddd9a2b55cb1ce70a76ae6277b34b574"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_9_0",
+      "repo": {
+        "fork_oid": "run:sha256:973c728f8613ef68fd047194eb143b5337e7444911f50e30b24ec42a24f8ca5c",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0",
+        "main_run_id": "compat-repo-source-v0_9_0",
+        "refs": {
+          "annotations/0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0": "annotation:sha256:22707a28c6e325e9a30c0e4d4fade994dae3623efa06b9182b684a7dc0024327",
+          "heads/experiment": "run:sha256:973c728f8613ef68fd047194eb143b5337e7444911f50e30b24ec42a24f8ca5c",
+          "heads/main": "run:sha256:0e5a3c9374172d2c70dd757104140527d94ecfef860ff4436a129ca29a07deb0"
+        }
+      },
+      "version": "v0_9_0"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "00c888017d57d22dd7cde273849a9993c6680f9a01458c44f6802d4cb9258e1a",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "40793565d8ddd0111f37dfc51a90a575457c095647bdf37e23d447af202014c7",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "a4016b27e15b62c871c0c8a468904d8d39359a66099f18c7f60feeb20fc830ab",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "fc8128f7ebf2075758527a2443977f8d8907831f0db21524a24c0e55551efd68",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "a6791ecdd46fc0a2b4eb10dba3202a33d75350ae78d845dc7e2c4343f6638ee4"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_9_1/artifact.tine",
+          "sha256": "1c3d6e5254c8155adecef5d1b4f40edcd17e3bbdf78d41a3003813babb5bbb52"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/artifact_signed.tine",
+          "sha256": "bb7ccb36540f25559215afb62c808ea51aa3e73c66557b7d418858757bac12db"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/artifact_signed_fork_reason.tine",
+          "sha256": "e43d4fd392f1347dfe2d1b045bb31c31f95f81a60b2426901ed9f93584929d6d"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/fork.tine",
+          "sha256": "85b4d855c1994901701bf1676a5e991e7ef9e24a81b8aae1de55a2decc974812"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/annotation/26/bd9e2a525bf5b8105eee5b53f70033b5562fe4b4edbc573236f104f4e335af",
+          "sha256": "3db126e0a25c02c57b46d0646c467e7704ced7f3fe8efa4e854ef42b7a7dbec7"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/57/255715a6765a00478a3715915ce75fe2ddc31f00a966a23d70841f2def5661",
+          "sha256": "1b132416ab97caa8f7ca6afc702237dd5c086c5c3500211be333bb8be7138945"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/event/38/47ae39ed479db14c896b4c49a447da2f258d64640ca6715621307b0a8e89b5",
+          "sha256": "05f16b261ea9719f21d242066faf7d610bd5c5ebeb03bf893305686c44f81b81"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/event/65/f7148569966e582e645497d05bd8144e19e2b6b3c9cc36212adb153e5b6f4b",
+          "sha256": "21c398bc7edd17ce57d087b61efac0638a4b759db7c71cac0eca6e56b51f757b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/event/7b/d12bd14e4ee43b2e18dd39082e1eb524c7b3ee22e2c06fbc97b940f7d7d821",
+          "sha256": "ae4044e52df1466a1073ae5faf15d203a397947941b8ce4a507db183c63ce534"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/event/d7/aab02569c23d6524976373f6f0bc056db194fbc52bcaa061965cf3e826f9b8",
+          "sha256": "5a3c2b8eaa7c7079c2211f7dc946ba3d66b99b0fe6d3d31abe66c690d5fb1e42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/run/66/b78b05ad5ce9ac09fe38d789f474a7fd00d537b6ee41f841c9898d2b8404c2",
+          "sha256": "26186b2273b59ec344a7ea16ea3e14095569558beae60cd4401c595e437362e7"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/objects/run/ea/cd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4",
+          "sha256": "0db4e82900600ab65f3e6338f9139de5492c472c7e22781fafe2e428e8354ba3"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/refs/annotations/eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4",
+          "sha256": "2303cd9356befb289e4245b49a0c63de9ad8205b2420c506ed33579cb6057a24"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/refs/heads/experiment",
+          "sha256": "546019b067eaddd36494a0c147f4cfa3495d56f45fbd73163bc68ed29d40ec53"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_1/repo/.tine/refs/heads/main",
+          "sha256": "21e79b7e4ae6ee1bbde77638c7fa879c377689c49a0fb8e4630144ca2a013bad"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_9_1",
+      "repo": {
+        "fork_oid": "run:sha256:66b78b05ad5ce9ac09fe38d789f474a7fd00d537b6ee41f841c9898d2b8404c2",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4",
+        "main_run_id": "compat-repo-source-v0_9_1",
+        "refs": {
+          "annotations/eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4": "annotation:sha256:26bd9e2a525bf5b8105eee5b53f70033b5562fe4b4edbc573236f104f4e335af",
+          "heads/experiment": "run:sha256:66b78b05ad5ce9ac09fe38d789f474a7fd00d537b6ee41f841c9898d2b8404c2",
+          "heads/main": "run:sha256:eacd29930ebe401955b82ffa77b25a14cc2d6a91bd19645d714aa4f31e7785e4"
+        }
+      },
+      "version": "v0_9_1"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "006059a79be55bb6e588ecf07cd695507280db696679fb4d06b5a9eaab8f9165",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "e3b23f781c6043ec7faa2f7c746eee66ebe00ab6e387cd493ec1fe5a06299d7b",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "9af4295553684860be618d37d5dfe1e332d602a9a16ec11ddb2165ab45899883",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "45c24f8c527b21524b8d003437e4356f516867cf3ce5bb2f6ab6cceb5101377c",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "a27b8209f54aa31e2cdb8b1829691d908704bf8d67c5318d26de0f9bddd98b72"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_9_2/artifact.tine",
+          "sha256": "56f63caf43de7ae5d9e8c190075610ba783f33d0be61d5926c0aa5cf98d41831"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/artifact_signed.tine",
+          "sha256": "50b923c45bdbd151d0adbd884e9c5982c22750e86f444264578fae7f2e7565c5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/artifact_signed_fork_reason.tine",
+          "sha256": "a5eaca59a48f7f47dc80c4fb81807c3bec7e0f8701a342d52b48ad424804837b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/fork.tine",
+          "sha256": "1d4a9b685e1a095312921b8db08b91737a54f261e2a7e34033a0ebdff0041788"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/annotation/87/127bc5b594da795cc4b05c2140cdc0a0cf1f05de8b629d16e79ed3976fbc02",
+          "sha256": "7e8502df368fce456026b60949cb117570414a42020843824d915aaa2ae0bac5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/67/0d98d1538851ce54f23659c22942df4969304add11b05d659b2303383e7a78",
+          "sha256": "00f4955dc072e2aa260a482872f591f796b17294b6fc466001574a4ddfa77e30"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/event/9c/8ad70600f643651c181ae31ef0ca54d1cfe2886622d2c19df8312908e90577",
+          "sha256": "43b79be1a855926d77311f6a86984af0de2d169c338cc0525d66aea0ace7f488"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/event/af/54d9b41b93580ca9997c5457797daa41e6f30ec314c2d6c6f60a843723c92f",
+          "sha256": "6659e5232ce1f1cc7082ddb44ff9ed61ce656ac45247168f208daad36df77ed0"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/event/bd/729068d194627358d2a0d7ce67a3bc9f7630f2c7f89238f02bc39bfc81414f",
+          "sha256": "96407629759f9654847ee03f4d23b1f433917161b8355787ce752ef43a99151e"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/event/cc/0f0a24480f75b31aad5f7853b49ce6490116e8356e2a2e13aa2aaa7558c825",
+          "sha256": "e23e5757271ecee86b0cb75e32b67e8537e72b266716e0925eda6c548f15e0ef"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/run/aa/e507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58",
+          "sha256": "3de126a87d9d96f7164b8223dd86518830b62da6e38bcc9cdbf2640ad492a6ab"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/objects/run/d7/3578a400d51e0585e7578b0f573436bc00d88228635c6e54f82862594b7b00",
+          "sha256": "5978714d608c4c5347350fc4ef8736039177fd3ce3daed9ffdf6de628d6d214a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/refs/annotations/aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58",
+          "sha256": "b57624b3c2e6bea4b9d99ec1c20c06fa3a24782a32c61d4fbd51afc48d8f189e"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/refs/heads/experiment",
+          "sha256": "0b85a00825fb534d8c7bc45fb64a00f2744e7721427c0d32bf8470e7ff57d0a4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_9_2/repo/.tine/refs/heads/main",
+          "sha256": "d70e87ec3f4e9d6e0498e96b0e544d01c77f453a3fefa44b0e9be1543f947708"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_9_2",
+      "repo": {
+        "fork_oid": "run:sha256:d73578a400d51e0585e7578b0f573436bc00d88228635c6e54f82862594b7b00",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58",
+        "main_run_id": "compat-repo-source-v0_9_2",
+        "refs": {
+          "annotations/aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58": "annotation:sha256:87127bc5b594da795cc4b05c2140cdc0a0cf1f05de8b629d16e79ed3976fbc02",
+          "heads/experiment": "run:sha256:d73578a400d51e0585e7578b0f573436bc00d88228635c6e54f82862594b7b00",
+          "heads/main": "run:sha256:aae507ebce5ae17a4b7c635998c1c0d6b4fec9c72ab180cb941d8ae442ee8f58"
+        }
+      },
+      "version": "v0_9_2"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "b00b8a83efe9553c3fc90bd5a08802ab1c7efef2bb00a1ed963b06ca90c9a993",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "60c48ca02c3bbfa5bb236f1948a2ba4be2ca60aa2b952600800d743b05cbb08b",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "6129adc93fb736976b80eb1fd4d1733d040632bbce80e030bddb3db81dfad8b3",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "e612558c23cce3f51ca756b0b135343f8f8990aeba124bc741b0153866507beb",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "2625574ce8a8527196449d95e0abb060e2acfc9f8fdc0fd92355980539512165"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_10_0/artifact.tine",
+          "sha256": "47d962db470d63358233c0dbe4147ad06f6a7b4d29e49159747fe821b058d8b5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/artifact_signed.tine",
+          "sha256": "9078f797e320c429b4c730736d42c6dcf7249405018f8ea25cf1dc393c5c33cb"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/artifact_signed_fork_reason.tine",
+          "sha256": "14938117662fc18b64a9ed7c56601d9d4befbdbacf8c95cf6a3d955df4db89e2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/fork.tine",
+          "sha256": "287c88433ea37cc154fd017b2f5ccd23b452af5f0f1c5821d9093437e953c55b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/config.json",
+          "sha256": "900d885beae3e00efb34eb452f0b83ade965ef6d87cbe5b87e2f5755a2b5cc42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/annotation/38/ea317ee20fad9ff762760f2f892bf2b9997daeb60a11ff2e26fe73cdc522b1",
+          "sha256": "e8341500defb2c9b4a7aa688f57923b357e07e8d2f2c0351b62f9cb00af370bc"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/15/99abdb7601ede895dea984de6d1ca0bbdfa541d65a61b533645a7d29226125",
+          "sha256": "cf084b73e13b4ca5e182768bad2cb5a3f592c6711d6c1fa90bfc5bd82c997ebe"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/event/2c/1475eced01aaefd69eab76a41caa3fa196dfd1a5f3abc4a6099cb4dac774b2",
+          "sha256": "c66ef7b9405fcfbf45a292bec2c02d54feab456b32cff2f245987b8a845318ca"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/event/a8/4b26cc0fbeb509d0c7e06ffa6f7209cfbdf846cf90f25205fc6af9df818c3a",
+          "sha256": "c02c5a5db0287458fc25cf9a1d06d85c5c4114019514d203d4fc990d4346e863"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/event/bb/b72e3b077f0cee7be066dcafef511750d696b77757cedeee1217d3c575f64c",
+          "sha256": "981123265cb6badfcbb0f063bb3f2fd3af6b3e12e40686522b53ce9803bbbb1f"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/event/ce/5abac2490fa5e993ae605afcda627a0d301b39f41ff033b52879e25728eebf",
+          "sha256": "ae5ccd43caf60cd6c3ee3a8101a0b57eae0d99607554f3f41f9df059bada8903"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/run/54/73f49e7c487ab034ac652949e82506906f908da761a79c0d7d158cbee25249",
+          "sha256": "0c7dafd66431d69e3dbb7530790b21d26d41ae0893d1032f3a775df6cc82eecb"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/objects/run/8c/9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764",
+          "sha256": "0c3b03c0a7d82cfb5d785b4982610c96e52f75d0803f6eb60a6b507a3018f718"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/refs/annotations/8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764",
+          "sha256": "e61bcc0434f004d92b0fd61ba453bbe303343a59a4e340885e61d1622ce8b83c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/refs/heads/experiment",
+          "sha256": "acf11e75504455857ea781c88d86d949e7944fd24e97d60f0d45196915e38566"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_10_0/repo/.tine/refs/heads/main",
+          "sha256": "63f466c003981f355dec7779aa70ba399d0bc4edcd75d5a2a3493f10bf5ab54e"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_10_0",
+      "repo": {
+        "fork_oid": "run:sha256:5473f49e7c487ab034ac652949e82506906f908da761a79c0d7d158cbee25249",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764",
+        "main_run_id": "compat-repo-source-v0_10_0",
+        "refs": {
+          "annotations/8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764": "annotation:sha256:38ea317ee20fad9ff762760f2f892bf2b9997daeb60a11ff2e26fe73cdc522b1",
+          "heads/experiment": "run:sha256:5473f49e7c487ab034ac652949e82506906f908da761a79c0d7d158cbee25249",
+          "heads/main": "run:sha256:8c9b5eeb1d23f8f3ed4da437ee2a8076ffb6e8e515bc17b6996b650863566764"
+        }
+      },
+      "version": "v0_10_0"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "b80aeb07732e3c5e6c87c55a857fe9ad3c55023eacf9ec38d425ff481c9d1b40",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "9b2282e6d18c9af38b5af5cd069776fd7272deed7d77c91336f180974fb0a216",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "01313da5b7e1498c55a05dc73ec5377d722fcd547c3c67d88084f730cce989be",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "b988dce7ea97ee0aee91b061e7b6118409d70a0123f4e258659b73bb7d100ac2",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "adfa4f05e4b46c6b5acd18d9db585b422322c13ded05910696f0bc03ffdf6104"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_11_0/artifact.tine",
+          "sha256": "0ace07260360b5d8dfac80fa73ff6a6f33606daec0f58a956a4b6747cf0263a7"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/artifact_signed.tine",
+          "sha256": "6447ac7cfb584ebf8356549691252bcebf285803d137260b68eb8ddf56912b9c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/artifact_signed_fork_reason.tine",
+          "sha256": "179a3081e6b4875bdc1f21ed247f387f6e43128ca1bf3b8c18004b388894f491"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/fork.tine",
+          "sha256": "9d926669f72c8d6ee16c846d9b9763f976e99940f8cf940d7f77d8105d8597b4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/annotation/0c/46a3005a5599446273bf05a272f297fe956dd07017d32444c34bc5bdc13b7b",
+          "sha256": "5a76881b66be32c5d2e443cdc295f81ea0a180e15f1b68c15cf22fc481a40d60"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/f5/ab89f2d33f55a15c8336cd0c6bf2e5d7dfc8ac7e9f3df8cda491c42c3bd25a",
+          "sha256": "337514d562b408e10e5495728d698623daf1bdb0128caa80c30910d9e1327ca8"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/event/01/b3b1389619adb27a029a2362594a356fdf4bbf4599dc2e9e9f13eda70af857",
+          "sha256": "5f97b862d72378781cdfaf97a056fe7fc04c343464a7468abee21c382989ea1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/event/59/b0cd5706dc91b22191576c88474a5574241fe8e236487a7278503d97c3a5f9",
+          "sha256": "b7a491c630acc0069d867a27f10812d7d482166142c9a9c82f058bc16fc24523"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/event/e3/1b512e0471365cb5193424bfefe5d7914b8923c33d94f9d1eef7b50ad26386",
+          "sha256": "23cff8ff66d485b8f7e3163d580775a8c83a4384313c607203d9920942107331"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/event/ef/5fbc0d1a5e542a3706b28a26f6642f89e3130532ff9082af584fd3e506c75d",
+          "sha256": "76db59a3449edb7350cb784e4115335917c3b6fdb64848aeae4f0ddc99433226"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/run/2c/7ce2dea49b36ae3a722815ffa8ef5df65c7fc0b3d4b2133778f4015bd571de",
+          "sha256": "cec45bb8553d949a0e5787198dfc73105dae51dc9c894c6be2c6670bb41a2819"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/objects/run/8f/8e229ea0cc3a8a8a8c3404bb2c51d95280d0bb5d6dfc8b8ca1ad13a5a00edd",
+          "sha256": "ce6fdd9cdea5b1514aa3d3ad95b2111bf4ba2a5d62698928552ce830b2d1293b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/refs/annotations/2c7ce2dea49b36ae3a722815ffa8ef5df65c7fc0b3d4b2133778f4015bd571de",
+          "sha256": "a8ad85d3f1d2156e3006f8cb2c207b27651351afdba2fb45007fa172ade40a30"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/refs/heads/experiment",
+          "sha256": "cc2131e5a4bcb49a6b8dc12fff9568969726f8a51846821957862ee6712ad32b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_11_0/repo/.tine/refs/heads/main",
+          "sha256": "8176c44f0473bb7747b623c350a6f954e001690f4ea8533bf25b7ee0affeb485"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_11_0",
+      "repo": {
+        "fork_oid": "run:sha256:8f8e229ea0cc3a8a8a8c3404bb2c51d95280d0bb5d6dfc8b8ca1ad13a5a00edd",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:2c7ce2dea49b36ae3a722815ffa8ef5df65c7fc0b3d4b2133778f4015bd571de",
+        "main_run_id": "compat-repo-source-v0_11_0",
+        "refs": {
+          "annotations/2c7ce2dea49b36ae3a722815ffa8ef5df65c7fc0b3d4b2133778f4015bd571de": "annotation:sha256:0c46a3005a5599446273bf05a272f297fe956dd07017d32444c34bc5bdc13b7b",
+          "heads/experiment": "run:sha256:8f8e229ea0cc3a8a8a8c3404bb2c51d95280d0bb5d6dfc8b8ca1ad13a5a00edd",
+          "heads/main": "run:sha256:2c7ce2dea49b36ae3a722815ffa8ef5df65c7fc0b3d4b2133778f4015bd571de"
+        }
+      },
+      "version": "v0_11_0"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
           "digest": "7167585cbb57a5accb578b793d81458f579fa69c39f6fe0e1c8888a4ab9b732e",
           "integrity_ok": true
         },
@@ -1363,6 +2420,157 @@
     {
       "artifacts": {
         "artifact.tine": {
+          "digest": "0146785eb462aabcc2c7f1a5efda740c0d0d1b80620ac9d5a97e8bcbb13753cd",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "9a722e47fdcdd2fe5edee6ea8e09743d910821d769847090c7d0d39048d11838",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "660222a9e55b2d17cd629843d887178ca600d2490f38f9a5639a5b6700225178",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "7526206251a7caa34137c1d926b75e081374af50e959de4db43ddf790724d313",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "5891e491fa71a4c9bfc6437ea9739707933367415a50228604a135707991f9c4"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_12_1/artifact.tine",
+          "sha256": "25c0a5d1997627220389f801d2948ae2b7de663fb40bf6c556e6a53663007c50"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/artifact_signed.tine",
+          "sha256": "702497417b0e68781a9a45083e554df0e04deb8a4178ead14561b08371b5cca2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/artifact_signed_fork_reason.tine",
+          "sha256": "428281249c451aaa9051141e7f58866c8070605abbfeb17e6c9b9fefc0e4e84b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/fork.tine",
+          "sha256": "36b7c587553b001179903c6f9996895139f93f59fc77d37649a42ba4ed1c5902"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/annotation/5a/f93b34cde162a89f69fde537f74fdfe5875b10f0a47a45925efd0f36f75903",
+          "sha256": "3aeb06fec34c8578a01ad73b9d4f7f6116b963fb5758e2471a9e2d6d9db4b082"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/dd/66306a251fa89660369211eef221a3d803c020200313d6394feb277a56dafd",
+          "sha256": "f4235cf8312bc170309370ebddf9b5930a0bdc0a202837ee9af977ada6c098e4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/event/81/fcada918698a589c2b22e9be00faea7f58e31a30b816bdebb7e448d4b9c338",
+          "sha256": "3c984ebde91966a4ac11f09c75ef5d30a96f34436ee793823b10bf031ee6caf1"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/event/a0/d72e5d76ad10f6c27f861fd9bf1271f9dab12a91298f6b4a13ba547c8d328a",
+          "sha256": "bf95758bae99a8fc0658b4b36ced558cfa8ec111c68fa7bca7fdfe4793c2959a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/event/c6/0ba2751ea17bbc73b28811fe59fffd01d0d29fdf94b2749e6ec24dc2fc01ad",
+          "sha256": "4634ef65fb354ff4071786efcd5b3ad8d8467fdb5325f24d3d4c548710563d32"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/event/d4/95c3bcfa21436b748431e4c6b8d529543d5f7df796046b58b02d431461826e",
+          "sha256": "0d045f16930177b995b389adcce3a997c42007b8d1efebdf3536194b82c025f5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/run/54/b562923ffef9d541acef30030ad5d7c3962e3e54e95118b257ee8d6773f91f",
+          "sha256": "3f940df08b99a048eb2f9a9cd9ff8fb64f6446104dd0f4d92b515f013635c40e"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/objects/run/68/b8a743c5e99da6dcd116bbd38ca363e6417edf543638e783145f043a073386",
+          "sha256": "497923f208d8f9250b29382fb7a00d6c9a6a6eea52da6dbe53f702813948208e"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/refs/annotations/54b562923ffef9d541acef30030ad5d7c3962e3e54e95118b257ee8d6773f91f",
+          "sha256": "e8f2bf0dc357b3f9667b6d25d93a5e058cbc9a58a9350f8b852550be85242c8e"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/refs/heads/experiment",
+          "sha256": "dd9113334b83ccc1a2cecdec9551fa2efe4d86e125f1871e614bf97107cda572"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_12_1/repo/.tine/refs/heads/main",
+          "sha256": "19345f57d148f15af5b1eac2bd0f3b4e2fe80ad8304006e0dfb13ff020121f1a"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_12_1",
+      "repo": {
+        "fork_oid": "run:sha256:68b8a743c5e99da6dcd116bbd38ca363e6417edf543638e783145f043a073386",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:54b562923ffef9d541acef30030ad5d7c3962e3e54e95118b257ee8d6773f91f",
+        "main_run_id": "compat-repo-source-v0_12_1",
+        "refs": {
+          "annotations/54b562923ffef9d541acef30030ad5d7c3962e3e54e95118b257ee8d6773f91f": "annotation:sha256:5af93b34cde162a89f69fde537f74fdfe5875b10f0a47a45925efd0f36f75903",
+          "heads/experiment": "run:sha256:68b8a743c5e99da6dcd116bbd38ca363e6417edf543638e783145f043a073386",
+          "heads/main": "run:sha256:54b562923ffef9d541acef30030ad5d7c3962e3e54e95118b257ee8d6773f91f"
+        }
+      },
+      "version": "v0_12_1"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
           "digest": "34af504d9a476a65364f349bc0d3a7f80470b8677b2f29acb8c1c0007fcbe3d6",
           "integrity_ok": true
         },
@@ -1510,6 +2718,157 @@
         }
       },
       "version": "v0_13_0"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "e88bf602e6159a28414a88f6007744cfae796e63aa9782e4399c020d0afbfe66",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "4becd059b2b87fbcd4d9052b2c20c7d8189815f16dde2d2a055934865af63baa",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "4e74aaf82f84aecbfb8bc326d4115bf12379fd3dd77bcfef1e9b31177d08f9dc",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "0a8733e360aadb24e61e2526eb66696819c77cf9ee8dc02011c761c1dd987c75",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "359c64c1b3c70f6078f21ce090254073c7692b7be9d204dff0879f29f96d7ce1"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_13_1/artifact.tine",
+          "sha256": "30b95fc2cc68c93e9b920f527d1b476f8e1c2208406e9de11755681cf80c2acc"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/artifact_signed.tine",
+          "sha256": "84bdbd9a15440a2667b2b90f1b1c72ad774411a5bb7ca4c12e8b379c5d3a0fad"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/artifact_signed_fork_reason.tine",
+          "sha256": "c631165fdc799a7aa9e40d1a9d84a406aaeb57e78c481824c56f9845e1b06360"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/fork.tine",
+          "sha256": "5f40e7394054bf4f5f1038b3287e12fabe3ad6aae612ee079f45e1ea44b52b80"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/annotation/9b/b801272013164a2095feea62c394b3cc3b0ff0c4ad66af051651b885804bc2",
+          "sha256": "ff219e1d00b775cc7c63f1e72d17575854cfbc25a4f129e7bae2af948e022aff"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/20/651ca97a8fdb2f774c7c9b8fc3204eaefd30a3990990767b98ed2f55915a81",
+          "sha256": "c7cd1f0bb71ed32c2a880d32647c1feb5bcfd2b5a96f731d089e322216a8f3ac"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/event/20/dd54a98a66b28eea1d79ec97f4ce016f7e45b702a01df97bcd7ef807d46b6e",
+          "sha256": "138d4015cad146510bccb05555ec04e72dd1723da43eff0e6d2bb7112c9e934a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/event/21/acf33be596e8345530e0df40f623a13fa7234af27f1c432429017274abb8fe",
+          "sha256": "0f8afd711997e60788932017dcf1f6f217a395672e660b12eaf4be0ba10977ef"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/event/26/c208b9568ee4c9b823fecf0033427814010e3ad6564f424408bb142dd1ee2a",
+          "sha256": "fab98579bc6b2cfac5dbc140c61694cc6b39ff09651058e8c59fbb649041f035"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/event/3d/5f3039a4b69a84151cc06633a3de9c8f464cc92a70ff99f2e9c52a507665bf",
+          "sha256": "84be993c2f42d39b09a4380c8d9eeb38b1341b6e5b4cb5986d987c1d32190d98"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/run/5b/98e8326bd023a178af0f02592ea2426e9c2c5fb780ba60139e64a1319bade9",
+          "sha256": "ff948ca5aa46f1e0a226f7589a99df207f8b02b6a5bcdf2264406e8996737410"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/objects/run/72/618eec7f8b67c2aeadd979396af2582371cb8104be63928886e221a1a86163",
+          "sha256": "5eb154b1e56a417e121907d51f91ead8ff2895fb1650b140a3651323ea94d388"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/refs/annotations/5b98e8326bd023a178af0f02592ea2426e9c2c5fb780ba60139e64a1319bade9",
+          "sha256": "37b013e236bd2ae66b13dfa0aa2b4ff903877e078a81756c4e52ab2c3aef8499"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/refs/heads/experiment",
+          "sha256": "bc703fd5a30e74ee47eb0f82c995f1455c1c1eccd3651d650dce0f96a3674b29"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_13_1/repo/.tine/refs/heads/main",
+          "sha256": "91de08afd0f72eec3819ac3971edc3ec440cbf3e764053971ae88fc2967bccfd"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_13_1",
+      "repo": {
+        "fork_oid": "run:sha256:72618eec7f8b67c2aeadd979396af2582371cb8104be63928886e221a1a86163",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:5b98e8326bd023a178af0f02592ea2426e9c2c5fb780ba60139e64a1319bade9",
+        "main_run_id": "compat-repo-source-v0_13_1",
+        "refs": {
+          "annotations/5b98e8326bd023a178af0f02592ea2426e9c2c5fb780ba60139e64a1319bade9": "annotation:sha256:9bb801272013164a2095feea62c394b3cc3b0ff0c4ad66af051651b885804bc2",
+          "heads/experiment": "run:sha256:72618eec7f8b67c2aeadd979396af2582371cb8104be63928886e221a1a86163",
+          "heads/main": "run:sha256:5b98e8326bd023a178af0f02592ea2426e9c2c5fb780ba60139e64a1319bade9"
+        }
+      },
+      "version": "v0_13_1"
     },
     {
       "artifacts": {
@@ -1812,6 +3171,157 @@
         }
       },
       "version": "v0_14_1"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "ee393a0f1bafc6859470de70588de868a1c1f6e003a4bb4e511cd71218f752e8",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "0839b6028e7fbac613933651c02277ba02f44eb87ae9348479dd2c2518954d45",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "970f1da2c180f29e54b8d2bf10aef8ea325d966bb3bbf887807337b7eb4f5418",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "d44a1ee6ec3e0cfd2e7dfd50c66aabd92fb6435a80fb70a791818535cdbbf6e6",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "1090f29684b150201c881ee4526a1782a9c98a060e8ecc88a4afe815197aa4e5"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_14_2/artifact.tine",
+          "sha256": "52abe390f0de202e1a67045569b99994181bd647e97e089428870070552c458d"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/artifact_signed.tine",
+          "sha256": "f0e99a67747afb18af19d9a2d8858d9cdd6e18452856cfa4b72d6597b1d796df"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/artifact_signed_fork_reason.tine",
+          "sha256": "523861e0e52b9d9badf42e0d357f7d1949387c484398bef5377ef4400c6ed1fb"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/fork.tine",
+          "sha256": "c08bdd947e0bd2b2b43d5f9220e6b3a52472ea1d8f36afacf861d8a76fad1a21"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/annotation/50/312f34499a193555b94185c055f77652accc55d3764c3915f391dcd6288f1d",
+          "sha256": "be711243c0dc66d1aa1b7a7f16335a6e6c503c1eaa0d1ecb79d97b7922eb9bb9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/87/84c3805830a31cccf04751d8669503d5502c26593fb699657f83622bc95119",
+          "sha256": "ee4831de34ab3b66a6e7c0ca05378c71ff0c0e6010787db83d9d28325f8dcb48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/event/20/d892a6ab3d8b220a3570a247b593c30511e4181a47edf028b8e3b9469dd030",
+          "sha256": "9239986b94f4fa8222b14a16ab4cf95e350b1c53bdbadaea05c0062d2515d410"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/event/21/a149da9d9584e54e581f84df20f12c2c1417776acbbe64f372a37dfb83514f",
+          "sha256": "0d0a6c287ba3ab32b0786e6e99f2f37540cef8bb471ddd035db8cc33a80e3d60"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/event/23/1d74b068487fa8f3cee56971fc7efd90a4e0ce042f3871f2c5c256cfd7f5c9",
+          "sha256": "b191dd2c39dc81755e2c89dd9714d74f49e714711d639b0e3e40beab51105bf6"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/event/cc/a3cfff68e432838e92b8561e8708516f6ea109d09e39e1e62bac4c0da35fd8",
+          "sha256": "2f01aeb7cef21a1d45d4c0927c621a171c7726c95fb187c22fc5021c6783717c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/run/33/156f09bfef033ac23b2192070d86bd5881afec44ac6953f869a588a7c1c64c",
+          "sha256": "b04eda90bee8d20eec5d321c7047b8e8f165dbae082e1ae61adb37d6a6916d42"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/objects/run/f9/c58b9a1166ff5146490eb066a348bdccb082a62e03f7d555e2899181a26e4b",
+          "sha256": "cec32fe49283a2ad24e3d2fd3029e8566ae6581c4ec73570e7c6ecfe520843ea"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/refs/annotations/f9c58b9a1166ff5146490eb066a348bdccb082a62e03f7d555e2899181a26e4b",
+          "sha256": "4c7ecc4b464f359b3a2ffa3b931a5696f9ca53518cccb9ce62026edf7d9111ac"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/refs/heads/experiment",
+          "sha256": "a99679dc417fac137c62dfe3f0298e7467c60522cd903f12d39fc72bffd9def2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_14_2/repo/.tine/refs/heads/main",
+          "sha256": "2fd36de6e342c56c4c834a41a5aa104b7a3dc35ab321a8e1e47b93b6b85a7c32"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_14_2",
+      "repo": {
+        "fork_oid": "run:sha256:33156f09bfef033ac23b2192070d86bd5881afec44ac6953f869a588a7c1c64c",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:f9c58b9a1166ff5146490eb066a348bdccb082a62e03f7d555e2899181a26e4b",
+        "main_run_id": "compat-repo-source-v0_14_2",
+        "refs": {
+          "annotations/f9c58b9a1166ff5146490eb066a348bdccb082a62e03f7d555e2899181a26e4b": "annotation:sha256:50312f34499a193555b94185c055f77652accc55d3764c3915f391dcd6288f1d",
+          "heads/experiment": "run:sha256:33156f09bfef033ac23b2192070d86bd5881afec44ac6953f869a588a7c1c64c",
+          "heads/main": "run:sha256:f9c58b9a1166ff5146490eb066a348bdccb082a62e03f7d555e2899181a26e4b"
+        }
+      },
+      "version": "v0_14_2"
     },
     {
       "artifacts": {
@@ -2265,6 +3775,308 @@
         }
       },
       "version": "v0_17_0"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "8959020b5d4fea6384d16842746bcec6e7fe33430b16e83a1080d65391c48891",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "71e9f051235fec30a646d840c3521a377d63cd4577a5fb96f005f64f525529b5",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "b5d3f84e49fc231ca9011ab9e0ad2d85e5d57d38ca2d8a221b429b10094e8cd7",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "81648d674ab3d64256a9fc9629022c0e3ca10e59b0320f5bd6dcc68834c866b8",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "ab10be1d266b01c79b5e9bd60979b46010bbd1fdac6b8cfdae3d474c199c4823"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_17_1/artifact.tine",
+          "sha256": "92ed08128f4e2350023bdefd1e60328bf422caa63b885e92556d671d08695ba6"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/artifact_signed.tine",
+          "sha256": "1ec12fd45613332ed478210f56a612aefa6a4e3c983d287b0541ace50bcfc11d"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/artifact_signed_fork_reason.tine",
+          "sha256": "37eb08f8f8825f596a7cbc8ee94077ad1c88e231d0646e52a1216dd266cdfff8"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/fork.tine",
+          "sha256": "14c7729cd8e473bbc53c6d65a44f2e862522523f395ac78f5c2ad0e5f56d8f79"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/annotation/53/f55626df54d5fe6680d1984dac0fc10f2b60125e6e68e7cd2f93c1cbbaf47c",
+          "sha256": "abc8fbc17da7d8281529d3ea5859ad09332d164e5c70f911ecfb3608fec4fa27"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/34/a98e07214c76a0fad99878c1601b3ee64071a5ba331dd08117094e6ed48e3c",
+          "sha256": "bb7289d0766fdc5143fc34ecaf034795c42d12afc953f3893d30cbfd03da1c29"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/event/06/0023b4858b08ae37202edad7af8446385d51f94056216913e89f3abcd80a1d",
+          "sha256": "d58f087dffebaeb704ad6397385da080a778b4b2fee867dd9ee716a40ded6804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/event/ac/b42bafeb3fea85e649d7fa8c0d75867a969ce52a171ec3197ba36b21fb2dfa",
+          "sha256": "a536cecb3ecf13ca4fe3baca3457b5ce8d522cdba8888734464be47616649c3b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/event/df/8857ecfcd8430d9587f15b238484df032865bdb2f52cad805ac67c63835839",
+          "sha256": "b51e213118823f6891cb69cb9ee4100b794c4a827b151175ab94ae232517a69b"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/event/ee/3c3407b6fa522cc5e95460d345621f4d7a57548ec3ee2c89c49266f1565235",
+          "sha256": "32a693193c749a9e549abd93bb83768f21bb6c58019f99f9a3beec37ac031c3a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/run/7f/7bec27ed007b02421264c228f2bbdf8e8acbaa0c5f0bc699023d328cc9235a",
+          "sha256": "bccc819099d78b51a1374ddaac75da50c4472d6606ea22590822c14e2e0fa756"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/objects/run/dc/4df5837e73543327cb000b97c1e2c0acbec869e17302568d58115c67ad6608",
+          "sha256": "66a31b78245f90f754673ad00d5a5c31cf550706539facdc1ecb9fbea5694eb7"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/refs/annotations/dc4df5837e73543327cb000b97c1e2c0acbec869e17302568d58115c67ad6608",
+          "sha256": "3367ad6c65b560619fba93a0a58c59d78e8c371f3e9868fc617bd102525da314"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/refs/heads/experiment",
+          "sha256": "9f1718d53e3be697a47f86708f11bda448d44410d32379216e66fb438f6c828c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_17_1/repo/.tine/refs/heads/main",
+          "sha256": "8c930848490ee0257922c422a274ef9a6fe6c646992cea2b4027d30a1b005f7b"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_17_1",
+      "repo": {
+        "fork_oid": "run:sha256:7f7bec27ed007b02421264c228f2bbdf8e8acbaa0c5f0bc699023d328cc9235a",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:dc4df5837e73543327cb000b97c1e2c0acbec869e17302568d58115c67ad6608",
+        "main_run_id": "compat-repo-source-v0_17_1",
+        "refs": {
+          "annotations/dc4df5837e73543327cb000b97c1e2c0acbec869e17302568d58115c67ad6608": "annotation:sha256:53f55626df54d5fe6680d1984dac0fc10f2b60125e6e68e7cd2f93c1cbbaf47c",
+          "heads/experiment": "run:sha256:7f7bec27ed007b02421264c228f2bbdf8e8acbaa0c5f0bc699023d328cc9235a",
+          "heads/main": "run:sha256:dc4df5837e73543327cb000b97c1e2c0acbec869e17302568d58115c67ad6608"
+        }
+      },
+      "version": "v0_17_1"
+    },
+    {
+      "artifacts": {
+        "artifact.tine": {
+          "digest": "9fb93a3e356dafa58565accbbcb75bd22ba0464f77e600ddbe6a1353faa86ca5",
+          "integrity_ok": true
+        },
+        "artifact_signed.tine": {
+          "digest": "7507fc4f064b8dd7239b66414452b4867731ea15a1094bd0a4a8675ff3d897d3",
+          "integrity_ok": true,
+          "signature": {
+            "algorithm": "hmac-sha256",
+            "key_id": "compat-golden",
+            "ok": true,
+            "signed_at": "2026-01-01T00:00:00Z",
+            "signer": "release-bot",
+            "state": "verified"
+          }
+        },
+        "artifact_signed_fork_reason.tine": {
+          "digest": "338b12c0749356bf62c3c632f56b218626a4f8b7c79c1202b6cec8a9fa30d605",
+          "integrity_ok": true
+        },
+        "fork.tine": {
+          "digest": "1a0e05999081be801821a79b9c597521747b7feb019edec3f8e61bfa3cb9cc60",
+          "fork_id_verdict": "confirm",
+          "integrity_ok": true,
+          "run_id": "16dd87fefd08b46877b9bd51fc41b466e5c12fc0570c1fc0ec04d14003af3925"
+        }
+      },
+      "files": [
+        {
+          "path": "tests/fixtures/compat/v0_18_0/artifact.tine",
+          "sha256": "718507bbd6a78ad71b8d3f9bb8da37796df1137e07313d95196eb4b4fa671d35"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/artifact_signed.tine",
+          "sha256": "faa9b9d471be6a7fdb18e1ddb84a67e12dad3878b0f277a06e4ae723f82ed49a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/artifact_signed_fork_reason.tine",
+          "sha256": "5e55041de6c35520eaa56a7087ea6a10916c10aa64018ab485be2fad067037cb"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/fork.tine",
+          "sha256": "20dd5f998bdda3041db992c3703ee30ca12a06b0378e8fed961a39a51feaa1bc"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/config.json",
+          "sha256": "7056e3c9efb662850006c37ebf35e971368513330471dccb498cc27d8538d2d4"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/annotation/d1/7b3d5b1f4ad84ceddeab5d89d2bbb1aba9762fefb91b32605e045ac1b3842b",
+          "sha256": "416d6b394baedb07a0d6fafb3e516918084f0bbe66c6048cdca7fc27ae3398b8"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/06/447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446",
+          "sha256": "6412b838ef4514bced979792645671270b3851f0a82c20e64d27899812a49804"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/2a/34b5fd73273444cecf3c6866b4075cf8ff1cc2e55e9153f3412096b406e89c",
+          "sha256": "c34285fd6f5b2acb2e6419a6f96648d1d88d8cda492f7934fd5ddd33f24406d7"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/4f/1d6f267ff44e5cc4a3cbb6f0067caa18a0ca23b21a61f6a5cf2c047895c117",
+          "sha256": "b4b80a70f4f7df1fb137d6214fe4ff15ab2f27d077b2e5e834ca0d71510b12d9"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/5c/03ec2b512647c4543780d37e2d2be8a55dbadd28750fe4f6cffbfc7c2c479d",
+          "sha256": "90be7fb0373ffc94012ae3347fa52dbb057f052c5eeea5c4c3e6ba9c772e9729"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/5c/4340673304dbed96a05cac2ee1258843d9b3126b41cfe8150f78bbfd0897be",
+          "sha256": "13d2add218d4b760a1376444c41f3e27dcca935b5fc442adad3279f27bd66b1c"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/7b/bd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+          "sha256": "b7c25c6b4e22d7fdd9dcaf9afc9656f4fc5cd5b096277017294ee01afdffee48"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/b0/4ae97c7be4d69112abfe68c08bf21a7b44c83fd545996e418a7a5bf571239d",
+          "sha256": "bd23248e7202f74ef8f293b330077126877694b3b139295ab2534fe9248a9416"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/de/677119a8687b0cf894350b4f02f553d642c29e92085ba53d2cbed9f0a82b63",
+          "sha256": "999e5e1054a45fac16b3aca0c6033a13996f14c664d31ad4edf29d9cf8556161"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/ec/ff48aaa01327923dcd9454741ce3781e1fc472db4b2fb1f38b4c29d7c61f38",
+          "sha256": "39f5725f9ea1f6e619761dc50feaf1dc5751702828ca12ad3b51747b496dba6a"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/f6/503cdd8e09a01ab3d24729920cc8b84504fc97d2f244f46cf64ab5a7d76fb9",
+          "sha256": "a7a9333b877105573fdd813faf2d44c318bf54ff2bdd60c49aef5ae11ef5f0dd"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/blob/fd/131195f31261e38b552507e52044a347e9d28ffc33bba9da727cd401023102",
+          "sha256": "349291a6a9302a61ae559720117c952b73e6159735b0f87350ae4b27e003cb47"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/event/26/a364f64708627a1bf9d92f494f4c7de3a010c1c0fa52af0f650f37f120afea",
+          "sha256": "7742abcdf22b8d389aa67142b044f6c59b63ede81624ca10e4f2ceac40bc41b2"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/event/3c/bc6555088cb3d33a97ff6abc5c38874f8f1725c186896425385a9cdb819259",
+          "sha256": "0397596a1d2de305768e196f3a92e010044d5918c4776d1b5f041cfc3c683b38"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/event/44/65a9b4426fbebbb1a4a89b35ad89b533414b3560e4e9e92804a817c2f0414e",
+          "sha256": "db791852d5bf4209a0d8c42b8328ae28b0b0938f9fccc218619c1f953eea4ef6"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/event/61/79616dd21ce787d42541b101575384b56ffa604696635486fb6876fbd78e1a",
+          "sha256": "e44a3ace4abca706529eeea11fd2a974b7e15abddfc0d4e9ff9b8dfa6d577e2f"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/run/b0/b28ce4f39a4969dacd30ec4331e83f6a2e53f5cf25fe3dde82fc70b1a9a9c6",
+          "sha256": "49c95896927bbc5f07dd84aeebd89a4eedaff616f3f3c4365444995c0a7ea9f5"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/objects/run/ed/b027c3f9787d4908b832443f80b7129eb24c0987e9b5a20b2f583b2a1f654d",
+          "sha256": "d76fe5887c2f9cc433e2a8f82f4bc53e10f813b94446419248352a71ae8c4228"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/refs/annotations/edb027c3f9787d4908b832443f80b7129eb24c0987e9b5a20b2f583b2a1f654d",
+          "sha256": "b94ecfb8da367f241f8a4980026c4dd832d14471c8c24c9482bf96b5545f94d3"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/refs/heads/experiment",
+          "sha256": "80053c0b1bbb339ab7a61ee7cb850c331f1f2d3c3be9bc3099a8076040fba838"
+        },
+        {
+          "path": "tests/fixtures/compat/v0_18_0/repo/.tine/refs/heads/main",
+          "sha256": "3c3606a9c23972fc0f7f5acf67f7a4763997ae61b9d679e891c66b6c5146e86e"
+        }
+      ],
+      "fork_records_identity": true,
+      "hmac_key_ascii": "compat-golden-signing-key-000001",
+      "path": "tests/fixtures/compat/v0_18_0",
+      "repo": {
+        "fork_oid": "run:sha256:b0b28ce4f39a4969dacd30ec4331e83f6a2e53f5cf25fe3dde82fc70b1a9a9c6",
+        "fsck_ok": true,
+        "main_oid": "run:sha256:edb027c3f9787d4908b832443f80b7129eb24c0987e9b5a20b2f583b2a1f654d",
+        "main_run_id": "compat-repo-source-v0_18_0",
+        "refs": {
+          "annotations/edb027c3f9787d4908b832443f80b7129eb24c0987e9b5a20b2f583b2a1f654d": "annotation:sha256:d17b3d5b1f4ad84ceddeab5d89d2bbb1aba9762fefb91b32605e045ac1b3842b",
+          "heads/experiment": "run:sha256:b0b28ce4f39a4969dacd30ec4331e83f6a2e53f5cf25fe3dde82fc70b1a9a9c6",
+          "heads/main": "run:sha256:edb027c3f9787d4908b832443f80b7129eb24c0987e9b5a20b2f583b2a1f654d"
+        }
+      },
+      "version": "v0_18_0"
     }
   ],
   "root": "tests/fixtures/compat",

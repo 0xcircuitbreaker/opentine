@@ -1,6 +1,6 @@
 # The OpenTine conformance vector suite
 
-Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 550 vectors that an
+Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 580 vectors that an
 implementation in any language can run to demonstrate it reads, writes and
 verifies OpenTine data the way the specification says.
 
@@ -41,7 +41,7 @@ No opentine, no Python, no build step.
 
 26 vector files, one per SPEC area. `MANIFEST.families` carries the current
 census — case counts, reject counts, and the ops each family uses — so no
-number is restated here where it could drift. **38% of the suite is negative:
+number is restated here where it could drift. **36% of the suite is negative:
 inputs the format requires be refused.** That ratio is deliberate, and a drift
 gate pins the figure against `MANIFEST.totals`.
 
