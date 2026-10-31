@@ -9,7 +9,9 @@ trusted signing time.
 
 Verify: ``--rekor-key FILE`` checks any receipt offline; ``--require-receipt``
 fails closed without a valid one. A keyless bundle additionally needs
-``--cert-identity``, ``--cert-oidc-issuer`` and ``--fulcio-root``. The identity
+``--cert-identity``, ``--cert-oidc-issuer`` and ``--fulcio-root``; with
+``--ct-key FILE`` (0.18) its certificate must also carry an embedded SCT from one
+of those CT logs (``--require-sct`` states that demand explicitly). The identity
 token is never printed, logged or written.
 """
 
@@ -22,11 +24,21 @@ from typing import Any
 from opentine._cli_flags import refuse_unhonoured
 
 EXPORT_DESTS = ("rekor", "keyless", "identity_token", "fulcio_url")
-VERIFY_DESTS = ("require_receipt", "rekor_key", "cert_identity", "cert_oidc_issuer", "fulcio_root")
+VERIFY_DESTS = (
+    "require_receipt",
+    "rekor_key",
+    "cert_identity",
+    "cert_oidc_issuer",
+    "fulcio_root",
+    "ct_key",
+    "require_sct",
+)
+SCT_DESTS = ("ct_key", "require_sct")
 _KEYLESS_VERIFY = ("cert_identity", "cert_oidc_issuer", "fulcio_root")
 
 __all__ = [
     "EXPORT_DESTS",
+    "SCT_DESTS",
     "VERIFY_DESTS",
     "add_sigstore_export_args",
     "add_sigstore_verify_args",
@@ -65,6 +77,15 @@ def add_sigstore_verify_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--cert-identity", metavar="SAN", help="Keyless: expected signer identity")
     parser.add_argument("--cert-oidc-issuer", metavar="URL", help="Keyless: expected OIDC issuer")
     parser.add_argument("--fulcio-root", metavar="FILE", help="Keyless: Fulcio root/intermediates")
+    parser.add_argument(
+        "--ct-key",
+        action="append",
+        metavar="FILE",
+        help="Keyless: CT log key(s) (PEM); demand an embedded SCT from one (repeatable)",
+    )
+    parser.add_argument(
+        "--require-sct", action="store_true", help="Keyless: fail unless an SCT verifies (--ct-key)"
+    )
     parser.add_argument("--policy", dest="trust_policy", metavar="NAME", help="Trust policy")
     parser.add_argument("--no-policy", action="store_true", help="Ignore trust.default")
 
@@ -178,6 +199,8 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
             issuer=args.cert_oidc_issuer,
             integrated_time=receipt.integrated_time,
         )
+        if getattr(args, "ct_key", None):
+            _check_sct(args.ct_key, leaf, roots)
         statement = _statement(_b64(envelope.get("payload")))
     except (OSError, ValueError) as exc:
         return EnvelopeResult(False, "mismatch", str(exc)), receipt
@@ -186,3 +209,27 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
     fpr = "sha256:" + hashlib.sha256(der).hexdigest()
     identity = args.cert_identity if args.cert_identity in names else None
     return EnvelopeResult(True, "verified-keyless", "ok", identity, fpr, statement), receipt
+
+
+def _check_sct(paths: list[str], leaf, roots) -> None:
+    """Raise ``ValueError`` unless an embedded SCT verifies under a ``--ct-key`` log."""
+    from opentine._fulcio_sct import load_ct_keys, verify_scts
+
+    keys = []
+    for path in paths:
+        with open(path, "rb") as handle:
+            keys += load_ct_keys(handle.read(1 << 20))
+    issuer = next((c for c in roots if c.subject == leaf.issuer and _issued(leaf, c)), None)
+    if issuer is None:
+        raise ValueError("the certificate's issuer is not in --fulcio-root; SCT not checked")
+    verify_scts(leaf, issuer, keys)
+
+
+def _issued(leaf, candidate) -> bool:
+    from cryptography.exceptions import InvalidSignature
+
+    try:
+        leaf.verify_directly_issued_by(candidate)
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+    return True

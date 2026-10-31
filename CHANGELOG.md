@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.18.0 — unreleased
+
+### Trust
+
+- **Certificate Transparency for keyless attestations.** `tine verify
+  --attestation ... --ct-key FILE` accepts a Fulcio-certificate signature only
+  when an SCT embedded in the leaf (RFC 6962, extension
+  1.3.6.1.4.1.11129.2.4.2) verifies offline under one of the given CT log keys
+  (matched by log id, the SHA-256 of the key's DER SubjectPublicKeyInfo), over
+  the precertificate TBS and issuer key hash, with a timestamp inside the
+  certificate's validity. `--ct-key` is repeatable and a file may hold several
+  keys; `--require-sct` makes the demand explicit and is a usage error without
+  `--ct-key`. Both are refused without `--attestation` or for a key-signed
+  attestation, and trust policies carry them as `ct_key`/`require_sct`
+  (`tine trust policy set ... --ct-key FILE --require-sct`). Without the flags
+  verification is unchanged.
+
 ## 0.17.1 — 2026-10-31
 
 ### Fixes

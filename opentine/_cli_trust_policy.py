@@ -30,6 +30,8 @@ def add_policy_parser(group_sub: argparse._SubParsersAction) -> None:
     put.add_argument("--cert-identity", metavar="SAN", help="Keyless: expected signer identity")
     put.add_argument("--cert-oidc-issuer", metavar="URL", help="Keyless: expected OIDC issuer")
     put.add_argument("--fulcio-root", metavar="FILE", help="Keyless: Fulcio root/intermediates")
+    put.add_argument("--ct-key", action="append", metavar="FILE", help="Keyless: CT log key(s)")
+    put.add_argument("--require-sct", action="store_true", help="Keyless: demand an SCT")
     for verb, help_text in (("list", "List policies"), ("show", "Show one policy")):
         child = sub.add_parser(verb, help=help_text)
         if verb == "show":
@@ -85,6 +87,14 @@ def _policy_from(args: argparse.Namespace) -> dict:
     if keyless and (len(keyless) < 3 or "rekor_key" not in policy):
         _fail("a keyless policy needs --cert-identity, --cert-oidc-issuer, --fulcio-root "
               "and --rekor-key")  # fmt: skip
+    if args.ct_key:
+        from opentine._fulcio_sct import load_ct_keys
+
+        policy["ct_key"] = [_absolute_file(p, "--ct-key", pem(load_ct_keys)) for p in args.ct_key]
+    if args.require_sct:
+        policy["require_sct"] = True
+    if ("require_sct" in policy and "ct_key" not in policy) or ("ct_key" in policy and not keyless):
+        _fail("--ct-key belongs to a keyless policy, and --require-sct needs --ct-key")
     if not ({"pubkey", "pin"} & set(policy) or keyless):
         _fail("a policy needs a trust root: --pubkey, --pin, or the keyless flags")
     return policy

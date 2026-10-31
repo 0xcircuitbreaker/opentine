@@ -215,7 +215,7 @@ def _check(args, document):
         return verify_keyless_cli(args, envelope, leaf, entries)
     refuse_unhonoured(
         args,
-        ("cert_identity", "cert_oidc_issuer", "fulcio_root"),
+        ("cert_identity", "cert_oidc_issuer", "fulcio_root", "ct_key", "require_sct"),
         mode="for an attestation signed by a key",
         hint="They check a keyless (Fulcio certificate) attestation.",
     )

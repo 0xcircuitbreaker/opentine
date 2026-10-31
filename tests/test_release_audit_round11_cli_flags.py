@@ -415,6 +415,9 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "ed.tine"], ["--cert-identity", "ops@example.com"], "refused"),
     (["verify", "ed.tine"], ["--cert-oidc-issuer", "https://issuer.example"], "refused"),
     (["verify", "ed.tine"], ["--fulcio-root", "ed.pub"], "refused"),
+    # 0.18.0: SCT checks belong to keyless --attestation verification too.
+    (["verify", "ed.tine"], ["--ct-key", "ed.pub"], "refused"),
+    (["verify", "ed.tine"], ["--require-sct"], "refused"),
     (["verify", "signed.tine", "--key-env", KEY_ENV], ["--pin", "sha256:" + "0" * 64], "refused"),
     # v0.5.0 D2: --json replaces the human rendering with one machine-readable object.
     (["verify", "source.tine"], ["--json"], "honoured"),

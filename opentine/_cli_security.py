@@ -33,6 +33,9 @@ def cmd_verify(args: argparse.Namespace) -> None:
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
     if getattr(args, "attestation", None):
+        if getattr(args, "require_sct", False) and not getattr(args, "ct_key", None):
+            console.print("[red]--require-sct needs --ct-key FILE: the CT log key to check[/]")
+            raise SystemExit(1)
         return cmd_verify_attestation(args)
     from opentine._cli_sigstore import VERIFY_DESTS
 

@@ -97,7 +97,7 @@ setting, every command's output is unchanged.
 ```
 tine trust policy set prod --pubkey ~/keys/release.pub --rekor-key ~/keys/rekor.pem --require-receipt
 tine trust policy set ci --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com \
-    --fulcio-root ~/keys/fulcio.pem --rekor-key ~/keys/rekor.pem
+    --fulcio-root ~/keys/fulcio.pem --rekor-key ~/keys/rekor.pem --ct-key ~/keys/ctlog.pem --require-sct
 tine trust policy list [--json]
 tine trust policy show prod [--json]
 tine trust policy default prod        # or: --clear; no argument prints it
@@ -107,7 +107,8 @@ tine verify RUN --no-policy           # ignore trust.default for this call
 ```
 
 A policy holds `pubkey`, `pin`, `rekor_key`, `require_receipt`, `cert_identity`,
-`cert_oidc_issuer` and `fulcio_root`. Flags given on the command line win over the
+`cert_oidc_issuer`, `fulcio_root`, and (0.18) `ct_key` (a list of CT log key
+files) and `require_sct`. Flags given on the command line win over the
 policy; any key flag (`--pubkey`, `--pin`, `--key-env`, `--key-file`,
 `--trust-embedded-key`) replaces the policy's key as a whole. Fields that do not
 apply (keyless fields for a key-signed attestation, receipt fields for a plain run
