@@ -4,6 +4,11 @@
 
 ### Fixes
 
+- **gc no longer mistakes a just-released lock for a path escape (Windows).**
+  A lock file another process had just deleted resolves on Windows to
+  `C:\$Extend\$Deleted\...`, which the confinement check read as a path
+  outside the repository. That path is now recognised as the same file on its
+  way out, so gc reports the ordinary "another tine gc" contention instead.
 - **A live recorder no longer reports a stored object missing while gc runs
   (Windows).** When gc packed a loose object and deleted the loose file, Windows
   can briefly refuse to inspect that path (the file or its fan-out directory is
