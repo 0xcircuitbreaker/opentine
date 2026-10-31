@@ -55,12 +55,19 @@ def canonical(value: Any) -> bytes:
             return str(item)
         if isinstance(item, str):
             return _string(item)
+        # Plain loops, not generators: recursion inside a comprehension costs an
+        # extra frame per level before 3.12 (round-10 recursion gate).
+        parts = []
         if isinstance(item, list | tuple):
-            return "[" + ",".join(enc(v) for v in item) + "]"
+            for v in item:
+                parts.append(enc(v))
+            return "[" + ",".join(parts) + "]"
         if isinstance(item, dict):
             if not all(isinstance(k, str) for k in item):
                 raise TUFError("canonical JSON keys must be strings")
-            return "{" + ",".join(_string(k) + ":" + enc(item[k]) for k in sorted(item)) + "}"
+            for k in sorted(item):
+                parts.append(_string(k) + ":" + enc(item[k]))
+            return "{" + ",".join(parts) + "}"
         raise TUFError(f"canonical JSON cannot encode {type(item).__name__}")
 
     try:
