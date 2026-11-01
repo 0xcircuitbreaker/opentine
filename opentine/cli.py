@@ -47,6 +47,7 @@ from opentine._cli_media import COMMANDS as MEDIA_COMMANDS
 from opentine._cli_migrate import cmd_migrate
 from opentine._cli_parser import _add_filter_args, _add_harness_args, _build_parser
 from opentine._cli_plugin import COMMANDS as PLUGIN_COMMANDS
+from opentine._cli_record import COMMANDS as RECORD_COMMANDS
 from opentine._cli_render import (
     STATUS_COLORS,
     _budget_str,
@@ -103,6 +104,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **GITLINK_COMMANDS,
     **BISECT_COMMANDS,
     **MEDIA_COMMANDS,
+    **RECORD_COMMANDS,
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,

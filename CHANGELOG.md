@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.20.0 — Record any program (2026-11-01)
+
+### Record
+
+- **`tine record -- CMD [ARGS...]`** records the model calls any program makes,
+  without a harness or SDK hook. It starts a localhost reverse proxy (stdlib,
+  ephemeral port) and runs CMD with `OPENAI_BASE_URL`/`OPENAI_API_BASE`,
+  `ANTHROPIC_BASE_URL`, `DEEPSEEK_BASE_URL` and `XAI_BASE_URL` pointed at it.
+  Each call is forwarded to the upstream those variables named before (or the
+  provider default) and streamed back unchanged, SSE included; it becomes a
+  `model` step with provider, model, request, reply text, duration and token
+  usage normalised by the adapters' own usage readers, so `tine price` can
+  price it. Headers are never captured, so `Authorization`/`x-api-key` cannot
+  reach the run; bodies pass through the usual redaction. An unreachable
+  upstream answers the child with a 502 and records an error step. The run is
+  saved like `tine run` (`.tine_runs/<id>.tine`, or `--save PATH [--force]`)
+  and `tine record` exits with the child's exit code.
+
 ## 0.19.1 — 2026-10-31
 
 ### Fixes
