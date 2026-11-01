@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.24.0 — tine view (2026-11-01)
+
+### View
+
+- **`tine view RUN [-o FILE.html] [--open]`** writes one self-contained static
+  HTML page for a run: run id, prompt, models, status, total tokens and cost,
+  duration, fork lineage (`forked_from`) and integrity digest, then a step
+  timeline (kind, model, tool, duration, tokens) with each step's inputs and
+  outputs pretty-printed in collapsible sections. The page makes no external
+  request (inline CSS, no script), follows the system light/dark preference,
+  HTML-escapes every recorded string, truncates any field over 64 KiB with a
+  marker, and is byte-identical for the same run. The default output is
+  `RUN-ID.html` (first 12 characters of the id).
+
 ## 0.23.0 — Runs travel with git push (2026-11-01)
 
 ### Runs travel with the code

@@ -69,6 +69,7 @@ from opentine._cli_security import (
 from opentine._cli_stats import cmd_stats
 from opentine._cli_storage import STORAGE_COMMANDS
 from opentine._cli_unify import expand_alias, tag_is_v3, v3_argv
+from opentine._cli_view import COMMANDS as VIEW_COMMANDS
 from opentine._cli_who import COMMANDS as ACTION_COMMANDS
 from opentine._user_settings import apply_output_format, cmd_user_config, is_user_config
 from opentine.pricing_cli import cmd_pricing
@@ -107,6 +108,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **MEDIA_COMMANDS,
     **RECORD_COMMANDS,
     **REWIND_COMMANDS,
+    **VIEW_COMMANDS,
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,
