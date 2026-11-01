@@ -397,3 +397,30 @@ def test_async_harness_duration_budget_cancels_before_adapter_timeout():
     assert __import__("time").monotonic() - started < 0.6
     assert result.status == RunStatus.failed
     assert result.metadata["budget_state"]["dimension"] == "duration"
+
+
+def test_a_budget_timeout_is_a_breach_even_when_a_coarse_clock_reads_short(monkeypatch):
+    """Windows' ~15 ms clock can report less elapsed time than wait_for waited.
+
+    The budget timeout must still be recorded as a duration breach (a failed
+    run), never surface as a bare TimeoutError.
+    """
+    import types
+
+    from opentine.harnesses import _wrapper
+
+    class SlowHarness:
+        name = "slow"
+        model_info = "slow"
+        supports_resume = False
+
+        async def execute(self, task, context=None, step_callback=None):
+            await asyncio.sleep(1.0)
+
+    frozen = types.SimpleNamespace(monotonic=lambda: 100.0)  # the wrapper's clock never moves
+    monkeypatch.setattr(_wrapper, "time", frozen)
+    run = Run(id="coarse-clock")
+    run.set_budget(max_duration=0.05)
+    result = OpentineHarness(SlowHarness(), run=run).run_sync("go")
+    assert result.status == RunStatus.failed
+    assert result.metadata["budget_state"]["dimension"] == "duration"
