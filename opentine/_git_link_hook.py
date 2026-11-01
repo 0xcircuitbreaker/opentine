@@ -25,6 +25,8 @@ from opentine._git_link import HOOK_ENV, RUN_ID, GitLinkError, git
 
 HOOK = "prepare-commit-msg"
 MARKER = "# opentine:prepare-commit-msg"
+#: Every opentine-managed hook (this one, the pre-push hook, shims) carries this.
+OURS = "# opentine:"
 CHAINED = ".tine-chained"
 MAX_TRAILER_RUNS = 20
 MAX_STAGED = 2000
@@ -82,23 +84,23 @@ def _write_executable(path: Path, text: str) -> None:
 
 def _ours(path: Path) -> bool:
     try:
-        return MARKER in path.read_text(encoding="utf-8", errors="replace")[:4096]
+        return OURS in path.read_text(encoding="utf-8", errors="replace")[:4096]
     except OSError:
         return False
 
 
-def install_into(directory: Path) -> Path:
-    """Install the hook into *directory*, chaining any hook already there."""
+def install_into(directory: Path, hook: str = HOOK, text: str = "") -> Path:
+    """Install *hook* into *directory*, chaining any hook already there."""
     directory.mkdir(parents=True, exist_ok=True)
-    target = directory / HOOK
+    target = directory / hook
     if target.is_symlink():
         raise GitLinkError(f"{target} is a symlink; remove it or install manually")
     if target.exists() and not _ours(target):
-        chained = directory / f"{HOOK}{CHAINED}"
+        chained = directory / f"{hook}{CHAINED}"
         if chained.exists():
             raise GitLinkError(f"{chained} already exists; refusing to overwrite a user hook")
         target.rename(chained)
-    _write_executable(target, _script())
+    _write_executable(target, text or _script())
     return target
 
 
@@ -110,30 +112,30 @@ def _configured_hooks_path(cwd: Path, *scope: str) -> str:
         return ""
 
 
-def install_hook(cwd: Path, *, global_: bool = False) -> Path:
+def install_hook(cwd: Path, *, global_: bool = False, hook: str = HOOK, text: str = "") -> Path:
     if global_:
         configured = _configured_hooks_path(cwd, "--global")
         if configured:
-            return install_into(Path(os.path.expanduser(configured)))
+            return install_into(Path(os.path.expanduser(configured)), hook, text)
         base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
         directory = base / "opentine" / "git-hooks"
-        hook = install_into(directory)
+        installed = install_into(directory, hook, text)
         for name in _CLIENT_HOOKS:
             shim = directory / name
-            if not shim.exists() or _ours(shim):
+            if not shim.exists() or _ours(shim) and "pass-through shim" in shim.read_text("utf-8"):
                 _write_executable(shim, _shim(name))
         git(cwd, "config", "--global", "core.hooksPath", directory.as_posix(), hardened=False)
-        return hook
+        return installed
     configured = _configured_hooks_path(cwd)
     if configured:
         directory = Path(os.path.expanduser(configured))
         if not directory.is_absolute():
             directory = Path(git(cwd, "rev-parse", "--show-toplevel").strip()) / directory
-        return install_into(directory)
+        return install_into(directory, hook, text)
     common = Path(git(cwd, "rev-parse", "--git-common-dir").strip())
     if not common.is_absolute():
         common = Path(cwd) / common
-    return install_into(common / "hooks")
+    return install_into(common / "hooks", hook, text)
 
 
 def staged_paths(cwd: Path) -> list[str]:
@@ -211,6 +213,7 @@ def add_trailers(cwd: Path, message_file: Path, runs: list[str]) -> None:
 __all__ = [
     "HOOK",
     "MARKER",
+    "OURS",
     "add_trailers",
     "configured_source",
     "record_source",

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.23.0 — Runs travel with git push (2026-11-01)
+
+### Runs travel with the code
+
+- **`tine git install-hook --push`** also installs a git `pre-push` hook. On
+  `git push REMOTE` it reads the pushed ranges from stdin (git's pre-push
+  protocol; a new branch walks at most 1000 commits not already on a remote),
+  collects the `Tine-Run:` trailers of those commits and adds the runs to
+  `refs/tine/bundle` on the same remote, keeping the runs the remote bundle
+  already holds. With no trailers it does nothing. A failure warns on stderr
+  and never blocks the code push; `--strict` makes it block. An existing
+  `pre-push` hook is chained (kept as `pre-push.tine-chained`, run first with
+  the same stdin), and a global install keeps any opentine hook over the
+  pass-through shims. Runs from a legacy runs directory are packed through a
+  temporary repository. `tine bundle fetch REMOTE` is the pull side.
+
 ## 0.22.0 — Rewind (2026-11-01)
 
 ### Rewind

@@ -100,6 +100,7 @@ PAIRS: tuple[tuple, ...] = (
     ),
     ("plain", ["git", "log", "--pr", "3"], ["repo", "integrate", "git", "log", "--pr", "3"]),
     ("plain", ["git", "trailers", "msg.txt"], ["repo", "integrate", "git", "trailers", "msg.txt"]),
+    ("plain", ["git", "push-runs", "origin"], ["repo", "integrate", "git", "push-runs", "origin"]),
     ("plain", ["hook", "install"], ["repo", "integrate", "hook", "install"]),
     (
         "plain",

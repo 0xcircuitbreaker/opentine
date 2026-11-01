@@ -65,6 +65,11 @@ def create(repo: Repo, refs: list[str] | None = None) -> bytes:
         chosen = {k: v for k, v in local.items() if not k.startswith("remotes/")}
     if not chosen:
         raise ValueError("nothing to bundle: name refs or pass --all in a repository with refs")
+    return create_refs(repo, chosen)
+
+
+def create_refs(repo: Repo, chosen: dict[str, str]) -> bytes:
+    """Bundle exactly the ``ref name -> object id`` mapping *chosen*."""
     pack, _ = fitted_pack(repo, sorted(set(chosen.values())), [])
     manifest = canonical_json(
         {
@@ -198,6 +203,7 @@ __all__ = [
     "BundleError",
     "Verified",
     "create",
+    "create_refs",
     "namespace",
     "read_file",
     "tracking_ref",

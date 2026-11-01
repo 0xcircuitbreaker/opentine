@@ -1025,6 +1025,14 @@ ROWS: tuple[tuple, ...] = (
         {"command": "git", "git_command": "trailers", "message_file": "msg.txt"},
     ),
     (
+        "plain:git push-runs origin",
+        "plain",
+        ["git", "push-runs", "origin"],
+        "opentine._cli_gitlink:cmd_git",
+        False,
+        {"command": "git", "git_command": "push-runs", "remote": "origin"},
+    ),
+    (
         "plain:blame src/x.py",
         "plain",
         ["blame", "src/x.py"],
@@ -2242,6 +2250,14 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_gitlink:cmd_git",
         False,
         {"command": "git", "git_command": "trailers", "message_file": "msg.txt"},
+    ),
+    (
+        "plain:repo integrate git push-runs origin",
+        "plain",
+        ["repo", "integrate", "git", "push-runs", "origin"],
+        "opentine._cli_gitlink:cmd_git",
+        False,
+        {"command": "git", "git_command": "push-runs", "remote": "origin"},
     ),
     (
         "plain:repo integrate hook install",
