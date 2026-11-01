@@ -18,6 +18,7 @@ from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
 from opentine._cli_plugin import add_plugin_parser
+from opentine._cli_record import add_record_parser
 from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._cli_storage import add_storage_parsers
@@ -42,16 +43,14 @@ def _build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
     run.add_argument("script", nargs="?")
     _add_harness_args(run)
-    # The third run mode, and the only one that needs nothing written first: it
-    # calls a bundled adapter directly, so it is exclusive with the other two.
+    # The third run mode: a bundled adapter called directly, exclusive with the others.
     add_model_args(run)
     # --save works in both modes; the autosave trio checkpoints a run in flight
     # and so needs --harness. Script mode refuses them rather than ignoring them.
     run.add_argument(
         "--save", metavar="PATH", help="Write the run here instead of .tine_runs/<id>.tine"
     )
-    # Same meaning as everywhere else a verb writes an artifact: replace what is
-    # already at the --save destination. Without it the second run refuses.
+    # As everywhere: replace what is at --save; without it the second run refuses.
     run.add_argument("--force", action="store_true", help="Replace an existing --save destination")
     run.add_argument("--autosave", metavar="PATH", help="Checkpoint path (--harness runs only)")
     run.add_argument(
@@ -231,6 +230,7 @@ def _build_parser() -> argparse.ArgumentParser:
     add_gitlink_parsers(sub)
     add_bisect_parser(sub)
     add_media_parser(sub)
+    add_record_parser(sub)
     add_hook_parser(sub)
     add_plugin_parser(sub)
     add_fleet_parser(sub)

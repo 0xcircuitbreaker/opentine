@@ -2953,4 +2953,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "verify", "attestation": "a.json", "trusted_root": "tr.json"},
     ),
+    (
+        "plain:record --save r.tine -- python a.py",
+        "plain",
+        ["record", "--save", "r.tine", "--", "python", "a.py"],
+        "opentine._cli_record:cmd_record",
+        False,
+        {"command": "record", "save": "r.tine", "force": False},
+    ),
 )
