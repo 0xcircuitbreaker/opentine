@@ -45,6 +45,9 @@ def _inflate(data: bytes, limit: int) -> bytes:
     return out
 
 
+DRAIN_BYTES = 1 << 20  # oversize bodies up to this are read off before a 413
+
+
 class OtlpHandler(BaseHTTPRequestHandler):
     server_version = "OpenTineOTLP/1"
     timeout = 30
@@ -76,6 +79,7 @@ class OtlpHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             raise _Refused(411, "a Content-Length header is required") from exc
         if length < 0 or length > self.max_bytes:
+            self.rfile.read(min(max(length, 0), DRAIN_BYTES))  # no RST before the reply
             raise _Refused(413, f"request body exceeds {self.max_bytes} bytes")
         data = self.rfile.read(length)
         encoding = (self.headers.get("Content-Encoding") or "identity").strip().lower()
