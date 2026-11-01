@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.22.0 — Rewind (2026-11-01)
+
+### Rewind
+
+- **`tine rewind RUN[@STEP]`** restores the working-tree files a recorded run
+  changed to how they were right after STEP (an index or step id; without one,
+  before the run). It reuses the write actions `tine blame` reads: a `Write`
+  step's whole `content` is replayed forward, and `Edit`/MultiEdit/str_replace
+  steps are applied forward or undone backward only when the inserted text
+  occurs exactly once. Files the run changed through a shell command or patch,
+  recorded redacted, or created whole without saying what was there before are
+  listed as unrecoverable with the reason, never guessed. It is a dry run by
+  default; `--apply` writes atomically under `--root` (default: the current
+  directory), refuses paths outside the root or through a symbolic link, and
+  writes nothing (exit 1) when a file's current content is neither the run's
+  last recorded state nor the target, unless `--force`. `--json` emits
+  `restore`, `unchanged`, `conflict`, `unrecoverable` and `refused` lists.
+
 ## 0.21.0 — Live OTLP receiver (2026-11-01)
 
 ### Live OTLP
