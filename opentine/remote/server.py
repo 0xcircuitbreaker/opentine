@@ -138,12 +138,27 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         metavar="SHA256",
         help="Recover a verified chain only when its computed head equals SHA256",
     )
+    parser.add_argument(
+        "--otlp", action="store_true", help="Serve an OTLP/HTTP receiver that saves runs instead"
+    )
+    parser.add_argument("--otlp-port", type=int, default=4318, help="OTLP/HTTP port (4318)")
+    parser.add_argument(
+        "--otlp-idle", type=float, default=30.0, help="Save a trace after this many idle seconds"
+    )
     add_admin_parsers(parser)
 
 
 def cmd_serve(args: argparse.Namespace, console: Any) -> None:
     if getattr(args, "admin_action", None):
         return cmd_serve_admin(args, console)
+    if args.otlp:
+        if not (_loopback(args.host) or args.insecure_dev_any_host):
+            raise SystemExit(
+                "--otlp is unauthenticated: loopback only unless --insecure-dev-any-host"
+            )
+        from opentine._otlp_http import serve_otlp
+
+        return serve_otlp(args, console)
     token = os.environ.get(args.token_env)
     if not token:
         raise SystemExit(f"{args.token_env} must contain the development bearer token")
