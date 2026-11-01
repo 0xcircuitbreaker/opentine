@@ -61,7 +61,7 @@ class OpentineHarness:
             getattr(self.harness, "invocation_kind", StepKind.model),
             inputs={"context": context or {}, "harness": self.harness.name, "task": task},
         )
-        started = time.monotonic()
+        started, floor = time.monotonic(), 0.0  # floor: a budget timeout spent it all
         try:
             result = self.harness.execute(task, context=context, step_callback=self.record_step)
             if inspect.isawaitable(result):
@@ -75,6 +75,7 @@ class OpentineHarness:
                     else None
                 )
                 if timeout is not None:
+                    floor = timeout + 1e-3
                     result = await asyncio.wait_for(result, timeout)
                 else:
                     result = await result
@@ -107,7 +108,7 @@ class OpentineHarness:
                     inputs={"error": f"{type(exc).__name__}: {exc}"},
                     outputs={"error": str(exc)},
                     parent_id=self._last_step_id or root,
-                    duration=time.monotonic() - started,
+                    duration=max(time.monotonic() - started, floor * isinstance(exc, TimeoutError)),
                 )
             except BudgetExceeded as budget_exc:
                 run.status = RunStatus.failed

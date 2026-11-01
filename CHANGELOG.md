@@ -11,6 +11,12 @@
   `PermissionError` and the member exited non-zero. The `.tine` and
   canonical-JSON writers now retry a sharing violation briefly, like the
   repository's control files; a lasting denial still fails.
+- **A harness duration budget always ends as a budget breach (Windows).** When
+  the budget's timeout fired, the error step recorded the measured elapsed
+  time, which Windows' ~15 ms clock can report as just under the budget; no
+  breach fired and a bare `TimeoutError` escaped instead of a failed run with
+  `budget_state.dimension == "duration"`. A budget timeout now counts as the
+  whole budget spent.
 
 ## 0.19.0 — 2026-10-31
 
