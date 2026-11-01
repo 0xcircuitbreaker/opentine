@@ -31,6 +31,8 @@ from opentine._git_link_hook import (
     staged_paths,
 )
 from opentine._git_link_runs import RunCatalog, open_catalog, run_summary
+from opentine._git_push_sync import HOOK as PRE_PUSH
+from opentine._git_push_sync import add_push_runs_parser, cmd_push_runs, script
 
 
 def _fail(message: str) -> None:
@@ -52,9 +54,10 @@ def cmd_git(args: argparse.Namespace) -> None:
         "note": _note,
         "log": _log,
         "trailers": _trailers,
+        "push-runs": cmd_push_runs,
     }.get(args.git_command)
     if handler is None:
-        _fail("usage: tine git {install-hook,note,log,trailers}")
+        _fail("usage: tine git {install-hook,note,log}")
     try:
         handler(args)
     except GitLinkError as exc:
@@ -68,13 +71,18 @@ def _install_hook(args: argparse.Namespace) -> None:
         # Chosen by the user running install here, not read later from a clone.
         repo = str(cwd / ".tine") if (cwd / ".tine").is_dir() else ""
         runs_dir = "" if repo else str(cwd / RUNS_DIR)
-    hook = install_hook(cwd, global_=args.global_)
+    hooks = [install_hook(cwd, global_=args.global_)]
+    if args.push or args.strict:  # also carry the trailers' runs on every git push
+        text = script(strict=args.strict)
+        hooks.append(install_hook(cwd, global_=args.global_, hook=PRE_PUSH, text=text))
     record_source(cwd, repo=repo, runs_dir=runs_dir, global_=args.global_)
+    payload = {"hook": str(hooks[0]), "global": bool(args.global_), "repo": repo}
+    payload.update(runs_dir=runs_dir, hooks=[str(hook) for hook in hooks])
     emit_or_print(
         args,
         "git install-hook",
-        {"hook": str(hook), "global": bool(args.global_), "repo": repo, "runs_dir": runs_dir},
-        lambda: console.print(f"Installed prepare-commit-msg hook: {_terminal(str(hook))}"),
+        payload,
+        lambda: console.print("Installed hooks: " + _terminal(", ".join(payload["hooks"]))),
     )
 
 
@@ -204,7 +212,10 @@ def add_gitlink_parsers(sub: Any) -> None:
     install.add_argument("--global", dest="global_", action="store_true", help="For every repo")
     install.add_argument("--repo", metavar="PATH", help="v3 repository the hook reads runs from")
     install.add_argument("--runs-dir", metavar="PATH", help="Runs directory the hook reads")
+    install.add_argument("--push", action="store_true", help="Also push trailer runs on git push")
+    install.add_argument("--strict", action="store_true", help="With --push: block on failure")
     install.add_argument("--json", action="store_true")
+    add_push_runs_parser(git_sub)
     note = git_sub.add_parser("note", help="Record runs on a commit under refs/notes/tine")
     note.add_argument("commit")
     note.add_argument("runs", nargs="*", help="Run ids (default: the commit's Tine-Run trailers)")

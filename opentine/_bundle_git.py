@@ -87,6 +87,34 @@ def _remote_head(work: Path, url: str, timeout: float) -> str | None:
     return None
 
 
+def _store(work: Path, url: str, data: bytes, parent: str | None, timeout: float) -> str:
+    blob = _git(work, "hash-object", "-w", "--stdin", stdin=data, timeout=timeout)
+    tree = _git(
+        work, "mktree", stdin=b"100644 blob " + blob.strip() + b"\t" + BLOB.encode() + b"\n",
+        timeout=timeout,
+    )  # fmt: skip
+    extra = ["-p", parent] if parent else []
+    commit = _git(
+        work, "commit-tree", tree.decode().strip(), *extra, "-m", "opentine bundle",
+        timeout=timeout,
+    ).decode().strip()  # fmt: skip
+    _git(work, "push", "-q", url, f"{commit}:{REMOTE_REF}", timeout=timeout)
+    return commit
+
+
+def _read_remote(work: Path, url: str, timeout: float) -> tuple[str | None, bytes]:
+    """The remote bundle commit and its bytes (``None, b""`` when there is none)."""
+    head = _remote_head(work, url, timeout)
+    if head is None:
+        return None, b""
+    _git(work, "fetch", "-q", "--no-tags", url, f"+{REMOTE_REF}:{REMOTE_REF}", timeout=timeout)
+    spec = f"{REMOTE_REF}:{BLOB}"
+    size = int(_git(work, "cat-file", "-s", spec, timeout=timeout).strip() or b"-1")
+    if not 0 <= size <= _bundle.MAX_BUNDLE_BYTES:
+        raise _bundle.BundleError("remote bundle exceeds the maximum size")
+    return head, _git(work, "cat-file", "blob", spec, timeout=timeout, limit=size)
+
+
 def push(repo: Repo, remote: str, refs: list[str] | None, *, timeout: float = 120.0) -> dict:
     url = remote_spec(remote)
     data = _bundle.create(repo, refs)
@@ -96,18 +124,33 @@ def push(repo: Repo, remote: str, refs: list[str] | None, *, timeout: float = 12
         parent = _remote_head(work, url, timeout)
         if parent:
             _git(work, "fetch", "-q", "--no-tags", url, REMOTE_REF, timeout=timeout)
-        blob = _git(work, "hash-object", "-w", "--stdin", stdin=data, timeout=timeout)
-        tree = _git(
-            work, "mktree", stdin=b"100644 blob " + blob.strip() + b"\t" + BLOB.encode() + b"\n",
-            timeout=timeout,
-        )  # fmt: skip
-        extra = ["-p", parent] if parent else []
-        commit = _git(
-            work, "commit-tree", tree.decode().strip(), *extra, "-m", "opentine bundle",
-            timeout=timeout,
-        ).decode().strip()  # fmt: skip
-        _git(work, "push", "-q", url, f"{commit}:{REMOTE_REF}", timeout=timeout)
+        commit = _store(work, url, data, parent, timeout)
     return {"remote": remote, "ref": REMOTE_REF, "commit": commit, "bytes": len(data)}
+
+
+def push_refs(repo: Repo, remote: str, refs: dict[str, str], *, timeout: float = 120.0) -> dict:
+    """Add *refs* to the remote bundle, keeping every ref it already holds.
+
+    The remote bundle is verified and its objects imported (no local ref moves),
+    so the new bundle is the union; nothing is pushed when it already has them.
+    """
+    url = remote_spec(remote)
+    with tempfile.TemporaryDirectory(prefix="tine-git-") as tmp:
+        work = Path(tmp)
+        _git(work, "init", "-q", "--bare", ".", timeout=timeout)
+        parent, old = _read_remote(work, url, timeout)
+        held: dict[str, str] = {}
+        if old:
+            checked = _bundle.verify(old)
+            held = dict(checked.refs)
+        if all(held.get(name) == oid for name, oid in refs.items()):
+            return {"remote": remote, "ref": REMOTE_REF, "commit": parent, "pushed": []}
+        if old:
+            repo.import_pack(checked.pack)
+        data = _bundle.create_refs(repo, {**held, **refs})
+        commit = _store(work, url, data, parent, timeout)
+    pushed = sorted(name for name, oid in refs.items() if held.get(name) != oid)
+    return {"remote": remote, "ref": REMOTE_REF, "commit": commit, "pushed": pushed}
 
 
 def fetch(
@@ -117,16 +160,11 @@ def fetch(
     with tempfile.TemporaryDirectory(prefix="tine-git-") as tmp:
         work = Path(tmp)
         _git(work, "init", "-q", "--bare", ".", timeout=timeout)
-        if _remote_head(work, url, timeout) is None:
+        head, data = _read_remote(work, url, timeout)
+        if head is None:
             raise KeyError(f"remote has no {REMOTE_REF}: {remote}")
-        _git(work, "fetch", "-q", "--no-tags", url, f"+{REMOTE_REF}:{REMOTE_REF}", timeout=timeout)
-        spec = f"{REMOTE_REF}:{BLOB}"
-        size = int(_git(work, "cat-file", "-s", spec, timeout=timeout).strip() or b"-1")
-        if not 0 <= size <= _bundle.MAX_BUNDLE_BYTES:
-            raise _bundle.BundleError("remote bundle exceeds the maximum size")
-        data = _git(work, "cat-file", "blob", spec, timeout=timeout, limit=size)
     result = _bundle.unbundle(repo, data, name, force=force)
     return {"remote": remote, **result}
 
 
-__all__ = ["REMOTE_REF", "GitTransportError", "fetch", "push", "remote_spec"]
+__all__ = ["REMOTE_REF", "GitTransportError", "fetch", "push", "push_refs", "remote_spec"]
