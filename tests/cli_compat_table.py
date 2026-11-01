@@ -2985,4 +2985,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "rewind", "target": "r1@3", "apply": True, "force": False, "json": False},
     ),
+    (
+        "plain:view r1 -o r.html",
+        "plain",
+        ["view", "r1", "-o", "r.html"],
+        "opentine._cli_view:cmd_view",
+        False,
+        {"command": "view", "run_id": "r1", "output": "r.html", "open": False},
+    ),
 )
