@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.21.0 — Live OTLP receiver (2026-11-01)
+
+### Live OTLP
+
+- **`tine serve --otlp [--otlp-port 4318] [--otlp-idle 30]`** runs a live
+  OTLP/HTTP receiver (stdlib, threaded, `127.0.0.1` by default; a non-loopback
+  `--host` needs `--insecure-dev-any-host`, since it is unauthenticated). It
+  accepts `POST /v1/traces` and `POST /v1/logs` in OTLP/JSON, gzip included,
+  and answers `{}` (or `partialSuccess` for spans without a `traceId`).
+  Spans are grouped by `traceId` and read by the same importer as
+  `tine import --format otel-json`; log records are grouped by session and read
+  by the `otel-logs` importer. A trace is saved as a run when its root span
+  arrives, after `--otlp-idle` quiet seconds, or on Ctrl-C (everything pending
+  is flushed), through the `tine import` write path (source billing
+  distrusted, values redacted) and saved like `tine run`
+  (`.tine_runs/<id>.tine`). Bodies are bounded by `--max-body-mb` before and
+  after decompression (413); non-JSON is a 400; OTLP protobuf is refused with
+  415 and a hint to set `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`.
+
 ## 0.20.0 — Record any program (2026-11-01)
 
 ### Record
