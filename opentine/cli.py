@@ -58,6 +58,7 @@ from opentine._cli_render import (
     _query_from_ls_args,
 )
 from opentine._cli_replay import cmd_replay
+from opentine._cli_rewind import COMMANDS as REWIND_COMMANDS
 from opentine._cli_run_model import cmd_run_model
 from opentine._cli_security import (
     _verify_signature_if_requested,
@@ -105,6 +106,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **BISECT_COMMANDS,
     **MEDIA_COMMANDS,
     **RECORD_COMMANDS,
+    **REWIND_COMMANDS,
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,

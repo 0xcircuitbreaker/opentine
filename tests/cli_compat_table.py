@@ -2961,4 +2961,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "record", "save": "r.tine", "force": False},
     ),
+    (
+        "plain:rewind r1@3 --apply",
+        "plain",
+        ["rewind", "r1@3", "--apply"],
+        "opentine._cli_rewind:cmd_rewind",
+        False,
+        {"command": "rewind", "target": "r1@3", "apply": True, "force": False, "json": False},
+    ),
 )
