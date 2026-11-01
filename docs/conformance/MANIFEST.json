@@ -1332,7 +1332,7 @@
     "vectors/51-compat.json": "5a72c9675d01885fdd3fdae31463cf0176fa903ef08874660dbc1ec9b6725886",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.19.0",
+  "generated_by": "opentine 0.19.1",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"

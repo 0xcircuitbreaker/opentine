@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.1 — 2026-10-31
+
+### Fixes
+
+- **`tine run --parallel` members no longer fail saving the same run
+  (Windows).** Members that record identical content share one
+  content-addressed `.tine_runs/<id>.tine` and the run index, and replace them
+  at the same moment. On Windows the loser of that race got a transient
+  `PermissionError` and the member exited non-zero. The `.tine` and
+  canonical-JSON writers now retry a sharing violation briefly, like the
+  repository's control files; a lasting denial still fails.
+
 ## 0.19.0 — 2026-10-31
 
 ### Interop

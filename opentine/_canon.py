@@ -112,6 +112,17 @@ def _integrity_digest(data: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_bytes(digest_payload)).hexdigest()
 
 
+def _replace(source: Path, target: Path) -> None:
+    """``os.replace``, retrying a transient Windows sharing violation.
+
+    Two processes saving the same content-addressed run (``tine run --parallel``)
+    replace one path at once; on Windows the loser briefly gets PermissionError.
+    """
+    from opentine.repository import _winretry  # lazy: repository imports this module
+
+    _winretry.replace(source, target)
+
+
 def atomic_write_text(
     path: str | Path,
     text: str,
@@ -148,7 +159,7 @@ def atomic_write_text(
                 os.chmod(tmp, stat.S_IMODE(os.stat(p).st_mode))
             except FileNotFoundError:
                 pass
-        os.replace(tmp, p)
+        _replace(tmp, p)
         if fsync:
             _fsync_dir(p.parent)
     finally:
