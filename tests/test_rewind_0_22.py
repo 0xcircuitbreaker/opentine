@@ -12,6 +12,14 @@ from opentine.cli import main
 from opentine.core import StepKind
 
 
+def _put(path: Path, text: str) -> None:
+    path.write_bytes(text.encode())  # byte-exact: no CRLF translation on Windows
+
+
+def _get(path: Path) -> str:
+    return path.read_bytes().decode()
+
+
 def _tool(run: Run, name: str, arguments: dict) -> None:
     run.add_step(StepKind.tool, inputs={"name": name, "arguments": arguments}, outputs={})
 
@@ -32,9 +40,9 @@ def tree(tmp_path, monkeypatch):
     _tool(run, "Write", {"file_path": "../escape.txt", "content": "nope\n"})  # step 5
     saved = tmp_path / "r.tine"
     run.save(saved)
-    (root / "a.py").write_text("v2\n")
-    (root / "b.txt").write_text("hi\n")
-    (root / "c.py").write_text("x new y\n")
+    _put(root / "a.py", "v2\n")
+    _put(root / "b.txt", "hi\n")
+    _put(root / "c.py", "x new y\n")
     return root, saved
 
 
@@ -57,30 +65,30 @@ def test_dry_run_lists_changes_and_writes_nothing(tree, capsys):
     assert code == 0 and payload["command"] == "rewind" and payload["dry_run"] is True
     assert sorted(_paths(payload, "restore")) == ["a.py", "c.py"]
     assert not payload["applied"]
-    assert (root / "a.py").read_text() == "v2\n"
+    assert _get(root / "a.py") == "v2\n"
 
 
 def test_apply_restores_recorded_and_undone_edits(tree, capsys):
     root, saved = tree
     code, payload = _rewind(capsys, f"{saved}@1", "--root", str(root), "--apply")
     assert code == 0 and payload["applied"] is True
-    assert (root / "a.py").read_text() == "v1\n"
-    assert (root / "c.py").read_text() == "x old y\n"
-    assert (root / "b.txt").read_text() == "hi\n"
+    assert _get(root / "a.py") == "v1\n"
+    assert _get(root / "c.py") == "x old y\n"
+    assert _get(root / "b.txt") == "hi\n"
     _code, again = _rewind(capsys, f"{saved}@1", "--root", str(root))
     assert sorted(_paths(again, "unchanged")) == ["a.py", "c.py"]
 
 
 def test_user_edits_are_a_conflict_unless_forced(tree, capsys):
     root, saved = tree
-    (root / "a.py").write_text("mine\n")
+    _put(root / "a.py", "mine\n")
     code, payload = _rewind(capsys, f"{saved}@1", "--root", str(root), "--apply")
     assert code == 1 and payload["applied"] is False
     assert _paths(payload, "conflict") == ["a.py"]
-    assert (root / "a.py").read_text() == "mine\n"
-    assert (root / "c.py").read_text() == "x new y\n"  # nothing written at all
+    assert _get(root / "a.py") == "mine\n"
+    assert _get(root / "c.py") == "x new y\n"  # nothing written at all
     code, payload = _rewind(capsys, f"{saved}@1", "--root", str(root), "--apply", "--force")
-    assert code == 0 and (root / "a.py").read_text() == "v1\n"
+    assert code == 0 and _get(root / "a.py") == "v1\n"
 
 
 def test_unrecoverable_files_are_listed_with_a_reason(tree, capsys):
