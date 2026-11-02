@@ -88,9 +88,14 @@ def _open_block_line_time(size: int) -> float:
     return time.perf_counter() - start
 
 
+def _best_of_three(size: int) -> float:
+    return min(_open_block_line_time(size) for _ in range(3))
+
+
 def test_a_long_line_inside_an_open_key_block_is_linear():
-    small, large = _open_block_line_time(50_000), _open_block_line_time(200_000)
-    assert large < max(small, 0.005) * 12
+    # 8x the input: linear is ~8x, quadratic ~64x; best of three absorbs CI noise.
+    small, large = _best_of_three(50_000), _best_of_three(400_000)
+    assert large < max(small, 0.005) * 24
     assert _open_block_line_time(500_000) < 2.0  # a ~1 MB line
 
 
