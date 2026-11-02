@@ -437,11 +437,16 @@ def test_many_unterminated_markers_stay_linear_and_not_quadratic():
     # measured at 4.6s for 400KB. Doubling the input must roughly double the time,
     # so a return to the quadratic scan fails here rather than in a user's timeout.
     line = b'    "note": "-----BEGIN PRIVATE KEY----- a-b_c-d_",\n'
+    # Quadruple the input and take the best of three runs, so a noisy CI runner
+    # cannot fake superlinearity: linear is ~4x, the quadratic scan is ~16x.
     timings = []
-    for count in (4000, 8000):
+    for count in (2000, 8000):
         blob = line * count
-        started = time.monotonic()
-        assert b"BEGIN PRIVATE KEY" not in redact_blob(blob)
-        timings.append(time.monotonic() - started)
-    assert timings[1] < 4 * max(timings[0], 0.01), f"scan is superlinear: {timings}"
+        best = float("inf")
+        for _ in range(3):
+            started = time.monotonic()
+            assert b"BEGIN PRIVATE KEY" not in redact_blob(blob)
+            best = min(best, time.monotonic() - started)
+        timings.append(best)
+    assert timings[1] < 9 * max(timings[0], 0.01), f"scan is superlinear: {timings}"
     assert sum(timings) < 5.0, f"scan is too slow to be linear: {timings}"
