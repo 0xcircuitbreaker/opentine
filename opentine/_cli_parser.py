@@ -13,7 +13,6 @@ from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_help import finish_parser
 from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
-from opentine._cli_intoto import add_attestation_verify_args
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
@@ -23,6 +22,7 @@ from opentine._cli_run_model import add_model_args
 from opentine._cli_stats import GROUP_BY_CHOICES
 from opentine._cli_storage import add_storage_parsers
 from opentine._cli_unify import add_unify_args
+from opentine._cli_verify_offline import add_verify_args
 from opentine._cli_who import add_actions_parsers
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
@@ -209,7 +209,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     importer = add_import_parser(sub)
     add_export_parser(sub)
-    add_attestation_verify_args(verify)
+    add_verify_args(verify)
 
     # --json is purely additive (not on `export`, whose output is the document itself).
     # `replay` earns it only through --verify, whose verdict is a result a script

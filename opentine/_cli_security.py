@@ -9,6 +9,7 @@ from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
 from opentine._cli_intoto import cmd_verify_attestation
 from opentine._cli_keygen import cmd_keygen
+from opentine._cli_verify_offline import cmd_verify_offline, refuse_without_offline
 from opentine._cli_verify_report import (
     emit_verify,
     read_once,
@@ -32,6 +33,9 @@ def cmd_verify(args: argparse.Namespace) -> None:
         KEY_MATERIAL_FLAGS,
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
+    if getattr(args, "offline", False):
+        return cmd_verify_offline(args)
+    refuse_without_offline(args)
     if getattr(args, "attestation", None):
         from opentine._keyless_root import refuse_root_conflicts
 

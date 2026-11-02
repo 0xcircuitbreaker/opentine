@@ -6,35 +6,30 @@ direction, and the same converter runs it. The document is built by
 the ``otel-json`` importer, so a run exported here and imported back is the run
 that was exported — a round trip this command's tests assert rather than assume.
 
-Export is read-only over provenance: it loads a run through ``Run.load`` and
-writes nothing back. Mapping limits live in :mod:`opentine.trace.exporters`;
-``atif`` and ``agent-trace`` (0.19) are written by their own modules.
+Export is read-only over provenance; mapping limits live in the exporters.
+``atif``, ``agent-trace``, ``citation`` and ``ro-crate`` have their own modules.
 
 Destinations
 ------------
-``--format otel-json``  (the default) writes the OTLP/JSON document — one
-                        ``resourceSpans`` envelope — to stdout, or to
-                        ``--output PATH``, which refuses an existing file
-                        without ``--force``. Stdout, the written file, and the
-                        OTLP body below are all spelled by the CLI's one JSON
-                        serializer (``_cli_json.serialize``), so the document a
+``--format otel-json``  (the default) writes the OTLP/JSON document (one
+                        ``resourceSpans`` envelope) to stdout or ``--output
+                        PATH`` (no overwrite without ``--force``). Stdout,
+                        the written file and the OTLP body all use the CLI's
+                        one serializer (``_cli_json.serialize``): the document a
                         collector receives is the document a file gets, and both
                         stay pipeable and diffable.
 ``--format otlp``       POSTs that same document to an OTLP/HTTP collector.
 
-``--endpoint URL`` names the collector and implies ``--format otlp``; with
-``--format otlp`` and no ``--endpoint`` the endpoint comes from
-``OTEL_EXPORTER_OTLP_ENDPOINT``, the variable every OTel SDK already reads.
+``--endpoint URL`` names the collector and implies ``--format otlp``; otherwise
+``OTEL_EXPORTER_OTLP_ENDPOINT`` (what every OTel SDK reads) names it.
 ``/v1/traces`` is appended to it unless it already ends there, which is the
-OTLP/HTTP base-endpoint convention. The receipt names the URL, the span count,
-and the HTTP status, and is printed only for a collector that accepted the
-spans: a connection failure or a non-2xx reply is a refusal that exits 1, never
-a silently dropped export.
+OTLP/HTTP base-endpoint convention. The receipt (URL, span count, HTTP status) is
+printed only for a collector that accepted the spans: a connection failure or a
+non-2xx reply exits 1, never a silently dropped export.
 
-A cleartext push is refused unless the endpoint is a loopback IP (127.0.0.1/::1)
-or ``--allow-insecure`` says otherwise — a run carries prompts and completions, so
-it is exactly as sensitive as the repository objects the v3 transport verbs
-guard with the same rule, through the same check and the same flag name.
+A cleartext push is refused unless the endpoint is a loopback IP or
+``--allow-insecure`` is given: a run carries prompts and completions, as
+sensitive as the repository objects the v3 transport verbs guard the same way.
 """
 
 from __future__ import annotations
@@ -46,6 +41,7 @@ from typing import Any
 
 import httpx
 
+from opentine._citation_export import CITATION_FORMATS
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_intoto import add_intoto_export_args, export_intoto
@@ -62,7 +58,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace")
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", *CITATION_FORMATS)
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -224,6 +220,10 @@ def cmd_export(args: argparse.Namespace) -> None:
         # as separate strings, where the free-text pass alone cannot pair them.
         raw = Run.load(path)
         run = run_from_dict(run_to_dict(raw, redact=True), type(raw))
+        if args.format in CITATION_FORMATS:  # pinned to the digest: _citation_export
+            from opentine._citation_export import cli_export
+
+            return cli_export(args.format, Path(path), run, output, args.compress, endpoint)
         if args.format == "agent-trace":  # counts read before redaction: _agent_trace
             from opentine._agent_trace import cli_record
 

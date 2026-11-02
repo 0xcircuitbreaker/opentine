@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.25.0 — Verify anywhere (2026-11-02)
+
+### Verify anywhere
+
+- **`tine verify RUN --offline [--json] [--report FILE] [--strict]`** chains
+  every check that needs no network -- digest, signature, in-toto attestation
+  (`--attestation`), the Rekor receipt the attestation already carries,
+  certificate chain and SCT against the roots you name, the run's action
+  manifest, and (new) `--action-policy FILE` -- into one versioned
+  `tine-verify-report/1` document. Each check reports `pass`, `fail`,
+  `unavailable-offline` or `not-applicable` with a dotted reason code, detail
+  and the **trust basis** it rests on (`internal consistency only`,
+  `supplied key sha256:…`, `trusted_root.json sha256 …`). The verdict fails on
+  any failed check; `--strict` also fails when a required check could not run.
+  `authorship` is set only when a supplied, pinned or HMAC key verified the
+  signature -- never from internal consistency or a trust-on-first-use key.
+- Network paths are refused, never tried: while the offline chain runs, any
+  socket connect or name lookup raises and is reported as
+  `offline.network-refused`. A check missing its key or root is
+  `unavailable-offline`, not a pass.
+- **`--locate`** localises a broken run without guessing: the first step whose
+  content no longer hashes to its id (index, id, `graph.steps.<id>` and the
+  fields the id covers, plus a byte offset into the canonical *redacted* body),
+  the step meters via a stored action manifest's graph digest, the digest field
+  itself when a key-verified attestation subject still matches the content, the
+  signature region when the digest holds but the signature fails, or the
+  manifest entry when the run is intact. Otherwise `locate.unlocalisable`.
+  Steps carrying a `[REDACTED` marker cannot be rehashed and are skipped.
+- **Claims cross-check**: every stored action-manifest entry must name a
+  recorded tool step that still hashes to its id (binding the claim to the
+  recorded output), match its recomputed action digest, and every tool call
+  must be claimed (`claims.*` reason codes).
+- **`tine verify --offline DIR|REPO`** verifies every run (a directory's
+  `*.tine` files, or a repository's referenced runs plus `fsck`) into one
+  `tine-verify-dataset/1` report with a Merkle root over sorted
+  `(run_id, digest)` leaves (leaf `0x00||canonical_json([id,digest])`, node
+  `0x01||left||right`, odd node carried up).
+- **`tine evidence export RUN... --out DIR [--sign KEY]`** (new verb) writes
+  `MANIFEST.sha256` (sha256sum format), `custody.jsonl` (exporter, time,
+  opentine version, manifest hash; Ed25519-signed with `--sign`),
+  `timeline.jsonl`/`timeline.csv`, `verify-report.json`, `trust/` (keys and
+  policy used) and the run files. Everything but the custody timestamp is
+  deterministic; no hostname or absolute path is written. `--attestation FILE`
+  (one run) and `--trusted-root FILE` feed the attestation checks and are
+  copied into `trust/`; a `--trusted-root` without an attestation it could
+  check is refused.
+- **Independent verifier**: `docs/conformance/minimal_verifier.py` is a
+  standard-library-only script (imports no opentine) that checks a `.tine`
+  digest (format 1 and 2, compressed or not) and Ed25519 signature, an
+  evidence folder's `MANIFEST.sha256` and custody record, and a dataset Merkle
+  root, emitting a small JSON report with the same check names and reason
+  codes. Ed25519 is checked only if `cryptography` is importable; otherwise
+  the check is `unavailable-offline` (`signature.crypto-unavailable`), never a
+  pass. A test holds its verdicts to `tine verify --offline --json`.
+- **SPEC Part 8 — Verifying without opentine** documents the report, dataset
+  and custody schemas, every offline reason code and the Merkle hashing
+  (pinned by `tests/test_format_spec_drift.py`).
+
+### Cite a run
+
+- **`tine export RUN --format citation`** writes a `CITATION.cff`
+  (CFF 1.2.0) and **`--format ro-crate`** an `ro-crate-metadata.json`
+  (RO-Crate 1.1 JSON-LD: metadata descriptor, root dataset, run file,
+  opentine and model entities). Both carry the run id, the verified integrity
+  digest, every recorded model, the run's creation time and the opentine
+  version; the output is byte-identical for the same run and version. A run
+  whose digest does not verify is refused.
+- Without `--offline`, `tine verify` is unchanged; `--strict`, `--report`,
+  `--locate` and `--action-policy` are refused by name.
+
 ## 0.24.0 — tine view (2026-11-01)
 
 ### View

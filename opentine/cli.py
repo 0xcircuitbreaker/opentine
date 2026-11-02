@@ -26,6 +26,7 @@ from opentine._cli_common import (
     _step_label,
     console,
 )
+from opentine._cli_evidence import COMMANDS as EVIDENCE_COMMANDS
 from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_export import cmd_export
 from opentine._cli_fanout import split_command
@@ -109,6 +110,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **RECORD_COMMANDS,
     **REWIND_COMMANDS,
     **VIEW_COMMANDS,
+    **EVIDENCE_COMMANDS,
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,

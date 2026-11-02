@@ -143,6 +143,7 @@ byte-identical, so a hand-edited vector fails.
 | `keys.json` | the six fixed, published test keys, in hex |
 | `report.schema.json` | the shape of a runner's `report.json` |
 | `run_conformance.py` | the neutral harness: standard library only, imports no opentine |
+| `minimal_verifier.py` | an independent offline verifier for `.tine` digests and signatures, evidence folders and dataset Merkle roots: standard library only, imports no opentine (SPEC Part 8) |
 | `vectors/` | the cases |
 | `frames/`, `blobs/` | oversized byte payloads, named by their own SHA-256 |
 | `compat/index.json` | a pointer index into `tests/fixtures/compat/`, copying zero bytes |

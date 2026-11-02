@@ -55,7 +55,13 @@ SUITE_VERSION = 1
 #: harness they execute and the adapter contract they implement are the two files that
 #: most need that check. A hand edit to one of them changes MANIFEST.json, which the
 #: byte-identity gate then reports.
-HAND_WRITTEN = ("PROTOCOL.md", "README.md", "report.schema.json", "run_conformance.py")
+HAND_WRITTEN = (
+    "PROTOCOL.md",
+    "README.md",
+    "minimal_verifier.py",
+    "report.schema.json",
+    "run_conformance.py",
+)
 #: Ids that existed in a published suite and were retired. Never reused.
 RETIRED_IDS: tuple[str, ...] = ("chain.previous-not-an-annotation",)
 
