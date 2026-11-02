@@ -32,6 +32,8 @@ from opentine._attest_view import ATTEST_SCHEMES, SIGNATURE_KEY
 from opentine._attest_view import signed_message as attest_message
 from opentine._canon import _canonical_bytes, _integrity_digest
 from opentine._graph_serde import verify_integrity
+from opentine._signing_v4 import artifact_message as v4_artifact_message
+from opentine._signing_v4 import verify_artifact_v4
 from opentine._signing_verify import verify_block
 from opentine._signing_view import SCHEMES as ARTIFACT_SCHEMES
 from opentine._signing_view import signed_message as artifact_message
@@ -179,6 +181,8 @@ _MESSAGE_BUILDERS = {
     "tine-sig/2": artifact_message,
     "tine-attest/1": attest_message,
     "tine-actions/1": actions_message,
+    "tine-sig/3": v4_artifact_message,
+    "tine-attest/2": attest_message,
 }
 
 
@@ -192,9 +196,20 @@ def op_sig_message(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+_VERDICT_FIELDS = ("ok", "state", "algorithm", "key_id", "signer", "signed_at", "reason")
+
+
 def op_sig_verify(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
     document = parse_artifact_json(inp.raw) if inp.kind == "bytes" else inp.value
     family = args.get("family", "attestation")
+    if family == "artifact-v4":
+        result = verify_artifact_v4(
+            document,
+            hmac_key=KEYS[args["key"]] if args.get("key") else None,
+            public_key=bytes.fromhex(args["public_key"]) if args.get("public_key") else None,
+            trust_embedded=bool(args.get("trust_embedded")),
+        )
+        return {name: getattr(result, name) for name in _VERDICT_FIELDS}
     if family == "attestation":
         block = document.get(SIGNATURE_KEY) if isinstance(document, dict) else None
         schemes = ATTEST_SCHEMES

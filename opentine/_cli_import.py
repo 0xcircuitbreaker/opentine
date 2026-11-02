@@ -21,7 +21,8 @@ Formats
 
 Persistence — at least one target is required
 ---------------------------------------------
-``--save PATH``    write the imported run as a portable v2 ``.tine`` artifact
+``--save PATH``    write the imported run as a portable ``.tine`` artifact (format v4;
+                   ``tine --format 2`` for the deprecated v2)
                    (refusing an existing destination unless ``--force``).
 ``--repo PATH``    record it into an existing v3 repository, advancing
                    ``--ref`` (default ``heads/main``).
@@ -59,6 +60,7 @@ from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spellin
 from opentine._cli_import_read import detect_and_read
 from opentine._cli_import_read import read_events as read_events  # re-exported entry point
 from opentine._cli_import_sessions import print_sessions, resolve
+from opentine._cli_import_v4 import import_v4_file
 from opentine._cli_json_surface import emit_import
 from opentine._import_billing import distrust_source_billing, mark_unpriced
 from opentine._import_write import record
@@ -150,7 +152,7 @@ def _persist(repo: Repo, events: list[TraceEvent], ref, output, capture, source_
     """Record the events and read the run back, before any scratch repo is gone."""
     run = repo.load_run(record(repo, events, ref, capture, source_format))
     if output is not None:
-        run.save(output)
+        run.save(output, lenient=True)  # an importer: never lose the run over one value
     return run
 
 
@@ -178,6 +180,8 @@ def cmd_import(args: argparse.Namespace) -> None:
             args.source = str(resolve(args.source, args.format).path)
         except ValueError as exc:
             raise _refused(exc) from exc
+    if import_v4_file(args):  # a format v4 .tine: its envelopes, installed unchanged
+        return
     _refuse_unusable_flags(args)
     output = Path(args.save) if args.save else None
     if output is not None:

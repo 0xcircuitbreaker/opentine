@@ -17,7 +17,7 @@ from pathlib import Path
 
 from opentine._cli_flags import refuse_unhonoured
 
-OFFLINE_DESTS = ("strict", "report", "action_policy", "locate")
+OFFLINE_DESTS = ("strict", "report", "action_policy", "locate", "provenance_source")
 
 
 def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
@@ -32,6 +32,12 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--report", metavar="FILE", help="--offline: also write the JSON report")
     parser.add_argument(
         "--locate", action="store_true", help="--offline: localise a broken digest or signature"
+    )
+    parser.add_argument(
+        "--source",
+        dest="provenance_source",
+        metavar="PATH",
+        help="--offline: re-hash and re-verify the source a v4 run was upgraded from",
     )
     parser.add_argument(
         "--action-policy", metavar="FILE", help="--offline: check the run's actions against it"

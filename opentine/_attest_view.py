@@ -47,7 +47,7 @@ from opentine._signing_verify import HEADER_KEYS
 SCHEME_ATTEST_V1 = "tine-attest/1"
 
 #: Every attestation scheme this build can verify.
-ATTEST_SCHEMES = (SCHEME_ATTEST_V1,)
+ATTEST_SCHEMES = (SCHEME_ATTEST_V1, "tine-attest/2")
 
 #: Distinct from ``_signing_view.DOMAIN_PREFIX``: an artifact signed view and an
 #: attestation signed view must never hash to the same message, so no signature
@@ -69,6 +69,10 @@ def signed_view(payload: dict[str, Any], header: dict[str, Any]) -> dict[str, An
 
 
 def signed_message(payload: dict[str, Any], header: dict[str, Any]) -> bytes:
+    if header.get("scheme") == ATTEST_SCHEMES[1]:  # tine-attest/2: JCS, Ed25519 only
+        from opentine._signing_v4 import attest_message
+
+        return attest_message(payload, header)
     return ATTEST_DOMAIN_PREFIX + _canonical_bytes(signed_view(payload, header))
 
 

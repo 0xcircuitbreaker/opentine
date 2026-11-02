@@ -112,6 +112,8 @@ def _directory(args: argparse.Namespace, root: Path, report: DatasetReport) -> N
         single = build_report(args, path, str(path)).as_json()
         digest = next(c for c in single["checks"] if c["name"] == "digest")
         actual = digest["detail"][7:] if digest["outcome"] == "pass" else ""
+        if digest["outcome"] == "pass" and digest["detail"].startswith("root "):
+            actual = digest["detail"][5:]  # format v4: the leaf digest is the root oid
         report.runs.append(
             {
                 "run_id": _run_id(path) or str(path.relative_to(root)),
@@ -126,12 +128,17 @@ def _directory(args: argparse.Namespace, root: Path, report: DatasetReport) -> N
 
 def _run_id(path: Path) -> str | None:
     from opentine._artifact_io import read_artifact_json
+    from opentine._format_v4 import is_v4_artifact
 
     try:
         data = read_artifact_json(path)
     except (OSError, RecursionError, ValueError):
         return None
     value = data.get("run_id") if isinstance(data, dict) else None
+    if is_v4_artifact(data):  # the root run object's recorded run id
+        root = (data.get("objects") or {}).get(data.get("root")) or {}
+        body = root.get("body") if isinstance(root, dict) else None
+        value = body.get("source_run_id") if isinstance(body, dict) else None
     return value if isinstance(value, str) else None
 
 

@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from opentine._blob_guard import guarded_blob_body, guarded_blob_parse
-from opentine._jsonsafe import json_safe
+from opentine._format_v4 import V4Unrepresentable
+from opentine._jsonsafe import json_stored
 
 if TYPE_CHECKING:
     from opentine.repository.store import Repo
@@ -72,6 +73,28 @@ def transcript_blob(repo: Repo, oid: str | None) -> list[Any]:
 
 
 def run_origin(repo: Repo, run: Any) -> dict[str, Any]:
+    """The payload a save builds on, plus a migration's ``upgraded_from`` (SPEC 9.9).
+
+    The record goes into the payload, so the run oid covers it; a run without
+    one hashes exactly as before. Unless a legacy writer is chosen, a run holding
+    a value v4 cannot represent is refused here, before any object is written.
+    """
+    from opentine._format_v4 import v4_requested
+
+    if v4_requested():  # SPEC 9.10: refuse (a recorder's run: soften), never json_safe
+        from opentine._v4_values import prepare_run
+
+        prepare_run(run, "run")
+    base = _stored_origin(repo, run)
+    upgraded = getattr(run, "_v4_upgraded_from", None)
+    if upgraded is not None:
+        from opentine._provenance_v4 import require_upgraded_from
+
+        base["upgraded_from"] = require_upgraded_from(upgraded)
+    return base
+
+
+def _stored_origin(repo: Repo, run: Any) -> dict[str, Any]:
     fork_base = getattr(run, "_v3_fork_base", None)
     if fork_base is not None:
         source_id = getattr(run, "_v3_source_run_id", None)
@@ -134,7 +157,7 @@ def put_transcript(repo: Repo, messages: list[Any], event_map: dict[str, str]) -
         step = stored.get("step_id")
         if step is not None:
             if not isinstance(step, str) or step not in event_map:
-                raise ValueError("compatibility transcript references an unknown step")
+                raise V4Unrepresentable("compatibility transcript references an unknown step")
             stored["step_id"] = event_map[step]
         mapped.append(stored)
     return json_blob(repo, {"messages": mapped})
@@ -150,9 +173,9 @@ def put_run_manifest(repo: Repo, manifest: dict[str, Any], event_map: dict[str, 
             return event_map[value]
         if value in current_ids:
             return value
-        raise ValueError("pricing manifest references an unknown step")
+        raise V4Unrepresentable("pricing manifest references an unknown step")
 
-    stored = json_safe(manifest, strict=True)
+    stored = json_stored(manifest, "run.manifest")
     pricing = stored.get("pricing") if isinstance(stored, dict) else None
     if isinstance(pricing, dict):
         cards = pricing.get("rate_cards")

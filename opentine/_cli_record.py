@@ -17,6 +17,7 @@ from typing import Any
 
 from opentine._cli_common import console
 from opentine._cli_flags import _require_output_slot
+from opentine._v4_values import mark_lenient
 from opentine.core import Run, RunStatus, StepKind
 from opentine.redaction import redact_text, redact_value
 
@@ -49,7 +50,7 @@ def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> R
         run.add_step(StepKind.model, **args)
         run.model_info = run.model_info or args["model_info"] or ""
     run.status = RunStatus.completed if code == 0 else RunStatus.failed
-    return run
+    return mark_lenient(run)  # a recorder: one unrepresentable value never loses the run
 
 
 def cmd_record(args: argparse.Namespace) -> None:

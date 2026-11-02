@@ -1,0 +1,3955 @@
+{
+  "cases": [
+    {
+      "args": {
+        "scheme": "tine-attest/2"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "attest2.message.ed25519",
+      "input": {
+        "value": {
+          "document": {
+            "claim": {
+              "result": "pass"
+            },
+            "evidence_ids": [],
+            "signer": "release-bot",
+            "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "header": {
+            "alg": "ed25519",
+            "key_id": null,
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": null
+          }
+        }
+      },
+      "intent": "the tine-attest/2 message: opentine.attestation.v2: then JCS of the payload without signature, beside the header",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuYXR0ZXN0YXRpb24udjI6eyJib2R5Ijp7ImNsYWltIjp7InJlc3VsdCI6InBhc3MifSwiZXZpZGVuY2VfaWRzIjpbXSwic2lnbmVyIjoicmVsZWFzZS1ib3QiLCJ0YXJnZXRfaWQiOiJydW46c2hhMjU2OjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwiaGVhZGVyIjp7ImFsZyI6ImVkMjU1MTkiLCJrZXlfaWQiOm51bGwsInNjaGVtZSI6InRpbmUtYXR0ZXN0LzIiLCJzaWduZWRfYXQiOiIyMDI2LTExLTAxVDAwOjAwOjAwWiIsInNpZ25lciI6bnVsbH19"
+      },
+      "profile": "verifier",
+      "section": "9.7",
+      "tier": "core",
+      "x_display": "{\"document\": {\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}, \"header\": {\"alg\": \"ed25519\", \"key_id\": null, \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-11-01T00:00:00Z\", \"signer\": null}}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "attest2.verdict.error-hmac",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "hmac-sha256",
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot",
+            "value": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "tine-attest/2 is Ed25519 only: an HMAC block under it is an error, not a check",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": null,
+        "ok": false,
+        "reason": "malformed signed attestation content",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "9.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-11-01T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"0000000000000000000000000000000000000000000000000000000000000000\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "attest2.verdict.error-target-not-run",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "ed25519",
+            "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot",
+            "value": "a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603"
+          },
+          "signer": "release-bot",
+          "target_id": "event:sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "intent": "a tine-attest/2 record must target a run root",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": null,
+        "ok": false,
+        "reason": "malformed signed attestation content",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "9.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-11-01T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603\"}, \"sign...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "attest2.verdict.mismatch-edited-claim",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "fail"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "ed25519",
+            "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot",
+            "value": "a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "the claim is inside the signed payload",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": null,
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "9.7",
+      "tier": "core",
+      "twin": "attest2.verdict.verified",
+      "x_display": "{\"claim\": {\"result\": \"fail\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-11-01T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603\"}, \"sign...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "attest2.verdict.verified",
+      "input": {
+        "value": {
+          "claim": {
+            "result": "pass"
+          },
+          "evidence_ids": [],
+          "signature": {
+            "alg": "ed25519",
+            "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+            "scheme": "tine-attest/2",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot",
+            "value": "a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603"
+          },
+          "signer": "release-bot",
+          "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "intent": "an Ed25519 tine-attest/2 block under the supplied public key",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": null,
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "9.7",
+      "tier": "core",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-11-01T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"a5d2fc341b6751a44b9cf0cb077a930769868e87f9467a61411517e7a32eb50e9de42df32e34807cae23e13c58ef57bf2abcc97f352082b629c2259ec48be603\"}, \"sign...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "run"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "sig3.envelope.root-recompute",
+      "input": {
+        "blob": "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin",
+        "sha256": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168"
+      },
+      "intent": "a v4 envelope's id is SPEC 1.3 over its JCS body: the run envelope that carries upgraded_from re-derives the root",
+      "op": "oid.derive",
+      "output": {
+        "oid": "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e"
+      },
+      "profile": "reader",
+      "section": "9.3",
+      "tier": "core",
+      "x_display": "{\"created_at\":1710000000,\"events\":[\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\",\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\",\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"],\"legacy_refs\":{\"main\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"},\"manifests\":{\"cache\":...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "key": "hmac_a",
+        "scheme": "tine-sig/3"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig3.message.hmac",
+      "input": {
+        "value": {
+          "document": {
+            "annotations": [
+              {
+                "body": {
+                  "compatibility": "run-metadata-v1",
+                  "previous_id": null,
+                  "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                  "value": {
+                    "metadata": {
+                      "fixture": "golden-v2"
+                    },
+                    "tags": []
+                  }
+                },
+                "encoding": "json",
+                "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "annotation"
+              }
+            ],
+            "format_version": {
+              "$i": "4"
+            },
+            "kind": "tine-artifact/4",
+            "objects": {
+              "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+                "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+                "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+                "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+                "data": "dGFzaw==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+                "data": "c3lzdGVt",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+                "data": "eyJyZXN1bHQiOiJvayJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+                "data": "e30=",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+                "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+                "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+                "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+                "data": "eyJ0ZXh0IjoicGxhbiJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.2"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                  "kind": "tool",
+                  "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                  "parent_ids": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                  ],
+                  "time_unix": {
+                    "$i": "1710000002"
+                  },
+                  "tool": {
+                    "name": "read"
+                  },
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.1"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                  "kind": "think",
+                  "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                  "parent_ids": [],
+                  "time_unix": {
+                    "$i": "1710000001"
+                  },
+                  "tool": {},
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.3"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                  "kind": "done",
+                  "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                  "parent_ids": [
+                    "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                  ],
+                  "time_unix": {
+                    "$i": "1710000003"
+                  },
+                  "tool": {},
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+                "body": {
+                  "created_at": {
+                    "$i": "1710000000"
+                  },
+                  "events": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                    "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                    "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  ],
+                  "legacy_refs": {
+                    "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  },
+                  "manifests": {
+                    "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                    "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                    "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                    "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                  },
+                  "model": "mock-golden",
+                  "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                  "roots": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                  ],
+                  "source_run_id": "golden-v2",
+                  "status": "completed",
+                  "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                  "tips": [
+                    "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  ]
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "run"
+              }
+            },
+            "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+            "signatures": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/3",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "the tine-sig/3 message: opentine.signature.v3: then JCS of format_version, kind, root, annotations_head and the five-key header",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYzOnsiYW5ub3RhdGlvbnNfaGVhZCI6ImFubm90YXRpb246c2hhMjU2OmYxMzhlMzUwMGIwNTNmNTA0MWNlMWJiMDlmMmVkZDIzNWQyOGYyM2JjMDQ1ODUyNDM5MGQ1MzI1NDQ3YWZkOWMiLCJmb3JtYXRfdmVyc2lvbiI6NCwiaGVhZGVyIjp7ImFsZyI6ImhtYWMtc2hhMjU2Iiwia2V5X2lkIjoiZGVtby1rZXkiLCJzY2hlbWUiOiJ0aW5lLXNpZy8zIiwic2lnbmVkX2F0IjoiMjAyNi0xMS0wMVQwMDowMDowMFoiLCJzaWduZXIiOiJyZWxlYXNlLWJvdCJ9LCJraW5kIjoidGluZS1hcnRpZmFjdC80Iiwicm9vdCI6InJ1bjpzaGEyNTY6NjBlMDkxNTgwMGJmNTkxYWM2NWViMTQwNTQwOWIwZGE0MzIwZDYxYTZjNTVhYjdjZDA5NTcwYTNjNGYwNjk2NSJ9",
+        "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"document\": {\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annot...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "scheme": "tine-sig/3"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sig3.message.no-annotations",
+      "input": {
+        "value": {
+          "document": {
+            "annotations": [],
+            "format_version": {
+              "$i": "4"
+            },
+            "kind": "tine-artifact/4",
+            "objects": {
+              "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+                "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+                "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+                "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+                "data": "dGFzaw==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+                "data": "c3lzdGVt",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+                "data": "eyJyZXN1bHQiOiJvayJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+                "data": "e30=",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+                "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+                "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+                "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+                "data": "eyJ0ZXh0IjoicGxhbiJ9",
+                "encoding": "raw",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "blob"
+              },
+              "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.2"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                  "kind": "tool",
+                  "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                  "parent_ids": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                  ],
+                  "time_unix": {
+                    "$i": "1710000002"
+                  },
+                  "tool": {
+                    "name": "read"
+                  },
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.1"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                  "kind": "think",
+                  "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                  "parent_ids": [],
+                  "time_unix": {
+                    "$i": "1710000001"
+                  },
+                  "tool": {},
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+                "body": {
+                  "billing": {},
+                  "causal_ids": [],
+                  "cost": {
+                    "$i": "0"
+                  },
+                  "duration": {
+                    "$f": "0.3"
+                  },
+                  "error": {},
+                  "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                  "kind": "done",
+                  "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                  "model": "mock-golden",
+                  "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                  "parent_ids": [
+                    "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                  ],
+                  "time_unix": {
+                    "$i": "1710000003"
+                  },
+                  "tool": {},
+                  "usage": {}
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "event"
+              },
+              "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+                "body": {
+                  "created_at": {
+                    "$i": "1710000000"
+                  },
+                  "events": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                    "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                    "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  ],
+                  "legacy_refs": {
+                    "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  },
+                  "manifests": {
+                    "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                    "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                    "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                    "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                  },
+                  "model": "mock-golden",
+                  "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                  "roots": [
+                    "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                  ],
+                  "source_run_id": "golden-v2",
+                  "status": "completed",
+                  "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                  "tips": [
+                    "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                  ]
+                },
+                "encoding": "json",
+                "schema": {
+                  "$i": "1"
+                },
+                "type": "run"
+              }
+            },
+            "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+            "signatures": []
+          },
+          "header": {
+            "alg": "hmac-sha256",
+            "key_id": "demo-key",
+            "scheme": "tine-sig/3",
+            "signed_at": "2026-11-01T00:00:00Z",
+            "signer": "release-bot"
+          }
+        }
+      },
+      "intent": "with no annotations the head is signed as null, never omitted",
+      "op": "sig.message",
+      "output": {
+        "message_b64": "b3BlbnRpbmUuc2lnbmF0dXJlLnYzOnsiYW5ub3RhdGlvbnNfaGVhZCI6bnVsbCwiZm9ybWF0X3ZlcnNpb24iOjQsImhlYWRlciI6eyJhbGciOiJobWFjLXNoYTI1NiIsImtleV9pZCI6ImRlbW8ta2V5Iiwic2NoZW1lIjoidGluZS1zaWcvMyIsInNpZ25lZF9hdCI6IjIwMjYtMTEtMDFUMDA6MDA6MDBaIiwic2lnbmVyIjoicmVsZWFzZS1ib3QifSwia2luZCI6InRpbmUtYXJ0aWZhY3QvNCIsInJvb3QiOiJydW46c2hhMjU2OjYwZTA5MTU4MDBiZjU5MWFjNjVlYjE0MDU0MDliMGRhNDMyMGQ2MWE2YzU1YWI3Y2QwOTU3MGEzYzRmMDY5NjUifQ=="
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"document\": {\"annotations\": [], \"format_version\": {\"$i\": \"4\"}, \"kind\": \"tine-artifact/4\", \"objects\": {\"blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62\": {\"data\": \"eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9\", \"encoding\": \"raw\", \"schema\": {\"$i\": \"1\"}, \"type\": \"blob\"}, \"blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51\": {...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.error-old-scheme",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/2",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "a v4 artifact only carries tine-sig/3 blocks; any other scheme is an error",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "unsupported signature scheme",
+        "signed_at": null,
+        "signer": null,
+        "state": "error"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.mismatch-edited-envelope",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "12345"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "an edited event no longer re-derives its oid, so the signed root does not cover the content: mismatch, as an edited v2 body is",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0]: object id mismatch",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.mismatch-edited-provenance",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:9c1dfbc4cce1fe6c2c38092da769c43ccb3d131e249725fd31a715cf6f187d09",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "upgraded_from": {
+                  "digest": "0000000000000000000000000000000000000000000000000000000000000000",
+                  "digest_algorithm": "sha256",
+                  "format": "tine/2",
+                  "integrity_digest": null,
+                  "signature": {
+                    "key_fingerprint": null,
+                    "scheme": null,
+                    "state": "unsigned",
+                    "trust_basis": "none: the source carries no signature"
+                  },
+                  "tool": "opentine/0.26.0",
+                  "upgraded_at": "2026-11-01T00:00:00Z"
+                }
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "35ae8f82be9ee06fecb0f75c8454e18166c483dc446a07891843c7f8167bb3c1"
+            }
+          ]
+        }
+      },
+      "intent": "an edited upgraded_from no longer re-derives the root: mismatch, never verified",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e]: object id mismatch",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "9.9",
+      "tier": "core",
+      "twin": "sig3.verdict.verified-upgraded",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:9c1dfbc4cce1fe6c2c38092da769c43ccb3d131e249725fd31a715cf6f187d09\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.mismatch-stripped-annotations",
+      "input": {
+        "value": {
+          "annotations": [],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "dropping the annotation chain changes annotations_head, which is signed",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [], \"format_version\": {\"$i\": \"4\"}, \"kind\": \"tine-artifact/4\", \"objects\": {\"blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62\": {\"data\": \"eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9\", \"encoding\": \"raw\", \"schema\": {\"$i\": \"1\"}, \"type\": \"blob\"}, \"blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51\": {\"data\": \"eyJt...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_b"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.mismatch-wrong-key",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "a different key disagrees: the tamper verdict",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "signature mismatch",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "twin": "sig3.verdict.verified-hmac",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.no-key",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "a block without a caller key is no-key, never verified",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": false,
+        "reason": "HMAC signature present but no key supplied",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "no-key"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "trust_embedded": true
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.tofu-ed25519",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "ed25519",
+              "key_id": "ed-demo",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "value": "108f887e951ebf992d8e521098b2a6b250820dff72554729ab7293f8f289c8b2f4d9a4f4bd663222f7362afac1e0bbaef876f4d23075bc29ad89944e92382607"
+            }
+          ]
+        }
+      },
+      "intent": "the embedded key alone is verified-tofu: consistency, not authorship",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": "ed-demo",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": null,
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.unsigned",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": []
+        }
+      },
+      "intent": "an empty signatures list is unsigned",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "no signature present",
+        "signed_at": null,
+        "signer": null,
+        "state": "unsigned"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.verified-ed25519",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "ed25519",
+              "key_id": "ed-demo",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "value": "108f887e951ebf992d8e521098b2a6b250820dff72554729ab7293f8f289c8b2f4d9a4f4bd663222f7362afac1e0bbaef876f4d23075bc29ad89944e92382607"
+            }
+          ]
+        }
+      },
+      "intent": "Ed25519 under a supplied public key",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": "ed-demo",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.verified-hmac",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "a supplied HMAC key agrees with the root and annotation head",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "9.6",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v4",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "sig3.verdict.verified-upgraded",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:9c1dfbc4cce1fe6c2c38092da769c43ccb3d131e249725fd31a715cf6f187d09",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "4"
+          },
+          "kind": "tine-artifact/4",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "data": "eyJtZXNzYWdlcyI6W3siY29udGVudCI6InRhc2siLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6InBsYW4iLCJyb2xlIjoiYXNzaXN0YW50Iiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1Njo0MjQzMzE2NDA3ODViZWVjNmY4NDU4ZmYxNzJmOWIxNDEyODhiMTdhNzhkZDc3NjU5Yjk5YTQ5OWJiMTZkMmFhIn0seyJjb250ZW50Ijoib2siLCJuYW1lIjoicmVhZCIsInJvbGUiOiJ0b29sIiwic3RlcF9pZCI6ImV2ZW50OnNoYTI1NjoyYzdmMDViMjBkNDllNWEzZTg1ZWQ4MDJiZjU4MTQzOTMzYzZlOGE5YzhlZDk4Mzk0NjJkNTk0MTc2OGEzNmMwIn0seyJjb250ZW50IjoiZG9uZSIsInJvbGUiOiJhc3Npc3RhbnQiLCJzdGVwX2lkIjoiZXZlbnQ6c2hhMjU2OmMyNjRjMzJhNjk0NGUzNTIzYTQyNGJmMDkwNzk1OGU0NjMyMmQ4YmFkZDEyNjQ2YzRiOWI4OTJiZDlmODA1ZDcifV19",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "data": "eyJwcm9maWxlIjoic2VjdXJlIn0=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "data": "dGFzaw==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "data": "c3lzdGVt",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "data": "eyJyZXN1bHQiOiJvayJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "data": "e30=",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "data": "eyJ0ZXh0IjoiZG9uZSJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "data": "eyJraW5kIjoib3BlbnRpbmUtbmF0aXZlIiwibW9kZWwiOnsibmFtZSI6Im1vY2stZ29sZGVuIn0sInJlcGxheSI6WyJjYWNoZSIsInJlcnVuIl0sInJlc3VtZSI6dHJ1ZSwidG9vbHMiOlsicmVhZCJdfQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "data": "eyJmaXh0dXJlLWNhY2hlLWtleSI6IltSRURBQ1RFRF0ifQ==",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "data": "eyJ0ZXh0IjoicGxhbiJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "upgraded_from": {
+                  "digest": "075f50686a3e758fe665307ddebca51a1cd63d51de44420661a4867c5460983c",
+                  "digest_algorithm": "sha256",
+                  "format": "tine/2",
+                  "integrity_digest": null,
+                  "signature": {
+                    "key_fingerprint": null,
+                    "scheme": null,
+                    "state": "unsigned",
+                    "trust_basis": "none: the source carries no signature"
+                  },
+                  "tool": "opentine/0.26.0",
+                  "upgraded_at": "2026-11-01T00:00:00Z"
+                }
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "35ae8f82be9ee06fecb0f75c8454e18166c483dc446a07891843c7f8167bb3c1"
+            }
+          ]
+        }
+      },
+      "intent": "upgraded_from lives in the run payload, so the signed root covers it",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "9.9",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:c3c11367a89e32dd54b071dd1a011fb13e7a6700f3c15a8b863e399e0be3225e\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:9c1dfbc4cce1fe6c2c38092da769c43ccb3d131e249725fd31a715cf6f187d09\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    }
+  ],
+  "family": "sig-v4",
+  "section": "9.6",
+  "suite_version": 1
+}

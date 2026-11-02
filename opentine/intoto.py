@@ -202,9 +202,11 @@ def check_subject(statement: dict[str, Any], artifact: str | Path) -> str | None
     integrity = verify_integrity(artifact)
     if not integrity.ok:
         return f"run artifact fails integrity: {integrity.reason}"
-    if statement["subject"][0]["digest"]["sha256"] != integrity.actual:
+    if statement["subject"][0]["digest"]["sha256"] != integrity.actual.rsplit(":", 1)[-1]:
         return "subject digest does not match the run artifact"
-    return None
+    from opentine._signing_v4 import check_v4_attestation
+
+    return check_v4_attestation(statement, integrity.actual)
 
 
 def read_envelopes(path: str | Path) -> list[Any]:

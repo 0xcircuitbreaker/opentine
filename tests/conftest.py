@@ -25,6 +25,9 @@ def pytest_configure(config):
     # --json-capable command's default output into JSON; the output-format tests
     # set it themselves.
     os.environ.pop("OPENTINE_OUTPUT", None)
+    # 0.26: format v4 is the default writer; a shell exporting OPENTINE_FORMAT=2
+    # would flip every save back to v2. Tests about the legacy writers set it.
+    os.environ.pop("OPENTINE_FORMAT", None)
     # Also pin a fixed, wide console WIDTH. The CLI's Rich console captures its
     # width at import: from the controlling terminal in an interactive dev shell
     # (wide), or 80 when stdout is not a tty (CI). A long message or temp path

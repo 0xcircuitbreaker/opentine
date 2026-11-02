@@ -93,3 +93,10 @@ def test_unknown_run_is_refused(saved, tmp_path):
         main(["view", "no_such_run_zz", "-o", str(tmp_path / "v.html")])
     assert exc.value.code == 1
     assert not (tmp_path / "v.html").exists()
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

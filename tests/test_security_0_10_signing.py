@@ -331,3 +331,10 @@ def test_extra_secret_keys_refuse_the_singular_of_a_reserved_field(name):
 
     with pytest.raises(ValueError, match="extra_secret_keys"):
         RedactionPolicy(extra_secret_keys=(name,))
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

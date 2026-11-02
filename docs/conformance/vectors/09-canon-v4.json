@@ -1,0 +1,846 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.float.infinity",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "inf"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: Infinity (0x7ff0000000000000) has no JCS spelling",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"inf\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.float.nan",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "nan"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: NaN (0x7fffffffffffffff) has no JCS spelling",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.non-finite",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"nan\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON forbids NaN and infinity"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.0000000000000000",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "0.0"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x0000000000000000 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.0000000000000001",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "5e-324"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x0000000000000001 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo1ZS0zMjR9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"5e-324\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.3eb0c6f7a0b5ed8c",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "9.999999999999997e-07"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x3eb0c6f7a0b5ed8c serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5Ljk5OTk5OTk5OTk5OTk5N2UtN30="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"9.999999999999997e-07\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.3eb0c6f7a0b5ed8d",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e-06"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x3eb0c6f7a0b5ed8d serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowLjAwMDAwMX0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e-06\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.41b3de4355555553",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "333333333.3333332"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x41b3de4355555553 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjozMzMzMzMzMzMuMzMzMzMzMn0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"333333333.3333332\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.41b3de4355555554",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "333333333.33333325"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x41b3de4355555554 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjozMzMzMzMzMzMuMzMzMzMzMjV9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"333333333.33333325\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.41b3de4355555555",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "333333333.3333333"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x41b3de4355555555 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjozMzMzMzMzMzMuMzMzMzMzM30="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"333333333.3333333\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.41b3de4355555556",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "333333333.3333334"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x41b3de4355555556 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjozMzMzMzMzMzMuMzMzMzMzNH0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"333333333.3333334\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.41b3de4355555557",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "333333333.33333343"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x41b3de4355555557 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjozMzMzMzMzMzMuMzMzMzMzNDN9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"333333333.33333343\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.43143ff3c1cb0959",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1424953923781206.2"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x43143ff3c1cb0959 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxNDI0OTUzOTIzNzgxMjA2LjJ9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1424953923781206.2\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.4340000000000000",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "9007199254740992.0"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x4340000000000000 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5MDA3MTk5MjU0NzQwOTkyfQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"9007199254740992.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.4430000000000000",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "2.9514790517935283e+20"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x4430000000000000 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoyOTUxNDc5MDUxNzkzNTI4MzAwMDB9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"2.9514790517935283e+20\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.444b1ae4d6e2ef4e",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "9.999999999999997e+20"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x444b1ae4d6e2ef4e serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5OTk5OTk5OTk5OTk5OTk3MDAwMDB9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"9.999999999999997e+20\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.444b1ae4d6e2ef4f",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "9.999999999999999e+20"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x444b1ae4d6e2ef4f serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5OTk5OTk5OTk5OTk5OTk5MDAwMDB9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"9.999999999999999e+20\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.444b1ae4d6e2ef50",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+21"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x444b1ae4d6e2ef50 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsyMX0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+21\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.44b52d02c7e14af5",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "9.999999999999997e+22"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x44b52d02c7e14af5 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjo5Ljk5OTk5OTk5OTk5OTk5N2UrMjJ9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"9.999999999999997e+22\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.44b52d02c7e14af6",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1e+23"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x44b52d02c7e14af6 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxZSsyM30="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1e+23\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.44b52d02c7e14af7",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.0000000000000001e+23"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x44b52d02c7e14af7 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxLjAwMDAwMDAwMDAwMDAwMDFlKzIzfQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1.0000000000000001e+23\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.7fefffffffffffff",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "1.7976931348623157e+308"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x7fefffffffffffff serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjoxLjc5NzY5MzEzNDg2MjMxNTdlKzMwOH0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"1.7976931348623157e+308\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.8000000000000000",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-0.0"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x8000000000000000 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjowfQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-0.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.8000000000000001",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-5e-324"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0x8000000000000001 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjotNWUtMzI0fQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-5e-324\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.becbf647612f3696",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-3.3333333333333333e-06"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0xbecbf647612f3696 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjotMC4wMDAwMDMzMzMzMzMzMzMzMzMzMzMzfQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-3.3333333333333333e-06\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.c340000000000000",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-9007199254740992.0"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0xc340000000000000 serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjotOTAwNzE5OTI1NDc0MDk5Mn0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-9007199254740992.0\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.ieee.ffefffffffffffff",
+      "input": {
+        "value": {
+          "n": {
+            "$f": "-1.7976931348623157e+308"
+          }
+        }
+      },
+      "intent": "RFC 8785 3.2.2.3: the IEEE-754 double 0xffefffffffffffff serializes as ECMAScript Number.prototype.toString does, ties included",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJuIjotMS43OTc2OTMxMzQ4NjIzMTU3ZSszMDh9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$f\": \"-1.7976931348623157e+308\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.integer.2-64",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "18446744073709551616"
+          }
+        }
+      },
+      "intent": "a 64-bit identifier is refused, never rounded to the nearest double",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.integer-overflow",
+      "repair_temptation": "round to 18446744073709552000, a different identifier",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"18446744073709551616\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.integer.at-2-53",
+      "input": {
+        "value": {
+          "n": {
+            "$i": "9007199254740992"
+          }
+        }
+      },
+      "intent": "an integer of 2**53 is refused, not rounded: I-JSON interoperability bound",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.integer-overflow",
+      "repair_temptation": "emit it as the double 9007199254740992, which loses the type",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"n\": {\"$i\": \"9007199254740992\"}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON integer exceeds 2**53-1; encode big ints as strings"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.key.order-utf16",
+      "input": {
+        "value": {
+          "\r": "Carriage Return",
+          "1": "One",
+          "\u0080": "Control",
+          "\u00f6": "Latin Small Letter O With Diaeresis",
+          "\u20ac": "Euro Sign",
+          "\ufb33": "Hebrew Letter Dalet With Dagesh",
+          "\ud83d\ude00": "Emoji: Grinning Face"
+        }
+      },
+      "intent": "RFC 8785 3.2.3: keys sort by UTF-16 code units, so U+1F600 precedes U+FB33",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJcciI6IkNhcnJpYWdlIFJldHVybiIsIjEiOiJPbmUiLCLCgCI6IkNvbnRyb2wiLCLDtiI6IkxhdGluIFNtYWxsIExldHRlciBPIFdpdGggRGlhZXJlc2lzIiwi4oKsIjoiRXVybyBTaWduIiwi8J+YgCI6IkVtb2ppOiBHcmlubmluZyBGYWNlIiwi76yzIjoiSGVicmV3IExldHRlciBEYWxldCBXaXRoIERhZ2VzaCJ9"
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"\\r\": \"Carriage Return\", \"1\": \"One\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\", \"\\u20ac\": \"Euro Sign\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.string.controls",
+      "input": {
+        "value": {
+          "s": "\b\t\n\f\r\u001f\u007f"
+        }
+      },
+      "intent": "the five short escapes, \\u00XX in lowercase hex, and DEL emitted literally",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJzIjoiXGJcdFxuXGZcclx1MDAxZn8ifQ=="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"s\": \"\\b\\t\\n\\f\\r\\u001f\\u007f\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.string.line-separators",
+      "input": {
+        "value": {
+          "s": "\u2028\u2029"
+        }
+      },
+      "intent": "U+2028 and U+2029 are emitted literally, never escaped",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJzIjoi4oCo4oCpIn0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"s\": \"\\u2028\\u2029\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "accept",
+      "id": "canon.v4.string.rfc-example",
+      "input": {
+        "value": {
+          "s": "\u20ac$\u000f\nA'B\"\\\\\"/"
+        }
+      },
+      "intent": "RFC 8785 3.2.2.2: only \" and \\ and controls are escaped; / and U+20AC are literal",
+      "op": "canon.v3",
+      "output": {
+        "bytes_b64": "eyJzIjoi4oKsJFx1MDAwZlxuQSdCXCJcXFxcXCIvIn0="
+      },
+      "profile": "reader",
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"s\": \"\\u20ac$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.surrogate.key",
+      "input": {
+        "value": {
+          "$obj": [
+            [
+              {
+                "$u": [
+                  "dc00"
+                ]
+              },
+              {
+                "$i": "1"
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "the same rule over an object key",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.unencodable-text",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"$obj\": [[{\"$u\": [\"dc00\"]}, {\"$i\": \"1\"}]]}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting or Unicode key is invalid"
+      }
+    },
+    {
+      "checklist": [
+        2
+      ],
+      "expect": "reject",
+      "id": "canon.v4.surrogate.value",
+      "input": {
+        "value": {
+          "s": {
+            "$u": [
+              "d800"
+            ]
+          }
+        }
+      },
+      "intent": "RFC 8785 requires well-formed UTF-8, in which a lone surrogate has no spelling",
+      "op": "canon.v3",
+      "profile": "reader",
+      "reason": "canon.unencodable-text",
+      "requires": [
+        "wtf8"
+      ],
+      "section": "9.2",
+      "tier": "core",
+      "x_display": "{\"s\": {\"$u\": [\"d800\"]}}",
+      "x_reference": {
+        "exception": "KernelError",
+        "message": "canonical JSON nesting or Unicode key is invalid"
+      }
+    }
+  ],
+  "family": "canon-v4",
+  "section": "9.2",
+  "suite_version": 1
+}

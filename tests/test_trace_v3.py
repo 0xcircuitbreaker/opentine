@@ -50,9 +50,15 @@ def test_trace_event_rejects_non_mapping_payload_fields(field):
         TraceEvent(**values)
 
 
-def test_trace_event_wraps_extreme_usage_integer_as_value_error():
+def test_trace_event_keeps_an_extreme_usage_integer_as_a_string_with_a_warning():
+    # 0.26: a recorder must not lose a span over one value format v4 cannot hold;
+    # the meter moves to attributes as its exact digits, named in a warning.
+    event = TraceEvent("model", 0, "t", "s", usage={"input": 10**4000, "output": 3})
+    assert event.usage == {"output": 3}
+    assert event.attributes["usage.input"] == str(10**4000)
+    assert event.attributes["opentine.warnings"][0].startswith("usage.input:")
     with pytest.raises(ValueError, match="trace usage.input"):
-        TraceEvent("model", 0, "t", "s", usage={"input": 10**4000})
+        TraceEvent("model", 0, "t", "s", usage={"input": -1})  # still refused
 
 
 def test_json_safe_bounds_extreme_integer_values_and_keys_without_collision():

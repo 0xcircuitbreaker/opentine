@@ -81,6 +81,16 @@ def json_safe(
     return _string(value)
 
 
+def json_stored(value: Any, where: str = "value") -> Any:
+    """The repository writer's spelling: :func:`json_safe` strict, except that
+    under format v4 (the 0.26 default) a wide integer or non-finite float is
+    refused naming its field instead of being stringified (SPEC 9.10)."""
+    from opentine._v4_values import refuse_in_v4
+
+    refuse_in_v4(value, where)
+    return json_safe(value, strict=True)
+
+
 def json_exact(value: Any) -> Any:
     """The *export* spelling of :func:`json_safe`: refuse rather than truncate.
 

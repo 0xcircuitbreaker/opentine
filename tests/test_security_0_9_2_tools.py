@@ -359,3 +359,10 @@ def test_dependency_order_expands_each_object_once(shape):
     position = {oid: index for index, (oid, _) in enumerate(placed)}
     assert len(position) == count
     assert all(position[link] < position[oid] for oid, targets in links.items() for link in targets)
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

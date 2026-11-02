@@ -1,6 +1,6 @@
 """One run through every offline check: the report ``tine verify --offline`` emits.
 
-Order: digest, signature, attestation family, action manifest and policy, the
+Order: digest, signature, provenance, attestation family, action manifest and policy, the
 claim-to-tool-output cross-check, then (with ``--locate``) localisation. The
 whole chain runs under ``_offline_guard.no_network``.
 """
@@ -32,6 +32,7 @@ def build_report(args: argparse.Namespace, path: Path | None, target: str) -> Re
 def _read(path: Path) -> tuple[Any, Any]:
     """``(artifact dict | None, Run | None)``: the run even when its digest broke."""
     from opentine._artifact_io import read_artifact_json
+    from opentine._format_v4 import is_v4_artifact
     from opentine._graph_serde import run_from_dict
     from opentine.core import Run
 
@@ -41,6 +42,14 @@ def _read(path: Path) -> tuple[Any, Any]:
         return None, None
     if not isinstance(data, dict):
         return None, None
+    if is_v4_artifact(data):  # the v2-shaped view of the run its root commits to
+        from opentine._artifact_v4 import read_v4_data
+
+        try:
+            run = read_v4_data(data)
+        except (KeyError, RecursionError, TypeError, ValueError):
+            return data, None
+        return run.to_dict(), run
     try:
         return data, run_from_dict(data, Run)
     except Exception:
@@ -85,11 +94,13 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
     from opentine._verify_claims import claims_check
     from opentine._verify_offline import actions_checks, digest_check, signature_check
     from opentine._verify_offline_attest import attestation_checks
+    from opentine._verify_provenance import provenance_check
 
     digest, integrity = digest_check(path)
     report.add(digest)
     signature = signature_check(args, path, integrity.ok)
     report.add(signature)
+    report.add(provenance_check(args, path, integrity.ok))
     for check in attestation_checks(args, path):
         report.add(check)
     data, run = _read(path)

@@ -300,3 +300,10 @@ def test_evidence_export_refuses_a_non_empty_out(room, capsys):
     (room / "full").mkdir()
     (room / "full" / "x").write_text("x", encoding="utf-8")
     assert _export(capsys, "full") == 1
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

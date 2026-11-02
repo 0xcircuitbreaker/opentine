@@ -7,8 +7,12 @@ from typing import Any
 from opentine._blob_guard import guarded_blob_body
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
+from opentine._v4_values import find_unrepresentable, warning_text
 from opentine.trace.schema import TraceEvent
 
+#: Where a trace event lists the fields it stored as strings (``metadata.warnings``
+#: of a run built from a ``Run``; an event has no metadata, only attributes).
+WARNINGS_KEY = "opentine.warnings"
 SpanKey = tuple[str, str]
 SpanMap = dict[SpanKey, str]
 
@@ -52,6 +56,14 @@ def put_trace_event(
             unresolved_causal.append(span)
         elif target not in causal:
             causal.append(target)
+    # json_safe stringifies what format v4 cannot hold (exact digits, never
+    # rounded); a recorder must keep the span, so it is kept, with a warning.
+    softened = [
+        *find_unrepresentable(event.inputs, "inputs"),
+        *find_unrepresentable(event.outputs, "outputs"),
+        *find_unrepresentable(event.billing, "billing"),
+        *find_unrepresentable(event.attributes, "attributes"),
+    ]
     billing = _redact(json_safe(event.billing))
     cost = event.cost
     if cost is None and isinstance(billing, dict):
@@ -77,6 +89,10 @@ def put_trace_event(
     # always-present key would re-address every event imported without a provider.
     if event.provider:
         payload["provider"] = str(event.provider)
+    if softened and isinstance(payload["attributes"], dict):
+        listed = payload["attributes"].get(WARNINGS_KEY)
+        listed = list(listed) if isinstance(listed, list) else []
+        payload["attributes"][WARNINGS_KEY] = listed + [warning_text(p) for p in softened]
     if unresolved_parent or unresolved_causal:
         payload["unresolved_span_refs"] = {
             "causal": unresolved_causal,

@@ -246,5 +246,5 @@ class OpentineHarness:
         if self.run is None:
             return
         if save_path:
-            self.run.save(Path(save_path))
+            self.run.save(Path(save_path), lenient=True)
         self._autosaver.flush(self.run)

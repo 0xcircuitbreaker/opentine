@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._format_v4 import is_v4_artifact, strict_v4, warn_legacy
 from opentine._signing_keys import (
     HAS_ED25519,
     SignatureError,
@@ -51,6 +52,18 @@ def sign_artifact(
     signer: str | None = None,
     signed_at: str | None = None,
 ) -> dict[str, Any]:
+    if is_v4_artifact(data):  # a v4 document is always signed with tine-sig/3
+        from opentine._signing_v4 import sign_artifact_v4
+
+        return sign_artifact_v4(
+            data, key, algorithm=algorithm, key_id=key_id, signer=signer, signed_at=signed_at
+        )
+    if strict_v4():
+        raise SignatureError(
+            "tine-sig/2 is not written when OPENTINE_FORMAT=4; v4 artifacts are signed "
+            "with tine-sig/3 (opentine._signing_v4)"
+        )
+    warn_legacy()  # a v2 document can only carry the deprecated tine-sig/2
     return sign_block(
         lambda header: _message(data, header),
         key,
@@ -73,6 +86,12 @@ def verify_artifact(
     if not isinstance(data, dict):
         return SignatureResult(
             False, "error", None, None, None, None, "artifact root is not an object"
+        )
+    if is_v4_artifact(data):
+        from opentine._signing_v4 import verify_artifact_v4
+
+        return verify_artifact_v4(
+            data, hmac_key=hmac_key, public_key=public_key, trust_embedded=trust_embedded
         )
     metadata = data.get("metadata")
     if metadata is not None and not isinstance(metadata, dict):

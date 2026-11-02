@@ -10,7 +10,9 @@ from opentine import Run, StepKind
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def test_golden_v1_load_save_fork_and_diff(tmp_path):
+def test_golden_v1_load_save_fork_and_diff(tmp_path, monkeypatch):
+    # The v1 -> v2 re-save upgrade is the deprecated legacy writer since 0.26.
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")
     fixture = FIXTURES / "golden_v1.tine"
     original_data = json.loads(fixture.read_text(encoding="utf-8"))
 

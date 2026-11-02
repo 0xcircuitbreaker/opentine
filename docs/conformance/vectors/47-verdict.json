@@ -312,7 +312,7 @@
           "signature": {
             "alg": "hmac-sha256",
             "key_id": "demo-key",
-            "scheme": "tine-attest/2",
+            "scheme": "tine-attest/99",
             "signed_at": "2026-09-05T00:00:00Z",
             "signer": "release-bot",
             "value": "6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164"
@@ -335,7 +335,7 @@
       "profile": "verifier",
       "section": "4.7",
       "tier": "core",
-      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/2\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
+      "x_display": "{\"claim\": {\"result\": \"pass\"}, \"evidence_ids\": [], \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"demo-key\", \"scheme\": \"tine-attest/99\", \"signed_at\": \"2026-09-05T00:00:00Z\", \"signer\": \"release-bot\", \"value\": \"6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164\"}, \"signer\": \"release-bot\", \"target_id\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\"}",
       "x_reference": null
     },
     {

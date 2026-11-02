@@ -70,6 +70,9 @@ class Autosaver:
         """
         if self.path is None:
             return None
+        from opentine._v4_values import mark_lenient
+
+        mark_lenient(run)  # a recorder's final write softens what v4 cannot hold
         final = run.status in _TERMINAL
         if final:
             run.metadata.pop("autosave", None)

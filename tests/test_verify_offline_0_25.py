@@ -271,3 +271,10 @@ def test_attestation_and_absent_receipt_offline(room, capsys, dials):
     assert code == 1 and _check(doc, "rekor-receipt")["outcome"] == "fail"
     assert dials == []
     _validate(doc)
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

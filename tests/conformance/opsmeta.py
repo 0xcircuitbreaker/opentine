@@ -272,7 +272,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["message_b64", "value"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.2 signed message under one of the four schemes",
+        "summary": "SPEC 4.2 / 9.6 signed message under one of the six schemes",
     },
     "sig.verify": {
         "profile": VERIFIER,

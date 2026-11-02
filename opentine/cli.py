@@ -72,6 +72,7 @@ from opentine._cli_storage import STORAGE_COMMANDS
 from opentine._cli_unify import expand_alias, tag_is_v3, v3_argv
 from opentine._cli_view import COMMANDS as VIEW_COMMANDS
 from opentine._cli_who import COMMANDS as ACTION_COMMANDS
+from opentine._format_v4 import write_format
 from opentine._user_settings import apply_output_format, cmd_user_config, is_user_config
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
@@ -125,7 +126,8 @@ def main(argv: list[str] | None = None) -> None:
     parser, args = parse(list(sys.argv[1:] if argv is None else argv))
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
-    guarded_dispatch(lambda: _dispatch(parser, args))
+    with write_format(getattr(args, "write_format", None)):  # tine --format 2
+        guarded_dispatch(lambda: _dispatch(parser, args))
 
 
 def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:

@@ -438,3 +438,10 @@ def test_a_public_key_file_is_refused_as_an_hmac_key(workspace, capsys):
     (workspace / "release.key").write_text(pem, encoding="utf-8")
     code, out, _ = _invoke(capsys, "verify", str(path), "--key-file", "release.key")
     assert code == 1 and "public key" in out
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

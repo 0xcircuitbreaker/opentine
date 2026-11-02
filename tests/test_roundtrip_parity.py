@@ -342,3 +342,11 @@ def test_a_rewritten_classic_scalar_does_not_delete_the_structured_conversation(
     assert event.attributes["opentine.import_warnings"] == [
         f"span carries both a classic scalar and {semconv.INPUT_MESSAGES}"
     ]
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This gate is the v2 writer/reader parity
+    of a repository-loaded run (step ids are event oids there; a v4 file reads
+    them back as the steps' recorded legacy ids), so it pins the v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

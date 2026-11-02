@@ -26,11 +26,13 @@ from tests.conformance import (
     cases_agent,
     cases_artifact,
     cases_canon,
+    cases_canon_v4,
     cases_compat,
     cases_localpack,
     cases_objects,
     cases_repair,
     cases_repo,
+    cases_sig_v4,
     cases_signing,
 )
 from tests.conformance.cases import ACCEPT, REJECT, VERDICT, Case, Family
@@ -67,11 +69,13 @@ RETIRED_IDS: tuple[str, ...] = ("chain.previous-not-an-annotation",)
 
 FAMILY_MODULES = (
     cases_canon,
+    cases_canon_v4,
     cases_objects,
     cases_repo,
     cases_localpack,
     cases_artifact,
     cases_signing,
+    cases_sig_v4,
     cases_compat,
     cases_repair,
     cases_agent,

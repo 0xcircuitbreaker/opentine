@@ -7,6 +7,7 @@ import time
 from collections.abc import Callable
 
 from opentine._runtime_model import Model
+from opentine._v4_values import mark_lenient
 from opentine.autosave import Autosaver
 from opentine.budget import Budget
 from opentine.graph import Run, StepKind, step_id
@@ -94,6 +95,7 @@ class AgentBase:
                 "user_prompt": prompt,
             },
         )
+        mark_lenient(run)  # a live recorder: never lose the run over one value
         if self.budget is not None:
             run.manifest["budget"] = self.budget.to_dict()
         messages = [{"role": "user", "content": prompt}]

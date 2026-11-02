@@ -1,5 +1,183 @@
 # Changelog
 
+## 0.26.0 — Format v4 (2026-11-02)
+
+### Upgrading
+
+- **Format v4 is the default writer.** `Run.save`, `tine import --save`,
+  `tine record`, `tine run`, forks and replays write `tine-artifact/4` files;
+  signed saves use `tine-sig/3`; `tine init` creates an object-format-4
+  repository, and an existing repository is marked object format 4 before the
+  first object 0.26 writes into it.
+- **Repositories and files written by 0.26 need opentine >= 0.26.** Older
+  releases refuse them cleanly at open ("repository config is incompatible",
+  or an unsupported `format_version`) instead of misreading them.
+- **To share with someone on an older release, write format v2:**
+  `tine --format 2 COMMAND ...` for one command, or `OPENTINE_FORMAT=2` (`3`
+  for repositories) for the environment. These writers are deprecated and
+  print one warning per process on stderr.
+- **Older files stay readable forever.** Every v1/v2 file and every v3
+  repository (all golden fixtures back to 0.3.0) reads, verifies and fscks
+  unchanged, and a read never rewrites a byte.
+- **`tine migrate FILE` with no flags now WRITES a file.** Before 0.26 it only
+  printed a preview; it now upgrades to v4 (`--to v4` is the default) and
+  writes `NAME.v4.tine` (or the `-o`/`--save PATH` you name) beside the
+  original, which it never touches. Use `--dry-run` for the old preview-only
+  behaviour; `tine migrate --to 2` is the deprecated legacy migration.
+- **A run v4 cannot hold still saves.** With `OPENTINE_FORMAT` unset, a run
+  whose pricing manifest or transcript names a step it does not hold, or one
+  past the v4 object bound, is saved as format v2 with one stderr warning
+  naming the reason and a `metadata.warnings` entry, instead of failing to
+  save. `OPENTINE_FORMAT=4` keeps refusing. The v4 object bound is now its own
+  `MAX_V4_OBJECTS` = 1,000,000 (it had borrowed the 10,000-object network
+  pack bound, which long agent runs exceed), shared by reader and writer.
+
+### Format v4 is the default (phase 6)
+
+- `OPENTINE_FORMAT` is now the opt-out: unset or `4` writes v4; `2` or `3`
+  selects the deprecated legacy writers (v2 files, object-format-3
+  repositories). `OPENTINE_FORMAT=4` is the strict spelling: it refuses to
+  write a deprecated block even where v4 cannot express it. New global flag
+  `tine --format {2,4}` pins the writer for one command. Autosave **draft**
+  checkpoints stay v2 (v4 has no draft marker); the final write is v4.
+- **Signing and attestations.** `sign_artifact` on a v4 document writes
+  `tine-sig/3`; on a v2 document it writes the deprecated `tine-sig/2` with the
+  warning (refused under `OPENTINE_FORMAT=4`). An Ed25519 attestation on a run
+  is `tine-attest/2`; an HMAC attestation, or one on a non-run target, stays
+  `tine-attest/1`, which `tine-attest/2` cannot express (refused under
+  `OPENTINE_FORMAT=4`). The in-toto export of a (now default) v4 run carries a
+  `tine-attest/2` record on its root.
+- **Recording never crashes over one value.** Explicit writes (`Run.save`,
+  `put_run`, `tine migrate`, `repo migrate-v3`) refuse an integer beyond
+  2**53-1 or a non-finite number, naming the field. Live recorders — the
+  harness wrapper and autosaver, `tine record`, `tine run` with a bundled
+  model, trace/OTLP import and `serve --otlp`, hooks — store such a value as
+  its exact decimal string (never rounded) and add a `metadata.warnings` entry
+  naming the field path (`Run.save(..., lenient=True)` opts a run in). A trace
+  event lists them under `attributes["opentine.warnings"]`; a usage meter past
+  2**53-1 moves to `attributes["usage.<name>"]` instead of failing the span.
+  The repository writers' remaining `json_safe` stringifiers (`put_run`,
+  forks, annotations, blobs, pricing manifests) refuse instead in v4 mode.
+- **Bundles carry signatures.** `tine bundle create` and `bundle push/fetch`
+  carry the `tine-sig/3` sidecar blocks of bundled runs in the bundle
+  manifest's optional `signatures` key, merged into the receiver's sidecars on
+  import; pack formats are unchanged and a bundle without blocks is
+  byte-identical to 0.25's. A run received by bundle or fetch now exports (and
+  re-saves) with its annotation chain even though no annotation ref moved.
+- **Descriptor rewrites are serialized.** `mark_v4` and gc's storage-version
+  changes re-read and rewrite `config.json` under a short `config.lock` file
+  lock, so a concurrent `tine gc` can no longer write the old object format
+  back over a fresh v4 mark.
+- **Forks of repository runs and of v4 files reuse stored envelopes** when
+  written as v4: every unchanged step keeps its event oid, and the fork's root
+  equals what `put_run` stores for the same fork.
+- **Step ids survive a v4 round trip.** The v4 reader restores each step's own
+  id from its event's `legacy_step_id` (when every event carries one), so the
+  ids a transcript, `refs` and pricing manifest name, `tine fork --from-step`
+  and `replay --verify` stay valid after a save; re-saving re-derives
+  byte-identical events. A run recorded straight into a repository keeps its
+  event oids as step ids.
+- **Known stricter-than-v2 cases:** a v4 save refuses a pricing manifest or
+  transcript entry naming a step the run does not hold, and a run past 10 000
+  objects (both written by `--format 2`; a repository holds the large run).
+
+### Format v4
+
+- **One canonical form.** Format v4's canonical JSON is
+  `kernel.canonical_json`, now pinned as RFC 8785 (JCS) by a hand-typed corpus:
+  the RFC 8785 Appendix B / cyberphone IEEE-754 doubles including the
+  shortest-round-trip tie cases, UTF-16 key order past the BMP, JCS escaping,
+  `-0`, and the refusals (integers beyond 2**53-1, lone surrogates). Every
+  vector agrees with JCS. The v2 canonicalizer stays only to verify v2 data and
+  old signatures.
+- **The v4 artifact** (`tine-artifact/4`, SPEC Part 9): one JCS object bundling
+  the run's v3 blob, event and run envelopes under a root that is the run's v3
+  oid, with tags and metadata as an annotation chain outside the root. Every
+  read path (`tine show`, `verify`, `view`, `diff`, `Run.load`) loads it; the
+  reader re-derives every oid and refuses a tampered envelope, a wrong root, a
+  missing link or an unreachable object. TINEZ1 compression applies as for v2.
+- **Written by default since phase 6** (above); nothing is rewritten in place.
+  A v4 write refuses an integer beyond 2**53-1 rather than round or stringify
+  it.
+- **`tine-sig/3`** signs a v4 artifact: `opentine.signature.v3:` + JCS of the
+  root, the annotation head and the header (HMAC for local use, or Ed25519).
+  `tine verify`, `--offline`, listings and `Run.verify_signature` return the
+  same verdicts as for v2; content that no longer matches the signed root is
+  `mismatch`. Under `OPENTINE_FORMAT=4` the old schemes (`tine-sig/1`, `/2`,
+  `tine-attest/1`) are no longer written, and they still verify.
+- **`tine-attest/2`**: Ed25519 attestations on a v4 root
+  (`opentine.attestation.v2:` + JCS). The in-toto export of a v4 run names the
+  root as its subject and carries a `tine-attest/2` record on it.
+- Offline paths understand v4: `verify --offline`, dataset Merkle roots (the
+  leaf digest is the root oid), evidence export, and `tine migrate` (which
+  says the file is already v4).
+
+### Provenance and migration
+
+- **`upgraded_from` moved into the run payload**, so the v4 root and every
+  `tine-sig/3` over it cover it (SPEC 9.9). It records the source format
+  (`tine/1`, `tine/2`, `tine-repo/3`), the sha256 of the source bytes after
+  TINEZ1 unwrap (or the v3 run oid), the source's recorded v2 digest, the
+  source signature verdict at upgrade time, the time and the tool. The field
+  is optional: runs without it hash exactly as before, and older readers and
+  the repository validators accept it. It survives a read-then-write cycle; a
+  fork drops it. The top-level `upgraded_from` of the draft is gone.
+- **`tine migrate --to v4 FILE [-o OUT] [--in-place]`** writes `NAME.v4.tine`
+  beside the original and never touches it. `--in-place` is explicit, keeps
+  `NAME.tine.v2.bak` and warns that signatures, attestations and evidence
+  manifests made over the original are orphaned. The source signature is
+  verified at upgrade time (`--pubkey`/`--pin` honoured) and recorded as a
+  claim. Integers beyond 2**53-1 are refused by name, never rounded.
+  `--repo PATH RUN` upgrades a v3 repository run. `SOURCE_DATE_EPOCH` pins
+  `upgraded_at` for reproducible upgrades. Every new flag is refused where it
+  would be ignored (`--dry-run`, `--save`, without `--to v4`, with `--repo`).
+- **`tine verify --offline` gains a `provenance` check** (after `signature`,
+  never required): `provenance.none`, `provenance.recorded` (the recorded
+  source signature state is shown as a claim, `unavailable-offline`), and with
+  `--source PATH` (a file, or the v3 repository a run came from)
+  `provenance.source-match` / `provenance.source-mismatch`.
+- `docs/conformance/minimal_verifier.py` reads v4: it recomputes every
+  envelope id (SPEC 1.3), checks the root, `tine-sig/3` (Ed25519) and the
+  provenance codes, and its verdicts agree with `tine verify --offline --json`.
+
+### Repositories (format v4)
+
+- **Object format 4 in the descriptor.** Under `OPENTINE_FORMAT=4` the first
+  object written into a repository first rewrites `config.json` with
+  `"objects": 4` and `"min_reader": "0.26.0"` *in place of* `"format": 3`
+  (descriptor before object, the order `tine gc --upgrade` uses). Storage
+  `version` (1/2/3) keeps meaning the storage layout and is untouched;
+  `gc --upgrade/--downgrade` keep the object format. opentine 0.9-0.25 require
+  `format == 3` and so refuse a v4 repository at open ("repository config is
+  incompatible") instead of writing stringified values into it. Every reader
+  now enforces `min_reader` and names the version needed.
+- **`put_run` in v4 mode** refuses integers beyond 2**53-1 and non-finite
+  numbers (as the v4 file writer does) instead of stringifying them, and
+  carries `upgraded_from`. A repository run and the same run written as a v4
+  file name the same root: `Run.save` of a repository-loaded run under
+  `OPENTINE_FORMAT=4` reuses its stored envelopes.
+- **`tine fsck`** accepts v3 and v4 runs side by side and reports a malformed
+  `upgraded_from`.
+- **`tine import FILE.tine --repo PATH`** installs a v4 file's envelopes
+  unchanged (same oids), adopts its annotation chain when it equals or extends
+  the repository's, and keeps its `tine-sig/3` blocks in the sidecar
+  `signatures/v4/<root hex>.json`. `tine migrate --to v4 --repo` now exports the
+  stored envelopes verbatim, so the v4 root *is* the repository oid (no
+  `upgraded_from` is added) and the sidecar's blocks are re-attached: import
+  then export is byte-identical. Bundles and packs carry v4 objects unchanged
+  (they are v3 envelopes); bundles also carry the sidecar blocks (above).
+
+### Compatibility
+
+- Conformance families `09-canon-v4.json` (`canon.v4.*`) and `53-sig-v4.json`
+  (`sig3.*`, `attest2.*`, including provenance and a v4 envelope-id
+  recompute), and three descriptor vectors in `22-layout.json`
+  (`layout.config.objects-v4`, `layout.config.min-reader-newer`,
+  `layout.config.objects-and-format`).
+  The suite is now **636 conformance vectors**;
+  217 of the 636 refuse input, and the adapter contract still has one entry
+  point: 36 ops.
+
 ## 0.25.0 — Verify anywhere (2026-11-02)
 
 ### Verify anywhere

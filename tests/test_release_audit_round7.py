@@ -617,3 +617,10 @@ def test_save_refuses_an_artifact_that_could_never_be_loaded(tmp_path):
     ordinary = Run(id="ok")
     ordinary.add_step(StepKind.think, {"p": "x"}, {"o": "y", "n": 10**100})
     assert len(Run.load(ordinary.save(tmp_path / "c.tine")).steps) == 1
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

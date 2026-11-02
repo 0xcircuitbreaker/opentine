@@ -501,3 +501,10 @@ def test_signing_covers_the_fork_record_while_integrity_ignores_metadata(tmp_pat
     # metadata is outside the integrity digest, so integrity is unmoved -- three
     # independent signals (signature, integrity, verify_fork_id) by design.
     assert Run.verify_integrity(data).ok
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

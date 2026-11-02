@@ -147,6 +147,14 @@ def _layout_errors(repo: Repo) -> list[str]:
     return errors
 
 
+def _check_upgraded_from(payload: object) -> None:
+    """A run's ``upgraded_from`` (SPEC 9.9), when present, must be well formed."""
+    if isinstance(payload, dict) and "upgraded_from" in payload:
+        from opentine._provenance_v4 import require_upgraded_from
+
+        require_upgraded_from(payload["upgraded_from"])
+
+
 def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     errors: list[str] = []
     view = SemanticView(repo)
@@ -164,7 +172,8 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
             validate_event_metrics(envelope)
             if deep and oid.startswith("run:"):
                 validate_run_graph(view, envelope)
-        except (KernelError, OSError) as exc:
+                _check_upgraded_from(envelope.payload())
+        except (KernelError, OSError, ValueError) as exc:
             errors.append(f"{oid}: {exc}")
     try:
         refs = repo.list_refs()

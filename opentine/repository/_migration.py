@@ -32,6 +32,8 @@ def migrate_v2(
     data = parse_artifact_json(raw)
     if not isinstance(data, dict):
         raise ValueError("v3 repository migration requires a .tine object")
+    if data.get("kind") == "tine-artifact/4":
+        raise ValueError("this is a format v4 artifact; load it with Run.load and put_run it")
     if type(data.get("format_version")) is not int or data["format_version"] != 2:
         raise ValueError("v3 repository migration requires a .tine v2 source")
     integrity = Run.verify_integrity(data)

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _codec
+from opentine._format_v4 import v4_requested
 from opentine._v3_guards import guarded_redaction
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, validate_links
 from opentine.redaction import redact_blob
@@ -38,19 +39,18 @@ class Repo:
     def init(
         cls, path: str | Path = ".", *, bare: bool = False, compression: str | None = "default"
     ) -> Repo:
-        """Create a repository; new ones store objects compressed (0.11+).
+        """Create a repository, compressed (0.11+) and object format 4 (0.26).
 
-        ``compression`` is a codec (``"zstd"``, ``"zlib"``), ``None`` for the plain
-        version-1 layout every release reads, or ``"default"``: compressed unless
-        ``OPENTINE_COMPRESS=0``. An existing repository keeps its descriptor.
-        """
+        ``compression``: a codec (``"zstd"``, ``"zlib"``), ``None`` for the plain v1
+        layout, or ``"default"`` (compressed unless ``OPENTINE_COMPRESS=0``). A
+        legacy writer writes format 3. An existing repository keeps its descriptor."""
         root = Path(path).expanduser().resolve()
         tine = root if bare or root.name == ".tine" else root / ".tine"
         ensure_layout(tine)
         config = internal_path(tine, "config.json")
         if not config.exists():
             codec = _codec.wanted() if compression == "default" else compression
-            _atomic_bytes(config, config_bytes(codec))
+            _atomic_bytes(config, config_bytes(codec, v4=v4_requested()))
         return cls(tine)
 
     @classmethod

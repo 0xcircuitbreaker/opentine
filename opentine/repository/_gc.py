@@ -3,8 +3,7 @@
 The pack is written and read back object by object before anything loose is
 removed, so an interrupted gc leaves every object readable (at worst twice). A
 repository is upgraded to descriptor version 2 the first time it is packed:
-earlier opentine releases then refuse it cleanly instead of failing on a
-packed object.
+earlier releases then refuse it cleanly instead of failing on a packed object.
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from opentine import _codec
-from opentine.kernel import KernelError, canonical_json
+from opentine.kernel import KernelError
 from opentine.repository import _winretry
 from opentine.repository._config import (
     STORAGE_V3,
@@ -24,6 +23,8 @@ from opentine.repository._config import (
     STORAGE_VERSIONS,
     V3_NOTE,
     read_config,
+    rewrite_config,
+    storage_codec,
     storage_version,
 )
 from opentine.repository._fanout_tidy import tidy_fanouts
@@ -31,7 +32,7 @@ from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empt
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import oid_of, pack_set
-from opentine.repository._paths import atomic_bytes, internal_path
+from opentine.repository._paths import internal_path
 
 GC_LEVEL = 19  # packs are written once and read many times
 FOOTPRINT_DIRS = ("objects", "packs", "refs", "logs", "fanouts", "txn")
@@ -71,24 +72,27 @@ def footprint(tine: Path) -> tuple[int, int]:
 
 def enable_storage(repo, codec: str) -> None:
     """Upgrade a version-1 descriptor to version 2 with *codec*, keeping other keys."""
-    path = internal_path(repo.path, "config.json")
-    config = read_config(path)
-    if config.get("version") in STORAGE_VERSIONS:
-        return
-    config.update(version=STORAGE_VERSION, storage={"compression": codec})
-    atomic_bytes(path, canonical_json(config) + b"\n")
-    repo._storage_codec = codec
+
+    def change(config: dict) -> bool:
+        plain = config.get("version") not in STORAGE_VERSIONS
+        if plain:
+            config.update(version=STORAGE_VERSION, storage={"compression": codec})
+        return plain
+
+    # Under config_lock (as every descriptor rewrite is): mark_v4 cannot race it.
+    repo._storage_codec = storage_codec(rewrite_config(repo.path, change))
 
 
 def set_storage_version(repo, version: int, codec: str) -> None:
     """Write descriptor *version* (2 or 3), keeping every other key."""
-    path = internal_path(repo.path, "config.json")
-    config = read_config(path)
-    config.update(version=version, storage={"compression": codec})
-    config.pop("note", None)
-    if version == STORAGE_V3:
-        config["note"] = V3_NOTE
-    atomic_bytes(path, canonical_json(config) + b"\n")
+
+    def change(config: dict) -> bool:
+        config.update(version=version, storage={"compression": codec})
+        config.pop("note", None)
+        config.update({"note": V3_NOTE} if version == STORAGE_V3 else {})
+        return True
+
+    rewrite_config(repo.path, change)
     repo._storage_codec = codec
 
 

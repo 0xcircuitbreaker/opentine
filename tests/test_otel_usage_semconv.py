@@ -217,7 +217,10 @@ def test_a_subagent_rollup_is_not_re_billed_after_saving_to_tine(tmp_path):
     run = _repository_run(tmp_path)
     run.save(tmp_path / "run.tine")
     loaded = Run.load(tmp_path / "run.tine")
-    assert [step.v3_kind for step in loaded.steps] == ["subagent", None, None]
+    # A v4 file (the 0.26 default) reads back every v3 kind; only a v3-only kind
+    # changes how a step is billed.
+    kinds = [step.v3_kind if step.v3_kind in V3_ONLY_KINDS else None for step in loaded.steps]
+    assert kinds == ["subagent", None, None]
     assert loaded.steps[0].kind is StepKind.model, "the legacy enum still reads it"
     for candidate in (run, loaded):
         assert Decimal(str(price_run(candidate).total_cost)) == Decimal("0.15")

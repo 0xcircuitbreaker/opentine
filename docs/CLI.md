@@ -267,3 +267,30 @@ ids, agent, model, strategy, branch, commit, files touched and Entire's token
 usage. `full.jsonl` holds the session up to that checkpoint, so the run is the
 session so far. Session metadata over 1 MiB and transcripts over 64 MiB are
 refused before they are read.
+
+# Writer format (0.26)
+
+Since 0.26 every writer produces **format v4** (SPEC Part 9): `.tine` files are
+`tine-artifact/4`, signatures `tine-sig/3`, Ed25519 attestations on a run
+`tine-attest/2`, and `tine init` creates an object-format-4 repository (an
+existing repository is marked object format 4 before the first object 0.26
+writes into it). Reading never changes: every older file and repository stays
+readable, and a read never rewrites it.
+
+| Spelling | Writes |
+| --- | --- |
+| *(default)* | format v4; new repositories object format 4 |
+| `tine --format 2 COMMAND ...` | the deprecated v2 file / object-format-3 repository writers, for this command only |
+| `OPENTINE_FORMAT=2` (or `3`) | the same, for the whole environment |
+| `OPENTINE_FORMAT=4` | strict v4: no deprecated block even where v4 cannot express it (an HMAC attestation, `sign_artifact` on a v2 dict) |
+| `tine migrate FILE` | upgrades to v4 (`--to v4` is the default; `-o`/`--save` names the output, else `NAME.v4.tine`) |
+| `tine migrate FILE --to 2` | the deprecated in-file v1 -> v2 migration |
+
+The legacy writers print one deprecation warning per process on stderr. A file
+or repository written by 0.26 needs opentine 0.26 or newer; share with older
+releases with `tine --format 2`. An explicit write refuses an integer beyond
+2**53-1 or a non-finite number, naming the field; recorders (`tine run`, `tine
+record`, imports, hooks, `serve --otlp`) store such a value as its exact string
+and list the field under `metadata.warnings` instead of losing the run.
+`tine bundle` (and `bundle push/fetch`) carries the `tine-sig/3` blocks of
+imported v4 runs in the bundle manifest.

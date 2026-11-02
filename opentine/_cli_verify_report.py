@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from opentine._artifact_io import read_artifact_json
+from opentine._artifact_io import artifact_signature, read_artifact_json
 from opentine._cli_json import emit
 from opentine.core import Run
 
@@ -46,9 +46,7 @@ def signature_block(source: str | Path | dict[str, Any]) -> Any:
             data = read_artifact_json(source)
         except (OSError, RecursionError, ValueError):
             return None
-    metadata = data.get("metadata") if isinstance(data, dict) else None
-    integrity = metadata.get("integrity") if isinstance(metadata, dict) else None
-    return integrity.get("signature") if isinstance(integrity, dict) else None
+    return artifact_signature(data)
 
 
 def unchecked_signature(path: str | Path):

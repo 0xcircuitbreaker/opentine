@@ -8,6 +8,8 @@ deep inside slicing helpers -- surfacing as raw tracebacks from ``tine fork``,
 
 from __future__ import annotations
 
+import pytest
+
 from opentine import Run, StepKind
 from opentine.mcp_server import fork_run_file
 
@@ -92,3 +94,10 @@ def test_mcp_fork_run_handles_both_tolerated_shapes(tmp_path):
         result = fork_run_file(run_id, 0, runs_dir=runs_dir)
         assert result["forked_from"] == run_id
         assert Run.load(result["path"]).status.value == "running"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

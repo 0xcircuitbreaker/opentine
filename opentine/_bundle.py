@@ -6,11 +6,13 @@ Layout (all integers big-endian)::
     body = len(manifest) (4 bytes) | manifest (canonical JSON) | pack
 
 The manifest is ``{"format", "pack", "pack_bytes", "refs"}``: the pack's sha256,
-its length and ``ref name -> object id``. The pack is an ordinary transfer pack
-(``create_pack``), so it carries each run's associations -- annotations and
-attestations -- as a fetch would. A bundle is untrusted input: every size is
-capped, every ref name passes :func:`normalize_ref`, every digest is checked and
-every ref target must be inside the pack before anything is written.
+its length and ``ref name -> object id``; since 0.26, plus ``signatures`` when a
+bundled run has ``tine-sig/3`` sidecar blocks (``_bundle_sigs``). The pack is
+an ordinary transfer pack (``create_pack``), so it carries each run's
+associations -- annotations and attestations -- as a fetch would. A bundle is
+untrusted input: every size is capped, every ref name passes
+:func:`normalize_ref`, every digest is checked and every ref target must be
+inside the pack before anything is written.
 """
 
 from __future__ import annotations
@@ -20,9 +22,10 @@ import json
 import os
 import re
 import stat
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from opentine import _bundle_sigs
 from opentine._cli_git_sync import is_ancestor
 from opentine.kernel import KernelError, _parse_int, canonical_json, parse_oid, validate_json_shape
 from opentine.repo import Repo
@@ -35,6 +38,7 @@ FORMAT = "opentine-bundle/1"
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REFS = 10_000
 MAX_BUNDLE_BYTES = len(MAGIC) + 32 + 4 + MAX_MANIFEST_BYTES + MAX_PACK_BYTES
+_KEYS = {"format", "pack", "pack_bytes", "refs"}  # + optional "signatures" (0.26)
 _NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
 
 
@@ -49,6 +53,7 @@ class Verified:
     pack: bytes
     pack_id: str
     objects: int
+    signatures: dict = field(default_factory=dict)
 
 
 def create(repo: Repo, refs: list[str] | None = None) -> bytes:
@@ -70,15 +75,15 @@ def create(repo: Repo, refs: list[str] | None = None) -> bytes:
 
 def create_refs(repo: Repo, chosen: dict[str, str]) -> bytes:
     """Bundle exactly the ``ref name -> object id`` mapping *chosen*."""
-    pack, _ = fitted_pack(repo, sorted(set(chosen.values())), [])
-    manifest = canonical_json(
-        {
-            "format": FORMAT,
-            "pack": "sha256:" + hashlib.sha256(pack).hexdigest(),
-            "pack_bytes": len(pack),
-            "refs": dict(sorted(chosen.items())),
-        }
-    )
+    pack, carried = fitted_pack(repo, sorted(set(chosen.values())), [])
+    fields = {
+        "format": FORMAT,
+        "pack": "sha256:" + hashlib.sha256(pack).hexdigest(),
+        "pack_bytes": len(pack),
+        "refs": dict(sorted(chosen.items())),
+    }
+    signatures = _bundle_sigs.collect(repo, carried)  # tine-sig/3 sidecars travel too
+    manifest = canonical_json({**fields, "signatures": signatures} if signatures else fields)
     body = len(manifest).to_bytes(4, "big") + manifest + pack
     return MAGIC + hashlib.sha256(body).digest() + body
 
@@ -106,7 +111,7 @@ def _manifest(raw: bytes) -> dict:
             raise BundleError("bundle manifest is not canonical")
     except (KernelError, ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise BundleError(f"invalid bundle manifest: {exc}") from None
-    if not isinstance(payload, dict) or set(payload) != {"format", "pack", "pack_bytes", "refs"}:
+    if not isinstance(payload, dict) or set(payload) - {"signatures"} != _KEYS:
         raise BundleError("invalid bundle manifest shape")
     if payload["format"] != FORMAT:
         raise BundleError(f"unsupported bundle format: {str(payload['format'])[:40]!r}")
@@ -151,8 +156,9 @@ def verify(data: bytes) -> Verified:
         if oid not in present:
             raise BundleError(f"bundle ref {name} points outside the bundle")
         refs[name] = oid
+    signatures = _bundle_sigs.check(manifest.get("signatures", {}), present)
     digest = "sha256:" + hashlib.sha256(data).hexdigest()
-    return Verified(digest, refs, pack, pack_id, len(objects))
+    return Verified(digest, refs, pack, pack_id, len(objects), signatures)
 
 
 def namespace(value: str) -> str:
@@ -175,6 +181,7 @@ def unbundle(repo: Repo, data: bytes, name: str, *, force: bool = False) -> dict
     if not _NAME.fullmatch(name):
         raise BundleError(f"invalid bundle namespace: {name!r}")
     result = repo.import_pack(checked.pack)
+    _bundle_sigs.install(repo, checked.signatures)
     local = repo.list_refs()
     rows: list[tuple[str, str, str | None]] = []
     unchanged = []

@@ -69,6 +69,17 @@ def artifact_integrity(data: dict[str, Any]) -> dict[str, Any] | None:
     return integrity if isinstance(integrity, dict) else None
 
 
+def artifact_signature(data: Any) -> Any:
+    """The first stored signature block of a v2 or v4 artifact, else ``None``."""
+    from opentine._format_v4 import is_v4_artifact
+
+    if is_v4_artifact(data):
+        blocks = data.get("signatures")
+        return blocks[0] if isinstance(blocks, list) and blocks else None
+    integrity = artifact_integrity(data) if isinstance(data, dict) else None
+    return integrity.get("signature") if integrity else None
+
+
 def artifact_digest(data: dict[str, Any]) -> str | None:
     """Compute a legacy digest without propagating malformed in-memory values."""
     from opentine._canon import _integrity_digest

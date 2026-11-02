@@ -219,7 +219,8 @@ def test_both_derivations_mint_the_same_hex64_id_and_the_saved_digest_verifies(
         "reason": "ok",
         "draft": False,
     }
-    assert HEX64.fullmatch(verdict["integrity"]["actual"])
+    # A v4 file (the 0.26 default) spells its digest as the root, run:sha256:<hex64>.
+    assert HEX64.fullmatch(verdict["integrity"]["actual"].removeprefix("run:sha256:"))
 
 
 def test_verify_checks_the_bytes_a_plain_replay_would_have_written(workspace, monkeypatch, capsys):
@@ -232,11 +233,12 @@ def test_verify_checks_the_bytes_a_plain_replay_would_have_written(workspace, mo
     )
 
     assert code == 0
-    plain, checked = (json.loads(path.read_text(encoding="utf-8")) for path in (replayed, verified))
+    # Compared as runs, so the check holds for v4 (the 0.26 default) as for v2.
+    plain, checked = (Run.load(path).to_dict() for path in (replayed, verified))
     # Everything but the wall clock, and the digest that necessarily follows it.
     for document in (plain, checked):
         document.pop("created_at")
-        document["metadata"].pop("integrity")
+        document["metadata"].pop("integrity", None)
     assert checked == plain
     assert checked["run_id"] == plain["run_id"], "one derivation, one identity"
 
