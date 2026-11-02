@@ -580,7 +580,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f88bf9162efd59910c048d4306a66a4200d434ba4015710afb6fd9ea4422213",
-    "README.md": "4f413efad1de4e443efaa0f42c4ac6965e905c68bb64b01e1c5cf493d992f911",
+    "README.md": "b9f894b2cf7894fbf240a572967217e52969db7c14e7d17a57fad6fa9891c8fa",
     "REASON_CODES.md": "bcdd383115e72156ff575a7e3271c874d949660861dee87dc1f6c28153dd5e54",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -599,6 +599,7 @@
     "frames/bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1.pack": "bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1",
     "frames/ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d.pack": "ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d",
     "keys.json": "54132bd22d00a6b10de054fdd37ff82a27135fa0237289591af01cb3a28edb65",
+    "minimal_verifier.py": "b1cad204b396134c1394f8c90f11ef5fe792d4d3a085b33ba78dbacc9b2656eb",
     "report.schema.json": "f2440b4314f7b2e308b952342cd180528d275120cf8106619aa235a5707e1e70",
     "run_conformance.py": "f6a61589c4a02c6121b7fd86edaf54009778ca7186fc042eda0fd7ffad67c47d",
     "tests/fixtures/compat/v0_10_0/artifact.tine": "47d962db470d63358233c0dbe4147ad06f6a7b4d29e49159747fe821b058d8b5",
@@ -1332,7 +1333,7 @@
     "vectors/51-compat.json": "5a72c9675d01885fdd3fdae31463cf0176fa903ef08874660dbc1ec9b6725886",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.24.0",
+  "generated_by": "opentine 0.25.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"

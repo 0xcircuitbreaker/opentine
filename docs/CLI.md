@@ -92,6 +92,69 @@ or the file, or a malformed file, stops the command with a one-line error (exit
 `tine config KEY [VALUE]` still edits the repository's porcelain keys. With no
 setting, every command's output is unchanged.
 
+## Offline verification (0.25)
+
+```
+tine verify RUN --offline                        # human report
+tine verify RUN --offline --json --report r.json # tine-verify-report/1
+tine verify RUN --offline --pubkey release.pub --strict
+tine verify RUN --offline --attestation a.sigstore.json --trusted-root trusted_root.json \
+    --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com
+tine verify RUN --offline --action-policy policy.toml
+```
+
+Every check runs from local files only; a socket connect or DNS lookup during
+the run is a hard error. Each check names its **trust basis**.
+
+What "offline verified" proves:
+
+* the file's bytes match its own sha256 digest (internal consistency: anyone who
+  edits a run can also recompute its digest, so on its own this proves nothing
+  about who wrote it);
+* with `--pubkey`, `--pin`, `--key-file` or `--key-env`, that the holder of that
+  key signed these bytes -- the only case the report fills `authorship`;
+* with `--attestation`, that the statement is signed and names this digest, and
+  that a receipt it carries is signed by the Rekor key or trusted root you gave;
+* for a keyless bundle, that the certificate chains to your Fulcio root /
+  trusted root, matches `--cert-identity`/`--cert-oidc-issuer`, and (with CT
+  keys) carries a valid SCT.
+
+What it does not prove: that the log still contains the entry or was not
+rolled back (no live inclusion or consistency check), that a key or certificate
+was not revoked later, that your trusted root is current, or anything about a
+check reported `unavailable-offline`. `--trust-embedded-key` verifies a key the
+file itself carries, so it is reported as trust-on-first-use, never authorship.
+Use `--strict` to make any missing required check fail the verdict.
+
+`--locate` reports where a failed run broke, using only finer-grained hashes
+that exist: step ids (each covers a step's kind, inputs, outputs, model_info,
+tool_info, error and parent_ids, so it names the step, not the field), a stored
+action manifest, or a key-verified attestation subject. When none of them
+explains the break it says `locate.unlocalisable` rather than guess. Byte
+offsets index the canonical JSON of the **redacted, stored** body with
+`metadata` removed (what the digest covers), not the file on disk.
+
+`tine verify --offline DIR|REPO` writes one `tine-verify-dataset/1` report with
+a Merkle root over the sorted `(run_id, digest)` pairs (leaf
+`sha256(0x00 || canonical_json([run_id, digest]))`, node
+`sha256(0x01 || left || right)`, an odd node carried up unchanged). A
+repository run's digest is its `tine-actions/1` `run_digest`.
+
+```
+tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
+                     [--action-policy FILE] [--attestation FILE]
+                     [--trusted-root FILE] [--operator NAME]
+```
+
+Writes `MANIFEST.sha256`, `custody.jsonl`, `timeline.jsonl`, `timeline.csv`,
+`verify-report.json`, `trust/` and `runs/`. `custody.jsonl` is outside the
+manifest (it holds the only timestamp) and names the manifest's SHA-256; with
+`--sign` it is signed with Ed25519 over `opentine.custody.v1:` + canonical JSON.
+`--attestation` (one run only) and `--trusted-root` (only with a keyless
+attestation) feed the attestation checks and are copied into `trust/`.
+`docs/conformance/minimal_verifier.py evidence DIR` re-checks the folder
+without opentine (SPEC Part 8).
+
 ## Trust policies
 
 ```
@@ -164,6 +227,24 @@ paths are made relative to the enclosing repository (the nearest directory with
 `vcs` and conversation `url` are omitted, since a run records neither; the run
 id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
 published schema accepts. `--endpoint` is refused.
+
+## Citation export (0.25)
+
+```
+tine export RUN --format citation --output CITATION.cff
+tine export RUN --format ro-crate --output ro-crate-metadata.json
+```
+
+`citation` writes a [Citation File Format](https://citation-file-format.github.io/)
+1.2.0 document (`type: dataset`); `ro-crate` writes an
+[RO-Crate 1.1](https://w3id.org/ro/crate/1.1) `ro-crate-metadata.json` with
+the metadata descriptor, a root `Dataset`, the run file, and `opentine` plus
+each model as `SoftwareApplication` entities. Both carry the run id, the
+integrity digest (`sha256:…`, SPEC §3.5), every model the run recorded, the
+run's own creation time and the opentine version. Nothing else varies (no
+clock, host or path), so the same run and version always give the same bytes.
+A run whose digest does not verify is refused, and `--endpoint` is refused.
+Without `--output` the document goes to stdout.
 
 ## Entire checkpoint import (0.19)
 

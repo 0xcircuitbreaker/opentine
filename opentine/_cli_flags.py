@@ -23,6 +23,7 @@ from pathlib import Path
 
 # dest -> (option string, parser default)
 FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
+    "action_policy": ("--action-policy", None),
     "agent": ("--agent", None),
     "allow_insecure": ("--allow-insecure", False),
     "api_key_env": ("--api-key-env", None),
@@ -57,9 +58,11 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "key_env": ("--key-env", None),
     "key_file": ("--key-file", None),
     "keyless": ("--keyless", False),
+    "locate": ("--locate", False),
     "mode": ("--mode", "cache"),
     "no_policy": ("--no-policy", False),
     "model": ("--model", None),
+    "offline": ("--offline", False),
     "out": ("--out", None),
     "output": ("--output", None),
     "overwrite": ("--overwrite", False),
@@ -71,7 +74,9 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "rekor_key": ("--rekor-key", None),
     "require_receipt": ("--require-receipt", False),
     "require_sct": ("--require-sct", False),
+    "report": ("--report", None),
     "save": ("--save", None),
+    "strict": ("--strict", False),
     "trust_embedded_key": ("--trust-embedded-key", False),
     "trusted_root": ("--trusted-root", None),
     "trust_policy": ("--policy", None),

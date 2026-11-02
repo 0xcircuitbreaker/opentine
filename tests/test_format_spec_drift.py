@@ -359,3 +359,29 @@ def test_format_versions_are_documented() -> None:
     text = spec()
     assert f"SUPPORTED_VERSIONS = {SUPPORTED_VERSIONS}" in text
     assert f"currently **{FORMAT_VERSION}**" in text
+
+
+def test_part_8_names_every_offline_verify_reason_code_and_schema() -> None:
+    """Part 8 documents ``tine verify --offline``: every reason-code literal the
+    offline modules emit, the report outcomes, the schemas and the domain."""
+    from opentine import _evidence_export, _verify_dataset, _verify_report
+
+    text = spec()
+    part = text[text.index("# Part 8 — Verifying without opentine") :]
+    for value in (
+        _verify_report.SCHEMA,
+        _verify_dataset.SCHEMA,
+        _evidence_export.CUSTODY_SCHEMA,
+        _evidence_export.REPORT_SCHEMA,
+        _evidence_export.CUSTODY_DOMAIN.decode(),
+        *_verify_report.OUTCOMES,
+    ):
+        assert f"`{value}" in part, value
+    pattern = re.compile(r'"((?:digest|signature|attestation|receipt|certificate|sct|actions|'
+                         r'policy|claims|locate|offline|artifact)\.[a-z0-9-]+)"')  # fmt: skip
+    codes: set[str] = set()
+    for path in sorted((ROOT / "opentine").glob("_verify_*.py")):
+        codes |= set(pattern.findall(path.read_text(encoding="utf-8")))
+    assert codes, "the offline verify modules emit no reason codes?"
+    missing = sorted(code for code in codes if f"`{code}`" not in part)
+    assert not missing, f"SPEC Part 8 does not name: {missing}"

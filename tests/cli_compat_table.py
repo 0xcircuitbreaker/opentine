@@ -2993,4 +2993,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "view", "run_id": "r1", "output": "r.html", "open": False},
     ),
+    (
+        "plain:evidence export r1 --out ev",
+        "plain",
+        ["evidence", "export", "r1", "--out", "ev"],
+        "opentine._cli_evidence:cmd_evidence",
+        False,
+        {"command": "evidence", "evidence_command": "export", "runs": ["r1"], "out": "ev"},
+    ),
 )

@@ -1468,6 +1468,7 @@ standard-library harness.
 | `conformance/vectors/` | 25 files, one per area of this document |
 | `conformance/compat/index.json` | a pointer index into `tests/fixtures/compat/` — §5.1's read guarantee, over bytes eight published releases wrote |
 | `conformance/run_conformance.py` | the neutral runner: standard library only, imports no opentine |
+| `conformance/minimal_verifier.py` | an independent offline verifier (Part 8): standard library only, imports no opentine |
 
 ## The procedure, honestly
 
@@ -1513,3 +1514,132 @@ so accepting one of them is reported as `REPAIRED` rather than as a plain
 failure. Part 6 item 9 is the one rule a suite of accepts cannot check, and it
 is the rule that decides whether a digest over recorded model output means
 anything.
+
+---
+
+# Part 8 — Verifying without opentine
+
+`tine verify RUN --offline` (0.25.0) runs every check it can from material on
+disk alone, under a guard that refuses any network call, and writes one
+report. This part specifies that report, the dataset and evidence forms around
+it, and the hashing a verifier needs to reproduce them **without opentine**.
+[`conformance/minimal_verifier.py`](conformance/minimal_verifier.py) is a
+standard-library implementation of this part (about 300 lines, imports no
+opentine) and `tests/test_minimal_verifier_0_25.py` holds its verdicts to the
+reference's.
+
+## 8.1 The `tine-verify-report/1` document
+
+One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
+
+| Key | Type | Notes |
+|---|---|---|
+| `schema` | string | `"tine-verify-report/1"` |
+| `command` / `offline` | const | `"verify"` / `true` |
+| `path`, `strict` | string, boolean | the target and whether `--strict` was given |
+| `verdict` / `ok` | `"pass"`\|`"fail"` / boolean | see below |
+| `authorship` | string or null | the trust basis that shows **who** signed; `null` when only internal consistency was shown |
+| `checks` | array | ordered; each `{name, outcome, reason, detail, trust_basis, required}` |
+| `unavailable_required` | array of string | required checks that could not run offline |
+| `location` | object | `--locate` only: `{region, reason, detail, field_path, …}` |
+
+`outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
+Check names, in order: `digest`, `signature`, `attestation`, `rekor-receipt`,
+`certificate`, `sct`, `action-manifest`, `action-policy`, `claims` (and
+`network` if the guard refused a connection). The verdict is `fail` when any
+check failed and, under `--strict`, also when a required check is
+`unavailable-offline`; otherwise `pass`. **A missing key or root is
+`unavailable-offline`, never a pass**, and a pass is only as strong as its
+`trust_basis` (`internal consistency only`, `supplied key …`, `pinned key …`,
+`trusted_root.json sha256 …`).
+
+## 8.2 Reason codes
+
+Reason codes are dotted `area.detail` strings matching
+`^[a-z0-9-]+(\.[a-z0-9-]+)+$`. Where a rule already has a code in
+[`conformance/REASON_CODES.md`](conformance/REASON_CODES.md) it is reused.
+
+| Area | Codes |
+|---|---|
+| digest (§3.5) | `digest.match`, `digest.mismatch`, `digest.missing`, `digest.malformed`, `digest.unsupported-algorithm`, `digest.unsupported-format`, `digest.unreadable`, `artifact.malformed-json` |
+| signature (Part 4) | `signature.<state>` for every state of §4.7 (`signature.verified`, `signature.verified-tofu`, `signature.unsigned`, `signature.no-key`, `signature.mismatch`, `signature.error`), plus `signature.integrity-failed` (not checked: the digest failed) |
+| attestation | `attestation.<status>` of the in-toto verdict (`attestation.verified`, `attestation.verified-tofu`, …), `attestation.none`, `attestation.no-key`, `attestation.unreadable`, `attestation.subject-mismatch`; `receipt.<status>`, `receipt.absent`, `receipt.unchecked`; `certificate.<status>` (`certificate.verified`, …), `certificate.not-keyless`; `sct.verified`, `sct.no-key`, `sct.not-reached` |
+| actions (§4.8) | `actions.<state>` (`verified`, `mismatch`, `unknown-key`), `actions.absent`, `actions.no-run`; `policy.ok`, `policy.warn`, `policy.deny`, `policy.none`, `policy.no-run`, `policy.unreadable` |
+| claims | `claims.match`, `claims.absent`, `claims.no-run`, `claims.no-tool-step`, `claims.output-mismatch`, `claims.digest-mismatch`, `claims.unclaimed-step`, `claims.unreadable`, `claims.unrecomputable` |
+| locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
+| offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
+
+The minimal verifier adds codes for what only it reports:
+`signature.crypto-unavailable` (Ed25519 needs the `cryptography` package and it
+is not importable — `unavailable-offline`, never a pass),
+`evidence.manifest-match`, `evidence.manifest-mismatch`,
+`evidence.manifest-unreadable`, `evidence.custody-linked`,
+`evidence.custody-manifest-mismatch`, `evidence.custody-unreadable`, and
+`dataset.run` (one per run of a dataset or evidence folder).
+
+## 8.3 Datasets and the Merkle root
+
+`tine verify --offline DIR` reports `tine-verify-dataset/1`:
+`{schema, command, offline, path, kind, strict, verdict, ok, count, merkle:
+{algorithm, root}, checks, runs}`. For a **directory**, every `*.tine` below it
+(sorted, symlinks skipped) gets a full §8.1 report, and its entry is
+`{run_id, path, digest, ok, failed, report}`; `digest` is the recomputed §3.5
+digest when the digest check passed and `""` otherwise. For a **repository**,
+`checks` holds one `repository` fsck check and each run a ref names contributes
+`{run_id: "run:…", digest: <tine-actions/1 run_digest>, ok, reason}`.
+
+The root is computed over the entries sorted by `(run_id, digest)`
+(`_verify_dataset.merkle_root`):
+
+```text
+leaf  = SHA-256( 0x00 || v3_canonical_json([run_id, digest]) )      §0.2
+node  = SHA-256( 0x01 || left || right )
+```
+
+Each level pairs nodes left to right; an odd last node is carried up unchanged;
+the root of zero leaves is SHA-256 of the empty string. The `0x00`/`0x01`
+prefixes keep a leaf from ever equalling a node.
+
+## 8.4 The evidence folder and `tine-custody/1`
+
+`tine evidence export RUN… --out DIR` writes `runs/` (the run files byte for
+byte), `verify-report.json` (`tine-evidence-verify/1`: `{schema, ok, runs}`,
+one §8.1 report per run), `timeline.jsonl`/`timeline.csv`, `trust/` (the
+`--pubkey`, `--action-policy`, `--attestation` and `--trusted-root` files the
+reports used, and `custody-signer.pub`), `MANIFEST.sha256` and
+`custody.jsonl`.
+
+`MANIFEST.sha256` is `sha256sum` text — `<64 hex>  <relative path>\n` — for
+every file except itself and `custody.jsonl`, sorted by path. A verifier
+checks every listed file **and** that no unlisted file exists.
+
+`custody.jsonl` is one `tine-custody/1` record, the only non-deterministic
+file (it carries the export time), which is why it sits outside the manifest
+and names the manifest instead:
+
+```json
+{"schema": "tine-custody/1", "exported_by": "...", "exported_at": "<ISO 8601>",
+ "opentine_version": "...", "manifest_sha256": "<sha256 of MANIFEST.sha256>",
+ "runs": [{"run_id": "...", "file": "runs/...", "sha256": "..."}],
+ "signature": {"algorithm": "ed25519", "public_key": "<64 hex>",
+               "key_fingerprint": "...", "value": "<128 hex>"}}
+```
+
+`signature` is optional (`--sign`). Its message is
+`opentine.custody.v1:` ‖ v3_canonical_json(record without `signature`) (§0.2 —
+unlike the artifact signatures of Part 4, which use §0.3). It verifies under
+the record's own key, so on its own it shows consistency; compare
+`public_key` with `trust/custody-signer.pub` obtained out of band.
+
+## 8.5 Writing an independent verifier
+
+1. Read the file; strip a `TINEZ1\0` wrapper (§2.3: codec 0 raw, 1 zlib, 2
+   zstd, uvarint length). Parse JSON refusing duplicate keys and
+   `NaN`/`Infinity`.
+2. Accept `format_version` 1 or 2; recompute §3.5 with §0.3 (both versions use
+   the same digest rule). Map refusals to the `digest.*` codes of §8.2.
+3. With a trusted Ed25519 key, rebuild the five-key header (§4.1) and the view
+   for the block's scheme (§4.3/§4.4) and verify `opentine.signature.v1:` ‖
+   §0.3 bytes. Without a key the check is `unavailable-offline`
+   (`signature.no-key`, or `signature.unsigned` when there is no block).
+4. For a folder, compute §8.3; for an evidence export, check §8.4.

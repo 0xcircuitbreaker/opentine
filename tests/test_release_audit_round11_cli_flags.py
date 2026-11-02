@@ -430,6 +430,16 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     # name is unknown and refused out loud); --no-policy contradicts --policy.
     (["verify", "ed.tine"], ["--policy", "prod"], "honoured"),
     (["verify", "ed.tine", "--policy", "prod"], ["--no-policy"], "refused"),
+    # 0.25: --offline writes a tine-verify-report/1; its companions need it.
+    (["verify", "source.tine"], ["--offline"], "honoured"),
+    (["verify", "source.tine"], ["--strict"], "refused"),
+    (["verify", "source.tine"], ["--report", "r.json"], "refused"),
+    (["verify", "source.tine"], ["--action-policy", "p.toml"], "refused"),
+    (["verify", "source.tine", "--offline"], ["--strict"], "honoured"),
+    (["verify", "source.tine", "--offline"], ["--report", "r.json"], "honoured"),
+    (["verify", "source.tine", "--offline"], ["--action-policy", "p.toml"], "honoured"),
+    (["verify", "source.tine"], ["--locate"], "refused"),
+    (["verify", "source.tine", "--offline"], ["--locate"], "honoured"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),

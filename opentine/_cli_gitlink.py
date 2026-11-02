@@ -8,6 +8,7 @@ from typing import Any
 
 from opentine._blame import blame, git_blame
 from opentine._cli_common import RUNS_DIR, _runs_dir, _terminal, console
+from opentine._cli_evidence import add_evidence_parser
 from opentine._cli_rewind import add_rewind_parser
 from opentine._cli_view import add_view_parser
 from opentine._cli_who_render import emit_or_print
@@ -239,6 +240,7 @@ def add_gitlink_parsers(sub: Any) -> None:
     blame_parser.add_argument("--json", action="store_true")
     add_rewind_parser(sub)  # blame's sibling: the same recorded writes, undone
     add_view_parser(sub)
+    add_evidence_parser(sub)
 
 
 COMMANDS = {"git": cmd_git, "blame": cmd_blame}
