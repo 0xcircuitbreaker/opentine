@@ -21,6 +21,7 @@ from opentine._cli_common import (
     console,
 )
 from opentine._cli_flags import _require_output_slot
+from opentine._replay_fidelity import render_lines
 from opentine.core import Run, short_id
 from opentine.index import IndexEntry, Query, _parse_date
 
@@ -229,3 +230,7 @@ def print_replay_verify(verdict) -> None:
         note = " [dim](ignored)[/]" if verdict.ignore_cost_drift else ""
         drift = _terminal(", ".join(verdict.accounting))
         console.print(f"[yellow]accounting drift:[/] {drift}{note}")
+    for line in render_lines(verdict.fidelity, short_id):
+        console.print(_terminal(line), highlight=False)
+    if not verdict.fidelity.meets(verdict.min_fidelity):
+        console.print(f"[red]fidelity below --min-fidelity {verdict.min_fidelity}[/]")

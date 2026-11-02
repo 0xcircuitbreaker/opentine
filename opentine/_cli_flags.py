@@ -59,6 +59,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "key_file": ("--key-file", None),
     "keyless": ("--keyless", False),
     "locate": ("--locate", False),
+    "min_fidelity": ("--min-fidelity", None),
     "mode": ("--mode", "cache"),
     "no_policy": ("--no-policy", False),
     "model": ("--model", None),

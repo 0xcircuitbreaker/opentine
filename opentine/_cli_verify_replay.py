@@ -24,15 +24,11 @@ and read back, and the two artifacts compared. Two executions must mint two
 *distinct* 64-hex ids (a rerun is a new act, never a name derived from the
 source id) and agree on every structural field.
 
-Drift is classified over the buckets ``_graph_diff`` already reports —
-``_drift``'s cost/usage/billing deltas are *accounting*, everything ``_fields``
-adds is *structural* — by ``_cli_json_flow.drift_payload``, the one builder
-``tine diff --json`` also uses, so the two comparisons publish one shape.
-``--ignore-cost-drift`` downgrades an accounting-only
-difference to a pass; structural drift always fails. Exit status is binary: 0
-reproduced, 1 drift or a source that would not load (argparse owns 2). An
-unloadable source yields no verdict, so it is a human message and never a JSON
-object — see ``_cli_json_flow``.
+Drift (accounting vs structural) is built by ``_cli_json_flow.drift_payload``,
+the builder ``tine diff --json`` uses; ``--ignore-cost-drift`` forgives
+accounting-only drift. Each step also gets a fidelity label
+(``_replay_fidelity``); ``--min-fidelity`` fails a weaker replay. Exit 0
+reproduced, 1 otherwise (argparse owns 2); an unloadable source is never JSON.
 
 ``--verify`` writes nothing under ``.tine_runs/`` unless ``--save`` is given;
 the temporary workspace is removed on every path, failures included. ``--save``
@@ -64,6 +60,7 @@ from opentine._cli_render import print_replay_verify
 from opentine._cli_text import announce_recorded_task
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import diff_runs
+from opentine._replay_fidelity import Fidelity, classify_cache, classify_rerun
 from opentine.core import Run
 from opentine.harnesses import OpentineHarness
 
@@ -117,6 +114,8 @@ class Verdict:
     expected_steps: int | None = None
     reused_steps: int | None = None
     slice_ok: bool | None = None
+    min_fidelity: str | None = None
+    fidelity: Fidelity = field(default_factory=Fidelity)
 
     @property
     def structural(self) -> list[str]:
@@ -159,6 +158,7 @@ def _cache_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path) -
         expected_steps=len(expected),
         reused_steps=len(reloaded.steps),
         slice_ok=all(item == expected for item in slices),
+        fidelity=classify_cache(run, expected, reloaded),
     )
 
 
@@ -206,6 +206,7 @@ def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path)
         fork_point=fork_point,
         expected_steps=None if expected is None else len(expected),
         slice_ok=slice_ok,
+        fidelity=classify_rerun(reloaded, second),
     )
 
 
@@ -242,9 +243,7 @@ def verify_replay(args: argparse.Namespace) -> None:
     finally:
         # Success, drift, and exception alike: the workspace never outlives the check.
         shutil.rmtree(room, ignore_errors=True)
-    if getattr(args, "json", False):
-        emit_replay_verify(verdict)
-    else:
-        print_replay_verify(verdict)
-    if not verdict.reproduced:
+    verdict.min_fidelity = getattr(args, "min_fidelity", None)
+    (emit_replay_verify if getattr(args, "json", False) else print_replay_verify)(verdict)
+    if not verdict.reproduced or not verdict.fidelity.meets(verdict.min_fidelity):
         raise SystemExit(1)
