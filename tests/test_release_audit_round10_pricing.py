@@ -222,3 +222,10 @@ def test_no_pricing_container_shape_can_crash_fork(path_name, shape, tmp_path):
     # The source object is never mutated by slicing its copy.
     assert json.dumps(loaded.manifest["pricing"], sort_keys=True, default=str) == before
     assert forked.metadata["fork_point"] == loaded.steps[0].id
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

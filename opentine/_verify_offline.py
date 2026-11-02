@@ -20,6 +20,7 @@ _DIGEST_REASONS = (
     ("ok", "digest.match"),
     ("digest mismatch", "digest.mismatch"),
     ("invalid artifact", "artifact.malformed-json"),
+    ("invalid v4 artifact", "digest.mismatch"),
     ("file not found", "digest.unreadable"),
     ("read error", "digest.unreadable"),
     ("unsupported .tine format_version", "digest.unsupported-format"),
@@ -39,6 +40,8 @@ def digest_check(path: Path) -> tuple[Check, Any]:
         "digest.unreadable",
     )
     detail = f"sha256:{result.actual}" if result.ok else str(result.reason)
+    if result.ok and str(result.actual).startswith("run:"):  # format v4: the root oid
+        detail = f"root {result.actual}"
     if not result.ok and result.expected and result.actual:
         detail += f" (expected {result.expected}, actual {result.actual})"
     if result.ok and result.draft:

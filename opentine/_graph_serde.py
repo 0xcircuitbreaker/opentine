@@ -8,12 +8,8 @@ from typing import Any
 
 import opentine._artifact_io as artifact_io
 import opentine._artifact_shapes as artifact_shapes
-from opentine._canon import (
-    FORMAT_VERSION,
-    SUPPORTED_VERSIONS,
-    _integrity_digest,
-    _redact,
-)  # fmt: skip
+import opentine._format_v4 as fmt4
+from opentine._canon import FORMAT_VERSION, SUPPORTED_VERSIONS, _integrity_digest, _redact
 from opentine._codec_io import write_artifact
 from opentine._graph_types import Graph, IntegrityResult, RunStatus
 from opentine._step_serde import step_from_dict as step_from_dict
@@ -99,7 +95,14 @@ def save_run(
     run, path: str | Path, *, draft: bool = False, fsync: bool = False,
     sign_key: Any | None = None, sign_algorithm: str = "hmac-sha256",
     key_id: str | None = None, signer: str | None = None, signed_at: str | None = None,
+    lenient: bool = False,
 ) -> Path:  # fmt: skip
+    """Write *run* (format v4 by default). ``lenient`` marks it a recorder's run:
+    a value v4 cannot hold is stringified with a ``metadata.warnings`` entry."""
+    if lenient:
+        from opentine._v4_values import mark_lenient
+
+        mark_lenient(run)
     target = Path(path)
     is_repo = target.is_dir() and (
         (target / "config.json").is_file() or (target / ".tine" / "config.json").is_file()
@@ -120,6 +123,18 @@ def save_run(
             raise SignatureError("refusing to sign a draft checkpoint")
         if run.status not in (RunStatus.completed, RunStatus.failed):
             raise SignatureError(f"refusing to sign a non-terminal run (status={run.status.value})")
+    # v4 is the default; autosave drafts stay v2 (v4 has no draft marker, and a
+    # checkpoint must never fail over a value the finished run would soften).
+    if fmt4.v4_requested() and not draft:
+        from opentine._artifact_v4 import save_v4
+
+        sign = dict(algorithm=sign_algorithm, key_id=key_id, signer=signer, signed_at=signed_at)
+        try:  # recording must never lose a run: a structural misfit falls back to v2
+            return save_v4(run, target, fsync=fsync, sign_key=sign_key, **sign)
+        except fmt4.V4Unrepresentable as exc:
+            fmt4.fall_back_to_v2(run, exc)  # re-raises under OPENTINE_FORMAT=4
+    elif not draft:
+        fmt4.warn_legacy()
     data = run_to_dict(run, redact=True)
     if draft:
         data["draft"] = True
@@ -157,9 +172,17 @@ def load_run(path: str | Path, run_class):
         from opentine.repo import Repo
 
         return Repo.open(source).load_run("heads/main")
-    data = artifact_io.read_artifact_json(source)
+    return load_run_data(artifact_io.read_artifact_json(source), run_class)
+
+
+def load_run_data(data: Any, run_class):
+    """``load_run`` on an already-parsed artifact: one read, one set of bytes."""
     if not isinstance(data, dict):
         raise ValueError(".tine artifact root must be an object")
+    if fmt4.is_v4_artifact(data):
+        from opentine._artifact_v4 import read_v4_data
+
+        return read_v4_data(data)
     try:
         version = detect_version(data)
     except MigrationError:
@@ -187,6 +210,10 @@ def verify_integrity(path_or_data: str | Path | dict[str, Any]) -> IntegrityResu
         return IntegrityResult(False, None, None, None, f"invalid artifact: {reason}")
     if not isinstance(data, dict):
         return IntegrityResult(False, None, None, None, "artifact root is not an object")
+    if fmt4.is_v4_artifact(data):
+        from opentine._artifact_v4_read import verify_v4
+
+        return verify_v4(data)
     version = data.get("format_version")
     if type(version) is not int or version not in SUPPORTED_VERSIONS:
         found = version if version is not None else "missing"

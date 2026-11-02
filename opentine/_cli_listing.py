@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from opentine._artifact_io import artifact_integrity, read_artifact_json
+from opentine._artifact_io import artifact_signature, read_artifact_json
 from opentine._cli_common import BRAND, _find_run, _index_update, _runs_dir, _terminal, console
 from opentine._cli_flags import refuse_unhonoured
 from opentine._cli_json import emit_entries
@@ -130,9 +130,7 @@ def cmd_tag(args: argparse.Namespace) -> None:
         # de-authenticate the artifact. Say so rather than let it happen silently.
         # Repository directories are not signed artifacts, so only regular files
         # get the check — reading a repo dir as an artifact would raise.
-        signed = path.is_file() and bool(
-            (artifact_integrity(read_artifact_json(path)) or {}).get("signature")
-        )
+        signed = path.is_file() and bool(artifact_signature(read_artifact_json(path)))
         run.save(path)
         _index_update(path)
         if signed:

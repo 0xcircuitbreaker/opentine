@@ -385,3 +385,60 @@ def test_part_8_names_every_offline_verify_reason_code_and_schema() -> None:
     assert codes, "the offline verify modules emit no reason codes?"
     missing = sorted(code for code in codes if f"`{code}`" not in part)
     assert not missing, f"SPEC Part 8 does not name: {missing}"
+
+
+def test_part_9_states_the_format_v4_constants() -> None:
+    """Part 9 (format v4, the 0.26 default) names every v4 constant with its live value."""
+    from opentine._format_v4 import (
+        ARTIFACT_V4_KIND,
+        ARTIFACT_V4_VERSION,
+        FORMAT_ENV,
+        LEGACY_FORMATS,
+        MAX_V4_ANNOTATIONS,
+        V4_KEYS,
+    )
+    from opentine.repository.pack import MAX_PACK_OBJECTS
+
+    text = spec()
+    part = text[text.index("# Part 9 — Format v4") :]
+    assert f"the integer `{ARTIFACT_V4_VERSION}`" in part
+    assert f"`{ARTIFACT_V4_KIND}`" in part
+    assert f"`{FORMAT_ENV}={ARTIFACT_V4_VERSION}`" in part
+    for legacy in sorted(LEGACY_FORMATS):  # the deprecated, opt-in writers
+        assert f"`{FORMAT_ENV}={legacy}`" in part or f"or `{legacy}`" in part, legacy
+    assert "draft" not in part.split("\n", 3)[0] + part.split("\n", 3)[2]
+    assert f"`_format_v4.MAX_V4_ANNOTATIONS` ({MAX_V4_ANNOTATIONS})" in part
+    assert "`pack.MAX_PACK_OBJECTS`" in part and any(s in part for s in _grouped(MAX_PACK_OBJECTS))
+    for key in sorted(V4_KEYS):
+        assert f"| `{key}` |" in part, key
+
+
+def test_part_9_states_the_v4_signature_schemes() -> None:
+    """tine-sig/3 and tine-attest/2: names, prefixes (all distinct) and the bound."""
+    from opentine import _signing_v4 as v4
+
+    text = spec()
+    part = text[text.index("# Part 9 — Format v4") :]
+    for value in (v4.SCHEME_V3, v4.SCHEME_ATTEST_V2):
+        assert f"`{value}`" in part, value
+    for prefix in (v4.DOMAIN_PREFIX_V3, v4.ATTEST_DOMAIN_PREFIX_V2):
+        assert f"`{prefix.decode()}`" in part
+    prefixes = {DOMAIN_PREFIX, ATTEST_DOMAIN_PREFIX, v4.DOMAIN_PREFIX_V3}
+    assert len(prefixes | {v4.ATTEST_DOMAIN_PREFIX_V2}) == 4
+    assert f"`_signing_v4.MAX_V4_SIGNATURES` ({v4.MAX_V4_SIGNATURES})" in part
+    assert v4.SCHEME_ATTEST_V2 in ATTEST_SCHEMES
+
+
+def test_section_2_2_and_9_10_state_the_object_format_4_descriptor() -> None:
+    """The v4 descriptor keys, min_reader, the reader bound and the sidecar."""
+    from opentine.repository import _config
+    from opentine.repository._sig_sidecar import MAX_SIDECAR_ENTRIES, SIDECAR_KIND
+
+    text = spec()
+    section = text[text.index("## 2.2 `config.json`") : text.index("## 2.3 `objects/`")]
+    assert f'"objects": {_config.OBJECTS_V4}' in section
+    assert f'"min_reader": "{_config.V4_MIN_READER}"' in section
+    assert ".".join(map(str, _config.READER_VERSION)) in section
+    assert "`_config.READER_VERSION`" in section and "`_config.mark_v4`" in section
+    part = text[text.index("## 9.10 Repositories") :]
+    assert f'"kind": "{SIDECAR_KIND}"' in part and f"at most {MAX_SIDECAR_ENTRIES} entries" in part

@@ -96,8 +96,8 @@ def cmd_export_intoto(args: argparse.Namespace) -> None:
     from opentine._cli_sigstore import sign_for_export
     from opentine._export_write import unsafe_destination, write_private
     from opentine._graph_serde import verify_integrity
+    from opentine._signing_v4 import statement_for
     from opentine.core import Run
-    from opentine.intoto import build_statement
 
     output = Path(args.output) if args.output else None
     if output is None:
@@ -124,7 +124,7 @@ def cmd_export_intoto(args: argparse.Namespace) -> None:
         integrity = verify_integrity(path)
         if not integrity.ok:  # never attest to bytes that are not what they claim
             raise ValueError(f"run fails integrity: {integrity.reason}")
-        statement = build_statement(Run.load(path), integrity.actual)
+        statement = statement_for(Run.load(path), integrity.actual, None if args.keyless else key)
         envelope = sign_for_export(args, statement, lambda: key)
     except (OSError, SignatureError, ValueError) as exc:
         _fail(f"Export failed: {exc}")

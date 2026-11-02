@@ -20,7 +20,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from opentine import _bundle
+from opentine import _bundle, _bundle_sigs
 from opentine._git_link import git_binary
 from opentine.repo import Repo
 from opentine.tools._git_guard import HARDENED_CONFIG, git_env
@@ -147,6 +147,7 @@ def push_refs(repo: Repo, remote: str, refs: dict[str, str], *, timeout: float =
             return {"remote": remote, "ref": REMOTE_REF, "commit": parent, "pushed": []}
         if old:
             repo.import_pack(checked.pack)
+            _bundle_sigs.install(repo, checked.signatures)  # keep the remote's blocks
         data = _bundle.create_refs(repo, {**held, **refs})
         commit = _store(work, url, data, parent, timeout)
     pushed = sorted(name for name, oid in refs.items() if held.get(name) != oid)

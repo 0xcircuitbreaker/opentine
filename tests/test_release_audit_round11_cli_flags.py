@@ -44,6 +44,7 @@ import pytest
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._cli_flags import FLAG_DEFAULTS, KEY_MATERIAL_FLAGS
 from opentine._cli_parser import _build_parser
+from opentine._format_v4 import write_format
 from opentine.signing import HAS_ED25519, generate_ed25519
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,19 +75,22 @@ def workspace(monkeypatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))  # no trust policies
     monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / ".tine_runs")
     monkeypatch.chdir(tmp_path)
-    run = _source(tmp_path / "source.tine")
-    run.save(tmp_path / "signed.tine", sign_key=HMAC_KEY.encode(), sign_algorithm="hmac-sha256")
-    # Write the key as bytes, not text: Path.write_text translates "\n" to "\r\n"
-    # on Windows, and hmac_key_from_file strips only a trailing "\n", so a text-mode
-    # write would leave a stray "\r" on the key and make verify report a mismatch.
-    (tmp_path / "hmac.key").write_bytes(HMAC_KEY.encode() + b"\n")
-    (tmp_path / "adir").mkdir()
-    shutil.copy(LEGACY, tmp_path / "legacy.tine")
-    if HAS_ED25519:
-        seed, public = generate_ed25519()
-        (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
-        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-        run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+    # The inputs are v2 files (the tamper below edits the v2 integrity digest); the
+    # commands under test run with 0.26's default v4 writer.
+    with write_format(2):
+        run = _source(tmp_path / "source.tine")
+        run.save(tmp_path / "signed.tine", sign_key=HMAC_KEY.encode(), sign_algorithm="hmac-sha256")
+        # Write the key as bytes, not text: Path.write_text translates "\n" to "\r\n"
+        # on Windows, and hmac_key_from_file strips only a trailing "\n", so a text-mode
+        # write would leave a stray "\r" on the key and make verify report a mismatch.
+        (tmp_path / "hmac.key").write_bytes(HMAC_KEY.encode() + b"\n")
+        (tmp_path / "adir").mkdir()
+        shutil.copy(LEGACY, tmp_path / "legacy.tine")
+        if HAS_ED25519:
+            seed, public = generate_ed25519()
+            (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
+            (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+            run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -438,6 +442,7 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine", "--offline"], ["--strict"], "honoured"),
     (["verify", "source.tine", "--offline"], ["--report", "r.json"], "honoured"),
     (["verify", "source.tine", "--offline"], ["--action-policy", "p.toml"], "honoured"),
+    (["verify", "source.tine"], ["--source", "source.tine"], "refused"),
     (["verify", "source.tine"], ["--locate"], "refused"),
     (["verify", "source.tine", "--offline"], ["--locate"], "honoured"),
     # tine keygen
@@ -460,6 +465,17 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["migrate", "legacy.tine", "--dry-run"], ["--in-place"], "refused"),
     (["migrate", "legacy.tine", "--save", "out.tine"], ["--in-place"], "refused"),
     (["migrate", "tampered.tine"], ["--force"], "honoured"),
+    # 0.26: --to v4 and the flags only it reads
+    (["migrate", "source.tine", "--to", "v4"], ["-o", "out4.tine"], "honoured"),
+    (["migrate", "source.tine", "--to", "v4"], ["--output", "out4.tine"], "honoured"),
+    # 0.26 phase 6: v4 is the default --to, so these are refused for the legacy target.
+    (["migrate", "source.tine", "--to", "2"], ["-o", "out4.tine"], "refused"),
+    (["migrate", "source.tine", "--to", "2"], ["--repo", "adir"], "refused"),
+    (["migrate", "source.tine", "--to", "2"], ["--pubkey", "ed.pub"], "refused"),
+    (["migrate", "source.tine", "--to", "2"], ["--pin", "sha256:" + "0" * 64], "refused"),
+    (["migrate", "source.tine"], ["-o", "out4.tine"], "honoured"),
+    (["migrate", "source.tine", "--to", "v4", "-o", "o.tine"], ["--in-place"], "refused"),
+    (["migrate", "source.tine", "--to", "v4", "--repo", "adir"], ["--pin", "x"], "refused"),
     # --save onto a path that already holds an artifact: --force is the overwrite
     # waiver there, which is its second, independent job.
     (["migrate", "legacy.tine", "--save", "signed.tine"], ["--force"], "honoured"),
@@ -533,8 +549,8 @@ def test_the_sweep_covers_every_flag_of_the_commands_this_module_owns():
     subs = next(
         action for action in parser._actions if hasattr(action, "choices") and action.choices
     )
-    exercised = {token for _, extra, _ in SWEEP for token in extra if token.startswith("--")}
-    exercised |= {token for base, _, _ in SWEEP for token in base if token.startswith("--")}
+    exercised = {token for _, extra, _ in SWEEP for token in extra if token.startswith("-")}
+    exercised |= {token for base, _, _ in SWEEP for token in base if token.startswith("-")}
     missing = []
     for command in ("sign", "verify", "keygen", "migrate"):
         for action in subs.choices[command]._actions:

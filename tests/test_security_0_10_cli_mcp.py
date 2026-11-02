@@ -158,7 +158,7 @@ def test_migrate_preview_escapes_the_artifacts_digest(tmp_path, monkeypatch, cap
     path.write_text(json.dumps(data), encoding="utf-8")
     capsys.readouterr()
     try:
-        cli.main(["migrate", str(path)])
+        cli.main(["migrate", str(path), "--to", "2"])  # the v2 preview (v4 is the default)
     except SystemExit:
         pass
     out = capsys.readouterr().out

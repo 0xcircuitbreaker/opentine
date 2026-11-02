@@ -158,3 +158,10 @@ def test_claude_code_records_escaped_text_and_runs_to_the_end(tmp_path):
     assert "rm -rf build" in text  # the steps after the surrogate were recorded
     assert "caf\\\\ud83d" in text and "surrogates_escaped" in text
     assert run.status.value == "completed"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

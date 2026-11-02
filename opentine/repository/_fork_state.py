@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine._canon import _redact
 from opentine._graph_analysis import _causal_transcript, _slice_pricing
-from opentine._jsonsafe import json_safe
+from opentine._jsonsafe import json_stored
 from opentine._unicode_text import assert_unicode_text
 from opentine.repository._run_blobs import (
     LEGACY_MIGRATION_FIELDS,
@@ -141,9 +141,7 @@ def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
     # Written over the whole mapping so an override added above is covered here
     # without a second edit, and before _closure so nothing is written at all.
     assert_unicode_text(
-        _redact(
-            json_safe({key: item for key, item in values.items() if key != "prompt"}, strict=True)
-        ),
+        _redact(json_stored({k: v for k, v in values.items() if k != "prompt"}, "fork override")),
         where="fork override",
     )
     return values
@@ -191,7 +189,7 @@ def fork_payload(
     forked["status"] = "running"
     forked["tips"] = graph_tips(repo, events)
     forked.pop("finished_at", None)
-    for field in LEGACY_MIGRATION_FIELDS:
+    for field in (*LEGACY_MIGRATION_FIELDS, "upgraded_from"):  # a fork is new content
         forked.pop(field, None)
     if model:
         forked["model"] = model

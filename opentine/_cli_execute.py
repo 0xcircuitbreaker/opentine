@@ -125,7 +125,7 @@ def cmd_run_harness(args: argparse.Namespace) -> None:
         if run is not None:
             output = output or (_runs_dir() / f"{run.id}.tine")
             try:
-                run.save(output)
+                run.save(output, lenient=True)
             except (OSError, ValueError) as save_exc:
                 console.print(f"[red]Could not save the run:[/] {_terminal(save_exc)}")
             _print_run_tree(run)

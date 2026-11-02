@@ -432,3 +432,10 @@ def test_an_unreachable_endpoint_is_reported_without_its_password(workspace, cap
         cli.main(["export", str(source), "--endpoint", "http://user:hunter2@127.0.0.1:9/"])
     captured = capsys.readouterr()
     assert "hunter2" not in captured.out + captured.err
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

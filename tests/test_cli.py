@@ -72,7 +72,9 @@ def test_cli_verify_success_and_failure(monkeypatch, tmp_path, capsys):
     assert exc.value.code == 1
     captured = capsys.readouterr()
     assert "FAILED" in captured.out
-    assert "digest mismatch" in captured.out
+    # v2 reports a digest mismatch; v4 (the 0.26 default) the envelope id that broke.
+    out = " ".join(captured.out.split())  # the console wraps long lines at any space
+    assert "digest mismatch" in out or "object id mismatch" in out
     assert run.id == "cli_run"
 
 

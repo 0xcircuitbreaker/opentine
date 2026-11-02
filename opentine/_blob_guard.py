@@ -12,7 +12,7 @@ import json
 from typing import Any
 
 from opentine._artifact_io import compact_token_budget
-from opentine._jsonsafe import json_safe
+from opentine._jsonsafe import json_safe, json_stored
 from opentine._v3_guards import guarded_redaction
 from opentine.kernel import KernelError, _parse_int, canonical_json, validate_json_shape
 
@@ -48,7 +48,7 @@ def guarded_blob_body(value: Any, *, strict: bool = False) -> bytes:
     Strict mode refuses instead (``ValueError``) and only beyond the format's own
     depth limit. The lenient default stays for the trace and live recorders.
     """
-    safe = json_safe(value, strict=strict)
+    safe = json_stored(value, "step or run JSON") if strict else json_safe(value)
     if not isinstance(safe, dict):
         raise ValueError(
             "step and run JSON must be an object to survive a later load; got "

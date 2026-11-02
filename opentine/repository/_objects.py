@@ -17,8 +17,15 @@ MAX_TYPED_OBJECT_SCAN = 100_000
 
 def store_envelope(repo, envelope: ObjectEnvelope) -> str:
     """Persist a caller-validated immutable envelope without rewalking its graph."""
+    from opentine._format_v4 import v4_requested, warn_legacy
     from opentine.repository._storage import write_object
 
+    if v4_requested():  # SPEC 2.2: the descriptor says object format 4 first
+        from opentine.repository._config import mark_v4
+
+        mark_v4(repo)
+    else:
+        warn_legacy()
     write_object(repo, envelope.oid, envelope.encode())
     # An estimate of new loose objects for the auto-pack hook (_autopack.after_write).
     repo.__dict__["_autopack_writes"] = repo.__dict__.get("_autopack_writes", 0) + 1

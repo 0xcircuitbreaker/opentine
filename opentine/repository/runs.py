@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from opentine._artifact_io import read_artifact_bytes as read_artifact_bytes
 from opentine._canon import _redact
-from opentine._jsonsafe import json_safe
+from opentine._jsonsafe import json_stored
 from opentine._unicode_text import assert_unicode_text
 from opentine._v3_guards import as_mapping, text_field
 from opentine.policies import run_redaction
@@ -99,7 +99,7 @@ def _put_run(
         # pre-0.8.0 run ever stored, for a field that would always be empty.
         if step.provider:
             payload["provider"] = step.provider
-        event_id = repo.put("event", json_safe(payload, strict=True))
+        event_id = repo.put("event", json_stored(payload, "event"))
         event_map[step.id] = event_id
         events.append(event_id)
 
@@ -132,7 +132,7 @@ def _put_run(
         "tips": tips,
     }
     apply_legacy_migration(payload, legacy_blob, legacy_verification, migration_map_blob)
-    run_id = repo.put("run", json_safe(payload, strict=True))
+    run_id = repo.put("run", json_stored(payload, "run"))
     annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:
         old = repo.read_ref(ref)
@@ -245,5 +245,5 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
         run.add_tag(tag)
     run._v3_causal_ids = causal_ids
     run._v3_payload = dict(payload)
-    run._v3_run_id = oid
+    run._v3_run_id, run._v3_repo = oid, repo  # _v3_repo: write_v4 reuses its envelopes
     return run

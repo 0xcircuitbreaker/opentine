@@ -537,3 +537,10 @@ def test_human_rendering_is_unchanged_when_json_is_absent(workspace, capsys):
     assert "# Cost" in capsys.readouterr().out
     cli.main(["verify", str(path)])
     assert "OK" in capsys.readouterr().out
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

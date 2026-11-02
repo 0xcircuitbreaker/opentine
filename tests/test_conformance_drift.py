@@ -79,6 +79,7 @@ EXPECTED_COUNTS = {
     "vectors/03-canon-v2.json": (26, 3),
     "vectors/04-divergence.json": (16, 1),
     "vectors/05-shape.json": (12, 6),
+    "vectors/09-canon-v4.json": (34, 6),
     "vectors/12-envelope.json": (26, 17),
     "vectors/13-oid.json": (16, 6),
     "vectors/14-redaction.json": (12, 0),
@@ -87,7 +88,7 @@ EXPECTED_COUNTS = {
     "vectors/15c-graph.json": (16, 8),
     "vectors/15d-load.json": (10, 5),
     "vectors/16-bounds.json": (30, 15),
-    "vectors/22-layout.json": (12, 6),
+    "vectors/22-layout.json": (15, 8),
     "vectors/24-refs.json": (34, 22),
     "vectors/26-reflog.json": (8, 2),
     "vectors/27-shallow.json": (14, 6),
@@ -100,6 +101,7 @@ EXPECTED_COUNTS = {
     "vectors/48-actions.json": (6, 0),
     "vectors/49-agent.json": (9, 5),
     "vectors/51-compat.json": (70, 0),
+    "vectors/53-sig-v4.json": (19, 0),
     "vectors/99-repair.json": (14, 14),
 }
 

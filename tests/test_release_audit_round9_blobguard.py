@@ -241,3 +241,10 @@ def test_tolerated_transcript_turns_survive_the_v3_round_trip(tmp_path):
     # dict turns keep their step-id discipline
     with pytest.raises(ValueError, match="unknown step"):
         put_transcript(repo, [{"step_id": "nope"}], {})
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

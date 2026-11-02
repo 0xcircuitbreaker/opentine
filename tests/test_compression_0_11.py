@@ -545,3 +545,10 @@ def test_an_archive_with_a_forged_unadopted_record_is_refused(tmp_path, compress
     path.write_bytes(out)
     with pytest.raises(KernelError, match="non-annotation"):
         restore_archive(path, tmp_path / "copy")
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

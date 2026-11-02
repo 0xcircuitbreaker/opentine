@@ -258,6 +258,19 @@
       "verdict": 0
     },
     {
+      "core": 34,
+      "count": 34,
+      "file": "vectors/09-canon-v4.json",
+      "name": "canon-v4",
+      "ops": [
+        "canon.v3"
+      ],
+      "reject": 6,
+      "section": "9.2",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 26,
       "count": 26,
       "file": "vectors/12-envelope.json",
@@ -377,15 +390,15 @@
       "verdict": 0
     },
     {
-      "core": 12,
-      "count": 12,
+      "core": 15,
+      "count": 15,
       "file": "vectors/22-layout.json",
       "name": "layout",
       "ops": [
         "config.validate",
         "object.path"
       ],
-      "reject": 6,
+      "reject": 8,
       "section": "2.2",
       "stress": 0,
       "verdict": 0
@@ -558,6 +571,21 @@
       "verdict": 42
     },
     {
+      "core": 19,
+      "count": 19,
+      "file": "vectors/53-sig-v4.json",
+      "name": "sig-v4",
+      "ops": [
+        "oid.derive",
+        "sig.message",
+        "sig.verify"
+      ],
+      "reject": 0,
+      "section": "9.6",
+      "stress": 0,
+      "verdict": 15
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -579,10 +607,11 @@
     }
   ],
   "files": {
-    "PROTOCOL.md": "2f88bf9162efd59910c048d4306a66a4200d434ba4015710afb6fd9ea4422213",
-    "README.md": "b9f894b2cf7894fbf240a572967217e52969db7c14e7d17a57fad6fa9891c8fa",
+    "PROTOCOL.md": "80c83c5628e2c0ca8c197dbfecbef5ac0bbe3ce8656c1cb13101d80520f559f2",
+    "README.md": "0e98e8f3d5f74684b2bd8e2c972c48a150539085d04a639b63f4edadfc5af45a",
     "REASON_CODES.md": "bcdd383115e72156ff575a7e3271c874d949660861dee87dc1f6c28153dd5e54",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
+    "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
     "blobs/3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee.bin": "3aef2772c4d9e16dc7f4e36791150cbe6d75e066313041c8a9ee7a0b70dc6eee",
     "blobs/9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350.bin": "9b4c02f88a24c69c98bb5814b3d673f14f273ed2fae2eaa1da0808ddefb9d350",
@@ -599,7 +628,7 @@
     "frames/bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1.pack": "bca7cf35d45163e85c12dfc9a12bd68eba2e38ed64e9c9fdc53a491c4d1963a1",
     "frames/ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d.pack": "ec48562a5ea8c3f044ffb43bc04a38fd86e63703d884a12d4347c8e144dac57d",
     "keys.json": "54132bd22d00a6b10de054fdd37ff82a27135fa0237289591af01cb3a28edb65",
-    "minimal_verifier.py": "b1cad204b396134c1394f8c90f11ef5fe792d4d3a085b33ba78dbacc9b2656eb",
+    "minimal_verifier.py": "b3aa2efc35f8a7bf10aabb65f2e3443f55a560838dea368ddeef861bb7cd1ee7",
     "report.schema.json": "f2440b4314f7b2e308b952342cd180528d275120cf8106619aa235a5707e1e70",
     "run_conformance.py": "f6a61589c4a02c6121b7fd86edaf54009778ca7186fc042eda0fd7ffad67c47d",
     "tests/fixtures/compat/v0_10_0/artifact.tine": "47d962db470d63358233c0dbe4147ad06f6a7b4d29e49159747fe821b058d8b5",
@@ -1310,6 +1339,7 @@
     "vectors/03-canon-v2.json": "887f32c69a21e49c27096c13a5a7a35b801cee912c9e6c953a17d5b5bb491ff0",
     "vectors/04-divergence.json": "7d983c98baf305020d198028403256c557ad672fe3f1d12a2ad028cdde7ac166",
     "vectors/05-shape.json": "323e60b6f349e5d832a154a001a59f44b671867f376c0934d27aa727f174a317",
+    "vectors/09-canon-v4.json": "20d2ecc504fe2e2e41208199dc9834a9d3140312a356643f940ab8261fea7f28",
     "vectors/12-envelope.json": "f10df52ad7691b75c778bde100ad239ff952267fdab1fa81fd71bbead0540a6c",
     "vectors/13-oid.json": "5cc593518ac044be19b487fb50392fc1b6bd9879686e0d17cacc6878eb3f7036",
     "vectors/14-redaction.json": "ffbf9758c056471fc7ba1eb1c553883bab21bcd6933662527a88eaca6ce2624d",
@@ -1318,7 +1348,7 @@
     "vectors/15c-graph.json": "eb596311bee1dec0d73f2f9e1fa1efcd93f79c0c180ee0c16ffd23338649e376",
     "vectors/15d-load.json": "5d29d5efc51dc7a3a53d33f852017b4be3b41bd31283ce69820f429be6b45bbe",
     "vectors/16-bounds.json": "79dc94acfc3500d165b2e88ce4323cd331cc16d42e2dc16128dcb7de3b68f91c",
-    "vectors/22-layout.json": "deeabfa672cafcca7f2d872e9d8d7dd433eb4d6073a7d5cb164e6995d2900d1d",
+    "vectors/22-layout.json": "4381a59195cc7f2d05aefa1ae6d8d7f42b7f2cc9cfec46ca4008c4b05b607019",
     "vectors/24-refs.json": "4bdc4719bff3b08287cc9ad23095e92031559ee2b2443164ec270f9fef8f9c68",
     "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
     "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
@@ -1327,13 +1357,14 @@
     "vectors/31-artifact-v2.json": "f83c46167d41a9e0e319fed34d4faebc428dc7abbf787869a6bab837a84c7f83",
     "vectors/35-integrity.json": "c31947dc24bbad8d0da04edaedf672dc8e56a6b030e6a6744b27ee9dc4d6ef3e",
     "vectors/42-signing.json": "128ac717112ba02ca80832bcec73967ecf757486bac49e04313b1f9479456079",
-    "vectors/47-verdict.json": "56a625428e03c1d8c61669425811f2c08fb7c179d70713388b5154b715478a95",
+    "vectors/47-verdict.json": "538d363520fc3d02a46fd649b9bb86715b1b44cb0cdcab7d7782928203080778",
     "vectors/48-actions.json": "bd5036729d6e1a31bf6f7b99cfceeee581f61c3dc244e877f33f76bfaac60de9",
     "vectors/49-agent.json": "c8ee81220b5fbc9d5a52797f72b7d3367725cb19718af6d0968ec54c30035a76",
     "vectors/51-compat.json": "5a72c9675d01885fdd3fdae31463cf0176fa903ef08874660dbc1ec9b6725886",
+    "vectors/53-sig-v4.json": "5354493549805e23eff5355b83172936bb0d0a8cc7059b9b57ef9dc65b3c246a",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.25.0",
+  "generated_by": "opentine 0.26.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -1652,6 +1683,7 @@
         "header"
       ],
       "input": [
+        "blob",
         "bytes_b64"
       ],
       "output": [
@@ -1884,7 +1916,7 @@
       ],
       "profile": "verifier",
       "requires": [],
-      "summary": "SPEC 4.2 signed message under one of the four schemes",
+      "summary": "SPEC 4.2 / 9.6 signed message under one of the six schemes",
       "unordered": []
     },
     "sig.verify": {
@@ -1935,13 +1967,13 @@
   "spec_version": "0.9.0",
   "suite_version": 1,
   "totals": {
-    "cases": 580,
-    "core": 570,
-    "families": 28,
+    "cases": 636,
+    "core": 626,
+    "families": 30,
     "ops": 36,
     "reason_codes": 108,
-    "reject": 209,
+    "reject": 217,
     "stress": 10,
-    "verdict": 69
+    "verdict": 84
   }
 }

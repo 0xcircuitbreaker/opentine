@@ -34,6 +34,10 @@ JSON_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://opentine.dev/schemas/tine-verify-report-1.json",
     "title": SCHEMA,
+    "$comment": (
+        "checks are ordered: digest, signature, provenance, attestation, rekor-receipt, "
+        "certificate, sct, action-manifest, action-policy, claims; provenance is never required"
+    ),
     "type": "object",
     "additionalProperties": False,
     "required": [

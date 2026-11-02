@@ -159,6 +159,43 @@ LAYOUT = Family(
             reason="config.malformed",
         ),
         _layout(
+            "config.objects-v4",
+            ACCEPT,
+            "object format 4 (0.26+): `objects` replaces `format`, with `min_reader`, so "
+            "every 0.9-0.25 reader (which requires format 3) refuses it",
+            "config.validate",
+            B(
+                b'{"min_reader":"0.26.0","object_hash":"sha256","objects":4,'
+                b'"repository":"opentine","storage":{"compression":"zlib"},"version":2}\n'
+            ),
+            "2.2",
+        ),
+        _layout(
+            "config.min-reader-newer",
+            REJECT,
+            "a min_reader newer than the reader is a refusal naming the version needed",
+            "config.validate",
+            B(
+                b'{"min_reader":"9.0.0","object_hash":"sha256","objects":4,'
+                b'"repository":"opentine","version":1}\n'
+            ),
+            "2.2",
+            reason="config.incompatible",
+            repair_temptation="open it anyway and hope the objects are readable",
+        ),
+        _layout(
+            "config.objects-and-format",
+            REJECT,
+            "one object-format key: `objects` beside `format` is contradictory",
+            "config.validate",
+            B(
+                b'{"format":3,"min_reader":"0.26.0","object_hash":"sha256","objects":4,'
+                b'"repository":"opentine","version":1}\n'
+            ),
+            "2.2",
+            reason="config.incompatible",
+        ),
+        _layout(
             "config.not-an-object",
             REJECT,
             "and a JSON array is not a descriptor",

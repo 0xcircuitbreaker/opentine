@@ -6,7 +6,7 @@ It imports nothing from opentine. It exists to show that the checks behind
 (Part 8, "Verifying without opentine"), and so that a reviewer can check an
 artifact on a machine where opentine is not installed::
 
-    python3 -I minimal_verifier.py artifact RUN.tine [--pubkey KEY.pub]
+    python3 -I minimal_verifier.py artifact RUN.tine [--pubkey KEY.pub] [--source SRC]
     python3 -I minimal_verifier.py evidence EVIDENCE_DIR
     python3 -I minimal_verifier.py dataset DIR
 
@@ -18,11 +18,19 @@ otherwise that check is ``unavailable-offline`` with reason
 ``signature.crypto-unavailable`` -- never a pass. zstd-compressed artifacts
 need ``compression.zstd`` (Python 3.14+); zlib and uncompressed ones always
 work. Repositories (``.tine/`` directories) are out of scope.
+
+Format v4 (SPEC Part 9) is read too: every envelope id is recomputed (§1.3),
+the root must name a run the file carries, ``tine-sig/3`` is checked
+(Ed25519 only), and the run's ``upgraded_from`` record gives the
+``provenance`` check (§9.9; ``--source`` re-hashes the source file). Link
+closure (every object reachable from the root, §9.4) is the full reader's
+job and is not repeated here.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import sys
@@ -33,6 +41,10 @@ SCHEMA = "tine-minimal-verify/1"
 SUPPORTED = (1, 2)
 MAGIC = b"TINEZ1\0"
 SIG_DOMAIN = b"opentine.signature.v1:"
+SIG3_DOMAIN = b"opentine.signature.v3:"
+V4_KIND = "tine-artifact/4"
+V4_KEYS = {"annotations", "format_version", "kind", "objects", "root", "signatures"}
+MAX_SAFE = 2**53 - 1
 CUSTODY_DOMAIN = b"opentine.custody.v1:"
 HEADER_KEYS = ("alg", "key_id", "scheme", "signed_at", "signer")
 V1_METADATA = (
@@ -91,6 +103,11 @@ def _no_constant(value: str) -> None:
     raise ValueError(f"non-finite number {value}")
 
 
+def _int(text: str) -> object:
+    value = int(text)
+    return float(text) if abs(value) > MAX_SAFE else value  # §9.4: a wide literal is a double
+
+
 def parse(raw: bytes) -> object:
     """JSON with the reader's refusals: duplicate keys and NaN/Infinity."""
     if b"\0" in raw:
@@ -107,7 +124,7 @@ def canon_v2(value: object) -> bytes:
 
 
 def canon_v3(value: object) -> bytes:
-    """§0.2 for the values these files hold: strings, integers, booleans, null."""
+    """§0.2 (RFC 8785): strings, integers, doubles, booleans, null, arrays, objects."""
     out, stack = [], [value]
     while stack:
         item = stack.pop()
@@ -129,9 +146,34 @@ def canon_v3(value: object) -> bytes:
 
 
 def _scalar(value: object) -> bytes:
-    if isinstance(value, float) or (isinstance(value, int) and abs(value) > 2**53 - 1):
-        raise ValueError("floats and integers past 2**53-1 are outside this verifier")
+    if isinstance(value, float):
+        return es_number(value).encode()
+    if isinstance(value, int) and not isinstance(value, bool) and abs(value) > MAX_SAFE:
+        raise ValueError("integers past 2**53-1 are refused by §0.2")
     return json.dumps(value, ensure_ascii=False).encode("utf-8")
+
+
+def es_number(value: float) -> str:
+    """ECMAScript ``Number.prototype.toString`` of a finite double (§9.2)."""
+    from decimal import Decimal
+
+    if value != value or value in (float("inf"), float("-inf")):
+        raise ValueError("non-finite numbers are refused by §0.2")
+    if value == 0:
+        return "0"
+    sign, digits, exponent = Decimal(repr(abs(value))).normalize().as_tuple()
+    text, k = "".join(map(str, digits)), len(digits)
+    n = exponent + k  # value = 0.<text> * 10**n
+    minus = "-" if value < 0 else ""
+    if k <= n <= 21:
+        return minus + text + "0" * (n - k)
+    if 0 < n <= 21:
+        return minus + text[:n] + "." + text[n:]
+    if -6 < n <= 0:
+        return minus + "0." + "0" * -n + text
+    e = n - 1
+    mantissa = text[0] + ("." + text[1:] if k > 1 else "")
+    return f"{minus}{mantissa}e{'+' if e > 0 else '-'}{abs(e)}"
 
 
 # ------------------------------------------------------------- artifact (§3.5, Part 4)
@@ -147,6 +189,9 @@ def digest_check(path: Path) -> tuple[dict, dict | None, str]:
         return check("digest", "fail", "artifact.malformed-json", str(exc)), None, ""
     if not isinstance(data, dict):
         return check("digest", "fail", "digest.unreadable", "root is not an object"), None, ""
+    if data.get("format_version") == 4 and data.get("kind") == V4_KIND:
+        result, root = v4_digest_check(data)
+        return result, data, root
     version = data.get("format_version")
     if type(version) is not int or version not in SUPPORTED:
         detail = f"unsupported format_version {version!r}"
@@ -221,10 +266,140 @@ def signature_check(data: dict | None, digest_ok: bool, pubkey: str | None) -> d
     return check("signature", "pass", "signature.verified", f"{scheme} under the supplied key")
 
 
-def verify_artifact(path: Path, pubkey: str | None = None) -> dict:
+# ------------------------------------------------------------------ format v4 (Part 9)
+
+
+def envelope_oid(entry: object, where: str) -> str:
+    """Recompute one v4 envelope's oid (§1.2, §1.3) from its JSON spelling."""
+    if not isinstance(entry, dict):
+        raise ValueError(f"{where}: an envelope is an object")
+    kind, schema, encoding = entry.get("type"), entry.get("schema"), entry.get("encoding")
+    raw = encoding == "raw"
+    if set(entry) != {"encoding", "schema", "type", "data" if raw else "body"}:
+        raise ValueError(f"{where}: envelope keys are encoding, schema, type and data|body")
+    if raw != (kind == "blob") or encoding not in ("raw", "json"):
+        raise ValueError(f"{where}: encoding must be raw exactly for a blob")
+    if type(schema) is not int or not 1 <= schema <= MAX_SAFE or not isinstance(kind, str):
+        raise ValueError(f"{where}: bad type or schema")
+    if raw:
+        body = base64.b64decode(entry["data"], validate=True)
+        if base64.b64encode(body).decode("ascii") != entry["data"]:
+            raise ValueError(f"{where}: blob data is not canonical base64")
+    else:
+        body = canon_v3(json.loads(json.dumps(entry["body"]), parse_int=_int))
+    framed = kind.encode() + b"\0" + str(schema).encode() + b"\0" + body
+    return f"{kind}:sha256:{hashlib.sha256(framed).hexdigest()}"
+
+
+def v4_digest_check(data: dict) -> tuple[dict, str]:
+    """The ``digest`` check of a v4 file: every id re-derives and the root is a run."""
+    try:
+        if set(data) != V4_KEYS or not isinstance(data["objects"], dict):
+            raise ValueError("v4 keys must be exactly " + ", ".join(sorted(V4_KEYS)))
+        for oid, entry in data["objects"].items():
+            if envelope_oid(entry, f"objects[{oid}]") != oid:
+                raise ValueError(f"objects[{oid}]: the envelope does not re-derive its id")
+        previous = None
+        for index, item in enumerate(data["annotations"]):
+            body = {k: v for k, v in item.items() if k != "id"}
+            if envelope_oid(body, f"annotations[{index}]") != item.get("id"):
+                raise ValueError(f"annotations[{index}]: the envelope does not re-derive its id")
+            payload = body.get("body") or {}
+            if body.get("type") != "annotation" or payload.get("target_id") != data["root"]:
+                raise ValueError(f"annotations[{index}]: not an annotation of the root")
+            if payload.get("previous_id") != previous:
+                raise ValueError(f"annotations[{index}]: the chain is broken")
+            previous = item["id"]
+        root = data["root"]
+        if not (isinstance(root, str) and root.startswith("run:") and root in data["objects"]):
+            raise ValueError("the root must name a run the artifact carries")
+    except (AttributeError, KeyError, TypeError, ValueError, RecursionError) as exc:
+        return check("digest", "fail", "digest.mismatch", f"invalid v4 artifact: {exc}"), ""
+    return check("digest", "pass", "digest.match", f"root {root}"), root
+
+
+def _verify_ed25519(block: dict, message: bytes, pubkey: str) -> dict | None:
+    """``None`` when the block verifies under *pubkey*, else the failing check."""
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError:
+        detail = "the cryptography package is not importable; nothing was checked"
+        return check("signature", "unavailable-offline", "signature.crypto-unavailable", detail)
+    try:
+        key = bytes.fromhex(pubkey)
+        if block.get("public_key") != key.hex():
+            raise InvalidSignature
+        Ed25519PublicKey.from_public_bytes(key).verify(bytes.fromhex(block["value"]), message)
+    except InvalidSignature:
+        return check("signature", "fail", "signature.mismatch", "the supplied key disagrees")
+    except (KeyError, TypeError, ValueError) as exc:
+        return check("signature", "fail", "signature.error", f"malformed block: {exc}")
+    return None
+
+
+def v4_signature_check(data: dict | None, digest_ok: bool, pubkey: str | None) -> dict:
+    """``tine-sig/3`` (§9.6): the root, the annotation head and the five-key header."""
+    if not digest_ok or data is None:
+        return check("signature", "not-applicable", "signature.integrity-failed", "digest failed")
+    blocks = data["signatures"]
+    if not blocks:
+        return check("signature", "unavailable-offline", "signature.unsigned", "no signature")
+    if any(not isinstance(b, dict) or b.get("scheme") != "tine-sig/3" for b in blocks):
+        return check("signature", "fail", "signature.error", "unsupported signature scheme")
+    usable = [b for b in blocks if b.get("alg") == "ed25519"]
+    if not usable or pubkey is None:
+        detail = "signature present but no trusted Ed25519 key was given: pass --pubkey"
+        return check("signature", "unavailable-offline", "signature.no-key", detail)
+    head = data["annotations"][-1]["id"] if data["annotations"] else None
+    first = None
+    for block in usable:
+        view = {"annotations_head": head, "format_version": 4, "kind": V4_KIND,
+                "header": {k: block.get(k) for k in HEADER_KEYS}, "root": data["root"]}  # fmt: skip
+        failed = _verify_ed25519(block, SIG3_DOMAIN + canon_v3(view), pubkey)
+        if failed is None:
+            return check("signature", "pass", "signature.verified", "tine-sig/3 under the key")
+        first = first or failed
+    return first
+
+
+def provenance_check(data: dict | None, digest_ok: bool, source: str | None) -> dict:
+    """§9.9: the run payload's ``upgraded_from``, re-hashed against ``--source``."""
+    payload = {}
+    if digest_ok and isinstance(data, dict) and data.get("kind") == V4_KIND:
+        payload = data["objects"][data["root"]].get("body") or {}
+    record = payload.get("upgraded_from") if isinstance(payload, dict) else None
+    if not isinstance(record, dict):
+        return check("provenance", "not-applicable", "provenance.none", "no upgraded_from")
+    state = (record.get("signature") or {}).get("state")
+    claim = f"upgraded from {record.get('format')} {record.get('digest')}; signature then {state}"
+    if source is None:
+        return check("provenance", "unavailable-offline", "provenance.recorded", claim)
+    if record.get("format") == "tine-repo/3":
+        detail = "a repository source is out of scope for this verifier"
+        return check("provenance", "unavailable-offline", "provenance.recorded", detail)
+    try:
+        actual = hashlib.sha256(unwrap(Path(source).read_bytes())).hexdigest()
+    except (OSError, ValueError, IndexError, zlib.error) as exc:
+        return check("provenance", "fail", "provenance.source-mismatch", f"unreadable: {exc}")
+    if actual != record.get("digest"):
+        detail = f"source sha256 {actual} is not the recorded {record.get('digest')}"
+        return check("provenance", "fail", "provenance.source-mismatch", detail)
+    return check("provenance", "pass", "provenance.source-match", claim)
+
+
+def verify_artifact(path: Path, pubkey: str | None = None, source: str | None = None) -> dict:
     digest, data, actual = digest_check(path)
-    checks = [digest, signature_check(data, digest["outcome"] == "pass", pubkey)]
-    run_id = data.get("run_id") if isinstance(data, dict) else None
+    ok = digest["outcome"] == "pass"
+    if isinstance(data, dict) and data.get("kind") == V4_KIND:
+        root = data.get("root")
+        payload = (data.get("objects") or {}).get(root, {}).get("body") if ok else None
+        run_id = payload.get("source_run_id") if isinstance(payload, dict) else None
+        signature = v4_signature_check(data, ok, pubkey)
+    else:
+        run_id = data.get("run_id") if isinstance(data, dict) else None
+        signature = signature_check(data, ok, pubkey)
+    checks = [digest, signature, provenance_check(data, ok, source)]
     return _report("artifact", path, checks, run_id=run_id, digest=actual)
 
 
@@ -350,6 +525,7 @@ def main(argv: list | None = None) -> int:
     parser.add_argument("mode", choices=("artifact", "evidence", "dataset"))
     parser.add_argument("path")
     parser.add_argument("--pubkey", help="trusted Ed25519 public key file (artifact mode)")
+    parser.add_argument("--source", help="the file a v4 run was upgraded from (artifact mode)")
     args = parser.parse_args(argv)
     path = Path(args.path)
     if args.mode == "artifact":
@@ -357,7 +533,7 @@ def main(argv: list | None = None) -> int:
             key = _pubkey(args.pubkey) if args.pubkey else None
         except (OSError, ValueError) as exc:
             parser.error(str(exc))
-        report = verify_artifact(path, key)
+        report = verify_artifact(path, key, args.source)
     elif not path.is_dir():
         parser.error(f"{args.mode} mode needs a directory: {path}")
     else:

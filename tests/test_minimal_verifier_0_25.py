@@ -173,3 +173,10 @@ def test_an_evidence_export_verifies_and_a_changed_file_is_caught(room, capsys):
     (room / "ev" / "timeline.csv").write_text("forged\n", encoding="utf-8")
     code, mine = _minimal("evidence", "ev")
     assert code == 1 and _checks(mine)["manifest"] == ("fail", "evidence.manifest-mismatch")
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

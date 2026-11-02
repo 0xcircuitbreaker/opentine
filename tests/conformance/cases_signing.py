@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 
+from opentine._format_v4 import write_format
 from opentine.attest_signing import sign_attestation
 from opentine.signing import sign_artifact
 from tests.conformance.builders import (
@@ -495,37 +496,40 @@ SIGNING = Family(
 # 47 -- the verdict vocabulary
 # --------------------------------------------------------------------------- #
 
-SIGNED_BLOCK = sign_attestation(
-    ATTESTATION_PAYLOAD, HMAC_A, key_id="demo-key", signed_at="2026-09-05T00:00:00Z"
-)
-SIGNED_ATTESTATION = {**ATTESTATION_PAYLOAD, "signature": SIGNED_BLOCK}
-FLOOR_BLOCK = sign_attestation(
-    ATTESTATION_PAYLOAD, HMAC_FLOOR, key_id="floor", signed_at="2026-09-05T00:00:00Z"
-)
-ED_BLOCK = sign_attestation(
-    ATTESTATION_PAYLOAD,
-    ED25519_SEED,
-    algorithm="ed25519",
-    key_id="ed-demo",
-    signed_at="2026-09-05T00:00:00Z",
-)
-SIGNED_ARTIFACT = {
-    **BASE,
-    "metadata": {
-        **ARTIFACT_METADATA,
-        "integrity": {
-            "algorithm": "sha256",
-            "digest": "0" * 64,
-            "signature": sign_artifact(
-                {**BASE, "metadata": ARTIFACT_METADATA},
-                HMAC_A,
-                key_id="demo-key",
-                signer="release-bot",
-                signed_at="2026-09-05T00:00:00Z",
-            ),
+# Vector 47 is the tine-attest/1 and tine-sig/2 vocabulary: those deprecated
+# writers are pinned, since 0.26 writes tine-attest/2 / tine-sig/3 by default.
+with write_format(2):
+    SIGNED_BLOCK = sign_attestation(
+        ATTESTATION_PAYLOAD, HMAC_A, key_id="demo-key", signed_at="2026-09-05T00:00:00Z"
+    )
+    SIGNED_ATTESTATION = {**ATTESTATION_PAYLOAD, "signature": SIGNED_BLOCK}
+    FLOOR_BLOCK = sign_attestation(
+        ATTESTATION_PAYLOAD, HMAC_FLOOR, key_id="floor", signed_at="2026-09-05T00:00:00Z"
+    )
+    ED_BLOCK = sign_attestation(
+        ATTESTATION_PAYLOAD,
+        ED25519_SEED,
+        algorithm="ed25519",
+        key_id="ed-demo",
+        signed_at="2026-09-05T00:00:00Z",
+    )
+    SIGNED_ARTIFACT = {
+        **BASE,
+        "metadata": {
+            **ARTIFACT_METADATA,
+            "integrity": {
+                "algorithm": "sha256",
+                "digest": "0" * 64,
+                "signature": sign_artifact(
+                    {**BASE, "metadata": ARTIFACT_METADATA},
+                    HMAC_A,
+                    key_id="demo-key",
+                    signer="release-bot",
+                    signed_at="2026-09-05T00:00:00Z",
+                ),
+            },
         },
-    },
-}
+    }
 
 
 def _verdict(name, intent, document, args, **extra) -> Case:
@@ -627,7 +631,7 @@ VERDICT_FAMILY = Family(
         _verdict(
             "attest.error-unsupported-scheme",
             "a block is verified under the scheme it names, and an unknown scheme is an error",
-            {**ATTESTATION_PAYLOAD, "signature": {**SIGNED_BLOCK, "scheme": "tine-attest/2"}},
+            {**ATTESTATION_PAYLOAD, "signature": {**SIGNED_BLOCK, "scheme": "tine-attest/99"}},
             {"family": "attestation", "key": "hmac_a"},
         ),
         _verdict(

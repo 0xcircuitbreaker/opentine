@@ -46,6 +46,29 @@
         6
       ],
       "expect": "reject",
+      "id": "layout.config.min-reader-newer",
+      "input": {
+        "bytes_b64": "eyJtaW5fcmVhZGVyIjoiOS4wLjAiLCJvYmplY3RfaGFzaCI6InNoYTI1NiIsIm9iamVjdHMiOjQsInJlcG9zaXRvcnkiOiJvcGVudGluZSIsInZlcnNpb24iOjF9Cg==",
+        "sha256": "516d0ccb7ee4920d96856bafa577892185999a65e6182112b713bfa8e1ddb2ed"
+      },
+      "intent": "a min_reader newer than the reader is a refusal naming the version needed",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.incompatible",
+      "repair_temptation": "open it anyway and hope the objects are readable",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"min_reader\":\"9.0.0\",\"object_hash\":\"sha256\",\"objects\":4,\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is incompatible: this repository needs opentine 9.0.0 or newer to read it (this build reads repositories up to 0.26.0); upgrade opentine"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
       "id": "layout.config.missing-object-hash",
       "input": {
         "bytes_b64": "eyJmb3JtYXQiOjMsInJlcG9zaXRvcnkiOiJvcGVudGluZSIsInZlcnNpb24iOjF9Cg==",
@@ -126,6 +149,47 @@
         "exception": "ValueError",
         "message": "repository config is malformed"
       }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "layout.config.objects-and-format",
+      "input": {
+        "bytes_b64": "eyJmb3JtYXQiOjMsIm1pbl9yZWFkZXIiOiIwLjI2LjAiLCJvYmplY3RfaGFzaCI6InNoYTI1NiIsIm9iamVjdHMiOjQsInJlcG9zaXRvcnkiOiJvcGVudGluZSIsInZlcnNpb24iOjF9Cg==",
+        "sha256": "cc0c97576a422a82351f3c9363002b6e1729cf461536ba68f293b1e315d6a325"
+      },
+      "intent": "one object-format key: `objects` beside `format` is contradictory",
+      "op": "config.validate",
+      "profile": "reader",
+      "reason": "config.incompatible",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"format\":3,\"min_reader\":\"0.26.0\",\"object_hash\":\"sha256\",\"objects\":4,\"repository\":\"opentine\",\"version\":1}\\n",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "repository config is incompatible"
+      }
+    },
+    {
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "layout.config.objects-v4",
+      "input": {
+        "bytes_b64": "eyJtaW5fcmVhZGVyIjoiMC4yNi4wIiwib2JqZWN0X2hhc2giOiJzaGEyNTYiLCJvYmplY3RzIjo0LCJyZXBvc2l0b3J5Ijoib3BlbnRpbmUiLCJzdG9yYWdlIjp7ImNvbXByZXNzaW9uIjoiemxpYiJ9LCJ2ZXJzaW9uIjoyfQo=",
+        "sha256": "47a8196a4eb78b21244fd0007cdf81b86c5f1ac47d4e9d92fb66ac2bd58c3ffd"
+      },
+      "intent": "object format 4 (0.26+): `objects` replaces `format`, with `min_reader`, so every 0.9-0.25 reader (which requires format 3) refuses it",
+      "op": "config.validate",
+      "output": {},
+      "profile": "reader",
+      "section": "2.2",
+      "tier": "core",
+      "x_display": "{\"min_reader\":\"0.26.0\",\"object_hash\":\"sha256\",\"objects\":4,\"repository\":\"opentine\",\"storage\":{\"compression\":\"zlib\"},\"version\":2}\\n",
+      "x_reference": null
     },
     {
       "checklist": [

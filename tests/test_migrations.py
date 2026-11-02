@@ -180,3 +180,10 @@ def test_atomic_write_preserves_original_on_replace_failure(tmp_path: Path, monk
     # original is intact and no temp file is left behind
     assert target.read_text(encoding="utf-8") == "ORIGINAL"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["a.tine"]
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

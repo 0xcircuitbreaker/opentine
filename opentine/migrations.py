@@ -14,6 +14,7 @@ from collections.abc import Callable
 from typing import Any
 
 from opentine._canon import FORMAT_VERSION, SUPPORTED_VERSIONS, _canonical_bytes, _integrity_digest
+from opentine._format_v4 import ARTIFACT_V4_KIND, is_v4_artifact
 from opentine._version import __version__ as _TOOL_VERSION
 
 Migration = Callable[[dict[str, Any]], dict[str, Any]]
@@ -75,6 +76,13 @@ def migrate_dict(data: dict[str, Any], target: int = FORMAT_VERSION) -> dict[str
     """
     if not isinstance(data, dict):
         raise MigrationError("artifact root is not an object")
+    if is_v4_artifact(data):
+        # v4 is not a dict-shaped run: it bundles v3 envelopes and is loaded by
+        # _artifact_v4.read_v4_data. Nothing downgrades a v4 artifact.
+        raise MigrationError(
+            f"{ARTIFACT_V4_KIND} (format v4) is an object bundle; read it with "
+            "opentine._artifact_v4.read_v4, it does not migrate to a dict format"
+        )
     current = detect_version(data)
     if current == target:
         return copy.deepcopy(data)

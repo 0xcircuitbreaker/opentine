@@ -33,6 +33,20 @@ def _stored_metric(value: Any, message: str, *, nonnegative: bool = True) -> Non
         raise ValueError(message) from exc
 
 
+def _soften_usage(usage: dict[str, Any], attributes: dict[str, Any]) -> None:
+    """A recorder must not lose a span over one meter v4 cannot hold (a count past
+    2**53-1, a non-finite float): it moves to ``attributes`` as its exact string,
+    with an ``opentine.warnings`` entry naming the field, instead of raising."""
+    for name, value in list(usage.items()):
+        wide = type(value) is int and abs(value) > _MAX_SAFE_INTEGER
+        if wide or (type(value) is float and not math.isfinite(value)):
+            attributes[f"usage.{name}"] = str(usage.pop(name))
+            listed = attributes.get("opentine.warnings")
+            listed = list(listed) if isinstance(listed, list) else []
+            listed.append(f"usage.{name}: not representable in format v4; stored as a string")
+            attributes["opentine.warnings"] = listed
+
+
 @dataclass(frozen=True)
 class TraceEvent:
     kind: TraceKind
@@ -92,6 +106,7 @@ class TraceEvent:
             if isinstance(value, bool) or not amount.is_finite() or amount < 0:
                 raise ValueError("trace cost must be finite and non-negative")
             _stored_metric(value, "trace cost must be finite and non-negative")
+        _soften_usage(self.usage, self.attributes)
         for name, value in self.usage.items():
             integer = type(value) is int
             floating = type(value) is float

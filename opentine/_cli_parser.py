@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 
-from opentine._canon import FORMAT_VERSION
 from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_export import add_export_parser
 from opentine._cli_fleet import add_fleet_parser
@@ -16,6 +15,7 @@ from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
 from opentine._cli_media import add_media_parser
+from opentine._cli_migrate_v4 import add_migrate_parser
 from opentine._cli_plugin import add_plugin_parser
 from opentine._cli_record import add_record_parser
 from opentine._cli_run_model import add_model_args
@@ -24,6 +24,7 @@ from opentine._cli_storage import add_storage_parsers
 from opentine._cli_unify import add_unify_args
 from opentine._cli_verify_offline import add_verify_args
 from opentine._cli_who import add_actions_parsers
+from opentine._format_v4 import format_arg
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
 from opentine.pricing_cli import add_pricing_parser
@@ -38,6 +39,10 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Write plain .tine files and repositories that releases before 0.11 can read",
     )
+    parser.add_argument(  # 0.26: v4 by default; 2 (or 3) is the deprecated legacy writer
+        "--format", dest="write_format", type=format_arg, metavar="{2,4}", default=None,
+        help="Writer format: 4 (default) or 2 (deprecated; files opentine <0.26 can read)",
+    )  # fmt: skip
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
@@ -103,13 +108,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     add_keygen_parser(sub)
 
-    migrate = sub.add_parser("migrate", help="Upgrade a legacy .tine file")
-    migrate.add_argument("run_id")
-    migrate.add_argument("--to", type=int, default=None, help=f"Target version ({FORMAT_VERSION})")
-    migrate.add_argument("--dry-run", action="store_true")
-    migrate.add_argument("--in-place", action="store_true")
-    migrate.add_argument("--save")
-    migrate.add_argument("--force", action="store_true")
+    add_migrate_parser(sub)
 
     listing = sub.add_parser("ls", help="List recent legacy runs")
     _add_filter_args(listing)

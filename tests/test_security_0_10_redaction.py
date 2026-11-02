@@ -1093,3 +1093,10 @@ def test_a_structural_only_removal_does_not_redact_a_string():
     assert changed(b'x\\" y', [swallow]) == []
     label = sub_step(re.compile(rb"password=\]"), b"password=[REDACTED]")
     assert changed(b"password=]", [label]) == [(0, 10)]
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

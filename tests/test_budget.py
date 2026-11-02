@@ -424,3 +424,10 @@ def test_a_budget_timeout_is_a_breach_even_when_a_coarse_clock_reads_short(monke
     result = OpentineHarness(SlowHarness(), run=run).run_sync("go")
     assert result.status == RunStatus.failed
     assert result.metadata["budget_state"]["dimension"] == "duration"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

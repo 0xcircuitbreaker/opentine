@@ -112,7 +112,7 @@ def signature_requested(args: argparse.Namespace) -> bool:
     )
 
 
-def signature_result(args: argparse.Namespace, path: Path):
+def signature_result(args: argparse.Namespace, path: Path, source: object = None):
     """Run the armed check: ``(verdict, key fingerprint)``; exit 1 on unreadable keys.
 
     ``--pin`` alone means "trust the embedded key if it is one of these"; it never
@@ -136,7 +136,7 @@ def signature_result(args: argparse.Namespace, path: Path):
         console.print(f"[red]SIGNATURE FAILED[/] cannot read the key: {_terminal(exc)}")
         raise SystemExit(1) from exc
     trust_embedded = getattr(args, "trust_embedded_key", False) or bool(pins and not public)
-    source = read_once(path)  # one read: the verdict and the pinned key share its bytes
+    source = read_once(path) if source is None else source  # one read: verdict + pinned key
     result = Run.verify_signature(
         source, hmac_key=secret, public_key=public, trust_embedded=trust_embedded
     )

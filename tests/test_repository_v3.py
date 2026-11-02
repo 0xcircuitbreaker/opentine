@@ -624,3 +624,10 @@ def test_compatibility_roundtrip_preserves_authenticated_event_extensions(tmp_pa
     stored_fork = repo.put_run(compatibility_fork)
     assert stored_fork.event_map[extended] == extended
     assert repo.get(extended).payload()["attributes"] == {"framework": "real"}
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

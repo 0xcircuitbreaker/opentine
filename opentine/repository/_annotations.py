@@ -6,7 +6,7 @@ import warnings
 from typing import TYPE_CHECKING, Any
 
 from opentine._canon import _redact
-from opentine._jsonsafe import json_safe
+from opentine._jsonsafe import json_stored
 from opentine.kernel import KernelError, ObjectEnvelope, parse_oid
 from opentine.redaction import redact_value
 from opentine.repository._autopack import after_write
@@ -226,7 +226,7 @@ def write_run_annotation(
     if old and old != ref_head:
         repo.update_ref(name, old, expected_old=ref_head)
         ref_head = old
-    value = redact_value(_redact(json_safe({"metadata": metadata, "tags": tags}, strict=True)))
+    value = redact_value(_redact(json_stored({"metadata": metadata, "tags": tags}, "run")))
     _assert_writable(value)
     if old and _head_value(repo, old, run_id) == value:
         return old

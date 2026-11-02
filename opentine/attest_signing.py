@@ -26,6 +26,7 @@ from opentine._attest_view import ATTEST_SCHEMES, SCHEME_ATTEST_V1, SIGNATURE_KE
 from opentine._attest_view import (
     signed_message as _message,
 )
+from opentine._format_v4 import strict_v4, v4_requested
 from opentine._signing_keys import SignatureError
 from opentine._signing_verify import SignatureResult, sign_block, verify_block
 from opentine.kernel import KernelError, _parse_int, canonical_json
@@ -68,11 +69,23 @@ def sign_attestation(
     signer = payload.get("signer")
     if not isinstance(signer, str) or not signer:
         raise SignatureError("attestation signer must be a non-empty string")
+    scheme = SCHEME_ATTEST_V1
+    if v4_requested():  # format v4 (the default) writes tine-attest/2 on a run root
+        from opentine._signing_v4 import SCHEME_ATTEST_V2
+
+        target = payload.get("target_id")
+        on_run = isinstance(target, str) and target.startswith("run:")
+        if strict_v4() and algorithm != "ed25519":
+            raise SignatureError("tine-attest/2 is Ed25519 only; pass an Ed25519 key")
+        if algorithm == "ed25519" and (on_run or strict_v4()):
+            scheme = SCHEME_ATTEST_V2
+        # Otherwise tine-attest/2 cannot express it (an HMAC key, a non-run
+        # target): the block stays tine-attest/1, which every reader verifies.
     return sign_block(
         lambda header: _message(payload, header),
         key,
         algorithm=algorithm,
-        scheme=SCHEME_ATTEST_V1,
+        scheme=scheme,
         key_id=key_id,
         signer=signer,
         signed_at=signed_at,

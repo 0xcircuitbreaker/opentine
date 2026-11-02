@@ -202,3 +202,10 @@ def test_cli_failures_exit_nonzero(ws: Path, capsys) -> None:
     (ws / "bad.intoto.jsonl").write_text("not json\n")
     assert _cli("verify", "run.tine", "--attestation", "bad.intoto.jsonl",
                 "--pubkey", "k.pub") == 1  # fmt: skip
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

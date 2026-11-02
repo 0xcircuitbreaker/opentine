@@ -572,3 +572,10 @@ def test_a_pack_walk_lists_the_association_indexes_once_however_many_runs(
         # one listing per association kind for the whole walk, not one per run
         assert sorted(calls) == ["annotation", "attestation"], (runs, calls)
         assert set(notes) <= found
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

@@ -67,6 +67,16 @@ def retained_closure(run, fork_point: str) -> set[str]:
     return retained
 
 
+def fork_base(origin: dict) -> dict:
+    """The v3 fork provenance a fork of the stored run payload *origin* carries."""
+    source_manifests = origin.get("manifests") or {}
+    keep = {"budget", "code", "environment", "pricing"}
+    return {
+        "manifests": {name: oid for name, oid in source_manifests.items() if name in keep},
+        **({"session_id": origin["session_id"]} if "session_id" in origin else {}),
+    }
+
+
 class RunAnalysisMixin:
     def cost_breakdown(self) -> CostBreakdown:
         by_model_decimal: dict[str, Decimal] = {}
@@ -217,17 +227,12 @@ class RunAnalysisMixin:
         origin = getattr(self, "_v3_payload", None)
         origin_id = getattr(self, "_v3_run_id", None)
         if isinstance(origin, dict) and isinstance(origin_id, str):
-            source_manifests = origin.get("manifests") or {}
-            forked._v3_fork_base = {
-                "manifests": {
-                    name: oid
-                    for name, oid in source_manifests.items()
-                    if name in {"budget", "code", "environment", "pricing"}
-                },
-                **({"session_id": origin["session_id"]} if "session_id" in origin else {}),
-            }
+            forked._v3_fork_base = fork_base(origin)
             forked._v3_source_payload = origin
             forked._v3_source_run_id = origin_id
+            forked._v3_repo = getattr(self, "_v3_repo", None)  # write_v4 reuses its envelopes
+        elif isinstance(getattr(self, "_v4_origin", None), dict):
+            forked._v4_source = self._v4_origin  # a v4 file: write_v4 reuses its envelopes
         return forked
 
     def diff(self, other):

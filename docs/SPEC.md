@@ -3,7 +3,8 @@
 **Status:** normative for opentine 0.9.0-dev. **Formats covered:** portable
 `.tine` artifact `format_version` 1 and 2; the v3 `.tine/` repository object
 model, wire format and pack format; the three signature schemes `tine-sig/1`,
-`tine-sig/2` and `tine-attest/1`.
+`tine-sig/2` and `tine-attest/1`; and, since 0.26.0, format v4 (Part 9, the
+default writer) with `tine-sig/3` and `tine-attest/2`.
 
 This document is written for someone implementing a **reader, writer or
 verifier in another language**. Everything here is derived from the reference
@@ -162,7 +163,12 @@ value first coerced by `_canon._jsonable`. Written out:
    third-party implementer reading a `.tine` file has — this coercion is the
    identity, so a reader can recanonicalize the parsed document directly.
 
-## 0.4 ⚠ Hazard — the v2/v3 canonicalization divergence
+## 0.4 Historical — the v2/v3 canonicalization divergence
+
+> **Historical (0.26.0+).** Format v4 (Part 9) is the default writer and uses
+> §0.2 only; §0.3 survives to verify v2 data and the signatures made over it.
+> The hazard below still applies to every v2 artifact and to anything written
+> with the deprecated legacy writers (`OPENTINE_FORMAT=2`, `tine --format 2`).
 
 **v2 orders object keys by Unicode code point. v3 orders them by UTF-16BE code
 units. The two disagree, and only for non-BMP keys.**
@@ -547,11 +553,23 @@ non-repository sidecar: `.tine_runs/index.json`, §4.6.)
 
 ## 2.2 `config.json`
 
-Written by `Repo.init` as canonical JSON (§0.2) followed by a single LF:
+Written by `Repo.init` as canonical JSON (§0.2) followed by a single LF. Since
+0.26.0 a new repository is object format 4 (see the end of this section), so a
+plain (`OPENTINE_COMPRESS=0`) `Repo.init` writes
+
+```text
+{"min_reader":"0.26.0","object_hash":"sha256","objects":4,"repository":"opentine","version":1}\n
+```
+
+and the deprecated legacy writer (`OPENTINE_FORMAT=2`/`3`), like every release
+before 0.26, writes the object-format-3 descriptor:
 
 ```text
 {"format":3,"object_hash":"sha256","repository":"opentine","version":1}\n
 ```
+
+The rest of this paragraph describes the format-3 descriptor; §9.10 and the
+end of this section the object-format-4 one.
 
 A reader MUST require exactly these four key/value pairs to be present and
 equal. The file MUST be at most 65 536 bytes and pass §0.5 with `max_tokens`
@@ -587,6 +605,35 @@ rewrites every pack in the version-1 pack format and then writes
 the descriptor *before* the first v3 pack, and downgrade writes it *after* the
 last v3 pack is gone, so an interrupted run never leaves 0.12 a repository it
 opens but cannot read; `fsck` reports a v3 pack under a lower version.
+
+Since 0.26 a descriptor may declare **object format 4** (§9.10):
+`"objects": 4` *in place of* `"format": 3`, together with
+`"min_reader": "0.26.0"`:
+
+```text
+{"min_reader":"0.26.0","object_hash":"sha256","objects":4,"repository":"opentine","storage":{"compression":"zstd"},"version":2}\n
+```
+
+`objects` and `version` are independent: `version` (1, 2 or 3) keeps meaning
+the storage layout above, and `tine gc --upgrade`/`--downgrade` change it
+without touching the object format. Dropping `format` is deliberate: opentine
+0.9–0.25 accept unknown keys, so `objects` alone would not stop them, but they
+all require `format` to be 3 and so refuse an object-format-4 repository at
+open (`repository config is incompatible`) rather than write into it with
+v3-only rules (a wide integer stored as a string). A reader MUST refuse a
+descriptor carrying both `format` and `objects`, `objects` without
+`min_reader`, or `objects` other than the integer 4 (naming the newer format
+when it is larger). Independently of `objects`, a reader MUST refuse a
+`min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
+the format it implements (`_config.READER_VERSION`, 0.26.0 in this build),
+naming the version needed. Unless the legacy writer is chosen, the first
+object write into an object-format-3 repository rewrites the descriptor this
+way **before** the object is stored (`_config.mark_v4`), the order `tine gc
+--upgrade` uses, and `Repo.init` writes object format 4 directly. Every
+descriptor read-modify-write (`mark_v4`, and gc's storage-version changes)
+holds the short `config.lock` file lock (`_config.config_lock`), so a gc that
+read the descriptor first cannot write the old object format back. Conformance vectors (`layout.config.objects-v4`,
+`layout.config.min-reader-newer`, `layout.config.objects-and-format`).
 
 ## 2.3 `objects/`
 
@@ -910,13 +957,22 @@ litter), its oid parses, its target exists
 and satisfies the namespace type rule; every shallow entry is a valid oid;
 every file in `packs/` has a legal `<64 hex>.pack` name, verifies, matches its
 own filename, and contains objects byte-identical to the loose copies; the
-`unadopted` record, when present, parses; and the
+`unadopted` record, when present, parses; a run's `upgraded_from`, when
+present, is well formed (§9.9); and the
 event graph (`parent_ids` + `causal_ids`) is acyclic, reported per cycle root.
+Runs written under object format 3 and 4 coexist: both are v3 envelopes.
 `fsck` bounds itself at 1000 packs and 1 GiB of pack bytes.
 
 ---
 
 # Part 3 — The portable `.tine` v2 artifact
+
+> **Deprecated for writing (0.26.0+).** `Run.save` writes format v4 (Part 9) by
+> default. A v2 file is written only by the legacy writer — `OPENTINE_FORMAT=2`
+> (or `3`), `tine --format 2`, `tine migrate --to 2`, or an autosave **draft**
+> checkpoint (v4 has no draft marker) — and the legacy writer prints one
+> deprecation warning per process on stderr. Every v1/v2 file stays readable
+> and verifiable forever (§5.1); a read never rewrites it.
 
 ## 3.1 File shape
 
@@ -1119,7 +1175,7 @@ with §0.3 canonicalization in all three schemes.
 
 ## 4.3 `tine-sig/1` — legacy `.tine` artifact signature (0.3.0–0.7.0)
 
-**Verified, never written.** Signed view:
+**Verified, never written.** (Final status since 0.26.0: verified forever.) Signed view:
 
 ```json
 {"body": {every top-level artifact key except "metadata"},
@@ -1139,7 +1195,13 @@ because 0.3.0 wrote it but did not sign it; `fork` was safe to add in 0.4.0
 precisely because 0.3.0 never wrote it.) **Not covered**: `metadata.tags`, so
 re-tagging never broke a v1 signature.
 
-## 4.4 `tine-sig/2` — current `.tine` artifact signature (0.7.1+)
+## 4.4 `tine-sig/2` — `.tine` v2 artifact signature (0.7.1+, deprecated 0.26.0)
+
+> **Deprecated (0.26.0+).** A signed `Run.save` writes `tine-sig/3` over a v4
+> artifact (§9.6). `tine-sig/2` is written only over a v2 document: by the
+> legacy writer, or by `signing.sign_artifact` handed a v2 dict (with the
+> deprecation warning); under `OPENTINE_FORMAT=4` that call is refused.
+> Existing `tine-sig/2` blocks verify forever.
 
 Same view, with `metadata` covering **every key except `integrity`**:
 
@@ -1161,7 +1223,13 @@ refuses to sign a **draft** checkpoint, a **non-terminal** run (status must be
 attested, not signed as an artifact. These are writer policy, not scheme rules:
 `signing.verify_artifact` will still verify such a block if one exists.
 
-## 4.5 `tine-attest/1` — v3 attestation signature (0.9.0+)
+## 4.5 `tine-attest/1` — v3 attestation signature (0.9.0+, deprecated 0.26.0)
+
+> **Deprecated (0.26.0+).** An Ed25519 attestation on a run is written as
+> `tine-attest/2` (§9.7). `tine-attest/1` is still written where `tine-attest/2`
+> cannot express the attestation — an `hmac-sha256` key, or a target that is not
+> a run — and by the legacy writer; under `OPENTINE_FORMAT=4` an HMAC key is
+> refused instead. Existing `tine-attest/1` blocks verify forever.
 
 Stored at the attestation payload's `signature` key. Signed view:
 
@@ -1406,6 +1474,13 @@ Two consequences worth stating plainly:
 
 ## 5.4 The v2 → v3 migration boundary
 
+> **Since 0.26.0** a migration writes into an object-format-4 repository
+> (§2.2, §9.10) unless the legacy writer is chosen, so it refuses an integer
+> beyond 2**53-1 or a non-finite number instead of stringifying it. The
+> portable upgrade path is `tine migrate --to v4` (§9.9, now the default
+> `--to`); `tine migrate --to 2` is the deprecated legacy target. A
+> v2 → v3 migration keeps every guarantee below.
+
 Migration is strict by default: a source whose integrity check fails is refused
 (`--allow-unverified` is the explicit recovery path), and if signature
 verification was *requested*, a state other than `verified`/`verified-tofu` is
@@ -1452,7 +1527,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 580 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 636 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 
@@ -1544,7 +1619,8 @@ One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 | `location` | object | `--locate` only: `{region, reason, detail, field_path, …}` |
 
 `outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
-Check names, in order: `digest`, `signature`, `attestation`, `rekor-receipt`,
+Check names, in order: `digest`, `signature`, `provenance` (§9.9, never
+required), `attestation`, `rekor-receipt`,
 `certificate`, `sct`, `action-manifest`, `action-policy`, `claims` (and
 `network` if the guard refused a connection). The verdict is `fail` when any
 check failed and, under `--strict`, also when a required check is
@@ -1567,6 +1643,7 @@ Reason codes are dotted `area.detail` strings matching
 | actions (§4.8) | `actions.<state>` (`verified`, `mismatch`, `unknown-key`), `actions.absent`, `actions.no-run`; `policy.ok`, `policy.warn`, `policy.deny`, `policy.none`, `policy.no-run`, `policy.unreadable` |
 | claims | `claims.match`, `claims.absent`, `claims.no-run`, `claims.no-tool-step`, `claims.output-mismatch`, `claims.digest-mismatch`, `claims.unclaimed-step`, `claims.unreadable`, `claims.unrecomputable` |
 | locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
+| provenance (§9.9) | `provenance.none` (no `upgraded_from`, or not v4), `provenance.recorded` (the record is shown as a claim, `unavailable-offline`), `provenance.source-match`, `provenance.source-mismatch` (with `--source PATH`) |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
 
 The minimal verifier adds codes for what only it reports:
@@ -1642,4 +1719,261 @@ the record's own key, so on its own it shows consistency; compare
    for the block's scheme (§4.3/§4.4) and verify `opentine.signature.v1:` ‖
    §0.3 bytes. Without a key the check is `unavailable-offline`
    (`signature.no-key`, or `signature.unsigned` when there is no block).
-4. For a folder, compute §8.3; for an evidence export, check §8.4.
+4. For a v4 file (§9.3): recompute every envelope id with §1.3 over the §0.2
+   body (doubles in ECMAScript form, §9.2; a wide integer literal read as a
+   double) or the base64-decoded blob, require the root to name a carried
+   run, and verify `tine-sig/3` (§9.6) with a trusted Ed25519 key. Map a
+   failure to `digest.mismatch`; report `digest.match` as `root <oid>`.
+5. Report `provenance` from the root run's `upgraded_from` (§9.9): with a
+   source file, sha256 of its bytes after the §2.3 unwrap must equal
+   `digest`.
+6. For a folder, compute §8.3; for an evidence export, check §8.4.
+
+`docs/conformance/minimal_verifier.py` does steps 1–6 in the standard library
+alone. It leaves the link-closure rule of §9.4 to a full reader.
+
+---
+
+# Part 9 — Format v4 (0.26.0)
+
+**Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`
+artifact (Part 3) and the v3 object model (Part 1) into one single-file bundle
+of v3 objects. It is the **default writer**: `Run.save`, `tine import --save`,
+`tine record`, forks and replays write v4, new repositories are object format 4
+(§9.10) and `tine migrate` upgrades to v4 by default. The older writers are
+deprecated and opt-in: `OPENTINE_FORMAT=2` (or `3`; for repositories, object
+format 3), or `tine --format 2` for one command, select them and print one
+deprecation warning per process on stderr. `OPENTINE_FORMAT=4` is the strict
+spelling: no deprecated block is written even where v4 cannot express it
+(§4.4, §4.5). v4 signatures are `tine-sig/3` (§9.6) and v4 attestations
+`tine-attest/2` (§9.7). A file or repository written by 0.26 needs opentine
+0.26 or newer to read; every older file stays readable forever (§5.1).
+
+## 9.1 Design rules
+
+1. **One canonical form.** v4 bytes are produced by the §0.2 function, which
+   for every value it accepts is exactly RFC 8785 (JCS). §0.3 survives only to
+   verify v2 data and the signatures made over it.
+2. **The root commits to the content.** The root is the run's v3 oid (§1.3);
+   through the links of §1.5 it reaches every event and blob, so it covers the
+   whole run. A v4 artifact and the same run saved by `put_run` into a v3
+   repository name the **same** root.
+3. **Mutable things stay outside the root.** Tags and run metadata travel as
+   the run's annotation chain (§1.4), which targets the root but is not
+   reachable from it.
+4. **Upgrade on write only.** A v1/v2 artifact or a v3 repository run becomes
+   v4 only when it is written again; no reader rewrites an original.
+5. **Packs are unchanged.** TINEPACK3, TINEPACK4 and TINELP3 are not affected.
+
+## 9.2 The canonical form
+
+v4 canonical JSON is §0.2: RFC 8785 member order (UTF-16 code units, so
+U+1F600 sorts before U+FB33), RFC 8785 string escaping (only `"`, `\` and
+U+0000–U+001F are escaped; `/`, DEL, U+2028 and U+2029 are literal; `\u00XX`
+uses lowercase hex), and ECMAScript `Number.prototype.toString` for doubles,
+including the shortest-round-trip tie cases (`333333333.33333325`,
+`1424953923781206.2`) and `-0` written as `0`. Two rules are stricter than
+JCS, and a writer MUST refuse rather than repair either: an **integer** whose
+magnitude exceeds 2**53-1 (the I-JSON bound JCS assumes; never rounded, never
+stringified), and text holding a lone surrogate. The vectors `canon.v4.*`
+(`docs/conformance/vectors/09-canon-v4.json`) carry the RFC 8785 Appendix B /
+cyberphone IEEE-754 corpus; they run through the `canon.v3` op because they
+test the same function.
+
+⚠ Hazard: the v3 repository writer stores a wide integer as a string
+(`json_safe`); a v4 write refuses the run instead, naming the field.
+
+## 9.3 The artifact
+
+A v4 file is one JCS object, optionally inside the `TINEZ1\0` wrapper of §2.3:
+
+| Key | Value |
+|---|---|
+| `format_version` | the integer `4` |
+| `kind` | the string `tine-artifact/4` |
+| `root` | the run oid |
+| `objects` | `{oid: envelope}` — every blob, event and run object the root reaches, and nothing else |
+| `annotations` | the root's annotation chain, oldest first; each entry is an envelope plus its `id` |
+| `signatures` | a list of `tine-sig/3` blocks (§9.6), possibly empty |
+
+An envelope spells one stored object (§1.2) as JSON:
+`{"encoding": "raw", "schema": N, "type": "blob", "data": <base64>}` for a raw
+blob (RFC 4648 with padding, no line breaks, canonical), or
+`{"encoding": "json", "schema": N, "type": T, "body": <value>}` for a JSON
+object, whose stored body is the §0.2 encoding of `body`. Detection is by
+`format_version` **and** `kind` together. Any other top-level key is refused;
+provenance lives inside the root run's payload (§9.9).
+
+## 9.4 Reading
+
+A reader MUST, and this build does, refuse the artifact when: a top-level key
+is unknown or a required one is missing; `objects` holds more than
+`_format_v4.MAX_V4_OBJECTS` (1 000 000) envelopes or an annotation/attestation;
+`annotations` holds more than `_format_v4.MAX_V4_ANNOTATIONS` (1024) entries,
+an entry that is not an annotation of the root, or a chain whose
+`previous_id` links are broken; an envelope has any key besides the four
+above, `data` on a JSON object or `body` on a blob, or non-canonical base64;
+any envelope's re-derived oid (§1.3) differs from its key; the root is not a
+run the artifact carries; a link is missing or an object is unreachable from
+the root; any §1.5–§1.6 rule fails; or `signatures` is not a list of at most
+16 objects each naming `tine-sig/3` (keyed verification is §9.6).
+The bounds of §3 (256 MiB, depth, structural tokens) apply to the file. A wide
+integer literal inside a body is read as the double it spells (§0.2's
+integer-literal demotion), because a conforming writer never emits a wide
+integer.
+
+Step ids (0.26.0+): the writer records each step's own id as its event's
+`legacy_step_id`. When every event of the run carries a non-empty one that is
+not itself an event oid, and they are unique, the reference reader gives each
+step back that id (renaming parent ids, causal ids and `refs` targets to
+match), so a run keeps the ids its transcript and pricing manifest name across
+a save, and re-writing it re-derives byte-identical events. Otherwise (a run
+recorded straight into a repository) step ids are the event oids, as `load_run`
+reads a repository.
+
+## 9.5 Writing
+
+`Run.save` writes v4 unless the legacy writer is chosen (autosave drafts stay
+v2, since v4 has no draft marker; a signing key appends one `tine-sig/3` block,
+§9.6). An explicit write (`Run.save`, `put_run`, `tine migrate`) refuses an
+integer beyond 2**53-1 or a non-finite number, naming the field. A live
+recorder (the harness wrapper and autosaver, `tine record`, `tine run` with a
+bundled model, trace and OTLP import, hooks) must not lose a run over one
+value: its run is marked lenient (`_v4_values.mark_lenient`, or
+`Run.save(..., lenient=True)`), and such a value is stored as its exact decimal
+string (never rounded) with a `metadata.warnings` entry naming the field path.
+A trace event, which has no metadata, lists the same entries under its
+`attributes["opentine.warnings"]` (a usage meter moves to
+`attributes["usage.<name>"]`). The writer converts the run
+with the v3 `put_run` conversion into memory — redacting before hashing exactly
+as §1.4 does — then emits the closure of the root and its annotation chain. A
+writer MUST refuse what its own reader would: wide integers, non-finite
+numbers, and a document past the §3 size or structure bounds. Re-writing a run
+read from v4 re-addresses nothing: unchanged content yields byte-identical
+output.
+
+The object bound is v4's own (it is not the 10 000-object network pack bound
+`pack.MAX_PACK_OBJECTS`); reader and writer share the one constant, and the
+§3 artifact byte cap (256 MiB) is the practical ceiling.
+
+⚠ Hazard: v4 carries the v3 rules, which are stricter than v2 in places a v2
+file tolerated: a pricing manifest or transcript entry naming a step the run
+does not hold, and a run past `MAX_V4_OBJECTS` objects, cannot be written as
+v4. Recording never loses a run over this: the **default** writer
+(`OPENTINE_FORMAT` unset) falls back to a v2 file, prints one stderr warning
+naming the reason (`opentine: warning: pricing manifest references an unknown
+step; saved as format 2`) and appends the same text to `metadata.warnings`.
+`OPENTINE_FORMAT=4` (strict) refuses instead and writes nothing. Wide integers
+are not a structural misfit: an explicit save still refuses them, a recorder's
+save still stringifies them (§9.5).
+
+## 9.6 `tine-sig/3` — v4 artifact signature (0.26.0+)
+
+The message is the domain prefix `opentine.signature.v3:` followed by the §0.2
+(JCS) bytes of
+
+```
+{"annotations_head": <id of the last annotations entry, or null>,
+ "format_version": 4, "header": <the five-key header of §4.1, null for absent>,
+ "kind": "tine-artifact/4", "root": <root oid>}
+```
+
+The root commits to the whole run (§9.1), including `upgraded_from` (§9.9),
+and the annotation head to its tags and metadata. Blocks have the §4.1 shape
+(`hmac-sha256` for local use, or `ed25519` with `public_key`, keys per §4.6)
+and are stored in `signatures`, at most `_signing_v4.MAX_V4_SIGNATURES` (16) of
+them. A verifier MUST first verify the artifact per §9.4: content that does not
+match its root is `mismatch`, as an edited v2 body is. A block naming any other
+scheme is `error`. With several blocks the first one the caller's key verifies
+decides; otherwise the first block's verdict is returned, in the §4.7
+vocabulary. Since 0.26.0 `tine-sig/1` is never written and `tine-sig/2` and
+`tine-attest/1` only as §4.4–§4.5 describe; all three verify forever.
+
+## 9.7 `tine-attest/2` — attestation on a v4 root (0.26.0+)
+
+The message is `opentine.attestation.v2:` followed by the §0.2 bytes of
+`{"body": <payload without signature>, "header": <five-key header>}`. It is
+**Ed25519 only** (an HMAC block under this scheme is `error`) and `target_id`
+MUST be a run oid (else `error`). Attestations stay outside a v4 artifact's
+`objects`. The in-toto export of a v4 run names the root's hex digest as its
+subject and, when signed with a file key, carries a `tine-attest/2` record on
+that root (signed by the envelope's key) at `predicate.attestation`; a verifier
+checks that record's target and signature before accepting the subject.
+
+## 9.8 Offline verification of v4
+
+`tine verify --offline` reports a v4 digest check as `root <oid>`; in a dataset
+(§8.3) a v4 run's leaf digest is its root oid, and its `run_id` is the root run
+object's `source_run_id`. `tine migrate` reports a v4 file as already migrated
+and never rewrites it as v2.
+
+## 9.9 `upgraded_from` — provenance inside the run (0.26.0+)
+
+`tine migrate --to v4` records where a run came from as the optional
+`upgraded_from` field of the **run payload** (§1.5), so the root, and every
+`tine-sig/3` over it, covers it:
+
+```
+{"format": "tine/1"|"tine/2"|"tine-repo/3", "digest_algorithm": "sha256",
+ "digest": <hex sha256 of the source bytes after the §2.3 unwrap, or the v3 run oid>,
+ "integrity_digest": <the source's recorded §3.5 digest, or null>,
+ "signature": {"scheme", "state", "key_fingerprint", "trust_basis"},
+ "upgraded_at": <ISO 8601>, "tool": "opentine/<version>"}
+```
+
+`signature.state` is the §4.7 verdict on the source at upgrade time (or
+`not-applicable` for a repository source): a claim by the upgrader, not
+something the v4 file proves. A run without the field hashes exactly as
+before; v3 readers ignore it. A v4 reader MUST refuse a malformed record. A
+fork drops it; any other rewrite keeps it. `tine migrate` never touches the
+original unless `--in-place` is given (which keeps `NAME.tine.v2.bak`), and it
+refuses an integer beyond 2**53-1. `SOURCE_DATE_EPOCH` pins `upgraded_at`. The
+0.1.0 linear layout records `tine/1`, and its loader stamps a `created_at`, so
+its root differs between upgrades. `tine verify --offline` reports the record
+as the `provenance` check (§8.2); `--source PATH` re-hashes the source and
+re-verifies its signature (a source signature that was `verified` and now is
+`mismatch` or `error` is `provenance.source-mismatch`).
+Since §9.10, `tine migrate --to v4 --repo` no longer writes a `tine-repo/3`
+record (the root is the repository oid itself); readers still accept one.
+
+## 9.10 Repositories (0.26.0+)
+
+A v4 file and a v3 repository hold the same envelopes, so they share oids.
+
+- **Descriptor.** `Repo.init` writes object format 4, and an existing
+  object-format-3 repository is marked object format 4 (§2.2) before the first
+  object a 0.26 writer stores in it. Repositories that hold v4 runs without the
+  mark (written by the legacy writer) stay readable by 0.13+: the envelopes are
+  v3, and v3 readers ignore `upgraded_from`.
+- **`put_run`.** Unless the legacy writer is chosen, it refuses an integer
+  beyond 2**53-1 and a non-finite number, naming the field, instead of
+  `json_safe`'s stringification (a recorder's run is softened, §9.5), and
+  carries `upgraded_from` (§9.9). A fork of a repository run, written as v4,
+  reuses the source's stored envelopes for every unchanged step, so its root
+  equals what `put_run` of the same fork stores. The repository oid of a
+  run equals the root of the same run written as a v4 file; `Run.save` of a
+  repository-loaded run reuses the stored envelopes of that run.
+- **Import.** `tine import FILE --repo PATH` (with `--format auto`) recognizes
+  a `tine-artifact/4` file, verifies it per §9.4, and installs every envelope's
+  own bytes (links first), so no oid changes; `--ref` (default `heads/main`)
+  moves to the root. The annotation chain is adopted when the repository has
+  none for the root or the file's chain extends it; a diverged repository chain
+  is kept. `tine-sig/3` blocks are not objects (they sign the root and the
+  annotation head), so they are kept in the sidecar
+  `signatures/v4/<root hex>.json`:
+  `{"entries": [{"annotations_head", "block"}...], "kind": "tine-sig-sidecar/1", "root"}`
+  (canonical JSON, at most 256 entries; it names the root, so `gc` keeps the
+  run). Packs do not carry sidecars (they carry objects); `tine bundle` and
+  `bundle push/fetch` carry them in the bundle manifest under the optional key
+  `signatures` (`{<run oid>: [{"annotations_head", "block"}...]}`, written only
+  when a bundled run has blocks, every root inside the pack, every block
+  `tine-sig/3`), merged into the receiver's sidecars on import. A bundle
+  without the key is byte-identical to what 0.25 wrote; 0.25 refuses one that
+  carries it (its manifest keys are fixed) rather than drop the signatures.
+- **Export.** `tine migrate --to v4 --repo PATH RUN` writes the run's stored
+  closure and annotation chain verbatim, so the root is the repository oid,
+  and attaches the sidecar blocks whose `annotations_head` matches the current
+  chain head: import then export reproduces the file byte for byte. Every
+  repository run is representable (§0.2 already refuses what v4 refuses).
+- **Bundles and packs** carry v4 runs unchanged (§9.1 rule 5).
+

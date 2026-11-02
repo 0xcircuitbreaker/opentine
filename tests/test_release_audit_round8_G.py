@@ -27,8 +27,13 @@ def test_metric_rejected_by_the_event_store_is_rejected_at_schema_construction()
     # The schema validated the original Python value while the store validated
     # the json_safe-transformed one with stricter rules, so events constructed
     # fine and then crashed recorder append/import with a KernelError.
+    # 0.26: a usage meter past 2**53-1 no longer fails the span (a recorder must
+    # not lose it): it moves to attributes as its exact digits, with a warning.
+    softened = _event(usage={"custom_counter": 10**20})
+    assert softened.attributes["usage.custom_counter"] == str(10**20)
+    assert "custom_counter" not in softened.usage
     for message, overrides in (
-        ("trace usage", {"usage": {"custom_counter": 10**20}}),
+        ("trace usage", {"usage": {"custom_counter": -1}}),
         ("trace cost", {"cost": "1e999999999"}),
         ("trace cost", {"billing": {"known_subtotal_usd": "1e999999999"}}),
         ("trace cost", {"cost": 10**300}),

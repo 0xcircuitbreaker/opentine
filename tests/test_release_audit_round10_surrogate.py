@@ -301,3 +301,10 @@ def test_clean_artifacts_skip_the_walk_entirely(tmp_path):
     assert not surrogate_suspect(target.read_bytes())
     assert not surrogate_suspect(target.read_text())
     assert Run.load(target).user_prompt == "no escapes here"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

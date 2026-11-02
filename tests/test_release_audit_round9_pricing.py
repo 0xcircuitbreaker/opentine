@@ -183,3 +183,10 @@ def test_fork_still_slices_well_formed_pricing(tmp_path):
     assert pricing["catalog_id"] == "cid"
     assert pricing["catalog_hash"] == "h"
     assert pricing["catalog_provenance"] == ["ok"]
+
+
+@pytest.fixture(autouse=True)
+def _legacy_v2_writer(monkeypatch):
+    """0.26 writes format v4 by default. This module inspects the v2 file layout
+    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")
