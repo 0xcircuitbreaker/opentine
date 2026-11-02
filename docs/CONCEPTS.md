@@ -160,6 +160,26 @@ intent, and a recorded nonce, stored in `metadata.fork` and provable with
 instead of colliding. Both are digests, and a run id read from an untrusted
 artifact never steers an output path.
 
+### Fork with an edited step (0.28)
+
+`tine fork <run> --from-step K --set PATH=VALUE` (repeatable) and/or
+`--edit-file FILE` (a JSON object of `PATH: VALUE`) fork at step K and replace K
+with an edited copy. `PATH` starts with `inputs` (dots descend into objects and
+list indexes, e.g. `inputs.messages.0.content`), `model` (alias of
+`model_info`) or `tool_info`; `VALUE` is parsed as JSON, else taken as a string.
+
+- Steps before K are kept exactly as recorded; the original file is only read.
+- The edited K has its recorded result cleared (outputs, error, cost, usage):
+  it has not been executed. The fork stops there and is itself forkable — or add
+  `--harness NAME --prompt TEXT` to continue from the edited step at once.
+- The edit is provenance: `metadata.edit` names the original step, the edited
+  step id, and per changed path the SHA-256 of the old and new value (values are
+  not copied). The edit is part of the fork intent, so it is bound into the fork
+  id and `verify_fork_id` still holds.
+- A path outside those roots, a missing field, a no-op edit or a bad step
+  index exits 1 and writes nothing. `--set`/`--edit-file` are refused with
+  `--ref` (v3 repositories).
+
 ## Replay
 
 Replay re-derives a run from what was recorded.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.28.0 — Fork with an edited step (2026-11-02)
+
+### Added
+
+- **Rerun from a step with edits.** `tine fork RUN --from-step K --set PATH=VALUE`
+  and `--edit-file FILE` fork with step K's input, tool arguments or model edited.
+  Steps before K stay as recorded, the original is never modified, and the edit
+  (old/new value digests) is recorded in `metadata.edit` and bound into the fork
+  id. Add `--harness`/`--prompt` to continue from the edited step. See
+  docs/CONCEPTS.md "Fork with an edited step".
+
 ## 0.27.0 — Replay fidelity labels (2026-11-02)
 
 ### Added

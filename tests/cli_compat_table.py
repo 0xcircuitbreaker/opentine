@@ -434,6 +434,14 @@ ROWS: tuple[tuple, ...] = (
         {"command": "fork", "legacy": True},
     ),
     (
+        "plain:fork r1 --from-step 2 --set model=m --edit-file e.json",
+        "plain",
+        ["fork", "r1", "--from-step", "2", "--set", "model=m", "--edit-file", "e.json"],
+        "opentine._cli_flow:cmd_fork",
+        False,
+        {"command": "fork", "set": ["model=m"], "edit_file": "e.json"},
+    ),
+    (
         "plain:replay r1",
         "plain",
         ["replay", "r1"],
