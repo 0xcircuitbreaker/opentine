@@ -19,6 +19,7 @@ from opentine._cli_common import (
 from opentine._cli_flags import HARNESS_CONFIG_FLAGS, _require_output_slot, refuse_unhonoured
 from opentine._cli_json_flow import drift_payload, emit_diff, identical
 from opentine._cli_render import _print_diff_table, _print_run_tree
+from opentine._fork_edit import apply_edit, edit_intent, parse_edits
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
@@ -56,7 +57,22 @@ def cmd_fork(args: argparse.Namespace) -> None:
     if step is None:
         console.print(f"[red]Step not found: {_terminal(step_id)}[/]")
         raise SystemExit(1)
-    forked = run.fork(step.id, intent={"harness": args.harness, "prompt": args.prompt})
+    try:
+        edits = parse_edits(args)
+    except ValueError as exc:
+        console.print(f"[red]{_terminal(exc)}[/]")
+        raise SystemExit(1) from exc
+    intent = {"harness": args.harness, "prompt": args.prompt}
+    if edits:  # additive: an unedited fork keeps the intent (and so the id) it always had
+        intent.update(edit_intent(step.id, edits))
+    forked = run.fork(step.id, intent=intent)
+    tip, context_run = step.id, run
+    if edits:
+        try:
+            tip, context_run = apply_edit(forked, step.id, edits), forked
+        except ValueError as exc:
+            console.print(f"[red]{_terminal(exc)}[/]")
+            raise SystemExit(1) from exc
     output = Path(args.save or (_runs_dir() / f"{forked.id}.tine"))
     _require_output_slot(output, args.force)
     if args.harness:
@@ -67,7 +83,7 @@ def cmd_fork(args: argparse.Namespace) -> None:
                 forked = wrapper.run_sync(
                     args.prompt,
                     context={
-                        **_run_context(run, from_step=step.id),
+                        **_run_context(context_run, from_step=tip),
                         "fork_point": step.id,
                         "forked_from": run.id,
                     },
@@ -82,6 +98,9 @@ def cmd_fork(args: argparse.Namespace) -> None:
         f"[{BRAND}]# Forked[/] {_terminal(short_id(run.id))} -> "
         f"{_terminal(short_id(forked.id))} from {_terminal(short_id(step.id))}"
     )
+    if edits:
+        paths = ", ".join(change["path"] for change in forked.metadata["edit"]["changes"])
+        console.print(f"Edited step -> {_terminal(short_id(tip))}: {_terminal(paths)}")
     _print_run_tree(forked)
 
 

@@ -151,6 +151,7 @@ def test_a_deterministic_agent_reruns_reproduced(workspace, monkeypatch, capsys)
     assert all(re.fullmatch(r"[0-9a-f]{64}", verdict[key]) for key in ("replay_id", "second_id"))
     assert verdict["identity_ok"] is True
     assert verdict["fork_point"] is None and verdict["reused_steps"] is None
+    assert verdict["fidelity"]["overall"] == "recomputed-match"
 
 
 def test_a_nondeterministic_agent_is_reported_as_drift_and_exits_one(
