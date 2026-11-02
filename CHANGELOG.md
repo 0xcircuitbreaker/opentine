@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.27.0 — Replay fidelity labels (2026-11-02)
+
+### Added
+
+- **Replay fidelity labels.** `tine replay` and `tine replay --verify` label
+  every replayed step `exact`, `recomputed-match`, `unavailable` or `diverged`
+  and print a run-level summary (counts per label, overall = weakest step).
+  `--verify --json` gains an additive `fidelity` object; existing keys are
+  unchanged. See docs/CONCEPTS.md "Replay fidelity labels".
+- **`tine replay --verify --min-fidelity LABEL`** exits 1 when any step is
+  weaker than LABEL. Refused without `--verify`.
+
 ## 0.26.0 — Format v4 (2026-11-02)
 
 ### Upgrading

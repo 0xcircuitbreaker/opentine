@@ -22,7 +22,8 @@ from opentine._cli_flags import HARNESS_CONFIG_FLAGS, _require_output_slot, refu
 from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine._cli_text import announce_recorded_task
 from opentine._cli_verify_replay import cache_replay, expected_slice, verify_replay
-from opentine.core import Run
+from opentine._replay_fidelity import classify_cache, render_lines
+from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
 
@@ -90,6 +91,7 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
                 "harness",
                 "ignore_cost_drift",
                 "json",
+                "min_fidelity",
                 "mode",
                 "prompt",
                 "save",
@@ -103,7 +105,7 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
     if not args.verify:
         refuse_unhonoured(
             args,
-            ("ignore_cost_drift", "json"),
+            ("ignore_cost_drift", "json", "min_fidelity"),
             mode="without --verify",
             hint="Both describe the verification verdict; a plain replay only writes the run.",
         )
@@ -149,7 +151,8 @@ def cmd_replay(args: argparse.Namespace) -> None:
             )
             raise SystemExit(1)
         # One source of truth with --verify, which checks this exact artifact.
-        replayed = cache_replay(run, _resolve_step_ref(run, args.from_step))
+        fork_point, expected = expected_slice(run, args.from_step)
+        replayed = cache_replay(run, fork_point)
     except (KeyError, ValueError) as exc:
         console.print(f"[red]{_terminal(exc)}[/]")
         raise SystemExit(1) from exc
@@ -157,3 +160,5 @@ def cmd_replay(args: argparse.Namespace) -> None:
     _require_output_slot(output, getattr(args, "force", False))
     replayed.save(output)
     console.print(f"[{BRAND}]# Cached replay[/] reused {len(replayed.steps)} recorded steps")
+    for line in render_lines(classify_cache(run, expected, replayed), short_id):
+        console.print(_terminal(line), highlight=False)

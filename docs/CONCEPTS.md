@@ -177,6 +177,24 @@ Replay re-derives a run from what was recorded.
 **structural drift always fails**. With `--harness` the run is re-executed twice
 and the two artifacts compared, which is how a nondeterministic agent is caught.
 
+### Replay fidelity labels
+
+Every replayed step is labelled with *how* it was reproduced, so a green verify
+says what it proves. `tine replay` prints the labels; `tine replay --verify`
+prints them and adds a `fidelity` object to `--json`. Strongest to weakest:
+
+| Label | Meaning |
+| --- | --- |
+| `exact` | Served from the recording (cache mode); the round-tripped step is field-for-field the recorded one, so its digest matches. Nothing was re-executed. |
+| `recomputed-match` | Re-executed (`--harness`); both reruns produced the same step digest at the same position. |
+| `unavailable` | Cannot be reproduced: the step is missing from the replay, or its recorded content carries a `[REDACTED` marker. |
+| `diverged` | Present but different: a cached step that did not survive the round trip, or a rerun step the second execution did not reproduce. |
+
+The run's overall label is its weakest step's. `--min-fidelity LABEL` (with
+`--verify`) exits 1 when any step is weaker than LABEL. There is no "stubbed"
+label: a cached replay answers every step from the recording and a rerun
+re-executes every step, so the engine never sees a mix.
+
 ## Diff
 
 Diff is semantic, not textual. It reports the events the two runs share, the

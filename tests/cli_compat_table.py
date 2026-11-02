@@ -3001,4 +3001,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "evidence", "evidence_command": "export", "runs": ["r1"], "out": "ev"},
     ),
+    (
+        "plain:replay r1 --verify --min-fidelity exact",
+        "plain",
+        ["replay", "r1", "--verify", "--min-fidelity", "exact"],
+        "opentine._cli_replay:cmd_replay",
+        False,
+        {"command": "replay", "verify": True, "min_fidelity": "exact"},
+    ),
 )

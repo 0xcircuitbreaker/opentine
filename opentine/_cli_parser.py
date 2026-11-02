@@ -25,6 +25,7 @@ from opentine._cli_unify import add_unify_args
 from opentine._cli_verify_offline import add_verify_args
 from opentine._cli_who import add_actions_parsers
 from opentine._format_v4 import format_arg
+from opentine._replay_fidelity import LABELS as FIDELITY_LABELS
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
 from opentine.pricing_cli import add_pricing_parser
@@ -181,7 +182,6 @@ def _build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--save")
     replay.add_argument("--force", action="store_true")
     replay.add_argument("--compare", action="store_true")
-    # --verify replays into a temp workspace; it writes only when --save names one.
     replay.add_argument(
         "--verify",
         action="store_true",
@@ -192,6 +192,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="With --verify, let cost/usage/billing drift alone still pass",
     )
+    replay.add_argument("--min-fidelity", choices=FIDELITY_LABELS, help="With --verify, fail below")
     _add_harness_args(replay)
 
     diff = sub.add_parser("diff", help="Diff two legacy runs")

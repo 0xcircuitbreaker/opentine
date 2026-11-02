@@ -60,6 +60,10 @@ bucket appears in both surfaces at once:
                            top level because it shipped that way
     ``accounting_drift``   array of str — ``drift.accounting``, likewise
     ``ignore_cost_drift``  bool — whether ``--ignore-cost-drift`` was passed
+    ``fidelity``           object (0.27) — ``overall`` (weakest step label or
+                           null), ``counts``, ``steps`` [{``id``, ``label``}],
+                           ``min_fidelity``, ``meets_minimum``; labels and their
+                           order are ``_replay_fidelity.LABELS``
 
 ``tine diff RUN_A RUN_B --json``
     ``command``          ``"diff"``
@@ -236,5 +240,6 @@ def emit_replay_verify(verdict: Any) -> None:
             "structural_drift": list(verdict.structural),
             "accounting_drift": list(verdict.accounting),
             "ignore_cost_drift": bool(verdict.ignore_cost_drift),
+            "fidelity": verdict.fidelity.to_dict(verdict.min_fidelity),
         }
     )
