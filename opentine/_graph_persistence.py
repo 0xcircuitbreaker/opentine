@@ -13,8 +13,10 @@ from opentine._graph_types import RunStatus
 class RunPersistenceMixin:
     def save(self, path: str | Path, **kwargs: Any) -> Path:
         from opentine._graph_serde import save_run
+        from opentine._redact_memo import save_memo
 
-        return save_run(self, path, **kwargs)
+        with save_memo():  # one save scans each distinct string once (0.29)
+            return save_run(self, path, **kwargs)
 
     @staticmethod
     def verify_signature(

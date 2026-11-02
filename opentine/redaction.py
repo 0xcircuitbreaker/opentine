@@ -19,6 +19,7 @@ from opentine._redact_fields import FIELD, NAME_TAIL, quoted_field_edits
 from opentine._redact_flags import flag_edits
 from opentine._redact_forms import B64_KEY_STEP, FORM_STEPS
 from opentine._redact_json import redact_json
+from opentine._redact_memo import cached
 from opentine._redact_names import secret_name
 from opentine._redact_pem import private_key_edits
 from opentine._redact_ppk import ppk_edits
@@ -139,6 +140,10 @@ def _quoted_field_edits(value: bytes) -> list[Edit]:
 
 def redact_blob(value: bytes) -> bytes:
     """Scrub credential-shaped UTF-8 text; JSON stays valid JSON (``_redact_json``)."""
+    return cached(value, _redact_blob)  # memoized only inside a save (``_redact_memo``)
+
+
+def _redact_blob(value: bytes) -> bytes:
     try:
         value.decode("utf-8")
     except UnicodeDecodeError:
