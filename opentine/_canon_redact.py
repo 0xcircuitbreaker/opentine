@@ -9,6 +9,7 @@ here rather than in ``_canon`` for the same reason: this module is the leaf.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Any
 
 from opentine._redact_extra import extra_secret_names
@@ -51,12 +52,24 @@ _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 def _field_name(value: Any) -> str:
     # Quotes stripped so a JSON fragment in free text ('"api_key": "sk-…"') names
     # the same field as the bare form; v3 handles it, v2 stored the secret.
+    if type(value) is str:  # exact str: a subclass may override __str__
+        return _field_name_text(value)
     return _CAMEL_BOUNDARY.sub("_", str(value).strip().strip("\"'")).lower().replace("-", "_")
+
+
+@lru_cache(maxsize=1 << 14)  # pure; field names repeat on every step of a long run
+def _field_name_text(value: str) -> str:
+    return _CAMEL_BOUNDARY.sub("_", value.strip().strip("\"'")).lower().replace("-", "_")
+
+
+@lru_cache(maxsize=8)
+def _compact(suffixes: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(suffix.replace("_", "") for suffix in suffixes)
 
 
 def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ...]) -> bool:
     candidates = (name, name[:-1]) if name.endswith("s") else (name,)
-    compact_suffixes = tuple(suffix.replace("_", "") for suffix in suffixes)
+    compact_suffixes = _compact(suffixes)
     return any(
         item in credential_names
         or item.endswith(suffixes)
@@ -130,7 +143,8 @@ def _redact(value: Any, _depth: int = 0) -> Any:
     """
     if _depth > MAX_CANONICAL_DEPTH:
         raise _too_deep()
-    credential_names = CREDENTIAL_NAMES | extra_secret_names()
+    extra = extra_secret_names()
+    credential_names = CREDENTIAL_NAMES | extra if extra else CREDENTIAL_NAMES
     suffixes = SECRET_SUFFIXES
     if isinstance(value, dict):
         header_names = [item for key, item in value.items() if _field_name(key) == "name"]

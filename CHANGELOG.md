@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.29.0 — Fast saves for long runs (2026-11-02)
+
+### Changed
+
+- **Fast saves for long runs.** Saving a synthetic 6000-step run (format v4) went
+  from 38.8 s to 19.1 s on the reference machine, with byte-identical output.
+  Profiling showed the free-text scrubber dominating: one save scanned the same
+  strings (field names, model names, each step's payload as a value and again as
+  its stored blob) about six times over. `Run.save` now memoizes `redact_blob` on
+  the exact input bytes for the duration of one save (bounded at 64 MiB, dropped
+  when the save ends); the scan is a pure function of its bytes, so a hit returns
+  exactly what a re-scan would. The field walk also stops rebuilding its suffix
+  table and credential-name set on every call. Redaction is not weakened: every
+  string is still scanned by the full step list. `tests/test_fast_save_0_29.py`
+  pins the 0.28.0 output bytes for runs with secrets and a linear-scaling check.
+
 ## 0.28.0 — Fork with an edited step (2026-11-02)
 
 ### Added
