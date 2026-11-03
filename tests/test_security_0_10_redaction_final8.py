@@ -90,8 +90,8 @@ def test_long_field_names_stay_linear():
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = elapsed(50), elapsed(200)
-    assert large < max(small, 0.02) * 8
+    small, large = elapsed(25), elapsed(200)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24
 
 
 @pytest.mark.parametrize(

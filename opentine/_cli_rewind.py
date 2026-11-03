@@ -15,6 +15,7 @@ from typing import Any
 from opentine._cli_common import _find_run, _resolve_step_ref, _terminal, console
 from opentine._cli_who_render import emit_or_print
 from opentine._codec_io import atomic_write_bytes
+from opentine._file_originals import KEY
 from opentine._rewind import (
     Event,
     Plan,
@@ -103,19 +104,23 @@ def cmd_rewind(args: argparse.Namespace) -> None:
         key: [] for key in ("restore", "unchanged", "conflict", "unrecoverable", "refused")
     }
     writes: list[tuple[Path, str]] = []
+    store = run.metadata.get(KEY) if isinstance(run.metadata, dict) else None
     for key, events in sorted(histories(run, root).items()):
         shown = key[len(root.as_posix()) + 1 :] if key.startswith(root.as_posix() + "/") else key
         try:
             path = confined(root, key)
         except RewindError as exc:
-            rows["refused"].append({"path": shown, "reason": str(exc)})
+            rows["refused"].append({"path": shown, "reason": str(exc), "mode": "skipped"})
             continue
-        plan = plan_file(key, events, until)
+        plan = plan_file(key, events, until, store)
+        how = {"mode": plan.mode, **({"fallback": plan.note} if plan.note else {})}
         if plan.target is None and plan.reverse_on_disk is None:
-            rows["unrecoverable"].append({"path": shown, "reason": plan.reason})
+            how["mode"] = "skipped"
+            rows["unrecoverable"].append({"path": shown, "reason": plan.reason, **how})
             continue
         status, reason, content = _decide(plan, _read(path), args.force)
-        rows[status].append({"path": shown, "reason": reason})
+        how["mode"] = "skipped" if status == "unrecoverable" else how["mode"]
+        rows[status].append({"path": shown, "reason": reason, **how})
         if content is not None:
             writes.append((path, content))
     blocked = bool(rows["conflict"])
@@ -148,6 +153,7 @@ def _human(payload: dict[str, Any], apply: bool, blocked: bool) -> None:
     for status, label in labels.items():
         for row in payload[status]:
             extra = f"  ({row['reason']})" if row["reason"] else ""
+            extra += f"  [{row['mode']}" + (f": {row['fallback']}]" if "fallback" in row else "]")
             console.print(f"{label}: {_terminal(row['path'])}{_terminal(extra)}")
     if not any(payload[status] for status in labels):
         console.print("Nothing to rewind.")

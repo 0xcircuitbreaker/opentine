@@ -136,5 +136,5 @@ def test_many_openers_on_one_line_stay_linear():
         return best
 
     elapsed(200)
-    small, large = elapsed(2000), elapsed(8000)
-    assert large < max(small, 0.02) * 8
+    small, large = elapsed(1000), elapsed(8000)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24

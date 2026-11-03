@@ -17,23 +17,15 @@ import os
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from opentine._file_originals import MARKER, Originals
 from opentine.core import StepKind
-from opentine.harnesses._claude_env import (
-    _count,
-    _money,
-    env_provider,
-    list_priced,
-    service_tier,
-)
+from opentine.harnesses._claude_env import _count, _money, env_provider, list_priced, service_tier
 from opentine.harnesses._types import HarnessStep
 
 #: ``modelUsage[...].provider`` -> OpenTine provider. Bedrock and Vertex keep
 #: their own names: Anthropic's first-party cards must not price them.
 _PROVIDERS = {"firstParty": "anthropic"}
-_INPUT_SIDE = {
-    "input": "inputTokens",
-    "cache_read": "cacheReadInputTokens",
-}
+_INPUT_SIDE = {"input": "inputTokens", "cache_read": "cacheReadInputTokens"}
 MAX_TOOL_RESULT_CHARS = 64_000
 #: Event types the structured stream emits; ``rate_limit_event`` and anything
 #: newer are consumed silently rather than recorded as noise.
@@ -88,6 +80,7 @@ class ClaudeStream:
         self.messages: set[str] = set()
         self.seen: dict[str, dict[str, int]] = {}
         self.tiers: dict[str, str] = {}
+        self.originals = Originals()
 
     def step(self, data: Mapping[str, Any]) -> HarnessStep | list[HarnessStep] | None:
         kind, subtype = data.get("type"), data.get("subtype")
@@ -155,22 +148,28 @@ class ClaudeStream:
     def _tool_results(self, data: Mapping[str, Any]) -> list[HarnessStep]:
         message = data.get("message")
         content = message.get("content") if isinstance(message, Mapping) else None
+        listed = content if isinstance(content, list) else []
+        blocks = [b for b in listed if isinstance(b, Mapping) and b.get("type") == "tool_result"]
+        # One result per record carries the detail; never guess which block it is.
+        detail = data.get("tool_use_result", data.get("toolUseResult"))
         steps = []
-        for block in content if isinstance(content, list) else []:
-            if not isinstance(block, Mapping) or block.get("type") != "tool_result":
-                continue
+        for block in blocks:
             call_id = str(block.get("tool_use_id") or "")
             name, arguments = self.tools.pop(call_id, ("tool", None))
             result = _text(block.get("content"))
+            outputs = {
+                "result": result[:MAX_TOOL_RESULT_CHARS],
+                "truncated": len(result) > MAX_TOOL_RESULT_CHARS,
+                "is_error": bool(block.get("is_error")),
+            }
+            if len(blocks) == 1 and not outputs["is_error"]:
+                if marker := self.originals.claude(detail):
+                    outputs[MARKER] = marker  # the wrapper moves its text to the run
             steps.append(
                 HarnessStep(
                     kind=StepKind.tool,
                     inputs={"name": name, "arguments": arguments, "tool_use_id": call_id},
-                    outputs={
-                        "result": result[:MAX_TOOL_RESULT_CHARS],
-                        "truncated": len(result) > MAX_TOOL_RESULT_CHARS,
-                        "is_error": bool(block.get("is_error")),
-                    },
+                    outputs=outputs,
                     model_info=self.model or None,
                 )
             )

@@ -95,7 +95,7 @@ def test_unescaped_quote_ends_an_escaped_value_inside_json():
 
 def _seconds(blob: bytes) -> float:
     best = float("inf")
-    for _ in range(2):
+    for _ in range(3):
         started = time.monotonic()
         redact_blob(blob)
         best = min(best, time.monotonic() - started)

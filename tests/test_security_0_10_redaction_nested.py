@@ -89,5 +89,5 @@ def test_nested_check_stays_linear():
         assert SECRET.encode() not in out
         return best
 
-    small, large = elapsed(150), elapsed(600)
-    assert large < max(small, 0.02) * 8  # 4x input: linear ~4x, quadratic ~16x
+    small, large = elapsed(75), elapsed(600)
+    assert large < max(small, 0.02) * 24  # 8x input: linear ~8x, quadratic ~64x

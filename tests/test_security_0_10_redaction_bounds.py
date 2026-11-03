@@ -94,5 +94,5 @@ def test_extending_a_value_stays_linear():
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = elapsed(5_000), elapsed(20_000)
-    assert large < max(small, 0.01) * 8
+    small, large = elapsed(2_500), elapsed(20_000)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.01) * 24

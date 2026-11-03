@@ -43,8 +43,8 @@ def _best(call, value, rounds: int = 3) -> float:
 
 
 def _grows_linearly(call, unit: str, small: int) -> None:
-    short, long = _best(call, unit * small), _best(call, unit * small * 4)
-    assert long < max(short, 0.02) * 8, (short, long)
+    short, long = _best(call, unit * small), _best(call, unit * small * 8)
+    assert long < max(short, 0.02) * 24, (short, long)
 
 
 @pytest.mark.parametrize(

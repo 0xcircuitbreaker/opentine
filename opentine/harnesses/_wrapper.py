@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from opentine._file_originals import hoist
 from opentine.autosave import Autosaver
 from opentine.budget import BudgetExceeded
 from opentine.core import Run, RunStatus, StepKind
@@ -153,8 +154,7 @@ class OpentineHarness:
             usage, provider = dict(event.usage), event.provider
         else:
             normalized = _coerce_kind(kind)
-        cost = _meter(cost, "cost")
-        duration = _meter(duration, "duration")
+        cost, duration = _meter(cost, "cost"), _meter(duration, "duration")
         run = self._require_run()
         trace = getattr(self.harness, "trace_id", None)
         if isinstance(trace, str) and trace and "otel_trace_id" not in run.metadata:
@@ -165,7 +165,7 @@ class OpentineHarness:
         added = run.add_step(
             normalized,
             _jsonable(_recordable(inputs or {})),
-            outputs=_jsonable(_recordable(outputs or {})),
+            outputs=_jsonable(_recordable(hoist(run.metadata, outputs or {}))),
             parent_id=parent_id or self._last_step_id,
             cost=cost,
             duration=duration,

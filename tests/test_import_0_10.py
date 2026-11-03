@@ -1417,6 +1417,6 @@ def test_span_coverage_is_linear_in_turns_times_payload():
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = elapsed(1), elapsed(4)
-    # 4x turns and 4x payload: linear grows ~4x, the old per-turn scan ~16x.
-    assert large < max(small, 0.02) * 8
+    small, large = elapsed(1), elapsed(8)
+    # 8x turns and 8x payload: linear grows ~8x, the old per-turn scan ~64x.
+    assert large < max(small, 0.02) * 24

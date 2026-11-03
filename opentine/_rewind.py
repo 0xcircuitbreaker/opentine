@@ -20,6 +20,8 @@ from typing import Any
 
 from opentine._actions import extract_actions
 from opentine._blame import _arguments
+from opentine._file_originals import MARKER
+from opentine._rewind_exact import exact
 
 Edits = list[tuple[str, str, bool]]
 _WHOLE = ("content", "file_text", "contents")
@@ -30,6 +32,8 @@ class Event:
     seq: int
     kind: str  # "write" (payload: str), "edit" (payload: Edits), "opaque" (payload: reason)
     payload: Any
+    original: str | None = None  # digest of the file's stored content before this step
+    post: str | None = None  # digest of what this step left, when the harness said
 
 
 @dataclass
@@ -40,6 +44,8 @@ class Plan:
     reverse_on_disk: Edits | None = None  # undo these on the current file instead
     reason: str = ""
     events: list[Event] = field(default_factory=list)
+    mode: str = "reconstructed"  # "exact": from the stored original, verified
+    note: str = ""  # why the stored original was not used
 
 
 class RewindError(ValueError):
@@ -79,7 +85,13 @@ def _event(step: Any, seq: int, written: list[str]) -> Event:
     else:
         return Event(seq, "opaque", f"step {seq} changed it without recording the content")
     if any("[REDACTED" in text for text in texts):
-        return Event(seq, "opaque", f"step {seq} recorded it redacted")
+        event = Event(seq, "opaque", f"step {seq} recorded it redacted")
+    marker = outputs.get(MARKER)
+    if isinstance(marker, dict):
+        event.original = marker.get("sha256") if isinstance(marker.get("sha256"), str) else None
+        event.post = (
+            marker.get("post_sha256") if isinstance(marker.get("post_sha256"), str) else None
+        )
     return event
 
 
@@ -126,9 +138,17 @@ def relative_key(root: Path, written: str) -> str:
     return Path(os.path.normpath(candidate)).as_posix()
 
 
-def plan_file(path: str, events: list[Event], until: int) -> Plan:
-    """What *path* held right after step *until* (``-1``: before the run)."""
+def plan_file(path: str, events: list[Event], until: int, store: Any = None) -> Plan:
+    """What *path* held right after step *until* (``-1``: before the run).
+
+    The stored original replayed forward and verified comes first (``exact``);
+    the recorded edits and diffs alone are the fallback (``reconstructed``).
+    """
     plan = Plan(path, events=events)
+    target, final, plan.note = exact(events, until, store)
+    if target is not None:
+        plan.target, plan.final, plan.mode = target, final, "exact"
+        return plan
     plan.target = _at(events, until)
     plan.final = _at(events, events[-1].seq)
     if plan.target is not None:

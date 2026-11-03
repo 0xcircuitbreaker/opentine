@@ -103,8 +103,8 @@ def test_flag_redaction_stays_linear():
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = elapsed(1000), elapsed(4000)
-    assert large < max(small, 0.02) * 8
+    small, large = elapsed(500), elapsed(4000)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24
 
 
 @pytest.mark.parametrize("quote", ['"', "'"])
