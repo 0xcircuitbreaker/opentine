@@ -16,7 +16,7 @@ import pytest
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._artifact_io import read_artifact_bytes, read_artifact_json
 from opentine._artifact_v4 import read_v4, write_v4
-from opentine._format_v4 import write_format
+from opentine._format_v4 import is_v4_artifact, write_format
 from opentine._provenance_v4 import valid_upgraded_from
 from opentine.kernel import canonical_json
 from opentine.signing import HAS_ED25519, generate_ed25519
@@ -259,6 +259,11 @@ def _root(capsys, source: Path, out: str) -> str:
 @pytest.mark.parametrize("source", GOLDEN, ids=lambda p: str(p.relative_to(FIXTURES)))
 def test_every_golden_artifact_migrates_to_a_stable_root(room, capsys, source):
     before = source.read_bytes()
+    if is_v4_artifact(read_artifact_json(source)):  # 0.26.0+ wrote v4 already
+        code, text = _tine(capsys, "migrate", str(source), "--to", "v4", "-o", "a.tine")
+        assert code == 0 and "already format v4" in text, text
+        assert not (room / "a.tine").exists() and source.read_bytes() == before
+        return
     first = _root(capsys, source, "a.tine")
     second = _root(capsys, source, "b.tine")
     if "linear" not in source.name:  # 0.1.0 recorded no created_at: the loader stamps now

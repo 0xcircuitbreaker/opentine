@@ -112,6 +112,7 @@ def _seconds(blob: bytes) -> float:
     ],
 )
 def test_heads_and_escaped_fields_stay_linear(unit):
-    small = _seconds(unit * 2000)
+    # 8x the input: linear is ~8x, quadratic ~64x, so a busy CI runner has headroom.
+    small = _seconds(unit * 1000)
     large = _seconds(unit * 8000)
-    assert large < max(small, 0.02) * 8
+    assert large < max(small, 0.02) * 24

@@ -267,7 +267,7 @@ def test_reading_every_golden_fixture_leaves_its_bytes_untouched(room):
         Run.verify_signature(path, hmac_key=b"compat-golden-signing-key-000001")
     assert _digests(artifacts) == before
     repos = sorted(p for p in (FIXTURES / "compat").glob("*/repo") if p.is_dir())
-    assert len(repos) == 27
+    assert len(repos) == 40
     for source in repos:
         copy = room / source.parent.name
         shutil.copytree(source, copy)

@@ -123,6 +123,8 @@ def test_a_released_artifact_loads_empty_and_re_serializes_byte_for_byte(version
     run = Run.load(COMPAT / version / "artifact.tine")
 
     assert {step.provider for step in run.steps} == {""}
+    if "graph" not in raw:  # format v4 (0.26+) stores no step graph to re-serialize
+        return
     assert {
         step_id: step_to_dict(run.graph.steps[step_id]) for step_id in raw["graph"]["steps"]
     } == raw["graph"]["steps"]
