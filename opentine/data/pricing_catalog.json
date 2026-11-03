@@ -1,7 +1,7 @@
 {
   "schema": "opentine-pricing/3",
-  "generated_at": "2026-10-22T00:00:00Z",
-  "verified_at": "2026-10-22",
+  "generated_at": "2026-11-03T00:00:00Z",
+  "verified_at": "2026-11-03",
   "cards": [
     {
       "id": "openai:gpt-5.6-sol:2026-07-09",
@@ -2320,6 +2320,7 @@
       "model": "mistral-large-4",
       "aliases": ["mistral-large-4-0"],
       "effective_from": "2026-10-20",
+      "effective_until": "2026-10-20",
       "rates": {"input": "1.36", "cache_read": "0.14", "output": "4.18", "reasoning": "4.18"},
       "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/mistral-large-4-0"],
       "verified_at": "2026-10-20",
@@ -2787,12 +2788,204 @@
       "source_urls": ["https://docs.x.ai/docs/models"],
       "verified_at": "2026-10-22",
       "metadata": {"note": "xAI models page (raw .md, 2026-10-22) 'Voice Pricing': 'Speech to Speech (grok-voice-3.0) $0.08 / min ($4.80 / hr) $0.004 / text input'. Only the per-minute charge is carded: the '$0.004 / text input' unit is not stated precisely enough to card, so text-input charges are not included."}
+    },
+    {
+      "id": "openai:gpt-6.1-terra:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-6.1-terra",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "1", "cache_read": "0.05", "output": "5", "reasoning": "5"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "cache_read": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-6.1-terra $1.00 $0.05 $5.00', long context '$2.00 $0.10 $7.50' (2x input/cache, 1.5x output over 272K). Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-5.5-pro:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-5.5-pro",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "30", "output": "180", "reasoning": "180"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page 'gpt-5.5-pro (<272K context length) $30.00 - $180.00', long context '$60.00 - $270.00'. No cached-input price. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-5.4-pro:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-5.4-pro",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "30", "output": "180", "reasoning": "180"},
+      "context_thresholds": [{"id": "over-272k", "input_tokens": 272000, "multipliers": {"input": "2", "output": "1.5", "reasoning": "1.5"}}],
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page 'gpt-5.4-pro (<272K context length) $30.00 - $180.00', long context '$60.00 - $270.00'. No cached-input price. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-5.2-pro:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-5.2-pro",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "21", "output": "168", "reasoning": "168"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-5.2-pro' input $21 / cached - / output $168 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-5-pro:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-5-pro",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "15", "output": "120", "reasoning": "120"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-5-pro' input $15 / cached - / output $120 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-4.1:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-4.1",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "2", "cache_read": "0.50", "output": "8", "reasoning": "8"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-4.1' input $2 / cached $0.50 / output $8 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-4.1-mini:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-4.1-mini",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.40", "cache_read": "0.10", "output": "1.60", "reasoning": "1.60"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-4.1-mini' input $0.40 / cached $0.10 / output $1.60 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:gpt-4o-mini:2026-11-03",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.15", "cache_read": "0.075", "output": "0.60", "reasoning": "0.60"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'gpt-4o-mini' input $0.15 / cached $0.075 / output $0.60 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:o3:2026-11-03",
+      "provider": "openai",
+      "model": "o3",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "2", "cache_read": "0.50", "output": "8", "reasoning": "8"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'o3' input $2 / cached $0.50 / output $8 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "openai:o3-pro:2026-11-03",
+      "provider": "openai",
+      "model": "o3-pro",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "20", "output": "80", "reasoning": "80"},
+      "source_urls": ["https://developers.openai.com/api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Pricing page Standard row 'o3-pro' input $20 / cached - / output $80 per 1M. Service tiers not carded."}
+    },
+    {
+      "id": "google:gemini-2.5-flash:2026-11-03",
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.30", "input_audio": "1", "cache_read": "0.03", "cache_read_audio": "0.1", "output": "2.50", "reasoning": "2.50"},
+      "source_urls": ["https://aistudio.google.com/docs/pricing", "https://ai.google.dev/gemini-api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Deprecated: Google routes requests to gemini-3.5-flash-lite from 2026-12-01. Paid tier: input '$0.30 (text / image / video)' / '$1.00 (audio)', output '$2.50', caching '$0.03' / '$0.1 (audio)'. Storage and service tiers not carded."}
+    },
+    {
+      "id": "google:gemini-2.5-flash-lite:2026-11-03",
+      "provider": "google",
+      "model": "gemini-2.5-flash-lite",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.10", "input_audio": "0.30", "cache_read": "0.01", "cache_read_audio": "0.03", "output": "0.40", "reasoning": "0.40"},
+      "source_urls": ["https://aistudio.google.com/docs/pricing", "https://ai.google.dev/gemini-api/docs/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. Paid tier: input '$0.10 (text / image / video)' / '$0.30 (audio)', output '$0.40', caching '$0.01' / '$0.03 (audio)'. Storage and service tiers not carded."}
+    },
+    {
+      "id": "xai:grok-4.20-0309-non-reasoning:2026-11-03",
+      "provider": "xai",
+      "model": "grok-4.20-0309-non-reasoning",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "source_urls": ["https://docs.x.ai/docs/models", "https://docs.x.ai/developers/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. xAI models page: 'grok-4.20-0309-non-reasoning < 200k $1.25 $0.20 $2.50', '>= 200k $2.50 $0.40 $5.00'; the whole request bills at the higher tier once the prompt reaches 200k, carded at 199999 as on the other grok cards. Service tiers not carded."}
+    },
+    {
+      "id": "xai:grok-4.20-multi-agent-0309:2026-11-03",
+      "provider": "xai",
+      "model": "grok-4.20-multi-agent-0309",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "1.25", "cache_read": "0.20", "output": "2.50", "reasoning": "2.50"},
+      "context_thresholds": [{"id": "at-least-200k", "input_tokens": 199999, "multipliers": {"input": "2", "cache_read": "2", "output": "2", "reasoning": "2"}}],
+      "source_urls": ["https://docs.x.ai/docs/models", "https://docs.x.ai/developers/pricing"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. xAI models page: 'grok-4.20-multi-agent-0309 < 200k $1.25 $0.20 $2.50', '>= 200k $2.50 $0.40 $5.00'; the whole request bills at the higher tier once the prompt reaches 200k, carded at 199999 as on the other grok cards. Service tiers not carded."}
+    },
+    {
+      "id": "mistral:mistral-large-4:2026-11-03",
+      "provider": "mistral",
+      "model": "mistral-large-4",
+      "aliases": ["mistral-large-4-0"],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.7", "cache_read": "0.07", "output": "2.1", "reasoning": "2.1"},
+      "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/mistral-large-4-0"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "Price cut: the pricing page on 2026-11-03 shows 'Mistral Large 4 $0.7 $0.07 $2.1' with no sale wording; the changelog has no entry for the change, so the card starts on the verification date and the list-price card ($1.36) ends at its last verification (2026-10-20). Runs from 2026-10-21 to 2026-11-02 stay cost-unknown."}
+    },
+    {
+      "id": "mistral:zai-glm-5-3-flash:2026-10-22",
+      "provider": "mistral",
+      "model": "zai-glm-5-3-flash",
+      "aliases": [],
+      "effective_from": "2026-10-22",
+      "rates": {"input": "0.15", "cache_read": "0.03", "output": "0.5", "reasoning": "0.5"},
+      "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/zai-glm-5-3-flash"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "Z.ai GLM 5.3 Flash hosted by Mistral. Changelog 2026-10-22: 'Pricing: $0.15/M input tokens, $0.03/M cached input, $0.50/M output tokens.' Pricing page agrees on 2026-11-03."}
+    },
+    {
+      "id": "mistral:deepseek-v4-flash-1017:2026-11-03",
+      "provider": "mistral",
+      "model": "deepseek-v4-flash-1017",
+      "aliases": [],
+      "effective_from": "2026-11-03",
+      "rates": {"input": "0.3", "cache_read": "0.007", "output": "1.2", "reasoning": "1.2"},
+      "source_urls": ["https://docs.mistral.ai/inference/pricing", "https://docs.mistral.ai/resources/changelogs", "https://docs.mistral.ai/models/deepseek-v4-flash-1017"],
+      "verified_at": "2026-11-03",
+      "metadata": {"note": "First carded 2026-11-03; effective_from is the verification date because the launch/price date is not given on the pricing page, so earlier runs stay cost-unknown rather than guessed. DeepSeek V4.1 Flash 1017 hosted by Mistral; pricing page '$0.3 $0.007 $1.2' (input / cached input / output); not in the changelog."}
     }
   ],
-  "catalog_id": "sha256:f2493f0b821025bf7c45459518762ecc1e5c11d7a2399be8cff442ec7e790289",
+  "catalog_id": "sha256:b2a7ff1b4007a1eed09244421aa6ee7145ff9344aab4216d33a8e492da61b9c7",
   "signature": {
     "algorithm": "ed25519/opentine.pricing-catalog.v2",
     "key_id": "opentine-release-2026-07-r3",
-    "value": "09fUwSP4AeA2lcjLGIwF197kDN9cyFa+ivvJXnFTriPQrV+IdJEFDLq+RF9BUqNa0kzgz5oEGM5Bh+zz6lv/AA=="
+    "value": "jJS8GkrgEEw7qw/HuqWO4JuV0e77yWhSty1ehhIIQ4hJpsny6wSoye6ljlVKVe67oJoTJTB0wdlv5V2iwY+aBg=="
   }
 }

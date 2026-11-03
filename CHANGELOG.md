@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.34.0 — Model catalog cards (2026-11-03)
+
+### Model catalog cards
+
+Pricing catalog refreshed against each provider's own pricing page on
+2026-11-03 (231 -> 248 cards). Anthropic, DeepSeek and the existing OpenAI,
+Google and xAI cards matched the published prices and are unchanged.
+
+Added (per 1M tokens, input / cached input / output):
+
+- OpenAI: gpt-6.1-terra ($1 / $0.05 / $5, 2x input and 1.5x output over 272K),
+  gpt-5.5-pro and gpt-5.4-pro ($30 / - / $180, same long-context rule),
+  gpt-5.2-pro ($21 / - / $168), gpt-5-pro ($15 / - / $120), gpt-4.1
+  ($2 / $0.50 / $8), gpt-4.1-mini ($0.40 / $0.10 / $1.60), gpt-4o-mini
+  ($0.15 / $0.075 / $0.60), o3 ($2 / $0.50 / $8), o3-pro ($20 / - / $80).
+- Google: gemini-2.5-flash ($0.30 / $0.03 / $2.50; audio $1 / $0.10;
+  deprecated, routes to gemini-3.5-flash-lite from 2026-12-01),
+  gemini-2.5-flash-lite ($0.10 / $0.01 / $0.40; audio $0.30 / $0.03).
+- xAI: grok-4.20-0309-non-reasoning and grok-4.20-multi-agent-0309
+  ($1.25 / $0.20 / $2.50, 2x at 200K and above).
+- Mistral: zai-glm-5-3-flash ($0.15 / $0.03 / $0.50, from 2026-10-22),
+  deepseek-v4-flash-1017 ($0.30 / $0.007 / $1.20).
+
+Prices changed:
+
+- Mistral Large 4 (`mistral-large-4`): $1.36 / $0.14 / $4.18 -> $0.70 / $0.07 /
+  $2.10. Mistral has not published the change date, so the new card starts on
+  2026-11-03 and runs from 2026-10-21 to 2026-11-02 report cost unknown.
+
+New cards whose launch date is not published start on 2026-11-03, so older
+runs on those models stay cost-unknown rather than guessed.
+
 ## 0.33.0 — Fork edits everywhere (2026-11-03)
 
 ### Added

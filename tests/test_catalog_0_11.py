@@ -40,9 +40,10 @@ def test_mistral_large_4_switches_from_the_launch_sale_to_list_price(catalog):
         "0.14"
     )
     assert _usd(catalog, "mistral", "mistral-large-4", "2026-10-20", MILLION_OUT) == Decimal("4.18")
-    assert _usd(catalog, "mistral", "mistral-large-4-0", "2026-11-01", MILLION_IN) == Decimal(
-        "1.36"
-    )
+    # The 0.34.0 price cut has no published date: 2026-10-21..2026-11-02 is unknown.
+    assert catalog.lookup("mistral", "mistral-large-4-0", effective_at="2026-11-01") is None
+    assert _usd(catalog, "mistral", "mistral-large-4-0", "2026-11-03", MILLION_IN) == Decimal("0.7")
+    assert _usd(catalog, "mistral", "mistral-large-4", "2026-11-03", MILLION_OUT) == Decimal("2.1")
 
 
 def test_minimax_m3_1_flash_is_priced_from_its_release_day(catalog):

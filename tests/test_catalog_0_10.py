@@ -195,4 +195,8 @@ def test_unreleased_models_are_not_carded(catalog):
     # Claude Fable 5.5 has no published price; a card would be a guess.
     names = {name for card in catalog.cards for name in (card.model, *card.aliases)}
     assert "claude-fable-5-5" not in names
-    assert not any(name.startswith("gpt-6.1-") and name != "gpt-6.1-sol" for name in names)
+    # gpt-6.1-terra was published on OpenAI's pricing page by 2026-11-03.
+    assert not any(
+        name.startswith("gpt-6.1-") and name not in {"gpt-6.1-sol", "gpt-6.1-terra"}
+        for name in names
+    )
