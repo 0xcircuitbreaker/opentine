@@ -42,6 +42,7 @@ def add_edit_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--unset",
+        dest="unset_paths",
         action="append",
         default=[],
         metavar="PATH",
@@ -56,7 +57,7 @@ def edit_argv(args: argparse.Namespace) -> list[str]:
     """The edit flags of ``args`` spelled again, for a re-parse (``fork --ref``)."""
     argv = ["--edit-file", args.edit_file] if getattr(args, "edit_file", None) else []
     argv += [f"--set={item}" for item in getattr(args, "set", None) or []]
-    return argv + [f"--unset={item}" for item in getattr(args, "unset", None) or []]
+    return argv + [f"--unset={item}" for item in getattr(args, "unset_paths", None) or []]
 
 
 def _digest(value: Any) -> str:
@@ -89,7 +90,7 @@ def parse_edits(args: argparse.Namespace) -> list[tuple[str, Any]]:
         if not sep or not path:
             raise ValueError(f"--set expects PATH=VALUE, got {item!r}")
         edits.append((path, _value(text)))
-    for path in getattr(args, "unset", None) or []:
+    for path in getattr(args, "unset_paths", None) or []:
         if not path or path.endswith(APPEND):
             raise ValueError(f"--unset expects a field or list item PATH, got {path!r}")
         edits.append((path, UNSET))

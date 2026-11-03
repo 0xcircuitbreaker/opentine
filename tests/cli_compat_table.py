@@ -447,7 +447,7 @@ ROWS: tuple[tuple, ...] = (
         ["fork", "r1", "--from-step", "2", "--unset", "inputs.a", "--set", "inputs.b[+]=1"],
         "opentine._cli_flow:cmd_fork",
         False,
-        {"command": "fork", "set": ["inputs.b[+]=1"], "unset": ["inputs.a"]},
+        {"command": "fork", "set": ["inputs.b[+]=1"], "unset_paths": ["inputs.a"]},
     ),
     (
         "plain:replay r1",
@@ -1713,7 +1713,7 @@ ROWS: tuple[tuple, ...] = (
         ],
         "opentine._repo_cli_porcelain:cmd_repo_fork",
         True,
-        {"command": "repo-fork", "set": ["model=m"], "unset": ["inputs.a"]},
+        {"command": "repo-fork", "set": ["model=m"], "unset_paths": ["inputs.a"]},
     ),
     (
         "plain:repo-resume heads/main --ref heads/r",
