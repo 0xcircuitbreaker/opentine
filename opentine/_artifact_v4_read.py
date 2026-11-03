@@ -119,8 +119,17 @@ def _restore_step_ids(run: Any, objects: dict[str, ObjectEnvelope]) -> None:
         graph.add(replace(step, id=names[oid], parent_ids=parents, causal_ids=causal_ids))
     run.graph = graph
     run.refs = {key: names.get(value, value) for key, value in run.refs.items()}
+    # 0.33: the transcript names steps too; left as event oids, a fork's causal
+    # slice found none of them and dropped every scoped turn.
+    run.transcript = [_renamed_turn(item, names) for item in run.transcript]
     causal = getattr(run, "_v3_causal_ids", {})
     run._v3_causal_ids = {names.get(k, k): [names.get(c, c) for c in v] for k, v in causal.items()}
+
+
+def _renamed_turn(item: Any, names: dict[str, str]) -> Any:
+    if isinstance(item, dict) and item.get("step_id") in names:
+        return {**item, "step_id": names[item["step_id"]]}
+    return item
 
 
 def read_v4(raw: bytes) -> Any:

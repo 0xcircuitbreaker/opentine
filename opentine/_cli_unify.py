@@ -24,6 +24,7 @@ from pathlib import Path
 
 from opentine._cli_common import _find_run
 from opentine._cli_registry import EXTENDED, GROUPS
+from opentine._fork_edit import edit_argv
 from opentine.repo import Repo
 from opentine.repository.ops import resolve_target
 
@@ -82,8 +83,6 @@ def v3_argv(args: argparse.Namespace) -> list[str] | None:
 
 
 def _fork(args: argparse.Namespace, repo: Repo) -> list[str]:
-    if getattr(args, "set", None) or getattr(args, "edit_file", None):
-        raise ValueError("--set/--edit-file edit a .tine file fork; add --legacy (not --ref)")
     step = str(args.from_step)
     if not step.startswith("event:"):
         payload = repo.get(resolve_target(repo, args.run_id)).payload()
@@ -95,7 +94,7 @@ def _fork(args: argparse.Namespace, repo: Repo) -> list[str]:
     argv = ["repo-fork", args.run_id, "--from-event", step, "--ref", args.ref]
     if getattr(args, "model", None):
         argv += ["--model", args.model]
-    return argv + _tail(args, repo)
+    return argv + edit_argv(args) + _tail(args, repo)
 
 
 def tag_is_v3(args: argparse.Namespace) -> bool:
@@ -151,6 +150,7 @@ def add_unify_args(sub: argparse._SubParsersAction) -> None:
         parser.add_argument("--repo", help="A v3 repository (default: discover from .)")
     sub.choices["fork"].add_argument("--ref", help="v3: the ref to write the fork to")
     add_edit_args(sub.choices["fork"])  # 0.28: fork with step K edited (opentine/_fork_edit.py)
+    add_edit_args(sub.choices["repo-fork"])  # 0.33: ... and its repository twin
     tag = sub.choices["tag"]
     tag.add_argument("target", nargs="?", help="v3: the run or ref to tag (default heads/main)")
     tag.add_argument("-s", "--sign", action="store_true", help="v3: sign the tag")

@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.33.0 — Fork edits everywhere (2026-11-03)
+
+### Added
+
+- **Fork edits everywhere.** `tine fork --set/--edit-file` now works on
+  repository runs (v3 and v4): `tine fork REF --from-step K --ref experiments/x
+  --set ...` and `tine repo-fork ... --from-event EV --set ...` replace the
+  fork-point event with an edited, unexecuted copy and record the change log
+  (paths, old and new SHA-256) as `fork_overrides.edit`, which the run oid binds.
+  `repo-fork --json` reports it under `edit`.
+- **Delete and append.** `--unset PATH` deletes a key or list item;
+  `--set PATH[+]=VALUE` appends to a list. Both are recorded with an `op` and
+  refused cleanly (exit 1, nothing written) on a bad path.
+
+### Changed
+
+- An edited fork's transcript no longer keeps the original step K's entries.
+  Forks without edits are unchanged, including their ids.
+
+### Fixed
+
+- Reading a format v4 `.tine` file now maps transcript `step_id`s back to the
+  restored step ids, so forking such a file keeps its step-scoped transcript
+  turns instead of dropping them.
+
 ## 0.32.0 — Stronger rewind (2026-11-03)
 
 ### Added

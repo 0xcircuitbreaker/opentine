@@ -41,6 +41,7 @@ import json
 from typing import Any
 
 from opentine._cli_json import emit
+from opentine._fork_edit import parse_edits
 from opentine._repo_cli_render import _short_oid
 from opentine._repo_cli_write import _receipt, _run_oid
 from opentine.repo import Repo
@@ -87,7 +88,11 @@ def cmd_repo_fork(args: argparse.Namespace, console) -> None:
     # The exact overrides mapping fork_run_v3 builds; None values are dropped by
     # the engine, so an omitted flag and an absent key are the same fork.
     overrides = {"model": args.model, "policy": _policy(args.policy), "prompt": args.prompt}
-    forked = repo.fork(run_id, args.from_event, overrides=overrides, ref=ref)
+    edits = parse_edits(args)  # 0.33: --set/--unset/--edit-file (opentine/_fork_edit.py)
+    forked = repo.fork(
+        run_id, args.from_event, overrides={**overrides, "edit": edits or None}, ref=ref
+    )
+    edit = repo.get(forked).payload()["fork_overrides"].get("edit") if edits else None
     if getattr(args, "json", False):
         emit(
             {
@@ -102,12 +107,16 @@ def cmd_repo_fork(args: argparse.Namespace, console) -> None:
                     name: value for name, value in overrides.items() if value is not None
                 },
                 "resumed": False,
+                **({"edit": edit} if edit else {}),
             }
         )
         return
     _receipt(
         console, f"Forked {_short_oid(run_id)} at {_short_oid(args.from_event)} -> {ref}", forked
     )
+    if edit:
+        paths = ", ".join(change["path"] for change in edit["changes"])
+        console.print(f"Edited step -> {_short_oid(edit['edited_step'])}: {paths}")
 
 
 def cmd_repo_resume(args: argparse.Namespace, console) -> None:

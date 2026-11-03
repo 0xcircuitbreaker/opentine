@@ -109,6 +109,7 @@ def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
         # today keeps working.
         raise ValueError("fork overrides must be an object")
     values = {key: value for key, value in (raw or {}).items() if value is not None}
+    edits = values.pop("edit", None)  # 0.33: checked (and applied) by _fork_edit_v3
     if any(not isinstance(key, str) for key in values):
         # Checked before the join below, which is where a non-str name actually
         # landed: reporting the unknown names raised TypeError instead of the
@@ -144,6 +145,10 @@ def _overrides(raw: dict[str, Any] | None) -> dict[str, Any]:
         _redact(json_stored({k: v for k, v in values.items() if k != "prompt"}, "fork override")),
         where="fork override",
     )
+    if edits is not None:
+        from opentine.repository._fork_edit_v3 import check_edits
+
+        values["edit"] = check_edits(edits)
     return values
 
 
@@ -193,4 +198,8 @@ def fork_payload(
         forked.pop(field, None)
     if model:
         forked["model"] = model
+    if "edit" in applied:
+        from opentine.repository._fork_edit_v3 import apply_event_edit
+
+        apply_event_edit(repo, forked, from_event, applied["edit"])
     return forked
