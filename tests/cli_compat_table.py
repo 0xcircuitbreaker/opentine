@@ -3017,4 +3017,28 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "replay", "verify": True, "min_fidelity": "exact"},
     ),
+    (
+        "plain:verify r1 --offline --tsa-roots tsa.pem",
+        "plain",
+        ["verify", "r1", "--offline", "--tsa-roots", "tsa.pem"],
+        "opentine._cli_security:cmd_verify",
+        False,
+        {"command": "verify", "offline": True, "tsa_roots": "tsa.pem"},
+    ),
+    (
+        "plain:timestamp attach r1 t.tsr",
+        "plain",
+        ["timestamp", "attach", "r1", "t.tsr"],
+        "opentine._cli_timestamp:cmd_timestamp",
+        False,
+        {"command": "timestamp", "timestamp_command": "attach", "run_id": "r1", "token": "t.tsr"},
+    ),
+    (
+        "plain:timestamp data r1",
+        "plain",
+        ["timestamp", "data", "r1"],
+        "opentine._cli_timestamp:cmd_timestamp",
+        False,
+        {"command": "timestamp", "timestamp_command": "data", "run_id": "r1"},
+    ),
 )

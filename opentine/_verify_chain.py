@@ -1,8 +1,8 @@
 """One run through every offline check: the report ``tine verify --offline`` emits.
 
-Order: digest, signature, provenance, attestation family, action manifest and policy, the
-claim-to-tool-output cross-check, then (with ``--locate``) localisation. The
-whole chain runs under ``_offline_guard.no_network``.
+Order: digest, signature, provenance, attestation family, timestamp (0.31), action
+manifest and policy, the claim-to-tool-output cross-check, then (with ``--locate``)
+localisation. The whole chain runs under ``_offline_guard.no_network``.
 """
 
 from __future__ import annotations
@@ -95,6 +95,7 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
     from opentine._verify_offline import actions_checks, digest_check, signature_check
     from opentine._verify_offline_attest import attestation_checks
     from opentine._verify_provenance import provenance_check
+    from opentine._verify_timestamp import timestamp_checks
 
     digest, integrity = digest_check(path)
     report.add(digest)
@@ -102,6 +103,9 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
     report.add(signature)
     report.add(provenance_check(args, path, integrity.ok))
     for check in attestation_checks(args, path):
+        report.add(check)
+    stamps, report.timestamps = timestamp_checks(args, path, integrity)
+    for check in stamps:
         report.add(check)
     data, run = _read(path)
     for check in actions_checks(args, run if integrity.ok else None):

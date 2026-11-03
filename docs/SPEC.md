@@ -1617,11 +1617,13 @@ One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 | `checks` | array | ordered; each `{name, outcome, reason, detail, trust_basis, required}` |
 | `unavailable_required` | array of string | required checks that could not run offline |
 | `location` | object | `--locate` only: `{region, reason, detail, field_path, …}` |
+| `timestamps` | array of object | 0.31.0, present only when a check ran on a stored token (§8.6): `{bound, outcome, reason, gen_time, tsa, policy, hash_algorithm, serial}` |
 
 `outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
 Check names, in order: `digest`, `signature`, `provenance` (§9.9, never
 required), `attestation`, `rekor-receipt`,
-`certificate`, `sct`, `action-manifest`, `action-policy`, `claims` (and
+`certificate`, `sct`, `timestamp` (§8.6, one per token, never required),
+`action-manifest`, `action-policy`, `claims` (and
 `network` if the guard refused a connection). The verdict is `fail` when any
 check failed and, under `--strict`, also when a required check is
 `unavailable-offline`; otherwise `pass`. **A missing key or root is
@@ -1644,6 +1646,7 @@ Reason codes are dotted `area.detail` strings matching
 | claims | `claims.match`, `claims.absent`, `claims.no-run`, `claims.no-tool-step`, `claims.output-mismatch`, `claims.digest-mismatch`, `claims.unclaimed-step`, `claims.unreadable`, `claims.unrecomputable` |
 | locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
 | provenance (§9.9) | `provenance.none` (no `upgraded_from`, or not v4), `provenance.recorded` (the record is shown as a claim, `unavailable-offline`), `provenance.source-match`, `provenance.source-mismatch` (with `--source PATH`) |
+| timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable` |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
 
 The minimal verifier adds codes for what only it reports:
@@ -1733,6 +1736,41 @@ the record's own key, so on its own it shows consistency; compare
 alone. It leaves the link-closure rule of §9.4 to a full reader.
 
 ---
+
+## 8.6 RFC 3161 timestamp tokens (0.31.0)
+
+A run file may carry RFC 3161 tokens in a sidecar beside it,
+`<run file>.timestamps.json`:
+`{"entries": [{"bound": <string>, "token": <base64 DER>}, ...], "kind": "tine-timestamp-sidecar/1"}`
+(canonical JSON, at most 16 entries). `bound` is the run's digest as
+`tine verify` recomputes it: `sha256:<hex>` for a v2/v3 file, the root oid
+`run:sha256:<hex>` for v4. A token's `messageImprint` is the hash
+(SHA-256, -384 or -512) of the UTF-8 bytes of `bound`.
+`tine timestamp data RUN` prints those bytes (no newline) for
+`openssl ts -query -data`; obtaining the response from a TSA is the user's job
+and opentine never contacts one. `tine timestamp attach RUN TOKEN.tsr` accepts a
+DER `TimeStampResp` (status granted) or a bare `TimeStampToken`, checks that it
+parses and that its imprint covers the current digest, and stores it.
+
+`tine verify RUN --offline [--tsa-roots FILE.pem]` adds one `timestamp` check
+per stored token, run under the network guard, against the trust anchors in
+`--tsa-roots` plus the `timestampAuthorities` of `--trusted-root` when an
+attestation is checked. In order, the first failure is the verdict: the DER
+parses (`timestamp.malformed`); `bound` equals the recomputed digest
+(`timestamp.bound-mismatch`); the imprint matches (`timestamp.imprint-mismatch`);
+the signed attributes name `id-ct-TSTInfo` and carry its digest, and the TSA's
+RSA PKCS#1 v1.5, ECDSA or Ed25519 signature over them verifies
+(`timestamp.bad-signature`); the signer certificate (found by issuer and
+serial, or subject key identifier, among the token's certificates) has the
+`id-kp-timeStamping` EKU (`timestamp.missing-eku`) and is valid at `genTime`
+(`timestamp.outside-validity`); and its chain, each link a CA valid at
+`genTime`, reaches a supplied root (`timestamp.untrusted-root`; no root at all
+is `timestamp.no-roots`, `unavailable-offline`). A timestamp check is never
+required and never establishes authorship: it shows *when* the digest
+existed, not *who* recorded it. With no token and no `--tsa-roots` the report
+is unchanged from 0.30. Not checked: revocation (no CRL or OCSP offline),
+the `nonce`, `accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
+(reported `timestamp.unsupported-algorithm`).
 
 # Part 9 — Format v4 (0.26.0)
 
