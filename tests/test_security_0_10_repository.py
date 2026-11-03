@@ -431,8 +431,8 @@ def test_warm_unheaded_lookups_grow_linearly_with_the_annotation_count(tmp_path:
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = warm(100), warm(400)
-    assert large < max(small, 0.01) * 8  # 4x annotations: listing is linear
+    small, large = warm(50), warm(400)
+    assert large < max(small, 0.01) * 24  # 8x annotations: linear ~8x, quadratic ~64x
 
 
 # --- Final pass 5 #3: two unheaded annotations from a shared remote ------------ #

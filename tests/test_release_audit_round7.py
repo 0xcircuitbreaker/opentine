@@ -449,8 +449,8 @@ def test_redaction_stays_linear_in_line_indentation():
             best = min(best, time.monotonic() - started)
         return best
 
-    small, large = elapsed(32), elapsed(128)
-    assert large < max(small, 0.02) * 8  # 4x indent: linear <= ~4x, quadratic ~16x
+    small, large = elapsed(16), elapsed(128)
+    assert large < max(small, 0.02) * 24  # 8x indent: linear <= ~8x, quadratic ~64x
 
 
 def test_indented_and_diff_marked_credentials_still_redact():

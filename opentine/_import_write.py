@@ -13,6 +13,7 @@ import secrets
 from typing import Any
 
 from opentine import _agent_identity as identity
+from opentine._file_originals import KEY, hoist_events
 from opentine.repository._annotations import write_run_annotation
 from opentine.trace.recorder import Recorder
 from opentine.trace.schema import TraceEvent
@@ -70,6 +71,7 @@ def record(
     source_format: str = "",
 ) -> str:
     """Record *events* on *ref* and annotate the run; its final id."""
+    events, originals = hoist_events(events)  # file originals: run metadata, not steps
     recorder = Recorder.start(repo, ref=ref, capture=False)
     recorder.import_events(events, trusted_billing=True)  # distrusted + priced by the caller
     run_id = recorder.finalize()
@@ -80,6 +82,7 @@ def record(
         {
             "capture": capture,
             "agent_identity": import_identity(source_format, events) if capture else None,
+            KEY: originals,
         },
     )
     return run_id

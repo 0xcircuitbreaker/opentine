@@ -60,8 +60,8 @@ def test_coverage_search_time_grows_linearly():
             best = min(best, time.perf_counter() - started)
         return best
 
-    small, large = elapsed(1), elapsed(4)
-    assert large < max(small, 0.01) * 8
+    small, large = elapsed(1), elapsed(8)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.01) * 24
 
 
 def test_an_unproven_coverage_keeps_the_structured_conversation():

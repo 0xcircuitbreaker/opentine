@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.32.0 — Stronger rewind (2026-11-03)
+
+### Added
+
+- **Stronger rewind.** Claude Code (transcript imports and live `stream-json`
+  recordings) and Gemini CLI imports now store each file's full content before
+  the run's first edit to it, once per file, as a content-addressed entry in
+  `metadata.file_originals`; the step keeps only a small `file_original` marker
+  (path, `sha256:` digest, and the digest of the result when the harness
+  reports it). The original is redacted on save like everything else.
+- `tine rewind` prefers the stored original replayed through the run's edits,
+  verified against every recorded digest, and reports per file how it was
+  restored: `exact`, `reconstructed` (the previous diff-based path, still used
+  for older runs) or `skipped` with the reason. A stored original that redaction
+  changed no longer matches its digest, so rewind falls back instead of writing
+  redacted text. JSON output gains `mode` and, when the original was unusable,
+  `fallback` on each row.
+- Claude Code transcript imports now keep the arguments of Edit, MultiEdit and
+  Write calls on their tool steps, so `tine rewind` can replay them.
+
+### Changed
+
+- Linearity timing tests compare an input 8x larger against a 24x bound (best of
+  three each), so linear code measures ~8x and a quadratic regression ~64x;
+  busy macOS runners no longer trip the old 4x/8x margin.
+
 ## 0.31.0 — Offline timestamp checks (2026-11-03)
 
 ### Added

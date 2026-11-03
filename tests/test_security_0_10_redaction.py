@@ -803,8 +803,8 @@ def _timed(build):
             result = min(result, time.perf_counter() - start)
         return result
 
-    # 1x and 4x input, best of three each: linear grows ~4x, quadratic ~16x.
-    return [(best(redact_blob, build(size)), best(_scan, build(size))) for size in (1, 4)]
+    # 1x and 8x input, best of three each: linear grows ~8x, quadratic ~64x.
+    return [(best(redact_blob, build(size)), best(_scan, build(size))) for size in (1, 8)]
 
 
 @pytest.mark.parametrize(
@@ -822,7 +822,7 @@ def test_json_redaction_is_linear(build):
     # Linear in the input, and within a small multiple of the byte scan itself (the
     # rebuild runs every step once more over the document, plus one check round).
     (small, _), (large, scan) = _timed(build)
-    assert large < max(small, 0.02) * 8
+    assert large < max(small, 0.02) * 24
     assert large < 6 * scan + 0.1
 
 
@@ -915,7 +915,7 @@ def test_many_member_names_that_redact_alike_are_renamed_in_linear_time():
         return b"{" + b",".join(b'"password: %06d":1' % i for i in range(1500 * k)) + b"}"
 
     (small, _), (large, _) = _timed(build)
-    assert large < max(small, 0.02) * 8
+    assert large < max(small, 0.02) * 24
     out = json.loads(redact_blob(build(1)))
     assert len(out) == 1500
 
@@ -1015,8 +1015,8 @@ def _access_log(n):
     ],
 )
 def test_redaction_grows_linearly_with_many_removals(build):
-    small, large = _best(build, 1), _best(build, 4)
-    assert large < max(small, 0.02) * 8, (small, large)
+    small, large = _best(build, 1), _best(build, 8)  # linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24, (small, large)
 
 
 def test_many_removed_words_are_found_wherever_they_survive():

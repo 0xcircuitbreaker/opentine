@@ -102,5 +102,5 @@ def test_the_field_rule_stays_linear():
             best = min(best, time.perf_counter() - started)
         return best
 
-    small, large = cost(2000), cost(8000)
-    assert large < max(small, 0.02) * 8
+    small, large = cost(1000), cost(8000)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24

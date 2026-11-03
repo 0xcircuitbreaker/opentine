@@ -28,6 +28,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from opentine._file_originals import MARKER, Originals
 from opentine.trace import _transcript_claude_lines as lines_
 from opentine.trace._transcript_claude_lines import FORMAT
 from opentine.trace._transcript_common import (
@@ -41,6 +42,9 @@ from opentine.trace._transcript_common import (
 )
 from opentine.trace._transcript_usage import claude_tier
 from opentine.trace.schema import TraceEvent
+
+#: Tools whose arguments a tool step repeats, so ``tine rewind`` can replay them.
+FILE_TOOLS = frozenset({"Edit", "MultiEdit", "Write"})
 
 
 class _Builder:
@@ -56,6 +60,8 @@ class _Builder:
         self.pending: list[dict[str, Any]] = []
         self.held: list[dict[str, Any]] = []  # tool results inside an open response
         self.tool_names: dict[str, str] = {}
+        self.tool_inputs: dict[str, Any] = {}  # file tools only: what rewind replays
+        self.originals = Originals()
         self.agents: dict[str, str] = {}  # subagent id -> the tool step that spawned it
         self._chain_args = (trace_id, prefix, parent)
 
@@ -97,16 +103,23 @@ class _Builder:
         results = [b for b in blocks if isinstance(b, dict) and b.get("type") == "tool_result"]
         for block in results:
             call = str(block.get("tool_use_id") or "")
+            inputs = {"name": self.tool_names.get(call, "tool"), "tool_use_id": call}
+            if call in self.tool_inputs:
+                inputs["arguments"] = self.tool_inputs[call]
+            outputs = {
+                "result": text_of(block.get("content")),
+                "is_error": bool(block.get("is_error")),
+            }
+            detail = record.get("toolUseResult") if len(results) == 1 else None
+            if not outputs["is_error"] and (marker := self.originals.claude(detail)):
+                outputs[MARKER] = marker
             chain.add(
                 "tool",
                 record.get("timestamp"),
                 f"tool:{call}" if call else str(record.get("uuid") or ""),
                 actor=self.tool_names.get(call, "tool"),
-                inputs={"name": self.tool_names.get(call, "tool"), "tool_use_id": call},
-                outputs={
-                    "result": text_of(block.get("content")),
-                    "is_error": bool(block.get("is_error")),
-                },
+                inputs=inputs,
+                outputs=outputs,
                 attributes=lines_.flags(record),
             )
             spawned = record.get("toolUseResult")
@@ -158,6 +171,8 @@ class _Builder:
                     calls.append(call)
                     # Every tool_result naming this call repeats the name: clip it.
                     self.tool_names[str(block.get("id") or "")] = label(block.get("name") or "tool")
+                    if call["name"] in FILE_TOOLS and isinstance(call["input"], dict):
+                        self.tool_inputs[str(block.get("id") or "")] = call["input"]
         synthetic = model == "<synthetic>" or bool(first.get("isApiErrorMessage"))
         keys = {
             bounded_id(key, "response")

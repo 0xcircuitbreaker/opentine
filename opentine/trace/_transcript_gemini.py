@@ -18,6 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from opentine._file_originals import MARKER, Originals
 from opentine.trace._transcript_common import (
     SHAPE_ERRORS,
     Chain,
@@ -62,9 +63,10 @@ def gemini_session_events(source: str | Path | list[Any]) -> list[TraceEvent]:
         except SHAPE_ERRORS:
             skipped += 1
     chain = Chain(session)
+    originals = Originals()  # each file's content before its first edit, once
     for message in messages.values():
         try:
-            _gemini_message(chain, message)
+            _gemini_message(chain, message, originals)
         except SHAPE_ERRORS:
             skipped += 1
     return note_skipped(chain.events, skipped)
@@ -114,6 +116,8 @@ def _patch(
                 call = _calls(indexes, key, target).get(_key(tool.get("id")))
                 if call is not None:
                     call["result"] = tool.get("result")
+                    if "resultDisplay" in tool:
+                        call["resultDisplay"] = tool["resultDisplay"]
 
 
 def _listed(value: Any) -> list[Any]:
@@ -152,7 +156,7 @@ def _key(identifier: Any) -> Any:
     return identifier
 
 
-def _gemini_message(chain: Chain, message: dict[str, Any]) -> None:
+def _gemini_message(chain: Chain, message: dict[str, Any], originals: Originals) -> None:
     kind, when = message.get("type"), message.get("timestamp")
     identifier = str(message.get("id") or "")
     attributes = {"source": GEMINI_FORMAT}
@@ -202,13 +206,18 @@ def _gemini_message(chain: Chain, message: dict[str, Any]) -> None:
             attributes=attributes,
         )
         for call in calls:
+            tool_outputs = {"result": text_of(call.get("result")), "status": call.get("status")}
+            if call.get("status") != "error" and (
+                marker := originals.gemini(call.get("args"), call.get("resultDisplay"))
+            ):
+                tool_outputs[MARKER] = marker
             chain.add(
                 "tool",
                 call.get("timestamp") or when,
                 f"tool:{call.get('id') or ''}",
                 actor=str(call.get("name") or "tool"),
                 inputs={"name": call.get("name"), "arguments": call.get("args")},
-                outputs={"result": text_of(call.get("result")), "status": call.get("status")},
+                outputs=tool_outputs,
                 attributes=attributes,
             )
 

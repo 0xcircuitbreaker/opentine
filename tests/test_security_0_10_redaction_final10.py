@@ -85,8 +85,8 @@ def test_ppk_redaction_stays_linear_in_headers():
             best = min(best, time.perf_counter() - started)
         return best
 
-    small, large = elapsed(2000), elapsed(8000)
-    assert large < max(small, 0.02) * 8
+    small, large = elapsed(1000), elapsed(8000)  # 8x: linear ~8x, quadratic ~64x
+    assert large < max(small, 0.02) * 24
 
 
 _BODY = [f"MIIE{i:02d}" + "A" * 58 for i in range(3)]
