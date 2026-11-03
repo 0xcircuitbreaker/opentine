@@ -160,25 +160,42 @@ intent, and a recorded nonce, stored in `metadata.fork` and provable with
 instead of colliding. Both are digests, and a run id read from an untrusted
 artifact never steers an output path.
 
-### Fork with an edited step (0.28)
+### Fork with an edited step (0.28, extended in 0.33)
 
-`tine fork <run> --from-step K --set PATH=VALUE` (repeatable) and/or
-`--edit-file FILE` (a JSON object of `PATH: VALUE`) fork at step K and replace K
-with an edited copy. `PATH` starts with `inputs` (dots descend into objects and
-list indexes, e.g. `inputs.messages.0.content`), `model` (alias of
-`model_info`) or `tool_info`; `VALUE` is parsed as JSON, else taken as a string.
+`tine fork <run> --from-step K --set PATH=VALUE` (repeatable), `--unset PATH`
+(repeatable) and/or `--edit-file FILE` (a JSON object of `PATH: VALUE`) fork at
+step K and replace K with an edited copy. `PATH` starts with `inputs` (dots
+descend into objects and list indexes, e.g. `inputs.messages.0.content`),
+`model` (alias of `model_info`) or `tool_info`; `VALUE` is parsed as JSON, else
+taken as a string.
 
-- Steps before K are kept exactly as recorded; the original file is only read.
+- `--set PATH=VALUE` replaces a field or list item, or adds an object key.
+- `--set PATH[+]=VALUE` appends VALUE to the list at PATH
+  (e.g. `--set 'inputs.messages[+]={"role":"user","content":"and?"}'`); a
+  `PATH[+]` key in `--edit-file` does the same.
+- `--unset PATH` deletes an object key or a list item (later items shift down).
+- Edits apply in order: `--edit-file` first, then each `--set`, then each
+  `--unset`.
+- Steps before K are kept exactly as recorded; the source is only read.
 - The edited K has its recorded result cleared (outputs, error, cost, usage):
-  it has not been executed. The fork stops there and is itself forkable — or add
-  `--harness NAME --prompt TEXT` to continue from the edited step at once.
+  it has not been executed. Its own transcript entries (those whose `step_id`
+  is K) are dropped from the fork's transcript, since they record the call the
+  edit replaced; unscoped turns stay. The fork stops there and is itself
+  forkable, or add `--harness NAME --prompt TEXT` to continue from the edited
+  step at once. opentine does not re-send the edited model call by itself.
 - The edit is provenance: `metadata.edit` names the original step, the edited
   step id, and per changed path the SHA-256 of the old and new value (values are
-  not copied). The edit is part of the fork intent, so it is bound into the fork
-  id and `verify_fork_id` still holds.
-- A path outside those roots, a missing field, a no-op edit or a bad step
-  index exits 1 and writes nothing. `--set`/`--edit-file` are refused with
-  `--ref` (v3 repositories).
+  not copied; an append has an empty old digest, an unset an empty new digest,
+  and both carry an `op`). The edit is part of the fork intent, so it is bound
+  into the fork id and `verify_fork_id` still holds. A fork without edits has
+  exactly the identity record it had before 0.28.
+- **Repositories (0.33).** With `--ref` (or `tine repo-fork ... --from-event`)
+  the same flags edit the fork-point event of a v3 or v4 repository run. The
+  edited event replaces the original in the fork's events, roots, tips and refs,
+  and the same change record is stored as `fork_overrides.edit` in the run
+  object, so the run oid binds the edit. `--json` adds an `edit` object.
+- A path outside those roots, a missing field, appending to a non-list, a no-op
+  edit or a bad step index exits 1 with one message and writes nothing.
 
 ## Replay
 

@@ -86,6 +86,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "trust_embedded_key": ("--trust-embedded-key", False),
     "trusted_root": ("--trusted-root", None),
     "trust_policy": ("--policy", None),
+    "unset": ("--unset", []),
     "verify": ("--verify", False),
 }
 
