@@ -78,6 +78,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "require_sct": ("--require-sct", False),
     "report": ("--report", None),
     "provenance_source": ("--source", None),
+    "tsa_roots": ("--tsa-roots", None),
     "save": ("--save", None),
     "set": ("--set", []),
     "source_repo": ("--repo", None),

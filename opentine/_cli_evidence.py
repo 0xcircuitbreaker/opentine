@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_common import _find_run, _terminal, console
+from opentine._cli_timestamp import add_timestamp_parser, cmd_timestamp
 
 
 def add_evidence_parser(sub: Any) -> None:
@@ -33,6 +34,7 @@ def add_evidence_parser(sub: Any) -> None:
     export.add_argument("--attestation", metavar="FILE", help="in-toto attestation (one run)")
     export.add_argument("--trusted-root", metavar="FILE", help="Sigstore trusted_root.json")
     export.add_argument("--operator", help="Who is exporting (default: the login name)")
+    add_timestamp_parser(sub)  # 0.31: evidence's sibling, a token beside the run
 
 
 def _fail(message: str) -> None:
@@ -110,6 +112,6 @@ def _login() -> str:
         return "unknown"
 
 
-COMMANDS = {"evidence": cmd_evidence}
+COMMANDS = {"evidence": cmd_evidence, "timestamp": cmd_timestamp}
 
 __all__ = ["COMMANDS", "add_evidence_parser", "cmd_evidence"]

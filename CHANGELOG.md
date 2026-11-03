@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.31.0 — Offline timestamp checks (2026-11-03)
+
+### Added
+
+- **Offline timestamp checks.** `tine timestamp attach RUN TOKEN.tsr` stores an
+  RFC 3161 response or token beside the run (`RUN.timestamps.json`), bound to the
+  run's digest; `tine timestamp data RUN` prints the exact bytes its
+  messageImprint must hash, for `openssl ts -query`. Fetching the token from a
+  TSA stays the user's job: opentine opens no connection. `tine verify RUN
+  --offline --tsa-roots FILE.pem` verifies each token under the network guard
+  (imprint, TSA signature over the signed attributes, timestamping EKU, genTime
+  within the certificate's validity, chain to a local root, including the
+  `timestampAuthorities` of `--trusted-root`) and adds a `timestamp` check per
+  token plus an additive `timestamps` section (genTime, TSA, policy OID, hash
+  algorithm) to `tine-verify-report/1`. A missing root is `unavailable-offline`,
+  never a pass; timestamp checks are never required. No new dependency: X.509
+  and signatures use `cryptography`, and a small strict DER walker
+  (`opentine/_der.py`) reads the CMS parts. See SPEC §8.6.
+
 ## 0.30.0 — Compatibility fixtures 0.18.1–0.28.0 (2026-11-03)
 
 ### Added

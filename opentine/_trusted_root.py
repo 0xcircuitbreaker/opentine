@@ -6,7 +6,7 @@ version=0.1``) lists, each with a ``validFor`` window:
 * ``tlogs`` -- Rekor log keys (DER SubjectPublicKeyInfo) and their ``logId``;
 * ``certificateAuthorities`` -- Fulcio certificate chains;
 * ``ctlogs`` -- Certificate Transparency log keys;
-* ``timestampAuthorities`` -- RFC 3161 TSAs (parsed for shape, not used).
+* ``timestampAuthorities`` -- RFC 3161 TSAs (anchors for the offline timestamp check).
 
 A key or CA is used only for a signature whose time lies inside its window: a
 Rekor key for an entry's ``integratedTime``, a CA for that verified
@@ -68,6 +68,10 @@ class TrustedRoot:
     tlogs: list[tuple[bytes, Any, _Window]] = field(default_factory=list)
     authorities: list[tuple[list[x509.Certificate], _Window]] = field(default_factory=list)
     ctlogs: list[tuple[bytes, Any, _Window]] = field(default_factory=list)
+    #: RFC 3161 TSAs (0.31: the offline timestamp check's trust anchors).
+    timestamp_authorities: list[tuple[list[x509.Certificate], _Window]] = field(
+        default_factory=list
+    )
 
     def rekor_key(self, key_id: bytes, when: datetime) -> Any:
         """The Rekor key with *key_id* valid at *when*, else ``None``."""
@@ -188,8 +192,10 @@ def parse_trusted_root(raw: bytes) -> TrustedRoot:
         ],
         ctlogs=[_log(t, f"ctlogs[{i}]") for i, t in enumerate(_list(doc, "ctlogs"))],
     )
-    for i, tsa in enumerate(_list(doc, "timestampAuthorities")):
-        _authority(tsa, f"timestampAuthorities[{i}]")
+    root.timestamp_authorities = [
+        _authority(t, f"timestampAuthorities[{i}]")
+        for i, t in enumerate(_list(doc, "timestampAuthorities"))
+    ]
     if not root.tlogs or not root.authorities:
         raise ValueError("trusted root lists no tlogs or no certificateAuthorities")
     return root

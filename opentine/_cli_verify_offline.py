@@ -17,7 +17,14 @@ from pathlib import Path
 
 from opentine._cli_flags import refuse_unhonoured
 
-OFFLINE_DESTS = ("strict", "report", "action_policy", "locate", "provenance_source")
+OFFLINE_DESTS = (
+    "strict",
+    "report",
+    "action_policy",
+    "locate",
+    "provenance_source",
+    "tsa_roots",
+)
 
 
 def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
@@ -41,6 +48,9 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--action-policy", metavar="FILE", help="--offline: check the run's actions against it"
+    )
+    parser.add_argument(
+        "--tsa-roots", metavar="FILE.pem", help="--offline: trusted TSA roots for timestamp tokens"
     )
 
 

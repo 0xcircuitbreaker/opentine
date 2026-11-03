@@ -36,7 +36,8 @@ JSON_SCHEMA: dict[str, Any] = {
     "title": SCHEMA,
     "$comment": (
         "checks are ordered: digest, signature, provenance, attestation, rekor-receipt, "
-        "certificate, sct, action-manifest, action-policy, claims; provenance is never required"
+        "certificate, sct, timestamp, action-manifest, action-policy, claims; provenance "
+        "and timestamp are never required"
     ),
     "type": "object",
     "additionalProperties": False,
@@ -63,6 +64,7 @@ JSON_SCHEMA: dict[str, Any] = {
         "authorship": {"type": ["string", "null"]},
         "unavailable_required": {"type": "array", "items": _STRING},
         "location": {"type": "object"},
+        "timestamps": {"type": "array", "items": {"type": "object"}},
         "checks": {
             "type": "array",
             "items": {
@@ -109,6 +111,8 @@ class Report:
     checks: list[Check] = field(default_factory=list)
     #: ``--locate`` only: the ``_verify_locate.locate`` object.
     location: dict[str, Any] | None = None
+    #: 0.31: one entry per stored RFC 3161 token (genTime, TSA, policy, hash).
+    timestamps: list[dict[str, Any]] | None = None
 
     def add(self, check: Check) -> None:
         self.checks.append(check)
@@ -144,6 +148,7 @@ class Report:
             "checks": [check.as_json() for check in self.checks],
             "unavailable_required": self.unavailable_required,
             **({"location": self.location} if self.location is not None else {}),
+            **({"timestamps": self.timestamps} if self.timestamps else {}),
         }
 
 

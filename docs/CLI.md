@@ -141,6 +141,25 @@ a Merkle root over the sorted `(run_id, digest)` pairs (leaf
 repository run's digest is its `tine-actions/1` `run_digest`.
 
 ```
+tine timestamp data RUN
+tine timestamp attach RUN TOKEN.tsr
+tine verify RUN --offline --tsa-roots FILE.pem
+```
+
+0.31.0: offline RFC 3161 timestamp checks. `timestamp data` prints the exact
+bytes a token must cover (the run's digest string, no newline); build the query
+and fetch the response yourself, for example
+`tine timestamp data run.tine > bound.txt`,
+`openssl ts -query -data bound.txt -sha256 -cert -out q.tsq`, then POST `q.tsq`
+to your TSA. opentine never contacts a TSA. `timestamp attach` checks the
+response parses and covers the run's current digest, then stores it in
+`RUN.timestamps.json`. `verify --offline` then reports one `timestamp` check per
+token (imprint, TSA signature, timestamping EKU, genTime within the
+certificate's validity, chain to a root in `--tsa-roots` or the
+`--trusted-root` TSAs) and a `timestamps` section with genTime, TSA name,
+policy OID and hash algorithm (SPEC §8.6).
+
+```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
                      [--action-policy FILE] [--attestation FILE]
                      [--trusted-root FILE] [--operator NAME]
