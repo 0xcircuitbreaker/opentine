@@ -71,6 +71,13 @@ named trust policies for `tine verify --policy NAME` (see below).
 `tine agent id|show|trust|keys` are unchanged. `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
 
+`tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it
+keeps objects and everything they reach from `prune`, `gc --prune=now`,
+`rewind --apply` and remote deletes. Also new in 0.35: `gc --prune=never|now`
+(default `never`), `verify --offline --hermetic` (exit 6 where no OS sandbox
+exists, Windows included), `rewind --allow-control-dirs`,
+`replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
+
 ## Default output format
 
 ```

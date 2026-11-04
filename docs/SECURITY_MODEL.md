@@ -420,8 +420,12 @@ verification and installation, and belongs to the identity that declared it:
 any other identity's append, progress check or completion is refused and
 audited; its directories/files are also
 restricted to mode 0700/0600 on POSIX, and stale uploads are reaped. `TINEAES1` and
-`TINEAES2` ciphertext (tenant-bound only) remains readable; a KMS adapter opts
-in to slot binding by implementing `seal`/`unseal`. The reference server requires a key
+`TINEAES2` ciphertext (tenant-bound only) remains readable unless
+`TINE_REMOTE_REFUSE_LEGACY_SEALS=1` is set; `tine serve reseal --to aes4
+--from aes2`
+rewrites it first. Since 0.35 `KMSKeyProvider` writes slot-bound `TINEAES5`
+envelopes (a KMS-wrapped data key); a custom adapter opts in to slot binding by
+implementing `seal`/`unseal`. The reference server requires a key
 provider; production deployments should supply a KMS-backed provider and handle
 rotation outside this minimal server. SQLite audit rows form a serialized
 HMAC-SHA256 chain. An authenticated head stored outside SQLite detects end
@@ -628,9 +632,13 @@ below.
 
 `tine replay --harness` without `--prompt` sends the artifact's recorded
 `user_prompt` to a live agent CLI — that is what a replay is — and prints the
-source, length and a sanitized preview on stderr first. Replaying someone
-else's artifact with a harness that has tool access is running their task:
-pass `--prompt` to send your own.
+source, length and a sanitized preview on stderr first. Since 0.35 it does so
+only when the artifact is signed by the trusted key (`.tine/agents.toml`) of the
+agent its identity claims, or `--trust-recorded-prompt` vouches for it;
+otherwise it refuses. Replaying someone else's artifact with a harness that has
+tool access is running their task: pass `--prompt` to send your own. A key
+pinned in `agents.toml` verifies only runs whose identity claims the agent it is
+listed under.
 
 ## Storage compression and indexes
 
