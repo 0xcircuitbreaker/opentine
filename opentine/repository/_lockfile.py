@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import socket
+import sys
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -102,7 +103,11 @@ def _dead_identity(path: Path) -> tuple[int, int] | None:
         return None
     if len(fields) == 5:
         boot, ns = _boot_id(), _pid_ns()
-        if "-" in (boot, ns) or fields[3:] != [boot, ns]:
+        # Off Linux there is no boot id or PID namespace ("- -" on both sides):
+        # fall back to the host-only rule, or a crashed writer's lock would be
+        # unrecoverable there. On Linux an unknowable field never proves death.
+        unknowable = "-" in (boot, ns) and (sys.platform.startswith("linux") or boot != ns)
+        if unknowable or fields[3:] != [boot, ns]:
             return None  # another boot, namespace, or unknowable: cannot prove
     if pid_alive(pid):
         return None

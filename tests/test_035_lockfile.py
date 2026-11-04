@@ -93,3 +93,24 @@ def test_a_failed_link_back_keeps_the_moved_lock_and_fails(tmp_path: Path, dead_
         _lockfile._break(lock, identity)
     aside = [p for p in tmp_path.iterdir() if "stale" in p.name]
     assert len(aside) == 1 and aside[0].read_bytes() == _live()
+
+
+@pytest.mark.parametrize("platform", ["darwin", "win32"])
+def test_off_linux_a_dead_lock_without_proc_fields_is_still_broken(
+    tmp_path: Path, dead_pid, monkeypatch, platform
+):
+    monkeypatch.setattr(_lockfile.sys, "platform", platform)
+    monkeypatch.setattr(_lockfile, "_boot_id", lambda: "-")
+    monkeypatch.setattr(_lockfile, "_pid_ns", lambda: "-")
+    lock = tmp_path / "x.lock"
+    lock.write_bytes(f"424242 {_lockfile._host()} 1 - -\n".encode())
+    assert _lockfile.provably_dead(lock)
+
+
+def test_on_linux_unknown_proc_fields_never_prove_death(tmp_path: Path, dead_pid, monkeypatch):
+    monkeypatch.setattr(_lockfile.sys, "platform", "linux")
+    monkeypatch.setattr(_lockfile, "_boot_id", lambda: "-")
+    monkeypatch.setattr(_lockfile, "_pid_ns", lambda: "-")
+    lock = tmp_path / "x.lock"
+    lock.write_bytes(f"424242 {_lockfile._host()} 1 - -\n".encode())
+    assert not _lockfile.provably_dead(lock)
