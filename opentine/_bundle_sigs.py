@@ -65,6 +65,31 @@ def _check_entry(entry: Any) -> None:
         raise _bad(f"a block exceeds {MAX_BLOCK_BYTES} bytes")
 
 
+def _check_signature(root: str, entry: dict[str, Any]) -> None:
+    """Refuse an Ed25519 block its own embedded key does not verify (offline).
+
+    HMAC blocks need the reader's secret, so they are checked when used.
+    """
+    block = entry["block"]
+    if block.get("alg") != "ed25519":
+        return
+    from opentine._signing_v4 import artifact_message
+    from opentine._signing_verify import verify_block
+
+    head = entry["annotations_head"]
+    view = {"annotations": [{"id": head}] if head else [], "root": root}
+    verdict = verify_block(
+        block,
+        lambda header: artifact_message(view, header),
+        schemes=(SCHEME,),
+        trust_embedded=True,
+    )
+    if verdict.state == "mismatch" or (
+        verdict.state == "error" and "cryptography" not in verdict.reason
+    ):
+        raise _bad(f"a block for {root} does not verify: {verdict.reason}")
+
+
 def check(value: Any, present: set[str]) -> dict[str, list[dict[str, Any]]]:
     """Shape-check a manifest's ``signatures``; every root must be in the pack."""
     if not isinstance(value, dict):
@@ -79,6 +104,7 @@ def check(value: Any, present: set[str]) -> dict[str, list[dict[str, Any]]]:
                 raise _bad(f"{root} must hold 1..{MAX_SIDECAR_ENTRIES} entries")
             for entry in entries:
                 _check_entry(entry)
+                _check_signature(root, entry)
         except KernelError as exc:
             raise _bad(str(exc)) from None
     return value

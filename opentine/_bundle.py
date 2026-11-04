@@ -144,6 +144,7 @@ def verify(data: bytes) -> Verified:
         raise BundleError(f"bundle pack is invalid: {exc}") from None
     present = {oid for oid, _ in objects}
     refs: dict[str, str] = {}
+    tracked: dict[str, str] = {}  # heads/x and x both land on remotes/<name>/x
     for name, oid in manifest["refs"].items():
         try:
             normalized = normalize_ref(name)
@@ -155,6 +156,9 @@ def verify(data: bytes) -> Verified:
             raise BundleError(f"unsafe bundle ref: {exc}") from None
         if oid not in present:
             raise BundleError(f"bundle ref {name} points outside the bundle")
+        other = tracked.setdefault(name.removeprefix("heads/"), name)
+        if other != name:
+            raise BundleError(f"bundle refs {other} and {name} collide on one tracking ref")
         refs[name] = oid
     signatures = _bundle_sigs.check(manifest.get("signatures", {}), present)
     digest = "sha256:" + hashlib.sha256(data).hexdigest()
@@ -181,7 +185,6 @@ def unbundle(repo: Repo, data: bytes, name: str, *, force: bool = False) -> dict
     if not _NAME.fullmatch(name):
         raise BundleError(f"invalid bundle namespace: {name!r}")
     result = repo.import_pack(checked.pack)
-    _bundle_sigs.install(repo, checked.signatures)
     local = repo.list_refs()
     rows: list[tuple[str, str, str | None]] = []
     unchanged = []
@@ -196,6 +199,7 @@ def unbundle(repo: Repo, data: bytes, name: str, *, force: bool = False) -> dict
         rows.append((target, oid, old))
     if rows:
         repo.update_refs(rows, actor="bundle")
+    _bundle_sigs.install(repo, checked.signatures)  # only once the refs landed
     return {
         "bundle": checked.digest,
         "pack": result.pack_id,
