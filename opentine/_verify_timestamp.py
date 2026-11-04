@@ -3,7 +3,9 @@
 One check per RFC 3161 token stored beside the run (``_timestamp_sidecar``),
 each verified by :func:`opentine._tsp_verify.verify_token` against the run's
 recomputed digest and the local TSA roots: ``--tsa-roots FILE.pem`` plus the
-``timestampAuthorities`` of ``--trusted-root`` when one is given. With no token
+``timestampAuthorities`` of ``--trusted-root`` when one is given. The latter
+anchor only a genTime inside their ``validFor`` window, so a retired TSA does
+not vouch for tokens dated after its retirement (earlier tokens still verify). With no token
 and no ``--tsa-roots`` nothing is added, so older reports are unchanged.
 Timestamp checks are never required: a token adds evidence of *when*, never
 of *who*.
@@ -21,11 +23,15 @@ from opentine._verify_report import Check
 NAME = "timestamp"
 
 
-def _roots(args: argparse.Namespace) -> tuple[list[Any], str]:
-    """``(certificates, trust basis)``; ``ValueError`` names an unreadable file."""
+def _roots(args: argparse.Namespace) -> tuple[list[Any], list[Any], str]:
+    """``(certificates, (chain, window) anchors, trust basis)``.
+
+    ``ValueError`` names an unreadable file.
+    """
     from cryptography import x509
 
     certs: list[Any] = []
+    windowed: list[Any] = []
     basis: list[str] = []
     pem = getattr(args, "tsa_roots", None)
     if pem:
@@ -40,10 +46,10 @@ def _roots(args: argparse.Namespace) -> tuple[list[Any], str]:
         from opentine._trusted_root import load_trusted_root
 
         tsas = load_trusted_root(trusted).timestamp_authorities
-        certs.extend(cert for chain, _ in tsas for cert in chain)
+        windowed.extend(tsas)
         if tsas:
             basis.append(f"timestampAuthorities of {Path(trusted).name}")
-    return certs, "; ".join(basis) or "none: no TSA root supplied"
+    return certs, windowed, "; ".join(basis) or "none: no TSA root supplied"
 
 
 def timestamp_checks(
@@ -67,7 +73,7 @@ def timestamp_checks(
         detail = "not checked: the digest already failed"
         return [Check(NAME, "not-applicable", "timestamp.integrity-failed", detail, "none")], []
     try:
-        roots, basis = _roots(args)
+        roots, windowed, basis = _roots(args)
     except (OSError, ValueError) as exc:
         return [Check(NAME, "fail", "timestamp.roots-unreadable", str(exc), "none")], []
     checks, section = [], []
@@ -76,7 +82,7 @@ def timestamp_checks(
             outcome, reason, info = "fail", "timestamp.bound-mismatch", {}
             detail = f"token is bound to {stored}, the run is now {bound}"
         else:
-            verdict = verify_token(token, bound.encode("utf-8"), roots)
+            verdict = verify_token(token, bound.encode("utf-8"), roots, windowed)
             reason, detail, info = verdict.reason, verdict.detail, verdict.info
             outcome = "pass" if verdict.ok else "fail"
             if verdict.no_roots:
