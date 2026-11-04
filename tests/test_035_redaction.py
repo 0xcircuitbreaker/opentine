@@ -140,3 +140,15 @@ def test_new_steps_stay_linear():
         start = time.perf_counter()
         redact_text(chunk)
         assert time.perf_counter() - start < 1.5
+
+
+@pytest.mark.parametrize("mark", ["‎", "‏", "‮", "⁡", "⁢", "⁤", "᠎"])
+def test_tokens_split_by_other_invisible_characters_are_redacted(mark):
+    token = "ghp_" + "a1B2" * 9
+    assert "a1B2" not in redact_text(f"token {token[:10]}{mark}{token[10:]} end")
+
+
+def test_double_url_encoded_tokens_are_redacted():
+    token = "sk-ant-api03-" + "Ab3" * 30
+    disguised = token.replace("-", "%252D", 1)
+    assert "Ab3Ab3" not in redact_text(f"see {disguised} here")

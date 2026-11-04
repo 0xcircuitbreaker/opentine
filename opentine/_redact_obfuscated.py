@@ -3,7 +3,7 @@
 A stdlib-only leaf for the module line cap. Two scan steps:
 
 * :func:`disguised_edits` finds a token-character run that carries URL escapes
-  (``sk%2Dant-…``), zero-width or soft-hyphen characters (``ghp_\\u200babc…``) or
+  (``sk%2Dant-…``), invisible format characters (``ghp_\\u200babc…``) or
   fullwidth letters, normalizes it (zero-width removed, NFKC, percent-decoded)
   and redacts the whole run when the normalized text holds a known token shape.
 * :func:`entropy_edits` redacts a long, mixed-alphabet, high-entropy value assigned
@@ -28,21 +28,28 @@ from opentine._redact_shapes import TOKEN_SHAPES
 #: ``RedactionPolicy``. Runs without it predate 0.35 (ruleset 1); both verify.
 REDACTION_RULESET = "opentine-redaction/2"
 
-_ZERO_WIDTH = "​‌‍⁠﻿­"
-# Token characters, URL escapes, zero-width/soft-hyphen and fullwidth ASCII bytes.
+# Invisible format characters: zero-width, direction marks and embeddings,
+# invisible operators, the Mongolian vowel separator, BOM and soft hyphen.
+_INVISIBLE = (
+    "\u180e\u200b\u200c\u200d\u200e\u200f\u202a\u202b\u202c\u202d\u202e"
+    "\u2060\u2061\u2062\u2063\u2064\ufeff\u00ad"
+)
+_HIDDEN = rb"\xe1\xa0\x8e|\xe2\x80[\x8b-\x8f\xaa-\xae]|\xe2\x81[\xa0-\xa4]|\xef\xbb\xbf|\xc2\xad"
+# Token characters, URL escapes, invisible characters and fullwidth ASCII bytes.
 _RUN = re.compile(
-    rb"(?:[A-Za-z0-9_.~+/=-]|%[0-9A-Fa-f]{2}|\xe2\x80[\x8b-\x8d]|\xe2\x81\xa0"
-    rb"|\xef\xbb\xbf|\xc2\xad|\xef\xbc[\x81-\xbf]|\xef\xbd[\x80-\x9e]){16,4096}"
+    rb"(?:[A-Za-z0-9_.~+/=-]|%[0-9A-Fa-f]{2}|"
+    + _HIDDEN
+    + rb"|\xef\xbc[\x81-\xbf]|\xef\xbd[\x80-\x9e]){16,4096}"
 )
-_DISGUISE = re.compile(
-    rb"%[0-9A-Fa-f]{2}|\xe2\x80[\x8b-\x8d]|\xe2\x81\xa0|\xef[\xbb\xbc\xbd]|\xc2\xad"
-)
-_ZW_TABLE = {ord(char): None for char in _ZERO_WIDTH}
+_DISGUISE = re.compile(rb"%[0-9A-Fa-f]{2}|\xef[\xbc\xbd]|" + _HIDDEN)
+_ZW_TABLE = {ord(char): None for char in _INVISIBLE}
 
 
 def _normalized(run: bytes) -> bytes:
     text = unicodedata.normalize("NFKC", run.decode("utf-8").translate(_ZW_TABLE))
-    return unquote(text).translate(_ZW_TABLE).encode("utf-8", "replace")
+    for _ in range(3):  # double-encoded escapes (``%252d``) decode one layer at a time
+        text = unquote(text).translate(_ZW_TABLE)
+    return text.encode("utf-8", "replace")
 
 
 def disguised_edits(value: bytes) -> list[Edit]:
