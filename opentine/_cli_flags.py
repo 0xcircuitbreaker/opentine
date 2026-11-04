@@ -44,6 +44,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "fulcio_root": ("--fulcio-root", None),
     "fulcio_url": ("--fulcio-url", None),
     "harness": ("--harness", None),
+    "hermetic": ("--hermetic", False),
     "harness_arg": ("--harness-arg", []),
     "harness_command": ("--harness-command", None),
     "harness_env": ("--harness-env", []),
