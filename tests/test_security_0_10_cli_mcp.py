@@ -251,7 +251,7 @@ def test_every_registered_mcp_tool_and_resource_returns_no_hidden_characters(tmp
         run.save(runs / f"{name}.tine")
     (runs / f"bad{TAGS}.tine").write_text("{not json", encoding="utf-8")
     monkeypatch.setattr(mcp_server, "server_class", lambda: _FakeServer)
-    server = mcp_server.create_server(runs, tmp_path)
+    server = mcp_server.create_server(runs, tmp_path, read_only=False)
 
     listing = server.tools["list_runs"]()
     assert [entry["path"] for entry in listing if entry.get("path")] == ["plain.tine"]

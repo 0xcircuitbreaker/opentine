@@ -8,7 +8,7 @@ from itertools import islice
 from pathlib import Path
 from typing import Any
 
-from opentine._mcp_readonly import ReadOnlyTools
+from opentine._mcp_readonly import ReadOnlyTools, writes_allowed
 from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
 from opentine._mcp_safety import confined_run as _confined_run
@@ -33,13 +33,10 @@ def _scan_runs(root: Path) -> tuple[list[Path], bool]:
 
 
 def _bounded_text(lines: list[str]) -> str:
-    rendered = "\n".join(lines)
-    marker = "\n... (truncated)"
-    return (
-        rendered
-        if len(rendered) <= MAX_MCP_TEXT_CHARS
-        else rendered[: MAX_MCP_TEXT_CHARS - len(marker)] + marker
-    )
+    rendered, marker = "\n".join(lines), "\n... (truncated)"
+    if len(rendered) <= MAX_MCP_TEXT_CHARS:
+        return rendered
+    return rendered[: MAX_MCP_TEXT_CHARS - len(marker)] + marker
 
 
 def find_run(run_id: str, runs_dir: str | Path = ".tine_runs") -> Path:
@@ -203,12 +200,15 @@ def diff_runs_text(run_a: str, run_b: str, runs_dir: str | Path = ".tine_runs") 
 
 
 def create_server(
-    runs_dir: str | Path = ".tine_runs", repo_path: str | Path = ".", *, read_only: bool = False
+    runs_dir: str | Path = ".tine_runs",
+    repo_path: str | Path = ".",
+    *,
+    read_only: bool | None = None,
 ):
-    """Create an MCP server (``read_only``: allowlisted read tools only). Needs ``mcp``."""
-    server = server_class()("opentine")
-    mcp = safe_errors(server)  # every tool error reaches the client sanitized
-    mcp = ReadOnlyTools(mcp) if read_only else mcp  # an allowlist of read tools
+    """Create an MCP server; read tools only unless ``read_only=False`` or opted in."""
+    mcp = safe_errors(server := server_class()("opentine"))  # every error sanitized
+    writes = writes_allowed() if read_only is None else not read_only  # opt-in only
+    mcp = mcp if writes else ReadOnlyTools(mcp)  # an allowlist of read tools
 
     @mcp.tool()
     def list_runs() -> list[dict[str, Any]]:
@@ -243,7 +243,7 @@ def create_server(
 
 
 def main() -> None:  # pragma: no cover - exercised manually with MCP clients
-    create_server(read_only="--read-only" in sys.argv[1:]).run()
+    create_server(read_only=not writes_allowed(sys.argv[1:])).run()
 
 
 if __name__ == "__main__":  # pragma: no cover

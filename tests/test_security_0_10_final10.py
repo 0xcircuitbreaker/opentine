@@ -121,7 +121,7 @@ def test_no_mcp_tool_or_resource_returns_a_control_character(tmp_path, monkeypat
     run.add_step(StepKind.done, {"text": f"d{payload}"})
     run.save(runs / "plain.tine")
     monkeypatch.setattr(mcp_server, "server_class", lambda: _FakeServer)
-    server = mcp_server.create_server(runs, tmp_path)
+    server = mcp_server.create_server(runs, tmp_path, read_only=False)
     calls = {
         "list_runs": (),
         "show_run": ("plain",),

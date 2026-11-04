@@ -2,17 +2,25 @@
 
 The page makes no external request (inline CSS, no script, no link to any
 resource) and is a pure function of the run: the same run gives the same bytes.
-Every recorded string passes through :func:`html.escape`, so a step that holds
-markup renders as text. Each pretty-printed field is capped at ``FIELD_CAP``
-characters and a marker says how much was cut.
+A Content-Security-Policy meta tag allows only the page's own stylesheet (by
+hash), so no script runs even if markup slipped through. Every recorded string
+is scrubbed by :func:`redact_text` again at render time (an artifact written by
+an older or foreign tool may hold secrets) and passes through
+:func:`html.escape`, so a step that holds markup renders as text. Each
+pretty-printed field is capped at ``FIELD_CAP`` characters and a marker says how
+much was cut.
 """
 
 from __future__ import annotations
 
+import base64
 import datetime
+import hashlib
 import json
 from html import escape
 from typing import Any
+
+from opentine.redaction import redact_text
 
 FIELD_CAP = 64 * 1024
 
@@ -33,9 +41,23 @@ border-radius:8px;padding:10px 12px;margin:0 0 8px}.meta{color:var(--dim);font-s
 .err{color:#c0392b}.cut{color:var(--acc);font-style:italic}
 """
 
+_CSS_HASH = base64.b64encode(hashlib.sha256(_CSS.encode("utf-8")).digest()).decode("ascii")
+CSP = (
+    f"default-src 'none'; style-src 'sha256-{_CSS_HASH}'; script-src 'none'; "
+    "img-src 'none'; base-uri 'none'; form-action 'none'"
+)
+
+
+def _scrub(text: str) -> str:
+    """Re-redact recorded text; text redaction cannot read is withheld, not shown."""
+    try:
+        return redact_text(text)
+    except ValueError:
+        return "[withheld: text could not be redacted]"
+
 
 def _e(value: Any) -> str:
-    return escape(str(value), quote=True)
+    return escape(_scrub(str(value)), quote=True)
 
 
 def _pretty(value: Any) -> str:
@@ -44,10 +66,11 @@ def _pretty(value: Any) -> str:
         text = value
     else:
         text = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False, default=str)
+    text = _scrub(text)
     if len(text) <= FIELD_CAP:
-        return _e(text)
+        return escape(text, quote=True)
     marker = f"\n… [truncated {len(text) - FIELD_CAP} characters of {len(text)}]"
-    return _e(text[:FIELD_CAP]) + f'<span class="cut">{_e(marker)}</span>'
+    return escape(text[:FIELD_CAP], quote=True) + f'<span class="cut">{_e(marker)}</span>'
 
 
 def _usage(steps: list) -> dict[str, float]:
@@ -142,6 +165,7 @@ def render_run(run: Any, *, cost: str) -> str:
     steps = "".join(_step(index, step) for index, step in enumerate(run.steps))
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+        f'<meta http-equiv="Content-Security-Policy" content="{CSP}">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<meta name="color-scheme" content="light dark">'
         f"<title>tine run {_e(run.id[:12])}</title><style>{_CSS}</style></head>"
@@ -151,4 +175,4 @@ def render_run(run: Any, *, cost: str) -> str:
     )
 
 
-__all__ = ["FIELD_CAP", "render_run"]
+__all__ = ["CSP", "FIELD_CAP", "render_run"]

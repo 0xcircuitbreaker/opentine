@@ -639,7 +639,17 @@ Compressed artifacts, objects and packs are inflated only after their declared l
 ## MCP server
 
 `opentine.mcp_server` is a shipped entry point (the `mcp` extra) that hands a
-model tools which read and mutate a repository. The run content the model reads
+model tools which read a repository and, only when the operator opts in, mutate
+it.
+
+- **Read-only by default (0.35).** The shipped server registers only the
+  allowlisted read tools. The write tools (`fork_run`, `fork_run_v3`,
+  `resume_run_v3`, `attest_run`, `evaluate_run`, ...) are exposed only with
+  `python -m opentine.mcp_server --allow-writes`, with
+  `OPENTINE_MCP_ALLOW_WRITES=1` in the server's environment, or when a host calls
+  `create_server(..., read_only=False)`; `--read-only` always wins. Before 0.35
+  the write tools were on unless `--read-only` was passed.
+ The run content the model reads
 through those tools is untrusted: text recorded inside a run can address the
 model directly, so every repository tool assumes its arguments may have been
 chosen by whoever produced the run rather than by the operator.
@@ -653,7 +663,8 @@ chosen by whoever produced the run rather than by the operator.
   fully qualified `refs/experiments/...` form is still accepted.
 - **Promotion is off by default.** `promote_run` is registered only when a host
   passes `allow_promotion=True` to `register_repository_tools`; the shipped
-  server does not pass it, so the tool is not exposed. A promotion ref is a
+  server never passes it, even with `--allow-writes`, so the tool is not
+  exposed. A promotion ref is a
   release gate — the compare-and-swap prevents an existing promotion being
   clobbered, but creating one is an operator decision, not a model's.
 - **Attestation is a claim, not a signature.** Evaluation and attestation tools
@@ -675,10 +686,19 @@ chosen by whoever produced the run rather than by the operator.
 - **No host paths.** `list_runs` and `fork_run` report paths relative to the
   runs directory.
 
-A host that registers these tools should treat the repository itself as the
+A host that enables the write tools should treat the repository itself as the
 security boundary. A model holding the fork tool can create runs and consume
 storage under `experiments/`, and the tools run with whatever filesystem access
 the host process has.
+
+## `tine view` HTML
+
+`tine view` writes one static page per run. Every recorded string is scrubbed
+by the redaction pass again when the page is rendered (an artifact written by
+an older or foreign tool may never have been redacted) and is HTML-escaped. The
+page carries a Content-Security-Policy meta tag (`default-src 'none'`, the one
+inline stylesheet allowed by its SHA-256 hash, `script-src 'none'`), so no
+script, frame, image or outbound request runs even if markup slipped through.
 
 ## Git links, porcelain hooks and sandboxes (0.12)
 
