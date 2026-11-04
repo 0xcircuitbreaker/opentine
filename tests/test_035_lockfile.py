@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -38,7 +39,20 @@ def test_a_dead_lock_from_this_boot_and_namespace_is_broken(tmp_path: Path, dead
     assert lock.read_bytes().split()[0] == str(os.getpid()).encode()
 
 
-@pytest.mark.parametrize("which", ["boot", "ns", "unknown"])
+@pytest.mark.parametrize(
+    "which",
+    [
+        "boot",
+        "ns",
+        pytest.param(
+            "unknown",
+            marks=pytest.mark.skipif(
+                not sys.platform.startswith("linux"),
+                reason="off Linux both fields are unknown and the host rule applies",
+            ),
+        ),
+    ],
+)
 def test_a_lock_from_another_boot_or_pid_namespace_is_never_broken(tmp_path: Path, dead_pid, which):
     boot, ns = _lockfile._boot_id(), _lockfile._pid_ns()
     content = {

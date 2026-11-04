@@ -63,8 +63,9 @@ def _escapes(value: str, root: Path, cwd: Path) -> bool:
     if value == "~" or value.startswith("~/"):
         return True
     path = Path(value)
+    rooted = path.is_absolute() or bool(path.anchor)  # Windows: "/etc/x" is rooted, not absolute
     try:
-        if not (path.is_absolute() or ".." in path.parts or (cwd / path).is_symlink()):
+        if not (rooted or ".." in path.parts or (cwd / path).is_symlink()):
             return False
         (cwd / path).resolve().relative_to(root)
     except (OSError, ValueError):

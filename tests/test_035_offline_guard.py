@@ -42,7 +42,10 @@ def test_raw_name_lookup_and_bind_are_refused() -> None:
     [
         lambda: subprocess.run([sys.executable, "-c", "pass"], check=False),
         lambda: os.system("true"),
-        lambda: os.posix_spawn(sys.executable, [sys.executable, "-c", "pass"], os.environ),
+        pytest.param(
+            lambda: os.posix_spawn(sys.executable, [sys.executable, "-c", "pass"], os.environ),
+            marks=pytest.mark.skipif(not hasattr(os, "posix_spawn"), reason="no posix_spawn"),
+        ),
     ],
 )
 def test_process_launch_is_refused(launch) -> None:

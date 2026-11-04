@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -44,7 +45,11 @@ def test_find_cannot_run_or_delete(ws, command):
         "sed -ni p a.txt",
         "sed --in-place=.bak s/x/y/ a.txt",
         "sed 1e\\ touch\\ pwned a.txt",
-        "sed s/hello/touch\\ pwned/e a.txt",
+        pytest.param(
+            "sed s/hello/touch\\ pwned/e a.txt",
+            marks=pytest.mark.skipif(sys.platform == "win32", reason="posix shell quoting"),
+        ),
+        "sed s/hello/date/e a.txt",
         "sed s/x/y/w\\ out a.txt",
         "sed -n 1w\\ out a.txt",
     ],
@@ -99,7 +104,8 @@ def test_ordinary_use_still_works(ws):
     assert shell.run("cat a.txt", policy=_policy(ws, "cat")).strip() == "hello"
     assert "hello" in shell.run("cat sub/../a.txt", policy=_policy(ws, "cat"))
     assert shell.run("sed s/hello/bye/ a.txt", policy=_policy(ws, "sed")).strip() == "bye"
-    assert "a.txt" in shell.run("find . -name *.txt", policy=_policy(ws, "find"))
+    if sys.platform != "win32":  # Windows' own FIND.EXE shadows GNU find on PATH
+        assert "a.txt" in shell.run("find . -name *.txt", policy=_policy(ws, "find"))
     assert shell.run("python3 -c print(1)", policy=_policy(ws, "python3")).strip() == "1"
 
 
@@ -121,3 +127,10 @@ def test_abbreviated_attached_and_old_style_options_are_refused(command):
 
     parts = command.split()
     assert refusal(parts, root=Path.cwd(), cwd=Path.cwd()) is not None
+
+
+def test_rooted_paths_without_a_drive_count_as_escapes(ws):
+    from opentine.tools._shell_args import _escapes
+
+    assert _escapes("/etc/passwd", ws, ws)
+    assert _escapes("\\Windows\\win.ini", ws, ws) or sys.platform != "win32"
