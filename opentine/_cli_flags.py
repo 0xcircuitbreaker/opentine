@@ -71,6 +71,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "overwrite": ("--overwrite", False),
     "pin": ("--pin", None),
     "prompt": ("--prompt", None),
+    "trust_recorded_prompt": ("--trust-recorded-prompt", False),
     "pub": ("--pub", None),
     "pubkey": ("--pubkey", None),
     "rekor": ("--rekor", None),

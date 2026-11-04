@@ -114,7 +114,7 @@ def test_a_harness_replay_names_the_recorded_prompt_before_sending_it(
     monkeypatch.setattr(replay, "_harness_from_args", lambda args: None)
     monkeypatch.setattr(replay, "OpentineHarness", StopHarness)
     with pytest.raises(SystemExit):
-        cli.main(["replay", str(path), "--harness", "generic"])
+        cli.main(["replay", str(path), "--harness", "generic", "--trust-recorded-prompt"])
     error = capsys.readouterr().err
     assert "recorded prompt" in error and "--prompt" in error
     assert "\x1b" not in error and "\x07" not in error

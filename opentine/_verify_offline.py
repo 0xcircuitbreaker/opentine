@@ -120,7 +120,7 @@ def actions_checks(args: argparse.Namespace, run: Any) -> list[Check]:
 def _manifest_check(args: argparse.Namespace, run: Any) -> Check:
     from opentine import _cli_who_trust as who_trust
     from opentine._actions_verdict import Trust, load_manifest, verify
-    from opentine._agent_keys import trusted_fingerprints
+    from opentine._agent_keys import agent_pins, trusted_fingerprints
     from opentine._key_hygiene import hmac_key
     from opentine._signing_pins import normalize_pins
     from opentine.signing import ed25519_public_from_file
@@ -139,7 +139,14 @@ def _manifest_check(args: argparse.Namespace, run: Any) -> Check:
     if stored is False:
         trust = Trust("mismatch", "action manifest is unreadable")
     else:
-        trust = verify(stored, run, hmac_key=secret, public_key=public, pins=pins)
+        trust = verify(
+            stored,
+            run,
+            hmac_key=secret,
+            public_key=public,
+            pins=pins,
+            agent_pins=agent_pins(agents),
+        )
     outcome = {"verified": "pass", "mismatch": "fail", "unknown-key": "unavailable-offline"}
     basis = INTERNAL_ONLY if trust.state != "verified" else f"key {trust.key or 'HMAC secret'}"
     return Check(

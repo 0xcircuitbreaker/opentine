@@ -23,6 +23,7 @@ from opentine._cli_render import _print_diff_table, _print_run_tree
 from opentine._cli_text import announce_recorded_task
 from opentine._cli_verify_replay import cache_replay, expected_slice, verify_replay
 from opentine._replay_fidelity import classify_cache, render_lines
+from opentine._replay_prompt import replay_task
 from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
@@ -47,11 +48,8 @@ def _inspect_replay(run: Run, from_step: str | None) -> None:
     console.print(f"\n[{BRAND}]# Cached replay[/] would reuse {len(selected)} recorded steps")
 
 
-def _harness_replay(args: argparse.Namespace, run: Run) -> None:
-    task = args.prompt or run.user_prompt
-    if not task:
-        console.print("[red]--prompt is required when replaying a harness run.[/]")
-        raise SystemExit(1)
+def _harness_replay(args: argparse.Namespace, run: Run, path: Path) -> None:
+    task = replay_task(args, run, path)
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
     announce_recorded_task(args.prompt, task)
     wrapper = OpentineHarness(_harness_from_args(args))
@@ -95,6 +93,7 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
                 "mode",
                 "prompt",
                 "save",
+                "trust_recorded_prompt",
                 "verify",
                 *HARNESS_CONFIG_FLAGS,
             ),
@@ -112,7 +111,7 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
     if not args.harness:
         refuse_unhonoured(
             args,
-            ("compare", "prompt", *HARNESS_CONFIG_FLAGS),
+            ("compare", "prompt", "trust_recorded_prompt", *HARNESS_CONFIG_FLAGS),
             mode="for a cached replay",
             hint="Pass --harness to re-execute the run instead of reusing its steps.",
         )
@@ -143,7 +142,7 @@ def cmd_replay(args: argparse.Namespace) -> None:
             _inspect_replay(run, args.from_step)
             return
         if args.harness:
-            _harness_replay(args, run)
+            _harness_replay(args, run, path)
             return
         if args.mode == "rerun":
             console.print(

@@ -13,6 +13,10 @@
   **inert until trusted**: ``tine agent trust`` records a hash of its exact
   bytes in ``$XDG_CONFIG_HOME/opentine/trusted-agents.json``, and any edit
   revokes that trust until it is run again.
+
+A pinned key is **scoped to its agent**: it verifies only a run whose
+``opentine-agent/1`` identity claims that name, as its ``harness`` or as its
+``agt_`` ref. This user's own local keys are not scoped.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from opentine._agent_identity import agent_ref
 from opentine._canon import atomic_write_text
 from opentine._signing_pins import key_fingerprint, normalize_pin
 
@@ -149,20 +154,41 @@ def trusted(base: Path | None) -> bool:
 
 
 def trusted_fingerprints(base: Path | None) -> frozenset[str]:
-    """Pinned fingerprints in force: the file's only when trusted, plus local keys."""
-    pinned: set[str] = set(local_fingerprints())
-    if trusted(base):
-        for keys in load_pins(base).values():
-            pinned |= keys
-    return frozenset(pinned)
+    """Unscoped fingerprints in force: this user's own local agent keys.
+
+    *base* is accepted for compatibility; agents.toml keys are per agent and
+    come from :func:`agent_pins`, never from this merged set.
+    """
+    del base
+    return local_fingerprints()
+
+
+def agent_pins(base: Path | None) -> dict[str, frozenset[str]]:
+    """``{agent name: fingerprints}`` from *base*/agents.toml, only when trusted."""
+    return load_pins(base) if trusted(base) else {}
+
+
+def claimed_names(record: Any) -> frozenset[str]:
+    """The agents.toml names a run identity *record* claims: harness and ref."""
+    if not isinstance(record, dict) or not record.get("harness"):
+        return frozenset()
+    return frozenset({str(record["harness"]), agent_ref(record)})
+
+
+def scoped_allows(pins: dict[str, frozenset[str]], record: Any, fpr: str | None) -> bool:
+    """True when *fpr* is pinned for an agent name that *record* claims."""
+    return bool(fpr) and any(fpr in pins.get(name, ()) for name in claimed_names(record))
 
 
 __all__ = [
+    "agent_pins",
     "check_name",
+    "claimed_names",
     "key_dir",
     "key_paths",
     "load_pins",
     "local_fingerprints",
+    "scoped_allows",
     "trust",
     "trusted",
     "trusted_fingerprints",

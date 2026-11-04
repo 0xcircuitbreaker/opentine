@@ -17,7 +17,7 @@ from opentine import _actions_manifest as manifest_mod
 from opentine import _cli_who_trust as who_trust
 from opentine._actions_verdict import Trust, load_manifest, save_manifest, verify
 from opentine._agent_identity import run_identity
-from opentine._agent_keys import key_paths, trusted_fingerprints
+from opentine._agent_keys import agent_pins, key_paths, trusted_fingerprints
 from opentine._cli_common import _terminal, console
 from opentine._signing_keys import SignatureError, ed25519_private_from_file
 from opentine._signing_pins import key_fingerprint, normalize_pins
@@ -72,6 +72,7 @@ def _verify(args: argparse.Namespace, run: Any, base: Any, agents: Any) -> None:
     try:
         keys = verification_keys(args)
         pins = normalize_pins(args.pin) | trusted_fingerprints(agents)
+        scoped = agent_pins(agents)
     except (SignatureError, ValueError) as exc:
         _fail(str(exc))
         return
@@ -80,7 +81,12 @@ def _verify(args: argparse.Namespace, run: Any, base: Any, agents: Any) -> None:
         trust = Trust("mismatch", "action manifest is unreadable")
     else:
         trust = verify(
-            stored, run, hmac_key=keys["hmac_key"], public_key=keys["public_key"], pins=pins
+            stored,
+            run,
+            hmac_key=keys["hmac_key"],
+            public_key=keys["public_key"],
+            pins=pins,
+            agent_pins=scoped,
         )
     if args.json:
         emit(

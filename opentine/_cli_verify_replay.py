@@ -61,6 +61,7 @@ from opentine._cli_text import announce_recorded_task
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import diff_runs
 from opentine._replay_fidelity import Fidelity, classify_cache, classify_rerun
+from opentine._replay_prompt import replay_task
 from opentine.core import Run
 from opentine.harnesses import OpentineHarness
 
@@ -172,10 +173,7 @@ def _execute(args: argparse.Namespace, task: str, context: dict, destination: Pa
 
 
 def _harness_verdict(run: Run, path: Path, args: argparse.Namespace, room: Path) -> Verdict:
-    task = args.prompt or run.user_prompt
-    if not task:
-        console.print("[red]--prompt is required when replaying a harness run.[/]")
-        raise SystemExit(1)
+    task = replay_task(args, run, path)
     start = _resolve_step_ref(run, args.from_step) if args.from_step is not None else None
     announce_recorded_task(args.prompt, task)  # once, though both reruns send it
     context = _run_context(run, start)

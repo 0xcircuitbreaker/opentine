@@ -16,7 +16,7 @@ from typing import Any
 from opentine import _agent_identity as identity
 from opentine._actions import Action
 from opentine._actions_query import ActionQuery
-from opentine._agent_keys import trusted_fingerprints
+from opentine._agent_keys import agent_pins, trusted_fingerprints
 from opentine._agent_trust import TrustResolver, lineage_refs
 from opentine._signing_pins import normalize_pins
 
@@ -60,7 +60,7 @@ def scope_paths(
 def resolver(args: argparse.Namespace, index: Any = None, **keys: Any) -> TrustResolver:
     load, base, agents = scope_paths(args, index)
     pins = normalize_pins(getattr(args, "pin", None)) | trusted_fingerprints(agents)
-    return TrustResolver(load, base, pins=pins, **keys)
+    return TrustResolver(load, base, pins=pins, agent_pins=agent_pins(agents), **keys)
 
 
 def apply_refs(
