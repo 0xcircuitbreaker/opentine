@@ -34,6 +34,8 @@ def control_reason(root: Path, path: Path) -> str:
     lowered = tuple(part.lower() for part in parts)
     if any(part in CONTROL_DIRS for part in lowered[:-1]):
         return "inside a version-control directory"
+    if lowered[-1] in CONTROL_DIRS:  # a ``.git`` file redirects to another gitdir
+        return "a version-control control file"
     if any(lowered[: len(prefix)] == prefix for prefix in CONTROL_PREFIXES):
         return "inside a CI configuration directory"
     if len(lowered) == 1 and lowered[0] in CONTROL_FILES:

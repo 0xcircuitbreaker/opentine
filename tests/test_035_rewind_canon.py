@@ -51,7 +51,7 @@ def test_control_directories_are_refused_by_default(tree, capsys):
     payload = _rewind(capsys, f"{saved}@2", "--root", str(root), "--apply", "--force")
     refused = sorted(row["path"] for row in payload["refused"])
     assert refused == [".git/hooks/pre-commit", ".github/workflows/ci.yml"]
-    assert not (root / ".git").exists() and not (root / ".github").exists()
+    assert not (root / ".git/hooks").parent.exists() and not (root / ".github").exists()
     assert (root / "src/ok.py").read_bytes() == b"evil\n"
 
 
@@ -103,3 +103,11 @@ def test_atomic_write_text_does_not_copy_a_link_targets_mode(tmp_path):
     link.chmod(0o640)
     atomic_write_text(link, "again")
     assert stat.S_IMODE(os.lstat(link).st_mode) == 0o640
+
+
+def test_a_bare_git_file_counts_as_a_control_path(tmp_path) -> None:
+    from opentine._rewind_write import control_reason
+
+    assert control_reason(tmp_path, tmp_path / ".git/")
+    assert control_reason(tmp_path, tmp_path / "sub" / ".GIT")
+    assert not control_reason(tmp_path, tmp_path / "src" / "git.py")
