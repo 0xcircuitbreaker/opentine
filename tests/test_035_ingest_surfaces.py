@@ -43,7 +43,9 @@ def test_a_rebound_host_name_is_refused(otlp, host):
     assert _post(otlp, {}, {"Host": host})[0] == 403
 
 
-@pytest.mark.parametrize("host", ["127.0.0.1:4318", "localhost", "[::1]:4318", "LOCALHOST:1"])
+@pytest.mark.parametrize(
+    "host", ["127.0.0.1:4318", "localhost", "[::1]:4318", "LOCALHOST:1", "localhost.:4318"]
+)
 def test_loopback_host_names_are_accepted(otlp, host):
     assert _post(otlp, {}, {"Host": host}) == (200, {})
 

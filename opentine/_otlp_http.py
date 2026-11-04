@@ -76,7 +76,8 @@ def _host_name(header: str) -> str:
     host = header.strip().lower()
     if host.startswith("["):
         return host[1:].partition("]")[0]
-    return host.rpartition(":")[0] if host.count(":") == 1 else host
+    host = host.rpartition(":")[0] if host.count(":") == 1 else host
+    return host.removesuffix(".")
 
 
 DRAIN_BYTES = 1 << 20  # oversize bodies up to this are read off before a 413
