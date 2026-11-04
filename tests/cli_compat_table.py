@@ -3068,4 +3068,28 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "timestamp", "timestamp_command": "data", "run_id": "r1"},
     ),
+    (
+        "plain:hold list",
+        "plain",
+        ["hold", "list"],
+        "opentine._cli_hold:cmd_hold",
+        False,
+        {"command": "hold", "hold_action": "list"},
+    ),
+    (
+        "plain:hold add heads/main",
+        "plain",
+        ["hold", "add", "heads/main"],
+        "opentine._cli_hold:cmd_hold",
+        False,
+        {"command": "hold", "hold_action": "add", "target": "heads/main"},
+    ),
+    (
+        "plain:hold release heads/main",
+        "plain",
+        ["hold", "release", "heads/main"],
+        "opentine._cli_hold:cmd_hold",
+        False,
+        {"command": "hold", "hold_action": "release", "target": "heads/main"},
+    ),
 )

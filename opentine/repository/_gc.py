@@ -158,7 +158,7 @@ def gc(
     downgrade: bool = False,
     own: frozenset[str] = frozenset(),
 ) -> GcResult:
-    """Pack loose objects (only those *min_age* seconds old or older).
+    """Pack loose objects (*min_age* s old or older); never delete one (``--prune=now``: prune).
 
     ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
     ``upgrade`` moves the repository to storage version 3 and rewrites every

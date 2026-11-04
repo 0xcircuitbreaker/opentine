@@ -25,6 +25,7 @@ from opentine.remote._ref_backend import SQLiteRefMixin
 from opentine.remote._schema import initialize
 from opentine.remote._sealed import OBJECT, seal_object, storage_codec, unseal
 from opentine.remote.interfaces import KeyProvider, RetentionHook
+from opentine.repository._holds import held_oids
 from opentine.repository._refs import normalize_ref
 
 _TENANT = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
@@ -128,10 +129,19 @@ class FilesystemObjectStore:
             return False
         return True
 
+    def held(self, tenant: str) -> set[str]:
+        """Ids held in *tenant* (``<root>/.holds/<tenant>``, the ``tine-holds/1`` format).
+
+        No tenant name starts with ``.``, so the directory never collides with one.
+        """
+        return held_oids(self.root / ".holds" / valid_tenant(tenant))
+
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
         if self.retention:
             self.retention.before_delete(tenant, oid)
+        if oid in self.held(tenant):
+            raise PermissionError(f"{oid} is held")
         path = self._path(tenant, oid)
         path.unlink()
         _fsync_dir(path.parent)

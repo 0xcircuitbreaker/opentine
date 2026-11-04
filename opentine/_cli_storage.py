@@ -8,6 +8,7 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_du import DU_COMMANDS
+from opentine._cli_hold import HOLD_COMMANDS
 
 _CODECS = ("zstd", "zlib")
 
@@ -24,9 +25,11 @@ def _size(count: int) -> str:
 def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
     from opentine._cli_du import add_du_parsers
     from opentine._cli_fanout import add_fanout_parsers
+    from opentine._cli_hold import add_hold_parser
     from opentine._cli_worktree import add_worktree_parser
 
     add_du_parsers(sub)
+    add_hold_parser(sub)
     add_fanout_parsers(sub)  # after `run`, which it extends with --parallel
     add_worktree_parser(sub)
     for name, text in (
@@ -40,6 +43,13 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             "--keep-transfer-packs",
             action="store_true",
             help="Keep the copies of received transfer packs (redundant once packed)",
+        )
+        command.add_argument(
+            "--prune",
+            choices=("never", "now"),
+            default="never",
+            help="Also delete unreachable objects past prune's safety floor (never by "
+            "default since 0.35; held objects are always kept). See `tine prune`",
         )
         command.add_argument("--json", action="store_true")
         change = command.add_mutually_exclusive_group()
@@ -89,10 +99,19 @@ def cmd_gc(args: argparse.Namespace) -> None:
     from opentine.repository._gc import gc
 
     try:
+        # Prune first: packing re-dates what it packs, so nothing would look old after.
+        pruned = _prune_now(args) if args.prune == "now" else None
         result = _gc_run(gc, args)
     except (OSError, ValueError) as exc:  # KernelError is a ValueError
         _refuse(exc)
-    _report_gc(args, result)
+    _report_gc(args, result, pruned)
+
+
+def _prune_now(args: argparse.Namespace):
+    """``--prune=now``: ``tine prune --delete`` at its floor (MIN_GRACE), holds kept."""
+    from opentine.repository._gc_prune import prune
+
+    return prune(_repo(args.repo), delete=True, min_age=0)
 
 
 def _gc_run(gc, args: argparse.Namespace):
@@ -106,10 +125,13 @@ def _gc_run(gc, args: argparse.Namespace):
     )
 
 
-def _report_gc(args: argparse.Namespace, result) -> None:
+def _report_gc(args: argparse.Namespace, result, pruned=None) -> None:
     if args.json:
-        print(json.dumps(result.__dict__, sort_keys=True))
+        extra = {} if pruned is None else {"pruned": pruned.deleted}
+        print(json.dumps({**result.__dict__, **extra}, sort_keys=True))
         return
+    if pruned is not None:
+        console.print(f"[{BRAND}]# Pruned[/] {pruned.deleted} unreachable object(s)")
     console.print(
         f"[{BRAND}]# Packed[/] {result.packed} object(s) with {result.codec}: "
         f"{_size(result.bytes_before)} → {_size(result.bytes_after)} "
@@ -187,6 +209,7 @@ def _worktree(args: argparse.Namespace) -> None:
 
 STORAGE_COMMANDS = {
     **DU_COMMANDS,
+    **HOLD_COMMANDS,
     "fan-out": _fanout,
     "worktree": _worktree,
     "archive": cmd_archive,

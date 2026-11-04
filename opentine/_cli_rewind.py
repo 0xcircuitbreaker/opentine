@@ -53,6 +53,16 @@ def _fail(message: str) -> None:
     raise SystemExit(2)
 
 
+def _refuse_held(root: Path, run: Any, name: str) -> None:
+    """A held run (``tine hold``) is kept as it was: ``--apply`` is refused (0.35)."""
+    from opentine.repository._holds import refuse_held_names
+
+    try:
+        refuse_held_names(root, {name, str(run.id)}, f"rewind of {name}")
+    except ValueError as exc:  # HoldError, or an unreadable holds file
+        _fail(str(exc))
+
+
 def _read(path: Path) -> str | None:
     try:
         return path.read_bytes().decode("utf-8")
@@ -135,6 +145,7 @@ def cmd_rewind(args: argparse.Namespace) -> None:
     blocked = bool(rows["conflict"])
     applied = bool(args.apply) and not blocked
     if applied:
+        _refuse_held(root, run, name)
         try:
             for path, content in writes:
                 write_confined(root, path, content.encode("utf-8"))
