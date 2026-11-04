@@ -10,6 +10,7 @@ scanning never sees a joined one.
 
 from __future__ import annotations
 
+import json
 import random
 import string
 import time
@@ -152,3 +153,20 @@ def test_double_url_encoded_tokens_are_redacted():
     token = "sk-ant-api03-" + "Ab3" * 30
     disguised = token.replace("-", "%252D", 1)
     assert "Ab3Ab3" not in redact_text(f"see {disguised} here")
+
+
+@pytest.mark.parametrize("prefix", ["eaaa", "sk", "dapi", "aiza"])
+def test_object_ids_are_never_mistaken_for_vendor_tokens(prefix):
+    # Square (EAAA...) and Twilio (SK...) prefixes are case-sensitive: a lowercase
+    # hex digest that happens to start with them is an object id, not a token.
+    for n in range(64):
+        digest = (prefix + format(n, "x") * 64)[:64]
+        digest = "".join(c if c in "0123456789abcdef" else "a" for c in digest)
+        oid = f"event:sha256:{digest}"
+        assert redact_text(oid) == oid
+        assert redact_text(json.dumps({"previous_id": oid})) == json.dumps({"previous_id": oid})
+
+
+def test_square_and_twilio_tokens_are_still_redacted():
+    assert "EAAA" not in redact_text("token EAAA" + "x" * 64)
+    assert "SK" + "0" * 32 not in redact_text("SK" + "0" * 32)

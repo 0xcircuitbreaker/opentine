@@ -49,7 +49,7 @@ TOKEN_SHAPES = re.compile(
     rb"|shp(?:at|ca|pa|ss)_[0-9a-f]{32}"  # Shopify
     rb"|vc[pikar]_[A-Za-z0-9]{24,}"  # Vercel
     rb"|AGE-SECRET-KEY-1[0-9A-Z]{58}"  # age identity
-    rb"|SK[0-9a-f]{32}"  # Twilio API key
+    rb"|(?-i:SK)[0-9a-f]{32}"  # Twilio API key
     rb"|api_org_[A-Za-z0-9]{30,}"  # Hugging Face organization
     rb"|sntry[su]_[A-Za-z0-9_=+/-]{40,}"  # Sentry
     rb"|gl(?:sa|c)_[A-Za-z0-9_=+/-]{30,}"  # Grafana
@@ -58,7 +58,7 @@ TOKEN_SHAPES = re.compile(
     rb"|(?:dckr_pat|CCIPAT|bkua|sb_secret|HRKU)[_-][A-Za-z0-9_-]{20,}"  # CI, PaaS
     rb"|(?:ntn|nfp|sbp)_[A-Za-z0-9]{36,}"  # Notion, Netlify, Supabase
     rb"|PMAK-[0-9a-f]{24}-[0-9a-f]{34}"  # Postman
-    rb"|sq0csp-[A-Za-z0-9_-]{40,}|EAAA[A-Za-z0-9_-]{60,}"  # Square
+    rb"|sq0csp-[A-Za-z0-9_-]{40,}|(?-i:EAAA)[A-Za-z0-9_-]{60,}"  # Square
     rb"|[A-Za-z0-9]{14}\.atlasv1\.[A-Za-z0-9_-]{60,}"  # Terraform Cloud
     rb"|[0-9]{8,10}:AA[A-Za-z0-9_-]{33}"  # Telegram bot
     rb"|[A-Za-z0-9_~.]{3}8Q~[A-Za-z0-9_~.-]{31,34}"  # Entra ID (Azure AD) client secret
