@@ -12,6 +12,7 @@ from typing import Any
 from opentine.remote._sealed import (
     SEALED,
     SEALED4,
+    check_legacy,
     seal_compressed_with,
     seal_with,
     tenant_key,
@@ -157,10 +158,12 @@ class RoleAuthorizationPolicy:
 class LocalKeyProvider:
     """AES-GCM envelope used for development and as the KMS adapter contract."""
 
-    def __init__(self, key: bytes):
+    def __init__(self, key: bytes, *, refuse_legacy: bool = False):
         if len(key) not in (16, 24, 32):
             raise ValueError("AES key must be 16, 24, or 32 bytes")
         self.key = key
+        #: Refuse ``TINEAES1``/``TINEAES2`` on read (also ``_sealed.REFUSE_LEGACY_ENV``).
+        self.refuse_legacy = refuse_legacy
 
     @classmethod
     def from_env(cls, name: str = "TINE_KMS_KEY") -> LocalKeyProvider:
@@ -198,6 +201,7 @@ class LocalKeyProvider:
             )
         if ciphertext.startswith(SEALED):
             return unseal_with(self.key, purpose, tenant, context, ciphertext)
+        check_legacy(ciphertext, self.refuse_legacy)
         return self.decrypt(tenant, ciphertext)  # written before 0.9.2
 
     def derive_audit_key(self) -> bytes:
@@ -213,29 +217,4 @@ class LocalKeyProvider:
         return AESGCM(key).decrypt(nonce, body, tenant.encode())
 
 
-class KMSKeyProvider:
-    """Adapter for KMS encrypt/decrypt and audit-key derivation callables."""
-
-    def __init__(
-        self,
-        encrypt: Callable[[str, bytes], bytes],
-        decrypt: Callable[[str, bytes], bytes],
-        derive_audit_key: Callable[[], bytes] | None = None,
-    ):
-        self._encrypt = encrypt
-        self._decrypt = decrypt
-        self._derive_audit_key = derive_audit_key
-
-    def encrypt(self, tenant: str, plaintext: bytes) -> bytes:
-        return self._encrypt(tenant, plaintext)
-
-    def decrypt(self, tenant: str, ciphertext: bytes) -> bytes:
-        return self._decrypt(tenant, ciphertext)
-
-    def derive_audit_key(self) -> bytes:
-        if self._derive_audit_key is None:
-            raise RuntimeError("KMS audit-key derivation is not configured")
-        key = self._derive_audit_key()
-        if not isinstance(key, bytes) or len(key) < 16:
-            raise ValueError("derived audit HMAC key must contain at least 16 bytes")
-        return key
+from opentine.remote._kms import KMSKeyProvider  # noqa: E402, F401  (re-exported)

@@ -58,6 +58,12 @@ def add_admin_parsers(serve: argparse.ArgumentParser) -> None:
         "reseal", help="Rewrite stored objects as aes3 (for a 0.11 rollback) or aes4 (compressed)"
     )
     reseal.add_argument("--to", required=True, choices=("aes3", "aes4"))
+    reseal.add_argument(
+        "--from",
+        dest="source",
+        choices=("aes2",),
+        help="Only rewrite tenant-bound TINEAES1/TINEAES2 objects into the slot-bound form",
+    )
     for parser in (delete_objects, purge, reseal):
         parser.add_argument("--dry-run", action="store_true", help="Report without changing")
     for parser in (refs, delete_ref, associations, delete_objects, purge, reseal):
@@ -102,7 +108,10 @@ def cmd_serve_admin(args: argparse.Namespace, console: Any) -> None:
     elif action == "reseal":
         from opentine.remote._admin_reseal import reseal
 
-        result = asdict(reseal(admin.objects, args.tenant, args.to, dry_run=args.dry_run))
+        resealed = reseal(
+            admin.objects, args.tenant, args.to, dry_run=args.dry_run, source=args.source
+        )
+        result = asdict(resealed)
     else:
         purge = admin.purge(args.tenant, grace_seconds=args.grace_seconds, dry_run=args.dry_run)
         result = asdict(purge)

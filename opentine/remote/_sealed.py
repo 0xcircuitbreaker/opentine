@@ -31,6 +31,7 @@ from typing import Any
 
 SEALED = b"TINEAES3"
 SEALED4 = b"TINEAES4"
+SEALED5 = b"TINEAES5"  # KMS envelope, ``_sealed_envelope``
 _HEADER4 = len(SEALED4) + 1 + 8  # magic, codec byte, uncompressed length (u64 BE)
 OBJECT = "object"
 UPLOAD_FRAME = "upload-frame"
@@ -152,3 +153,21 @@ def storage_codec(configured: str | None = "default") -> str | None:
     if not _codec.available(choice):
         raise ValueError(f"{choice} is not available on this server; install opentine[zstd]")
     return choice
+
+
+#: Operator switch: once ``tine serve reseal --from aes2`` has rewritten every
+#: object, refuse the tenant-only ``TINEAES1``/``TINEAES2`` forms on read.
+REFUSE_LEGACY_ENV = "TINE_REMOTE_REFUSE_LEGACY_SEALS"
+
+
+def refuse_legacy(configured: bool = False) -> bool:
+    value = os.environ.get(REFUSE_LEGACY_ENV, "").strip().lower()
+    return configured or value in ("1", "true", "yes", "on")
+
+
+def check_legacy(ciphertext: bytes, configured: bool = False) -> None:
+    if refuse_legacy(configured) and not ciphertext.startswith((SEALED, SEALED4, SEALED5)):
+        raise ValueError(
+            f"legacy TINEAES1/TINEAES2 ciphertext refused ({REFUSE_LEGACY_ENV}); "
+            "run `tine serve reseal --from aes2` with the old setting first"
+        )
