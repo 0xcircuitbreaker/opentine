@@ -2,9 +2,8 @@
 
 Two halves: ``redact_blob`` scrubs credential-shaped bytes with iterative regex
 scans, and ``redact_value`` walks a decoded value tree. PEM private-key handling
-lives in the stdlib-only leaf ``_redact_pem`` for the module line cap. Both
-imports below are stdlib-only leaves themselves, so this module stays importable
-from every layer that writes objects.
+lives in the stdlib-only leaf ``_redact_pem`` for the module line cap. Every
+import is a stdlib-only leaf, so this module stays importable from every layer.
 """
 
 from __future__ import annotations
@@ -21,6 +20,7 @@ from opentine._redact_forms import B64_KEY_STEP, FORM_STEPS
 from opentine._redact_json import redact_json
 from opentine._redact_memo import cached
 from opentine._redact_names import secret_name
+from opentine._redact_obfuscated import disguised_edits, entropy_edits
 from opentine._redact_pem import private_key_edits
 from opentine._redact_ppk import ppk_edits
 from opentine._redact_shapes import QUERY_SECRET, TOKEN_SHAPES, URL_USERINFO
@@ -47,7 +47,7 @@ _NAME = (
     rb"refresh[_-]?tokens?|session[_-]?tokens?|auth[_-]?tokens?|id[_-]?tokens?|"
     rb"(?:github|gh|hf|npm|pypi|gitlab|bot|slack|discord|telegram|vault|private|"
     rb"security|registry|personal[_-]?access)[_-]?tokens?|"
-    rb"(?:subscription|account|signing|encryption|master|ssh|storage)[_-]?keys?|key[_-]data|"
+    rb"(?:subscription|account|signing|encryption|master|ssh|storage|app|auth)[_-]?keys?|key[_-]data|"
     rb"client[_-]?secrets?|passwords?|passwd|passphrases?|apikey|credentials?|secrets?|"
     rb"private[_-]?key[_-]?ids?|connection[_-]?strings?|webhook[_-]?urls?|dsn)"
 )
@@ -179,10 +179,12 @@ STEPS: list[Step] = [
     flag_edits,  # ``--password x`` / ``--token "x"`` (``_redact_flags``)
     # Tokens before the bounded form values, so a value cut at its bound cannot take
     # a token's prefix and leave the rest behind (see also ``_redact_tails``).
+    disguised_edits,  # URL-escaped, zero-width-split or fullwidth tokens
     sub_step(TOKEN_SHAPES, b"[REDACTED]"),
     sub_step(URL_USERINFO, _keep_ends),
     sub_step(QUERY_SECRET, _keep_head),
     *FORM_STEPS,
+    entropy_edits,  # high-entropy values under key-ish names (``_redact_obfuscated``)
 ]
 
 

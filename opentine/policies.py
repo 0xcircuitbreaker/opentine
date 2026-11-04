@@ -10,6 +10,7 @@ from typing import Any
 
 from opentine._canon_redact import _field_name
 from opentine._redact_extra import secret_keys
+from opentine._redact_obfuscated import REDACTION_RULESET
 
 #: Field names the formats themselves use. Redacting one corrupts the run
 #: (``steps``, ``parent_ids``) instead of hiding a secret, so no policy names one.
@@ -20,7 +21,7 @@ RESERVED_FIELD_NAMES = frozenset(
         "integrity kind legacy_refs manifest manifests metadata model model_info name order "
         "outputs parent_ids policies previous_id prompt_blob provider redact_secrets "
         "redaction refs role roots run_id schema signature signer source_run_id status steps "
-        "system_blob system_prompt tags target_id timestamp tips tool_info transcript type "
+        "ruleset system_blob system_prompt tags target_id timestamp tips tool_info transcript type "
         "usage user_prompt value"
     ).split()
 )
@@ -117,6 +118,8 @@ class RedactionPolicy:
 
     redact_secrets: bool = True
     extra_secret_keys: tuple[str, ...] = ()
+    #: The credential rules this run was redacted under (absent before 0.35).
+    ruleset: str = REDACTION_RULESET
 
     def __post_init__(self) -> None:
         # Both used to be recorded and read by nothing: False never disabled
