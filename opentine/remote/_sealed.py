@@ -73,6 +73,7 @@ def unseal(keys: Any, purpose: str, tenant: str, context: str, ciphertext: bytes
     opener = getattr(keys, "unseal", None)
     if callable(opener):
         return opener(purpose, tenant, context, ciphertext)
+    check_legacy(ciphertext)  # providers without ``unseal`` only write tenant-bound forms
     return keys.decrypt(tenant, ciphertext)
 
 

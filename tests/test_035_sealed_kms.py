@@ -79,3 +79,14 @@ def test_reseal_from_aes2_rewrites_legacy_objects(tmp_path):
     assert reseal(store, "acme", "aes4", source="aes2").rewritten == 0
     strict = FilesystemObjectStore(tmp_path / "objects", _kms(refuse_legacy=True))
     assert strict.get("acme", oid) == data
+
+
+def test_env_refusal_also_covers_providers_without_unseal(monkeypatch):
+    class Plain:
+        def decrypt(self, tenant, ciphertext):
+            return b"opened"
+
+    assert _sealed.unseal(Plain(), "object", "t", "oid", b"TINEAES2xx") == b"opened"
+    monkeypatch.setenv(_sealed.REFUSE_LEGACY_ENV, "1")
+    with pytest.raises(ValueError, match="legacy"):
+        _sealed.unseal(Plain(), "object", "t", "oid", b"TINEAES2xx")
