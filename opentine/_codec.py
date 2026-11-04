@@ -31,6 +31,11 @@ NAMES = {value: key for key, value in CODECS.items()}
 #: Largest raw-to-stored ratio a reader accepts. Writers never produce more:
 #: a body that compresses further is stored as it is (``wrap`` returns ``None``).
 MAX_RATIO = 1000
+#: Readers accept up to ``READ_RATIO`` for bodies declaring at most
+#: ``READ_RATIO_BYTES``: a repetitive log compresses past 1000:1, and the declared
+#: size is already capped by the caller's limit and decompression stops at it.
+#: Writers keep ``MAX_RATIO`` until every supported reader has this rule.
+READ_RATIO, READ_RATIO_BYTES = 100_000, 64 << 20
 #: Bodies below this are stored as they are: a codec saves nothing on them.
 MIN_COMPRESS_BYTES = 512
 _MAX_VARINT_BYTES = 10
@@ -182,7 +187,7 @@ def unwrap(data: bytes, *, limit: int) -> bytes:
     """The uncompressed bytes of a stored body, refusing anything over *limit*.
 
     Legacy (unwrapped) data comes back unchanged. A wrapped body must declare a
-    length within *limit* and within ``MAX_RATIO`` of its frame, inflate to
+    length within *limit* and within the ratio limit of its frame, inflate to
     exactly that length, end where its frame ends, and not hold another wrapper.
     """
     if not is_wrapped(data):
@@ -195,7 +200,8 @@ def unwrap(data: bytes, *, limit: int) -> bytes:
     frame = data[offset:]
     if size > limit:
         raise CodecError("compressed body declares more bytes than the reader allows")
-    if size > max(len(frame), 1) * MAX_RATIO:
+    ratio = READ_RATIO if size <= READ_RATIO_BYTES else MAX_RATIO
+    if size > max(len(frame), 1) * ratio:
         raise CodecError("compressed body exceeds the decompression ratio limit")
     out = _decompress(codec, frame, size)
     if len(out) != size:

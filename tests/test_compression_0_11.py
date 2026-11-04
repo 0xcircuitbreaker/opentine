@@ -76,7 +76,7 @@ def _frame(codec: int, size: int, frame: bytes) -> bytes:
     "stored, reason",
     [
         (_frame(1, 10**9, zlib.compress(b"a" * 1000)), "more bytes than the reader allows"),
-        (_frame(1, 100_000, zlib.compress(b"a" * 1000)), "ratio"),
+        (_frame(1, 1_900_000, b"xx"), "ratio"),
         (_frame(1, 1000, zlib.compress(b"a" * 1000) + b"junk"), "trailing"),
         (_frame(1, 1000, zlib.compress(b"a" * 1000)[:-4]), "trailing or missing"),
         (_frame(1, 999, zlib.compress(b"a" * 1000)), "declared length"),
