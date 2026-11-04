@@ -29,7 +29,8 @@ _DENIED: dict[str, tuple[str, ...]] = {
     "sed": ("-i", "--in-place"),
     "tar": (
         "--to-command", "--checkpoint-action", "--use-compress-program", "-I",
-        "--rsh-command", "--info-script", "--new-volume-script", "-F",
+        "--rsh-command", "--rmt-command", "--info-script", "--new-volume-script",
+        "-F",
     ),
     "rsync": ("-e", "--rsh", "--rsync-path"),
     "zip": ("-TT", "--unzip-command"),
@@ -49,6 +50,10 @@ def _name(executable: str) -> str:
 def _matches(arg: str, option: str) -> bool:
     if arg == option or arg.startswith(option + "="):
         return True
+    if option.startswith("--") and arg.startswith("--"):
+        # getopt_long accepts any unambiguous prefix: ``--to-com=sh``.
+        given = arg.split("=", 1)[0]
+        return len(given) > 3 and option.startswith(given)
     if len(option) == 2 and arg.startswith("-") and not arg.startswith("--"):
         return option[1] in arg[1:]
     return False
@@ -67,17 +72,31 @@ def _escapes(value: str, root: Path, cwd: Path) -> bool:
     return False
 
 
+def _sed_script(arg: str) -> str | None:
+    if not arg.startswith("-"):
+        return arg
+    if arg.startswith("--e") and "=" in arg:  # --expression=SCRIPT, abbreviated
+        return arg.split("=", 1)[1]
+    if not arg.startswith("--") and "e" in arg:  # -ne SCRIPT attached as -neSCRIPT
+        return arg[arg.index("e") + 1 :] or None
+    return None
+
+
 def refusal(parts: list[str], *, root: Path, cwd: Path) -> str | None:
     """Why ``parts`` may not run, or ``None`` when its arguments are acceptable."""
     name = _name(parts[0])
     if name in _WRAPPERS:
         return f"'{parts[0]}' runs other programs and is refused"
     denied = _DENIED.get(name, ())
-    for arg in parts[1:]:
+    args = list(parts[1:])
+    if name == "tar" and args and not args[0].startswith("-"):
+        args[0] = "-" + args[0]  # old-style option cluster: ``tar cIf prog``
+    for arg in args:
         option = next((opt for opt in denied if _matches(arg, opt)), None)
         if option:
             return f"'{parts[0]} {option}' is refused"
-        if name == "sed" and not arg.startswith("-") and _SED_EXEC.search(arg):
+        script = _sed_script(arg) if name == "sed" else None
+        if script and _SED_EXEC.search(script):
             return f"sed script {arg!r} executes or writes files and is refused"
         flagged = arg.startswith("-")
         if flagged and "=" not in arg:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -100,3 +101,23 @@ def test_ordinary_use_still_works(ws):
     assert shell.run("sed s/hello/bye/ a.txt", policy=_policy(ws, "sed")).strip() == "bye"
     assert "a.txt" in shell.run("find . -name *.txt", policy=_policy(ws, "find"))
     assert shell.run("python3 -c print(1)", policy=_policy(ws, "python3")).strip() == "1"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "sed -ee date x.txt",
+        "sed -n -e1e x.txt",
+        "sed --expression=1e x.txt",
+        "sed --expr=1e x.txt",
+        "tar --use-compress=sh -cf o.tar x.txt",
+        "tar --to-com=sh -xf o.tar",
+        "tar cIf sh o.tar x.txt",
+        "tar --rmt-command=sh -cf o.tar x.txt",
+    ],
+)
+def test_abbreviated_attached_and_old_style_options_are_refused(command):
+    from opentine.tools._shell_args import refusal
+
+    parts = command.split()
+    assert refusal(parts, root=Path.cwd(), cwd=Path.cwd()) is not None
