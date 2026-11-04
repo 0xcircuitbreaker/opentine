@@ -92,7 +92,7 @@ def test_a_crash_mid_write_releases_the_ref_lock(tmp_path, monkeypatch):
 def test_the_lock_records_pid_host_and_time(tmp_path):
     path = tmp_path / "x.lock"
     os.close(_lockfile.acquire(path))
-    pid, host, when = path.read_text(encoding="ascii").split()
+    pid, host, when, _boot, _ns = path.read_text(encoding="ascii").split()
     assert int(pid) == os.getpid() and host == _lockfile._host() and int(when) > 0
 
 
