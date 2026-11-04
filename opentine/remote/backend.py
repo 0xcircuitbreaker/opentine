@@ -138,10 +138,10 @@ class FilesystemObjectStore:
 
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
+        if oid in self.held(tenant):  # before the hook: a held object is never offered
+            raise PermissionError(f"{oid} is held")
         if self.retention:
             self.retention.before_delete(tenant, oid)
-        if oid in self.held(tenant):
-            raise PermissionError(f"{oid} is held")
         path = self._path(tenant, oid)
         path.unlink()
         _fsync_dir(path.parent)

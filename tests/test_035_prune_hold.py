@@ -257,3 +257,22 @@ def test_the_remote_refuses_to_delete_a_held_object(tmp_path):
     _holds.edit_holds(holds, lambda rows: [])
     store.delete("acme", blob)
     assert not store.has("acme", blob)
+
+
+def test_the_remote_retention_hook_never_sees_a_held_object(tmp_path):
+    offered: list[str] = []
+
+    class Hook:
+        def before_delete(self, tenant, oid):
+            offered.append(oid)
+
+    key = LocalKeyProvider(b"k" * 32)
+    store = FilesystemObjectStore(tmp_path / "objects", key, codec=None, retention=Hook())
+    local = Repo.init(tmp_path / "local")
+    blob = local.put("blob", b"evidence")
+    store.put("acme", blob, local.raw(blob))
+    holds = tmp_path / "objects" / ".holds" / "acme"
+    _holds.edit_holds(holds, lambda rows: [{"oid": blob, "target": blob}])
+    with pytest.raises(PermissionError):
+        store.delete("acme", blob)
+    assert offered == []
