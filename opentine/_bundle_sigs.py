@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine.kernel import KernelError, parse_oid
+from opentine.kernel import KernelError, canonical_json, parse_oid
 from opentine.repository._paths import internal_path
 from opentine.repository._sig_sidecar import MAX_SIDECAR_ENTRIES, add_signatures, entries_for
 
@@ -39,6 +39,9 @@ def collect(repo: Any, carried: list[str]) -> dict[str, list[dict[str, Any]]]:
     return found
 
 
+MAX_BLOCK_BYTES = 16 * 1024  # an ed25519/sigstore block is far smaller
+
+
 def _bad(message: str) -> ValueError:
     from opentine._bundle import BundleError
 
@@ -54,6 +57,12 @@ def _check_entry(entry: Any) -> None:
             raise _bad("annotations_head is not an annotation oid")
     if not isinstance(block, dict) or block.get("scheme") != SCHEME:
         raise _bad(f"a block is not {SCHEME}")
+    from opentine._signing_verify import _BLOCK_KEYS
+
+    if set(block) - _BLOCK_KEYS:
+        raise _bad("a block has unknown keys")
+    if len(canonical_json(block)) > MAX_BLOCK_BYTES:
+        raise _bad(f"a block exceeds {MAX_BLOCK_BYTES} bytes")
 
 
 def check(value: Any, present: set[str]) -> dict[str, list[dict[str, Any]]]:

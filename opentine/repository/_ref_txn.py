@@ -58,6 +58,10 @@ def _lock(path: Path) -> Path:
 def _write_ref(base: Path, name: str, new_oid: str) -> None:
     path = _ref_path(base, name)
     staging = path.with_name(path.name + "..lock")  # see commit_ref for the name
+    # The ref lock is held, so a staging file here can only be left by a writer
+    # that died after the commit point; remove it or recovery can never proceed.
+    with contextlib.suppress(FileNotFoundError):
+        _winretry.unlink(staging)
     fd = os.open(staging, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "wb") as handle:
