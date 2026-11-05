@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from opentine._ref_delete import delete_ref
-from opentine.repository._oplog import read_ops, set_undoes
+from opentine.repository._oplog import read_ops, reflog_digest, set_undoes
 from opentine.repository._ref_store import read_ref_oid
 from opentine.repository._reflog import read_reflog
 
@@ -33,7 +33,8 @@ def find_op(ops: list[dict], selector: str | None) -> dict:
         raise KeyError("the op log is empty: nothing to undo")
     if selector is None:
         return ops[-1]
-    matches = [op for op in ops if op["id"].startswith(selector) or str(op["index"]) == selector]
+    exact = [op for op in ops if selector in (op["id"], str(op["index"]))]
+    matches = exact or [op for op in ops if op["id"].startswith(selector)]
     if len(matches) != 1:
         raise KeyError(f"{'no' if not matches else 'ambiguous'} op matches {selector!r}")
     return matches[0]
@@ -47,10 +48,13 @@ def problems(base: Path, ops: list[dict], target: dict) -> list[dict]:
         last = next(op for op in reversed(ops) if any(r["ref"] == ref for r in op["refs"]))
         logged = next(r["new"] for r in last["refs"] if r["ref"] == ref)
         current = read_ref_oid(base, ref)
-        newer = [
-            r for r in read_reflog(base, ref) if int(r.get("time_ns", "0")) > int(last["time_ns"])
-        ]
-        if current != logged or newer:
+        logged_row = next(r.get("reflog") for r in last["refs"] if r["ref"] == ref)
+        reflog = read_reflog(base, ref)
+        # The newest reflog row must be the op's own: a coarse clock (Windows) can
+        # stamp an unlogged write in the same tick as the op, so time alone is not enough.
+        moved = bool(reflog) and logged_row is not None and reflog_digest(reflog[0]) != logged_row
+        newer = [r for r in reflog if int(r.get("time_ns", "0")) > int(last["time_ns"])]
+        if current != logged or newer or moved:
             found.append({"kind": "gap", "ref": ref, "logged": logged, "current": current})
         elif last["id"] != target["id"]:
             found.append({"kind": "superseded", "ref": ref, "by": last["id"]})

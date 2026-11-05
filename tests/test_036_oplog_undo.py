@@ -200,3 +200,24 @@ def test_verify_pins_a_key_and_never_touches_the_network(repo, capsys, monkeypat
     _tlog_note.append(other, ORIGIN, lambda _e: b"x")
     foreign = (other / "vkey").read_text().strip()
     assert "signature" in _fails(capsys, ["op", "verify", "--vkey", foreign])["error"]
+
+
+def test_gap_is_found_when_the_clock_does_not_tick(repo, capsys, monkeypatch):
+    # Windows clocks can stamp an unlogged write in the same tick as the op.
+    import time
+
+    monkeypatch.setattr(time, "time_ns", lambda: 1_700_000_000_000_000_000)
+    cli.main(["branch", "feature"])
+    main = repo.read_ref("heads/main")
+    other = repo.put_run(Run(id="tick0001", model_info="m")).run_id
+    repo.update_ref("heads/feature", other)
+    repo.update_ref("heads/feature", main)
+    assert _fails(capsys, ["undo"])["problems"][0]["kind"] == "gap"
+
+
+def test_an_index_selector_wins_over_an_id_prefix(repo, capsys):
+    cli.main(["branch", "a"])
+    cli.main(["branch", "b"])
+    ops = read_ops(repo.path)
+    result = _json(capsys, ["undo", "0", "--force"])
+    assert result["undone"] == ops[0]["id"]

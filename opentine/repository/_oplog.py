@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import getpass
+import hashlib
 import json
 import secrets
 import sys
@@ -52,13 +53,20 @@ def _actor() -> str:
         return "local"
 
 
-def note_move(base: Path, ref: str, old: str | None, new: str | None, actor: str) -> None:
-    """Report one ref write; it is logged only inside an :func:`operation`."""
+def reflog_digest(row: dict) -> str:
+    """Identity of one reflog row: undo checks the ref's newest row is still the op's."""
+    return hashlib.sha256(canonical_json(row)).hexdigest()
+
+
+def note_move(base: Path, ref: str, row: dict) -> None:
+    """Report one ref write (its reflog row); it is logged only inside an :func:`operation`."""
     op = _current.get()
     if op is None:
         return
     refs = op.moves.setdefault(Path(base), {})
-    refs.setdefault(ref, [old, new])[1] = new
+    move = refs.setdefault(ref, [row["old"], None, None])
+    move[1:] = [row["new"], reflog_digest(row)]
+    actor = row["actor"]
     if actor not in op.actors:
         op.actors.append(actor)
 
@@ -78,7 +86,11 @@ def operation(command: str | None) -> Iterator[None]:
     finally:
         _current.reset(token)
         for base, refs in op.moves.items():
-            rows = [{"new": n, "old": o, "ref": r} for r, (o, n) in sorted(refs.items()) if o != n]
+            rows = [
+                {"new": n, "old": o, "ref": r, "reflog": d}
+                for r, (o, n, d) in sorted(refs.items())
+                if o != n
+            ]
             try:
                 if rows:
                     record(base, op, rows)

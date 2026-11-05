@@ -46,8 +46,7 @@ def append_reflog(base: Path, normalized: str, entry: bytes) -> None:
     Every reflog row is also a move the running ``tine`` op logs (``_oplog``)."""
     from opentine.repository._oplog import note_move
 
-    row = json.loads(entry)
-    note_move(base, normalized, row["old"], row["new"], row["actor"])
+    note_move(base, normalized, json.loads(entry))
     log_path = internal_path(base, "logs", *Path(normalized).parts)
     durable_directory(log_path.parent)
     try:
