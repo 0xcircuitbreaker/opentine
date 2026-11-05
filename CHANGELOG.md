@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.36.0 — Agent contract, op log and undo (2026-11-05)
+
+### Behaviour changes
+
+- **Errors go to stderr.** Commands that used their own `_fail` helpers now
+  share one error contract. Under `--json`, stdout carries only JSON, a
+  failure included, as `{"error": {"code", "exit_code", "message"}}`; usage
+  errors under `--json` emit the same object with exit 2. Exit codes 0-6 are
+  named in `docs/CLI.md`, and existing statuses keep their meaning.
+- **Every subcommand accepts `--json`.** Commands without a payload of their
+  own wrap their output as `{command, exit_code, output}`; the v3 plumbing
+  verbs accept it as a no-op. `fleet up` (with or without `--dry-run`) and
+  `replay --dry-run`/`--inspect` now honour it.
+- **`tine serve` refuses static tokens under 32 bytes** unless started with
+  `--allow-weak-tokens`.
+- **`tine stats` counts v3 repositories** instead of the legacy run index.
+
+### Added
+
+- **`tine op log`, `tine op verify` and `tine undo`.** Every ref-moving
+  command appends an entry to `opentine-log/1`, a hash-chained log in the
+  C2SP tlog-tiles layout under `.tine/log/op/` with Ed25519 signed-note
+  checkpoints. `tine undo [OP]` restores an op's refs as a new forward ref
+  transaction and refuses to cross gaps left by writers that do not log
+  (including 0.35 and older) unless `--force`.
+- **`tine push --dry-run`** (alias `--outgoing`) lists the refs, objects and
+  runs a push would send without connecting. `--manifest PATH` writes a
+  canonical push manifest, signed with `--key-file` or `--ed25519-key-file`;
+  URL credentials are stripped from it.
+- **`git config tine.transcriptRemote NAME`** sends run bundles from the
+  pre-push hook to a separate remote from the code.
+- **MCP tools from one registry** (`opentine/_mcp_registry.py`), each
+  annotated read or write. New read tools: `verify_run`, `log`,
+  `fleet_status`, `fanout_status`, `cost`, `agent_show` and `stats`, each
+  returning its command's `--json` payload. `tine fleet status --repo PATH`
+  lists a repository's fan-out records.
+- **OIDC for `tine serve`:** `--oidc-issuer`, `--oidc-audience`,
+  `--oidc-jwks-uri`, `--oidc-tenant-claim` and `--oidc-roles-claim`. Issuer
+  and JWKS URLs must be `https://` and are never taken from a token.
+- **`Repo.update_ref_rebase`** re-reads a contended ref and recomputes its
+  new value, for append-style writers.
+
+### Fixed
+
+- **Concurrent writers to one ref no longer fail on contention.** Ref locks
+  are retried with bounded jittered exponential backoff (10 s) before the
+  contention is reported; a compare-and-swap mismatch is never retried.
+  Contention and CAS mismatches raise distinct `ValueError` subclasses.
+
+### Security
+
+- `tine serve` locks a client out with exponential backoff after repeated
+  401s, and answers 500s with a generic body and a request id, logging the
+  exception server-side only.
+- Supply-chain CI: pip-audit over the locked dependencies, zizmor over the
+  workflows, a CycloneDX SBOM attached to each release and listed in
+  `SHA256SUMS`, CodeQL, OpenSSF Scorecard and Dependabot.
+- The release build job installs only the `release` extra; the test suite
+  runs in a separate gates job. Every existing release gate is kept.
+- Locked `anyio`, `certifi`, `cryptography`, `mcp`, `pyasn1`, `pyjwt` and
+  `urllib3` upgraded past the advisories pip-audit reports.
+
 ## 0.35.0 — Security hardening (2026-11-04)
 
 ### Behaviour changes
