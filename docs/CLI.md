@@ -136,6 +136,27 @@ or the file, or a malformed file, stops the command with a one-line error (exit
 `tine config KEY [VALUE]` still edits the repository's porcelain keys. With no
 setting, every command's output is unchanged.
 
+## Op log and undo (0.36)
+
+Every `tine` command that moves a local ref (`branch`, `tag`, `reset`, `fork`,
+`pull`, `rebase`, `cherry-pick`, ...) appends one entry to the op log: op id,
+command, actor, time and each ref's `old -> new`. The log is `opentine-log/1`, a
+hash-chained record log in the [C2SP tlog-tiles](https://c2sp.org/tlog-tiles)
+layout under `.tine/log/op/` (`checkpoint`, `tile/<L>/<N>`, `tile/entries/<N>`),
+with an Ed25519 [signed-note](https://c2sp.org/signed-note) checkpoint; the
+verifier key is in `.tine/log/op/vkey`.
+
+* `tine op log [-n N] [--json]` lists ops, newest first.
+* `tine op verify [--vkey KEY] [--json]` recomputes every tile, the Merkle root,
+  the hash chain and the checkpoint signature from local files only (it never
+  touches the network). `--vkey` pins a key obtained out of band.
+* `tine undo [OP] [--force] [--json]` puts back the refs `OP` (id, id prefix or
+  index; default the latest) moved, as a new forward ref transaction that is
+  itself logged (`undoes`), so `tine undo` twice redoes. It refuses (exit 1) when
+  a ref was moved since by a later op (`superseded`) or by a writer that does
+  not log, such as opentine 0.34 or a library caller (`gap`: the ref differs from
+  the logged value, or its reflog has newer rows); `--force` undoes anyway.
+
 ## Offline verification (0.25)
 
 ```

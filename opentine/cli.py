@@ -77,6 +77,7 @@ from opentine._user_settings import apply_output_format, cmd_user_config, is_use
 from opentine.pricing_cli import cmd_pricing
 from opentine.remote.server import cmd_serve
 from opentine.repo_cli import REPO_COMMANDS, cmd_repo
+from opentine.repository._oplog import operation
 
 # The legacy (v2) command table. REPO_COMMANDS owns the v3 side; the two must stay
 # disjoint and together cover every parser choice — tests/test_repo_cli_routing.py.
@@ -126,7 +127,7 @@ def main(argv: list[str] | None = None) -> None:
     parser, args = parse_reporting_usage(list(sys.argv[1:] if argv is None else argv), parse)
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
-    with write_format(getattr(args, "write_format", None)):  # tine --format 2
+    with write_format(getattr(args, "write_format", None)), operation(args.command):
         dispatch(args, lambda: _dispatch(parser, args))
 
 
