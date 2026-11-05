@@ -1,0 +1,92 @@
+name: Supply Chain
+
+# Dependency audit, workflow static analysis and a runtime SBOM for main and
+# pull requests. Read-only: no job here can write to the repository or mint an
+# identity token.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "41 4 * * 2"
+  workflow_dispatch:
+
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  pip-audit:
+    name: Audit locked dependencies (pip-audit)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+          enable-cache: false
+
+      - name: Audit every locked dependency
+        run: |
+          uv export --locked --all-extras --no-emit-project --format requirements.txt \
+            --output-file locked-requirements.txt
+          uvx pip-audit==2.10.1 --strict --require-hashes --disable-pip \
+            --requirement locked-requirements.txt
+
+  zizmor:
+    name: Static analysis of GitHub Actions (zizmor)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+          enable-cache: false
+
+      - name: Run zizmor
+        run: uvx zizmor==1.32.0 --offline .github
+
+  sbom:
+    name: CycloneDX SBOM
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+          enable-cache: false
+
+      - name: Generate CycloneDX SBOM of the runtime dependencies
+        run: |
+          uv export --locked --no-dev --no-emit-project --format requirements.txt \
+            --output-file runtime-requirements.txt
+          uvx --from cyclonedx-bom==8.0.1 cyclonedx-py requirements \
+            --output-format JSON --output-file opentine.cdx.json runtime-requirements.txt
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opentine-sbom
+          path: opentine.cdx.json
+          if-no-files-found: error

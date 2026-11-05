@@ -12,13 +12,15 @@ concurrency:
 permissions: {}
 
 jobs:
-  build:
-    name: Build and validate distributions
+  gates:
+    # The test suite needs every extra; it runs here, apart from the build job,
+    # so the environment that produces the released bytes never installs test
+    # tooling or provider SDKs.
+    name: Run release gates
     runs-on: ubuntu-24.04
     env:
       UV_PYTHON: "3.14.4"
     permissions:
-      actions: read
       contents: read
 
     steps:
@@ -38,6 +40,41 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked --all-extras
+
+      - name: Run fast gates
+        run: |
+          uv run python scripts/check_architecture.py
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pytest tests -m "not live and not live_harness" -q
+
+  build:
+    name: Build and validate distributions
+    needs: gates
+    runs-on: ubuntu-24.04
+    env:
+      UV_PYTHON: "3.14.4"
+    permissions:
+      actions: read # query ci.yml runs for the release commit
+      contents: read
+
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+          enable-cache: false
+
+      - name: Set up Python
+        run: uv python install 3.14.4
+
+      - name: Install build toolchain only
+        run: uv sync --locked --no-default-groups --extra release
 
       - name: Verify release source and version
         shell: bash
@@ -71,13 +108,6 @@ jobs:
           )"
           test "$successful_runs" -ge 1
 
-      - name: Run fast gates
-        run: |
-          uv run python scripts/check_architecture.py
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run pytest tests -m "not live and not live_harness" -q
-
       - name: Build source distribution
         run: uv build --no-build-isolation --sdist --out-dir dist
 
@@ -103,6 +133,21 @@ jobs:
             dist/opentine-*.tar.gz
           if-no-files-found: error
           compression-level: 0
+          retention-days: 7
+
+      - name: Generate CycloneDX SBOM of the runtime dependencies
+        run: |
+          uv export --locked --no-dev --no-emit-project --format requirements.txt \
+            --output-file runtime-requirements.txt
+          uvx --from cyclonedx-bom==8.0.1 cyclonedx-py requirements \
+            --output-format JSON --output-file opentine.cdx.json runtime-requirements.txt
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opentine-sbom
+          path: opentine.cdx.json
+          if-no-files-found: error
           retention-days: 7
 
   artifact-smoke:
@@ -153,9 +198,9 @@ jobs:
     needs: [build, artifact-smoke]
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
-      id-token: write
-      attestations: write
+      contents: write # create the GitHub release
+      id-token: write # sign the build-provenance attestation
+      attestations: write # store the attestation
 
     steps:
       - name: Download validated distributions
@@ -164,9 +209,17 @@ jobs:
           name: opentine-release-distributions
           path: dist
 
+      - name: Download SBOM
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: opentine-sbom
+          path: sbom
+
       - name: Generate SHA256SUMS
         working-directory: dist
-        run: sha256sum opentine-*.whl opentine-*.tar.gz > SHA256SUMS
+        run: |
+          mv ../sbom/opentine.cdx.json .
+          sha256sum opentine-*.whl opentine-*.tar.gz opentine.cdx.json > SHA256SUMS
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
@@ -181,7 +234,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "$GITHUB_REF_NAME"
-          dist/opentine-*.whl dist/opentine-*.tar.gz dist/SHA256SUMS
+          dist/opentine-*.whl dist/opentine-*.tar.gz dist/opentine.cdx.json dist/SHA256SUMS
           --verify-tag --generate-notes
 
   pypi:
@@ -193,7 +246,7 @@ jobs:
       url: https://pypi.org/p/opentine
     permissions:
       contents: read
-      id-token: write
+      id-token: write # mint the PyPI Trusted Publishing credential
 
     steps:
       - name: Download validated distributions
