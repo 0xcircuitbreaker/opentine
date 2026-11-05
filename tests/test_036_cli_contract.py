@@ -185,3 +185,11 @@ def test_exit_codes_are_documented() -> None:
     assert "## Errors, `--json` and exit codes" in text
     for code, name in CODES.items():
         assert f"| {code} | `{name}` |" in text
+
+
+def test_a_wrapped_refusal_keeps_its_whole_message_in_the_error_object():
+    from opentine._cli_json_fallback import _last_line
+
+    text = "warning: noise\n\n--json need(s) --parallel N. `tine run`\nsaves its run.\n"
+    assert _last_line(text) == "--json need(s) --parallel N. `tine run` saves its run."
+    assert _last_line("", "") == "command failed"

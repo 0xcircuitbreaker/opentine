@@ -97,10 +97,11 @@ def _is_json(text: str) -> bool:
 
 
 def _last_line(*texts: str) -> str:
+    """The last paragraph of the first non-empty text, its wrapped lines rejoined."""
     for text in texts:
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        if lines:
-            return lines[-1]
+        blocks = [b for b in text.replace("\r\n", "\n").split("\n\n") if b.strip()]
+        if blocks:
+            return " ".join(line.strip() for line in blocks[-1].splitlines() if line.strip())
     return "command failed"
 
 
