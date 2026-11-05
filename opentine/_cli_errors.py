@@ -37,7 +37,7 @@ CODES = {
 
 _state = {"json": False}
 #: The last error reported, for a caller that renders it later (the --json fallback).
-last_error: dict[str, str | None] = {"message": None}
+last_error: dict = {"message": None, "extra": None}
 
 
 def set_json_mode(enabled: bool) -> bool:
@@ -58,29 +58,39 @@ def error_payload(message: object, code: int = ERROR) -> dict:
     return {"error": {"code": name, "exit_code": code, "message": plain_text(message)}}
 
 
-def report(message: object, code: int = ERROR, *, prefix: str = "") -> None:
+def report(
+    message: object, code: int = ERROR, *, prefix: str = "", extra: dict | None = None
+) -> None:
     """Write *message* to stderr, and its JSON form to stdout under ``--json``."""
     from opentine._cli_common import _terminal
 
     text = f"{prefix}{message}"
-    last_error["message"] = text
+    last_error["message"], last_error["extra"] = text, extra
     Console(stderr=True, emoji=False).print(f"[red]{_terminal(text)}[/]")
     if json_mode():
-        sys.stdout.write(json.dumps(error_payload(text, code), sort_keys=True) + "\n")
+        payload = {**(extra or {}), **error_payload(text, code)}
+        sys.stdout.write(json.dumps(payload, sort_keys=True) + "\n")
         sys.stdout.flush()
 
 
-def error(message: object, code: int = ERROR, *, prefix: str = "") -> SystemExit:
+def error(
+    message: object, code: int = ERROR, *, prefix: str = "", extra: dict | None = None
+) -> SystemExit:
     """Report *message* and return the ``SystemExit`` the caller raises."""
-    report(message, code, prefix=prefix)
+    report(message, code, prefix=prefix, extra=extra)
     return SystemExit(code)
 
 
 def fail(
-    message: object, code: int = ERROR, *, prefix: str = "", cause: BaseException | None = None
+    message: object,
+    code: int = ERROR,
+    *,
+    prefix: str = "",
+    cause: BaseException | None = None,
+    extra: dict | None = None,
 ) -> NoReturn:
     """Report *message* and exit with *code*."""
-    raise error(message, code, prefix=prefix) from cause
+    raise error(message, code, prefix=prefix, extra=extra) from cause
 
 
 __all__ = [

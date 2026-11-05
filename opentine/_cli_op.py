@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 
 from opentine._cli_common import BRAND, _terminal, console
 
@@ -29,11 +28,10 @@ def add_op_parsers(sub: argparse._SubParsersAction) -> None:
 
 
 def _fail(args: argparse.Namespace, exc: Exception, extra: dict | None = None) -> None:
+    from opentine._cli_errors import fail
+
     message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
-    if args.json:
-        print(json.dumps({"error": message, **(extra or {})}, sort_keys=True))
-    print(f"tine {args.command}: {_terminal(message)}", file=sys.stderr)
-    raise SystemExit(1) from None
+    fail(message, prefix=f"tine {args.command}: ", extra=extra)
 
 
 def cmd_op(args: argparse.Namespace) -> None:

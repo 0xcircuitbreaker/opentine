@@ -116,7 +116,7 @@ def test_gap_is_found_even_when_the_unlogged_writer_put_the_ref_back(repo, capsy
 
 
 def test_undo_with_an_empty_log_refuses(repo, capsys):
-    assert "empty" in _fails(capsys, ["undo"])["error"]
+    assert "empty" in _fails(capsys, ["undo"])["error"]["message"]
 
 
 def test_log_is_tlog_tiles_with_a_signed_checkpoint(repo, capsys):
@@ -180,7 +180,7 @@ def test_tampering_is_detected(repo, capsys, target):
     with pytest.raises(_tlog.LogError):
         read_ops(repo.path)
     assert _fails(capsys, ["op", "verify"])["error"]
-    assert _fails(capsys, ["undo"])["error"]
+    assert _fails(capsys, ["undo"])["error"]["message"]
     # A command still moves its ref: only the log append is refused (and warned).
     cli.main(["branch", "c"])
     assert repo.read_ref("heads/c") is not None
@@ -199,7 +199,7 @@ def test_verify_pins_a_key_and_never_touches_the_network(repo, capsys, monkeypat
     other = tmp_path / "other"
     _tlog_note.append(other, ORIGIN, lambda _e: b"x")
     foreign = (other / "vkey").read_text().strip()
-    assert "signature" in _fails(capsys, ["op", "verify", "--vkey", foreign])["error"]
+    assert "signature" in _fails(capsys, ["op", "verify", "--vkey", foreign])["error"]["message"]
 
 
 def test_gap_is_found_when_the_clock_does_not_tick(repo, capsys, monkeypatch):

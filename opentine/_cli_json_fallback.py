@@ -119,7 +119,7 @@ def run_with_json(args: argparse.Namespace, run: Callable[[], None]) -> None:
         return
     fallback = getattr(args, FALLBACK_DEST, False)
     out, err, code, exited = io.StringIO(), _Tee(sys.stderr), 0, False
-    _cli_errors.last_error["message"] = None
+    _cli_errors.last_error.update(message=None, extra=None)
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             run()
@@ -143,7 +143,9 @@ def run_with_json(args: argparse.Namespace, run: Callable[[], None]) -> None:
         sys.stdout.write(text)
     else:
         sys.stderr.write(text)
-        sys.stdout.write(json.dumps(_cli_errors.error_payload(message, code), sort_keys=True))
+        extra = _cli_errors.last_error.get("extra") or {}
+        payload = {**extra, **_cli_errors.error_payload(message, code)}
+        sys.stdout.write(json.dumps(payload, sort_keys=True))
         sys.stdout.write("\n")
     if code or exited:  # a handler's own `raise SystemExit(0)` stays an exit
         raise SystemExit(code)
