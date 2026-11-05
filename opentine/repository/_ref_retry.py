@@ -21,7 +21,7 @@ from collections.abc import Callable, Iterator
 from typing import TypeVar
 
 LOCK_WAIT_SECONDS = 10.0
-REBASE_ATTEMPTS = 64
+REBASE_WAIT_SECONDS = 30.0
 _FIRST_DELAY = 0.001
 _MAX_DELAY = 0.05
 
@@ -66,20 +66,30 @@ def update_ref_rebase(
     rebase: Callable[[str | None], str],
     *,
     actor: str = "local",
-    attempts: int = REBASE_ATTEMPTS,
+    attempts: int | None = None,
 ) -> str:
     """Move *name* to ``rebase(current)``, re-reading and retrying on a CAS mismatch.
 
     *rebase* must be a pure function of the current value (it may run several
     times, and its objects should already be stored). Returns the oid written.
+
+    Retries are bounded by time (:data:`REBASE_WAIT_SECONDS` of jittered
+    backoff), not by a fixed count: on a slow filesystem many writers can each
+    lose dozens of rounds before winning one. *attempts* adds a count cap.
     """
-    delays = backoff(LOCK_WAIT_SECONDS)
-    for _ in range(max(1, attempts)):
+    delays = backoff(REBASE_WAIT_SECONDS)
+    tries = 0
+    while True:
+        tries += 1
         current = repo.read_ref(name)
         new_oid = rebase(current)
         try:
             repo.update_ref(name, new_oid, expected_old=current, actor=actor)
             return new_oid
         except RefCasMismatch:
-            time.sleep(next(delays, 0.0))
-    raise RefCasMismatch(f"ref {name!r} kept moving; gave up after {attempts} rebases")
+            delay = next(delays, None)
+            if delay is None or (attempts is not None and tries >= attempts):
+                raise RefCasMismatch(
+                    f"ref {name!r} kept moving; gave up after {tries} rebases"
+                ) from None
+            time.sleep(delay)
