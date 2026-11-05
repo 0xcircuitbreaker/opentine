@@ -65,6 +65,13 @@ are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
 `tine log` without these flags is unchanged: it reads the v3 repository, while
 `--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.
 
+`tine stats --repo PATH` is new in 0.36: run inside a v3 repository (or with
+`--repo`), `stats` counts the repository's store (runs, events, blobs, objects,
+canonical bytes, cost; `--json` adds a `store` object and `scope:
+"v3-repository"`) instead of the legacy `.tine_runs` index. `--group-by` takes
+`model`, `status` or `day` there; the `ls` filters and `--deep` stay legacy-only.
+Elsewhere `stats` reads the legacy index exactly as before.
+
 `tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
 named trust policies for `tine verify --policy NAME` (see below).
 

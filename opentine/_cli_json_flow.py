@@ -125,7 +125,7 @@ ACCOUNTING_FIELDS = frozenset({"billing", "cost", "usage"})
 STATS_SCOPE = "legacy-index"
 STATS_SCOPE_NOTE = (
     "scope: the legacy .tine_runs file index only, not v3 repositories "
-    "(a --repo mode belongs to the v3 search engine and is deferred to a later release)"
+    "(pass --repo, or run inside one, to count a v3 repository's store)"
 )
 
 

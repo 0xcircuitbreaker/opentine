@@ -1,10 +1,10 @@
 """Cross-run aggregation over the legacy ``.tine_runs`` file index.
 
 Scope, stated here and repeated verbatim in the help text and in ``--json``:
-``tine stats`` reads the same rebuildable index ``tine ls`` and ``tine search``
-read, and nothing else. It does not walk v3 repositories — aggregating those is
-the v3 search engine's job and a ``--repo`` mode is deferred to a later release. The
-``scope`` field is what tells a script that a small number is small because of
+this mode reads the rebuildable index ``tine ls`` and ``tine search`` read, and
+nothing else; over a v3 repository (``--repo``, or one in the cwd) the store is
+counted instead, by :mod:`opentine._cli_stats_v3`. The ``scope`` field is what
+tells a script that a small number is small because of
 what was *counted*.
 
 The rule that shapes everything below: :class:`~opentine._index_types.IndexEntry`
@@ -33,6 +33,7 @@ from opentine._cli_common import BRAND, BRAND_DIM, _cost_str, _runs_dir, _termin
 from opentine._cli_json_flow import STATS_SCOPE_NOTE, emit_stats
 from opentine._cli_listing import _index
 from opentine._cli_render import _query_from_ls_args
+from opentine._cli_stats_v3 import cmd_stats_repo, wants_repo
 from opentine.core import Run
 from opentine.index import MAX_INDEX_RUNS, IndexEntry, QueryError, match_entry
 
@@ -212,6 +213,8 @@ def _groups_table(groups: list[dict], group_by: str) -> Table:
 
 
 def cmd_stats(args: argparse.Namespace) -> None:
+    if wants_repo(args):
+        return cmd_stats_repo(args)
     index = _index()
     try:
         query = _query_from_ls_args(args)

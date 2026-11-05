@@ -118,7 +118,6 @@ def _build_parser() -> argparse.ArgumentParser:
     search = sub.add_parser("search", help="Search legacy runs")
     search.add_argument("query", nargs="*")
 
-    # Same filter set as `ls`, so a filter learned there aggregates here unchanged.
     stats = sub.add_parser(
         "stats",
         help=f"Aggregate legacy runs — {STATS_SCOPE_NOTE}",
@@ -132,6 +131,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Load each matched run for tokens and duration, which the index does not store",
     )
     stats.add_argument("--limit", type=int, default=20, help="Max groups to show; 0 for all")
+    stats.add_argument("--repo", help="Aggregate this v3 repository (default: one in the cwd)")
 
     tag = sub.add_parser("tag", help="Tag a v3 run (tags/NAME), or edit a legacy run's labels")
     tag.add_argument("run_id", nargs="?", metavar="NAME_OR_RUN")
