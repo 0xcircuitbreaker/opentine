@@ -118,4 +118,5 @@ testpaths = ["tests"]
 markers = [
     "live: tests that call real model providers or local live services",
     "live_harness: tests that call real external agent CLI harnesses",
+    "stress: multi-process contention tests (run in CI; deselect with -m 'not stress')",
 ]

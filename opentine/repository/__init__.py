@@ -117,6 +117,16 @@ class Repo(ObjectDatabase):
 
         promote(self, run_id, name, expected_old=expected_old)
 
+    def update_ref_rebase(self, name: str, rebase, *, actor: str = "local") -> str:
+        """Move *name* to ``rebase(current)``; on a CAS mismatch re-read and retry.
+
+        Opt-in for append-style updates only: ``update_ref`` never retries a
+        mismatch, since a stale ``expected_old`` means the caller must decide.
+        """
+        from opentine.repository._ref_retry import update_ref_rebase
+
+        return update_ref_rebase(self, name, rebase, actor=actor)
+
     def fetch(self, remote: str, **kwargs: Any):
         from opentine.repository.client import fetch
 

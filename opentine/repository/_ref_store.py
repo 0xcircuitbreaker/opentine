@@ -10,6 +10,7 @@ from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
 from opentine.repository import _winretry
 from opentine.repository._paths import durable_directory, internal_path
+from opentine.repository._ref_retry import RefCasMismatch, RefLockContended
 from opentine.repository._reflog import append_reflog, reflog_entry
 
 MAX_REF_BYTES = 256
@@ -84,7 +85,7 @@ def commit_ref(
         # A crashed multi-ref transaction is rolled forward first (_ref_txn).
         locked_after_recovery(base, [lock_path])
     except ValueError as exc:
-        raise ValueError(
+        raise RefLockContended(
             f"ref {normalized!r} is locked by a concurrent writer ({lock_path}); if no "
             "opentine process is writing this repository, delete that file"
         ) from exc
@@ -94,7 +95,7 @@ def commit_ref(
     try:
         old = read_ref_oid(base, normalized)
         if check_expected and old != expected_old:
-            raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
+            raise RefCasMismatch(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
         entry = reflog_entry(normalized, old, new_oid, actor)
         write_fd = os.open(write_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(write_fd, "wb") as handle:

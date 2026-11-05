@@ -68,6 +68,16 @@ repo.update_ref("tags/example", oid, expected_old=None)
 assert repo.fsck(deep=True).ok
 ```
 
+`update_ref` is strict compare-and-swap: a contended ref lock is waited for
+(bounded, jittered backoff), but an `expected_old` that no longer matches raises
+`RefCasMismatch` (a `ValueError`) and is never retried, because the caller's new
+value was computed from a stale state. When the new value is a pure function of
+the current one (an append), opt in to re-read-and-retry instead:
+
+```python
+repo.update_ref_rebase("tags/log", lambda current: make_entry_after(current))
+```
+
 Six ref namespaces are accepted — `heads/`, `experiments/`, `promotions/`,
 `annotations/`, `tags/`, and `remotes/` — and any other name is refused.
 `heads/*`, `experiments/*`, and `promotions/*` move between `run` objects, and

@@ -20,24 +20,26 @@ it is renamed ``T.rejected`` (kept for inspection, no longer blocking writers).
 from __future__ import annotations
 
 import contextlib
-import json
 import os
 import re
 import secrets
 from pathlib import Path
 
 from opentine._canon import _fsync_dir
-from opentine.kernel import KernelError, canonical_json, parse_oid
+from opentine.kernel import canonical_json
 from opentine.repository import _winretry
 from opentine.repository._lockfile import acquire, provably_dead
 from opentine.repository._paths import durable_directory, internal_path
+from opentine.repository._ref_journal import (
+    MAX_JOURNAL_BYTES,
+    MAX_TXN_REFS,
+    TXN_FORMAT,
+    parse_journal,
+)
+from opentine.repository._ref_retry import RefCasMismatch, RefLockContended, retry_contended
 from opentine.repository._ref_store import read_ref_oid
 from opentine.repository._reflog import append_reflog, reflog_entry
-from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 
-TXN_FORMAT = "opentine-ref-txn/1"
-MAX_TXN_REFS = 4096
-MAX_JOURNAL_BYTES = 4 * 1024 * 1024
 _TXN_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
@@ -51,7 +53,7 @@ def _lock(path: Path) -> Path:
         with os.fdopen(acquire(path), "wb"):
             pass  # stamped by acquire; the file only has to exist
     except FileExistsError as exc:
-        raise ValueError(f"ref is locked by a concurrent writer ({path})") from exc
+        raise RefLockContended(f"ref is locked by a concurrent writer ({path})") from exc
     return path
 
 
@@ -80,44 +82,6 @@ def _apply(base: Path, record: dict, actor: str) -> None:
         entry = reflog_entry(row["ref"], current, row["new"], actor)
         _write_ref(base, row["ref"], row["new"])
         append_reflog(base, row["ref"], entry)
-
-
-def parse_journal(base: Path, raw: bytes, txn_id: str) -> dict:
-    """A journal's record, or ``ValueError``: every field is checked before use."""
-    from opentine.repository.store import Repo
-
-    if len(raw) > MAX_JOURNAL_BYTES:
-        raise ValueError("journal exceeds its size limit")
-    record = json.loads(raw)
-    if not isinstance(record, dict) or set(record) != {"actor", "format", "id", "updates"}:
-        raise ValueError("journal has the wrong fields")
-    if record["format"] != TXN_FORMAT or record["id"] != txn_id:
-        raise ValueError("journal format or id mismatch")
-    if not isinstance(record["actor"], str) or len(record["actor"]) > 4096:
-        raise ValueError("journal actor is malformed")
-    rows = record["updates"]
-    if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_TXN_REFS:
-        raise ValueError("journal updates are malformed")
-    seen: set[str] = set()
-    for row in rows:
-        if not isinstance(row, dict) or set(row) != {"new", "old", "ref"}:
-            raise ValueError("journal row has the wrong fields")
-        if not isinstance(row["ref"], str) or normalize_ref(row["ref"]) != row["ref"]:
-            raise ValueError("journal names an illegal ref")
-        if row["ref"] in seen:
-            raise ValueError("journal names a ref twice")
-        seen.add(row["ref"])
-        if not isinstance(row["new"], str) or not isinstance(row["old"], (str, type(None))):
-            raise ValueError("journal values are malformed")
-        if row["old"] is not None:
-            parse_oid(row["old"])
-        validate_ref_oid(row["ref"], row["new"])
-        try:  # the same target rules update_refs checked before writing it
-            target = Repo(base).get(row["new"])
-        except (KeyError, KernelError, OSError) as exc:
-            raise ValueError("journal names an object the repository cannot read") from exc
-        validate_ref_target(row["ref"], target.object_type, target.payload())
-    return record
 
 
 def _journals(base: Path) -> list[Path]:
@@ -200,7 +164,7 @@ def update_refs(base: Path, updates: list[tuple[str, str, str | None]], actor: s
         for name, new_oid, expected in sorted(updates, key=lambda row: row[0]):
             old = read_ref_oid(base, name)
             if old != expected:
-                raise ValueError(
+                raise RefCasMismatch(
                     f"concurrent ref update on {name!r}: expected {expected!r}, found {old!r}"
                 )
             rows.append({"new": new_oid, "old": old, "ref": name})
@@ -233,8 +197,13 @@ def locked_after_recovery(base: Path, locks: list[Path]) -> list[Path]:
 
     Recovery runs before the locks, and is re-checked after: a writer that broke a
     crashed transaction's dead ref lock before its journal was rolled forward
-    would otherwise commit over a half-applied transaction.
+    would otherwise commit over a half-applied transaction. A lock held by a live
+    writer is waited for, with bounded jittered backoff (:mod:`._ref_retry`).
     """
+    return retry_contended(lambda: _locked_once(base, locks))
+
+
+def _locked_once(base: Path, locks: list[Path]) -> list[Path]:
     for _ in range(3):
         recover(base)
         held: list[Path] = []

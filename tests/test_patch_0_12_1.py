@@ -8,7 +8,7 @@ import pytest
 
 from opentine import Repo, Run, StepKind
 from opentine.kernel import KernelError
-from opentine.repository import _lockfile
+from opentine.repository import _lockfile, _ref_retry
 from opentine.repository._gc import gc_lock
 from opentine.tools._git_guard import refusal
 
@@ -67,6 +67,7 @@ def test_a_lock_that_is_not_provably_dead_is_kept_and_named(tmp_path, monkeypatc
     old = repo.read_ref("heads/main")
     lock = _ref_lock(repo)
     lock.write_text(content(), encoding="ascii")
+    monkeypatch.setattr(_ref_retry, "LOCK_WAIT_SECONDS", 0)  # report at once
     monkeypatch.setattr(_lockfile, "pid_alive", lambda pid: pid == os.getpid())
     with pytest.raises(ValueError, match="main.lock") as caught:
         repo.update_ref("heads/main", _other(repo), expected_old=old)

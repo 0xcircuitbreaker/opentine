@@ -8,6 +8,7 @@ from opentine._canon import _redact
 from opentine.kernel import ObjectEnvelope, canonical_json, validate_links
 from opentine.redaction import redact_blob, redact_value
 from opentine.repository._annotations import validate_annotation_chain
+from opentine.repository._ref_retry import RefCasMismatch
 from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository.pack import MAX_PACK_BODY_BYTES, MAX_PACK_OBJECTS, reachable
@@ -130,7 +131,9 @@ class _MemoryRepo:
         target = self.get(new_oid)
         validate_ref_target(normalized, target.object_type, target.payload())
         if self.read_ref(normalized) != expected_old:
-            raise ValueError("concurrent in-memory ref update")
+            raise RefCasMismatch(  # staged refs are compare-and-swap; never retried here
+                f"in-memory ref {normalized!r} is not at the expected old value"
+            )
         self.refs[normalized] = new_oid
 
     def annotation_candidates(self, run_id: str) -> list[str] | None:

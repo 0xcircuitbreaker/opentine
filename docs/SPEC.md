@@ -734,8 +734,9 @@ equal that run's 64-hex digest. So `annotations/<digest>` is the only
 Ref updates are compare-and-swap and are performed under two files beside the
 ref:
 
-* `<ref>.lock` — the exclusive guard, created `O_CREAT|O_EXCL`. Its existence
-  fails a concurrent writer rather than blocking.
+* `<ref>.lock` — the exclusive guard, created `O_CREAT|O_EXCL`. A concurrent
+  writer that finds it waits with jittered exponential backoff (1 ms doubling
+  to 50 ms) for at most 10 seconds, then fails; it never breaks a live lock.
 * `<ref>..lock` — the staging file that is `rename()`d over the ref.
 
 The doubled dot is deliberate: `normalize_ref` forbids a component ending in
