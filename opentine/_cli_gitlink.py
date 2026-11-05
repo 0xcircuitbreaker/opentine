@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._blame import blame, git_blame
 from opentine._cli_common import RUNS_DIR, _runs_dir, _terminal, console
+from opentine._cli_errors import fail
 from opentine._cli_evidence import add_evidence_parser
 from opentine._cli_rewind import add_rewind_parser
 from opentine._cli_view import add_view_parser
@@ -37,9 +38,8 @@ from opentine._git_push_sync import HOOK as PRE_PUSH
 from opentine._git_push_sync import add_push_runs_parser, cmd_push_runs, script
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _catalog(args: argparse.Namespace) -> RunCatalog:

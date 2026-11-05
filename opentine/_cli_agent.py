@@ -16,19 +16,19 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine import _agent_identity as identity
 from opentine import _cli_who_trust as who_trust
 from opentine._agent_definition import DefinitionError, definition_digest, harness_files
 from opentine._agent_keys import key_dir, key_paths, local_fingerprints, trust
 from opentine._cli_common import _terminal, console
+from opentine._cli_errors import fail
 from opentine._signing_pins import key_fingerprint, normalize_pin
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _out(args: argparse.Namespace, payload: dict[str, Any], lines: list[str]) -> None:

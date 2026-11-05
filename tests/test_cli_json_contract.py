@@ -19,7 +19,7 @@ disagreeing without any test noticing:
 
 Plus two facts about the surface that documentation kept getting wrong: how many
 subcommands ``tine`` actually ships, and that the five v3 plumbing verbs emit
-bare JSON *by design* and take no ``--json`` flag.
+bare JSON *by design* (their ``--json`` is a no-op since 0.36).
 
 Everything is driven in process through ``opentine.cli.main(argv)``; nothing
 shells a binary.
@@ -161,16 +161,16 @@ def test_pricing_update_json_is_the_documented_object_and_still_installs(capsys,
     assert payload["signed"] is True and payload["cards"] > 0
 
 
-def test_pricing_failure_stays_human_text_and_exits_one(capsys, tmp_path) -> None:
-    """A catalog that will not load is not an object with ``ok: false``."""
+def test_pricing_failure_is_the_error_object_and_exits_one(capsys, tmp_path) -> None:
+    """A catalog that will not load is not an object with ``ok: false``: since 0.36
+    it is the shared ``{"error": ...}`` object, its human text on stderr."""
     broken = tmp_path / "broken.json"
     broken.write_text('{"schema": "opentine-pricing/1"}', encoding="utf-8")
 
     code, printed = _invoke(capsys, "pricing", "check", str(broken), "--json")
 
     assert code == 1
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(printed)
+    assert set(json.loads(printed)) == {"error"}
 
 
 def test_every_pricing_subcommand_takes_json(capsys) -> None:
@@ -302,12 +302,13 @@ def test_readme_states_the_real_subcommand_count() -> None:
     assert len(visible) == 1 and int(visible[0]) == len(VISIBLE_COMMANDS)
 
 
-def test_plumbing_verbs_take_no_json_flag(capsys) -> None:
-    """The five bare-JSON verbs are byte-pinned: a --json flag would imply a choice."""
+def test_plumbing_verbs_json_flag_is_a_no_op(capsys) -> None:
+    """The five bare-JSON verbs are byte-pinned: since 0.36 every leaf takes --json,
+    and on these it only says what they always do."""
     for verb in PLUMBING_VERBS:
         code, printed = _invoke(capsys, verb, "--help")
         assert code == 0
-        assert "--json" not in printed, f"{verb} must emit bare JSON unconditionally"
+        assert "Accepted; output is always JSON" in printed, verb
 
 
 def test_documented_json_verbs_all_actually_take_json() -> None:

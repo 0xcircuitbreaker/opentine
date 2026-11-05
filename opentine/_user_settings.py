@@ -5,10 +5,11 @@ They live in ``$XDG_CONFIG_HOME/opentine/settings.json`` (written 0600), beside 
 what a script parsing ``tine`` output receives. ``OPENTINE_OUTPUT`` overrides the
 file; an explicit ``--json`` or ``--text`` on the command line overrides both.
 
-``output.format = json`` turns ``--json`` on for every command whose parser has
-it; commands without JSON output ignore it. ``--text`` (added next to every
-``--json``) forces the human output for one invocation. With no setting the CLI
-is exactly what it was: nothing is read unless the command has ``--json``.
+``output.format = json`` turns ``--json`` on for every command with its own
+JSON output; the 0.36 wrapper ``--json`` (``_cli_json_fallback``) ignores it.
+``--text`` (added next to every ``--json``) forces the human output for one
+invocation. With no setting the CLI is exactly what it was: nothing is read
+unless the command has its own ``--json``.
 """
 
 from __future__ import annotations
@@ -16,9 +17,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 FILE_NAME = "settings.json"
 MAX_BYTES = 64 * 1024
@@ -93,14 +93,15 @@ def output_format() -> str | None:
     return load().get("output.format")
 
 
-def _fail(message: str) -> None:
-    print(f"tine: {message}", file=sys.stderr)
-    raise SystemExit(1)
+def _fail(message: str) -> NoReturn:
+    from opentine._cli_errors import fail
+
+    fail(message, prefix="tine: ")
 
 
 def apply_output_format(args: argparse.Namespace, argv: list[str]) -> None:
     """Turn ``--json`` on when the user default is json and the call said neither."""
-    if not hasattr(args, "json") or is_user_config(args):
+    if not hasattr(args, "json") or getattr(args, "json_fallback", False) or is_user_config(args):
         return
     head = argv[: argv.index("--")] if "--" in argv else argv
     if "--text" in head and "--json" in head:

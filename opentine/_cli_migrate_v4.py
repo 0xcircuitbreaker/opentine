@@ -12,9 +12,10 @@ from __future__ import annotations
 import argparse
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._canon import FORMAT_VERSION
+from opentine._cli_errors import fail
 from opentine._cli_flags import refuse_conflict, refuse_unhonoured
 
 V4 = 4
@@ -82,11 +83,8 @@ def _refuse_conflicts(args: argparse.Namespace) -> None:
         )
 
 
-def _fail(message: str, exc: BaseException | None = None) -> None:
-    from opentine._cli_common import console
-
-    console.print(f"[red]{message}[/]")
-    raise SystemExit(1) from exc
+def _fail(message: str, exc: BaseException | None = None) -> NoReturn:
+    fail(message, cause=exc)
 
 
 def _from_repo(args: argparse.Namespace) -> tuple[bytes, Path]:

@@ -78,6 +78,43 @@ keeps objects and everything they reach from `prune`, `gc --prune=now`,
 exists, Windows included), `rewind --allow-control-dirs`,
 `replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
 
+## Errors, `--json` and exit codes (0.36)
+
+Every leaf subcommand accepts `--json`. Commands with their own JSON payload
+keep it unchanged; `fleet up` (with or without `--dry-run`) and
+`replay --dry-run`/`--inspect` now emit one JSON object instead of ignoring the
+flag. Any other command wraps its human output:
+
+```
+{"command": "fsck", "exit_code": 0, "output": "..."}
+```
+
+The v3 plumbing verbs (`fsck`, `object`, `migrate-v3`, `fetch`, `push`) always
+print bare JSON; `--json` on them is a no-op. `output.format = json` turns on
+only a command's own JSON, never the wrapper.
+
+Errors go to stderr. Under `--json`, stdout carries only JSON: a failing command
+that wrote no JSON of its own emits one error object (a usage error included)
+and anything human it printed moves to stderr:
+
+```
+{"error": {"code": "not_found", "exit_code": 3, "message": "..."}}
+```
+
+| Exit | `code` | Meaning |
+| --- | --- | --- |
+| 0 | — | ok |
+| 1 | `error` | any other failure |
+| 2 | `usage` | bad flags or arguments, or a refused flag combination |
+| 3 | `not_found` | a run, ref or object that does not exist |
+| 4 | `verification_failed` | a signature, digest or verdict did not hold |
+| 5 | `budget_exhausted` | a budget or limit stopped the work |
+| 6 | `trust_required` | needs a trust decision, or is unsupported here (`verify --hermetic`) |
+
+Existing exit statuses keep their meaning; commands move to the specific codes
+as they are revised, so a script should treat any non-zero status as failure
+and read `error.code` for the reason.
+
 ## Default output format
 
 ```
@@ -92,8 +129,8 @@ tine show RUN --text                  # human output for this call only
 `$XDG_CONFIG_HOME/opentine/settings.json` (written 0600; a repository cannot set
 it). Precedence: an explicit `--json` or `--text` on the command, then
 `OPENTINE_OUTPUT`, then the file, then text. Every command that has `--json` also
-has `--text`; giving both is an error. Commands without `--json` ignore the
-setting and never read the file. A value other than `text`/`json` in the env var
+has `--text`; giving both is an error. Commands whose `--json` is only the
+0.36 wrapper ignore the setting and never read the file. A value other than `text`/`json` in the env var
 or the file, or a malformed file, stops the command with a one-line error (exit
 1) instead of guessing. `tine config set|get|unset` are the user settings;
 `tine config KEY [VALUE]` still edits the repository's porcelain keys. With no

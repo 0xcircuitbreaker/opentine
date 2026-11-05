@@ -38,11 +38,11 @@ from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
 from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
 from opentine._cli_groups import notice as group_notice
 from opentine._cli_groups import rewrite as group_rewrite
-from opentine._cli_guard import guarded_dispatch
 from opentine._cli_harnesses import cmd_harnesses
 from opentine._cli_help import COMMANDS as HELP_COMMANDS
 from opentine._cli_hook import COMMANDS as HOOK_COMMANDS
 from opentine._cli_import import cmd_import
+from opentine._cli_json_fallback import dispatch, parse_reporting_usage
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_media import COMMANDS as MEDIA_COMMANDS
 from opentine._cli_migrate import cmd_migrate
@@ -123,11 +123,11 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
 def main(argv: list[str] | None = None) -> None:
     """Run one ``tine`` invocation; *argv* defaults to the process arguments."""
     _common.RUNS_DIR = RUNS_DIR
-    parser, args = parse(list(sys.argv[1:] if argv is None else argv))
+    parser, args = parse_reporting_usage(list(sys.argv[1:] if argv is None else argv), parse)
     if args.no_compress:
         os.environ["OPENTINE_COMPRESS"] = "0"
     with write_format(getattr(args, "write_format", None)):  # tine --format 2
-        guarded_dispatch(lambda: _dispatch(parser, args))
+        dispatch(args, lambda: _dispatch(parser, args))
 
 
 def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:

@@ -247,8 +247,7 @@ def test_a_missing_run_is_a_human_message_and_never_a_json_object(workspace, cap
 
     assert code == 1
     assert "Run not found" in out
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
 
 
 # --------------------------------------------------------------------------- #

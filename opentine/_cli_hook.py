@@ -21,6 +21,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_errors import error
 from opentine._cli_hook_agents import (
     AGENTS,
     MARKER,
@@ -51,8 +52,7 @@ def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.Argument
 
 
 def _fail(message: str) -> SystemExit:
-    console.print(f"[red]{message}[/]")
-    return SystemExit(1)
+    return error(message)
 
 
 def _repo(value: str | None) -> Path:

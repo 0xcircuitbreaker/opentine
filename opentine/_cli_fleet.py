@@ -12,12 +12,14 @@ is the state directory (default ``.tine_fleet``, beside the manifest for ``up``)
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sys
 from collections.abc import Callable
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_errors import error
 
 
 def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -32,8 +34,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _fail(message: object) -> SystemExit:
-    console.print(f"[red]fleet:[/] {_terminal(message)}")
-    return SystemExit(1)
+    return error(message, prefix="fleet: ")
 
 
 def _up(args: argparse.Namespace) -> int:
@@ -45,17 +46,31 @@ def _up(args: argparse.Namespace) -> int:
     if args.dry_run:
         with open(path, "rb") as handle:
             fleet = _manifest.parse(handle.read(_manifest.MAX_BYTES + 1), path)
+        rows = []
         for row in _runner.plan(fleet):
             agent = next(a for a in fleet.agents if a.name == row["vary"]["agent"])
-            console.print(f"  [{row['key']}] {agent.name} ({agent.role}): {list(agent.argv)}",
+            rows.append({"key": row["key"], "agent": agent.name, "role": agent.role,
+                         "argv": list(agent.argv)})  # fmt: skip
+        if args.json:
+            out = {"command": "fleet up", "dry_run": True, "fleet": fleet.name, "members": rows}
+            sys.stdout.write(json.dumps(out) + "\n")
+        for row in [] if args.json else rows:
+            console.print(f"  [{row['key']}] {row['agent']} ({row['role']}): {row['argv']}",
                           markup=False)  # fmt: skip
         return 0
     fleet = _manifest.load(path, trust_now=args.trust)
     state = _runner.create(fleet)
-    console.print(f"[{BRAND}]# Fleet[/] {fleet.name} id {state.id} ({len(state.data['members'])} "
-                  f"members, {fleet.layout}); stop with: tine fleet stop {state.id} --dir "
-                  f"{_terminal(state.directory)}")  # fmt: skip
-    return _runner.run(fleet, state)
+    if not args.json:
+        count = len(state.data["members"])
+        console.print(f"[{BRAND}]# Fleet[/] {fleet.name} id {state.id} ({count} "
+                      f"members, {fleet.layout}); stop with: tine fleet stop {state.id} --dir "
+                      f"{_terminal(state.directory)}")  # fmt: skip
+        return _runner.run(fleet, state)
+    code = _runner.run(fleet, state, out=io.StringIO())  # progress lines would corrupt JSON
+    out = {"command": "fleet up", "dry_run": False, "fleet": fleet.name, "id": state.id,
+           "exit_code": code, "members": state.data["members"]}  # fmt: skip
+    sys.stdout.write(json.dumps(out) + "\n")
+    return code
 
 
 def _directory(args: argparse.Namespace) -> Path:

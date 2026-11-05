@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._cli_common import _find_run, _resolve_step_ref, _terminal, console
+from opentine._cli_errors import fail
 from opentine._cli_who_render import emit_or_print
 from opentine._file_originals import KEY
 from opentine._rewind import (
@@ -48,9 +49,8 @@ def add_rewind_parser(sub: Any) -> None:
     rewind.add_argument("--json", action="store_true")
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _refuse_held(root: Path, run: Any, name: str) -> None:

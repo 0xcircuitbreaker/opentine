@@ -28,7 +28,7 @@ from opentine.core import Run, short_id
 from opentine.harnesses import OpentineHarness
 
 
-def _inspect_replay(run: Run, from_step: str | None) -> None:
+def _inspect_replay(run: Run, from_step: str | None, as_json: bool = False) -> None:
     """Preview exactly the slice the replay would retain.
 
     This previewed ``graph.descendant_closure(start)`` — the steps *after* the
@@ -42,6 +42,12 @@ def _inspect_replay(run: Run, from_step: str | None) -> None:
     if run.steps:
         _, retained = expected_slice(run, from_step)
         selected = [step for step in run.steps if step.id in retained]
+    if as_json:  # 0.36: --dry-run/--inspect --json lists the slice a script would get
+        from opentine._cli_json import emit
+
+        emit({"command": "replay", "dry_run": True, "run": run.id,
+              "steps": [step.id for step in selected], "reused": len(selected)})  # fmt: skip
+        return
     console.print(f"[{BRAND}]Inspecting recorded steps...[/]\n")
     for step in selected:
         console.print(Text("  ") + _step_label(step))
@@ -88,7 +94,6 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
                 "force",
                 "harness",
                 "ignore_cost_drift",
-                "json",
                 "min_fidelity",
                 "mode",
                 "prompt",
@@ -139,7 +144,7 @@ def cmd_replay(args: argparse.Namespace) -> None:
     run = Run.load(path)
     try:
         if args.inspect or args.dry_run:
-            _inspect_replay(run, args.from_step)
+            _inspect_replay(run, args.from_step, bool(getattr(args, "json", False)))
             return
         if args.harness:
             _harness_replay(args, run, path)

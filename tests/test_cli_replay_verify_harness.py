@@ -227,7 +227,6 @@ def test_a_harness_that_cannot_start_exits_one_without_a_verdict(workspace, monk
 
     assert code == 1
     assert "Harness replay failed" in out
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
     # The temporary workspace is removed even when the check dies mid-execution.
     assert set(Path(tempfile.gettempdir()).glob("tine-verify-*")) - before == set()
