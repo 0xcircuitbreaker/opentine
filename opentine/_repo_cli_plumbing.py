@@ -13,6 +13,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
+from opentine import _cli_push_preview as push_preview
 from opentine._cli_common import _terminal
 from opentine._cli_git_sync import (
     configured_remotes,
@@ -209,6 +210,11 @@ def cmd_push(args: argparse.Namespace, console) -> None:
         if getattr(args, "all", False)
         else [args.ref]
     )
+    if push_preview.wants_manifest(args):
+        body = push_preview.manifest(repo, args, tracking, refs)
+        if args.dry_run:  # offline: nothing below this line runs
+            push_preview.emit_preview(body)
+            return
     results = []
     for ref in refs:
         push_hook(repo, tracking, ref)

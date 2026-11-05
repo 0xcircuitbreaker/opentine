@@ -402,3 +402,23 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+
+## Push preview and manifest (0.36)
+
+`tine push REMOTE --dry-run` (alias `--outgoing`) prints, as JSON, exactly what
+the push would send, and opens no connection: each ref as `old -> new` (the old
+side is the local `remotes/<name>/...` tracking ref from the last fetch, so the
+list is an upper bound if the remote has moved), the objects by kind with their
+stored bytes, and every run with the redaction ruleset it recorded (`null` for
+a run that recorded none). It honours `--ref`, `--all` and `--remote-ref`.
+
+`--manifest PATH` writes the same document as canonical JSON (JCS) -- on a dry
+run, or beside a real push before it starts. `--key-file` (HMAC) or
+`--ed25519-key-file` signs it with a `tine-sig/3` header block over
+`opentine.push-manifest.v1:` + JCS of `{body, header}`; `--key-id` names the key.
+A key flag without `--manifest` or `--dry-run` is refused.
+
+`git config tine.transcriptRemote NAME` (a git remote name, URL or path) makes
+the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
+the runs named by `Tine-Run:` trailers -- to that remote instead of the code
+remote, keeping transcripts off the code host.

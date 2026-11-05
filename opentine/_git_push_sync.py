@@ -11,6 +11,7 @@ A failure to push runs only warns on stderr and never blocks the code push,
 unless the hook was installed with ``--strict``. With no trailers it does
 nothing. An existing ``pre-push`` hook is chained exactly like the
 ``prepare-commit-msg`` one (kept as ``pre-push.tine-chained``, run first).
+``git config tine.transcriptRemote NAME`` sends the runs to that remote instead.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ HOOK = "pre-push"
 #: Commits walked per pushed ref; a new branch (all-zero remote sha) stops here.
 MAX_COMMITS = 1000
 MAX_RUNS = 200
+TRANSCRIPT_KEY = "tine.transcriptRemote"
 _SHA = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
 
@@ -118,9 +120,27 @@ def sync(cwd: Path, remote: str, stdin: str, *, timeout: float = 120.0) -> dict:
     return {"runs": runs, "missing": missing, **result}
 
 
+def transcript_remote(cwd: Path, remote: str) -> str:
+    """Where runs go: ``tine.transcriptRemote`` (a git remote name or URL), else *remote*.
+
+    Like Entire's separate checkpoint remote, it keeps run and transcript refs
+    off the code remote. Only the user's git config sets it, never the tree.
+    """
+    try:
+        value = git(cwd, "config", "--get", TRANSCRIPT_KEY, keep_env=HOOK_ENV).strip()
+    except Exception:  # noqa: BLE001 - unset: runs travel with the code
+        return remote
+    if not value:
+        return remote
+    try:
+        return git(cwd, "remote", "get-url", "--push", value, keep_env=HOOK_ENV).strip()
+    except Exception:  # noqa: BLE001 - not a remote name: a URL or path as given
+        return value
+
+
 def cmd_push_runs(args: argparse.Namespace) -> None:
     """Called by the pre-push hook; exits non-zero only in strict mode."""
-    remote = args.url or args.remote
+    remote = transcript_remote(Path.cwd(), args.url or args.remote)
     try:
         result = sync(Path.cwd(), remote, sys.stdin.read())
     except Exception as exc:  # noqa: BLE001 - a run push never breaks a code push
@@ -146,4 +166,12 @@ def add_push_runs_parser(git_sub) -> None:
     parser.add_argument("--strict", action="store_true")
 
 
-__all__ = ["HOOK", "add_push_runs_parser", "cmd_push_runs", "pushed_commits", "script", "sync"]
+__all__ = [
+    "HOOK",
+    "add_push_runs_parser",
+    "cmd_push_runs",
+    "pushed_commits",
+    "script",
+    "sync",
+    "transcript_remote",
+]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from opentine._cli_push_preview import add_push_parser
 from opentine._repo_cli_keys import add_key_args
 
 
@@ -108,13 +109,7 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     fetch.add_argument("--repo", default=".")
 
-    push = subparsers.add_parser("push", help="Push a pack and CAS-update a remote ref")
-    _remote_args(push, optional=True)
-    push.add_argument("--ref", default="heads/main")
-    push.add_argument("--all", action="store_true", help="Push every heads/* ref")
-    push.add_argument("--remote-ref")
-    push.add_argument("--force", action="store_true", help="Non-fast-forward (admin)")
-    push.add_argument("--repo", default=".")
+    add_push_parser(subparsers, lambda push: _remote_args(push, optional=True))
 
     clone_parser = subparsers.add_parser("clone", help="Clone a remote v3 repository")
     _remote_args(clone_parser)
