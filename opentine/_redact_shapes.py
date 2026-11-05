@@ -37,6 +37,32 @@ TOKEN_SHAPES = re.compile(
     rb"|eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"  # JWT
     rb"|hooks\.slack\.com/(?:services|workflows|triggers)/[A-Za-z0-9/_-]{20,}"  # Slack webhook
     rb"|discord(?:app)?\.com/api/webhooks/[0-9]{5,}/[A-Za-z0-9_-]{20,}"  # Discord webhook
+    # Redaction ruleset 2 (0.35): vendor shapes the first set missed.
+    rb"|lsv2_(?:pt|sk)_[A-Za-z0-9_]{30,}"  # LangSmith
+    rb"|pcsk_[A-Za-z0-9_]{40,}"  # Pinecone
+    rb"|tskey-[a-z]{2,10}-[A-Za-z0-9_-]{20,}"  # Tailscale
+    rb"|do[opr]_v1_[0-9a-f]{64}"  # DigitalOcean
+    rb"|dapi[0-9a-f]{32}(?:-[0-9]{1,2})?"  # Databricks
+    rb"|lin_(?:api|oauth)_[A-Za-z0-9]{32,}"  # Linear
+    rb"|dp\.(?:st|ct|sa|scim|audit|pt)\.[A-Za-z0-9_.-]{30,}"  # Doppler
+    rb"|ops_eyJ[A-Za-z0-9_=-]{40,}"  # 1Password service account
+    rb"|shp(?:at|ca|pa|ss)_[0-9a-f]{32}"  # Shopify
+    rb"|vc[pikar]_[A-Za-z0-9]{24,}"  # Vercel
+    rb"|AGE-SECRET-KEY-1[0-9A-Z]{58}"  # age identity
+    rb"|(?-i:SK)[0-9a-f]{32}"  # Twilio API key
+    rb"|api_org_[A-Za-z0-9]{30,}"  # Hugging Face organization
+    rb"|sntry[su]_[A-Za-z0-9_=+/-]{40,}"  # Sentry
+    rb"|gl(?:sa|c)_[A-Za-z0-9_=+/-]{30,}"  # Grafana
+    rb"|NRAK-[A-Z0-9]{27}"  # New Relic
+    rb"|ATATT3[A-Za-z0-9_=-]{100,}"  # Atlassian
+    rb"|(?:dckr_pat|CCIPAT|bkua|sb_secret|HRKU)[_-][A-Za-z0-9_-]{20,}"  # CI, PaaS
+    rb"|(?:ntn|nfp|sbp)_[A-Za-z0-9]{36,}"  # Notion, Netlify, Supabase
+    rb"|PMAK-[0-9a-f]{24}-[0-9a-f]{34}"  # Postman
+    rb"|sq0csp-[A-Za-z0-9_-]{40,}|(?-i:EAAA)[A-Za-z0-9_-]{60,}"  # Square
+    rb"|[A-Za-z0-9]{14}\.atlasv1\.[A-Za-z0-9_-]{60,}"  # Terraform Cloud
+    rb"|[0-9]{8,10}:AA[A-Za-z0-9_-]{33}"  # Telegram bot
+    rb"|[A-Za-z0-9_~.]{3}8Q~[A-Za-z0-9_~.-]{31,34}"  # Entra ID (Azure AD) client secret
+    rb"|[0-9a-f]{32}-us[0-9]{1,2}"  # Mailchimp
     rb")"
 )
 # The password in a URL's userinfo ("postgres://admin:PW@db", "https://bob:PW@git"),

@@ -625,6 +625,10 @@ take the same flags.
   (`OPENTINE_GC_BREAK_LOCK=1` forces it). Any other lock is reported with its
   path. An interrupted gc loses nothing and can be re-run.
 - `tine repo storage repack` merges every local pack into one.
+- Since 0.35 `tine repo storage gc` deletes no unreachable objects unless
+  `--prune=now`. `tine hold add|list|release <oid|ref>` records holds in
+  `.tine/holds`; `prune`, `gc --prune=now`, `rewind --apply` and remote deletes
+  and purges keep held objects and everything they reach.
 - `tine repo storage gc --upgrade` (0.13+, opt-in, never automatic) moves a repository to
   storage version 3: packs of large single-kind blocks, run snapshots stored as
   their parent plus the newly appended events, events without their empty

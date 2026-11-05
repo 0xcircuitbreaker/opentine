@@ -6,6 +6,12 @@ carry its digest; the TSA signature over the signed attributes; the TSA
 certificate has the timestamping EKU and genTime lies within its validity;
 and the certificate chains (each link's signature, CA flag and validity at
 genTime) to one of the supplied roots. The first failed step is the verdict.
+
+Roots from a trusted root's ``timestampAuthorities`` come with their
+``validFor`` window (0.35.0): such an authority is an anchor only for tokens
+whose genTime lies inside the window. A token minted before an authority was
+retired keeps verifying; one dated after ``validFor.end`` (or before
+``validFor.start``) fails closed with ``timestamp.tsa-retired``.
 Nothing here opens a connection or fetches a certificate.
 """
 
@@ -13,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -114,7 +121,14 @@ def _issued(child: x509.Certificate, parent: x509.Certificate, when: datetime) -
     return basic.ca and start <= when <= end
 
 
-def verify_token(data: bytes, bound: bytes, roots: list[x509.Certificate]) -> Verdict:
+def verify_token(
+    data: bytes,
+    bound: bytes,
+    roots: list[x509.Certificate],
+    windowed: Sequence[tuple[list[x509.Certificate], Any]] = (),
+) -> Verdict:
+    """*windowed* holds ``(chain, window)`` anchors trusted only for a genTime
+    the window contains."""
     try:
         token = parse(data)
     except ValueError as exc:
@@ -154,6 +168,11 @@ def verify_token(data: bytes, bound: bytes, roots: list[x509.Certificate]) -> Ve
     start, end = _when(cert)
     if not start <= token.gen_time <= end:
         return Verdict(False, "timestamp.outside-validity", "genTime outside cert validity", info)
+    live = [c for chain, window in windowed if window.contains(token.gen_time) for c in chain]
+    if windowed and not roots and not live:
+        detail = f"genTime {info['gen_time']} is outside every TSA validFor window"
+        return Verdict(False, "timestamp.tsa-retired", detail, info)
+    roots = [*roots, *live]
     if not roots:
         detail = "no TSA root supplied: pass --tsa-roots FILE.pem"
         return Verdict(False, "timestamp.no-roots", detail, info, no_roots=True)

@@ -110,9 +110,11 @@ def add_harnesses_parser(sub: argparse._SubParsersAction) -> None:
     )
 
 
-def _add_harness_args(parser: argparse.ArgumentParser) -> None:
+def _add_harness_args(parser: argparse.ArgumentParser, *, replay: bool = False) -> None:
     parser.add_argument("--harness", choices=sorted(HARNESS_FACTORIES))
     parser.add_argument("--prompt")
+    if replay:  # the recorded prompt is untrusted text unless signed or vouched for
+        parser.add_argument("--trust-recorded-prompt", action="store_true")
     parser.add_argument("--cwd")
     parser.add_argument("--harness-command")
     parser.add_argument("--harness-arg", action="append", default=[])

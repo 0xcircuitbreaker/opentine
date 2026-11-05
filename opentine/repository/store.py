@@ -13,6 +13,7 @@ from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import config_bytes, read_config, storage_codec
 from opentine.repository._discovery import find_repository
+from opentine.repository._link_touch import touch_links
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
 from opentine.repository._paths import ensure_layout, internal_files, internal_path, linklike
@@ -176,6 +177,7 @@ class Repo:
         if target.oid != new_oid:
             raise KernelError("validated ref target does not match its object id")
         validate_ref_target(normalized, target.object_type, target.payload())
+        touch_links(self, [new_oid])  # a ref is a link: tine prune must keep it
         commit_ref(
             self.path,
             normalized,
@@ -189,12 +191,9 @@ class Repo:
     def update_refs(
         self, updates: list[tuple[str, str, str | None]], *, actor: str = "local"
     ) -> None:
-        """Move every ``(ref, new_oid, expected_old)`` atomically, or none of them.
+        """Move every compare-and-swap ``(ref, new_oid, expected_old)`` or none (``_ref_txn``).
 
-        Each row is compare-and-swap (``expected_old=None``: the ref must not
-        exist). A crash mid-update is rolled forward by the next ref write; see
-        :mod:`opentine.repository._ref_txn`.
-        """
+        ``expected_old=None``: the ref must not exist. A crash is rolled forward."""
         from opentine.repository._ref_txn import update_refs
 
         rows = []
@@ -204,6 +203,7 @@ class Repo:
             target = self.get(new_oid)
             validate_ref_target(normalized, target.object_type, target.payload())
             rows.append((normalized, new_oid, expected_old))
+        touch_links(self, [row[1] for row in rows])
         update_refs(self.path, rows, actor)
 
     def recover_refs(self) -> list[str]:

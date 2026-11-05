@@ -156,9 +156,11 @@ def atomic_write_text(
             os.chmod(tmp, mode)
         else:
             try:
-                os.chmod(tmp, stat.S_IMODE(os.stat(p).st_mode))
+                info = os.lstat(p)  # a link's target is not ours to copy a mode from
             except FileNotFoundError:
-                pass
+                info = None
+            if info is not None and stat.S_ISREG(info.st_mode):
+                os.chmod(tmp, stat.S_IMODE(info.st_mode))
         _replace(tmp, p)
         if fsync:
             _fsync_dir(p.parent)

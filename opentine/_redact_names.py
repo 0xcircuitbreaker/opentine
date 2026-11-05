@@ -61,6 +61,9 @@ SECRET_SUFFIXES = (
     "_pw",
     "_storage_key",
     "_key_data",
+    # ``DD_APP_KEY``, ``TS_AUTHKEY`` (the compact form covers ``authkey``).
+    "_app_key",
+    "_auth_key",
 )
 
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")

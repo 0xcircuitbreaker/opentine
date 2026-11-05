@@ -66,7 +66,7 @@ def test_no_mcp_tool_or_resource_returns_an_invisible_code_point(tmp_path, monke
         run.add_step(StepKind.done, {"text": f"d{PAYLOAD}"})
         run.save(runs / f"{name}.tine")
     monkeypatch.setattr(mcp_server, "server_class", lambda: _FakeServer)
-    server = mcp_server.create_server(runs, tmp_path)
+    server = mcp_server.create_server(runs, tmp_path, read_only=False)
 
     listing = server.tools["list_runs"]()
     assert [entry["path"] for entry in listing if entry.get("path")] == ["plain.tine"]

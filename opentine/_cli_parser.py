@@ -193,7 +193,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="With --verify, let cost/usage/billing drift alone still pass",
     )
     replay.add_argument("--min-fidelity", choices=FIDELITY_LABELS, help="With --verify, fail below")
-    _add_harness_args(replay)
+    _add_harness_args(replay, replay=True)
 
     diff = sub.add_parser("diff", help="Diff two legacy runs")
     diff.add_argument("run_a")

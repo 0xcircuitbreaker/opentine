@@ -24,6 +24,7 @@ OFFLINE_DESTS = (
     "locate",
     "provenance_source",
     "tsa_roots",
+    "hermetic",
 )
 
 
@@ -52,6 +53,11 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--tsa-roots", metavar="FILE.pem", help="--offline: trusted TSA roots for timestamp tokens"
     )
+    parser.add_argument(
+        "--hermetic",
+        action="store_true",
+        help="--offline: re-run inside an OS no-network sandbox (exit 6 if unsupported)",
+    )
 
 
 def add_verify_args(parser: argparse.ArgumentParser) -> None:
@@ -74,6 +80,10 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
     from opentine._cli_sigstore import VERIFY_DESTS
     from opentine._verify_report import render
 
+    if getattr(args, "hermetic", False):
+        from opentine._hermetic import reexec_hermetic
+
+        reexec_hermetic()
     if getattr(args, "attestation", None):
         from opentine._keyless_root import refuse_root_conflicts
 

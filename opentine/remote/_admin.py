@@ -139,7 +139,10 @@ class RemoteAdmin:
             refs = set(ref_targets(database, tenant).values())
             fresh = installed_since(database, tenant, graph.since) - graph.listed
             linked = graph.live(refs | fresh, excluded=set(targets)) & set(targets)
-            if refs & set(targets):
+            held = graph.live(self.objects.held(tenant)) & set(targets)
+            if held:
+                refusal = f"{min(held)} is held"
+            elif refs & set(targets):
                 refusal = "a ref names an object to delete; delete the ref first"
             elif linked:
                 refusal = f"{min(linked)} is still linked from objects a ref reaches"
@@ -163,7 +166,7 @@ class RemoteAdmin:
         recent = {oid for oid in graph.listed if self._age(tenant, oid, now) < grace_seconds}
         with self.index.exclusive() as database:
             refs = ref_targets(database, tenant)
-        roots = set(refs.values()) | recent
+        roots = set(refs.values()) | recent | self.objects.held(tenant)  # holds keep their reach
         live = graph.live(roots)
         deferred = len(live - graph.live(refs.values()))
         unreadable = sorted(graph.unreadable & graph.listed)

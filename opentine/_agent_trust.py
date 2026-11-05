@@ -40,9 +40,11 @@ class TrustResolver:
         hmac_key: bytes | None = None,
         public_key: Any | None = None,
         pins: frozenset[str] = frozenset(),
+        agent_pins: dict[str, frozenset[str]] | None = None,
     ):
         self._load_run, self.base = load_run, base
         self._keys = {"hmac_key": hmac_key, "public_key": public_key, "pins": pins}
+        self._keys["agent_pins"] = agent_pins
         self._runs: dict[str, Any] = {}
         self._trust: dict[str, Trust] = {}
 

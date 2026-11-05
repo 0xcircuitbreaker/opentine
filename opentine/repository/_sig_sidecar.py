@@ -16,11 +16,17 @@ treats it as a root like any other file it scans. Packs carry objects only;
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 from opentine.kernel import canonical_json, parse_oid
+from opentine.repository import _winretry
+from opentine.repository._lockfile import acquire
 from opentine.repository._paths import atomic_bytes, internal_path
 
 SIDECAR_KIND = "tine-sig-sidecar/1"
@@ -64,8 +70,40 @@ def signatures_for(repo: Any, root: str, head: str | None) -> list[dict[str, Any
     return [e["block"] for e in _entries(repo, root) if e.get("annotations_head") == head]
 
 
+_LOCK_WAIT_SECONDS = 10.0
+
+
+@contextlib.contextmanager
+def _sidecar_lock(path: Path) -> Iterator[None]:
+    """Serialize read-modify-write of one sidecar so concurrent signers keep every block."""
+    lock = path.with_name(path.name + ".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+    while True:
+        try:
+            fd = acquire(lock)
+            break
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                raise ValueError(
+                    f"signature sidecar {path.name} is locked by a concurrent writer"
+                ) from None
+            time.sleep(0.01)
+    os.close(fd)
+    try:
+        yield
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            _winretry.unlink(lock)
+
+
 def add_signatures(repo: Any, root: str, head: str | None, blocks: list[Any]) -> int:
     """Merge *blocks* (already shape-checked by the v4 reader); returns how many are new."""
+    with _sidecar_lock(sidecar_path(repo, root)):
+        return _add_signatures_locked(repo, root, head, blocks)
+
+
+def _add_signatures_locked(repo: Any, root: str, head: str | None, blocks: list[Any]) -> int:
     entries = _entries(repo, root)
     known = {canonical_json(entry) for entry in entries}
     added = 0
@@ -80,7 +118,11 @@ def add_signatures(repo: Any, root: str, head: str | None, blocks: list[Any]) ->
     if len(entries) > MAX_SIDECAR_ENTRIES:
         raise ValueError(f"run would hold more than {MAX_SIDECAR_ENTRIES} detached signatures")
     document = {"entries": entries, "kind": SIDECAR_KIND, "root": root}
-    atomic_bytes(sidecar_path(repo, root), canonical_json(document) + b"\n")
+    data = canonical_json(document) + b"\n"
+    if len(data) > MAX_SIDECAR_BYTES:
+        # Refuse here: a sidecar past the cap would make every later read fail.
+        raise ValueError(f"signature sidecar would exceed {MAX_SIDECAR_BYTES} bytes")
+    atomic_bytes(sidecar_path(repo, root), data)
     return added
 
 

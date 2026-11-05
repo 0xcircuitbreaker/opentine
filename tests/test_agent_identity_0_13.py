@@ -349,12 +349,12 @@ def test_agents_toml_is_inert_until_trusted(home, capsys):
     save_manifest(home / "manifests", sign(run, seed, algorithm="ed25519"))
     (home.parent / ".tine").mkdir()
     pins = home.parent / ".tine" / "agents.toml"
-    pins.write_text(f'[agents.coder]\nkeys = ["{fpr}"]\n')
+    pins.write_text(f'[agents.claude-code]\nkeys = ["{fpr}"]\n')
     assert _json(capsys, "actions", "run-a")["trust"] == "unknown-key"
     cli.main(["agent", "trust"])
     capsys.readouterr()
     assert _json(capsys, "actions", "run-a")["trust"] == "verified"
-    pins.write_text(f'[agents.coder]\nkeys = ["{fpr}"]\n# edited\n')
+    pins.write_text(f'[agents.claude-code]\nkeys = ["{fpr}"]\n# edited\n')
     assert _json(capsys, "actions", "run-a")["trust"] == "unknown-key"
 
 

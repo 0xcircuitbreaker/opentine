@@ -12,6 +12,7 @@ from opentine.tools._git_guard import git_env, is_git, is_git_family
 from opentine.tools._git_guard import hardened as hardened_git
 from opentine.tools._git_guard import refusal as git_refusal
 from opentine.tools._process import clean_env, run_bounded
+from opentine.tools._shell_args import refusal as arg_refusal
 
 
 def _strip_outer_quotes(part: str) -> str:
@@ -101,6 +102,8 @@ def run(
             return f"Error: {reason}"
         parts = hardened_git(parts, network=pol.git_network)
         env = git_env(env)
+    elif reason := arg_refusal(parts, root=cwd_root, cwd=Path.cwd().resolve()):
+        return f"Error: {reason}"
     windows_python = sys.platform == "win32" and executable in {"python", "python3"}
     if pol.executables and not windows_python:
         bound = _bound_executable(executable, pol.executables)

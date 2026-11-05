@@ -66,7 +66,13 @@ class _Handler(BaseHTTPRequestHandler):
         if name not in UPSTREAMS:
             self.send_error(404, "unknown provider prefix")
             return
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = -1
+        if length < 0:
+            self.send_error(400, "invalid Content-Length")
+            return
         body = self.rfile.read(length) if length else b""
         started = time.monotonic()
         record: dict[str, Any] = {"upstream": name, "path": "/" + rest, "request": body}

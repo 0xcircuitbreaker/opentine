@@ -14,7 +14,6 @@ from typing import Any
 
 from opentine._cli_common import _find_run, _resolve_step_ref, _terminal, console
 from opentine._cli_who_render import emit_or_print
-from opentine._codec_io import atomic_write_bytes
 from opentine._file_originals import KEY
 from opentine._rewind import (
     Event,
@@ -26,6 +25,7 @@ from opentine._rewind import (
     histories,
     plan_file,
 )
+from opentine._rewind_write import control_reason, write_confined
 
 
 def add_rewind_parser(sub: Any) -> None:
@@ -40,12 +40,27 @@ def add_rewind_parser(sub: Any) -> None:
     rewind.add_argument(
         "--force", action="store_true", help="Also overwrite files changed since the run"
     )
+    rewind.add_argument(
+        "--allow-control-dirs",
+        action="store_true",
+        help="Also restore into .git/, .tine/, .github/workflows/ and other VCS/CI files",
+    )
     rewind.add_argument("--json", action="store_true")
 
 
 def _fail(message: str) -> None:
     console.print(f"[red]{_terminal(message)}[/]")
     raise SystemExit(2)
+
+
+def _refuse_held(root: Path, run: Any, name: str) -> None:
+    """A held run (``tine hold``) is kept as it was: ``--apply`` is refused (0.35)."""
+    from opentine.repository._holds import refuse_held_names
+
+    try:
+        refuse_held_names(root, {name, str(run.id)}, f"rewind of {name}")
+    except ValueError as exc:  # HoldError, or an unreadable holds file
+        _fail(str(exc))
 
 
 def _read(path: Path) -> str | None:
@@ -109,6 +124,10 @@ def cmd_rewind(args: argparse.Namespace) -> None:
         shown = key[len(root.as_posix()) + 1 :] if key.startswith(root.as_posix() + "/") else key
         try:
             path = confined(root, key)
+            if (why := control_reason(root, path)) and not getattr(
+                args, "allow_control_dirs", False
+            ):
+                raise RewindError(f"{why} (use --allow-control-dirs)")
         except RewindError as exc:
             rows["refused"].append({"path": shown, "reason": str(exc), "mode": "skipped"})
             continue
@@ -126,8 +145,12 @@ def cmd_rewind(args: argparse.Namespace) -> None:
     blocked = bool(rows["conflict"])
     applied = bool(args.apply) and not blocked
     if applied:
-        for path, content in writes:
-            atomic_write_bytes(path, content.encode("utf-8"))
+        _refuse_held(root, run, name)
+        try:
+            for path, content in writes:
+                write_confined(root, path, content.encode("utf-8"))
+        except (RewindError, OSError) as exc:
+            _fail(f"Stopped writing: {exc}")
     payload = {
         "run": run.id,
         "step": step_id or None,
@@ -148,7 +171,7 @@ def _human(payload: dict[str, Any], apply: bool, blocked: bool) -> None:
         "restore": verb,
         "conflict": "Changed since the run (use --force)",
         "unrecoverable": "Cannot recover from the run",
-        "refused": "Refused (outside the root)",
+        "refused": "Refused",
     }
     for status, label in labels.items():
         for row in payload[status]:

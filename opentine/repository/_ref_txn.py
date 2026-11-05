@@ -58,6 +58,7 @@ def _lock(path: Path) -> Path:
 def _write_ref(base: Path, name: str, new_oid: str) -> None:
     path = _ref_path(base, name)
     staging = path.with_name(path.name + "..lock")  # see commit_ref for the name
+    _winretry.unlink(staging)  # the ref lock is held, so only a crashed writer left one
     fd = os.open(staging, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     try:
         with os.fdopen(fd, "wb") as handle:

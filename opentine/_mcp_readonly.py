@@ -1,4 +1,4 @@
-"""``python -m opentine.mcp_server --read-only``: an MCP server that cannot write.
+"""``python -m opentine.mcp_server``: read-only by default; this module holds the allowlist.
 
 The Claude Code plugin (``tine plugin export``) points its ``.mcp.json`` here.
 Registration goes through an **allowlist** of tools that only read -- a tool
@@ -9,6 +9,7 @@ attest, evaluate or promote anything through this server.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -50,4 +51,20 @@ class ReadOnlyTools:
         return getattr(self._server, name)
 
 
-__all__ = ["READ_ONLY_TOOLS", "ReadOnlyTools"]
+#: Set to ``1`` to expose the write tools (fork, resume, attest, evaluate, ...).
+ALLOW_WRITES_ENV = "OPENTINE_MCP_ALLOW_WRITES"
+
+
+def writes_allowed(argv: list[str] | None = None) -> bool:
+    """Write tools are opt-in: ``--allow-writes`` or ``OPENTINE_MCP_ALLOW_WRITES=1``.
+
+    ``--read-only`` always wins, so an existing read-only configuration stays one.
+    """
+    if argv is not None and "--read-only" in argv:
+        return False
+    if argv is not None and "--allow-writes" in argv:
+        return True
+    return os.environ.get(ALLOW_WRITES_ENV, "").strip() == "1"
+
+
+__all__ = ["ALLOW_WRITES_ENV", "READ_ONLY_TOOLS", "ReadOnlyTools", "writes_allowed"]

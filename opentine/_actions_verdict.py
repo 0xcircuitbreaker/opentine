@@ -9,8 +9,8 @@ index cannot make a run look verified.
   truncated, or moved from another run), the signature disagrees, or the key is
   not the one the run's identity names.
 * ``unknown-key`` -- a valid signature by a key nobody pinned or supplied.
-* ``verified``    -- a valid signature by a supplied key, a pinned key, or one
-  of this user's own agent keys.
+* ``verified``    -- a valid signature by a supplied key, a key pinned for
+  the agent the run claims, or one of this user's own agent keys.
 
 Manifests live beside the runs, named by a hash of the run id (never by the id
 itself, which is untrusted text): ``<base>/<sha256(run id)>.json``.
@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _actions_manifest as manifest_mod
+from opentine._agent_keys import scoped_allows
 from opentine._canon import atomic_write_text
 from opentine._signing_pins import used_key_fingerprint
 from opentine._signing_verify import verify_block
@@ -93,6 +94,7 @@ def verify(
     hmac_key: bytes | None = None,
     public_key: Any | None = None,
     pins: frozenset[str] = frozenset(),
+    agent_pins: dict[str, frozenset[str]] | None = None,
 ) -> Trust:
     """The trust state of *run* given its *stored* manifest (fail-closed)."""
     if stored is None:
@@ -129,7 +131,8 @@ def verify(
     record = body["identity"] or {}
     if record.get("key_fpr") and record["key_fpr"] != fpr:
         return Trust("mismatch", "signed by a key other than the agent identity's", fpr)
-    if result.state == "verified" or fpr in pins:
+    scoped = scoped_allows(agent_pins or {}, record, fpr)
+    if result.state == "verified" or fpr in pins or scoped:
         return Trust("verified", "ok", fpr)
     return Trust("unknown-key", "valid signature by a key that is not pinned", fpr)
 

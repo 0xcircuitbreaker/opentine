@@ -12,6 +12,7 @@ body that is not JSON is a 400. Grouping and saving live in
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import threading
 import zlib
@@ -26,6 +27,9 @@ PROTOBUF_HINT = (
     "to send OTLP/JSON"
 )
 ROUTES = {"/v1/traces": "add_spans", "/v1/logs": "add_logs"}
+#: Spans plus log records one request may carry, and attributes on one item.
+MAX_ITEMS, MAX_ATTRIBUTES = 100_000, 1_000
+LOOPBACK_NAMES = frozenset({"127.0.0.1", "localhost", "::1"})
 
 
 class _Refused(Exception):
@@ -43,6 +47,37 @@ def _inflate(data: bytes, limit: int) -> bytes:
     if len(out) > limit or decoder.unconsumed_tail:
         raise _Refused(413, f"decompressed body exceeds {limit} bytes")
     return out
+
+
+def _check_limits(document: Any) -> None:
+    """Refuse a document with too many spans or log records, or attributes on one."""
+    items, stack = 0, [document]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, list):
+            stack.extend(node)
+            continue
+        if not isinstance(node, dict):
+            continue
+        for key, value in node.items():
+            if not isinstance(value, list):
+                stack.append(value)
+                continue
+            if key in ("spans", "logRecords", "log_records"):
+                items += len(value)
+                if items > MAX_ITEMS:
+                    raise _Refused(413, f"request carries more than {MAX_ITEMS} spans or logs")
+            elif key == "attributes" and len(value) > MAX_ATTRIBUTES:
+                raise _Refused(413, f"an item carries more than {MAX_ATTRIBUTES} attributes")
+            stack.append(value)
+
+
+def _host_name(header: str) -> str:
+    host = header.strip().lower()
+    if host.startswith("["):
+        return host[1:].partition("]")[0]
+    host = host.rpartition(":")[0] if host.count(":") == 1 else host
+    return host.removesuffix(".")
 
 
 DRAIN_BYTES = 1 << 20  # oversize bodies up to this are read off before a 413
@@ -88,21 +123,45 @@ class OtlpHandler(BaseHTTPRequestHandler):
         elif encoding != "identity":
             raise _Refused(415, f"unsupported Content-Encoding {encoding!r}")
         try:
-            return json.loads(shape_checked(data).decode("utf-8"))
+            document = json.loads(shape_checked(data).decode("utf-8"))
         except (RecursionError, UnicodeDecodeError, ValueError) as exc:
             raise _Refused(400, f"body is not valid OTLP/JSON: {exc}") from exc
+        if not isinstance(document, dict):
+            raise _Refused(400, "body is not valid OTLP/JSON: expected an object")
+        _check_limits(document)
+        return document
+
+    def _check_origin(self) -> None:
+        """Refuse browser requests and, on a loopback bind, foreign Host names.
+
+        A DNS-rebinding page reaches 127.0.0.1 under its own name; OTLP
+        exporters send no Origin and name the address they were given.
+        """
+        if self.headers.get("Origin") is not None:
+            raise _Refused(403, "cross-origin requests are not accepted")
+        try:
+            if not ipaddress.ip_address(self.server.server_address[0]).is_loopback:
+                return
+        except ValueError:
+            return
+        if _host_name(self.headers.get("Host") or "") not in LOOPBACK_NAMES:
+            raise _Refused(403, "Host header must name the loopback address")
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib name
         route = ROUTES.get(self.path.split("?", 1)[0])
         try:
             if route is None:
                 raise _Refused(404, "OTLP/HTTP serves POST /v1/traces and /v1/logs")
+            self._check_origin()
             rejected = getattr(self.collector, route)(self._body())
         except _Refused as exc:
             self._reply(exc.status, {"code": exc.status, "message": str(exc)})
             return
         except (RecursionError, ValueError) as exc:
             self._reply(400, {"code": 400, "message": str(exc)})
+            return
+        except Exception as exc:  # noqa: BLE001 - a client must get a reply, not a reset
+            self._reply(500, {"code": 500, "message": f"{type(exc).__name__}"})
             return
         if rejected:
             message = f"{rejected} span(s) had no traceId"

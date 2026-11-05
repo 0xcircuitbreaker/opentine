@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.35.0 — Security hardening (2026-11-04)
+
+### Behaviour changes
+
+- **`tine gc` no longer deletes unreachable objects** unless `--prune=now` is
+  given (default `--prune=never`). Held objects are always kept.
+- **MCP write tools are opt-in.** `python -m opentine.mcp_server` is read-only
+  unless started with `--allow-writes`, `OPENTINE_MCP_ALLOW_WRITES=1`, or
+  `create_server(read_only=False)`; `--read-only` always wins.
+- **`tine replay --harness` no longer sends a recorded prompt on its own.** It
+  needs `--prompt` to replace it, `--trust-recorded-prompt` to vouch for it, or
+  a signature on the artifact from the trusted key of the agent its identity
+  claims. The prompt and identity are re-read from the verified bytes.
+- **`agents.toml` pins are scoped to the agent they name.** A pinned key now
+  verifies only runs whose identity claims that agent (by harness or `agt_`
+  ref), instead of joining one global pin set.
+- **New redaction rules (ruleset `opentine-redaction/2`).** A newly captured
+  run can get a different oid than 0.34 gave the same input. Runs record the
+  ruleset they were redacted under in `RedactionPolicy`; runs without it
+  (ruleset 1) still load and verify.
+- **`tine rewind` refuses VCS/CI control locations** (`.git/`, `.tine/`,
+  `.github/workflows/` and similar, including a bare `.git` file) unless
+  `--allow-control-dirs` is given.
+- **Legacy seal refusal.** `TINE_REMOTE_REFUSE_LEGACY_SEALS=1` (or the key
+  provider's `refuse_legacy` option) rejects `TINEAES1`/`TINEAES2` ciphertext on
+  read, also for providers without `unseal`.
+
+### Added
+
+- **`tine hold add|list|release <oid|ref>`** records holds in `.tine/holds`.
+  `prune`, `gc --prune=now`, `rewind --apply` and remote deletes and purges
+  keep held objects and everything they reach; the retention hook is offered a
+  delete only after remote holds are checked.
+- **`tine verify --offline --hermetic`** re-runs the offline verifier under
+  `bwrap`/`unshare -rn` (Linux) or `sandbox-exec` (macOS), and exits 6 where no
+  sandbox is available (including Windows).
+- **`tine serve reseal --to aes4 --from aes2`** rewrites tenant-bound
+  `TINEAES1`/`TINEAES2` objects into the slot-bound form, after which legacy
+  seals can be refused.
+
+### Security
+
+- **Storage and prune.** `prune --delete` moves victims into a quarantine,
+  re-checks age and reachability, and restores anything young, re-touched or
+  newly reachable. Linking an existing object re-touches it and refuses a link
+  to an object a concurrent prune already moved.
+- **Remote sealing.** `KMSKeyProvider` now writes `TINEAES5`: a KMS-wrapped
+  data key whose associated data binds purpose, tenant, context, codec, size
+  and the wrapped key, so a ciphertext moved into another object's slot no
+  longer opens. Older formats still open.
+- **Offline guard.** A PEP 578 audit hook refuses every socket event and
+  process launch while `no_network` is active, closing bypasses through
+  `_socket`, `sendto` and child processes.
+- **Timestamps.** A trusted-root TSA anchors only tokens whose `genTime` lies
+  inside its `validFor` window; a retired TSA fails closed with
+  `timestamp.tsa-retired`. Tokens minted before retirement keep verifying.
+- **Shell policy.** Program runners (`xargs`, `env`, `sh`, ...), command-running
+  and in-place options of `find`, `sed`, `tar`, `rsync` and `zip`, path
+  arguments outside the policy root, abbreviated GNU long options, attached
+  `sed -e`/`--expression=` scripts, dashless `tar` clusters and
+  `tar --rmt-command` are refused.
+- **Redaction.** New vendor token shapes (LangSmith, Pinecone, Tailscale,
+  DigitalOcean, Databricks, Linear, Doppler, 1Password, Shopify, Vercel, age,
+  Twilio, Hugging Face org, Sentry, Grafana, New Relic, Entra ID and others),
+  tokens disguised by URL escapes (including `%25` double escapes), zero-width,
+  direction and invisible characters or fullwidth letters, `DD_APP_KEY`-style
+  names, and an entropy fallback for values under key-ish names.
+- **Rewind writes** walk the root with `O_DIRECTORY|O_NOFOLLOW` directory
+  descriptors, so a link swapped in after the plan check is never followed.
+- **Bundles.** A bundle naming both `heads/x` and `x` is refused before
+  anything is installed; `tine-sig/3` sidecars are installed only after the
+  ref update succeeds, and Ed25519 blocks must verify under their embedded key.
+  Unknown keys and oversized `tine-sig/3` blocks in bundle manifests are
+  rejected.
+- **Ingest surfaces.** Loopback OTLP binds refuse foreign `Host` names (a fully
+  qualified `localhost.` is accepted) and any `Origin` header, answer
+  non-object bodies with 400 and unexpected errors with 500, and cap spans/log
+  records per request and attributes per item. The record proxy rejects a
+  negative or malformed `Content-Length`. Codec readers accept ratios up to
+  100000:1 for bodies of at most 64 MiB; writers keep 1000:1.
+- **`tine view`** re-redacts every recorded string at render time and sends a
+  strict hash-based Content-Security-Policy.
+
+### Fixed
+
+- **Ref recovery.** A crash-stale `<ref>..lock` staging file is removed under
+  the held ref lock, so a writer killed after a journal commit no longer blocks
+  later ref updates.
+- **Signature sidecars.** Read-modify-write is serialized so concurrent signers
+  keep every block, and writes that would exceed the read cap are refused.
+- **Stale locks.** Locks are stamped with the boot id and PID-namespace inode
+  and judged dead only when both match; the lock's `(st_dev, st_ino)` is
+  re-checked before it is moved aside. Off Linux, where `/proc` is absent, the
+  host-only rule applies when both fields are unknown.
+
 ## 0.34.0 — Model catalog cards (2026-11-03)
 
 ### Model catalog cards

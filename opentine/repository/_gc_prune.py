@@ -9,11 +9,15 @@ Safety rules (each one has a test):
   at least ``min_age`` seconds ago (never less than :data:`MIN_GRACE`, which exceeds the hourly
   pack-freshen throttle). Its age
   is its loose file's mtime, or its pack's: a writer that finds an object
-  already stored re-touches it (``_storage._freshen``), so an object a live
-  recorder is about to reference again is young, never a candidate;
-* the delete runs under the gc lock, re-plans inside it, re-checks each age
-  just before removing, and rewrites a pack (written and read back first)
-  instead of editing it; a pack re-touched meanwhile aborts the rewrite.
+  already stored, or links one, re-touches it (``_storage._freshen``,
+  ``_link_touch``), so an object a live recorder is about to reference again
+  is young, never a candidate;
+* the delete runs under the gc lock, re-plans inside it, and rewrites a pack
+  (written and read back first) instead of editing it;
+* victims are moved into a quarantine first; then ages and reachability are
+  checked again and anything young, re-touched or newly reachable is restored
+  (``_prune_quarantine``, 0.35);
+* held objects (``tine hold``) and everything they reach are roots.
 """
 
 from __future__ import annotations
@@ -25,11 +29,13 @@ from dataclasses import dataclass, field
 from opentine import _codec
 from opentine.kernel import KernelError
 from opentine.repository._gc import GC_LEVEL, gc_lock, pack_format
-from opentine.repository._gc_tidy import loose_entries, remove_empty_dir
+from opentine.repository._gc_tidy import loose_entries
+from opentine.repository._holds import held_oids, holds_path
 from opentine.repository._objects import iter_typed_object_oids
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import pack_set
 from opentine.repository._paths import internal_path
+from opentine.repository._prune_quarantine import Quarantine, recover
 from opentine.repository._prune_roots import file_roots, git_roots, reachable
 from opentine.repository._storage import _PACK_FRESHEN
 
@@ -52,6 +58,7 @@ class PrunePlan:
     candidates: list[str] = field(default_factory=list)
     candidate_bytes: int = 0
     deleted: int = 0
+    restored: int = 0
     rewritten_packs: int = 0
     cutoff: float = 0.0
 
@@ -84,12 +91,18 @@ def _ages(repo) -> tuple[dict[str, float], dict[str, int], dict[str, set[str]]]:
     return ages, sizes, members
 
 
-def plan(repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True) -> PrunePlan:
-    min_age = max(MIN_GRACE, float(min_age))
+def _roots(repo, git_links: bool) -> set[str]:
     roots = file_roots(repo.path)
+    roots.update(held_oids(holds_path(repo)))  # scanned above too; this read fails closed
     roots.update(iter_typed_object_oids(repo.path, {"annotation", "attestation"}, limit=10**8))
     if git_links:
         roots.update(git_roots(repo.worktree))
+    return roots
+
+
+def plan(repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True) -> PrunePlan:
+    min_age = max(MIN_GRACE, float(min_age))
+    roots = _roots(repo, git_links)
     ages, sizes, _ = _ages(repo)
     kept = reachable(repo, roots)
     cutoff = time.time() - min_age
@@ -112,34 +125,40 @@ def prune(
     if not delete:
         return plan(repo, min_age=min_age, git_links=git_links)
     with gc_lock(repo.path):
+        recover(repo)  # a crashed prune's quarantine goes back first
         result = plan(repo, min_age=min_age, git_links=git_links)
-        cutoff = result.cutoff
         victims = set(result.candidates)
-        _rewrite_packs(repo, victims, cutoff, result)
-        for oid in sorted(victims):
-            path = repo._object_path(oid)
-            try:
-                if os.lstat(path).st_mtime > cutoff:
-                    continue  # re-touched by a writer since the plan
-            except FileNotFoundError:
-                continue
-            path.unlink(missing_ok=True)
-            remove_empty_dir(path.parent)
-            result.deleted += 1
+        quarantine = Quarantine(repo)
+        try:
+            touched = _rewrite_packs(repo, victims, result, quarantine)
+            for oid in sorted(victims):
+                quarantine.move_loose(oid)
+            # Moved: from now on a writer's touch finds nothing and refuses its link.
+            young = quarantine.young(result.cutoff) | touched
+            keep = quarantine.keep(_roots(repo, git_links) | young)
+        except BaseException:
+            quarantine.restore_all()
+            raise
+        result.restored = len(keep)
+        result.deleted = quarantine.finish(keep)
         pack_set(repo.path).refresh()
         return result
 
 
-def _rewrite_packs(repo, victims: set[str], cutoff: float, result: PrunePlan) -> None:
+def _rewrite_packs(repo, victims: set[str], result: PrunePlan, quarantine) -> set[str]:
+    """Drop *victims* from their packs; return those whose pack a writer re-touched."""
     _, _, members = _ages(repo)
     affected = sorted(digest for digest, oids in members.items() if oids & victims)
-    if not affected:
-        return
     stamps = {d: os.stat(internal_path(repo.path, "packs", f"{d}.tpk")).st_mtime for d in affected}
-    if any(stamp > cutoff for stamp in stamps.values()):
-        raise KernelError("a pack was re-touched by a writer since the plan; rerun prune")
-    keep = sorted(set().union(*(members[d] for d in affected)) - victims)
-    objects = [(oid, repo.raw(oid)) for oid in keep]
+    fresh = [d for d in affected if stamps[d] > result.cutoff]  # re-touched since the plan
+    touched: set[str] = set().union(*(members[d] & victims for d in fresh))
+    affected = [d for d in affected if d not in fresh]
+    if not affected:
+        return touched
+    packed = set().union(*(members[d] for d in affected))
+    for oid in sorted(victims & packed):
+        quarantine.stash(oid, repo.raw(oid))
+    objects = [(oid, repo.raw(oid)) for oid in sorted(packed - victims)]
     codec = getattr(repo, "_storage_codec", None)
     if codec in (None, "none") or not _codec.available(codec):
         codec = _codec.default_codec()
@@ -151,12 +170,9 @@ def _rewrite_packs(repo, victims: set[str], cutoff: float, result: PrunePlan) ->
             if check.read(oid) != raw:
                 raise KernelError(f"rewritten pack does not return {oid}; nothing was removed")
         affected = [d for d in affected if d != digest]
-    for old in affected:
-        path = internal_path(repo.path, "packs", f"{old}.tpk")
-        if os.stat(path).st_mtime != stamps[old]:
-            raise KernelError("a pack was re-touched by a writer during prune; rerun prune")
-        for suffix in (".tidx", ".tpk"):
-            internal_path(repo.path, "packs", old + suffix).unlink(missing_ok=True)
+    for old in affected:  # unpublish first, then move the body aside
+        internal_path(repo.path, "packs", f"{old}.tidx").unlink(missing_ok=True)
+        if quarantine.park_pack(internal_path(repo.path, "packs", f"{old}.tpk")) != stamps[old]:
+            touched |= members[old] & victims  # a writer reused one meanwhile
         result.rewritten_packs += 1
-    loose = {oid for oid, _, _ in loose_entries(repo.path)}
-    result.deleted += len((victims - loose) & set().union(*members.values()))
+    return touched

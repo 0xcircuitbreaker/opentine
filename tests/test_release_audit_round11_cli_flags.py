@@ -448,6 +448,8 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     # 0.31: --tsa-roots feeds the offline timestamp check
     (["verify", "source.tine"], ["--tsa-roots", "tsa.pem"], "refused"),
     (["verify", "source.tine", "--offline"], ["--tsa-roots", "tsa.pem"], "honoured"),
+    # 0.35: --hermetic re-runs the offline verifier in an OS no-network sandbox
+    (["verify", "source.tine"], ["--hermetic"], "refused"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),
