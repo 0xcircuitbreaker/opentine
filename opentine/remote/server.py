@@ -12,14 +12,11 @@ from wsgiref.simple_server import make_server
 
 from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
+from opentine.remote._serve_auth import add_auth_arguments, serve_identities
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
-from opentine.remote.interfaces import Identity, IdentityProvider, KeyProvider
-from opentine.remote.security import (
-    LocalKeyProvider,
-    RoleAuthorizationPolicy,
-    StaticTokenIdentityProvider,
-)
+from opentine.remote.interfaces import IdentityProvider, KeyProvider
+from opentine.remote.security import LocalKeyProvider, RoleAuthorizationPolicy
 from opentine.remote.service import RemoteService
 
 
@@ -145,6 +142,7 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--otlp-idle", type=float, default=30.0, help="Save a trace after this many idle seconds"
     )
+    add_auth_arguments(parser)
     add_admin_parsers(parser)
 
 
@@ -159,11 +157,6 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         from opentine._otlp_http import serve_otlp
 
         return serve_otlp(args, console)
-    token = os.environ.get(args.token_env)
-    if not token:
-        raise SystemExit(f"{args.token_env} must contain the development bearer token")
-    if len(token.encode("utf-8")) < 16:
-        raise SystemExit(f"{args.token_env} must contain at least 16 bytes of token material")
     if not args.insecure_dev and not (args.cert and args.key):
         raise SystemExit("TLS --cert and --key are required unless --insecure-dev is explicit")
     if args.insecure_dev and not (_loopback(args.host) or args.insecure_dev_any_host):
@@ -176,9 +169,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
     limits += (args.max_upload_mb, args.max_connections, peer_limit or 1)
     if min(limits) < 1:
         raise SystemExit("timeout and server limits must be positive")
-    identities = StaticTokenIdentityProvider(
-        {token: Identity("development", args.tenant, (args.role,))}
-    )
+    identities = serve_identities(args)
     application = reference_app(
         args.root,
         identities=identities,

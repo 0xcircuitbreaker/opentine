@@ -122,6 +122,16 @@ Existing exit statuses keep their meaning; commands move to the specific codes
 as they are revised, so a script should treat any non-zero status as failure
 and read `error.code` for the reason.
 
+New in 0.36: `serve --oidc-issuer URL --oidc-audience AUD` verifies OIDC bearer
+tokens instead of the static token (`--oidc-jwks-uri URL` pins the key set,
+otherwise it comes from the issuer's discovery document; every URL must be
+`https://` and none is ever taken from a token; `--oidc-tenant-claim` and
+`--oidc-roles-claim` name the claims). The static token must now hold at least
+32 bytes; `serve --allow-weak-tokens` starts with a shorter one while it is
+rotated. After 5 consecutive failed authentications a client gets 429 with
+`Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
+answers only `{"error":"internal","request_id":...}`, logging the exception.
+
 ## Default output format
 
 ```

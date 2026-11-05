@@ -102,7 +102,8 @@ any fails:
 
 - `TINE_REMOTE_TOKEN must contain the development bearer token` — the variable
   named by `--token-env` (default `TINE_REMOTE_TOKEN`) is unset or empty.
-- `TINE_REMOTE_TOKEN must contain at least 16 bytes of token material`.
+- `TINE_REMOTE_TOKEN holds N bytes of token material; at least 32 are required` —
+  generate a longer token, or pass `--allow-weak-tokens` while rotating it.
 - `TLS --cert and --key are required unless --insecure-dev is explicit` — supply
   a certificate and key, or `--insecure-dev` for plain HTTP.
 - `timeout and server limits must be positive` — one of `--timeout`,
