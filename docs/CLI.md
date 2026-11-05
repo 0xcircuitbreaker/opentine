@@ -357,3 +357,27 @@ record`, imports, hooks, `serve --otlp`) store such a value as its exact string
 and list the field under `metadata.warnings` instead of losing the run.
 `tine bundle` (and `bundle push/fetch`) carries the `tine-sig/3` blocks of
 imported v4 runs in the bundle manifest.
+
+## Fan-out status and MCP tools (0.36)
+
+`tine fleet status [ID] --repo PATH` lists the repository's `tine fan-out`
+records (`.tine/fanouts/`) instead of
+the fleets in `--dir`; with `--json` it prints
+`{"command": "fanout status", "fanouts": [...]}`.
+
+The MCP server (`python -m opentine.mcp_server`) builds its tool list from one
+registry (`opentine/_mcp_registry.py`), each tool annotated read or write. The
+default exposes only read tools; `--allow-writes` or
+`OPENTINE_MCP_ALLOW_WRITES=1` adds exactly the annotated write set (never
+`promote_run`). The read tools generated from the registry return the same
+payload as their command's `--json`:
+
+| Tool | Command |
+| --- | --- |
+| `verify_run` | `tine verify RUN --offline --json` |
+| `log` | `tine log [REF] --limit N --repo REPO --json` |
+| `fleet_status` | `tine fleet status [ID] --json` |
+| `fanout_status` | `tine fleet status [ID] --repo REPO --json` |
+| `cost` | `tine cost RUN --json` |
+| `agent_show` | `tine agent show TARGET --repo REPO --json` |
+| `stats` | `tine stats [--group-by KEY] --limit N --json` |

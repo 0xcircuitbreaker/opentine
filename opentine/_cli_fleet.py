@@ -2,7 +2,8 @@
 
 ``tine fleet up fleet.toml --trust`` reviews-then-trusts the manifest's exact
 bytes and runs its members (``--dry-run`` lists them, running nothing);
-``status [ID]`` shows a fleet's members (every fleet without ID); ``stop ID``
+``status [ID]`` shows a fleet's members (every fleet without ID; with
+``--repo PATH``, the repository's ``tine fan-out`` records instead); ``stop ID``
 asks the running ``up`` to kill every member's process tree; ``cost ID`` sums
 the members' reported costs. ``cost --repo PATH RUN`` instead totals a fleet
 recorded by ``tine import --fleet`` (each shared step counted once). ``--dir``
@@ -29,7 +30,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--trust", action="store_true", help="Trust this manifest's exact bytes")
     parser.add_argument("--dry-run", action="store_true", help="up: list members, run nothing")
     parser.add_argument("--dir", metavar="DIR", help="Fleet state directory")
-    parser.add_argument("--repo", metavar="PATH", help="cost: a fleet from tine import --fleet")
+    parser.add_argument("--repo", metavar="PATH", help="cost: an imported fleet; status: fan-outs")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
 
 
@@ -82,17 +83,23 @@ def _directory(args: argparse.Namespace) -> Path:
 def _status(args: argparse.Namespace) -> int:
     from opentine.parallel._state import State
 
-    directory = _directory(args)
+    kind, directory = "fleet", _directory(args)
+    if args.repo:  # `status --repo PATH`: the repository's `tine fan-out` records
+        from opentine.repo import Repo
+
+        kind, directory = "fan-out", Repo.open(args.repo).path / "fanouts"
     ids = [args.target] if args.target else sorted(p.stem for p in directory.glob("*.json"))
     rows = []
     for fleet_id in ids:
         state = State.load(directory, fleet_id)
-        if state.data["source"].get("kind") != "fleet":
+        if state.data["source"].get("kind") != kind:
             continue
         rows.append({"id": fleet_id, "name": state.data["source"].get("name"),
                      "members": state.data["members"]})  # fmt: skip
     if args.json:
-        sys.stdout.write(json.dumps({"command": "fleet status", "fleets": rows}) + "\n")
+        noun = "fanout" if args.repo else "fleet"
+        out = {"command": f"{noun} status", f"{noun}s": rows}
+        sys.stdout.write(json.dumps(out) + "\n")
         return 0
     for row in rows:
         console.print(f"[{BRAND}]{row['id']}[/] {_terminal(row['name'])}")

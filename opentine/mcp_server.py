@@ -208,7 +208,7 @@ def create_server(
     """Create an MCP server; read tools only unless ``read_only=False`` or opted in."""
     mcp = safe_errors(server := server_class()("opentine"))  # every error sanitized
     writes = writes_allowed() if read_only is None else not read_only  # opt-in only
-    mcp = mcp if writes else ReadOnlyTools(mcp)  # an allowlist of read tools
+    mcp = ReadOnlyTools(mcp, allow_writes=writes)  # the registry's tools for this mode
 
     @mcp.tool()
     def list_runs() -> list[dict[str, Any]]:
@@ -238,7 +238,7 @@ def create_server(
 
     from opentine._mcp_actions import register_actions_and_repository
 
-    register_actions_and_repository(mcp, runs_dir, repo_path)
+    register_actions_and_repository(mcp, runs_dir, repo_path)  # + the generated tools
     return server
 
 

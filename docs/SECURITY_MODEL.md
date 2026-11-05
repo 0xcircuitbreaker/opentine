@@ -655,7 +655,10 @@ it.
   `resume_run_v3`, `attest_run`, `evaluate_run`, ...) are exposed only with
   `python -m opentine.mcp_server --allow-writes`, with
   `OPENTINE_MCP_ALLOW_WRITES=1` in the server's environment, or when a host calls
-  `create_server(..., read_only=False)`; `--read-only` always wins. Before 0.35
+  `create_server(..., read_only=False)`; `--read-only` always wins. Since 0.36
+  every tool comes from one registry (`opentine/_mcp_registry.py`) annotated
+  read or write: a tool without an entry is never exposed, and writes mode adds
+  exactly the annotated write set. Before 0.35
   the write tools were on unless `--read-only` was passed.
  The run content the model reads
 through those tools is untrusted: text recorded inside a run can address the

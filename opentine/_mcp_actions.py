@@ -99,8 +99,12 @@ def register_action_tools(mcp: Any, runs_dir: str | Path, repo_path: str | Path)
 
 
 def register_actions_and_repository(mcp: Any, runs_dir: str | Path, repo_path: str | Path) -> None:
-    """``find_actions``, then the v3 repository tools when a repository exists."""
+    """``find_actions``, the tools generated from the registry, then the v3
+    repository tools when a repository exists."""
+    from opentine._mcp_cli_tools import register_cli_tools
+
     register_action_tools(mcp, runs_dir, repo_path)
+    register_cli_tools(mcp, runs_dir, repo_path)
     try:
         from opentine.mcp_repository import register_repository_tools
 
