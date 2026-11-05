@@ -113,3 +113,17 @@ def test_transcript_remote_routes_runs_to_another_remote(tmp_path, monkeypatch):
     assert transcript_remote(root, "/code") == str(tmp_path / "t.git")
     git("config", "tine.transcriptRemote", str(tmp_path / "elsewhere"))
     assert transcript_remote(root, "/code") == str(tmp_path / "elsewhere")
+
+
+def test_manifest_remote_drops_userinfo_and_key_id_needs_a_key():
+    import argparse
+
+    import pytest
+
+    from opentine import _cli_push_preview, _push_preview
+
+    assert _push_preview.public_remote("https://u:secret@host:8/a/b@c") == "https://host:8/a/b@c"
+    assert _push_preview.public_remote("/local/path") == "/local/path"
+    args = argparse.Namespace(dry_run=True, manifest=None, key_id="k1")
+    with pytest.raises(ValueError, match="key-id"):
+        _cli_push_preview.wants_manifest(args)

@@ -55,6 +55,8 @@ def manifest(repo: Any, args: argparse.Namespace, tracking: str, refs: list[str]
 
 def wants_manifest(args: argparse.Namespace) -> bool:
     signing = getattr(args, "key_file", None) or getattr(args, "ed25519_key_file", None)
+    if getattr(args, "key_id", None) and not signing:
+        raise ValueError("--key-id needs --key-file or --ed25519-key-file")
     if (signing or getattr(args, "key_id", None)) and not getattr(args, "manifest", None):
         if not getattr(args, "dry_run", False):
             raise ValueError("a manifest key flag needs --manifest PATH or --dry-run")

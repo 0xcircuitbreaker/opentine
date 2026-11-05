@@ -31,6 +31,15 @@ def tracking_ref(tracking: str, ref: str) -> str:
     return f"remotes/{tracking}/{ref.removeprefix('heads/')}"
 
 
+def public_remote(remote: str) -> str:
+    """*remote* without ``user:password@``, so a manifest never carries a credential."""
+    scheme, sep, rest = remote.partition("://")
+    if not sep:
+        return remote
+    host, slash, path = rest.partition("/")
+    return f"{scheme}://{host.rpartition('@')[2]}{slash}{path}"
+
+
 def _ruleset(repo: Any, oid: str) -> str | None:
     """The redaction ruleset a run records; ``None`` before rulesets were recorded."""
     try:
@@ -70,7 +79,7 @@ def outgoing(
     return {
         "kind": MANIFEST_KIND,
         "manifest_version": MANIFEST_VERSION,
-        "remote": remote,
+        "remote": public_remote(remote),
         "refs": entries,
         "objects": {
             "count": len(sent),
@@ -114,4 +123,4 @@ def encode(manifest: dict[str, Any]) -> bytes:
     return canonical_json(manifest)
 
 
-__all__ = ["DOMAIN_PREFIX", "encode", "outgoing", "sign", "tracking_ref", "verify"]
+__all__ = ["DOMAIN_PREFIX", "encode", "outgoing", "public_remote", "sign", "tracking_ref", "verify"]
