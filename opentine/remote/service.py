@@ -61,8 +61,7 @@ class RemoteService:
             "authentication": ["bearer", "oidc"],
             "filters": ["depth", "run", "object_type"],
             "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
-            # 0.37: "tips" -- fetch may name ref tips instead of every have (_tips).
-            "negotiation": ["haves", "tips"],
+            "negotiation": ["haves", "tips"],  # 0.37: fetch may send ref tips (_tips)
             "object_format": "opentine-v3",
             # ``pack_format`` stays what 0.11 clients read; newer ones choose from
             # ``pack_formats`` (``repository._pack_peer``).

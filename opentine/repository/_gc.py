@@ -184,8 +184,7 @@ def gc(
         result = _gc_locked(*args, (min_age, own), merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)
-        refs_packed = housekeep(repo)  # finished fan-out state, then packed refs
-        return replace(result, reaped_temp=reap_temp(repo.path), refs_packed=refs_packed)
+        return replace(result, refs_packed=housekeep(repo), reaped_temp=reap_temp(repo.path))
 
 
 def _is_v3(repo, codec: str) -> bool:
