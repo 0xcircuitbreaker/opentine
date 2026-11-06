@@ -38,7 +38,7 @@ MAX_ROOT_ROTATIONS = 256
 LIMITS = {"root": 512 * 1024, "timestamp": 16 * 1024, "snapshot": 2 << 20, "targets": 5 << 20}
 MAX_TARGET = 1 << 20
 
-__all__ = ["DEFAULT_REPO_URL", "TUFError", "update"]
+__all__ = ["DEFAULT_REPO_URL", "TUFError", "stale", "update"]
 
 
 def _write(path: Path, data: bytes) -> None:
@@ -203,3 +203,22 @@ def update(base: Path, *, repo_url: str | None = None, initial_root: bytes | Non
         "trusted_root": str(base / FILE_NAME),
         "repo_url": repo,
     }
+
+
+def stale(base: Path, now: datetime | None = None) -> str | None:
+    """X31: why the installed TUF metadata is past expiry, else ``None``.
+
+    TUF 1.0 §5.3.10/§5.4.5 forbid trusting expired metadata; ``trust root
+    update`` checks it, and this lets every later use of the installed
+    ``trusted_root.json`` check it too (unreadable metadata is stale as well).
+    """
+    now = now or datetime.now(UTC)
+    for role in ("root", "timestamp", "snapshot", "targets"):
+        path = base / "tuf" / f"{role}.json"
+        try:
+            check_expiry(parse(path.read_bytes()[: LIMITS[role] + 1], role), now)
+        except FileNotFoundError:
+            continue
+        except (OSError, TUFError) as exc:
+            return f"installed TUF {role}.json is stale: {exc}"
+    return None

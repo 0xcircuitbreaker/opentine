@@ -71,7 +71,20 @@ def trusted_root_path(args) -> str | None:
     from opentine._trusted_root import default_trusted_root
 
     path = default_trusted_root()
-    return str(path) if path else None
+    if path is None:
+        return None
+    from opentine._tuf_client import stale
+
+    reason = stale(path.parent)
+    if reason and not getattr(args, "allow_stale_root", False):
+        from opentine._cli_errors import TRUST_REQUIRED, fail
+
+        fail(f"{reason}; run `tine trust root update`, or pass --allow-stale-root", TRUST_REQUIRED)
+    if reason:
+        from rich.console import Console
+
+        Console(stderr=True, emoji=False).print(f"warning: {reason} (--allow-stale-root)")
+    return str(path)
 
 
 def load_root(path: str, envelope: dict, entries: list, signer: Any):
