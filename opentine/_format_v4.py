@@ -120,12 +120,11 @@ def v5_if_requested(encoded: bytes) -> bytes:
     """Canonical v4 artifact bytes, re-spelled as v5 when ``--format 5`` chose it."""
     if writer_format() != 5:
         return encoded
-    import json
-
+    from opentine._artifact_io import parse_artifact_json
     from opentine._tine_v5 import to_v5
     from opentine.kernel import canonical_json
 
-    return canonical_json(to_v5(json.loads(encoded)))
+    return canonical_json(to_v5(parse_artifact_json(encoded)))
 
 
 def warn_legacy() -> None:
