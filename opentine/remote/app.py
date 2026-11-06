@@ -15,7 +15,7 @@ from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
-from opentine.repository import _pack4
+from opentine.repository import _pack4, _pack_peer
 from opentine.repository.pack import MAX_PACK_BYTES, OMITTED_HEADER
 
 
@@ -180,7 +180,14 @@ class RemoteApp(UploadRoutes):
         if resource == "fetch" and method == "POST":
             request = self._json(
                 environ,
-                *("depth", "haves", "object_types", "pack_codecs", "pack_formats", "tips", "wants"),
+                "depth",
+                "haves",
+                "object_types",
+                "pack_codecs",
+                "pack_formats",
+                _pack_peer.PEER_VERSION,
+                "tips",
+                "wants",
             )
             raw_types = request.get("object_types") or []
             if not isinstance(raw_types, list) or not all(
@@ -199,9 +206,12 @@ class RemoteApp(UploadRoutes):
                     omitted=omitted,
                     tips=request.get("tips"),
                 )
-                fmt, codec = _pack4.choose(request.get("pack_formats"), request.get("pack_codecs"))
-                if fmt == _pack4.V4 and codec:  # only a client that asked for it gets v4
-                    data = _pack4.from_v3(data, codec)
+                # Only a client that asked for v4 or v5 gets it (``_pack_peer``).
+                fmt, codec = _pack_peer.choose(
+                    request.get("pack_formats"), request.get("pack_codecs")
+                )
+                peer = request.get(_pack_peer.PEER_VERSION)
+                data = _pack_peer.convert(data, fmt, codec, peer_version=peer)
             # Additive: older clients ignore it; newer ones report runs whose
             # attestations (or annotations) did not fit in the pack.
             headers = [(OMITTED_HEADER, str(len(omitted)))] if omitted else []

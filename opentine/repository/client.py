@@ -11,7 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository import _pack4
+from opentine.repository import _pack4, _pack_peer
 from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
@@ -132,7 +132,7 @@ def fetch(
                 **negotiation_fields(repo, caps, MAX_PACK_OBJECTS),  # tips, else haves
                 "object_types": sorted(object_types or ()),
                 "wants": selected,
-                **_pack4.request_fields(caps),
+                **_pack_peer.request_fields(caps),
             },
         )
     held_before = runs_held(repo, remote_refs)
@@ -176,7 +176,7 @@ def push(
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
         short: list[str] = []
         pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
-        pack = _pack4.for_peer(pack, caps)  # v4 only to a server that lists it
+        pack = _pack_peer.for_peer(pack, caps)  # v4/v5 only to a server listing it
         uploaded = _upload(
             client,
             _prefix(namespace) + "/packs",

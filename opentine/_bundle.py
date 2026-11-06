@@ -29,6 +29,9 @@ from opentine import _bundle_sigs
 from opentine._cli_git_sync import is_ancestor
 from opentine.kernel import KernelError, _parse_int, canonical_json, parse_oid, validate_json_shape
 from opentine.repo import Repo
+from opentine.repository import _pack5
+from opentine.repository._pack4 import V3
+from opentine.repository._pack5 import V5
 from opentine.repository._pack_fit import fitted_pack
 from opentine.repository._refs import normalize_ref, validate_ref_oid
 from opentine.repository.pack import MAX_PACK_BYTES, inspect_pack
@@ -56,7 +59,7 @@ class Verified:
     signatures: dict = field(default_factory=dict)
 
 
-def create(repo: Repo, refs: list[str] | None = None) -> bytes:
+def create(repo: Repo, refs: list[str] | None = None, *, pack_format: str = V3) -> bytes:
     """Bundle *refs* (default: every local ref outside ``remotes/``) and their objects."""
     local = repo.list_refs()
     if refs:
@@ -70,12 +73,20 @@ def create(repo: Repo, refs: list[str] | None = None) -> bytes:
         chosen = {k: v for k, v in local.items() if not k.startswith("remotes/")}
     if not chosen:
         raise ValueError("nothing to bundle: name refs or pass --all in a repository with refs")
-    return create_refs(repo, chosen)
+    return create_refs(repo, chosen, pack_format=pack_format)
 
 
-def create_refs(repo: Repo, chosen: dict[str, str]) -> bytes:
-    """Bundle exactly the ``ref name -> object id`` mapping *chosen*."""
+def create_refs(repo: Repo, chosen: dict[str, str], *, pack_format: str = V3) -> bytes:
+    """Bundle exactly the ``ref name -> object id`` mapping *chosen*.
+
+    The pack is ``TINEPACK3``, which every reader since 0.11 opens, unless
+    *pack_format* asks for ``TINEPACK5`` (0.37+ readers only).
+    """
+    if pack_format not in (V3, V5):
+        raise ValueError(f"bundles carry {V3} or {V5}, not {pack_format!r}")
     pack, carried = fitted_pack(repo, sorted(set(chosen.values())), [])
+    if pack_format == V5:
+        pack = _pack5.from_v3(pack, slim=True)  # written once, kept: smallest form
     fields = {
         "format": FORMAT,
         "pack": "sha256:" + hashlib.sha256(pack).hexdigest(),

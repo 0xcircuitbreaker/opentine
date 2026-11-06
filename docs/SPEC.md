@@ -684,6 +684,15 @@ A reader MUST refuse a wrapped body when any of these holds:
 
 Writers MUST NOT emit a body that exceeds the ratio limit.
 
+**Codec v2 frames (X13).** Since 0.35 a reader accepts a ratio of up to
+100 000 × the frame length for bodies that declare at most 64 MiB. A body
+past 1000:1 is a *codec v2 frame*. Since 0.37 a writer emits one only in a
+transfer pack for a peer that advertises 0.35 or newer (a server's
+`version` capability, or the `peer_version` a client sends with its fetch).
+Writers MUST NOT emit one in a `.tine` file, in local storage, or for a peer
+that does not advertise a version. Without that advertisement the body is
+stored raw (codec 0).
+
 ## 2.4 `refs/`
 
 A ref is a file containing one oid. Writers emit exactly:
@@ -897,6 +906,45 @@ shallow boundaries — with any existing boundary the pack fills — in the
 interrupted after the first object therefore never leaves a cut link that is
 neither present nor recorded (a retry of the same fetch sends nothing, so it
 could never heal one).
+
+### TINEPACK5 (0.37+)
+
+TINEPACK5 is a transfer pack for peers that list it in `pack_formats`. Only
+0.37 and later installs with zstd list it. A peer at 0.34–0.36 lists
+`TINEPACK4` and is sent that; a peer with neither gets TINEPACK3.
+
+```text
+b"TINEPACK5\0" | sha256(payload) | payload
+payload  = uvarint(len(header)) | header | block 0 | block 1 | ...
+header   = canonical JSON {"blocks": [[stored, raw], ...], "version": 1, "window_log": 27}
+block 0  = canonical JSON {"objects": [[encoding, stored, size], ...], "shallow": [...]}
+block 1+ = the objects' stored bytes in pack order, cut every 4 MiB
+```
+
+- **One zstd frame.** The blocks together form a single zstd frame, written
+  with long-distance matching and `window_log` 27, at level 9. The frame is
+  flushed at each block's end.
+- **Window cap (X17).** A reader MUST cap the decoder window at 2^27. It
+  refuses a frame that asks for more before allocating anything for it.
+- **Block order.** Blocks inflate in order, and each MUST produce exactly its
+  declared `raw` size.
+- **Checks before the body inflates.** The reader checks the checksum and the
+  canonical header. It checks that the declared sizes cover the payload and
+  stay within `MAX_PACK_BODY_BYTES`, and that the manifest (block 0, at most
+  16 MiB) adds up to the blocks. All of this happens before the body is
+  inflated.
+- **Recording order.** Objects come in recording order: blobs and events in
+  the order the runs reached them, then each session's snapshots in append
+  order.
+- **Stored forms.** `encoding` is that of pack v3: 0 `FULL`, 1 `RUN_DELTA`
+  or 2 `EVENT_SLIM`. A `RUN_DELTA`'s base is the object just before it, which
+  MUST be a run, and a delta chain is at most 64 deep.
+- **Derived ids.** Ids are not listed. Each id is computed from the rebuilt
+  canonical bytes and MUST be unique and disjoint from `shallow`.
+- **Pack id.** The pack id is `"sha256:" + hex(bytes[10:42])`.
+
+A bundle's pack is TINEPACK3 unless `tine bundle create --pack-format
+TINEPACK5` is asked for. Only 0.37+ reads such a bundle.
 
 ### Local packs
 

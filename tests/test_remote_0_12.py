@@ -94,7 +94,7 @@ def test_new_client_and_server_round_trip_in_v4(tmp_path, monkeypatch):
     run_id = origin.put_run(_run("a"), ref="heads/main").run_id
     repository_client.push(origin, URL, ref="heads/main")
     caps = service.capabilities()
-    assert caps["pack_formats"][0] == "TINEPACK4" and caps["pack_format"] == "TINEPACK3"
+    assert "TINEPACK4" in caps["pack_formats"] and caps["pack_format"] == "TINEPACK3"
     clone = Repo.init(tmp_path / "clone")
     repository_client.fetch(clone, URL)
     assert clone.has(run_id) and clone.fsck().ok

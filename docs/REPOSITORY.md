@@ -703,6 +703,22 @@ raw-byte cap and non-identity HTTP content encodings are rejected; resumable
 offsets must advance, loops are bounded, transient short reads retain partial
 upload state, and abandoned upload state is reaped.
 
+Peers pick the transfer format from each other's `pack_formats`:
+
+- **0.37 and newer (with zstd)** send `TINEPACK5` (SPEC §2.8). Objects come
+  in recording order, as one zstd long-distance frame (window 2^27, level 9)
+  flushed into 4 MiB blocks that are read in order. Readers refuse a larger
+  window.
+- **0.34–0.36 peers** get `TINEPACK4`.
+- **0.11 and older peers** get `TINEPACK3`.
+
+Bodies compressed past 1000:1 (codec v2 frames) go only to a peer that
+advertises 0.35 or newer, and never into a `.tine` file.
+
+`scripts/bench/tinepack5.py` measures the wire size and compress throughput of
+TINEPACK4 and TINEPACK5 on a synthetic corpus of similar runs with growing
+histories.
+
 The pack layer is explicit about omitted history; the local read surface treats
 it in two different ways, and a reader of a shallow clone must know which. `log`,
 `diff`, and `context_slice` stop at the boundary silently: a cut object is
@@ -740,6 +756,9 @@ Since 0.15, runs can be shared with no opentine server.
   transfer pack. The pack carries each run's associations (annotations and
   attestations) exactly as a fetch would. `--all` bundles every local ref except
   `remotes/*`; a bare name means `heads/NAME`.
+  The pack is `TINEPACK3`, which every release reads. With `--pack-format TINEPACK5`
+  (0.37+) it is TINEPACK5 with run deltas and slim events. That pack is much
+  smaller, but only 0.37 and newer can read it.
 - `tine share bundle verify FILE` checks it without a repository: size caps, both
   digests, canonical manifest, every ref name through `normalize_ref` (no `..`,
   absolute, upper-case, control characters or `remotes/*`), every ref target

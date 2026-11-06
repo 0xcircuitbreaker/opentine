@@ -141,6 +141,11 @@ recomputing full content-addressed step ids (so they change). A 0.1.x reader
 newer (e.g. v3) file; the legacy 0.1.0 format has no digest verifiable under
 current rules, so import it with `Run.load` / `tine migrate` rather than `verify`.
 
+A compressed `.tine` file (the `TINEZ1` wrapper, SPEC §2.3) never holds a
+codec v2 frame, that is, a body compressed past 1000:1. Every `.tine` file that
+0.37 writes therefore opens in 0.34. A body that would compress further than
+1000:1 is written uncompressed.
+
 ### Known v2 identity limitations
 
 V2 keeps its released step-identity semantics for compatibility. One historical
