@@ -646,7 +646,32 @@ take the same flags.
   (`OPENTINE_GC_BREAK_LOCK=1` forces it). Any other lock is reported with its
   path. An interrupted gc loses nothing and can be re-run.
 - `tine repo storage repack` merges every local pack into one.
-- Since 0.35 `tine repo storage gc` deletes no unreachable objects unless
+- **Behaviour change in 0.39:** `tine repo storage gc` (and `repack`) prunes
+  unreachable objects again by default (`--prune=retention`), but only those
+  outside the retention window and never held ones. The window comes from
+  `.tine/retention.toml` (default 14 days when the file is absent):
+
+  ```toml
+  keep_days = 30                  # default window
+  legal_hold = ["blob:sha256:…"]  # never deleted
+  [refs]                          # ref namespace (fnmatch) -> days
+  "heads/release/*" = 365
+  [status]                        # run status -> days
+  failed = 7
+  [tier]                          # assurance tier -> days
+  high = 3650
+  ```
+
+  An object keeps the longest window that applies (rules only lengthen it);
+  facts are read from a `run` object's `ref`, `status` and `assurance_tier`,
+  other objects get `keep_days`. Prune's safety floor (`MIN_GRACE`, just over an
+  hour) and quarantine still apply. `--prune=never` restores the 0.35-0.38
+  behaviour and `--prune=now` ignores the window (holds still kept).
+  `tine retention show` prints the effective policy; `tine retention check`
+  is a dry run listing what default gc would delete now. The same
+  `RetentionPolicy` implements the remote `RetentionHook`
+  (`retain_until`/`before_delete`).
+- From 0.35 to 0.38 `tine repo storage gc` deleted no unreachable objects unless
   `--prune=now`. `tine hold add|list|release <oid|ref>` records holds in
   `.tine/holds`; `prune`, `gc --prune=now`, `rewind --apply` and remote deletes
   and purges keep held objects and everything they reach.
