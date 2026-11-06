@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.40.0 — Blob deltas, run packs and `.tine` v5 (2026-11-06)
+
+### Added
+
+- **Blob deltas (opt-in).** `tine gc --blob-deltas` stores blobs in local v3
+  packs as the bytes that differ from a similar earlier blob (the longest
+  shared prefix and suffix among the previous 16), with chains capped at 64,
+  cycles refused and every rebuilt object re-hashed against its oid. The repo
+  then needs opentine 0.40.0 or newer; `--no-blob-deltas` rewrites the packs
+  and lowers the requirement again. Transfers always send whole objects.
+  Transcript growth stores at 497x on the bench corpus (136x for plain v3).
+- **CDC bake-off** (`scripts/bench/cdc_bakeoff.py`,
+  `docs/bench/0.40-cdc-bakeoff.md`). Middle-out deltas won on transcript
+  growth and CPU; chunked dedup stays in the bench for a re-run on a real,
+  consented corpus. The decision is provisional until then.
+- **One pack per run.** `Repo.put_run` and `Recorder.import_events` write a
+  run's new objects as one local pack (two file syncs and one directory sync
+  per run instead of two per object), published before any ref moves.
+  `put_run` records about 1.5x faster. Opt out with `OPENTINE_RUN_PACK=0` or
+  `"run_pack": false`.
+- **External blob pointers.** A blob can be kept as `{uri, sha256, size}` in
+  `.tine/external/`; its oid is unchanged. Content is fetched only on an
+  explicit resolve, only from prefixes allowed in `config.json`, and checked
+  for size, sha256 and oid before it is stored. Offline verification never
+  fetches.
+- **`.tine` v5** (SPEC Part 10). UTF-8 text blobs are written as text instead
+  of base64; every oid, root and `tine-sig/3` signature is the v4 one. About
+  27% smaller after zstd on synthetic transcripts. `tine --format 5` or
+  `OPENTINE_FORMAT=5` writes it; v4 stays the default until at least 0.42.
+  `tine verify`, `tine-verify.pyz` and the TypeScript verifier read it.
+
+### Compatibility
+
+- Readers before 0.40 refuse `.tine` v5 files and repositories with blob
+  deltas, with the usual "needs a newer opentine" error.
+- Conformance family `54-artifact-v5.json` (`artifact-v5`). The suite is now
+  **645 conformance vectors**; 217 of the 645 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
 ## 0.39.0 — Assurance tiers and evidence (2026-11-06)
 
 ### Behaviour changes
