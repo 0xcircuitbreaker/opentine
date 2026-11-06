@@ -25,6 +25,7 @@ from typing import Any, NoReturn
 
 from opentine._cli_common import _find_run, _terminal, console
 from opentine._cli_errors import NOT_FOUND, TRUST_REQUIRED, fail
+from opentine._cli_report_check import add_report_check_parser, cmd_verify_report
 from opentine._cli_timestamp import add_timestamp_parser, cmd_timestamp
 
 
@@ -54,6 +55,7 @@ def add_evidence_parser(sub: Any) -> None:
     report.add_argument("--pin", action="append", metavar="FINGERPRINT", help="Pinned key")
     report.add_argument("--action-policy", metavar="FILE", help="Action policy to check")
     add_timestamp_parser(sub)  # 0.31: evidence's sibling, a token beside the run
+    add_report_check_parser(sub)  # 0.39 X22: a signed verify report, checked offline
 
 
 def _fail(message: str) -> NoReturn:
@@ -167,6 +169,10 @@ def _login() -> str:
         return "unknown"
 
 
-COMMANDS = {"evidence": cmd_evidence, "timestamp": cmd_timestamp}
+COMMANDS = {
+    "evidence": cmd_evidence,
+    "timestamp": cmd_timestamp,
+    "verify-report": cmd_verify_report,
+}
 
 __all__ = ["COMMANDS", "add_evidence_parser", "cmd_evidence"]

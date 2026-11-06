@@ -1,4 +1,4 @@
-"""The ``tine-verify-report/1`` document ``tine verify RUN --offline`` produces.
+"""The ``tine-verify-report/2`` document ``tine verify RUN --offline`` produces.
 
 A report is an ordered list of checks. Each check has a ``name``, an
 ``outcome`` (one of :data:`OUTCOMES`), a dotted ``reason`` code, human
@@ -15,6 +15,11 @@ signature, an unchecked one, or a trust-on-first-use key the file carries).
 Reason codes are dotted ``area.detail`` strings. Where a check refuses for a
 rule ``docs/conformance/REASON_CODES.md`` already names (an unparseable
 artifact is ``artifact.malformed-json``), that code is reused.
+
+0.39 (X22): ``/2`` is ``/1`` plus an optional ``signing_time`` (X20) and, once
+written with ``--sign-key``, a ``signature`` block and ``signature_timestamps``
+(``_verify_report_sign``): the report is then evidence a third party can check
+offline. ``/1`` documents stay readable by ``tine verify-report check``.
 """
 
 from __future__ import annotations
@@ -22,7 +27,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-SCHEMA = "tine-verify-report/1"
+SCHEMA = "tine-verify-report/2"
+SCHEMA_V1 = "tine-verify-report/1"
 OUTCOMES = ("pass", "fail", "unavailable-offline", "not-applicable")
 INTERNAL_ONLY = "internal consistency only"
 
@@ -32,7 +38,7 @@ _STRING = {"type": "string"}
 #: JSON Schema (2020-12) of the document :meth:`Report.as_json` returns.
 JSON_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://opentine.dev/schemas/tine-verify-report-1.json",
+    "$id": "https://opentine.dev/schemas/tine-verify-report-2.json",
     "title": SCHEMA,
     "$comment": (
         "checks are ordered: digest, signature, provenance, attestation, rekor-receipt, "
@@ -66,6 +72,9 @@ JSON_SCHEMA: dict[str, Any] = {
         "location": {"type": "object"},
         "timestamps": {"type": "array", "items": {"type": "object"}},
         "assurance": {"type": "object", "required": ["claimed", "verified"]},
+        "signing_time": _STRING,
+        "signature": {"type": "object"},
+        "signature_timestamps": {"type": "array", "items": {"type": "object"}},
         "checks": {
             "type": "array",
             "items": {
@@ -153,7 +162,15 @@ class Report:
             **({"location": self.location} if self.location is not None else {}),
             **({"timestamps": self.timestamps} if self.timestamps else {}),
             **({"assurance": self.assurance} if self.assurance is not None else {}),
+            **({"signing_time": self.signing_time} if self.signing_time else {}),
         }
+
+    @property
+    def signing_time(self) -> str | None:
+        """X20: genTime of a verified token over the run's signature, if any."""
+        from opentine._verify_timestamp import signing_time
+
+        return signing_time(self.timestamps)
 
 
 _STYLE = {
@@ -180,6 +197,8 @@ def render(report: Report) -> list[str]:
     basis = report.authorship if report.ok else None
     who = escape(basis) if basis else f"NOT established ({INTERNAL_ONLY})"
     lines.append(f"[dim]authorship:[/] {who}")
+    if report.signing_time:
+        lines.append(f"[dim]verified signing time:[/] {escape(report.signing_time)}")
     if report.strict and report.unavailable_required:
         missing = ", ".join(report.unavailable_required)
         lines.append(f"[red]--strict: required check(s) unavailable offline: {escape(missing)}[/]")
@@ -199,4 +218,13 @@ def render(report: Report) -> list[str]:
     return lines
 
 
-__all__ = ["INTERNAL_ONLY", "JSON_SCHEMA", "OUTCOMES", "SCHEMA", "Check", "Report", "render"]
+__all__ = [
+    "INTERNAL_ONLY",
+    "JSON_SCHEMA",
+    "OUTCOMES",
+    "SCHEMA",
+    "SCHEMA_V1",
+    "Check",
+    "Report",
+    "render",
+]

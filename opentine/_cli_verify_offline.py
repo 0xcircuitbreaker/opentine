@@ -2,7 +2,10 @@
 
 Chains every check that can run without a network -- digest, signature,
 attestation, stored Rekor receipt, certificate chain and SCT, action manifest
-and action policy -- into one ``tine-verify-report/1`` (``_verify_report``).
+and action policy -- into one ``tine-verify-report/2`` (``_verify_report``).
+``--report PATH --sign-key KEY`` writes it signed (X22, ``_verify_report_sign``);
+``--timestamp`` also writes ``PATH.tsdata``, the bytes a TSA token over that
+signature must cover (``tine verify-report attach`` stores the response).
 The whole chain runs inside ``_offline_guard.no_network``: a socket connect or
 name lookup raises, and the report records ``offline.network-refused``.
 
@@ -25,6 +28,8 @@ OFFLINE_DESTS = (
     "provenance_source",
     "tsa_roots",
     "hermetic",
+    "sign_key",
+    "timestamp",
 )
 
 
@@ -32,12 +37,20 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="Run every check that needs no network; write a tine-verify-report/1",
+        help="Run every check that needs no network; write a tine-verify-report/2",
     )
     parser.add_argument(
         "--strict", action="store_true", help="--offline: fail if a required check cannot run"
     )
     parser.add_argument("--report", metavar="FILE", help="--offline: also write the JSON report")
+    parser.add_argument(
+        "--sign-key", metavar="KEY", help="--report: sign the report with this Ed25519 key file"
+    )
+    parser.add_argument(
+        "--timestamp",
+        action="store_true",
+        help="--sign-key: also write REPORT.tsdata, the bytes a TSA token must cover",
+    )
     parser.add_argument(
         "--locate", action="store_true", help="--offline: localise a broken digest or signature"
     )
@@ -110,15 +123,12 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
         path = _find_run(args.run_id)
         report = build_report(args, Path(path) if path else None, args.run_id)
     document = report.as_json()
-    if getattr(args, "report", None):
-        from opentine._export_write import write_private
+    if getattr(args, "sign_key", None) and not getattr(args, "report", None):
+        from opentine._cli_errors import USAGE, fail
 
-        text = serialize(document) + "\n"
-        try:
-            write_private(Path(args.report), text.encode("utf-8"))
-        except (OSError, ValueError) as exc:
-            console.print(f"[red]cannot write --report: {exc}[/]")
-            raise SystemExit(1) from exc
+        fail("--sign-key signs the --report file; pass --report PATH", USAGE)
+    if getattr(args, "report", None):
+        _write_report(args, document, serialize(document) + "\n")
     if getattr(args, "json", False):
         emit(document)
     else:
@@ -130,6 +140,31 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
         from opentine._assurance_cli import enforce_floor
 
         enforce_floor(args, report.assurance)
+
+
+def _write_report(args: argparse.Namespace, document: dict, text: str) -> None:
+    from opentine._cli_errors import USAGE, fail
+    from opentine._export_write import write_private
+
+    if getattr(args, "timestamp", False) and not getattr(args, "sign_key", None):
+        fail("--timestamp needs --sign-key: a token covers the report's signature", USAGE)
+    data = text.encode("utf-8")
+    if getattr(args, "sign_key", None):
+        from opentine import _verify_report_sign as signed
+        from opentine._signing_keys import SignatureError, ed25519_private_from_file
+
+        try:
+            document = signed.sign_report(document, ed25519_private_from_file(args.sign_key))
+        except (OSError, SignatureError, ValueError) as exc:
+            fail(f"cannot sign --report with --sign-key: {exc}", cause=exc)
+        data = signed.dumps(document)
+    try:
+        write_private(Path(args.report), data)
+        if getattr(args, "timestamp", False):
+            stamp = Path(args.report + ".tsdata")
+            write_private(stamp, signed.bound(document).encode("utf-8"))
+    except (OSError, ValueError) as exc:
+        fail(f"cannot write --report: {exc}", cause=exc)
 
 
 __all__ = [
