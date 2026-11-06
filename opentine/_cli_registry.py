@@ -38,7 +38,10 @@ GROUPS: dict[str, tuple[str, dict[tuple[str, ...], tuple[str, ...]]]] = {
             **{("storage", v): (v,) for v in ("du", "gc", "repack", "prune", "compress")},
             ("storage", "fsck"): ("fsck",),
             ("storage", "reindex"): ("reindex",),
-            **{("integrate", v): (v,) for v in ("hook", "plugin", "harnesses", "git")},
+            **{
+                ("integrate", v): (v,)
+                for v in ("hook", "enable", "disable", "plugin", "harnesses", "git")
+            },
         },
     ),
     "share": (
