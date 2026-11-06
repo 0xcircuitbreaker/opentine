@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from opentine import _codec
@@ -33,6 +33,7 @@ from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
 from opentine.repository._packs import oid_of, pack_set
 from opentine.repository._paths import internal_path
+from opentine.repository._reap import reap_temp
 
 GC_LEVEL = 19  # packs are written once and read many times
 FOOTPRINT_DIRS = ("objects", "packs", "refs", "logs", "fanouts", "txn")
@@ -49,13 +50,13 @@ class GcResult:
     disk_before: int
     disk_after: int
     codec: str
+    reaped_temp: int = 0  # stale staging files of killed writers (X18, 0.37)
 
 
 def footprint(tine: Path) -> tuple[int, int]:
     """(file bytes, allocated disk bytes) of objects, packs, refs, reflogs and state.
 
-    Refs and reflogs are counted since 0.14: after a gc they are most of a
-    repository's disk (one 4 KiB block per ref and per reflog file).
+    Refs and reflogs count since 0.14: after a gc they are most of the disk.
     """
     total = disk = 0
     for name in FOOTPRINT_DIRS:
@@ -111,8 +112,7 @@ def _loose_oids(repo, min_age: float = 0.0, own: frozenset[str] = frozenset()) -
 
 
 def _remove_loose(repo, oid: str) -> None:
-    # The emptied fan-out directory goes too (rmdir removes only an empty one); a
-    # writer that raced it recreates it (``atomic_bytes`` retries).
+    # The emptied fan-out directory goes too; a racing writer recreates it.
     path = repo._object_path(oid)
     _winretry.unlink(path)  # a reader may still hold it open (Windows)
     remove_empty_dir(path.parent)
@@ -165,6 +165,7 @@ def gc(
     pack in that format; ``downgrade`` rewrites every pack in the version-1
     pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
     Neither ever happens implicitly. *own* oids are packed whatever their age.
+    *level* applies to the chosen codec (zlib caps at 9); stale temp files go (X18).
     """
     if upgrade and downgrade:
         raise ValueError("choose one of --upgrade and --downgrade")
@@ -174,8 +175,7 @@ def gc(
     if not _codec.available(chosen):
         raise ValueError(f"{chosen} is not available; install opentine[zstd] or pass --codec zlib")
     with gc_lock(repo.path):
-        # Already v3 with only format-3 packs: --upgrade has nothing to rewrite (it
-        # used to repack everything into a byte-identical pack); loose still packs.
+        # Already v3 with only format-3 packs: --upgrade has nothing to rewrite.
         rewrite = repack or downgrade or (upgrade and not _is_v3(repo, chosen))
         if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
             set_storage_version(repo, STORAGE_V3, chosen)
@@ -184,7 +184,7 @@ def gc(
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)
         tidy_fanouts(repo.path)  # finished fan-out state past its grace period
-        return result
+        return replace(result, reaped_temp=reap_temp(repo.path))
 
 
 def _is_v3(repo, codec: str) -> bool:
@@ -218,7 +218,7 @@ def _gc_locked(
     objects = sorted(raws.items())
     removed_packs = 0
     if objects:
-        digest = write_pack(repo.path, objects, chosen, level if chosen == "zstd" else 9, fmt)
+        digest = write_pack(repo.path, objects, chosen, level, fmt)
         check = load_pack(repo.path, digest)
         expected = dict(objects)
         for oid in check.in_block_order():  # read back before anything is deleted

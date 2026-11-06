@@ -22,7 +22,8 @@ Rules, each one a compatibility or safety guarantee:
   fail because housekeeping did);
 * ``OPENTINE_AUTO_PACK=0`` (or ``off``) disables it; a number sets the
   threshold. The repository's ``config.json`` may say the same with
-  ``"auto_pack": false`` or ``"auto_pack": {"objects": N}`` (0.12 ignores it).
+  ``"auto_pack": false`` or ``"auto_pack": {"objects": N}`` (0.12 ignores it);
+  ``{"level": L}`` (0.37) sets the compression level, else gc's.
 """
 
 from __future__ import annotations
@@ -67,6 +68,16 @@ def threshold(repo) -> int | None:
         if type(objects) is int and objects > 0:
             return objects
     return DEFAULT_THRESHOLD
+
+
+def level_kwargs(repo) -> dict:
+    """``{"level": L}`` from ``config.json``'s ``auto_pack.level``, else ``{}``."""
+    try:
+        setting = read_config(internal_path(repo.path, "config.json")).get("auto_pack")
+    except (OSError, ValueError):
+        return {}
+    level = setting.get("level") if isinstance(setting, dict) else None
+    return {"level": level} if type(level) is int and 1 <= level <= 22 else {}
 
 
 def merge_candidates(sizes: dict[str, int]) -> list[str]:
@@ -118,7 +129,10 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = froz
         from opentine.repository._gc import gc
 
         merge = merge_candidates(_pack_sizes(repo.path))
-        return gc(repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own)
+        return gc(
+            repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own,
+            **level_kwargs(repo),
+        )  # fmt: skip
     except Exception:  # noqa: BLE001 - housekeeping never fails a recording
         return None
 
@@ -180,7 +194,10 @@ def settle(repo) -> None:
             return
         from opentine.repository._gc import gc
 
-        gc(repo, min_age=MIN_AGE, merge_packs=sorted(hot), keep_transfer_packs=True, own=mine)
+        gc(
+            repo, min_age=MIN_AGE, merge_packs=sorted(hot), keep_transfer_packs=True, own=mine,
+            **level_kwargs(repo),
+        )  # fmt: skip
         state["_autopack_own"] = set()
     except Exception:  # noqa: BLE001 - housekeeping never fails a recording
         return
