@@ -100,6 +100,19 @@ New flags in 0.37 (no new subcommands):
 - `gc` also removes staging files left by killed writers once they are an hour
   old (`reaped_temp` in `--json`); live writers' files are never touched.
 
+New in 0.38: `tine rewind` restores a workspace snapshot (a tree blob, SPEC
+§1.5.7) exactly. `tine rewind TREE_OID` takes the tree id directly;
+`tine rewind RUN[@STEP] --tree` uses the tree linked from that step
+(`outputs.tree`, or the nearest earlier step with one). `--repo DIR` names the
+repository holding the snapshot (default: the one containing `--root`). Dry run
+by default; `--apply` writes every file, link and executable bit back byte for
+byte and removes tracked paths the snapshot did not have, so changes made
+through a shell are undone too. Writes go through the 0.35 `O_NOFOLLOW`
+directory-descriptor writer; control files are refused without
+`--allow-control-dirs`; ignored, version-control and omitted paths (too large
+or unreadable at capture) are left alone; a file stored redacted is refused.
+`--json` reports `restore`, `remove`, `unchanged`, `refused` and `kept`.
+
 ## Errors, `--json` and exit codes (0.36)
 
 Every leaf subcommand accepts `--json`. Commands with their own JSON payload

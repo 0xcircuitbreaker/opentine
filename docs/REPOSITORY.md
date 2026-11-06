@@ -25,6 +25,17 @@ The immutable object types are:
 | `attestation` | signatures, evaluations, approvals, and provenance claims; optionally signed at `tine-attest/1` |
 | `annotation` | separately versioned mutable human/system metadata |
 
+A workspace snapshot (0.38+) is a **tree blob**: a `blob` at schema 2 whose
+canonical JSON body lists `{mode, name, oid}` entries, one tree per directory
+(SPEC §1.5.7). An event links the snapshot taken at its step in its `tree`
+field. `fsck`, `gc`, `prune`, `pack`, `bundle` and fetch/push walk a tree's
+entries like any other link; a 0.34 reader accepts trees as opaque blobs.
+`opentine._snapshot.snapshot(repo, root, ignore=..., max_file_bytes=...,
+cache=...)` stores one (deduplicated against earlier turns: unchanged files
+and directories keep their oids, and the returned `cache` skips rereading
+unchanged files); `opentine._tree.link_tree(event_payload, tree_oid)` links it
+from an event; `tine rewind TREE --apply` (or `RUN@STEP --tree`) restores it.
+
 An object ID is `TYPE:sha256:HEX`, computed over the type, schema version, and
 canonical stored bytes. JSON uses RFC 8785/JCS encoding; blobs retain raw bytes.
 Credential redaction precedes canonicalization and hashing. Identical objects
