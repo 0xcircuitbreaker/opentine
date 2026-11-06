@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from opentine._assurance_cli import assurance_for, cmd_compare_capture, enforce_floor
 from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import KEY_MATERIAL_FLAGS, refuse_conflict, refuse_unhonoured
 from opentine._cli_intoto import cmd_verify_attestation
@@ -33,6 +34,8 @@ def cmd_verify(args: argparse.Namespace) -> None:
         KEY_MATERIAL_FLAGS,
         hint="One signature is checked against one key, and the artifact would pick which.",
     )
+    if getattr(args, "compare_capture", None):
+        return cmd_compare_capture(args)
     if getattr(args, "offline", False):
         return cmd_verify_offline(args)
     refuse_without_offline(args)
@@ -67,12 +70,12 @@ def cmd_verify(args: argparse.Namespace) -> None:
         signature, fingerprint = signature_result(args, path) if armed else (None, None)
         unchecked = unchecked_signature(path) if result.ok and not armed else None
         policy = getattr(args, "policy_used", None)
-        emit_verify(
-            path, result, signature, fingerprint=fingerprint, unchecked=unchecked, policy=policy
-        )
+        tier = assurance_for(args, path) if result.ok else None
+        emit_verify(path, result, signature, fingerprint=fingerprint, unchecked=unchecked,
+                    policy=policy, assurance=tier)  # fmt: skip
         if not result.ok or (signature is not None and not signature.ok):
             raise SystemExit(1)
-        return
+        return enforce_floor(args, tier)
     if not result.ok:
         console.print(f"[red]FAILED[/] {_terminal(path)}: {_terminal(result.reason)}")
         if result.expected:
@@ -91,6 +94,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
             "--key-env or --pin to check it"
         )
     _verify_signature_if_requested(args, path)
+    enforce_floor(args, assurance_for(args, path, show=True))
 
 
 def signature_requested(args: argparse.Namespace) -> bool:

@@ -127,7 +127,7 @@ def emit(payload: dict[str, Any]) -> None:
     print(serialize(payload))
 
 
-def emit_show(run: Run, path: str | Path) -> None:
+def emit_show(run: Run, path: str | Path, assurance: dict[str, Any] | None = None) -> None:
     emit(
         {
             "command": "show",
@@ -145,6 +145,7 @@ def emit_show(run: Run, path: str | Path) -> None:
                 "system_prompt": run.system_prompt,
             },
             "steps": [_step(step) for step in run.steps],
+            **({"assurance": assurance} if assurance is not None else {}),
         }
     )
 

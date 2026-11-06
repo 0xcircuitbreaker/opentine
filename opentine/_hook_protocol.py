@@ -141,7 +141,8 @@ def _step(event: dict[str, Any], agent: str, extra: dict[str, Any]):
         if isinstance(tree := extra.get("opentine.snapshot.tree"), str):
             outputs["tree"] = tree  # what ``tine rewind --tree`` reads
     attributes = {"opentine.hook.protocol": PROTOCOL, "opentine.hook.event": kind,
-                  "opentine.hook.agent": agent, **extra}  # fmt: skip
+                  "opentine.hook.agent": agent, "opentine.capture.claimed_tier": "T1",
+                  **extra}  # fmt: skip
     return TraceEvent(
         kind=step_kind,
         timestamp=time.time(),

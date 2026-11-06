@@ -451,6 +451,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine", "--offline"], ["--tsa-roots", "tsa.pem"], "honoured"),
     # 0.35: --hermetic re-runs the offline verifier in an OS no-network sandbox
     (["verify", "source.tine"], ["--hermetic"], "refused"),
+    # 0.39: assurance tiers -- a floor, an extra witness key, the divergence report
+    (["verify", "source.tine"], ["--min-assurance", "T2"], "honoured"),
+    (["verify", "source.tine"], ["--proxy-pubkey", "missing.pub"], "honoured"),
+    (["verify", "source.tine"], ["--compare-capture", "tampered.tine"], "honoured"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),

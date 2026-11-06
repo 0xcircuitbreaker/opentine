@@ -116,6 +116,8 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
         code = 130
     recorder.close(code)
     err.print(f"mcp-proxy: {recorder.steps} step(s) saved to {_terminal(output)}")
+    if not recorder.witnessed:
+        err.print("mcp-proxy: unwitnessed (assurance T0): run `tine proxy keygen` to sign runs")
     if recorder.dropped:
         err.print(f"mcp-proxy: {recorder.dropped} message(s) not recorded (queue full)")
     if args.repo:

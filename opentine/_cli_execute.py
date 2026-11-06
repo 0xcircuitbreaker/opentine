@@ -154,11 +154,15 @@ def _loaded_run(run_id: str) -> tuple[Path, Run]:
 
 
 def cmd_show(args: argparse.Namespace) -> None:
+    from opentine._assurance import assess, line
+
     path, run = _loaded_run(args.run_id)
+    tier = assess(path)  # the verified tier, never the run's own claim
     if getattr(args, "json", False):
-        emit_show(run, path)
+        emit_show(run, path, tier)
         return
     _print_run_tree(run)
+    console.print(line(tier))
 
 
 def cmd_cost(args: argparse.Namespace) -> None:

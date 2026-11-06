@@ -65,6 +65,7 @@ JSON_SCHEMA: dict[str, Any] = {
         "unavailable_required": {"type": "array", "items": _STRING},
         "location": {"type": "object"},
         "timestamps": {"type": "array", "items": {"type": "object"}},
+        "assurance": {"type": "object", "required": ["claimed", "verified"]},
         "checks": {
             "type": "array",
             "items": {
@@ -113,6 +114,8 @@ class Report:
     location: dict[str, Any] | None = None
     #: 0.31: one entry per stored RFC 3161 token (genTime, TSA, policy, hash).
     timestamps: list[dict[str, Any]] | None = None
+    #: 0.39 (X21): claimed and verified assurance tier (``_assurance.assess``).
+    assurance: dict[str, Any] | None = None
 
     def add(self, check: Check) -> None:
         self.checks.append(check)
@@ -149,6 +152,7 @@ class Report:
             "unavailable_required": self.unavailable_required,
             **({"location": self.location} if self.location is not None else {}),
             **({"timestamps": self.timestamps} if self.timestamps else {}),
+            **({"assurance": self.assurance} if self.assurance is not None else {}),
         }
 
 
@@ -186,6 +190,10 @@ def render(report: Report) -> list[str]:
             f"[dim]location:[/] {escape(where['region'] or 'not localised')} at {escape(spot)}: "
             f"{escape(where['detail'])} {escape('[' + where['reason'] + ']')}"
         )
+    if report.assurance is not None:
+        from opentine._assurance import line
+
+        lines.append(line(report.assurance))
     verdict = "[green]VERIFIED (offline)[/]" if report.ok else "[red]FAILED (offline)[/]"
     lines.append(verdict)
     return lines

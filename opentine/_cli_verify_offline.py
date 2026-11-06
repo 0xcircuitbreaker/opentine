@@ -62,15 +62,20 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
 
 def add_verify_args(parser: argparse.ArgumentParser) -> None:
     """Every ``tine verify`` flag beyond the key flags: attestation and offline."""
+    from opentine._assurance_cli import add_assurance_verify_args
     from opentine._cli_intoto import add_attestation_verify_args
 
     add_attestation_verify_args(parser)
     add_offline_verify_args(parser)
+    add_assurance_verify_args(parser)
 
 
 def refuse_without_offline(args: argparse.Namespace) -> None:
+    # --tsa-roots also feeds the assurance tier (T3), so a floor honours it.
+    exempt = ("tsa_roots",) if getattr(args, "min_assurance", None) else ()
+    dests = tuple(dest for dest in OFFLINE_DESTS if dest not in exempt)
     refuse_unhonoured(
-        args, OFFLINE_DESTS, mode="without --offline", hint="Add --offline to run that report."
+        args, dests, mode="without --offline", hint="Add --offline to run that report."
     )
 
 
@@ -121,6 +126,10 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
             console.print(line)
     if not report.ok:
         raise SystemExit(1)
+    if getattr(report, "assurance", None) is not None:  # a dataset has one per run
+        from opentine._assurance_cli import enforce_floor
+
+        enforce_floor(args, report.assurance)
 
 
 __all__ = [

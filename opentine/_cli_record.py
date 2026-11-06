@@ -15,6 +15,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from opentine._assurance import proxy_marker, witness_save
+from opentine._assurance_cli import add_proxy_parser, cmd_proxy
 from opentine._cli_common import console
 from opentine._cli_flags import _require_output_slot
 from opentine._cli_mcp_proxy import add_mcp_proxy_parser
@@ -36,6 +38,7 @@ def add_record_parser(sub: Any) -> None:
     )
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
     add_mcp_proxy_parser(sub)
+    add_proxy_parser(sub)
 
 
 def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> Run:
@@ -44,6 +47,7 @@ def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> R
     shown = [redact_text(part) for part in command]
     run = Run(user_prompt=" ".join(shown))
     run.metadata["record"] = {"command": shown, "exit_code": code}
+    run.metadata["capture"] = proxy_marker("record-proxy")  # a claim; verify checks it
     for record in sorted(records, key=lambda item: item.get("started", 0.0)):
         args = step_args(record)
         args["inputs"] = redact_value(args["inputs"])
@@ -82,10 +86,12 @@ def cmd_record(args: argparse.Namespace) -> None:
         server.shutdown()
         server.server_close()
     run = build_run(command, records, code)
-    _save_run_receipt(run, args.save, force=True)
+    output = _save_run_receipt(run, args.save, force=True)
+    if not witness_save(run, output):
+        console.print("[yellow]Unwitnessed (assurance T0): run `tine proxy keygen` to sign.[/]")
     raise SystemExit(code)
 
 
-COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy}
+COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy, "proxy": cmd_proxy}
 
 __all__ = ["COMMANDS", "add_record_parser", "build_run", "cmd_record"]
