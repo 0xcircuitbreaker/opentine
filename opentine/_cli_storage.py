@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from opentine._cli_archive import add_archive_parsers, cmd_archive
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_du import DU_COMMANDS
 from opentine._cli_hold import HOLD_COMMANDS
@@ -21,6 +22,13 @@ def _size(count: int) -> str:
             return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
         value /= 1024
     return f"{count} B"
+
+
+def _level(text: str) -> int:
+    value = int(text)
+    if not 1 <= value <= 22:
+        raise argparse.ArgumentTypeError("level must be 1-22")
+    return value
 
 
 def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
@@ -42,6 +50,11 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
         command = sub.add_parser(name, help=text)
         command.add_argument("--repo", default=".")
         command.add_argument("--codec", choices=_CODECS, help="Pack codec (default: zstd)")
+        command.add_argument(
+            "--level",
+            type=_level,
+            help="Compression level: zstd 1-22 (default 19), zlib 1-9 (default 9)",
+        )
         command.add_argument(
             "--keep-transfer-packs",
             action="store_true",
@@ -67,15 +80,17 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             action="store_true",
             help="Rewrite every pack for storage version 2, which opentine 0.11-0.12 read",
         )
-    archive = sub.add_parser("archive", help="Write or restore a whole-repository archive")
-    actions = archive.add_subparsers(dest="archive_action", required=True)
-    create = actions.add_parser("create", help="Archive a repository into one compressed file")
-    create.add_argument("output")
-    create.add_argument("--repo", default=".")
-    create.add_argument("--codec", choices=_CODECS)
-    restore = actions.add_parser("restore", help="Restore an archive into a new repository")
-    restore.add_argument("archive")
-    restore.add_argument("destination")
+        refs = command.add_mutually_exclusive_group()
+        refs.add_argument(
+            "--pack-refs",
+            action="store_true",
+            help="Opt in to packed-refs (one file for every ref; opentine 0.36 and older "
+            "then refuse the repository until --unpack-refs)",
+        )
+        refs.add_argument(
+            "--unpack-refs", action="store_true", help="Write every ref loose again (0.36 reads)"
+        )
+    add_archive_parsers(sub, _CODECS)
     compress = sub.add_parser(
         "compress", help="Rewrite .tine files compressed (or plain with --decompress)"
     )
@@ -118,14 +133,23 @@ def _prune_now(args: argparse.Namespace):
 
 
 def _gc_run(gc, args: argparse.Namespace):
-    return gc(
-        _repo(args.repo),
+    from opentine.repository import _gc_refs
+
+    repo = _repo(args.repo)
+    if args.pack_refs:
+        _gc_refs.enable(repo)  # descriptor first; gc then folds the loose refs
+    result = gc(
+        repo,
         repack=args.command == "repack",
         codec=args.codec,
         keep_transfer_packs=args.keep_transfer_packs,
         upgrade=args.upgrade,
         downgrade=args.downgrade,
+        **({} if args.level is None else {"level": args.level}),
     )
+    if args.unpack_refs:
+        _gc_refs.disable(repo)
+    return result
 
 
 def _report_gc(args: argparse.Namespace, result, pruned=None) -> None:
@@ -143,33 +167,10 @@ def _report_gc(args: argparse.Namespace, result, pruned=None) -> None:
     if args.upgrade or args.downgrade:
         version = 3 if args.upgrade else 2
         console.print(f"  repository is now at storage version {version}")
+    if result.refs_packed:
+        console.print(f"  packed {result.refs_packed} loose ref(s) into packed-refs")
     if result.removed_transfer_packs:
         console.print(f"  removed {result.removed_transfer_packs} received transfer pack copy(ies)")
-
-
-def cmd_archive(args: argparse.Namespace) -> None:
-    try:
-        _archive(args)
-    except (OSError, ValueError) as exc:
-        _refuse(exc)
-
-
-def _archive(args: argparse.Namespace) -> None:
-    from opentine.repository._archive import create_archive, restore_archive
-
-    if args.archive_action == "create":
-        stats = create_archive(_repo(args.repo), args.output, codec=args.codec)
-        console.print(
-            f"[{BRAND}]# Archived[/] {stats['objects']} object(s): "
-            f"{_size(stats['raw_bytes'])} → {_size(stats['archive_bytes'])} "
-            f"[{BRAND}]in[/] {_terminal(args.output)}"
-        )
-        return
-    stats = restore_archive(args.archive, args.destination)
-    console.print(
-        f"[{BRAND}]# Restored[/] {stats['objects']} object(s) and {stats['refs']} ref(s) "
-        f"[{BRAND}]into[/] {_terminal(stats['path'])}"
-    )
 
 
 def _artifacts(paths: list[str]) -> list[Path]:

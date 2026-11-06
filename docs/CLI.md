@@ -85,6 +85,21 @@ keeps objects and everything they reach from `prune`, `gc --prune=now`,
 exists, Windows included), `rewind --allow-control-dirs`,
 `replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
 
+New flags in 0.37 (no new subcommands):
+
+- `gc --level N` / `repack --level N`: the pack compression level (zstd 1-22,
+  default 19; zlib caps at 9). Auto-pack reads `"auto_pack": {"level": N}` from
+  the repository's `config.json`.
+- `archive create --archival`: writes the archive with xz (storage codec 4, zlib
+  where Python lacks `lzma`), so a stock Python 3.11+ restores and verifies it
+  with no optional package. opentine 0.36 and older cannot read codec 4, which
+  is written only on this request.
+- `fsck --budget SECONDS` / `fsck --max-objects N`: stop the object walk
+  cleanly; the JSON report gains `checked` and `complete` (exit 0 when nothing
+  checked failed), and stderr says how far it got.
+- `gc` also removes staging files left by killed writers once they are an hour
+  old (`reaped_temp` in `--json`); live writers' files are never touched.
+
 ## Errors, `--json` and exit codes (0.36)
 
 Every leaf subcommand accepts `--json`. Commands with their own JSON payload

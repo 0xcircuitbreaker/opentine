@@ -11,7 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository import _pack4
+from opentine.repository import _pack4, _pack_peer
 from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
@@ -19,6 +19,7 @@ from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import require_secure_remote as _require_secure_remote
 from opentine.repository._http import split_remote as _remote
 from opentine.repository._pack_fit import fitted_pack
+from opentine.repository._tips import negotiation_fields
 from opentine.repository._unadopted import adopt_advertised_annotations, runs_held
 from opentine.repository._upload_client import upload as _upload
 from opentine.repository.pack import (  # noqa: F401
@@ -128,14 +129,10 @@ def fetch(
             response_headers=received,
             json={
                 "depth": depth,
-                # The wire protocol deliberately bounds negotiation sets. A
-                # truncated have-list can only cause a redundant transfer;
-                # sending more would make otherwise healthy large repositories
-                # impossible to fetch into.
-                "haves": repo.iter_oids(limit=MAX_PACK_OBJECTS, truncate=True),
+                **negotiation_fields(repo, caps, MAX_PACK_OBJECTS),  # tips, else haves
                 "object_types": sorted(object_types or ()),
                 "wants": selected,
-                **_pack4.request_fields(caps),
+                **_pack_peer.request_fields(caps),
             },
         )
     held_before = runs_held(repo, remote_refs)
@@ -179,7 +176,7 @@ def push(
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
         short: list[str] = []
         pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
-        pack = _pack4.for_peer(pack, caps)  # v4 only to a server that lists it
+        pack = _pack_peer.for_peer(pack, caps)  # v4/v5 only to a server listing it
         uploaded = _upload(
             client,
             _prefix(namespace) + "/packs",

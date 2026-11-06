@@ -122,6 +122,23 @@ def test_rebase_rereads_after_a_concurrent_move(tmp_path):
     assert repo.read_ref("tags/t") == c
 
 
+def test_rebase_keeps_retrying_when_the_lock_outlasts_one_wait(tmp_path, monkeypatch):
+    repo = Repo.init(tmp_path / "repo")
+    a, c = (repo.put("blob", x) for x in (b"a", b"c"))
+    repo.update_ref("tags/t", a, expected_old=None)
+    real, calls = repo.update_ref, []
+
+    def contended(*args, **kwargs):
+        calls.append(1)
+        if len(calls) < 3:  # update_ref's own lock wait ran out, twice
+            raise RefLockContended("ref 'tags/t' is locked by a concurrent writer")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(repo, "update_ref", contended)
+    assert repo.update_ref_rebase("tags/t", lambda current: c) == c
+    assert len(calls) == 3 and real.__self__.read_ref("tags/t") == c
+
+
 def test_backoff_is_bounded_and_jittered():
     delays = list(backoff(0.05))
     assert delays and all(0 < d <= 0.05 for d in delays)

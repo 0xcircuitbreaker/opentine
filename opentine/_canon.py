@@ -13,6 +13,7 @@ import json
 import math
 import os
 import stat
+import sys
 import tempfile
 from dataclasses import fields, is_dataclass
 from enum import StrEnum
@@ -151,7 +152,7 @@ def atomic_write_text(
             handle.write(text)
             if fsync:
                 handle.flush()
-                os.fsync(handle.fileno())
+                full_fsync(handle.fileno())
         if mode is not None:
             os.chmod(tmp, mode)
         else:
@@ -173,13 +174,31 @@ def atomic_write_text(
     return p
 
 
+def full_fsync(fd: int) -> None:
+    """``fsync`` that reaches the platter on macOS too (X19, 0.37).
+
+    macOS ``fsync`` only hands data to the drive, whose cache may lose it on
+    power failure; ``F_FULLFSYNC`` flushes that cache. Filesystems that refuse
+    it (some network mounts) fall back to plain ``fsync``.
+    """
+    if sys.platform == "darwin":
+        import fcntl
+
+        try:
+            fcntl.fcntl(fd, fcntl.F_FULLFSYNC)
+            return
+        except (AttributeError, OSError):
+            pass
+    os.fsync(fd)
+
+
 def _fsync_dir(directory: Path) -> None:
     try:
         dir_fd = os.open(str(directory), os.O_RDONLY)
     except OSError:
         return
     try:
-        os.fsync(dir_fd)
+        full_fsync(dir_fd)
     except OSError:
         pass
     finally:

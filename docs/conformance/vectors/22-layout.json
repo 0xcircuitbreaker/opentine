@@ -61,7 +61,7 @@
       "x_display": "{\"min_reader\":\"9.0.0\",\"object_hash\":\"sha256\",\"objects\":4,\"repository\":\"opentine\",\"version\":1}\\n",
       "x_reference": {
         "exception": "ValueError",
-        "message": "repository config is incompatible: this repository needs opentine 9.0.0 or newer to read it (this build reads repositories up to 0.26.0); upgrade opentine"
+        "message": "repository config is incompatible: this repository needs opentine 9.0.0 or newer to read it (this build reads repositories up to 0.37.0); upgrade opentine"
       }
     },
     {

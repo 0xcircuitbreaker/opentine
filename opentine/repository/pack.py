@@ -1,6 +1,7 @@
 """Deterministic compressed v3 packs and missing-object negotiation.
 
-Readers also accept ``TINEPACK4`` (``_pack4``), sent to peers that advertise it.
+Readers also accept ``TINEPACK4`` (``_pack4``) and ``TINEPACK5`` (``_pack5``),
+sent to peers that advertise them (``_pack_peer``).
 """
 
 from __future__ import annotations
@@ -20,9 +21,10 @@ from opentine.kernel import (
     validate_json_shape,
     validate_links,
 )
-from opentine.repository import _pack4
+from opentine.repository import _pack4, _pack5
 from opentine.repository._pack_walk import include_associations, walk
 from opentine.repository._semantic_view import semantic_view
+from opentine.repository._tips import MAX_TIPS, checked_ids, met_tips
 from opentine.repository._traversal import MAX_TRAVERSAL_OBJECTS
 
 if TYPE_CHECKING:
@@ -83,11 +85,14 @@ def reachable(
     depth: int | None = None,
     include_associated: bool = True,
     omitted: list[str] | None = None,
+    stop: frozenset[str] = frozenset(),
 ) -> list[str]:
     """Every object a pack for *wants* carries: the graph, then runs' associations.
 
     Associations are added only while they fit (see ``_pack_walk``); a run whose
     associations were left out, wholly or in part, is appended to *omitted*.
+    The walk stops at *stop* (tips the receiver holds with their history, see
+    ``_tips``); the runs it meets there still bring their associations.
     """
     if not isinstance(wants, list) or not all(isinstance(oid, str) for oid in wants):
         raise KernelError("pack wants must be a list of object ids")
@@ -99,12 +104,14 @@ def reachable(
         parse_oid(oid)
     repo = semantic_view(repo, max_source_bytes=MAX_PACK_BODY_BYTES)
     links: dict[str, tuple[str, ...]] = {}
-    seen, runs = walk(repo, wants, set(), depth, MAX_PACK_OBJECTS, links_out=links)
+    seen, runs = walk(repo, wants, set(stop), depth, MAX_PACK_OBJECTS, links_out=links)
     if include_associated:
+        seen |= stop  # held by the receiver: counted, never sent
+        runs += met_tips(stop, wants, links)
         include_associations(
             repo, runs, seen, depth, MAX_PACK_OBJECTS, omitted, MAX_PACK_BODY_BYTES, links
         )
-    return sorted(seen)
+    return sorted(seen - stop)
 
 
 def negotiate(
@@ -114,14 +121,11 @@ def negotiate(
     *,
     depth: int | None = None,
     omitted: list[str] | None = None,
+    tips: list[str] | None = None,
 ) -> list[str]:
-    if not isinstance(haves, list) or not all(isinstance(oid, str) for oid in haves):
-        raise KernelError("pack haves must be a list of object ids")
-    if len(haves) > MAX_PACK_OBJECTS:
-        raise KernelError("pack negotiation has too many haves")
-    for oid in haves:
-        parse_oid(oid)
-    available = set(reachable(repo, wants, depth=depth, omitted=omitted))
+    checked_ids(haves, "haves", MAX_PACK_OBJECTS)
+    stop = frozenset(oid for oid in checked_ids(tips or [], "tips", MAX_TIPS) if repo.has(oid))
+    available = set(reachable(repo, wants, depth=depth, omitted=omitted, stop=stop))
     return sorted(available - set(haves))
 
 
@@ -170,6 +174,8 @@ def inspect_pack(
         raise KernelError("pack exceeds maximum transfer size")
     if data.startswith(_pack4.MAGIC4):
         return _pack4.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS)
+    if data.startswith(_pack5.MAGIC5):
+        return _pack5.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS)
     if not data.startswith(MAGIC) or len(data) < len(MAGIC) + 32:
         raise KernelError("invalid pack header")
     expected = data[len(MAGIC) : len(MAGIC) + 32]

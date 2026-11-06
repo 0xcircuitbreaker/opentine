@@ -648,6 +648,31 @@ take the same flags.
   repository** (`repository config is incompatible`); `tine repo storage gc --downgrade`
   rewrites it for version 2 so they can open it again. Later `gc`, `repack`,
   auto-pack and `prune` keep writing v3 packs in a version-3 repository.
+- `tine repo storage gc --pack-refs` (0.37+, opt-in) folds every loose ref into
+  one `.tine/packed-refs` file (`<oid> <ref>` lines, sorted), so `list_refs` is
+  one read instead of one open per ref; later gcs keep folding new loose refs.
+  Reads look at the loose file first, then the packed value; writes still land
+  loose (and shadow it); a delete removes both under `packed-refs.lock`. A
+  loose ref is removed only when it still equals its packed value under its own
+  lock, so a concurrent writer is never undone. Because opentine 0.36 and older
+  never read `packed-refs` (they would see the refs as missing, and prune would
+  treat their history as unreachable), the opt-in writes `"refs": "packed"` and
+  `"min_reader": "0.37.0"` to `config.json` (object format 4 is required), and
+  those releases refuse the repository; without the opt-in gc never touches a
+  ref. `tine repo storage gc --unpack-refs` writes every ref loose again and
+  lowers `min_reader` back to 0.26.0. Reflogs stay one file per ref.
+- Pack indexes are read lazily (0.37+): the binary v3 `.tidx` is mapped into
+  memory (read into memory on Windows, where a mapping would stop gc from
+  replacing it) and searched through a fanout table, instead of every entry
+  being parsed into one dict at a process's first object read. Opening an index
+  checks its header, length, trailing SHA-256 and block table; each entry a
+  lookup returns is checked on its own; the whole-file rules (sorted, unique,
+  tiling) run for bulk walks (gc, du, `verify_packs`). `has()` asks the pack
+  index before probing the loose path. Version-1 JSON indexes are still read.
+- Auto-pack (0.37+) triggers on cold loose objects by count (256, or
+  `"auto_pack": {"objects": N}` / `OPENTINE_AUTO_PACK=N`) **or** by the disk
+  space they occupy (16 MiB, or `"auto_pack": {"bytes": N}` /
+  `OPENTINE_AUTO_PACK_BYTES=N`), each file counted as at least one 4 KiB block.
 - `tine repo archive create FILE` writes the whole repository (objects, refs,
   shallow boundaries) as one compressed file; `tine repo archive restore FILE DEST`
   verifies the pack digest and every object id and sets refs through the
@@ -660,7 +685,14 @@ compressed and plain repositories exchange objects freely.
 
 `TINEPACK3` packs are canonical manifests of verified envelopes, compressed
 with a SHA-256 checksum. Negotiation sends only objects reachable from wanted
-IDs that the receiver does not already have. Packs support shallow boundaries
+IDs that the receiver does not already have. Since 0.37 a server advertises
+`"negotiation": ["haves", "tips"]`, and a fetching client then sends its ref
+tips (at most 4096 ref targets it holds) instead of every local oid as a have;
+the server's walk stops at a tip it holds, though runs met there still bring
+their associations (a redundant re-send at worst, never a missing object). A
+client with shallow boundaries, or facing a server that does not advertise
+`tips` (0.36 and older), sends haves exactly as before; a 0.36 client's haves
+are still answered by a 0.37 server. Packs support shallow boundaries
 and filtered fetch without pretending omitted history is present. Compressed
 transfers and decompressed manifests are capped at 256 MiB and trailing zlib
 streams/data are rejected. Repository-wide shallow state is validated and
@@ -670,6 +702,22 @@ control responses are streamed under a 1 MiB
 raw-byte cap and non-identity HTTP content encodings are rejected; resumable
 offsets must advance, loops are bounded, transient short reads retain partial
 upload state, and abandoned upload state is reaped.
+
+Peers pick the transfer format from each other's `pack_formats`:
+
+- **0.37 and newer (with zstd)** send `TINEPACK5` (SPEC §2.8). Objects come
+  in recording order, as one zstd long-distance frame (window 2^27, level 9)
+  flushed into 4 MiB blocks that are read in order. Readers refuse a larger
+  window.
+- **0.34–0.36 peers** get `TINEPACK4`.
+- **0.11 and older peers** get `TINEPACK3`.
+
+Bodies compressed past 1000:1 (codec v2 frames) go only to a peer that
+advertises 0.35 or newer, and never into a `.tine` file.
+
+`scripts/bench/tinepack5.py` measures the wire size and compress throughput of
+TINEPACK4 and TINEPACK5 on a synthetic corpus of similar runs with growing
+histories.
 
 The pack layer is explicit about omitted history; the local read surface treats
 it in two different ways, and a reader of a shallow clone must know which. `log`,
@@ -708,6 +756,9 @@ Since 0.15, runs can be shared with no opentine server.
   transfer pack. The pack carries each run's associations (annotations and
   attestations) exactly as a fetch would. `--all` bundles every local ref except
   `remotes/*`; a bare name means `heads/NAME`.
+  The pack is `TINEPACK3`, which every release reads. With `--pack-format TINEPACK5`
+  (0.37+) it is TINEPACK5 with run deltas and slim events. That pack is much
+  smaller, but only 0.37 and newer can read it.
 - `tine share bundle verify FILE` checks it without a repository: size caps, both
   digests, canonical manifest, every ref name through `normalize_ref` (no `..`,
   absolute, upper-case, control characters or `remotes/*`), every ref target

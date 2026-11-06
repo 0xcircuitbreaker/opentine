@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.37.0 — Recording-order packs and storage housekeeping (2026-11-06)
+
+### Added
+
+- **TINEPACK5 transfer packs.** Objects in recording order, one zstd frame
+  with long-distance matching (window 2^27, level 9) flushed at 4 MiB block
+  boundaries. On the synthetic bench corpus a TINEPACK5 pack is about 3.5x
+  smaller than TINEPACK4. A remote lists TINEPACK5 first and sends it only to
+  clients that ask for it; 0.34-0.36 peers keep getting TINEPACK4. Bundles
+  stay TINEPACK3 by default; `tine bundle create --pack-format TINEPACK5`
+  writes the slim form (EVENT_SLIM and RUN_DELTA).
+- **Ref-tip fetch negotiation.** A client sends the ref tips it holds (up to
+  4096) instead of every local object id when the server advertises
+  `negotiation: ["haves", "tips"]`; older servers still get haves.
+- **Packed refs (opt-in).** `tine gc --pack-refs` folds loose refs into one
+  `packed-refs` file; such a repository needs opentine 0.37 or newer, and
+  `tine gc --unpack-refs` makes it readable by 0.26-0.36 again. Without the
+  opt-in gc never touches refs.
+- **`tine archive create --archival`** writes xz (codec 4), or zlib where
+  Python has no `lzma`, so Python 3.11+ restores it with the stdlib alone.
+  opentine 0.36 and older cannot read an xz archive.
+- **`--level`** on `tine gc` and `tine repack` (zstd 1-22, zlib 1-9), and
+  `"auto_pack": {"level": N}` in `config.json`.
+- **`tine fsck --budget SECONDS` and `--max-objects N`** stop the object check
+  cleanly; the JSON reports `checked` and `complete`.
+- **Benchmark and stress tooling:** `scripts/bench/` (seeded corpus, size and
+  throughput report), a `bench.yml` workflow on `ubuntu-24.04`, and a nightly
+  stress workflow on Linux, macOS and Windows (killed writers, 16-process ref
+  contention, 1,000-round prune race). Stress tests run only with
+  `OPENTINE_STRESS=1` or `-m stress`.
+
+### Changed
+
+- **Pack indexes are searched in place** (mmap on POSIX, a buffer on Windows)
+  instead of being loaded into a dict at start-up, and `has()` asks the pack
+  index first.
+- **Autopack also triggers on the disk bytes** of cold loose objects (16 MiB
+  default; `auto_pack.bytes` or `OPENTINE_AUTO_PACK_BYTES`).
+- **`gc` reaps staging files** left by killed writers once they are an hour
+  old (`reaped_temp` in `gc --json`).
+- **`opentine[all]` includes zstd** on Python 3.11-3.13.
+- **macOS:** file and directory syncs use `F_FULLFSYNC`.
+- `tine archive` moved to its own CLI module; the command is unchanged.
+
+### Security
+
+- **Decoders cap the zstd window at 2^27** and refuse larger frames before
+  allocating; a fuzz test rejects 200 of 200 oversized-window frames (X17).
+- **Codec v2 frames** are written only to peers that advertise 0.35 or newer
+  and never into `.tine` files (X13).
+
 ## 0.36.0 — Agent contract, op log and undo (2026-11-05)
 
 ### Behaviour changes

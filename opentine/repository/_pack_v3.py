@@ -14,6 +14,7 @@ every read rebuilds and checks against the id (``resolve``).
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Callable
 
 from opentine import _codec
@@ -30,18 +31,20 @@ DEFAULT_BLOCK_BYTES = 16 * 1024 * 1024
 _ORDER = {"blob": 0, "event": 1, "run": 2, "annotation": 3, "attestation": 4}
 
 
-def _parsed(raw: bytes) -> dict | None:
+def _parsed(raw: bytes, shaped: bool = True) -> dict | None:
+    """The body, or ``None``; ``shaped=False`` skips the shape limits (order only)."""
     try:
-        return forms._object(forms.split(raw)[1])
-    except KernelError:
+        if shaped:
+            return forms._object(forms.split(raw)[1])
+        value = json.loads(raw.split(b"\n", 1)[1])
+        return value if isinstance(value, dict) else None
+    except (KernelError, ValueError, RecursionError, IndexError):
         return None
 
 
-def _body(raw: bytes) -> dict:
-    return _parsed(raw) or {}
-
-
-def _ranks(runs: list[tuple[tuple, dict]], raws: dict[str, bytes]) -> dict[str, int]:
+def _ranks(
+    runs: list[tuple[tuple, dict]], raws: dict[str, bytes], shaped: bool = True
+) -> dict[str, int]:
     """Recording order of blobs and events, walked from the run snapshots.
 
     Ordering by id would scatter one run's growing message history across a
@@ -54,7 +57,7 @@ def _ranks(runs: list[tuple[tuple, dict]], raws: dict[str, bytes]) -> dict[str, 
         if isinstance(value, str) and value in raws and value not in ranks:
             ranks[value] = len(ranks)
             if value.startswith("event:"):
-                for item in _body(raws[value]).values():
+                for item in (_parsed(raws[value], shaped) or {}).values():
                     visit(item)
 
     for _, body in runs:
@@ -66,8 +69,12 @@ def _ranks(runs: list[tuple[tuple, dict]], raws: dict[str, bytes]) -> dict[str, 
     return ranks
 
 
-def stored_forms(objects: list[tuple[str, bytes]]) -> list[tuple[str, bytes, int, bytes]]:
+def stored_forms(
+    objects: list[tuple[str, bytes]], *, slim: bool = True
+) -> list[tuple[str, bytes, int, bytes]]:
     """(oid, stored bytes, encoding, canonical bytes) in pack order (see ``_ranks``).
+
+    ``slim=False`` keeps every object ``FULL``: recording order alone.
 
     A ``RUN_DELTA`` is against the object just before it, which ``build_pack_v3``
     keeps in the same block (or stores the snapshot in full).
@@ -77,13 +84,13 @@ def stored_forms(objects: list[tuple[str, bytes]]) -> list[tuple[str, bytes, int
     parsed: dict[str, dict | None] = {}  # each snapshot body parsed once
     for oid, raw in objects:
         if oid.startswith("run:"):
-            parsed[oid] = _parsed(raw)
+            parsed[oid] = _parsed(raw, slim)
             body = parsed[oid] or {}
             events = body.get("events")
             count = len(events) if isinstance(events, list) else 0
             runs.append(((_ORDER["run"], str(body.get("session_id", "")), count, oid), body))
     runs.sort(key=lambda item: item[0])
-    ranks = _ranks(runs, raws)
+    ranks = _ranks(runs, raws, slim)
     keyed = [(key, key[3], raws[key[3]]) for key, _ in runs]
     for oid, raw in objects:
         kind = oid.split(":", 1)[0]
@@ -95,11 +102,11 @@ def stored_forms(objects: list[tuple[str, bytes]]) -> list[tuple[str, bytes, int
     for (_, session, _, _), oid, raw in keyed:
         kind = oid.split(":", 1)[0]
         stored, encoding, depth = raw, forms.FULL, 0
-        if kind == "event":
-            slim = forms.slim_event(raw)
-            if slim is not None:
-                stored, encoding = slim, forms.EVENT_SLIM
-        elif kind == "run" and previous and previous[0] == session and session:
+        if kind == "event" and slim:
+            slimmed = forms.slim_event(raw)
+            if slimmed is not None:
+                stored, encoding = slimmed, forms.EVENT_SLIM
+        elif kind == "run" and slim and previous and previous[0] == session and session:
             if previous[3] < forms.KEYFRAME_INTERVAL:
                 delta = forms.run_delta(raw, previous[2], parsed[oid], parsed[previous[1]])
                 if delta is not None:

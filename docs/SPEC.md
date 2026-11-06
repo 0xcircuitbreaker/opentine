@@ -527,6 +527,7 @@ A repository is the directory `.tine/` (or, bare, any directory holding
   config.json                      repository descriptor (§2.2)
   objects/<type>/<aa>/<62 hex>     loose objects (§2.3)
   refs/<namespace>/<name>          one oid per file (§2.4)
+  packed-refs                      every packed ref in one file (§2.4, 0.37+)
   logs/<namespace>/<name>          append-only reflog (§2.6)
   packs/<64 hex>.pack              TINEPACK3 frames (§2.8)
   indexes/                         non-normative caches (below)
@@ -625,7 +626,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.26.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.37.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
@@ -683,6 +684,15 @@ A reader MUST refuse a wrapped body when any of these holds:
 
 Writers MUST NOT emit a body that exceeds the ratio limit.
 
+**Codec v2 frames (X13).** Since 0.35 a reader accepts a ratio of up to
+100 000 × the frame length for bodies that declare at most 64 MiB. A body
+past 1000:1 is a *codec v2 frame*. Since 0.37 a writer emits one only in a
+transfer pack for a peer that advertises 0.35 or newer (a server's
+`version` capability, or the `peer_version` a client sends with its fetch).
+Writers MUST NOT emit one in a `.tine` file, in local storage, or for a peer
+that does not advertise a version. Without that advertisement the body is
+stored raw (codec 0).
+
 ## 2.4 `refs/`
 
 A ref is a file containing one oid. Writers emit exactly:
@@ -696,6 +706,26 @@ bytes, reject any internal whitespace, require ASCII, require a file of at most
 256 bytes, and require a regular file with link count ≤ 1 (a *hard-linked* ref
 is rejected; link count 0 — an unlinked-but-open inode, which a concurrent
 update legitimately produces — is fine).
+
+### `packed-refs` (0.37+)
+
+A repository may also hold refs in one file, `.tine/packed-refs`:
+
+```text
+# opentine packed-refs 1 LF
+<oid> SP <ref name> LF            one line per ref, sorted by name, unique
+```
+
+A reader MUST look for the loose file first and use the packed value only when
+there is none (a loose ref shadows its packed value), and MUST refuse a file
+that does not begin with that header, does not end in LF, has a line whose oid
+or name is invalid, or lists names out of order or twice. Writers move refs by
+writing the loose file, as before; a delete removes the packed value first and
+then the loose file, both under `packed-refs.lock`. `tine gc` packs refs only
+in a repository whose descriptor carries `"refs": "packed"` together with a
+`min_reader` of at least `0.37.0` (`tine gc --pack-refs` writes both; `tine
+gc --unpack-refs` writes every ref loose again and removes them), so a release
+that would ignore the file refuses the repository instead of missing its refs.
 
 ### Ref names
 
@@ -876,6 +906,45 @@ shallow boundaries — with any existing boundary the pack fills — in the
 interrupted after the first object therefore never leaves a cut link that is
 neither present nor recorded (a retry of the same fetch sends nothing, so it
 could never heal one).
+
+### TINEPACK5 (0.37+)
+
+TINEPACK5 is a transfer pack for peers that list it in `pack_formats`. Only
+0.37 and later installs with zstd list it. A peer at 0.34–0.36 lists
+`TINEPACK4` and is sent that; a peer with neither gets TINEPACK3.
+
+```text
+b"TINEPACK5\0" | sha256(payload) | payload
+payload  = uvarint(len(header)) | header | block 0 | block 1 | ...
+header   = canonical JSON {"blocks": [[stored, raw], ...], "version": 1, "window_log": 27}
+block 0  = canonical JSON {"objects": [[encoding, stored, size], ...], "shallow": [...]}
+block 1+ = the objects' stored bytes in pack order, cut every 4 MiB
+```
+
+- **One zstd frame.** The blocks together form a single zstd frame, written
+  with long-distance matching and `window_log` 27, at level 9. The frame is
+  flushed at each block's end.
+- **Window cap (X17).** A reader MUST cap the decoder window at 2^27. It
+  refuses a frame that asks for more before allocating anything for it.
+- **Block order.** Blocks inflate in order, and each MUST produce exactly its
+  declared `raw` size.
+- **Checks before the body inflates.** The reader checks the checksum and the
+  canonical header. It checks that the declared sizes cover the payload and
+  stay within `MAX_PACK_BODY_BYTES`, and that the manifest (block 0, at most
+  16 MiB) adds up to the blocks. All of this happens before the body is
+  inflated.
+- **Recording order.** Objects come in recording order: blobs and events in
+  the order the runs reached them, then each session's snapshots in append
+  order.
+- **Stored forms.** `encoding` is that of pack v3: 0 `FULL`, 1 `RUN_DELTA`
+  or 2 `EVENT_SLIM`. A `RUN_DELTA`'s base is the object just before it, which
+  MUST be a run, and a delta chain is at most 64 deep.
+- **Derived ids.** Ids are not listed. Each id is computed from the rebuilt
+  canonical bytes and MUST be unique and disjoint from `shallow`.
+- **Pack id.** The pack id is `"sha256:" + hex(bytes[10:42])`.
+
+A bundle's pack is TINEPACK3 unless `tine bundle create --pack-format
+TINEPACK5` is asked for. Only 0.37+ reads such a bundle.
 
 ### Local packs
 

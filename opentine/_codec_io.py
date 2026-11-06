@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from opentine import _codec
-from opentine._canon import _replace, atomic_write_text
+from opentine._canon import _replace, atomic_write_text, full_fsync
 
 #: Autosave drafts are rewritten often: a fast level costs little in size.
 DRAFT_LEVEL = 1
@@ -47,7 +47,7 @@ def atomic_write_bytes(path: str | Path, data: bytes, *, fsync: bool = False) ->
             handle.write(data)
             if fsync:
                 handle.flush()
-                os.fsync(handle.fileno())
+                full_fsync(handle.fileno())
         try:
             os.chmod(tmp, stat.S_IMODE(os.stat(target).st_mode))
         except FileNotFoundError:

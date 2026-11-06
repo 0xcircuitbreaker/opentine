@@ -36,19 +36,21 @@ def fitted_pack(
     depth: int | None = None,
     omitted: list[str] | None = None,
     select: Select | None = None,
+    tips: list[str] | None = None,
 ) -> tuple[bytes, list[str]]:
-    """The pack for *wants* minus *haves*, and the object ids it carries."""
+    """The pack for *wants* minus *haves* (and *tips*' histories), and its object ids."""
     view = semantic_view(repo, max_source_bytes=MAX_PACK_BODY_BYTES)
     mark = view.source_mark()
     short: list[str] = []
-    missing = negotiate(view, wants, haves, depth=depth, omitted=short)
+    missing = negotiate(view, wants, haves, depth=depth, omitted=short, tips=tips)
     if select is not None:
         missing = select(view, missing)
     try:
         data = create_pack(view, missing)
     except KernelError:
         view.source_reset(mark)
-        plain = set(reachable(view, wants, depth=depth, include_associated=False))
+        stop = frozenset(oid for oid in tips or () if view.has(oid))  # checked by negotiate
+        plain = set(reachable(view, wants, depth=depth, include_associated=False, stop=stop))
         missing = sorted(plain - set(haves))
         if select is not None:
             missing = select(view, missing)

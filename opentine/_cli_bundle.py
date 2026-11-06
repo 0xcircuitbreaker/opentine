@@ -33,7 +33,7 @@ def cmd_bundle(args: argparse.Namespace, console) -> None:
     if action == "create":
         if bool(args.refs) == bool(args.all):
             raise ValueError("name refs to bundle, or pass --all (not both)")
-        data = _bundle.create(repo, args.refs or None)
+        data = _bundle.create(repo, args.refs or None, pack_format=args.pack_format)
         _atomic_bytes(Path(args.file), data)
         checked = _bundle.verify(data)
         _print({"bundle": checked.digest, "bytes": len(data), "refs": checked.refs})
@@ -60,6 +60,12 @@ def add_bundle_parsers(sub: argparse._SubParsersAction) -> None:
     create.add_argument("file")
     create.add_argument("refs", nargs="*", help="Refs to bundle (heads/NAME, tags/NAME, ...)")
     create.add_argument("--all", action="store_true", help="Every local ref except remotes/*")
+    create.add_argument(
+        "--pack-format",
+        choices=("TINEPACK3", "TINEPACK5"),
+        default="TINEPACK3",
+        help="TINEPACK5 is far smaller but needs opentine 0.37+ to read (default: TINEPACK3)",
+    )
     verify = actions.add_parser("verify", help="Check a bundle's integrity without importing")
     verify.add_argument("file")
     for verb in ("unbundle", "import"):

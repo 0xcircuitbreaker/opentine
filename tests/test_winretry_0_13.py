@@ -248,7 +248,7 @@ def test_a_pack_index_unreadable_for_a_moment_is_not_hidden_for_good(tmp_path, m
     store = Repo.init(tmp_path)
     oid = store.put("blob", b"packed")
     gc(store, min_age=0)
-    real_load, failures = _packs.load_index, []
+    real_load, failures = _packs.open_index, []
 
     def once(root, digest):
         if not failures:
@@ -256,7 +256,7 @@ def test_a_pack_index_unreadable_for_a_moment_is_not_hidden_for_good(tmp_path, m
             raise PermissionError(13, "being renamed in")
         return real_load(root, digest)
 
-    monkeypatch.setattr(_packs, "load_index", once)
+    monkeypatch.setattr(_packs, "open_index", once)
     packs = _packs.PackSet(store.path)
     assert packs.locate(oid) is not None  # the miss rescans instead of caching the gap
     assert failures
@@ -294,7 +294,7 @@ def test_a_pack_merged_away_mid_scan_does_not_hide_its_objects(tmp_path, monkeyp
     store = Repo.init(tmp_path / "r")
     oid = store.put("blob", b'{"a":1}', redact=False)
     gc(store, min_age=0)
-    real_load, failures = _packs.load_index, []
+    real_load, failures = _packs.open_index, []
 
     def vanishing(root, digest):
         if len(failures) < 3:
@@ -302,7 +302,7 @@ def test_a_pack_merged_away_mid_scan_does_not_hide_its_objects(tmp_path, monkeyp
             raise FileNotFoundError(2, "merged away")
         return real_load(root, digest)
 
-    monkeypatch.setattr(_packs, "load_index", vanishing)
+    monkeypatch.setattr(_packs, "open_index", vanishing)
     packs = _packs.PackSet(store.path)
     assert packs.locate(oid) is not None
     assert len(failures) == 3

@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from opentine._version import __version__
 from opentine.kernel import parse_oid
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
@@ -26,7 +27,7 @@ from opentine.remote.interfaces import (
     IndexBackend,
     ObjectStore,
 )
-from opentine.repository import _pack4
+from opentine.repository import _pack4, _pack_peer
 from opentine.repository._pack_fit import fitted_pack, typed_selection
 from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository._semantic_view import SemanticView
@@ -60,15 +61,17 @@ class RemoteService:
             "authentication": ["bearer", "oidc"],
             "filters": ["depth", "run", "object_type"],
             "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
+            "negotiation": ["haves", "tips"],  # 0.37: fetch may send ref tips (_tips)
             "object_format": "opentine-v3",
             # ``pack_format`` stays what 0.11 clients read; newer ones choose from
-            # ``pack_formats`` (``repository._pack4``).
+            # ``pack_formats`` (``repository._pack_peer``).
             "pack_codecs": _pack4.local_codecs(),
             "pack_format": "TINEPACK3",
-            "pack_formats": [_pack4.V4, _pack4.V3],
+            "pack_formats": _pack_peer.local_formats(),
             "protocol": "opentine-remote/1",
             "resumable_upload": True,
             "roles": ["reader", "writer", "admin"],
+            "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
         }
 
     def authenticate(self, headers: dict[str, str]) -> Identity:
@@ -138,6 +141,7 @@ class RemoteService:
         depth: int | None = None,
         object_types: set[str] | None = None,
         omitted: list[str] | None = None,
+        tips: list[str] | None = None,
     ) -> bytes:
         """A pack for *wants*; runs whose associations did not fit go to *omitted*."""
         self._authorize(identity, "fetch", tenant)
@@ -152,6 +156,7 @@ class RemoteService:
             depth=depth,
             omitted=short,
             select=typed_selection(object_types) if object_types else None,
+            tips=tips,
         )
         details: dict[str, Any] = {"objects": len(missing)}
         if short:

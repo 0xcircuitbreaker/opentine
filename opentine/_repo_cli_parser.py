@@ -19,6 +19,8 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     fsck = subparsers.add_parser("fsck", help="Verify every object, ref, and causal link")
     fsck.add_argument("--repo", default=".")
     fsck.add_argument("--shallow", action="store_true", help="Skip linked-object checks")
+    fsck.add_argument("--budget", type=float, metavar="SECONDS", help="Stop cleanly after SECONDS")
+    fsck.add_argument("--max-objects", type=int, metavar="N", help="Stop cleanly after N objects")
 
     log = subparsers.add_parser("repo-log", help="Show the v3 event ancestry")
     log.add_argument("ref", nargs="?", default="heads/main")

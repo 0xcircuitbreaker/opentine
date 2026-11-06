@@ -93,7 +93,7 @@ def _expire_one(root: Path, name: str, path: Path, cutoff_ns: int, keep: int, dr
             os.close(acquire(lock_path))
             held = True
         lines = [line for line in path.read_bytes().splitlines() if line.strip()]
-        current = read_ref_oid(root, name) if ref_path.is_file() else None
+        current = read_ref_oid(root, name)  # loose, else packed (0.37)
         kept = _kept(lines, cutoff_ns, keep, current)
         if not dry and len(kept) != len(lines):
             atomic_bytes(path, b"".join(line + b"\n" for line in kept))

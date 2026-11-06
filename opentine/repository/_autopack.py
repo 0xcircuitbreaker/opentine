@@ -22,7 +22,12 @@ Rules, each one a compatibility or safety guarantee:
   fail because housekeeping did);
 * ``OPENTINE_AUTO_PACK=0`` (or ``off``) disables it; a number sets the
   threshold. The repository's ``config.json`` may say the same with
-  ``"auto_pack": false`` or ``"auto_pack": {"objects": N}`` (0.12 ignores it).
+  ``"auto_pack": false`` or ``"auto_pack": {"objects": N}`` (0.12 ignores it);
+  ``{"level": L}`` (0.37) sets the compression level, else gc's.
+* 0.37 (P1): the cold loose objects' *disk* bytes trigger it too, so a few big
+  blobs pack as surely as many small events: :data:`DEFAULT_BYTES`, or
+  ``"auto_pack": {"bytes": N}``, or ``OPENTINE_AUTO_PACK_BYTES=N``. Each object
+  counts what it occupies on disk (at least one 4 KiB block), not its length.
 """
 
 from __future__ import annotations
@@ -31,11 +36,15 @@ import os
 import time
 
 from opentine.repository._config import STORAGE_VERSIONS, read_config
-from opentine.repository._gc_tidy import old_loose
+from opentine.repository._gc_tidy import loose_entries
 from opentine.repository._paths import internal_path
 
 #: Cold loose objects that trigger a pack.
 DEFAULT_THRESHOLD = 256
+#: Disk bytes of cold loose objects that trigger a pack.
+DEFAULT_BYTES = 16 * 1024 * 1024
+#: The disk block a small file occupies at least (when ``st_blocks`` is unknown).
+DISK_BLOCK = 4096
 #: Loose objects younger than this (seconds) are never packed automatically.
 MIN_AGE = 60.0
 #: Small packs are merged once a repository holds more than this many.
@@ -67,6 +76,50 @@ def threshold(repo) -> int | None:
         if type(objects) is int and objects > 0:
             return objects
     return DEFAULT_THRESHOLD
+
+
+def level_kwargs(repo) -> dict:
+    """``{"level": L}`` from ``config.json``'s ``auto_pack.level``, else ``{}``."""
+    try:
+        setting = read_config(internal_path(repo.path, "config.json")).get("auto_pack")
+    except (OSError, ValueError):
+        return {}
+    level = setting.get("level") if isinstance(setting, dict) else None
+    return {"level": level} if type(level) is int and 1 <= level <= 22 else {}
+
+
+def byte_threshold(repo) -> int:
+    """The disk-bytes trigger: env, then ``auto_pack.bytes``, then the default."""
+    value = os.environ.get("OPENTINE_AUTO_PACK_BYTES", "").strip()
+    if value.isdigit() and int(value) > 0:
+        return int(value)
+    try:
+        setting = read_config(internal_path(repo.path, "config.json")).get("auto_pack")
+    except (OSError, ValueError):
+        setting = None
+    found = setting.get("bytes") if isinstance(setting, dict) else None
+    return found if type(found) is int and found > 0 else DEFAULT_BYTES
+
+
+def disk_bytes(info: os.stat_result) -> int:
+    """What a loose file occupies on disk: its blocks, or its size in 4 KiB blocks."""
+    blocks = getattr(info, "st_blocks", None)
+    if blocks:
+        return blocks * 512
+    return -(-info.st_size // DISK_BLOCK) * DISK_BLOCK
+
+
+def due(root, min_age: float, objects: int, size: int, own: frozenset[str] = frozenset()) -> bool:
+    """Whether cold (or *own*) loose objects reach *objects* in count or *size* on disk."""
+    cutoff = time.time() - min_age
+    count = total = 0
+    for oid, _, info in loose_entries(root):
+        if info.st_mtime <= cutoff or oid in own:
+            count += 1
+            total += disk_bytes(info)
+            if count >= objects or total >= size:
+                return True
+    return False
 
 
 def merge_candidates(sizes: dict[str, int]) -> list[str]:
@@ -113,12 +166,15 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = froz
         limit = threshold(repo)
         if limit is None or getattr(repo, "_storage_codec", None) is None:
             return None
-        if len(old_loose(repo.path, min_age, limit=limit, own=own)) < limit:
+        if not due(repo.path, min_age, limit, byte_threshold(repo), own):
             return None
         from opentine.repository._gc import gc
 
         merge = merge_candidates(_pack_sizes(repo.path))
-        return gc(repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own)
+        return gc(
+            repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own,
+            **level_kwargs(repo),
+        )  # fmt: skip
     except Exception:  # noqa: BLE001 - housekeeping never fails a recording
         return None
 
@@ -152,11 +208,13 @@ def after_write(repo, *, own: bool = False) -> None:
         last = state.get("_autopack_scan")
         if last is not None:
             limit = state.get("_autopack_limit") or DEFAULT_THRESHOLD
-            if written < limit or time.monotonic() - last < RESCAN_INTERVAL:
+            small = state.get("_autopack_bytes", 0) < state.get("_autopack_size", DEFAULT_BYTES)
+            if (written < limit and small) or time.monotonic() - last < RESCAN_INTERVAL:
                 return
-        state["_autopack_writes"] = 0
+        state["_autopack_writes"] = state["_autopack_bytes"] = 0
         state["_autopack_scan"] = time.monotonic()
         state["_autopack_limit"] = threshold(repo)
+        state["_autopack_size"] = byte_threshold(repo)
         if state["_autopack_limit"] is not None:
             maybe_autopack(repo)
     except Exception:  # noqa: BLE001 - housekeeping never fails a write
@@ -180,7 +238,10 @@ def settle(repo) -> None:
             return
         from opentine.repository._gc import gc
 
-        gc(repo, min_age=MIN_AGE, merge_packs=sorted(hot), keep_transfer_packs=True, own=mine)
+        gc(
+            repo, min_age=MIN_AGE, merge_packs=sorted(hot), keep_transfer_packs=True, own=mine,
+            **level_kwargs(repo),
+        )  # fmt: skip
         state["_autopack_own"] = set()
     except Exception:  # noqa: BLE001 - housekeeping never fails a recording
         return

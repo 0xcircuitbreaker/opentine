@@ -68,7 +68,8 @@ def update_ref_rebase(
     actor: str = "local",
     attempts: int | None = None,
 ) -> str:
-    """Move *name* to ``rebase(current)``, re-reading and retrying on a CAS mismatch.
+    """Move *name* to ``rebase(current)``, re-reading and retrying on a CAS mismatch
+    or lock contention.
 
     *rebase* must be a pure function of the current value (it may run several
     times, and its objects should already be stored). Returns the oid written.
@@ -86,9 +87,14 @@ def update_ref_rebase(
         try:
             repo.update_ref(name, new_oid, expected_old=current, actor=actor)
             return new_oid
-        except RefCasMismatch:
+        except (RefCasMismatch, RefLockContended) as exc:
+            # A lock still held after update_ref's own wait is contention, not
+            # failure: under many writers on a slow filesystem it outlasts one
+            # LOCK_WAIT_SECONDS budget. Retry within this function's budget too.
             delay = next(delays, None)
             if delay is None or (attempts is not None and tries >= attempts):
+                if isinstance(exc, RefLockContended):
+                    raise
                 raise RefCasMismatch(
                     f"ref {name!r} kept moving; gave up after {tries} rebases"
                 ) from None

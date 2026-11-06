@@ -70,6 +70,11 @@ def object_exists(repo, oid: str) -> bool:
         parse_oid(oid)
     except KernelError:
         return False
+    try:  # the pack index first: one lookup, where a loose probe is a path walk
+        if pack_set(repo.path).known(oid):
+            return True
+    except (KernelError, OSError, ValueError):
+        pass  # decided below, with retries
     for attempt in range(_PASSES):
         unsure = False
         try:
