@@ -34,6 +34,39 @@ uv run pytest tests -m live --provider anthropic
 uv run pytest tests -m live_harness --agent-harness codex
 ```
 
+### Stress tests and the compression bench
+
+`tests/stress/` holds the slow crash and concurrency tests: writers killed
+mid-write (SIGKILL on POSIX, TerminateProcess on Windows) followed by fsck, 16
+processes updating refs at once, and prune racing a linking writer for 1,000
+rounds. They carry the `stress` marker and are skipped unless asked for. The
+`Nightly stress` workflow runs them on Linux, macOS and Windows:
+
+```bash
+OPENTINE_STRESS=1 uv run pytest tests/stress -m stress -v
+# shorter local pass
+OPENTINE_STRESS=1 OPENTINE_STRESS_KILL_ROUNDS=5 OPENTINE_STRESS_PRUNE_ROUNDS=100 \
+  uv run pytest tests/stress -m stress
+```
+
+`scripts/bench/run_bench.py` builds a deterministic synthetic corpus
+(`scripts/bench/corpus.py`; `--seed`, `--runs`, `--steps`) through the public
+repository API and prints a JSON report of sizes and single-threaded MB/s for
+the loose store, `gc` packs, the wire pack, a bundle, and two zstd baselines
+(per-object zstd-19, and zstd-9 `--long=27` over the run-ordered stream). It
+measures whatever pack format the checkout writes, so compare two reports to
+judge a format or codec change:
+
+```bash
+uv run python scripts/bench/run_bench.py --out bench.json
+uv run python scripts/bench/run_bench.py --out new.json --compare bench.json
+```
+
+The `Compression bench` workflow runs it on a pinned `ubuntu-24.04` runner for
+pull requests that touch `opentine/repository/` or `opentine/_codec.py` (and on
+demand), benches `main` with the same script for comparison, and uploads both
+reports as the `bench-report` artifact.
+
 ## The gate list
 
 Run all of these before opening a pull request. CI runs them on Linux, macOS,
