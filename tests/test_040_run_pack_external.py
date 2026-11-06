@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
+import socket
+from pathlib import Path
+
 import pytest
 
 from opentine import Run, StepKind
-from opentine.repository import Repo, _paths, _write_batch
+from opentine.kernel import ObjectEnvelope
+from opentine.repository import Repo, _external, _paths, _write_batch
 from opentine.repository import store as store_module
 from opentine.repository._config import rewrite_config
 from opentine.repository._objects import iter_object_oids
@@ -146,3 +153,92 @@ def test_opting_out_keeps_loose_writes(tmp_path, monkeypatch):
     rewrite_config(repo.path, lambda config: config.update(run_pack=False) or True)
     repo.put_run(_run(3), ref="heads/main")
     assert _packs(repo) == [] and _loose(repo)
+
+
+# -- external blob pointers -------------------------------------------------
+
+
+@pytest.fixture
+def store(tmp_path):
+    directory = tmp_path / "bucket"
+    directory.mkdir()
+    return directory
+
+
+def _allow(repo: Repo, *prefixes: str) -> None:
+    rewrite_config(repo.path, lambda c: c.update(external_blobs={"allow": list(prefixes)}) or True)
+
+
+def _point(repo: Repo, store: Path, content: bytes, name: str = "a.bin"):
+    target = store / name
+    target.write_bytes(content)
+    return _external.add(repo.path, target.as_uri(), target)
+
+
+def test_an_external_pointer_resolves_to_the_same_blob_id(tmp_path, store):
+    repo = Repo.init(tmp_path / "r", compression="zlib")
+    content = os.urandom(5000)
+    pointer = _point(repo, store, content)
+    assert pointer.oid == ObjectEnvelope.create("blob", content).oid  # oid is unchanged
+    assert pointer.sha256 == hashlib.sha256(content).hexdigest() and pointer.size == 5000
+    assert not repo.has(pointer.oid)
+    # A run may link it while it is still only a pointer.
+    assert repo._link_exists(pointer.oid)
+    _allow(repo, store.as_uri() + "/")
+    raw = _external.resolve(repo, pointer.oid)
+    assert ObjectEnvelope.decode(raw, pointer.oid).body == content
+    assert repo.has(pointer.oid) and _external.status(repo) == {pointer.oid: "resolved"}
+
+
+def test_size_and_hash_mismatches_are_refused(tmp_path, store):
+    repo = Repo.init(tmp_path / "r", compression="zlib")
+    _allow(repo, store.as_uri() + "/")
+    pointer = _point(repo, store, b"original content")
+    (store / "a.bin").write_bytes(b"original content plus more")
+    with pytest.raises(_external.ExternalError, match="larger"):
+        _external.resolve(repo, pointer.oid)
+    (store / "a.bin").write_bytes(b"short")
+    with pytest.raises(_external.ExternalError, match="size"):
+        _external.resolve(repo, pointer.oid)
+    (store / "a.bin").write_bytes(b"ORIGINAL CONTENT")
+    with pytest.raises(_external.ExternalError, match="sha256"):
+        _external.resolve(repo, pointer.oid)
+    assert not repo.has(pointer.oid)
+    # A forged pointer (right sha256 and size, wrong blob) fails the id check.
+    forged = json.loads(_external._path(repo.path, pointer.oid).read_bytes())
+    other = b"0" * len(b"ORIGINAL CONTENT")
+    (store / "a.bin").write_bytes(other)
+    forged["sha256"] = hashlib.sha256(other).hexdigest()
+    _external._path(repo.path, pointer.oid).write_text(json.dumps(forged))
+    with pytest.raises(_external.ExternalError, match="blob id"):
+        _external.resolve(repo, pointer.oid)
+
+
+def test_only_allowed_locations_are_read(tmp_path, store):
+    repo = Repo.init(tmp_path / "r", compression="zlib")
+    pointer = _point(repo, store, b"secret")
+    with pytest.raises(_external.ExternalError, match="allowed"):
+        _external.resolve(repo, pointer.oid)  # nothing configured: nothing fetched
+    other = tmp_path / "other"
+    other.mkdir()
+    _allow(repo, other.as_uri() + "/")
+    with pytest.raises(_external.ExternalError, match="allowed"):
+        _external.resolve(repo, pointer.oid)
+    for bad in ("ftp://h/x", "https://user:pw@h/x", "https://h/a/../x", "gopher://h/"):
+        with pytest.raises(_external.ExternalError):
+            _external.add(repo.path, bad, b"x")
+
+
+def test_offline_status_never_touches_the_network(tmp_path, store, monkeypatch):
+    repo = Repo.init(tmp_path / "r", compression="zlib")
+    _allow(repo, "https://artifacts.example/")
+    pointer = _external.add(repo.path, "https://artifacts.example/big.bin", b"big" * 100)
+
+    def no_network(*_a, **_k):
+        raise AssertionError("offline verification opened a connection")
+
+    monkeypatch.setattr(socket, "create_connection", no_network)
+    monkeypatch.setattr(socket.socket, "connect", no_network)
+    monkeypatch.setattr(_external, "_download", no_network)
+    assert _external.status(repo) == {pointer.oid: "unresolved"}
+    assert repo.fsck().ok

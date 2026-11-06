@@ -1147,6 +1147,38 @@ event graph (`parent_ids` + `causal_ids`) is acyclic, reported per cycle root.
 Runs written under object format 3 and 4 coexist: both are v3 envelopes.
 `fsck` bounds itself at 1000 packs and 1 GiB of pack bytes.
 
+## 2.10 External blob pointers (0.40+)
+
+A blob may be held outside the repository (object storage, a shared disk, an
+HTTPS URL) and named by a **pointer** in the side table
+`external/<64 hex>.json`, where the hex is the blob oid's digest. The file is
+canonical JSON plus LF:
+
+```text
+{"oid":"blob:sha256:<hex>","sha256":"<hex of SHA-256(content)>","size":N,"uri":"<uri>","version":1}
+```
+
+The blob oid keeps its §1.3 meaning, `object_id("blob", 1, content)`: a pointer
+is not an object, has no oid of its own, and never enters a pack, a transfer or
+a signature. A link to a blob that is only a pointer satisfies §1.5.6 link
+existence for the writer; a reader that predates 0.40 ignores `external/` and
+sees such a blob as absent (as after a shallow fetch).
+
+- `uri` MUST be `file:`, `https:` or `http:`, without userinfo, `.`/`..` path
+  segments or backslashes; `size` is 0..256 MiB; `sha256` is 64 lowercase hex.
+- Content is not redacted (§1.4 does not apply): it is hashed as written.
+- **Resolve** (`_external.resolve`) MUST refuse a `uri` that does not start
+  with an allowed prefix (`config.json` `"external_blobs": {"allow": [...]}`,
+  each ending in `/`; none by default), MUST NOT follow redirects, MUST resolve
+  a `file:` path through symlinks and refuse it outside its allowed directory,
+  MUST stop reading after `size` bytes, and MUST check, in order, the length,
+  `sha256`, and that the content hashes to `oid`, before storing the blob as a
+  loose object. The pointer itself is untrusted; the oid is the root of trust.
+- **Offline verification** (`_external.status`, `fsck`) MUST NOT open a URI: a
+  pointer whose blob is stored locally is `resolved`, else `unresolved`, and a
+  malformed one `invalid`. `fsck` does not report an unresolved pointer as an
+  error.
+
 ---
 
 # Part 3 — The portable `.tine` v2 artifact

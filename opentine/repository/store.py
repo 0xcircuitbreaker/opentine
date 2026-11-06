@@ -13,6 +13,7 @@ from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import config_bytes, read_config, storage_codec
 from opentine.repository._discovery import find_repository
+from opentine.repository._external import known as external_pointer
 from opentine.repository._link_touch import touch_links
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
@@ -84,7 +85,7 @@ class Repo:
         return set(self._shallow_set())
 
     def _link_exists(self, oid: str) -> bool:
-        return self.has(oid) or oid in self._shallow_set()
+        return self.has(oid) or oid in self._shallow_set() or external_pointer(self, oid)
 
     def put(
         self,
