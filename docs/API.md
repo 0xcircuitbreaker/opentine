@@ -154,6 +154,10 @@ rather than a data type, and promoting it is a larger commitment than the
 that decision.
 `Agent(policies=PolicySet(...))` records the set on every run it makes; its
 `RedactionPolicy.extra_secret_keys` then applies to every save of that run.
+`ShellPolicy(sandbox="auto"|"bwrap"|"landlock"|"sandbox-exec"|"oci"|"none")`
+(0.41, default `"none"`) runs shell-tool commands under an OS sandbox, with
+`sandbox_network` and `sandbox_image` (for `oci`); a named backend that is
+missing refuses the command instead of running it. See `SECURITY_MODEL.md`.
 
 ## Actions, media pricing and storage (0.11)
 
