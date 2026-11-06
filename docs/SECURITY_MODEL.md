@@ -294,6 +294,37 @@ tine verify run.tine --no-policy                                     # except wh
 
 Old spellings (`tine sign`, `tine keygen`, `tine attest`, …) still work; see [CLI.md](CLI.md).
 
+## Signing time, signed reports and custody (0.39)
+
+**X20.** An RFC 3161 token bound to a run's digest proves only that the
+*content* existed at genTime; anyone can re-sign that content later. A token
+bound to `sig:sha256:<hex>` (the hash of one signature block) proves the
+*signature* existed at genTime, which is the **verified signing time** the
+report records as `signing_time`. A token for a signature the run no longer
+carries fails (`timestamp.signature-mismatch`). This release establishes the
+time only: checking that the signing key was valid at that time is 0.41.
+
+**X22.** A verify report used to be a claim anyone could edit. With
+`--sign-key` it is canonical JSON signed (`tine-sig/3`, domain
+`opentine.verify-report.v2:`) by the verifier's key, optionally timestamped
+over that signature, and `tine verify-report check` detects any edit offline.
+It proves *who verified* and *what they concluded*, not that the conclusion
+is right: re-run `tine verify` to check the run itself. Without `--pubkey`
+the embedded key is trust on first use. Unsigned and `/1` reports are never
+treated as evidence.
+
+**Custody.** Custody records reuse the op log's `opentine-log/1`: the signed
+checkpoint and Merkle tiles detect edited, dropped or reordered entries, the
+`prev` chain detects splices, and each record is signed by its actor's key
+(not the log key), so the log key holder cannot forge an actor's record
+without that actor's key. Not covered: a log holder who rewrites the whole
+log and re-signs the checkpoint is detected only by a pinned `--vkey` or an
+earlier checkpoint copy (witnessing arrives in 0.44); `--actor` is the name
+the key holder chose, bound to nothing but the key.
+
+**replay/v1.** The attestation signs the replay verdict for one source digest;
+it is evidence of what the verifier observed, and carries no transcript text.
+
 ## Fork identity (v2)
 
 A run id read from an artifact is **untrusted input**, exactly like every other

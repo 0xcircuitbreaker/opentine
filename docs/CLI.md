@@ -209,7 +209,7 @@ verifier key is in `.tine/log/op/vkey`.
 
 ```
 tine verify RUN --offline                        # human report
-tine verify RUN --offline --json --report r.json # tine-verify-report/1
+tine verify RUN --offline --json --report r.json # tine-verify-report/2
 tine verify RUN --offline --pubkey release.pub --strict
 tine verify RUN --offline --attestation a.sigstore.json --trusted-root trusted_root.json \
     --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com
@@ -271,6 +271,49 @@ token (imprint, TSA signature, timestamping EKU, genTime within the
 certificate's validity, chain to a root in `--tsa-roots` or the
 `--trusted-root` TSAs) and a `timestamps` section with genTime, TSA name,
 policy OID and hash algorithm (SPEC §8.6).
+
+```
+tine timestamp data RUN --signature [N]
+tine verify RUN --offline --report r.json --sign-key KEY [--timestamp]
+tine verify-report data r.json
+tine verify-report attach r.json TOKEN.tsr
+tine verify-report check r.json [--pubkey P] [--tsa-roots FILE.pem] [--allow-unsigned] [--json]
+```
+
+0.39.0 (X20, X22). `timestamp data --signature` prints `sig:sha256:<hex>` of
+the run's N-th signature block; a token over it verifies only while the run
+carries that signature, and the report's `signing_time` is its genTime (the
+verified signing time). Root-bound tokens keep verifying. `--sign-key` (an
+Ed25519 key file from `tine keygen`, `--report` only) writes the
+`tine-verify-report/2` as signed canonical JSON; `--timestamp` (needs
+`--sign-key`) also writes `r.json.tsdata`, the bytes a TSA token over that
+signature must cover. `verify-report check` verifies the report offline and
+exits 0 when it is authentic (whatever verdict it records), 4 when its
+signature or a token fails, and 4 for a `/1` or unsigned report unless
+`--allow-unsigned` (SPEC §8.7).
+
+```
+tine replay RUN --verify --attest OUT.intoto.jsonl --attest-key KEY
+```
+
+Writes the verdict as an in-toto `replay/v1` DSSE envelope, predicate type
+`https://opentine.dev/attestation/replay/v1` (SPEC §8.8). Both flags need
+`--verify`; `--attest` needs `--attest-key`.
+
+```
+tine custody record ACTION SUBJECT --sign-key KEY [--actor A] [--note N] [--repo R]
+tine custody record timestamp SIG_BOUND --token T.tsr --sign-key KEY
+tine custody log [--json]
+tine custody verify [--pubkey P] [--vkey V] [--tsa-roots FILE.pem] [--json]
+```
+
+Chain of custody on the repository's `opentine-log/1` (`.tine/log/custody`):
+each record says who (`--actor`, default the login name) `received`,
+`exported`, `verified`, `transferred` or `stored` what, when, and is signed by
+that actor's Ed25519 key. A `timestamp` record stores a TSA token over an
+earlier record's `sig_bound` (printed by `record` and `log`). `verify` checks
+the checkpoint, tiles, hash chain, signatures and tokens offline and exits 4
+on any break (SPEC §8.9).
 
 ```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]

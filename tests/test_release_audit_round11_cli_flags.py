@@ -455,6 +455,9 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine"], ["--min-assurance", "T2"], "honoured"),
     (["verify", "source.tine"], ["--proxy-pubkey", "missing.pub"], "honoured"),
     (["verify", "source.tine"], ["--compare-capture", "tampered.tine"], "honoured"),
+    # 0.39: --sign-key/--timestamp sign the --report; both need --offline
+    (["verify", "source.tine"], ["--sign-key", "k.hex"], "refused"),
+    (["verify", "source.tine"], ["--timestamp"], "refused"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),
