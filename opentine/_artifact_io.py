@@ -220,7 +220,10 @@ def parse_artifact_json(raw: bytes | str) -> Any:
     # the bytes stay on disk, repairable, with the field path named.
     if surrogate_suspect(raw):
         assert_unicode_text(parsed, where=".tine artifact")
-    return parsed
+    # SPEC Part 10: a v5 file is read as the v4 document it spells.
+    from opentine._tine_v5 import as_v4
+
+    return as_v4(parsed)
 
 
 def read_artifact_json(path: str | Path) -> Any:

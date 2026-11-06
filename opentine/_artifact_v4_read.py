@@ -22,6 +22,7 @@ from opentine._format_v4 import (
 )
 from opentine._provenance_v4 import require_upgraded_from
 from opentine._signing_v4 import MAX_V4_SIGNATURES, SCHEME_V3
+from opentine._tine_v5 import as_v4
 from opentine.kernel import ObjectEnvelope, parse_oid
 from opentine.repository._annotations import annotation_ref
 from opentine.repository._refs import normalize_ref
@@ -50,6 +51,7 @@ def read_v4_data(data: Any) -> Any:
     """Load a parsed v4 artifact, refusing any envelope or root that fails to verify."""
     from opentine.repository.runs import load_run
 
+    data = as_v4(data)  # SPEC Part 10: v5 text blobs re-spelled as v4 base64
     _check_document(data)
     root = data["root"]
     objects: dict[str, ObjectEnvelope] = {}
@@ -143,6 +145,7 @@ def verify_v4(data: dict[str, Any]) -> Any:
 
     root = data.get("root") if isinstance(data.get("root"), str) else None
     try:
+        data = as_v4(data)
         read_v4_data(data)
     except (KeyError, RecursionError, TypeError, ValueError) as exc:
         return IntegrityResult(False, "sha256", root, None, f"invalid v4 artifact: {exc}")

@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-_MARK = b'"tine-artifact/4"'
+_MARKS = (b'"tine-artifact/4"', b'"tine-artifact/5"')  # v5 is read as its v4 form
 
 
 def sniff_v4(source: str) -> dict[str, Any] | None:
@@ -27,7 +27,7 @@ def sniff_v4(source: str) -> dict[str, Any] | None:
         if not path.is_file() or path.stat().st_size > MAX_TINE_ARTIFACT_BYTES:
             return None
         body = _codec.unwrap(path.read_bytes(), limit=MAX_TINE_ARTIFACT_BYTES)
-        if _MARK not in body:
+        if not any(mark in body for mark in _MARKS):
             return None
         data = parse_artifact_json(body)
     except (OSError, RecursionError, UnicodeDecodeError, ValueError):

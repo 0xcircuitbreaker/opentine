@@ -1,6 +1,7 @@
 """The ``digest`` and ``signature`` checks of ``tine verify --offline``, for one file.
 
-A format v4 file (SPEC Part 9) is checked with the vendored kernel exactly as
+A format v4 file (SPEC Part 9; a v5 file, Part 10, as the v4 document it spells)
+is checked with the vendored kernel exactly as
 ``opentine._artifact_v4_read`` does: the document has exactly the v4 keys and
 bounded lists, every envelope is rebuilt from its v4 spelling and decoded by
 ``kernel.ObjectEnvelope.decode`` against its oid, objects are only blobs,
@@ -19,7 +20,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .. import kernel
+from .. import _tine_v5, kernel
 from . import _load, _sig
 
 V4_KIND = "tine-artifact/4"
@@ -161,6 +162,12 @@ def digest_check(path: Path) -> tuple[dict[str, Any], Any]:
     if not isinstance(data, dict):
         detail = "artifact root is not an object"
         return check("digest", "fail", "digest.unreadable", detail, required=True), None
+    if _tine_v5.is_v5_artifact(data):  # SPEC Part 10: checked as the v4 document it spells
+        try:
+            data = _tine_v5.to_v4(data)
+        except ValueError as exc:
+            detail = f"invalid v5 artifact: {exc}"
+            return check("digest", "fail", "digest.mismatch", detail, required=True), data
     if is_v4(data):
         try:
             root = read_v4(data)

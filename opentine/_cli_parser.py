@@ -41,8 +41,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write plain .tine files and repositories that releases before 0.11 can read",
     )
     parser.add_argument(  # 0.26: v4 by default; 2 (or 3) is the deprecated legacy writer
-        "--format", dest="write_format", type=format_arg, metavar="{2,4}", default=None,
-        help="Writer format: 4 (default) or 2 (deprecated; files opentine <0.26 can read)",
+        "--format", dest="write_format", type=format_arg, metavar="{2,4,5}", default=None,
+        help="Writer format: 4 (default), 5 (text blobs; opentine >=0.40 reads) or 2 (deprecated)",
     )  # fmt: skip
     sub = parser.add_subparsers(dest="command")
 
