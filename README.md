@@ -685,7 +685,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.37.
 
 ## CLI Reference
 
-`tine` ships 86 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 87 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -842,6 +842,13 @@ DeepSeek- and xAI-style clients that honour their `*_BASE_URL` variable):
 ```text
 tine record -- python my_agent.py --task "fix the bug"
 tine record --save run.tine -- node agent.js
+```
+
+Record an MCP session (stdio or Streamable HTTP) by putting `tine mcp-proxy`
+between client and server; payloads are redacted before they are stored:
+
+```text
+tine mcp-proxy --save mcp.tine -- python my_server.py
 ```
 
 Receive live OpenTelemetry from any OTLP/JSON exporter; each trace is saved

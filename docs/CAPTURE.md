@@ -477,6 +477,44 @@ endpoint and key.
 See [GETTING_STARTED.md](GETTING_STARTED.md#2-your-first-captured-run-with-no-code)
 for the provider list and the exclusivity rules.
 
+## 6b. Live capture: an MCP session (0.38)
+
+`tine mcp-proxy` stands between an MCP client and an MCP server and records
+every JSON-RPC exchange (`initialize`, `tools/call`, `resources/read`,
+`prompts/get`, notifications, server-to-client requests) as a `tool` step:
+
+```bash
+# stdio: point the client at this command instead of the server's own
+tine mcp-proxy --save mcp.tine -- python my_server.py --flag
+# Streamable HTTP: point the client at http://127.0.0.1:8808/
+tine mcp-proxy --http-upstream https://mcp.example.com/mcp --listen 127.0.0.1:8808
+```
+
+- **Transparent.** The relayed bytes are never changed or reordered: each chunk
+  is forwarded before the recorder sees it, and the recorder sits behind a
+  bounded queue (a full queue drops the *record*, never the message, and the
+  count is stored as `metadata.mcp_proxy.dropped`). The server's stderr passes
+  through; the proxy's own messages go to stderr because stdout is the protocol
+  channel. Over HTTP, POST, GET (SSE) and DELETE are relayed with their headers,
+  `Mcp-Session-Id` included.
+- **Redact before hashing.** Each request is paired with its response by
+  JSON-RPC id, and both are redacted before the step is built, so step ids hash
+  redacted payloads only and no secret reaches the saved run.
+- **Bounded.** At most 16 MiB of one message is recorded (a larger one is
+  stored as an `opentine_oversize` marker); an HTTP request body over 64 MiB is
+  refused with 413; unanswered requests are capped at 4,096.
+- **Incremental.** The run is re-saved (atomically) at most every 0.2 s while it
+  grows, so a killed proxy leaves a partial run. Without `--save` it is written
+  to `.tine_runs/mcp-proxy-<UTC time>-<pid>.tine`. `--repo PATH [--ref REF]`
+  also installs the finished run into a repository.
+- **Loopback by default.** `--listen` must be a loopback address unless
+  `--allow-non-loopback`; on a loopback bind the `Host` header must name the
+  loopback address and an `Origin`, when sent, must be a loopback origin (the
+  DNS-rebinding guard of the OTLP receiver).
+
+A recording failure is logged to stderr and the session carries on. The exit
+code is the stdio server's own.
+
 ## 7. Getting it back out
 
 Capture is not a one-way door. `tine export` renders any run as GenAI spans in
