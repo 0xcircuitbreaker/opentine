@@ -710,7 +710,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.37.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.40.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
