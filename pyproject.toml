@@ -55,13 +55,13 @@ all = [
 # Build-only toolchain for the release build job: no test runner, no SDKs.
 release = [
     "build>=1.2",
-    "hatchling==1.31.0",
+    "hatchling==1.33.0",
     "twine>=5.0",
 ]
 dev = [
     "build>=1.2",
     "cryptography>=48.0.1",
-    "hatchling==1.31.0",
+    "hatchling==1.33.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.0",
     "pytest-rerunfailures>=15.0",
@@ -81,7 +81,7 @@ Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
 
 [build-system]
-requires = ["hatchling==1.31.0"]
+requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
