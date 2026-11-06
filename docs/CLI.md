@@ -491,6 +491,22 @@ and list the field under `metadata.warnings` instead of losing the run.
 `tine bundle` (and `bundle push/fetch`) carries the `tine-sig/3` blocks of
 imported v4 runs in the bundle manifest.
 
+## FIPS mode (0.41)
+
+```
+tine --fips COMMAND ...          # or OPENTINE_FIPS=1
+```
+
+`--fips` is global, like `--format`. Without an active OpenSSL FIPS provider
+in `cryptography` every command fails before it runs with exit 6
+(`trust_required`) and, under `--json`, `{"error": {"code": "trust_required",
+...}}`. A non-approved primitive met later (ChaCha20-Poly1305, writing the
+archival xz form) fails the same way. `tine verify --offline --json` adds
+`crypto: {mode, provider_fips, openssl}` to the report.
+
+`tine serve --root R --tenant T reseal --to aes6` rewrites a tenant's objects
+as `TINEAES6` (key id, epoch, XAES-256-GCM); it needs `TINE_KMS_KEY_ID` set.
+
 ## Fan-out status and MCP tools (0.36)
 
 `tine fleet status [ID] --repo PATH` lists the repository's `tine fan-out`

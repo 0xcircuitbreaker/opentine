@@ -1917,6 +1917,7 @@ One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 | `signing_time` | string | 0.39 (X20): the earliest `gen_time` of a passing token bound to one of the run's signatures; absent otherwise |
 | `signature` | object | 0.39 (X22), `--sign-key` only: the report's `tine-sig/3` block (§8.7) |
 | `signature_timestamps` | array of object | 0.39, unsigned: `{bound, token}` RFC 3161 tokens over `signature` (§8.7) |
+| `crypto` | object | 0.41 (X30), under `--fips` only: `{mode, provider_fips, openssl}` — `"fips"`, whether `cryptography`'s OpenSSL has the FIPS provider active, and its version text |
 
 `outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
 Check names, in order: `digest`, `signature`, `provenance` (§9.9, never
@@ -2504,3 +2505,52 @@ Binary blobs (images, compressed payloads) are unchanged.
 golden run re-spelled as v5 under `tine-sig/3` (verified, tampered text,
 non-canonical base64 spelling, text on a non-blob, lone surrogate), and
 `oid.derive` cases showing a text blob's oid is its v4 oid.
+
+# Part 11 — Remote at-rest sealing: `TINEAES6` (0.41.0)
+
+Roadmap item X28 is named "TINEAES5" in `docs/ROADMAP.md`; 0.35 had already
+shipped `TINEAES5` as the KMS envelope (`_sealed_envelope`), so X28 is the
+magic **`TINEAES6`**. The mapping is: roadmap "TINEAES5 (X28)" = on-disk
+`TINEAES6`; on-disk `TINEAES5` = the 0.35 KMS envelope.
+
+## 11.1 Layout
+
+All integers big-endian:
+
+| Field | Size | Notes |
+|---|---|---|
+| magic | 8 | `TINEAES6` |
+| key id length | 1 | 1..64 |
+| key id | n | ASCII |
+| epoch | 4 | u32 |
+| flags | 1 | bit 0: Padmé padded; other bits must be zero |
+| codec | 1 | the `_codec` byte of the inner wrapper |
+| size | 8 | the uncompressed plaintext length (checked against the reader's limit before decrypting) |
+| nonce | 24 | random |
+| ciphertext | rest | XAES-256-GCM, 16-byte tag |
+
+The per-tenant key is `HMAC-SHA256(master, "opentine.tenant-key.v6\0" ||
+lp(key_id) || lp(u32 epoch) || lp(tenant))` over a 32-byte master, where `lp(x)`
+is a u32 length then `x`. The associated data is `"opentine.sealed.v6\0"`
+followed by `lp` of purpose, tenant, context (oid, or upload id and offset), key
+id, epoch, `flags||codec` and the u64 size, so the ciphertext cannot be moved to
+another slot or relabelled to another key id, epoch, codec, size or padding.
+
+XAES-256-GCM is <https://c2sp.org/XAES-256-GCM>: the first 12 nonce bytes derive
+a per-message AES-256 key through the SP 800-108r1 counter KDF over AES-256-CMAC;
+the last 12 bytes are the AES-256-GCM nonce. The implementation is checked
+against the C2SP vectors.
+
+The plaintext is the `_codec` wrapper (as in `TINEAES4`). When padded it is
+`u64 len || wrapper || zeros`, zero-filled to the Padmé size of `8 + len`
+(Nikitin et al., PURBs), which bounds the overhead at about 12% and leaks
+O(log log L) bits of length. Non-zero padding is rejected. Padding exists in
+`TINEAES6` only.
+
+## 11.2 Readers
+
+A `TINEAES6` reader holds a keyring of `(key_id, epoch) -> master`; an unknown
+pair fails with a clear error. `TINEAES1`–`TINEAES4` keep opening through the
+same master, `TINEAES5` through its KMS provider, and `tine serve reseal --to
+aes6` rewrites older objects.
+

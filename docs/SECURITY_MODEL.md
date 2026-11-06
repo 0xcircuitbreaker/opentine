@@ -538,7 +538,15 @@ restricted to mode 0700/0600 on POSIX, and stale uploads are reaped. `TINEAES1` 
 --from aes2`
 rewrites it first. Since 0.35 `KMSKeyProvider` writes slot-bound `TINEAES5`
 envelopes (a KMS-wrapped data key); a custom adapter opts in to slot binding by
-implementing `seal`/`unseal`. The reference server requires a key
+implementing `seal`/`unseal`. Since 0.41 (roadmap X28, on disk `TINEAES6`
+because `TINEAES5` was taken by the 0.35 envelope) setting `TINE_KMS_KEY_ID`
+(with a 32-byte `TINE_KMS_KEY`, optional `TINE_KMS_KEY_EPOCH`) selects
+`XAESKeyProvider`: the key id and epoch are in the header and the associated
+data, sealing is XAES-256-GCM with a 192-bit random nonce (no practical nonce
+reuse bound per key), retired `(key_id, epoch)` masters stay readable through
+`previous`, and `TINE_REMOTE_SEAL_PAD=1` pads to the Padmé size so ciphertext
+length leaks only O(log log L) bits. Older forms keep opening; `tine serve
+reseal --to aes6` rewrites them. The reference server requires a key
 provider; production deployments should supply a KMS-backed provider and handle
 rotation outside this minimal server. SQLite audit rows form a serialized
 HMAC-SHA256 chain. An authenticated head stored outside SQLite detects end
@@ -944,3 +952,21 @@ Until 0.40 every private key was a plaintext-hex seed in a 0600 file. Since
 - OpenTine does not currently provide encrypted `.tine` artifacts.
 - The reference remote is not a hosted control plane, payment system, or a
   turnkey high-availability deployment.
+
+## FIPS mode (0.41, X30)
+
+`tine --fips` (or `OPENTINE_FIPS=1`) first requires that `cryptography` runs on
+an OpenSSL 3 with the FIPS provider active (`is_fips_enabled()`), and fails with
+exit 6 (`trust_required`) otherwise. It then refuses non-approved primitives
+before use: ChaCha20-Poly1305, and xz's CRC64 where it is the only integrity
+check (writing the archival xz form, whose stdlib reader relies on it). It
+accepts AES-GCM, XAES-256-GCM (AES only), HMAC-SHA256, SHA-256 and Ed25519
+(FIPS 186-5). zstd, zlib and xz used as compression under a SHA-256 content
+address are not cryptography and stay allowed. Verify reports record
+`crypto: {mode, provider_fips, openssl}`. opentine does not itself carry a
+FIPS validation: the boundary is the OpenSSL FIPS provider, and the CI job
+`fips` (Red Hat UBI 9, cryptography built against the system OpenSSL with the
+provider forced on through `OPENSSL_CONF`) is the gate; on other platforms its
+real-provider test skips. Ed25519 is approved, but an OpenSSL 3.0 FIPS provider
+may not ship it, in which case Ed25519 operations fail inside OpenSSL.
+
