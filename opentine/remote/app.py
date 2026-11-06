@@ -179,7 +179,8 @@ class RemoteApp(UploadRoutes):
             return self._json_response(start_response, "200 OK", {"missing": missing})
         if resource == "fetch" and method == "POST":
             request = self._json(
-                environ, "depth", "haves", "object_types", "pack_codecs", "pack_formats", "wants"
+                environ,
+                *("depth", "haves", "object_types", "pack_codecs", "pack_formats", "tips", "wants"),
             )
             raw_types = request.get("object_types") or []
             if not isinstance(raw_types, list) or not all(
@@ -196,6 +197,7 @@ class RemoteApp(UploadRoutes):
                     depth=request.get("depth"),
                     object_types=set(raw_types) or None,
                     omitted=omitted,
+                    tips=request.get("tips"),
                 )
                 fmt, codec = _pack4.choose(request.get("pack_formats"), request.get("pack_codecs"))
                 if fmt == _pack4.V4 and codec:  # only a client that asked for it gets v4

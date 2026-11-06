@@ -60,6 +60,8 @@ class RemoteService:
             "authentication": ["bearer", "oidc"],
             "filters": ["depth", "run", "object_type"],
             "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
+            # 0.37: "tips" -- fetch may name ref tips instead of every have (_tips).
+            "negotiation": ["haves", "tips"],
             "object_format": "opentine-v3",
             # ``pack_format`` stays what 0.11 clients read; newer ones choose from
             # ``pack_formats`` (``repository._pack4``).
@@ -138,6 +140,7 @@ class RemoteService:
         depth: int | None = None,
         object_types: set[str] | None = None,
         omitted: list[str] | None = None,
+        tips: list[str] | None = None,
     ) -> bytes:
         """A pack for *wants*; runs whose associations did not fit go to *omitted*."""
         self._authorize(identity, "fetch", tenant)
@@ -152,6 +155,7 @@ class RemoteService:
             depth=depth,
             omitted=short,
             select=typed_selection(object_types) if object_types else None,
+            tips=tips,
         )
         details: dict[str, Any] = {"objects": len(missing)}
         if short:
