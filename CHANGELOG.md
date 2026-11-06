@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.38.0 — Per-turn capture (2026-11-06)
+
+### Added
+
+- **`tine hook capture`** (protocol `opentine-hook/1`): one JSON event on
+  stdin, one JSON response on stdout. It accepts the generic form and Claude
+  Code, Codex and Gemini hook payloads unchanged. Each agent session becomes
+  one run on `heads/capture/<agent>/<session hash>`; every step is written
+  durably before the hook returns, so a killed session keeps every completed
+  step. It always exits 0. Capture records nothing unless the repository's
+  trusted config sets `hooks.capture`.
+- **`tine enable [--agent NAME] [--dry-run]` and `tine disable`** install and
+  remove the capture shims in the Claude Code, Codex and Gemini hook files.
+  `--dry-run` prints the diff; `disable` restores each file byte for byte, or
+  removes only the shims if the file was edited since.
+- **Workspace snapshots.** A tree is a schema-2 `blob` (SPEC §1.5.7), so
+  opentine 0.34 and newer read, fsck and transfer repositories that contain
+  them. With `hooks.snapshot` set, every captured turn stores the working
+  directory as a tree and links it as the step's `outputs.tree`; unchanged
+  directories keep their oid between turns (3.6% of workspace size x turns
+  over a synthetic 100-turn session). Symlinks are recorded, never followed.
+- **`tine rewind TREE` and `tine rewind RUN[@STEP] --tree`** restore a
+  snapshot byte for byte through the no-follow directory writer, refusing
+  control directories, held runs and redacted files.
+- **`tine mcp-proxy`** records an MCP session over stdio
+  (`tine mcp-proxy -- CMD`) or Streamable HTTP
+  (`--http-upstream URL --listen HOST:PORT`). Traffic is relayed before it is
+  recorded and never altered; payloads are redacted before they are hashed or
+  stored; the run is saved incrementally. HTTP mode binds loopback by default
+  and refuses foreign `Host` and `Origin` headers.
+
+### Changed
+
+- **Prompt parts.** A step's top-level `system`, `instructions` and `tools`
+  inputs are stored as their own blobs (`input_parts`, SPEC §1.5.2), so
+  repeated prompts and tool definitions are stored once. Readers put the full
+  input back together. Runs with nothing to split are byte-identical to 0.37;
+  re-saving an old `.tine` run that was never stored in a repository gives its
+  events new ids.
+- **Faster recording:** about 3.5x on `Repo.put_run` and 2.4x through the
+  recorder on the bench session. Redaction results are cached by content hash
+  (no plaintext kept), each redaction pattern is skipped when none of its
+  literal prefixes appear, and linked objects are touched through directory
+  descriptors on POSIX. Redaction output is unchanged; a differential test
+  compares it with 0.37 byte for byte.
+
 ## 0.37.0 — Recording-order packs and storage housekeeping (2026-11-06)
 
 ### Added
