@@ -147,17 +147,23 @@ def compress_frame(raw: bytes, codec: str, level: int | None = None) -> bytes:
     raise CodecError(f"unknown storage codec {codec!r}")
 
 
-def wrap(raw: bytes, codec: str, *, level: int | None = None, force: bool = False) -> bytes | None:
+def wrap(
+    raw: bytes, codec: str, *, level: int | None = None, force: bool = False, v2: bool = False
+) -> bytes | None:
     """*raw* in the wrapper, or ``None`` when compressing would not pay.
 
     ``None`` means "store it as it is": the body is small, did not shrink, or
     would compress past what a reader accepts (``MAX_RATIO``). ``force`` wraps
     regardless of size and gain (packs and archives, whose readers expect it).
+    ``v2`` allows a "codec v2" frame, past ``MAX_RATIO`` up to the 0.35 reader
+    rule (``READ_RATIO``): only for a peer advertising 0.35 or newer, never in
+    a ``.tine`` file or local storage an older reader may open (X13).
     """
     if not force and len(raw) < MIN_COMPRESS_BYTES:
         return None
     frame = compress_frame(raw, codec, level)
-    if len(raw) > max(len(frame), 1) * MAX_RATIO:
+    ratio = READ_RATIO if v2 and len(raw) <= READ_RATIO_BYTES else MAX_RATIO
+    if len(raw) > max(len(frame), 1) * ratio:
         if not force:
             return None
         frame, codec = raw, "raw"

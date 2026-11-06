@@ -62,8 +62,13 @@ def choose(offered_formats: Any, offered_codecs: Any) -> tuple[str, str | None]:
     return V3, None
 
 
-def build(objects: list[tuple[str, bytes]], shallow: list[str], codec: str) -> bytes:
-    """A v4 pack of *objects* (``(oid, raw)``) and *shallow* boundaries."""
+def build(
+    objects: list[tuple[str, bytes]], shallow: list[str], codec: str, *, v2: bool = False
+) -> bytes:
+    """A v4 pack of *objects* (``(oid, raw)``) and *shallow* boundaries.
+
+    *v2* allows a codec v2 body (``_codec.wrap``): only for a peer at 0.35+.
+    """
     if codec not in ("zlib", "zstd"):
         raise KernelError(f"unsupported pack codec {codec!r}")
     ordered = sorted(objects)
@@ -75,13 +80,16 @@ def build(objects: list[tuple[str, bytes]], shallow: list[str], codec: str) -> b
             "version": 1,
         }
     )
-    body = _codec.wrap(b"".join(raw for _, raw in ordered), codec, level=9, force=True)
+    body = _codec.wrap(b"".join(raw for _, raw in ordered), codec, level=9, force=True, v2=v2)
     assert body is not None  # force=True always wraps
     payload = _codec._uvarint(len(header)) + header + body
     return MAGIC4 + hashlib.sha256(payload).digest() + payload
 
 
-def _header(payload: bytes) -> tuple[dict[str, Any], int]:
+_KEYS = {"codec", "objects", "shallow", "version"}
+
+
+def _header(payload: bytes, keys: set[str] = _KEYS) -> tuple[dict[str, Any], int]:
     try:
         length, start = _codec._read_uvarint(payload, 0)
     except _codec.CodecError as exc:
@@ -97,11 +105,13 @@ def _header(payload: bytes) -> tuple[dict[str, Any], int]:
         raise KernelError("invalid pack header") from exc
     if canonical != raw or not isinstance(header, dict):
         raise KernelError("non-canonical or unsupported pack")
-    if set(header) != {"codec", "objects", "shallow", "version"} or header["version"] != 1:
+    if set(header) != keys or header["version"] != 1:
         raise KernelError("non-canonical or unsupported pack")
-    if header["codec"] not in ("zlib", "zstd"):
+    if "codec" in keys and header["codec"] not in ("zlib", "zstd"):
         raise KernelError("unsupported pack codec")
-    if not isinstance(header["objects"], list) or not isinstance(header["shallow"], list):
+    if "objects" in keys and (
+        not isinstance(header["objects"], list) or not isinstance(header["shallow"], list)
+    ):
         raise KernelError("invalid pack manifest")
     return header, start + length
 
@@ -152,23 +162,31 @@ def inspect(
             raise KernelError("invalid packed object") from exc
         objects.append((oid, chunk))
     ids = [oid for oid, _ in objects]
+    if ids != sorted(ids):
+        raise KernelError("pack objects must be sorted and unique")
+    return f"sha256:{actual.hex()}", check_ids(objects, shallow), shallow
+
+
+def check_ids(objects: list[tuple[str, bytes]], shallow: Any) -> list[tuple[str, bytes]]:
+    """*objects* sorted by id, once ids and *shallow* boundaries are unique and disjoint."""
+    ids = sorted(oid for oid, _ in objects)
     if not isinstance(shallow, list) or not all(isinstance(oid, str) for oid in shallow):
         raise KernelError("invalid pack shallow list")
-    if ids != sorted(set(ids)) or shallow != sorted(set(shallow)):
+    if len(set(ids)) != len(ids) or shallow != sorted(set(shallow)):
         raise KernelError("pack objects must be sorted and unique")
     if set(ids) & set(shallow):
         raise KernelError("packed objects cannot also be shallow boundaries")
     for oid in shallow:
         parse_oid(oid)
-    return f"sha256:{actual.hex()}", objects, shallow
+    return sorted(objects)
 
 
-def from_v3(data: bytes, codec: str) -> bytes:
+def from_v3(data: bytes, codec: str, *, v2: bool = False) -> bytes:
     """The v4 form of a v3 pack: same objects, same boundaries."""
     from opentine.repository.pack import inspect_pack
 
     _, objects, shallow = inspect_pack(data)
-    return build(objects, shallow, codec)
+    return build(objects, shallow, codec, v2=v2)
 
 
 def request_fields(capabilities: dict[str, Any]) -> dict[str, list[str]]:
