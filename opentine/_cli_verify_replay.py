@@ -60,6 +60,7 @@ from opentine._cli_render import print_replay_verify
 from opentine._cli_text import announce_recorded_task
 from opentine._graph_analysis import retained_closure
 from opentine._graph_diff import diff_runs
+from opentine._intoto_replay import attest
 from opentine._replay_fidelity import Fidelity, classify_cache, classify_rerun
 from opentine._replay_prompt import replay_task
 from opentine.core import Run
@@ -242,6 +243,7 @@ def verify_replay(args: argparse.Namespace) -> None:
         # Success, drift, and exception alike: the workspace never outlives the check.
         shutil.rmtree(room, ignore_errors=True)
     verdict.min_fidelity = getattr(args, "min_fidelity", None)
+    attest(args, verdict, path)  # --attest: a replay/v1 in-toto envelope of this verdict
     (emit_replay_verify if getattr(args, "json", False) else print_replay_verify)(verdict)
     if not verdict.reproduced or not verdict.fidelity.meets(verdict.min_fidelity):
         raise SystemExit(1)

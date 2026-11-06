@@ -115,6 +115,9 @@ def _add_harness_args(parser: argparse.ArgumentParser, *, replay: bool = False) 
     parser.add_argument("--prompt")
     if replay:  # the recorded prompt is untrusted text unless signed or vouched for
         parser.add_argument("--trust-recorded-prompt", action="store_true")
+        from opentine._intoto_replay import add_replay_attest_args
+
+        add_replay_attest_args(parser)
     parser.add_argument("--cwd")
     parser.add_argument("--harness-command")
     parser.add_argument("--harness-arg", action="append", default=[])
