@@ -92,7 +92,10 @@ def timestamp_checks(
             outcome, reason, info = "fail", "timestamp.bound-mismatch", {}
             detail = f"token is bound to {stored}, the run is now {bound}"
         else:
-            verdict = verify_token(token, stored.encode("utf-8"), roots, windowed)
+            policies = tuple(getattr(args, "tsa_policy", None) or ())
+            verdict = verify_token(
+                token, stored.encode("utf-8"), roots, windowed, policies=policies
+            )
             reason, detail, info = verdict.reason, verdict.detail, verdict.info
             outcome = "pass" if verdict.ok else "fail"
             if verdict.no_roots:

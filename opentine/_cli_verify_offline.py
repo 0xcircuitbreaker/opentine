@@ -27,6 +27,7 @@ OFFLINE_DESTS = (
     "locate",
     "provenance_source",
     "tsa_roots",
+    "tsa_policy",
     "hermetic",
     "sign_key",
     "timestamp",
@@ -67,6 +68,12 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
         "--tsa-roots", metavar="FILE.pem", help="--offline: trusted TSA roots for timestamp tokens"
     )
     parser.add_argument(
+        "--tsa-policy",
+        action="append",
+        metavar="OID",
+        help="--offline: accept only timestamp tokens issued under this TSA policy OID",
+    )
+    parser.add_argument(
         "--hermetic",
         action="store_true",
         help="--offline: re-run inside an OS no-network sandbox (exit 6 if unsupported)",
@@ -79,6 +86,11 @@ def add_verify_args(parser: argparse.ArgumentParser) -> None:
     from opentine._cli_intoto import add_attestation_verify_args
 
     add_attestation_verify_args(parser)
+    parser.add_argument(
+        "--allow-stale-root",
+        action="store_true",
+        help="Use the installed TUF trusted root even when its metadata has expired",
+    )
     add_offline_verify_args(parser)
     add_assurance_verify_args(parser)
 

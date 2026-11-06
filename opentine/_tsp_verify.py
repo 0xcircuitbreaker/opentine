@@ -7,6 +7,12 @@ certificate has the timestamping EKU and genTime lies within its validity;
 and the certificate chains (each link's signature, CA flag and validity at
 genTime) to one of the supplied roots. The first failed step is the verdict.
 
+0.41 (X26, ``_tsp_checks``): the policy OID allow-list and the nonce when the
+caller gives them; the ESS signingCertificate(V2) binding of the signer
+certificate; a critical, timeStamping-only EKU; no critical extension that is
+not understood; genTime +/- accuracy inside the TSA certificate's validity;
+and issuers whose KeyUsage allows keyCertSign.
+
 Roots from a trusted root's ``timestampAuthorities`` come with their
 ``validFor`` window (0.35.0): such an authority is an anchor only for tokens
 whose genTime lies inside the window. A token minted before an authority was
@@ -21,7 +27,7 @@ import hashlib
 import hmac
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from cryptography import x509
@@ -29,10 +35,10 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.x509.oid import ExtendedKeyUsageOID
 
 from opentine import _der
 from opentine._tsp import ATTR_CONTENT_TYPE, ATTR_MESSAGE_DIGEST, HASHES, TST_INFO, Token, parse
+from opentine._tsp_checks import eku_problem, ess_problem, extension_problem, issuer_ok
 
 _PSS = "1.2.840.113549.1.1.10"
 _MAX_CHAIN = 8
@@ -118,7 +124,7 @@ def _issued(child: x509.Certificate, parent: x509.Certificate, when: datetime) -
     except (InvalidSignature, ValueError, TypeError, x509.ExtensionNotFound):
         return False
     start, end = _when(parent)
-    return basic.ca and start <= when <= end
+    return basic.ca and start <= when <= end and issuer_ok(parent)
 
 
 def verify_token(
@@ -126,9 +132,13 @@ def verify_token(
     bound: bytes,
     roots: list[x509.Certificate],
     windowed: Sequence[tuple[list[x509.Certificate], Any]] = (),
+    *,
+    policies: Sequence[str] = (),
+    nonce: int | None = None,
 ) -> Verdict:
     """*windowed* holds ``(chain, window)`` anchors trusted only for a genTime
-    the window contains."""
+    the window contains. *policies*, when given, is the TSA policy OID
+    allow-list; *nonce* the request's nonce, which the token must echo."""
     try:
         token = parse(data)
     except ValueError as exc:
@@ -139,7 +149,14 @@ def verify_token(
         "hash_algorithm": token.hash_name,
         "serial": str(token.serial),
         "tsa": None,
+        "accuracy_us": token.accuracy_us,
+        "nonce": None if token.nonce is None else str(token.nonce),
     }
+    if policies and token.policy not in policies:
+        detail = f"TSA policy {token.policy} is not in the allow-list"
+        return Verdict(False, "timestamp.policy-not-allowed", detail, info)
+    if nonce is not None and token.nonce != nonce:
+        return Verdict(False, "timestamp.nonce-mismatch", "token does not echo the nonce", info)
     if token.hash_oid not in HASHES:
         return Verdict(False, "timestamp.unsupported-algorithm", "unsupported imprint hash", info)
     if not hmac.compare_digest(hashlib.new(token.hash_name, bound).digest(), token.imprint):
@@ -159,14 +176,18 @@ def verify_token(
         return Verdict(False, "timestamp.unsupported-algorithm", str(exc), info)
     except (InvalidSignature, ValueError):
         return Verdict(False, "timestamp.bad-signature", "TSA signature does not verify", info)
-    try:
-        usage = cert.extensions.get_extension_for_class(x509.ExtendedKeyUsage).value
-    except x509.ExtensionNotFound:
-        usage = []
-    if ExtendedKeyUsageOID.TIME_STAMPING not in usage:
-        return Verdict(False, "timestamp.missing-eku", "TSA certificate lacks timeStamping", info)
+    problem = ess_problem(token, cert)
+    if problem:
+        return Verdict(False, "timestamp.signing-cert-mismatch", problem, info)
+    problem = eku_problem(cert)
+    if problem:
+        return Verdict(False, "timestamp.missing-eku", problem, info)
+    problem = extension_problem(token, cert)
+    if problem:
+        return Verdict(False, "timestamp.critical-extension", problem, info)
     start, end = _when(cert)
-    if not start <= token.gen_time <= end:
+    slack = timedelta(microseconds=token.accuracy_us or 0)
+    if not (start <= token.gen_time - slack and token.gen_time + slack <= end):
         return Verdict(False, "timestamp.outside-validity", "genTime outside cert validity", info)
     live = [c for chain, window in windowed if window.contains(token.gen_time) for c in chain]
     if windowed and not roots and not live:

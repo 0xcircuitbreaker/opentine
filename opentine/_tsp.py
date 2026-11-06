@@ -46,6 +46,12 @@ class Token:
     attrs: dict[str, list[Any]] = field(default_factory=dict)
     sig_oid: str = ""
     signature: bytes = b""
+    #: 0.41 (X26): TSTInfo's optional fields.
+    accuracy_us: int | None = None
+    ordering: bool = False
+    nonce: int | None = None
+    #: ``(extnID, critical)`` of each TSTInfo extension.
+    extensions: list[tuple[str, bool]] = field(default_factory=list)
 
     @property
     def hash_name(self) -> str:
@@ -79,7 +85,50 @@ def _tst_info(raw: bytes) -> dict[str, Any]:
         "serial": _der.as_int(items[3]),
         "gen_time": _der.as_gentime(items[4]),
         "tst_info": raw,
+        **_optional(items[5:]),
     }
+
+
+def _optional(items: list[_der.Node]) -> dict[str, Any]:
+    """accuracy, ordering, nonce, tsa and extensions, in their DER order."""
+    out: dict[str, Any] = {}
+    for node in items:
+        if node.tag == SEQUENCE and not out:
+            out["accuracy_us"] = _accuracy(node)
+        elif node.tag == 0x01 and "nonce" not in out:
+            out["ordering"] = node.value not in (b"", b"\x00")
+        elif node.tag == 0x02:
+            out["nonce"] = _der.as_int(node)
+        elif node.tag == 0xA0:
+            continue  # tsa GeneralName: reported by the certificate instead
+        elif node.tag == 0xA1:
+            out["extensions"] = [_extension(ext) for ext in node.children()]
+        else:
+            raise DerError(f"unexpected TSTInfo field 0x{node.tag:02x}")
+    return out
+
+
+def _accuracy(node: _der.Node) -> int:
+    total = 0
+    for part in node.children():
+        if part.tag == 0x02:
+            total += _der.as_int(part) * 1_000_000
+        elif part.tag in (0x80, 0x81):
+            value = int.from_bytes(part.value, "big", signed=True)
+            if not 1 <= value <= 999:
+                raise DerError("accuracy millis/micros must be 1..999")
+            total += value * (1000 if part.tag == 0x80 else 1)
+        else:
+            raise DerError("malformed accuracy")
+    if total < 0:
+        raise DerError("negative accuracy")
+    return total
+
+
+def _extension(node: _der.Node) -> tuple[str, bool]:
+    parts = node.expect(SEQUENCE, "Extension").children()
+    critical = len(parts) == 3 and parts[1].tag == 0x01 and parts[1].value != b"\x00"
+    return _der.as_oid(parts[0]), critical
 
 
 def _signer(token: Token, node: _der.Node) -> None:
