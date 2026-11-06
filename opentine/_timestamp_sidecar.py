@@ -11,6 +11,11 @@ file, the root oid ``run:sha256:<hex>`` for v4 -- and the token's
 messageImprint is the hash of those UTF-8 bytes. ``tine timestamp data RUN``
 prints them so a TSA query can be built (``openssl ts -query -data``);
 fetching the token is the user's job, and opentine never contacts a TSA.
+
+0.39 (X20): ``bound`` may instead be ``sig:sha256:<hex>``, the SHA-256 of one
+stored signature block's canonical JSON. Such a token covers that signature,
+not just the content, so its genTime is the *verified signing time*: the
+signature existed by then. Root-bound tokens keep verifying as before.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ KIND = "tine-timestamp-sidecar/1"
 SUFFIX = ".timestamps.json"
 MAX_ENTRIES = 16
 MAX_BYTES = 1024 * 1024
+SIG_PREFIX = "sig:sha256:"
 
 
 def sidecar_path(run_path: Path) -> Path:
@@ -38,6 +44,38 @@ def bound_string(result: object) -> str | None:
     if not getattr(result, "ok", False) or not isinstance(actual, str) or not actual:
         return None
     return actual if actual.startswith("run:") else f"sha256:{actual}"
+
+
+def signature_bound(block: object) -> str:
+    """``sig:sha256:<hex>`` of one signature block's canonical JSON."""
+    import hashlib
+
+    return SIG_PREFIX + hashlib.sha256(canonical_json(block)).hexdigest()
+
+
+def signature_bounds(run_path: Path) -> list[str]:
+    """The ``sig:`` binding of every signature block the run file stores, in order."""
+    from opentine._artifact_io import artifact_integrity, read_artifact_json
+    from opentine._format_v4 import is_v4_artifact
+
+    try:
+        data = read_artifact_json(run_path)
+    except (OSError, RecursionError, ValueError):
+        return []
+    if is_v4_artifact(data):
+        blocks = data.get("signatures")
+        blocks = blocks if isinstance(blocks, list) else []
+    else:
+        integrity = artifact_integrity(data) if isinstance(data, dict) else None
+        blocks = [integrity.get("signature")] if integrity else []
+    out = []
+    for block in blocks:
+        if isinstance(block, dict):
+            try:
+                out.append(signature_bound(block))
+            except ValueError:
+                continue
+    return out
 
 
 def load(run_path: Path) -> list[tuple[str, bytes]]:
@@ -80,4 +118,13 @@ def attach(run_path: Path, bound: str, token: bytes) -> bool:
     return True
 
 
-__all__ = ["KIND", "attach", "bound_string", "load", "sidecar_path"]
+__all__ = [
+    "KIND",
+    "SIG_PREFIX",
+    "attach",
+    "bound_string",
+    "load",
+    "sidecar_path",
+    "signature_bound",
+    "signature_bounds",
+]

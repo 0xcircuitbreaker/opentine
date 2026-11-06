@@ -11,6 +11,7 @@ from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_du import DU_COMMANDS
 from opentine._cli_hold import HOLD_COMMANDS
 from opentine._cli_op import OP_COMMANDS
+from opentine._cli_retention import RETENTION_COMMANDS
 
 _CODECS = ("zstd", "zlib")
 
@@ -36,10 +37,12 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
     from opentine._cli_fanout import add_fanout_parsers
     from opentine._cli_hold import add_hold_parser
     from opentine._cli_op import add_op_parsers
+    from opentine._cli_retention import add_retention_parser
     from opentine._cli_worktree import add_worktree_parser
 
     add_du_parsers(sub)
     add_hold_parser(sub)
+    add_retention_parser(sub)
     add_op_parsers(sub)
     add_fanout_parsers(sub)  # after `run`, which it extends with --parallel
     add_worktree_parser(sub)
@@ -62,10 +65,11 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
         )
         command.add_argument(
             "--prune",
-            choices=("never", "now"),
-            default="never",
-            help="Also delete unreachable objects past prune's safety floor (never by "
-            "default since 0.35; held objects are always kept). See `tine prune`",
+            choices=("retention", "never", "now"),
+            default="retention",
+            help="Delete unreachable objects: 'retention' (default since 0.39) only those "
+            "outside the retention.toml window, 'now' everything past prune's safety "
+            "floor, 'never' none. Held objects are always kept. See `tine retention`",
         )
         command.add_argument("--json", action="store_true")
         change = command.add_mutually_exclusive_group()
@@ -118,7 +122,7 @@ def cmd_gc(args: argparse.Namespace) -> None:
 
     try:
         # Prune first: packing re-dates what it packs, so nothing would look old after.
-        pruned = _prune_now(args) if args.prune == "now" else None
+        pruned = None if args.prune == "never" else _prune_now(args)
         result = _gc_run(gc, args)
     except (OSError, ValueError) as exc:  # KernelError is a ValueError
         _refuse(exc)
@@ -126,10 +130,14 @@ def cmd_gc(args: argparse.Namespace) -> None:
 
 
 def _prune_now(args: argparse.Namespace):
-    """``--prune=now``: ``tine prune --delete`` at its floor (MIN_GRACE), holds kept."""
+    """``tine prune --delete`` at its floor (MIN_GRACE), holds kept; by default (0.39)
+    also inside the retention policy's window."""
+    from opentine._retention import RetentionPolicy
     from opentine.repository._gc_prune import prune
 
-    return prune(_repo(args.repo), delete=True, min_age=0)
+    repo = _repo(args.repo)
+    retained = None if args.prune == "now" else RetentionPolicy.for_repo(repo).retained
+    return prune(repo, delete=True, min_age=0, retained=retained)
 
 
 def _gc_run(gc, args: argparse.Namespace):
@@ -214,6 +222,7 @@ def _worktree(args: argparse.Namespace) -> None:
 STORAGE_COMMANDS = {
     **DU_COMMANDS,
     **HOLD_COMMANDS,
+    **RETENTION_COMMANDS,
     **OP_COMMANDS,
     "fan-out": _fanout,
     "worktree": _worktree,

@@ -100,7 +100,10 @@ def _roots(repo, git_links: bool) -> set[str]:
     return roots
 
 
-def plan(repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True) -> PrunePlan:
+def plan(
+    repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True, retained=None
+) -> PrunePlan:
+    """*retained* (0.39, ``RetentionPolicy.retained``) keeps an old object inside its window."""
     min_age = max(MIN_GRACE, float(min_age))
     roots = _roots(repo, git_links)
     ages, sizes, _ = _ages(repo)
@@ -110,7 +113,7 @@ def plan(repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True) -> P
     for oid in sorted(set(ages) - kept):
         result.unreachable += 1
         result.unreachable_bytes += sizes.get(oid, 0)
-        if ages[oid] <= cutoff:
+        if ages[oid] <= cutoff and not (retained and retained(oid)):
             result.candidates.append(oid)
             result.candidate_bytes += sizes.get(oid, 0)
         else:
@@ -120,13 +123,18 @@ def plan(repo, *, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True) -> P
 
 
 def prune(
-    repo, *, delete: bool = False, min_age: float = DEFAULT_MIN_AGE, git_links: bool = True
+    repo,
+    *,
+    delete: bool = False,
+    min_age: float = DEFAULT_MIN_AGE,
+    git_links: bool = True,
+    retained=None,
 ) -> PrunePlan:
     if not delete:
-        return plan(repo, min_age=min_age, git_links=git_links)
+        return plan(repo, min_age=min_age, git_links=git_links, retained=retained)
     with gc_lock(repo.path):
         recover(repo)  # a crashed prune's quarantine goes back first
-        result = plan(repo, min_age=min_age, git_links=git_links)
+        result = plan(repo, min_age=min_age, git_links=git_links, retained=retained)
         victims = set(result.candidates)
         quarantine = Quarantine(repo)
         try:

@@ -113,6 +113,13 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
     stored = _manifest(args, data)
     claims = claims_check(stored, data, run)
     report.add(claims)
+    from opentine._assurance import assess
+    from opentine.signing import SignatureError
+
+    try:
+        report.assurance = assess(path, args)
+    except (OSError, SignatureError, ValueError) as exc:
+        report.add(Check("assurance", "fail", "assurance.key-unreadable", str(exc), "none"))
     if getattr(args, "locate", False):
         from opentine._verify_locate import locate
 

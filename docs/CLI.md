@@ -83,7 +83,8 @@ named trust policies for `tine verify --policy NAME` (see below).
 `tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it
 keeps objects and everything they reach from `prune`, `gc --prune=now`,
 `rewind --apply` and remote deletes. Also new in 0.35: `gc --prune=never|now`
-(default `never`), `verify --offline --hermetic` (exit 6 where no OS sandbox
+(default `never` until 0.39, which adds `retention` and makes it the default:
+see `tine retention show|check` and REPOSITORY.md), `verify --offline --hermetic` (exit 6 where no OS sandbox
 exists, Windows included), `rewind --allow-control-dirs`,
 `replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
 
@@ -208,7 +209,7 @@ verifier key is in `.tine/log/op/vkey`.
 
 ```
 tine verify RUN --offline                        # human report
-tine verify RUN --offline --json --report r.json # tine-verify-report/1
+tine verify RUN --offline --json --report r.json # tine-verify-report/2
 tine verify RUN --offline --pubkey release.pub --strict
 tine verify RUN --offline --attestation a.sigstore.json --trusted-root trusted_root.json \
     --cert-identity ci@example.com --cert-oidc-issuer https://token.actions.githubusercontent.com
@@ -272,6 +273,49 @@ certificate's validity, chain to a root in `--tsa-roots` or the
 policy OID and hash algorithm (SPEC §8.6).
 
 ```
+tine timestamp data RUN --signature [N]
+tine verify RUN --offline --report r.json --sign-key KEY [--timestamp]
+tine verify-report data r.json
+tine verify-report attach r.json TOKEN.tsr
+tine verify-report check r.json [--pubkey P] [--tsa-roots FILE.pem] [--allow-unsigned] [--json]
+```
+
+0.39.0 (X20, X22). `timestamp data --signature` prints `sig:sha256:<hex>` of
+the run's N-th signature block; a token over it verifies only while the run
+carries that signature, and the report's `signing_time` is its genTime (the
+verified signing time). Root-bound tokens keep verifying. `--sign-key` (an
+Ed25519 key file from `tine keygen`, `--report` only) writes the
+`tine-verify-report/2` as signed canonical JSON; `--timestamp` (needs
+`--sign-key`) also writes `r.json.tsdata`, the bytes a TSA token over that
+signature must cover. `verify-report check` verifies the report offline and
+exits 0 when it is authentic (whatever verdict it records), 4 when its
+signature or a token fails, and 4 for a `/1` or unsigned report unless
+`--allow-unsigned` (SPEC §8.7).
+
+```
+tine replay RUN --verify --attest OUT.intoto.jsonl --attest-key KEY
+```
+
+Writes the verdict as an in-toto `replay/v1` DSSE envelope, predicate type
+`https://opentine.dev/attestation/replay/v1` (SPEC §8.8). Both flags need
+`--verify`; `--attest` needs `--attest-key`.
+
+```
+tine custody record ACTION SUBJECT --sign-key KEY [--actor A] [--note N] [--repo R]
+tine custody record timestamp SIG_BOUND --token T.tsr --sign-key KEY
+tine custody log [--json]
+tine custody verify [--pubkey P] [--vkey V] [--tsa-roots FILE.pem] [--json]
+```
+
+Chain of custody on the repository's `opentine-log/1` (`.tine/log/custody`):
+each record says who (`--actor`, default the login name) `received`,
+`exported`, `verified`, `transferred` or `stored` what, when, and is signed by
+that actor's Ed25519 key. A `timestamp` record stores a TSA token over an
+earlier record's `sig_bound` (printed by `record` and `log`). `verify` checks
+the checkpoint, tiles, hash chain, signatures and tokens offline and exits 4
+on any break (SPEC §8.9).
+
+```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
                      [--action-policy FILE] [--attestation FILE]
                      [--trusted-root FILE] [--operator NAME]
@@ -285,6 +329,27 @@ manifest (it holds the only timestamp) and names the manifest's SHA-256; with
 attestation) feed the attestation checks and are copied into `trust/`.
 `docs/conformance/minimal_verifier.py evidence DIR` re-checks the folder
 without opentine (SPEC Part 8).
+
+```
+tine evidence report RUN --format html|pdf -o PATH [--pubkey P] [--pin FPR]
+                     [--action-policy FILE]
+```
+
+New in 0.39. Writes one run's offline verification, timeline and the
+canonical evidence JSON (embedded as `<script type="application/json"
+id="tine-evidence">`) as one self-contained page. **The HTML is canonical and
+byte-identical across runs**: no wall-clock time (only the run's own), the
+source reduced to its file name, sorted-key canonical JSON, inline CSS, the
+`tine view` CSP (no scripts, nothing fetched), and every string re-redacted.
+`--format pdf` needs `pip install 'opentine[pdf]'` (pikepdf; exit 6 without it)
+and is a derivative: fixed `/CreationDate` from the run, content-derived `/ID`,
+`evidence.json` attached with `/AFRelationship /Data`. It is deterministic for
+a given pikepdf/qpdf version, but only the HTML is gated on byte identity; the
+PDF uses the base-14 Courier font (no system font is read), so it is not yet
+PDF/A-3 conformant.
+
+`tine retention show|check [--repo DIR] [--json]` (0.39) prints the retention
+policy, or dry-runs what default `gc` would prune.
 
 ## Trust policies
 
@@ -474,6 +539,25 @@ mode an optional CMD is run alongside and the proxy stops when it exits;
 otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 `127.0.0.1:0` (the chosen port is printed on stderr). See
 [CAPTURE.md](CAPTURE.md#6b-live-capture-an-mcp-session-038).
+
+## Assurance tiers (0.39)
+
+| Command | What it does |
+| --- | --- |
+| `tine proxy keygen [--force] [--json]` | Creates the proxy witness key (Ed25519) under `$XDG_CONFIG_HOME/opentine/proxy-keys/`, apart from every agent key; `tine record` and `tine mcp-proxy` sign their finished runs with it (`tine-sig/3`) |
+| `tine verify RUN --min-assurance T0..T3` | Exits 4 (`verification_failed`) when the *verified* tier is below the floor |
+| `tine verify RUN --proxy-pubkey FILE` | Also trusts this proxy public key as a T2 witness (repeatable) |
+| `tine verify RUN --min-assurance T3 --tsa-roots FILE.pem` | Lets an attached RFC 3161 token count toward T3 (outside `--offline`, `--tsa-roots` needs a floor) |
+| `tine verify RUN --compare-capture OTHER [--json]` | Divergence report: the better-witnessed run against the other, step by step (MCP `tools/call` and prompts); exits 4 when they diverge |
+
+Tiers: **T0** self-reported import, **T1** hook-captured, **T2** witnessed by
+the record proxy or `tine mcp-proxy` and signed with a trusted proxy key,
+**T3** T2 plus a verified timestamp. The tier a capture *claims* is recorded
+(`metadata.capture.claimed_tier`); the tier reported is *computed* at verify
+time, and a claim alone never rises above T1. Every report carries an
+`assurance` object, `{"claimed", "verified", "witness", "reasons"}`: `tine
+verify --json`, `tine verify --offline` (and so the MCP `verify_run` tool) and
+`tine show --json`; the human output prints one `assurance` line.
 
 ## Push preview and manifest (0.36)
 

@@ -20,6 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from opentine._assurance import proxy_marker, witness_save
 from opentine._v4_values import mark_lenient
 from opentine.core import Run, RunStatus, StepKind
 from opentine.redaction import redact_text, redact_value
@@ -49,8 +50,10 @@ class McpRecorder:
         shown = [redact_text(part) for part in command]
         self.run = Run(user_prompt=" ".join(shown))
         self.run.metadata["mcp_proxy"] = {"command": shown, "transport": transport}
+        self.run.metadata["capture"] = proxy_marker("mcp-proxy")  # checked at verify time
         mark_lenient(self.run)
         self.dropped = self.steps = 0
+        self.witnessed = False
         self._queue: queue.Queue[tuple[str, bytes, float] | None] = queue.Queue(MAX_QUEUE)
         self._pending: OrderedDict[str, tuple[dict[str, Any], float]] = OrderedDict()
         self._dirty, self._saved_at = False, 0.0
@@ -77,6 +80,8 @@ class McpRecorder:
         meta.update(exit_code=code, dropped=self.dropped, complete=True)
         self.run.status = RunStatus.completed if code == 0 else RunStatus.failed
         self._save()
+        # The finished run is signed with the proxy key: what lifts it to T2.
+        self.witnessed = witness_save(self.run, self.output)
         return self.run
 
     def _work(self) -> None:

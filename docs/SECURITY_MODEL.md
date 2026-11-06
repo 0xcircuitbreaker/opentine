@@ -294,6 +294,37 @@ tine verify run.tine --no-policy                                     # except wh
 
 Old spellings (`tine sign`, `tine keygen`, `tine attest`, …) still work; see [CLI.md](CLI.md).
 
+## Signing time, signed reports and custody (0.39)
+
+**X20.** An RFC 3161 token bound to a run's digest proves only that the
+*content* existed at genTime; anyone can re-sign that content later. A token
+bound to `sig:sha256:<hex>` (the hash of one signature block) proves the
+*signature* existed at genTime, which is the **verified signing time** the
+report records as `signing_time`. A token for a signature the run no longer
+carries fails (`timestamp.signature-mismatch`). This release establishes the
+time only: checking that the signing key was valid at that time is 0.41.
+
+**X22.** A verify report used to be a claim anyone could edit. With
+`--sign-key` it is canonical JSON signed (`tine-sig/3`, domain
+`opentine.verify-report.v2:`) by the verifier's key, optionally timestamped
+over that signature, and `tine verify-report check` detects any edit offline.
+It proves *who verified* and *what they concluded*, not that the conclusion
+is right: re-run `tine verify` to check the run itself. Without `--pubkey`
+the embedded key is trust on first use. Unsigned and `/1` reports are never
+treated as evidence.
+
+**Custody.** Custody records reuse the op log's `opentine-log/1`: the signed
+checkpoint and Merkle tiles detect edited, dropped or reordered entries, the
+`prev` chain detects splices, and each record is signed by its actor's key
+(not the log key), so the log key holder cannot forge an actor's record
+without that actor's key. Not covered: a log holder who rewrites the whole
+log and re-signs the checkpoint is detected only by a pinned `--vkey` or an
+earlier checkpoint copy (witnessing arrives in 0.44); `--actor` is the name
+the key holder chose, bound to nothing but the key.
+
+**replay/v1.** The attestation signs the replay verdict for one source digest;
+it is evidence of what the verifier observed, and carries no transcript text.
+
 ## Fork identity (v2)
 
 A run id read from an artifact is **untrusted input**, exactly like every other
@@ -640,6 +671,41 @@ tool access is running their task: pass `--prompt` to send your own. A key
 pinned in `agents.toml` verifies only runs whose identity claims the agent it is
 listed under.
 
+## The standalone verifier (`tine-verify.pyz`, 0.39)
+
+`tine-verify.pyz` is a release asset that verifies a `.tine` file (format v4 or
+v2) or an evidence folder with only the Python 3.11+ standard library: run it as
+`python3 -I -S tine-verify.pyz PATH [--pubkey KEY.pub | --key-file KEY]`.
+
+- **What it trusts.** Its own bytes, checked against `SHA256SUMS` and the
+  release's build-provenance attestation, or rebuilt from the tag (the build
+  is reproducible, see `docs/RELEASING.md`). It contains no native code: SHA-256,
+  HMAC, zlib and xz come from the stdlib, and Ed25519 verification is a
+  pure-Python RFC 8032 routine (`opentine/_pyz/_ed25519.py`, verify only) that is
+  tested against the RFC 8032 and Wycheproof vectors and agrees with OpenSSL on
+  all 210 Wycheproof cases. No secret ever reaches it, so it does not need to
+  be constant-time.
+- **What it checks.** The `digest` and `signature` checks of
+  `tine verify --offline`, with the same outcomes and reason codes. They are
+  computed with `opentine/kernel.py` vendored verbatim: every v4 envelope oid is
+  re-derived, links are validated, the root's closure must reach every object
+  and annotations form one chain. A trusted Ed25519 key must equal the embedded
+  key and must not be of small order. Evidence folders also get the manifest
+  and custody checks. A test holds its verdicts equal to `tine verify --offline`
+  on the compat fixtures, the conformance integrity vectors and tampered v4 runs.
+- **What it does not check.** The full run-record validators of
+  `opentine.repository.runs.load_run`, the `upgraded_from` record's shape,
+  attestations, Rekor receipts, certificates, timestamps and action manifests.
+  For those, use `tine verify --offline`.
+- **Network.** Before it reads anything, the verifier replaces every socket
+  connect and name lookup in its process with a refusal. Offline verification
+  never touches the network (ROADMAP §2).
+- **zstd.** zstd needs a native decoder, so zstd-coded content is refused with
+  `digest.zstd-unsupported` and the hint to re-export. `tine evidence export
+  --with-verifier` re-encodes zstd runs to the archival codec (xz, else zlib)
+  over the same uncompressed bytes, which leaves digests, roots and signatures
+  unchanged, and puts the pyz in the folder under the manifest.
+
 ## Storage compression and indexes
 
 Compressed artifacts, objects and packs are inflated only after their declared length is checked against the reader's limit and a 1000:1 ratio, and they must inflate to exactly that length with nothing after the frame; nested compression and unknown codecs are refused. Packed objects are checked against their ids on every read and by fsck. A pack index must tile each block exactly, a block of several objects stays within 1 MiB and must inflate to exactly the size its entries describe, and fsck, gc and archive restore read block by block, so a crafted pack cannot force a large block to be re-inflated per object. Each stored body is one object or one run, so compression never mixes a secret with attacker-chosen input in one frame, and identities and signatures never cover stored bytes. The action index (`actions.sqlite`) is a rebuildable cache built only from redacted run content; every query filter is bound as an SQL parameter.
@@ -716,6 +782,36 @@ script, frame, image or outbound request runs even if markup slipped through.
 The git-link commands (`tine repo integrate git`, `tine agent blame --git`) run git with the same hardened configuration and scrubbed environment as the shell tool. The installed hook runs `python -I -m opentine.cli git trailers` (isolated, so a repository's own files are never imported) and swallows every failure, so it can never block a commit; it only reads the action index (redacted data) and appends trailers. Anything read back from git is used only if it matches the run-id grammar.
 
 Repository aliases, client hooks and remote token files take effect only after `tine repo config --trust` on this machine, which records the exact bytes of `.tine/porcelain.json` under `$XDG_CONFIG_HOME/opentine/trusted-repos.json`; any other edit makes them inert, so a cloned repository never runs anything. Hooks run with a scrubbed environment and a timeout.
+
+## Assurance tiers (0.39, X21)
+
+A transcript or trace the agent wrote is evidence the agent could have edited;
+captures that the agent itself can write cannot be told apart from honest
+ones. Every run therefore carries an assurance tier, and the *verified* tier is
+computed by `tine verify`, never read from the run:
+
+| Tier | Meaning | What verify checks |
+| --- | --- | --- |
+| T0 | Self-reported import (Claude Code, Codex, Gemini, ATIF, OTel, ...) | nothing beyond integrity |
+| T1 | Captured turn by turn by `tine hook capture` | the recorded claim (no signature) |
+| T2 | Witnessed by `tine record` or `tine mcp-proxy` | a `tine-sig/3` Ed25519 signature that a trusted **proxy key** verifies |
+| T3 | T2 plus an RFC 3161 timestamp | additionally, a timestamp token over the run digest that a `--tsa-roots` root verifies |
+
+- The proxy key is made by `tine proxy keygen` and lives in
+  `$XDG_CONFIG_HOME/opentine/proxy-keys/` (private half 0600), a sibling of the
+  agent-key directory. A key whose fingerprint is also one of this user's agent
+  keys is never accepted as a witness, so an agent signing its own run with its
+  own key cannot reach T2.
+- A run whose claim says T2 but whose signature is missing, forged, made by
+  another key, or whose digest fails, is reported T0. The claim is reported
+  beside the verified tier so the gap is visible.
+- `--min-assurance TIER` turns the tier into a gate (exit 4).
+- Limit: in 0.39 the proxy key is a file readable by the user the proxy runs
+  as. An agent running as that same user with file access can read it; T2 is
+  meaningful when the proxy runs under a separate account or on another host.
+  PKCS#11 and KMS backends arrive in 0.41.
+- `tine verify --compare-capture` lines up the witnessed actions with the
+  transcript's and reports each missing, unwitnessed or changed step.
 
 ## Known Non-Goals
 

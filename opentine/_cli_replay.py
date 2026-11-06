@@ -90,6 +90,8 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
         refuse_unhonoured(
             args,
             (
+                "attest",
+                "attest_key",
                 "compare",
                 "force",
                 "harness",
@@ -109,7 +111,7 @@ def _refuse_ignored_replay_flags(args: argparse.Namespace) -> None:
     if not args.verify:
         refuse_unhonoured(
             args,
-            ("ignore_cost_drift", "json", "min_fidelity"),
+            ("attest", "attest_key", "ignore_cost_drift", "json", "min_fidelity"),
             mode="without --verify",
             hint="Both describe the verification verdict; a plain replay only writes the run.",
         )

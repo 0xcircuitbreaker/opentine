@@ -55,6 +55,8 @@ def capture_marker(source_format: str) -> dict[str, Any]:
         # The agent wrote this file and could have edited it; nothing outside
         # the agent observed these events.
         "agent_writable": True,
+        # Assurance tier T0: self-reported. Verify recomputes it, never trusts it.
+        "claimed_tier": "T0",
     }
 
 

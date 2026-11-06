@@ -212,7 +212,10 @@ def test_a_check_that_dials_is_reported_not_tried(room, capsys, dials, monkeypat
 
 def test_default_verify_output_is_unchanged(room, capsys):
     code, out = _invoke(capsys, "verify", "source.tine")
-    assert code == 0 and re.fullmatch(r"OK \S*source\.tine sha256:[0-9a-f]{12}\s*", out)
+    # 0.39 adds one line: the assurance tier every report now carries.
+    assert code == 0 and re.fullmatch(
+        r"OK \S*source\.tine sha256:[0-9a-f]{12}\s*assurance T0 \(claimed T0\).*\s*", out
+    )
     code, out = _invoke(capsys, "verify", "source.tine", "--json")
     doc = json.loads(out)
     assert code == 0 and "schema" not in doc and "checks" not in doc
@@ -224,6 +227,7 @@ def test_default_verify_output_is_unchanged(room, capsys):
         "signature_present",
         "signature_checked",
         "signature",
+        "assurance",
     }
 
 

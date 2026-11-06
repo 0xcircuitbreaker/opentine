@@ -211,9 +211,9 @@ def test_prune_and_gc_prune_now_keep_held_objects(tmp_path, capsys):
     for oid in (held_run, held_blob):
         _age(repo, oid)  # adding the hold re-touched the run
     capsys.readouterr()
-    cli.main(["gc", "--repo", str(repo.path), "--json"])
+    cli.main(["gc", "--repo", str(repo.path), "--json", "--prune=never"])
     assert "pruned" not in json.loads(capsys.readouterr().out)
-    assert repo.has(loose_run)  # gc alone never deletes unreachable objects
+    assert repo.has(loose_run)  # --prune=never deletes no unreachable object
     stamp = time.time() - OLD
     for name in os.listdir(repo.path / "packs"):
         os.utime(repo.path / "packs" / name, (stamp, stamp))

@@ -124,6 +124,23 @@ jobs:
       - name: Wheel smoke test
         run: uv run python scripts/wheel_smoke.py
 
+      - name: Build tine-verify.pyz reproducibly
+        # SOURCE_DATE_EPOCH (the release commit's time) fixes every zip
+        # timestamp; --check builds twice and fails unless both are identical.
+        shell: bash
+        run: |
+          uv run --no-sync python scripts/build_verifier.py --out verifier --check
+          python3 -I -S verifier/tine-verify.pyz tests/fixtures/golden_v2.tine > /dev/null
+
+      - name: Upload tine-verify.pyz
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: opentine-verifier
+          path: verifier/tine-verify.pyz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
       - name: Upload validated distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -215,11 +232,19 @@ jobs:
           name: opentine-sbom
           path: sbom
 
+      - name: Download tine-verify.pyz
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: opentine-verifier
+          path: verifier
+
       - name: Generate SHA256SUMS
         working-directory: dist
+        shell: bash
         run: |
           mv ../sbom/opentine.cdx.json .
-          sha256sum opentine-*.whl opentine-*.tar.gz opentine.cdx.json > SHA256SUMS
+          mv ../verifier/tine-verify.pyz .
+          sha256sum opentine-*.whl opentine-*.tar.gz opentine.cdx.json tine-verify.pyz > SHA256SUMS
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
@@ -227,6 +252,7 @@ jobs:
           subject-path: |
             dist/opentine-*.whl
             dist/opentine-*.tar.gz
+            dist/tine-verify.pyz
 
       - name: Attach artifacts to GitHub release
         env:
@@ -234,7 +260,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "$GITHUB_REF_NAME"
-          dist/opentine-*.whl dist/opentine-*.tar.gz dist/opentine.cdx.json dist/SHA256SUMS
+          dist/opentine-*.whl dist/opentine-*.tar.gz dist/tine-verify.pyz
+          dist/opentine.cdx.json dist/SHA256SUMS
           --verify-tag --generate-notes
 
   pypi:

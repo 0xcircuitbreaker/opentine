@@ -512,6 +512,7 @@ def test_transcript_import_marks_capture_and_default_location_resolves_latest(
         "method": "transcript-import",
         "source_format": "claude-code-transcript",
         "agent_writable": True,
+        "claimed_tier": "T0",
     }
     assert any(step.cost for step in run.steps)
 

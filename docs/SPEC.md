@@ -1757,13 +1757,13 @@ standard-library implementation of this part (about 300 lines, imports no
 opentine) and `tests/test_minimal_verifier_0_25.py` holds its verdicts to the
 reference's.
 
-## 8.1 The `tine-verify-report/1` document
+## 8.1 The `tine-verify-report/2` document (`/1` before 0.39)
 
 One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 
 | Key | Type | Notes |
 |---|---|---|
-| `schema` | string | `"tine-verify-report/1"` |
+| `schema` | string | `"tine-verify-report/2"` (0.39; `/1` documents differ only in lacking the 0.39 keys below) |
 | `command` / `offline` | const | `"verify"` / `true` |
 | `path`, `strict` | string, boolean | the target and whether `--strict` was given |
 | `verdict` / `ok` | `"pass"`\|`"fail"` / boolean | see below |
@@ -1771,7 +1771,10 @@ One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 | `checks` | array | ordered; each `{name, outcome, reason, detail, trust_basis, required}` |
 | `unavailable_required` | array of string | required checks that could not run offline |
 | `location` | object | `--locate` only: `{region, reason, detail, field_path, …}` |
-| `timestamps` | array of object | 0.31.0, present only when a check ran on a stored token (§8.6): `{bound, outcome, reason, gen_time, tsa, policy, hash_algorithm, serial}` |
+| `timestamps` | array of object | 0.31.0, present only when a check ran on a stored token (§8.6): `{bound, binding, outcome, reason, gen_time, tsa, policy, hash_algorithm, serial}`; `binding` (0.39) is `root` or `signature` |
+| `signing_time` | string | 0.39 (X20): the earliest `gen_time` of a passing token bound to one of the run's signatures; absent otherwise |
+| `signature` | object | 0.39 (X22), `--sign-key` only: the report's `tine-sig/3` block (§8.7) |
+| `signature_timestamps` | array of object | 0.39, unsigned: `{bound, token}` RFC 3161 tokens over `signature` (§8.7) |
 
 `outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
 Check names, in order: `digest`, `signature`, `provenance` (§9.9, never
@@ -1925,6 +1928,82 @@ existed, not *who* recorded it. With no token and no `--tsa-roots` the report
 is unchanged from 0.30. Not checked: revocation (no CRL or OCSP offline),
 the `nonce`, `accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
 (reported `timestamp.unsupported-algorithm`).
+
+**Signature binding (0.39, X20).** `bound` may instead be
+`sig:sha256:<hex>`: the SHA-256 of the canonical JSON (§0.2) of one signature
+block the run stores (a v4 `signatures[i]`, or a v2/v3 `metadata.integrity.signature`).
+`tine timestamp data RUN --signature [N]` prints it for block N (default 0).
+Such a token must name a block the run still carries
+(`timestamp.signature-mismatch` otherwise) and is then checked exactly as
+above against those bytes. Its timestamps entry has `binding: "signature"`,
+and the earliest passing one is the report's `signing_time`: the **verified
+signing time**, an upper bound on when that signature was made. Key validity
+against that time is not checked before 0.41. Root-bound tokens keep their
+0.31 meaning (`binding: "root"`).
+
+## 8.7 Signed verify reports (0.39, X22)
+
+`tine verify RUN --offline --report PATH --sign-key KEY` writes the report as
+canonical JSON (§0.2) plus a newline, with a `signature` member: an Ed25519
+`tine-sig/3` block (§9 header and value rules) whose message is
+`opentine.verify-report.v2:` + JCS of `{"body": <the report without
+signature and signature_timestamps>, "header": <alg, key_id, scheme,
+signed_at, signer>}`. The domain prefix keeps a report signature from ever
+verifying as a run or custody signature. `--timestamp` also writes
+`PATH.tsdata`, the `sig:sha256:<hex>` of that block; a TSA token over it is
+stored with `tine verify-report attach PATH TOKEN.tsr` in
+`signature_timestamps` (outside the signed bytes, at most 16).
+`tine verify-report data PATH` prints the same bytes.
+
+`tine verify-report check PATH [--pubkey P] [--tsa-roots PEM]
+[--trusted-root FILE]` verifies offline: the signature (against `--pubkey`;
+without it the embedded key, reported as trust on first use) and each token
+(§8.6 rules, `bound` must equal the block's binding). Exit 0 means the report
+is authentic -- whatever verdict it records -- and 4 means a signature or
+token failed. A `/1` or unsigned `/2` report is read and summarised
+(`evidence: false`, `reason: report.unsigned`) and exits 4 unless
+`--allow-unsigned`.
+
+## 8.8 The in-toto `replay/v1` predicate (0.39)
+
+Predicate type URI: **`https://opentine.dev/attestation/replay/v1`**.
+`tine replay RUN --verify --attest OUT --attest-key KEY` writes one DSSE v1
+envelope (payload type `application/vnd.in-toto+json`, Ed25519, `keyid` the
+key's `did:key`) around an in-toto Statement v1 whose single subject is the
+source run (`name` its id, `digest.sha256` its content digest's hex) and whose
+predicate is:
+
+| Key | Type | Notes |
+|---|---|---|
+| `verifier` | object | `{id: "https://opentine.dev/tine", version}` |
+| `mode` | `"cache"`\|`"rerun"` | the replay mode |
+| `replay` | object | `{replay_id, second_id, fork_point, expected_steps, reused_steps}` |
+| `result` | object | `{reproduced, identity_ok, integrity_ok, ignore_cost_drift}` booleans, `slice_ok` boolean or null, `structural_drift` / `accounting_drift` field-name lists |
+| `fidelity` | object | the `--json` verdict's `fidelity` object |
+| `verified_at` | string | UTC `YYYY-MM-DDTHH:MM:SSZ` |
+
+A drifting replay is attested too (`reproduced: false`); the command still
+exits 1. No prompt, completion or tool text appears in the predicate.
+`opentine._intoto_replay.validate_predicate` is the shape check.
+
+## 8.9 Custody records on `opentine-log/1` (0.39)
+
+`tine custody record ACTION SUBJECT --sign-key KEY [--actor A] [--note N]`
+appends one `opentine-custody/1` record to the repository log
+`.tine/log/custody` (origin `opentine.local/log/custody`), the same tlog-tiles
+layout and signed-note checkpoint as the op log (§2). A record is canonical
+JSON `{action, actor, format, id, note, prev, signature, subject, time[, token]}`:
+`action` is one of `received`, `exported`, `verified`, `transferred`,
+`stored`, `timestamp`; `prev` is the previous entry's leaf hash
+(`SHA-256(0x00 || entry)`) or null; `signature` is an Ed25519 `tine-sig/3`
+block by the actor's key over `opentine.custody.v1:` + JCS of `{"body": <the
+record without signature>, "header": ...}`. A `timestamp` record's `subject`
+is the `sig:sha256:` binding of an earlier record's signature and `token` an
+RFC 3161 token (base64 DER) over it; that token's genTime is the earlier
+record's verified signing time. `tine custody verify [--pubkey P] [--vkey V]
+[--tsa-roots PEM]` checks, offline, the checkpoint signature and Merkle root,
+the tiles, the hash chain, every record signature and every token, and exits 4
+on the first failure. `tine custody log` lists records with their `sig_bound`.
 
 # Part 9 — Format v4 (0.26.0)
 

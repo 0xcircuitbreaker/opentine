@@ -9,6 +9,11 @@ not vouch for tokens dated after its retirement (earlier tokens still verify). W
 and no ``--tsa-roots`` nothing is added, so older reports are unchanged.
 Timestamp checks are never required: a token adds evidence of *when*, never
 of *who*.
+
+0.39 (X20): a token bound to ``sig:sha256:<hex>`` must cover one of the
+signature blocks the run stores now (``timestamp.signature-mismatch``
+otherwise). Its section entry carries ``binding: "signature"``, and the
+earliest passing one is the report's ``signing_time``.
 """
 
 from __future__ import annotations
@@ -76,20 +81,36 @@ def timestamp_checks(
         roots, windowed, basis = _roots(args)
     except (OSError, ValueError) as exc:
         return [Check(NAME, "fail", "timestamp.roots-unreadable", str(exc), "none")], []
+    sig_bounds = sidecar.signature_bounds(path)
     checks, section = [], []
     for stored, token in entries:
-        if stored != bound:
+        binding = "signature" if stored.startswith(sidecar.SIG_PREFIX) else "root"
+        if binding == "signature" and stored not in sig_bounds:
+            outcome, reason, info = "fail", "timestamp.signature-mismatch", {}
+            detail = f"token covers {stored}, a signature this run does not carry"
+        elif binding == "root" and stored != bound:
             outcome, reason, info = "fail", "timestamp.bound-mismatch", {}
             detail = f"token is bound to {stored}, the run is now {bound}"
         else:
-            verdict = verify_token(token, bound.encode("utf-8"), roots, windowed)
+            verdict = verify_token(token, stored.encode("utf-8"), roots, windowed)
             reason, detail, info = verdict.reason, verdict.detail, verdict.info
             outcome = "pass" if verdict.ok else "fail"
             if verdict.no_roots:
                 outcome = "unavailable-offline"
         checks.append(Check(NAME, outcome, reason, detail, basis))
-        section.append({"bound": stored, "outcome": outcome, "reason": reason, **info})
+        entry = {"bound": stored, "binding": binding, "outcome": outcome, "reason": reason}
+        section.append({**entry, **info})
     return checks, section
 
 
-__all__ = ["timestamp_checks"]
+def signing_time(section: list[dict[str, Any]] | None) -> str | None:
+    """The earliest genTime of a passing token over a signature, else ``None``."""
+    times = [
+        e["gen_time"]
+        for e in section or []
+        if e.get("binding") == "signature" and e.get("outcome") == "pass" and e.get("gen_time")
+    ]
+    return min(times) if times else None
+
+
+__all__ = ["signing_time", "timestamp_checks"]

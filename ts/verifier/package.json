@@ -1,0 +1,27 @@
+{
+  "name": "@opentine/verify",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Independent OpenTine verifier: RFC 8785 canonical JSON, object envelopes, tine-sig/3 and .tine v4, with no runtime dependencies.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "opentine-verify": "dist/src/cli.js"
+  },
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist/src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test dist/test/conformance.test.js dist/test/cli.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "typescript": "5.6.3"
+  }
+}

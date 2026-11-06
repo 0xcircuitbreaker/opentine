@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.38.0"
+version = "0.39.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,6 +42,8 @@ langchain = ["langchain-core>=0.3"]
 crypto = ["cryptography>=48.0.1"]
 # zstd storage compression: stdlib compression.zstd on 3.14, the PEP 784 backport before.
 zstd = ["backports.zstd>=1.0; python_version < '3.14'"]
+# PDF evidence reports (`tine evidence report --format pdf`).
+pdf = ["pikepdf>=9"]
 all = [
     "anthropic>=0.87",
     "openai>=1.75.0",
@@ -73,7 +75,7 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.38.0/README.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.39.0/README.md"
 Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
@@ -106,6 +108,9 @@ include = [
     "/tests",
     "/uv.lock",
 ]
+# ts/ is the TypeScript verifier, a separate npm package (scripts/
+# check_release_inventory.py SDIST_EXCLUDED_PREFIXES keeps the gate in step).
+exclude = ["/ts"]
 # The golden compat fixtures are *.tine files, which the root .gitignore
 # excludes; git tracks them via a negating .gitignore in their directory, but
 # hatchling still applies the root ignore and would drop them from the sdist.
