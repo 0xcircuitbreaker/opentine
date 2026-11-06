@@ -45,6 +45,13 @@ def key_paths() -> tuple[Path, Path]:
     return base.with_suffix(".key"), base.with_suffix(".pub")
 
 
+def public_key_path() -> Path:
+    """Where the proxy's public key lives (never derived from the private half)."""
+    from opentine._agent_keys import key_dir
+
+    return (key_dir().parent / "proxy-keys" / "proxy").with_suffix(".pub")
+
+
 def keygen(force: bool = False) -> tuple[Path, str]:
     """Write a new proxy key pair; ``(public key path, fingerprint)``."""
     from opentine._agent_keys import local_fingerprints
@@ -52,17 +59,19 @@ def keygen(force: bool = False) -> tuple[Path, str]:
     from opentine._signing_pins import key_fingerprint
     from opentine.signing import generate_ed25519
 
-    private, public = key_paths()
+    private, public = key_paths()[0], public_key_path()
     if (private.exists() or public.exists()) and not force:
         raise FileExistsError(f"{private} already exists; pass --force to replace it")
-    seed, pub = generate_ed25519()
-    fingerprint = key_fingerprint(bytes.fromhex(pub))
-    if fingerprint in local_fingerprints():  # never: but the separation is the point
-        raise ValueError("the new proxy key collides with an agent key")
+    keypair = generate_ed25519()
+    if key_fingerprint(bytes.fromhex(keypair[1])) in local_fingerprints():  # never, but
+        raise ValueError("the new proxy key collides with an agent key")  # keep them apart
     private.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    atomic_write_text(private, seed + "\n", fsync=True, mode=0o600)
-    atomic_write_text(public, pub + "\n")
-    return public, fingerprint
+    atomic_write_text(private, keypair[0] + "\n", fsync=True, mode=0o600)
+    atomic_write_text(public, keypair[1] + "\n")
+    # Report only what is read back from the public file: nothing derived from the
+    # generated pair (seed included) can reach the caller's output.
+    shown = public_key_path()
+    return shown, key_fingerprint(bytes.fromhex(shown.read_text().strip()))
 
 
 def signing_key() -> Any | None:
@@ -91,7 +100,7 @@ def witness_save(run: Any, path: Path) -> bool:
     return True
 
 
-def trusted_keys(extra: list[str] | None = None) -> list[tuple[str, Any]]:
+def proxy_witnesses(extra: list[str] | None = None) -> list[tuple[str, Any]]:
     """``(fingerprint, public key)`` of every proxy key trusted here.
 
     This user's own proxy key plus each ``--proxy-pubkey FILE``. A key that is
@@ -179,7 +188,7 @@ def assess(path: str | Path, args: Any = None) -> dict[str, Any]:
     from opentine.core import Run
 
     args = args or argparse.Namespace()
-    keys = trusted_keys(getattr(args, "proxy_pubkey", None))  # a bad --proxy-pubkey fails
+    witnesses = proxy_witnesses(getattr(args, "witness_files", None))  # bad --proxy-pubkey fails
     source = read_once(path)
     integrity = Run.verify_integrity(source if isinstance(source, dict) else path)
     try:
@@ -192,7 +201,7 @@ def assess(path: str | Path, args: Any = None) -> dict[str, Any]:
         reasons.append("integrity failed: no tier above the claim's floor")
         verified = "T0"
     elif claimed in ("T2", "T3") and isinstance(source, dict):
-        witness, why = _witness(source, keys)
+        witness, why = _witness(source, witnesses)
         reasons.append(why)
         if witness:
             verified = "T2"
@@ -227,6 +236,6 @@ __all__ = [
     "proxy_marker",
     "rank",
     "signing_key",
-    "trusted_keys",
+    "proxy_witnesses",
     "witness_save",
 ]
