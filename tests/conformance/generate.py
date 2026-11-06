@@ -25,6 +25,7 @@ from opentine._version import __version__ as OPENTINE_VERSION
 from tests.conformance import (
     cases_agent,
     cases_artifact,
+    cases_artifact_v5,
     cases_canon,
     cases_canon_v4,
     cases_compat,
@@ -76,6 +77,7 @@ FAMILY_MODULES = (
     cases_artifact,
     cases_signing,
     cases_sig_v4,
+    cases_artifact_v5,
     cases_compat,
     cases_repair,
     cases_agent,

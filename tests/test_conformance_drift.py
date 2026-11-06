@@ -102,6 +102,7 @@ EXPECTED_COUNTS = {
     "vectors/49-agent.json": (9, 5),
     "vectors/51-compat.json": (70, 0),
     "vectors/53-sig-v4.json": (19, 0),
+    "vectors/54-artifact-v5.json": (9, 0),
     "vectors/99-repair.json": (14, 14),
 }
 
