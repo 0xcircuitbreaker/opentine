@@ -21,6 +21,12 @@ from opentine.repository._reflog import read_reflog
 
 
 @pytest.fixture(autouse=True)
+def _loose_writes(monkeypatch):
+    """These tests pack loose objects themselves; 0.40 run packs would pre-empt them."""
+    monkeypatch.setenv("OPENTINE_RUN_PACK", "0")
+
+
+@pytest.fixture(autouse=True)
 def _isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "home" / ".config"))

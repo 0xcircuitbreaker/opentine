@@ -21,6 +21,13 @@ from opentine.repository._blob_io import read_verified_blob_prefix
 from opentine.repository._gc import footprint, gc
 from opentine.repository._packs import pack_set
 
+
+@pytest.fixture(autouse=True)
+def _loose_writes(monkeypatch):
+    """These tests pack loose objects themselves; 0.40 run packs would pre-empt them."""
+    monkeypatch.setenv("OPENTINE_RUN_PACK", "0")
+
+
 _ZSTD = _codec.available("zstd")
 _CODECS = ["zlib", *(["zstd"] if _ZSTD else [])]
 

@@ -1054,6 +1054,18 @@ A packed object MUST be checked against its id when read. Local packs are a
 storage detail: they never cross the network, and transfer packs (TINEPACK3)
 always carry canonical bytes.
 
+**Run packs (0.40+).** `Repo.put_run` and `Recorder.import_events` write all
+of a run's new objects as one local pack of the repository's current pack
+format (v1, or v3 in a storage-version-3 repository) instead of one loose file
+per object, so readers since 0.11 read them unchanged. The writer MUST make
+both files durable under temporary names (one fsync each), rename the `.tpk`
+and then the `.tidx` into place, sync `packs/` once, and only then update any
+ref (`_write_batch`). A crash before the ref update leaves an unreferenced
+pack that verifies; no ref may name an object that is not yet durable. A
+batch of a single object, a storage-version-1 repository, `"run_pack": false`
+in `config.json` or `OPENTINE_RUN_PACK=0` keeps loose writes. Single-object
+writes (`Recorder.append`, annotations) stay loose.
+
 ### Pack v3 (storage version 3, 0.13+)
 
 A version-3 repository may also hold v3 packs, named the same way. A reader

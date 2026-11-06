@@ -21,6 +21,13 @@ from opentine.repository._archive import create_archive
 from opentine.repository._gc import gc
 from opentine.repository._reap import is_staging
 
+
+@pytest.fixture(autouse=True)
+def _loose_writes(monkeypatch):
+    """These tests pack loose objects themselves; 0.40 run packs would pre-empt them."""
+    monkeypatch.setenv("OPENTINE_RUN_PACK", "0")
+
+
 _XZ = pytest.mark.skipif(not _codec.available("xz"), reason="Python built without lzma")
 
 

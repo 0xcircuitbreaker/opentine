@@ -22,6 +22,7 @@ from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._shallow import read_shallow, shallow_fingerprint
 from opentine.repository._storage import object_exists, read_object
+from opentine.repository._write_batch import flush as flush_batch
 
 _UNSET = object()
 
@@ -177,6 +178,7 @@ class Repo:
         if target.oid != new_oid:
             raise KernelError("validated ref target does not match its object id")
         validate_ref_target(normalized, target.object_type, target.payload())
+        flush_batch(self)  # P2: staged objects are durable before any ref names them
         touch_links(self, [new_oid])  # a ref is a link: tine prune must keep it
         commit_ref(
             self.path,

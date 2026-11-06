@@ -166,11 +166,11 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = froz
         limit = threshold(repo)
         if limit is None or getattr(repo, "_storage_codec", None) is None:
             return None
-        if not due(repo.path, min_age, limit, byte_threshold(repo), own):
+        merge = merge_candidates(_pack_sizes(repo.path))  # 0.40: run packs pile up too
+        if not merge and not due(repo.path, min_age, limit, byte_threshold(repo), own):
             return None
         from opentine.repository._gc import gc
 
-        merge = merge_candidates(_pack_sizes(repo.path))
         return gc(
             repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own,
             **level_kwargs(repo),
