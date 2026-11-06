@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.39.0 — Assurance tiers and evidence (2026-11-06)
+
+### Behaviour changes
+
+- **`tine gc` prunes by retention again.** The default is `--prune=retention`:
+  unreachable objects are deleted only outside the retention window
+  (`.tine/retention.toml`, 14 days by default), and held or legal-hold objects
+  never. `--prune=never` gives the 0.35-0.38 behaviour; `--prune=now` ignores
+  the window but still keeps held objects.
+- **Verify reports are `tine-verify-report/2`.** `/1` reports stay readable;
+  `tine verify-report check` treats an unsigned or `/1` report as not evidence
+  (exit 4) unless `--allow-unsigned`.
+- **`tine verify` and `tine show` print an assurance line** and add an
+  `assurance` object to their JSON.
+
+### Added
+
+- **Assurance tiers.** T0 imported, T1 hook-captured, T2 witnessed by
+  `tine record` or `tine mcp-proxy` and signed with a separate proxy key
+  (`tine proxy keygen`), T3 T2 plus an RFC 3161 timestamp. The tier is
+  computed at verify time from signatures and timestamps, never from the run's
+  own claim. `tine verify --min-assurance T0..T3` exits 4 below the floor;
+  `--proxy-pubkey` trusts another witness key; `--compare-capture OTHER`
+  reports where a proxy capture and an imported transcript diverge.
+- **Signature-bound timestamps.** A token can cover one signature block
+  (`sig:sha256:`), which gives the run a verified signing time;
+  `tine timestamp data RUN --signature`. Root-bound tokens still verify.
+- **Signed verify reports:** `tine verify --offline --report PATH --sign-key
+  KEY [--timestamp]` and `tine verify-report check|data|attach`.
+- **`replay/v1` attestations:** `tine replay --verify --attest OUT
+  --attest-key KEY` writes an in-toto DSSE envelope.
+- **Chain of custody:** `tine custody record|log|verify` keeps signed,
+  hash-chained custody records on `opentine-log/1`.
+- **Retention policy:** `.tine/retention.toml` (by ref pattern, status and
+  tier; `legal_hold`), and `tine retention show|check`.
+- **`tine evidence report RUN --format html|pdf`.** The HTML is canonical and
+  byte-identical across runs, embeds the evidence as canonical JSON, and is
+  re-redacted; the PDF (`opentine[pdf]`) is a derivative.
+- **`tine-verify.pyz`:** a stdlib-only offline verifier with a pure-Python
+  Ed25519 routine (all Wycheproof and RFC 8032 vectors pass), built
+  reproducibly and attached to each GitHub release with `SHA256SUMS` and build
+  provenance. `tine evidence export --with-verifier` re-encodes zstd runs as
+  xz and adds the pyz.
+- **TypeScript verifier, phase 1** (`ts/verifier/`, private): RFC 8785, object
+  envelopes, `tine-sig/3` and `.tine` v4 integrity, passing every v4
+  conformance vector; run in CI. Not part of the Python package.
+
 ## 0.38.0 — Per-turn capture (2026-11-06)
 
 ### Added
