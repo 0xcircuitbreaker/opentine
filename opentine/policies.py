@@ -57,6 +57,12 @@ class ShellPolicy:
     git_network: bool = False
     #: git subcommands that write files themselves (init, clone, archive, ...).
     git_write_out: bool = False
+    #: OS sandbox backend: auto, bwrap, landlock, sandbox-exec, oci or none.
+    sandbox: str = "none"
+    #: Let sandboxed commands reach the network (git also needs git_network).
+    sandbox_network: bool = False
+    #: Container image for the ``oci`` backend.
+    sandbox_image: str = ""
 
 
 @dataclass(frozen=True)
