@@ -65,6 +65,20 @@ TOKEN_SHAPES = re.compile(
     rb"|[0-9a-f]{32}-us[0-9]{1,2}"  # Mailchimp
     rb")"
 )
+#: Literal prefilter for TOKEN_SHAPES (``sub_step`` needles): each alternative
+#: above contains at least one of these, ASCII-lowercased. A value holding none of
+#: them cannot match, so the 50-way alternation never runs on ordinary prose.
+#: ``tests/test_038_redaction_differential.py`` checks every alternative.
+TOKEN_NEEDLES = tuple(
+    b"sk akia asia gh github_pat_ xox xapp- xai- r8_ pplx- ya29. gocspx- whsec_ aiza k_live_ "
+    b"k_test_ gl hf_ npm_ pypi- sg. hvs. eyj hooks.slack.com/ discord lsv2_ tskey- _v1_ dapi "
+    b"lin_ dp. shp vc age-secret-key-1 api_org_ sntry nrak- atatt3 dckr_pat ccipat bkua "
+    b"sb_secret hrku ntn_ nfp_ sbp_ pmak- sq0csp- eaaa .atlasv1. :aa 8q~ -us".split()
+)
+#: Prefilters for ``redaction``'s name patterns: every credential compound its
+#: ``_NAME`` accepts holds one of NAME_NEEDLES, every header name one of these.
+NAME_NEEDLES = tuple(b"key token secret passw passph credential string url dsn".split())
+HEADER_NEEDLES = (b"authorization", b"cookie")
 # The password in a URL's userinfo ("postgres://admin:PW@db", "https://bob:PW@git"),
 # keeping scheme, user and host. Every run is bounded, so the scan stays linear.
 URL_USERINFO = re.compile(

@@ -32,19 +32,41 @@ def _char_end(value: bytes, end: int, limit: int) -> int:
     return end
 
 
+_LOWER: list[tuple[bytes, bytes]] = [(b"", b"")]
+
+
+def lowered(value: bytes) -> bytes:
+    """``value.lower()``, kept for the last value: consecutive steps share it."""
+    last = _LOWER[0]
+    if last[0] is value:
+        return last[1]
+    low = value.lower()
+    _LOWER[0] = (value, low)
+    return low
+
+
 def sub_step(
     pattern: re.Pattern[bytes],
     repl: bytes | Callable[[re.Match[bytes]], bytes],
     tail: Callable[[re.Match[bytes]], re.Pattern[bytes] | None] | None = None,
+    needles: tuple[bytes, ...] = (),
 ) -> Step:
     """The edits ``pattern.sub(repl, value)`` makes (``repl`` bytes is literal).
 
     *tail*, for a pattern whose value is a bounded run, names the run class that
     continues it: an edit is extended over that class (up to the next match), so a
     value longer than its bound is removed whole instead of cut where it fell.
+
+    *needles* is a literal prefilter: lowercase byte strings at least one of which
+    every match must contain (ASCII case-folded, as ``(?i)`` on bytes is). A value
+    holding none of them cannot match, so the regex never runs on it.
     """
 
     def step(value: bytes) -> list[Edit]:
+        if needles:
+            low = lowered(value)
+            if not any(needle in low for needle in needles):
+                return []
         matches = list(pattern.finditer(value))
         edits: list[Edit] = []
         for index, match in enumerate(matches):
@@ -63,6 +85,16 @@ def sub_step(
         return edits
 
     return step
+
+
+def keep_ends(match: re.Match[bytes]) -> bytes:
+    """A ``sub_step`` replacement keeping groups 1 and 3 around the marker."""
+    return match.group(1) + b"[REDACTED]" + match.group(3)
+
+
+def keep_head(match: re.Match[bytes]) -> bytes:
+    """A ``sub_step`` replacement keeping group 1 before the marker."""
+    return match.group(1) + b"[REDACTED]"
 
 
 def apply(value: bytes, edits: list[Edit]) -> bytes:
@@ -121,4 +153,14 @@ def changed(value: bytes, steps: list[Step]) -> list[tuple[int, int]]:
     return spans
 
 
-__all__ = ["Edit", "Step", "apply", "changed", "run", "sub_step"]
+__all__ = [
+    "Edit",
+    "Step",
+    "apply",
+    "changed",
+    "keep_ends",
+    "keep_head",
+    "lowered",
+    "run",
+    "sub_step",
+]
