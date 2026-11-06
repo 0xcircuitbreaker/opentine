@@ -10,7 +10,7 @@ import time
 from collections.abc import Iterator
 from pathlib import Path
 
-from opentine._canon import _fsync_dir
+from opentine._canon import _fsync_dir, full_fsync
 from opentine.kernel import KernelError
 from opentine.repository import _winretry
 
@@ -167,7 +167,7 @@ def atomic_bytes(path: Path, data: bytes) -> None:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
             handle.flush()
-            os.fsync(handle.fileno())
+            full_fsync(handle.fileno())
         _winretry.replace(temporary, path)  # Windows: a reader may hold the target
         _fsync_dir(path.parent)
     finally:
