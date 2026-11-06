@@ -1020,7 +1020,7 @@ block 1+ = the objects' stored bytes in pack order, cut every 4 MiB
 - **Recording order.** Objects come in recording order: blobs and events in
   the order the runs reached them, then each session's snapshots in append
   order.
-- **Stored forms.** `encoding` is that of pack v3: 0 `FULL`, 1 `RUN_DELTA`
+- **Stored forms.** `encoding` is that of pack v3 (blob deltas, 3, are local-only): 0 `FULL`, 1 `RUN_DELTA`
   or 2 `EVENT_SLIM`. A `RUN_DELTA`'s base is the object just before it, which
   MUST be a run, and a delta chain is at most 64 deep.
 - **Derived ids.** Ids are not listed. Each id is computed from the rebuilt
@@ -1094,6 +1094,24 @@ tells the formats apart by magic; a version-3 repository may hold both.
     `causal_ids []`, `cost 0`, `duration 0`, `parent_ids []`, `usage {}`);
     a reader adds every missing one back and canonicalizes. Storing a default
     is refused.
+  - `3` blob delta (blobs only, 0.40+): the blob's header line, LF, then
+    `<base oid> SP <prefix> SP <suffix>` LF, then the *middle* bytes. The base
+    is another **blob of the same pack**, named by its full `blob:sha256:` id
+    (prefix and suffix are decimal without leading zeros). Rebuild: take the
+    base's canonical body, keep its first `prefix` and last `suffix` bytes
+    (`prefix + suffix` MUST NOT exceed the base body), put the middle between
+    them, and prepend the header line. A reader follows bases by id, MUST
+    refuse a chain that names an id it already visited (a cycle) or that holds
+    more than 64 deltas of any kind (`MAX_DELTA_DEPTH`), and MUST refuse a base
+    the pack does not list. Writers choose bases "middle-out" (the longest
+    shared prefix plus suffix among the 16 blobs before it in pack order) and
+    keep their chains to 32. A pack holding a blob delta is written only in a
+    repository whose descriptor carries `"packs": "delta"` with a `min_reader`
+    of at least `0.40.0` (`tine gc --blob-deltas`; `tine gc --no-blob-deltas`
+    rewrites every pack without them before removing both), so a 0.37-0.39
+    reader, which refuses encoding 3, refuses the repository instead. Transfer
+    formats (wire packs, bundles, `.tine`) never carry it: they hold canonical
+    objects.
 
 Every rebuilt object — a delta's base included — MUST equal its
 `canonical_size` and hash to its id, or the read fails. Ids, digests and

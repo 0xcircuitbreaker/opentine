@@ -10,6 +10,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
 from opentine.repository._config import read_config, storage_version
+from opentine.repository._gc_deltas import blob_deltas_now
 from opentine.repository._pack_v3 import build_pack_v3
 from opentine.repository._pack_v3_index import PACK3_MAGIC
 from opentine.repository._packs import (
@@ -70,8 +71,11 @@ def write_pack(
     *version* 3 writes the storage-v3 pack (``_pack_v3``); only a repository
     whose descriptor is version 3 may hold one.
     """
-    build = build_pack_v3 if version == 3 else build_pack
-    digest, body, index = build(objects, codec, level)
+    if version == 3:  # BLOB_DELTA only where the descriptor opted in (``_gc_deltas``)
+        deltas = blob_deltas_now(root)
+        digest, body, index = build_pack_v3(objects, codec, level, blob_deltas=deltas)
+    else:
+        digest, body, index = build_pack(objects, codec, level)
     atomic_bytes(internal_path(root, "packs", f"{digest}.tpk"), body)
     atomic_bytes(internal_path(root, "packs", f"{digest}.tidx"), index)
     return digest
