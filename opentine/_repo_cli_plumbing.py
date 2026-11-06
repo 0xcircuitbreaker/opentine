@@ -70,7 +70,7 @@ def cmd_fsck(args: argparse.Namespace, console) -> None:
     budget = {"budget": args.budget, "max_objects": args.max_objects}
     result = repo.fsck(deep=not args.shallow, **budget)
     print(json.dumps(asdict(result), indent=2))
-    if not result.complete:  # a clean stop, not a failure: say how far it got
+    if not getattr(result, "complete", True):  # a clean stop, not a failure: say how far it got
         done = f"{result.checked} of {result.objects}"
         print(f"fsck: budget reached after {done} objects", file=sys.stderr)
     if not result.ok:
