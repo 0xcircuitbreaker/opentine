@@ -3037,6 +3037,26 @@ ROWS: tuple[tuple, ...] = (
         {"command": "record", "save": "r.tine", "force": False},
     ),
     (
+        "plain:mcp-proxy --save r.tine -- python server.py",
+        "plain",
+        ["mcp-proxy", "--save", "r.tine", "--", "python", "server.py"],
+        "opentine._cli_mcp_proxy:cmd_mcp_proxy",
+        False,
+        {"command": "mcp-proxy", "save": "r.tine", "force": False, "http_upstream": None},
+    ),
+    (
+        "plain:mcp-proxy --http-upstream http://127.0.0.1:9/mcp --listen 127.0.0.1:8808",
+        "plain",
+        ["mcp-proxy", "--http-upstream", "http://127.0.0.1:9/mcp", "--listen", "127.0.0.1:8808"],
+        "opentine._cli_mcp_proxy:cmd_mcp_proxy",
+        False,
+        {
+            "command": "mcp-proxy",
+            "http_upstream": "http://127.0.0.1:9/mcp",
+            "listen": "127.0.0.1:8808",
+        },
+    ),
+    (
         "plain:op log",
         "plain",
         ["op", "log"],

@@ -17,6 +17,8 @@ from typing import Any
 
 from opentine._cli_common import console
 from opentine._cli_flags import _require_output_slot
+from opentine._cli_mcp_proxy import add_mcp_proxy_parser
+from opentine._cli_mcp_proxy import cmd_mcp_proxy as _cmd_mcp_proxy
 from opentine._v4_values import mark_lenient
 from opentine.core import Run, RunStatus, StepKind
 from opentine.redaction import redact_text, redact_value
@@ -33,6 +35,7 @@ def add_record_parser(sub: Any) -> None:
         "--force", action="store_true", help="Replace an existing --save destination"
     )
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
+    add_mcp_proxy_parser(sub)
 
 
 def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> Run:
@@ -83,6 +86,6 @@ def cmd_record(args: argparse.Namespace) -> None:
     raise SystemExit(code)
 
 
-COMMANDS = {"record": cmd_record}
+COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy}
 
 __all__ = ["COMMANDS", "add_record_parser", "build_run", "cmd_record"]
