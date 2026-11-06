@@ -107,10 +107,17 @@ def _envelope(args, result, path, check_subject, keyless: bool) -> Check:
     if not result.ok:
         outcome = "unavailable-offline" if status == "no-key" else "fail"
         return Check("attestation", outcome, f"attestation.{status}", result.reason, basis, True)
-    error = check_subject(result.statement, path) if path else "run not found"
+    error = (
+        check_subject(result.statement, path, result.key_fingerprint) if path else "run not found"
+    )
     if error:
         return Check("attestation", "fail", "attestation.subject-mismatch", error, basis, True)
-    detail = f"{status}; subject matches the run digest"
+    from opentine._signing_v4 import attestation_binding
+
+    binding = attestation_binding(result.statement)
+    detail = f"{status}; subject matches the run digest" + (
+        f"; tine-attest/2 record {binding}" if binding else ""
+    )
     return Check("attestation", "pass", f"attestation.{status}", detail, basis, True, not tofu)
 
 
