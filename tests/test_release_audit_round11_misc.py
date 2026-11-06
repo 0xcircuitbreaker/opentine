@@ -275,6 +275,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_036_push_preview.py": "git",
     "tests/test_038_tree_snapshots.py": "git",
+    "tests/test_041_post_quantum.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_git_push_sync_0_23.py": "git",
