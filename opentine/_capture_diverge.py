@@ -86,10 +86,10 @@ def compare(witness_path: Path, other_path: Path, args: Any = None) -> dict[str,
     # Compare only what both captures can see: an MCP proxy never sees a prompt.
     seen = {a[0] for a in left} & {a[0] for a in right}
     left, right = [a for a in left if a[0] in seen], [a for a in right if a[0] in seen]
-    keys_l = [(a[0], a[1]) for a in left]
-    keys_r = [(a[0], a[1]) for a in right]
+    labels_l = [(a[0], a[1]) for a in left]
+    labels_r = [(a[0], a[1]) for a in right]
     divergences: list[dict[str, Any]] = []
-    matcher = difflib.SequenceMatcher(a=keys_l, b=keys_r, autojunk=False)
+    matcher = difflib.SequenceMatcher(a=labels_l, b=labels_r, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             for offset in range(i2 - i1):

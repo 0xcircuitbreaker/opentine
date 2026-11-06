@@ -56,6 +56,7 @@ def add_assurance_verify_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--proxy-pubkey",
+        dest="witness_files",
         action="append",
         metavar="FILE",
         help="Also trust this proxy public key as a T2 witness (repeatable)",
