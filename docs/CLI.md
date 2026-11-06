@@ -24,6 +24,8 @@ the same output and exit code. The old spellings keep working unchanged.
 | `tine fsck` | `tine repo storage fsck` |
 | `tine reindex` | `tine repo storage reindex` |
 | `tine hook` | `tine repo integrate hook` |
+| `tine enable` | `tine repo integrate enable` |
+| `tine disable` | `tine repo integrate disable` |
 | `tine plugin` | `tine repo integrate plugin` |
 | `tine harnesses` | `tine repo integrate harnesses` |
 | `tine git` | `tine repo integrate git` |
@@ -447,6 +449,17 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+
+## Per-turn capture (0.38)
+
+| Command | What it does |
+| --- | --- |
+| `tine hook capture [--agent NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
+| `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex and Gemini CLI hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
+| `tine disable [--agent NAME] [--dry-run]` | Restores each hook file byte for byte (or removes only the shims if it was edited since) |
+
+Capture records nothing unless the repository's trusted config sets
+`hooks.capture`. See [CAPTURE.md](CAPTURE.md#per-turn-capture-tine-hook-capture-opentine-hook1).
 
 ## Push preview and manifest (0.36)
 

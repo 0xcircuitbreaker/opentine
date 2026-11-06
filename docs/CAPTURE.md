@@ -387,6 +387,50 @@ Because a harness re-executes real work, it is also how nondeterminism gets
 caught: `tine replay <run> --verify --harness <name>` runs it twice and compares
 the two artifacts.
 
+### Per-turn capture: `tine hook capture` (`opentine-hook/1`)
+
+Instead of wrapping the agent, `tine enable` lets the agent CLI you already run
+report every turn. The generic protocol takes one JSON object on stdin and
+prints one JSON object on stdout:
+
+```bash
+echo '{"protocol": "opentine-hook/1", "event": "tool", "session": "s1",
+       "tool": {"name": "Bash", "input": {"command": "ls"}, "output": {"stdout": "a"}}}' \
+  | tine hook capture --repo .
+# {"event": "tool", "ok": true, "protocol": "opentine-hook/1", "ref": "heads/capture/generic/...", "run": "...", "steps": 1}
+```
+
+`event` is `prompt`, `tool`, `turn_end` or `session_end`; `prompt`, `tool`
+(`name`, `input`, `output`), `message` and `cwd` are optional. Vendor payloads
+are accepted unchanged (`hook_event_name` plus `session_id`): Claude Code and
+Codex `UserPromptSubmit`/`PostToolUse`/`Stop`/`SessionEnd`, Gemini CLI
+`BeforeAgent`/`AfterTool`/`AfterAgent`/`SessionEnd`. With `--agent NAME` the
+command prints only inert control JSON (`{"suppressOutput": true}` for Claude
+Code, `{}` otherwise) so the CLI never acts on it.
+
+- **One session, one run** on `heads/capture/<agent>/<digest of session id>`,
+  `running` until `session_end` marks it `completed`.
+- **Durable per step.** Each event's step is written and the ref (fsynced)
+  advanced before the command returns, so a session killed with SIGKILL keeps
+  every step that finished before the signal. Concurrent hooks of one session
+  append in turn under a per-session lock.
+- **Off by default.** Nothing is recorded unless the repository's *trusted*
+  porcelain config sets `hooks.capture` (trust is pinned to the digest of that
+  file and of `.tine/hooks/`, so a cloned `.tine` cannot turn it on). A hook
+  never fails the agent: errors are reported in the JSON and it exits 0.
+- **Turn callbacks.** At each `turn_end`, callbacks registered in
+  `opentine._hook_turns` run first and may return attributes stored on the
+  turn's step (the point per-turn workspace snapshots attach to).
+
+`tine enable [--agent NAME] [--dry-run] --repo PATH` points Claude Code, Codex
+and Gemini CLI at this command (a thin shim per event) and sets
+`hooks.capture`; `--dry-run` prints the exact edit as a unified diff and writes
+nothing. The original bytes of each config file are kept under
+`$XDG_CONFIG_HOME/opentine/enabled/`, and `tine disable` restores them **byte
+for byte**. If you edited the file after `enable`, `disable` removes only the
+shims and keeps your edits. `tine hook install` (session-end import) is
+unchanged and independent.
+
 ## 6. Live capture: a single model call
 
 For one call with no framework at all:
