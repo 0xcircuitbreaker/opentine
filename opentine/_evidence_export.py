@@ -8,7 +8,9 @@ Layout (every path relative to ``--out``)::
     timeline.jsonl/.csv  one row per step: run, index, step id, kind, tool, time
     verify-report.json   tine-evidence-verify/1: each run's offline report
     trust/               the keys and policy the verification used
-    runs/                the run files, byte for byte
+    runs/                the run files, byte for byte (``--with-verifier``:
+                         zstd-coded ones re-encoded to the archival codec)
+    tine-verify.pyz      ``--with-verifier`` only: the stdlib-only verifier
 
 Everything is a pure function of the runs and the flags except the custody
 record's ``exported_at``; that is why custody.jsonl sits outside the manifest
@@ -125,6 +127,19 @@ def custody_record(
     return record
 
 
+def archival_bytes(raw: bytes) -> bytes:
+    """*raw* readable with the stdlib alone: a zstd-coded file is re-encoded to the
+    archival codec (xz, else zlib) over the same uncompressed bytes, so its digest,
+    root and signatures are unchanged. Anything else is returned as it is."""
+    from opentine import _codec
+    from opentine._artifact_io import MAX_TINE_ARTIFACT_BYTES
+
+    if not raw.startswith(_codec.MAGIC) or raw[len(_codec.MAGIC)] != _codec.ZSTD:
+        return raw
+    body = _codec.unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES)
+    return _codec.wrap(body, _codec.archival_codec()) or body
+
+
 def write_evidence(
     out: Path,
     runs: list[tuple[Path, Any, dict[str, Any]]],
@@ -133,6 +148,7 @@ def write_evidence(
     operator: str,
     version: str,
     signing_key: Any = None,
+    with_verifier: bool = False,
 ) -> dict[str, Any]:
     """Write the directory; *runs* is ``[(source path, artifact dict, report)]``."""
     (out / "runs").mkdir(parents=True)
@@ -142,6 +158,7 @@ def write_evidence(
         run_id = run_id if isinstance(run_id, str) else source.stem
         target = out / "runs" / source.name
         raw = source.read_bytes()
+        raw = archival_bytes(raw) if with_verifier else raw
         target.write_bytes(raw)
         rel = f"runs/{source.name}"
         reports.append({**report, "path": rel})
@@ -159,6 +176,10 @@ def write_evidence(
     if signing_key is not None:
         public = signing_key.public_key().public_bytes_raw().hex()
         (trust / "custody-signer.pub").write_text(public + "\n", encoding="utf-8")
+    if with_verifier:
+        from opentine._pyz_build import build
+
+        build(out)
     manifest = manifest_text(out)
     (out / "MANIFEST.sha256").write_bytes(manifest)
     record = custody_record(
@@ -187,6 +208,7 @@ def verify_custody(record: dict[str, Any]) -> bool:
 
 __all__ = [
     "CUSTODY_DOMAIN",
+    "archival_bytes",
     "CUSTODY_SCHEMA",
     "REPORT_SCHEMA",
     "manifest_text",

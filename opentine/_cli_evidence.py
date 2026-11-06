@@ -7,6 +7,8 @@ timeline, trust material and a chain-of-custody record; see
 ``--attestation`` (one run only) and ``--trusted-root`` feed the attestation
 checks and are copied into ``trust/`` beside the key and policy. ``--sign``
 takes an Ed25519 key file (``tine keygen``) and signs the custody record.
+``--with-verifier`` (0.39) adds ``tine-verify.pyz`` and re-encodes zstd-coded
+runs in the archival form, so the folder verifies with nothing but Python.
 The command exits 1 when any run fails verification, after writing.
 
 ``tine evidence report RUN --format html|pdf -o PATH`` (0.39) writes one run as a
@@ -39,6 +41,11 @@ def add_evidence_parser(sub: Any) -> None:
     export.add_argument("--attestation", metavar="FILE", help="in-toto attestation (one run)")
     export.add_argument("--trusted-root", metavar="FILE", help="Sigstore trusted_root.json")
     export.add_argument("--operator", help="Who is exporting (default: the login name)")
+    export.add_argument(
+        "--with-verifier",
+        action="store_true",
+        help="Add tine-verify.pyz and re-encode zstd runs in the archival (xz/zlib) form",
+    )
     report = actions.add_parser("report", help="Write one run's deterministic HTML/PDF report")
     report.add_argument("run", metavar="RUN", help="Run id or .tine path")
     report.add_argument("--format", choices=("html", "pdf"), default="html")
@@ -105,7 +112,13 @@ def cmd_evidence(args: argparse.Namespace) -> None:
     operator = args.operator or _login()
     try:
         result = write_evidence(
-            out, runs, trust_files=trust, operator=operator, version=__version__, signing_key=key
+            out,
+            runs,
+            trust_files=trust,
+            operator=operator,
+            version=__version__,
+            signing_key=key,
+            with_verifier=bool(getattr(args, "with_verifier", False)),
         )
     except OSError as exc:
         _fail(f"cannot write evidence: {exc}")
