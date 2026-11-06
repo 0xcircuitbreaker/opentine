@@ -98,10 +98,8 @@ def test_fork_autopacks_too(tmp_path, monkeypatch):
 def test_post_write_hook_is_cheap_below_the_threshold(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENTINE_AUTO_PACK", "256")
     scans = []
-    original = _autopack.old_loose
-    monkeypatch.setattr(
-        _autopack, "old_loose", lambda *a, **k: scans.append(1) or original(*a, **k)
-    )
+    original = _autopack.due
+    monkeypatch.setattr(_autopack, "due", lambda *a, **k: scans.append(1) or original(*a, **k))
     repo = _repo(tmp_path)
     for index in range(5):
         repo.put_run(_run(index), ref=f"heads/r{index}")

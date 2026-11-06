@@ -28,9 +28,11 @@ def store_envelope(repo, envelope: ObjectEnvelope) -> str:
     else:
         warn_legacy()
     touch_links(repo, validate_links(envelope), strict=False)  # a link is a write, for tine prune
-    write_object(repo, envelope.oid, envelope.encode())
+    raw = envelope.encode()
+    write_object(repo, envelope.oid, raw)
     # An estimate of new loose objects for the auto-pack hook (_autopack.after_write).
     repo.__dict__["_autopack_writes"] = repo.__dict__.get("_autopack_writes", 0) + 1
+    repo.__dict__["_autopack_bytes"] = repo.__dict__.get("_autopack_bytes", 0) + len(raw)
     repo.__dict__.setdefault("_autopack_own", set()).add(envelope.oid)  # see after_write
     return envelope.oid
 
