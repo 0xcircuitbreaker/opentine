@@ -42,6 +42,8 @@ langchain = ["langchain-core>=0.3"]
 crypto = ["cryptography>=48.0.1"]
 # zstd storage compression: stdlib compression.zstd on 3.14, the PEP 784 backport before.
 zstd = ["backports.zstd>=1.0; python_version < '3.14'"]
+# PDF evidence reports (`tine evidence report --format pdf`).
+pdf = ["pikepdf>=9"]
 all = [
     "anthropic>=0.87",
     "openai>=1.75.0",

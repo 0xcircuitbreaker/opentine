@@ -83,7 +83,8 @@ named trust policies for `tine verify --policy NAME` (see below).
 `tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it
 keeps objects and everything they reach from `prune`, `gc --prune=now`,
 `rewind --apply` and remote deletes. Also new in 0.35: `gc --prune=never|now`
-(default `never`), `verify --offline --hermetic` (exit 6 where no OS sandbox
+(default `never` until 0.39, which adds `retention` and makes it the default:
+see `tine retention show|check` and REPOSITORY.md), `verify --offline --hermetic` (exit 6 where no OS sandbox
 exists, Windows included), `rewind --allow-control-dirs`,
 `replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
 
@@ -285,6 +286,27 @@ manifest (it holds the only timestamp) and names the manifest's SHA-256; with
 attestation) feed the attestation checks and are copied into `trust/`.
 `docs/conformance/minimal_verifier.py evidence DIR` re-checks the folder
 without opentine (SPEC Part 8).
+
+```
+tine evidence report RUN --format html|pdf -o PATH [--pubkey P] [--pin FPR]
+                     [--action-policy FILE]
+```
+
+New in 0.39. Writes one run's offline verification, timeline and the
+canonical evidence JSON (embedded as `<script type="application/json"
+id="tine-evidence">`) as one self-contained page. **The HTML is canonical and
+byte-identical across runs**: no wall-clock time (only the run's own), the
+source reduced to its file name, sorted-key canonical JSON, inline CSS, the
+`tine view` CSP (no scripts, nothing fetched), and every string re-redacted.
+`--format pdf` needs `pip install 'opentine[pdf]'` (pikepdf; exit 6 without it)
+and is a derivative: fixed `/CreationDate` from the run, content-derived `/ID`,
+`evidence.json` attached with `/AFRelationship /Data`. It is deterministic for
+a given pikepdf/qpdf version, but only the HTML is gated on byte identity; the
+PDF uses the base-14 Courier font (no system font is read), so it is not yet
+PDF/A-3 conformant.
+
+`tine retention show|check [--repo DIR] [--json]` (0.39) prints the retention
+policy, or dry-runs what default `gc` would prune.
 
 ## Trust policies
 
