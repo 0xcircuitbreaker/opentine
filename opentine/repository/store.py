@@ -7,8 +7,9 @@ from typing import Any
 
 from opentine import _codec
 from opentine._format_v4 import v4_requested
+from opentine._hash_tag import parse_oid
 from opentine._v3_guards import guarded_redaction
-from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, validate_links
+from opentine.kernel import KernelError, ObjectEnvelope, validate_links
 from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import config_bytes, read_config, storage_codec

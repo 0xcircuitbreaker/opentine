@@ -14,7 +14,8 @@ import stat
 import time
 
 from opentine import _codec
-from opentine.kernel import KernelError, parse_oid
+from opentine._hash_tag import parse_oid
+from opentine.kernel import KernelError
 from opentine.repository._packs import MAX_OBJECT_BYTES, pack_set
 from opentine.repository._paths import install_verified, internal_path
 from opentine.repository._write_batch import staged
