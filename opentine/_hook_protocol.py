@@ -138,6 +138,8 @@ def _step(event: dict[str, Any], agent: str, extra: dict[str, Any]):
     else:
         step_kind, actor = "model", agent
         outputs = {"message": event["message"]} if event["message"] is not None else {}
+        if isinstance(tree := extra.get("opentine.snapshot.tree"), str):
+            outputs["tree"] = tree  # what ``tine rewind --tree`` reads
     attributes = {"opentine.hook.protocol": PROTOCOL, "opentine.hook.event": kind,
                   "opentine.hook.agent": agent, **extra}  # fmt: skip
     return TraceEvent(

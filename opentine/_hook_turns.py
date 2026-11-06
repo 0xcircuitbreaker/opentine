@@ -37,7 +37,7 @@ class TurnContext:
 TurnCallback = Callable[[TurnContext], "dict[str, Any] | None"]
 _CALLBACKS: list[TurnCallback] = []
 #: Modules imported before the first turn so they can :func:`register`.
-BUILTIN: tuple[str, ...] = ()
+BUILTIN: tuple[str, ...] = ("opentine._hook_snapshot",)
 _loaded = False
 
 

@@ -431,6 +431,14 @@ for byte**. If you edited the file after `enable`, `disable` removes only the
 shims and keeps your edits. `tine hook install` (session-end import) is
 unchanged and independent.
 
+**Workspace snapshots.** When the trusted config also sets `hooks.snapshot` to
+`true`, every `turn_end` stores the agent's working directory as a tree (§1.5.7
+of SPEC.md) and links it from the turn's step as `outputs.tree`.
+`tine rewind RUN@STEP --tree --repo PATH` then restores the workspace as it was
+after that turn (a dry run unless `--apply`). Snapshots read every file under
+the working directory, so they stay off unless asked for; a failed snapshot is
+recorded under `opentine.hook.callback_errors` and never loses the step.
+
 ## 6. Live capture: a single model call
 
 For one call with no framework at all:
