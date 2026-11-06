@@ -15,6 +15,16 @@ from typing import BinaryIO
 
 ROOT = Path(__file__).resolve().parents[1]
 
+#: Tracked trees that are deliberately not part of the Python sdist: the
+#: TypeScript verifier (ts/) is its own npm package with its own build and CI
+#: job. Keep in step with ``[tool.hatch.build.targets.sdist] exclude``.
+SDIST_EXCLUDED_PREFIXES = ("ts/",)
+
+
+def sdist_expected(tracked: set[str]) -> set[str]:
+    """The tracked files the sdist must carry: all of them but the excluded trees."""
+    return {name for name in tracked if not name.startswith(SDIST_EXCLUDED_PREFIXES)}
+
 
 class InventoryError(ValueError):
     pass
@@ -152,9 +162,10 @@ def check_sdist(
             hashes[name], normalized[name] = _digest_pair(stream)
     if len(names) != len(set(names)):
         raise InventoryError("sdist contains duplicate paths")
-    _difference(set(names), tracked | {"PKG-INFO"})
+    expected = sdist_expected(tracked)
+    _difference(set(names), expected | {"PKG-INFO"})
     if source_hashes is not None:
-        mismatched = sorted(name for name in tracked if hashes[name] != source_hashes[name])
+        mismatched = sorted(name for name in expected if hashes[name] != source_hashes[name])
         if mismatched:
             raise InventoryError(_content_mismatch(mismatched, normalized, source_hashes))
     return hashes

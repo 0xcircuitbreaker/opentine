@@ -43,6 +43,39 @@ def test_sdist_inventory_rejects_untracked_local_state(tmp_path: Path):
         check_sdist(path, expected, "opentine", "0.3.0")
 
 
+def test_sdist_leaves_out_the_typescript_verifier_and_only_it(tmp_path: Path):
+    """ts/ is its own npm package: tracked, never shipped in the Python sdist."""
+    path = tmp_path / "opentine-0.3.0.tar.gz"
+    tracked = {"README.md", "ts/verifier/package.json", "ts/verifier/src/cli.ts"}
+    source = {name: hashlib.sha256(b"content").digest() for name in tracked}
+    _sdist(path, ("README.md", "PKG-INFO"))
+    check_sdist(path, tracked, "opentine", "0.3.0", source_hashes=source)
+
+    _sdist(path, ("README.md", "PKG-INFO", "ts/verifier/package.json"))
+    with pytest.raises(InventoryError, match=r"unexpected: ts/verifier/package\.json"):
+        check_sdist(path, tracked, "opentine", "0.3.0")
+
+    # the exclusion is the ts/ tree, not any path that merely starts with "ts"
+    _sdist(path, ("README.md", "PKG-INFO"))
+    with pytest.raises(InventoryError, match="missing: tsconfig.json"):
+        check_sdist(path, tracked | {"tsconfig.json"}, "opentine", "0.3.0")
+
+
+def test_sdist_exclusions_agree_with_the_hatch_build_config():
+    import tomllib
+
+    from scripts.check_release_inventory import SDIST_EXCLUDED_PREFIXES
+
+    root = Path(__file__).resolve().parents[1]
+    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    sdist = data["tool"]["hatch"]["build"]["targets"]["sdist"]
+    assert sorted(sdist.get("exclude", [])) == sorted(
+        "/" + prefix.rstrip("/") for prefix in SDIST_EXCLUDED_PREFIXES
+    )
+    included = [item.lstrip("/") for item in sdist["include"]]
+    assert not any(item.startswith(SDIST_EXCLUDED_PREFIXES) for item in included)
+
+
 def test_wheel_inventory_is_package_only_and_exact(tmp_path: Path):
     path = tmp_path / "opentine-0.3.0-py3-none-any.whl"
     dist = "opentine-0.3.0.dist-info"
