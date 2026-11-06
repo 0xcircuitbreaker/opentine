@@ -402,6 +402,33 @@ Conventional event fields written by opentine: `kind`, `model`, `provider`
 (compatibility writer), and `actor`, `attributes`, `span_id`, `trace_id`,
 `unresolved_span_refs` (trace recorder).
 
+#### Prompt parts: `input_parts` (0.38.0+)
+
+| Field | Rule |
+|---|---|
+| `input_parts` | absent, or an object whose values, if truthy, MUST be **blob** oids (`kernel.validate_links`; any other shape is rejected). Each value is a link, so `fsck`, `gc`, packs and transfer keep the part blobs. |
+
+A model call's request repeats the same system prompt and tool definitions on
+every turn. From 0.38.0 the writers (`repository.runs.put_run`, the trace
+recorder and importers, fork edits) split them out at record time
+(`repository._prompt_parts`):
+
+1. For each key `K` in `instructions`, `system`, `tools` (in that order) at the
+   **top level** of a step's inputs whose value is a non-empty string, array or
+   object, the writer stores the blob `{K: value}` — canonical JSON, guarded and
+   redacted exactly as the whole input blob is — and sets `input_parts[K]` to its oid.
+2. `input_blob` holds the inputs **without** those keys. With no key split,
+   `input_parts` is omitted and the event is byte-identical to a 0.37 event.
+
+A reader reconstructs the inputs as `input_blob`'s object plus, for every
+`input_parts` entry, the one field its blob holds. It MUST refuse a part whose
+key is not one of the three, whose blob is not an object with exactly that one
+key, or whose key the base object already holds. The full inputs are therefore
+the same value the step was recorded with; only their storage differs, and
+identical prompts across steps and runs are one blob. Events written before
+0.38.0 carry no `input_parts`, are read exactly as before, and keep their ids
+and signatures (§5.2: the field is additive).
+
 > **⚠ Hazard — `artifact_blob` is validated but never written.** No writer in
 > the reference implementation emits it; `repository.ops.semantic_diff` reads
 > it. Treat it as a reserved link field.

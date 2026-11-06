@@ -104,8 +104,9 @@ def _search_event_text(
     preview = ""
     retained = 0
     for event in events:
-        for field in ("input_blob", "output_blob"):
-            oid = event.get(field)
+        parts = event.get("input_parts")  # prompt parts (SPEC 1.5.2) are input text too
+        parts = list(parts.values()) if isinstance(parts, dict) else []
+        for oid in [event.get("input_blob"), *parts, event.get("output_blob")]:
             if not isinstance(oid, str) or oid in seen or not repo.has(oid):
                 continue
             seen.add(oid)

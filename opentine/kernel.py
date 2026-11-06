@@ -191,11 +191,14 @@ def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
             if not event_ids(values) or len(set(values)) != len(values):
                 raise KernelError(f"{field} must contain event ids; unique event ids are required")
             links.extend(values)
-        for field in ("input_blob", "output_blob", "artifact_blob"):
-            if payload.get(field) and parse_oid(payload[field])[0] != "blob":
+        parts = payload.get("input_parts", {})  # prompt parts, SPEC 1.5.2
+        pairs = [(f, payload.get(f)) for f in ("input_blob", "output_blob", "artifact_blob")]
+        pairs += parts.items() if isinstance(parts, dict) else [("input_parts", "-")]
+        for field, oid in pairs:
+            if oid and parse_oid(oid)[0] != "blob":
                 raise KernelError(f"{field} must contain a blob id")
-            if payload.get(field):
-                links.append(payload[field])
+            if oid:
+                links.append(oid)
     if envelope.object_type == "run":
         if not isinstance(payload.get("manifests", {}), dict):
             raise KernelError("manifests must be an object")
@@ -211,10 +214,8 @@ def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
             if not set(values) <= events:
                 raise KernelError(f"{field} must be a subset of events")
             field_values.extend(values)
-        blobs = [
-            *payload.get("manifests", {}).values(),
-            *(value for key, value in payload.items() if key.endswith("_blob") and value),
-        ]
+        blobs = [*payload.get("manifests", {}).values()]
+        blobs += [value for key, value in payload.items() if key.endswith("_blob") and value]
         if any(parse_oid(value)[0] != "blob" for value in blobs):
             raise KernelError("run blob fields must contain blob ids")
         links = [*field_values, *event_values, *blobs]
