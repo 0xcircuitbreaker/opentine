@@ -50,6 +50,26 @@ test("a plain v4 artifact verifies under its HMAC key", () => {
   assert.equal(report.signature?.state, "verified");
 });
 
+const V5_CASES = (JSON.parse(readFileSync(join(SUITE, "vectors", "54-artifact-v5.json"), "utf8")) as {
+  cases: { id: string; input: { value: unknown } }[];
+}).cases;
+
+function v5Artifact(id: string): Uint8Array {
+  const found = V5_CASES.find((item) => item.id === id);
+  assert.ok(found, id);
+  return canonicalJson(decodeTagged(found.input.value));
+}
+
+test("a v5 artifact (text blobs) verifies with the v4 signature, and a tampered one fails", () => {
+  const report = verifyBytes(v5Artifact("v5.verdict.verified-hmac"), "x.tine", { hmacKey: hmacA });
+  assert.equal(report.format, "tine-artifact/5");
+  assert.equal(report.verdict, "pass");
+  assert.equal(report.root, verifyBytes(artifact("sig3.verdict.verified-hmac"), "y.tine").root);
+  const tampered = verifyBytes(v5Artifact("v5.verdict.mismatch-edited-text"), "x.tine", { hmacKey: hmacA });
+  assert.equal(tampered.verdict, "fail");
+  assert.equal(tampered.signature?.state, "mismatch");
+});
+
 test("a zlib-wrapped v4 artifact reads like the plain one", () => {
   const raw = artifact("sig3.verdict.verified-hmac");
   const wrapped = wrap(raw, 1, deflateSync(raw));

@@ -178,7 +178,7 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const document = "bytes" in input ? parseArtifactJson(input.bytes) : input.value;
       const keys = keysFrom(args, table);
       const family = (args.family as string | undefined) ?? "attestation";
-      if (family === "artifact-v4") {
+      if (family === "artifact-v4" || family === "artifact-v5") {
         if (!isObject(document)) throw new TineError("'NoneType' object has no attribute 'get'");
         return verdict(verifyArtifactV4(document, keys));
       }
