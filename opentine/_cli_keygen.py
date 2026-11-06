@@ -38,6 +38,8 @@ def _refuse_flags(args: argparse.Namespace) -> None:
         )
     if getattr(args, "hmac", False) and args.pub:
         _refuse("--pub has no effect with --hmac: an HMAC key is one shared secret.")
+    if getattr(args, "unencrypted", False) and (getattr(args, "hmac", False) or not args.out):
+        _refuse("--unencrypted has no effect without an Ed25519 key written with --out or --agent.")
     if getattr(args, "stdout", False) and args.out:
         _refuse("--stdout and --out cannot be combined: the private key goes to one place.")
     if not args.out and not getattr(args, "stdout", False):
@@ -65,7 +67,7 @@ def _agent_paths(args: argparse.Namespace) -> None:
     """``--agent NAME``: the key goes to this user's agent-key directory, nowhere else."""
     from opentine._agent_keys import key_paths
 
-    if args.out or args.pub or args.stdout or args.hmac:
+    if args.out or args.pub or args.stdout or args.hmac:  # --unencrypted is allowed
         _refuse(
             "--agent cannot be combined with --out/--pub/--stdout/--hmac: it writes its own files."
         )
@@ -75,6 +77,19 @@ def _agent_paths(args: argparse.Namespace) -> None:
         _refuse(_terminal(exc))
     private.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     args.out, args.pub = str(private), str(public)
+
+
+def _write_private(args: argparse.Namespace, seed: str) -> None:
+    """The seed as encrypted PKCS#8 (0.41), or legacy hex with ``--unencrypted``."""
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from opentine._key_store import PassphraseUnavailable, write_private
+
+    private = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed))
+    try:
+        write_private(args.out, private, plaintext=getattr(args, "unencrypted", False))
+    except PassphraseUnavailable as exc:
+        _refuse(f"{_terminal(exc)}; or pass --unencrypted for a legacy plaintext key")
 
 
 def cmd_keygen(args: argparse.Namespace) -> None:
@@ -99,7 +114,7 @@ def cmd_keygen(args: argparse.Namespace) -> None:
     target_pub = args.pub or (args.out + ".pub" if args.out else None)
     _claim(args.force, args.out, target_pub)
     if args.out:
-        atomic_write_text(args.out, seed + "\n", fsync=True, mode=0o600)
+        _write_private(args, seed)
     else:
         console.print(f"private (seed hex): {seed}")
     if target_pub:
@@ -115,6 +130,9 @@ def add_keygen_parser(sub) -> None:
     keygen.add_argument("--force", action="store_true", help="Overwrite an existing key file")
     keygen.add_argument("--hmac", action="store_true", help="A 32-byte HMAC key, as hex")
     keygen.add_argument("--stdout", action="store_true", help="Print the private key instead")
+    keygen.add_argument(
+        "--unencrypted", action="store_true", help="Write a legacy plaintext-hex key (deprecated)"
+    )
     keygen.add_argument(
         "--agent", metavar="NAME", help="An agent signing key, kept in the user config dir"
     )

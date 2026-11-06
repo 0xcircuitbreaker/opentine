@@ -134,8 +134,14 @@ def ed25519_private(path: str) -> object:
     """The signing key at *path*, refusing a public key handed over by mistake.
 
     A 64-hex public key reads as a valid seed, so ``--ed25519-key-file key.pub``
-    signed with a private key anyone holding the ``.pub`` could derive.
+    signed with a private key anyone holding the ``.pub`` could derive. A signer
+    URI (``ssh-agent:``, ``pkcs11:``, ``kms:``) names no file to check.
     """
+    from opentine._signer import is_uri
+
+    if is_uri(path) and not path.startswith("file:"):
+        return ed25519_private_from_file(path)
+    path = path[5:] if path.startswith("file:") else path
     warn_exposed(path)
     refuse_public_key(hmac_key_from_file(path), path, secret="an Ed25519 signing key")
     return ed25519_private_from_file(path)

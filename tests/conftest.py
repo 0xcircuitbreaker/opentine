@@ -28,6 +28,10 @@ def pytest_configure(config):
     # 0.26: format v4 is the default writer; a shell exporting OPENTINE_FORMAT=2
     # would flip every save back to v2. Tests about the legacy writers set it.
     os.environ.pop("OPENTINE_FORMAT", None)
+    # 0.41: new private keys are encrypted PKCS#8, and a non-interactive keygen
+    # needs a passphrase source; the key-storage tests change or drop it.
+    os.environ["OPENTINE_KEY_PASSPHRASE"] = "opentine-test-passphrase"
+    os.environ.pop("OPENTINE_KEY_KEYRING", None)
     # Also pin a fixed, wide console WIDTH. The CLI's Rich console captures its
     # width at import: from the controlling terminal in an interactive dev shell
     # (wide), or 80 when stdout is not a tty (CI). A long message or temp path
