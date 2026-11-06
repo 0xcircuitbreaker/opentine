@@ -1,0 +1,106 @@
+name: Compression bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Synthetic runs in the corpus"
+        required: false
+        default: "40"
+      compare:
+        description: "Also bench origin/main and report the ratios"
+        type: boolean
+        required: false
+        default: true
+  pull_request:
+    branches: [main]
+    paths:
+      - "opentine/repository/**"
+      - "opentine/_codec.py"
+      - "scripts/bench/**"
+      - ".github/workflows/bench.yml"
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Bench (ubuntu-24.04, single-threaded)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      UV_PYTHON: "3.13"
+      BENCH_RUNS: ${{ inputs.runs || '40' }}
+      BENCH_COMPARE: ${{ github.event_name == 'pull_request' || inputs.compare }}
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Check out main for the baseline
+        if: env.BENCH_COMPARE == 'true'
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: main
+          path: base
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          uv python install "$UV_PYTHON"
+          uv sync --locked --all-extras
+          if [ "$BENCH_COMPARE" = "true" ]; then
+            uv sync --locked --all-extras --project base
+          fi
+
+      # The baseline runs this checkout's bench script against main's library,
+      # so both reports measure the same corpus with each side's pack writers.
+      - name: Bench main
+        if: env.BENCH_COMPARE == 'true'
+        shell: bash
+        run: |
+          uv run --locked --project base python scripts/bench/run_bench.py \
+            --runs "$BENCH_RUNS" --out bench-main.json
+
+      - name: Bench this change
+        shell: bash
+        run: |
+          args=(--runs "$BENCH_RUNS" --out bench.json)
+          if [ -f bench-main.json ]; then args+=(--compare bench-main.json); fi
+          uv run --locked python scripts/bench/run_bench.py "${args[@]}"
+
+      - name: Summarize
+        shell: bash
+        run: |
+          uv run --locked python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          report = json.load(open("bench.json"))
+          compare = report.get("compare", {})
+          print(f"### Compression bench ({report['opentine']}, {report['corpus']['logical_bytes']:,} logical bytes)\n")
+          print("| form | bytes | ratio | MB/s | bytes vs main | speed vs main |")
+          print("|---|---:|---:|---:|---:|---:|")
+          for name, row in sorted(report["results"].items()):
+              diff = compare.get(name, {})
+              print(f"| {name} | {row['bytes']:,} | {row['ratio']} | {row['mb_per_s']} "
+                    f"| {diff.get('bytes_vs_base', '')} | {diff.get('speed_vs_base', '')} |")
+          EOF
+
+      - name: Upload report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bench-report
+          path: |
+            bench.json
+            bench-main.json
+          if-no-files-found: error
