@@ -25,13 +25,37 @@ tag is pushed:
    - Environment: `pypi`
 
 The environment name is part of PyPI's OIDC identity and must match the workflow.
-`publish.yml` defines three jobs: `build`, `github-release`, and `pypi`. Two of
+`publish.yml` defines five jobs: `gates`, `build`, `artifact-smoke`,
+`github-release`, and `pypi`. Two of
 them hold `id-token: write`: `github-release` uses it to attest build
 provenance, and `pypi` uses it to mint the PyPI publishing credential. Only
 `pypi` declares `environment: pypi`, and PyPI's trusted-publisher binding
 requires that environment claim in the OIDC token, so `github-release` cannot
-publish despite holding the same permission. The `build` job, which runs the
-tests and produces the artifacts, holds no identity-token permission at all.
+publish despite holding the same permission. The `gates` job runs the
+architecture check, ruff and the test suite with every extra installed; the
+`build` job, which waits for it and produces the artifacts, installs only the
+`release` extra (`build`, `hatchling`, `twine`), so no test tooling or provider
+SDK is present in the environment that makes the released bytes. Neither holds
+an identity-token permission.
+
+## Supply-chain checks
+
+These run outside the release path and never gate a tag directly, but a red run
+on `main` should be fixed before tagging:
+
+- `supply-chain.yml` (push, pull request, weekly): `pip-audit` over every
+  hash-locked dependency in `uv.lock`, `zizmor` static analysis of the workflows
+  themselves, and a CycloneDX SBOM of the runtime dependencies uploaded as the
+  `opentine-sbom` build artifact. Every job is read-only.
+- `codeql.yml`: CodeQL analysis of the Python sources.
+- `scorecard.yml`: OpenSSF Scorecard, published and uploaded to code scanning.
+- `.github/dependabot.yml`: weekly update PRs for `pip` and `github-actions`,
+  with a seven-day cooldown. Actions stay pinned by full commit SHA; review a
+  Dependabot bump like any other change to the release path.
+
+All workflows declare `permissions: {}` or `contents: read` at the top and grant
+anything more per job, with a comment saying why. Run `uvx zizmor .github`
+before changing a workflow.
 
 ## Release checklist
 
@@ -99,9 +123,11 @@ tests and produces the artifacts, holds no identity-token permission at all.
    ```
 
 6. Review and approve the protected `pypi` deployment after the `build` and
-   `github-release` jobs pass. `build` is one job: it runs the source and
-   version checks, the CI gate, the fast gates and test suite, both builds, and
-   the inventory, metadata, and installed-wheel checks.
+   `github-release` jobs pass. `gates` runs the fast gates and test suite;
+   `build` then runs the source and version checks, the CI gate, both builds,
+   the inventory, metadata, and installed-wheel checks, and generates the
+   CycloneDX SBOM (`opentine.cdx.json`). The GitHub release carries the SBOM
+   and lists it in `SHA256SUMS`; PyPI receives only the wheel and sdist.
 7. Verify that PyPI and the GitHub release contain the same wheel and sdist.
    Check `SHA256SUMS` and the GitHub build-provenance attestation:
 

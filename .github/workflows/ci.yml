@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
@@ -35,7 +36,8 @@ jobs:
           version: "0.11.12"
 
       - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+        shell: bash  # $UV_PYTHON is not expanded by PowerShell on Windows
+        run: uv python install "$UV_PYTHON"
 
       - name: Install dependencies
         run: uv sync --locked --all-extras

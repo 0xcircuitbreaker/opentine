@@ -178,7 +178,7 @@ def test_scope_is_stated_in_json_and_help(runs_dir: Path, capsys):
     assert payload["scope"] == "legacy-index"
     assert ".tine_runs" in payload["scope_note"]
     assert "not v3 repositories" in payload["scope_note"]
-    assert "later release" in payload["scope_note"]
+    assert "--repo" in payload["scope_note"]
 
     code, out = _invoke(capsys, "stats", "--help")
     assert code == 0
@@ -256,8 +256,7 @@ def test_bad_filter_exits_one_without_json(population: Path, capsys):
     code, out = _invoke(capsys, "stats", "--json", "--since", "not-a-date")
     assert code == 1
     assert "Bad filter" in out
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
 
 
 def test_unreadable_rows_are_reported_separately(runs_dir: Path, capsys):

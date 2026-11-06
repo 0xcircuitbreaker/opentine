@@ -211,7 +211,7 @@ def test_who_shows_trust_and_filters_by_ref(home, capsys):
     groups = _json(capsys, "who", "--by", "agent_ref")["groups"]
     assert {group["trust"] for group in groups} == {"unsigned"}
     assert _exit("who", "--agent-ref", ref[:10]) == 2
-    assert "not a full agent ref" in capsys.readouterr().out
+    assert "not a full agent ref" in capsys.readouterr().err
     assert _json(capsys, "who", "--list", "--verified-only")["actions"] == []
 
 

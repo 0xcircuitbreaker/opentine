@@ -65,6 +65,13 @@ are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
 `tine log` without these flags is unchanged: it reads the v3 repository, while
 `--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.
 
+`tine stats --repo PATH` is new in 0.36: run inside a v3 repository (or with
+`--repo`), `stats` counts the repository's store (runs, events, blobs, objects,
+canonical bytes, cost; `--json` adds a `store` object and `scope:
+"v3-repository"`) instead of the legacy `.tine_runs` index. `--group-by` takes
+`model`, `status` or `day` there; the `ls` filters and `--deep` stay legacy-only.
+Elsewhere `stats` reads the legacy index exactly as before.
+
 `tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
 named trust policies for `tine verify --policy NAME` (see below).
 
@@ -77,6 +84,53 @@ keeps objects and everything they reach from `prune`, `gc --prune=now`,
 (default `never`), `verify --offline --hermetic` (exit 6 where no OS sandbox
 exists, Windows included), `rewind --allow-control-dirs`,
 `replay --trust-recorded-prompt` and `serve reseal --to aes4 --from aes2`.
+
+## Errors, `--json` and exit codes (0.36)
+
+Every leaf subcommand accepts `--json`. Commands with their own JSON payload
+keep it unchanged; `fleet up` (with or without `--dry-run`) and
+`replay --dry-run`/`--inspect` now emit one JSON object instead of ignoring the
+flag. Any other command wraps its human output:
+
+```
+{"command": "fsck", "exit_code": 0, "output": "..."}
+```
+
+The v3 plumbing verbs (`fsck`, `object`, `migrate-v3`, `fetch`, `push`) always
+print bare JSON; `--json` on them is a no-op. `output.format = json` turns on
+only a command's own JSON, never the wrapper.
+
+Errors go to stderr. Under `--json`, stdout carries only JSON: a failing command
+that wrote no JSON of its own emits one error object (a usage error included)
+and anything human it printed moves to stderr:
+
+```
+{"error": {"code": "not_found", "exit_code": 3, "message": "..."}}
+```
+
+| Exit | `code` | Meaning |
+| --- | --- | --- |
+| 0 | — | ok |
+| 1 | `error` | any other failure |
+| 2 | `usage` | bad flags or arguments, or a refused flag combination |
+| 3 | `not_found` | a run, ref or object that does not exist |
+| 4 | `verification_failed` | a signature, digest or verdict did not hold |
+| 5 | `budget_exhausted` | a budget or limit stopped the work |
+| 6 | `trust_required` | needs a trust decision, or is unsupported here (`verify --hermetic`) |
+
+Existing exit statuses keep their meaning; commands move to the specific codes
+as they are revised, so a script should treat any non-zero status as failure
+and read `error.code` for the reason.
+
+New in 0.36: `serve --oidc-issuer URL --oidc-audience AUD` verifies OIDC bearer
+tokens instead of the static token (`--oidc-jwks-uri URL` pins the key set,
+otherwise it comes from the issuer's discovery document; every URL must be
+`https://` and none is ever taken from a token; `--oidc-tenant-claim` and
+`--oidc-roles-claim` name the claims). The static token must now hold at least
+32 bytes; `serve --allow-weak-tokens` starts with a shorter one while it is
+rotated. After 5 consecutive failed authentications a client gets 429 with
+`Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
+answers only `{"error":"internal","request_id":...}`, logging the exception.
 
 ## Default output format
 
@@ -92,12 +146,33 @@ tine show RUN --text                  # human output for this call only
 `$XDG_CONFIG_HOME/opentine/settings.json` (written 0600; a repository cannot set
 it). Precedence: an explicit `--json` or `--text` on the command, then
 `OPENTINE_OUTPUT`, then the file, then text. Every command that has `--json` also
-has `--text`; giving both is an error. Commands without `--json` ignore the
-setting and never read the file. A value other than `text`/`json` in the env var
+has `--text`; giving both is an error. Commands whose `--json` is only the
+0.36 wrapper ignore the setting and never read the file. A value other than `text`/`json` in the env var
 or the file, or a malformed file, stops the command with a one-line error (exit
 1) instead of guessing. `tine config set|get|unset` are the user settings;
 `tine config KEY [VALUE]` still edits the repository's porcelain keys. With no
 setting, every command's output is unchanged.
+
+## Op log and undo (0.36)
+
+Every `tine` command that moves a local ref (`branch`, `tag`, `reset`, `fork`,
+`pull`, `rebase`, `cherry-pick`, ...) appends one entry to the op log: op id,
+command, actor, time and each ref's `old -> new`. The log is `opentine-log/1`, a
+hash-chained record log in the [C2SP tlog-tiles](https://c2sp.org/tlog-tiles)
+layout under `.tine/log/op/` (`checkpoint`, `tile/<L>/<N>`, `tile/entries/<N>`),
+with an Ed25519 [signed-note](https://c2sp.org/signed-note) checkpoint; the
+verifier key is in `.tine/log/op/vkey`.
+
+* `tine op log [-n N] [--json]` lists ops, newest first.
+* `tine op verify [--vkey KEY] [--json]` recomputes every tile, the Merkle root,
+  the hash chain and the checkpoint signature from local files only (it never
+  touches the network). `--vkey` pins a key obtained out of band.
+* `tine undo [OP] [--force] [--json]` puts back the refs `OP` (id, id prefix or
+  index; default the latest) moved, as a new forward ref transaction that is
+  itself logged (`undoes`), so `tine undo` twice redoes. It refuses (exit 1) when
+  a ref was moved since by a later op (`superseded`) or by a writer that does
+  not log, such as opentine 0.34 or a library caller (`gap`: the ref differs from
+  the logged value, or its reflog has newer rows); `--force` undoes anyway.
 
 ## Offline verification (0.25)
 
@@ -320,3 +395,47 @@ record`, imports, hooks, `serve --otlp`) store such a value as its exact string
 and list the field under `metadata.warnings` instead of losing the run.
 `tine bundle` (and `bundle push/fetch`) carries the `tine-sig/3` blocks of
 imported v4 runs in the bundle manifest.
+
+## Fan-out status and MCP tools (0.36)
+
+`tine fleet status [ID] --repo PATH` lists the repository's `tine fan-out`
+records (`.tine/fanouts/`) instead of
+the fleets in `--dir`; with `--json` it prints
+`{"command": "fanout status", "fanouts": [...]}`.
+
+The MCP server (`python -m opentine.mcp_server`) builds its tool list from one
+registry (`opentine/_mcp_registry.py`), each tool annotated read or write. The
+default exposes only read tools; `--allow-writes` or
+`OPENTINE_MCP_ALLOW_WRITES=1` adds exactly the annotated write set (never
+`promote_run`). The read tools generated from the registry return the same
+payload as their command's `--json`:
+
+| Tool | Command |
+| --- | --- |
+| `verify_run` | `tine verify RUN --offline --json` |
+| `log` | `tine log [REF] --limit N --repo REPO --json` |
+| `fleet_status` | `tine fleet status [ID] --json` |
+| `fanout_status` | `tine fleet status [ID] --repo REPO --json` |
+| `cost` | `tine cost RUN --json` |
+| `agent_show` | `tine agent show TARGET --repo REPO --json` |
+| `stats` | `tine stats [--group-by KEY] --limit N --json` |
+
+## Push preview and manifest (0.36)
+
+`tine push REMOTE --dry-run` (alias `--outgoing`) prints, as JSON, exactly what
+the push would send, and opens no connection: each ref as `old -> new` (the old
+side is the local `remotes/<name>/...` tracking ref from the last fetch, so the
+list is an upper bound if the remote has moved), the objects by kind with their
+stored bytes, and every run with the redaction ruleset it recorded (`null` for
+a run that recorded none). It honours `--ref`, `--all` and `--remote-ref`.
+
+`--manifest PATH` writes the same document as canonical JSON (JCS) -- on a dry
+run, or beside a real push before it starts. `--key-file` (HMAC) or
+`--ed25519-key-file` signs it with a `tine-sig/3` header block over
+`opentine.push-manifest.v1:` + JCS of `{body, header}`; `--key-id` names the key.
+A key flag without `--manifest` or `--dry-run` is refused.
+
+`git config tine.transcriptRemote NAME` (a git remote name, URL or path) makes
+the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
+the runs named by `Tine-Run:` trailers -- to that remote instead of the code
+remote, keeping transcripts off the code host.

@@ -15,9 +15,10 @@ from __future__ import annotations
 import argparse
 import getpass
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._cli_common import _find_run, _terminal, console
+from opentine._cli_errors import fail
 from opentine._cli_timestamp import add_timestamp_parser, cmd_timestamp
 
 
@@ -37,9 +38,8 @@ def add_evidence_parser(sub: Any) -> None:
     add_timestamp_parser(sub)  # 0.31: evidence's sibling, a token beside the run
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(1)
+def _fail(message: str) -> NoReturn:
+    fail(message)
 
 
 def _verify_args(args: argparse.Namespace) -> argparse.Namespace:

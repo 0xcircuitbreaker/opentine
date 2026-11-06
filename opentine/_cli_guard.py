@@ -5,7 +5,8 @@ past them reached Python's default hook, which prints ``str(exc)`` raw. Loader
 messages quote artifact content, so an untrusted ``.tine`` could put escape
 sequences on the terminal -- a clipboard write (OSC 52), a title change, a
 screen clear -- through eleven verbs. Every invocation now ends here: one
-sanitized ``tine: <message>`` line on stderr and exit 1. ``OPENTINE_DEBUG=1``
+sanitized ``tine: <message>`` line on stderr and exit 1 (plus the JSON error
+object on stdout under ``--json``, 0.36). ``OPENTINE_DEBUG=1``
 re-raises, for the traceback.
 
 It also installs the CLI's notices for the pricing layers the library skips: an
@@ -15,6 +16,7 @@ in to, and a signed user catalog older than the bundled one.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from collections.abc import Callable
@@ -52,13 +54,23 @@ def guarded_dispatch(run: Callable[[], None]) -> None:
 
     previous, catalog.workspace_overlay_hook = catalog.workspace_overlay_hook, _warn_overlay
     stale, catalog.stale_catalog_hook = catalog.stale_catalog_hook, _warn_stale
+    from opentine import _cli_errors
+
     try:
         run()
-    except Exception as exc:  # KeyboardInterrupt and SystemExit pass through
+    except SystemExit as exc:  # `raise SystemExit("why")`: its JSON form under --json
+        if isinstance(exc.code, str) and _cli_errors.json_mode():
+            print(f"tine: {plain_text(exc.code)}", file=sys.stderr)
+            print(json.dumps(_cli_errors.error_payload(exc.code), sort_keys=True))
+            raise SystemExit(1) from exc
+        raise
+    except Exception as exc:  # KeyboardInterrupt passes through
         if os.environ.get(DEBUG_ENV):
             raise
         message = plain_text(exc) or type(exc).__name__
         print(f"tine: {message}", file=sys.stderr)
+        if _cli_errors.json_mode():
+            print(json.dumps(_cli_errors.error_payload(message), sort_keys=True))
         raise SystemExit(1) from exc
     finally:
         catalog.workspace_overlay_hook = previous

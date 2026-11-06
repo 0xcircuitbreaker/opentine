@@ -1,10 +1,12 @@
-"""``python -m opentine.mcp_server``: read-only by default; this module holds the allowlist.
+"""``python -m opentine.mcp_server``: read-only by default; this module enforces it.
 
 The Claude Code plugin (``tine plugin export``) points its ``.mcp.json`` here.
-Registration goes through an **allowlist** of tools that only read -- a tool
-added later is left out until it is reviewed and listed, never exposed by
-default -- so the model reading untrusted run content cannot fork, resume,
-attest, evaluate or promote anything through this server.
+Registration goes through an **allowlist** derived from the one tool registry
+(:mod:`opentine._mcp_registry`): a tool without an entry is left out until it is
+reviewed and listed, never exposed by default, and a tool annotated
+``writes=True`` only with writes opted into -- so the model reading untrusted
+run content cannot fork, resume, attest, evaluate or promote anything through
+the default server.
 """
 
 from __future__ import annotations
@@ -13,31 +15,28 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-READ_ONLY_TOOLS = frozenset(
-    {
-        "list_runs",
-        "show_run",
-        "diff_runs",
-        "find_actions",
-        "search_runs",
-        "inspect_object",
-        "context_slice",
-        "semantic_diff",
-    }
-)
+from opentine._mcp_registry import exposed
+
+READ_ONLY_TOOLS = exposed(allow_writes=False)
+WRITE_MODE_TOOLS = exposed(allow_writes=True)
 
 
 class ReadOnlyTools:
-    """An MCP server proxy that registers only :data:`READ_ONLY_TOOLS`."""
+    """An MCP server proxy that registers only the registry's tools for this mode.
 
-    def __init__(self, server: Any) -> None:
+    Read tools only (:data:`READ_ONLY_TOOLS`) unless ``allow_writes``; then the
+    annotated write set as well (:data:`WRITE_MODE_TOOLS`), and nothing else.
+    """
+
+    def __init__(self, server: Any, *, allow_writes: bool = False) -> None:
         self._server = server
+        self._allowed = WRITE_MODE_TOOLS if allow_writes else READ_ONLY_TOOLS
         self.skipped: list[str] = []
 
     def tool(self, *args: Any, **kwargs: Any) -> Callable[[Callable[..., Any]], Any]:
         def register(function: Callable[..., Any]) -> Callable[..., Any]:
             name = kwargs.get("name") or getattr(function, "__name__", "")
-            if name not in READ_ONLY_TOOLS:
+            if name not in self._allowed:
                 self.skipped.append(name)
                 return function
             return self._server.tool(*args, **kwargs)(function)
@@ -67,4 +66,10 @@ def writes_allowed(argv: list[str] | None = None) -> bool:
     return os.environ.get(ALLOW_WRITES_ENV, "").strip() == "1"
 
 
-__all__ = ["ALLOW_WRITES_ENV", "READ_ONLY_TOOLS", "ReadOnlyTools", "writes_allowed"]
+__all__ = [
+    "ALLOW_WRITES_ENV",
+    "READ_ONLY_TOOLS",
+    "WRITE_MODE_TOOLS",
+    "ReadOnlyTools",
+    "writes_allowed",
+]

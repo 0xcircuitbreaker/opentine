@@ -41,7 +41,12 @@ def reflog_entry(normalized: str, old: str | None, new_oid: str | None, actor: s
 
 
 def append_reflog(base: Path, normalized: str, entry: bytes) -> None:
-    """Append *entry* under the ref's lock, dropping the oldest rows past the bound."""
+    """Append *entry* under the ref's lock, dropping the oldest rows past the bound.
+
+    Every reflog row is also a move the running ``tine`` op logs (``_oplog``)."""
+    from opentine.repository._oplog import note_move
+
+    note_move(base, normalized, json.loads(entry))
     log_path = internal_path(base, "logs", *Path(normalized).parts)
     durable_directory(log_path.parent)
     try:

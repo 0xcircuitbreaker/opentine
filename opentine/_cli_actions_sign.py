@@ -11,7 +11,7 @@ run, so it reports a trust state, never a stored one.
 from __future__ import annotations
 
 import argparse
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine import _actions_manifest as manifest_mod
 from opentine import _cli_who_trust as who_trust
@@ -19,13 +19,13 @@ from opentine._actions_verdict import Trust, load_manifest, save_manifest, verif
 from opentine._agent_identity import run_identity
 from opentine._agent_keys import agent_pins, key_paths, trusted_fingerprints
 from opentine._cli_common import _terminal, console
+from opentine._cli_errors import fail
 from opentine._signing_keys import SignatureError, ed25519_private_from_file
 from opentine._signing_pins import key_fingerprint, normalize_pins
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _signing_key(args: argparse.Namespace) -> tuple[Any, str]:

@@ -103,7 +103,8 @@ def _invoke(monkeypatch, capsys, *argv: str) -> tuple[int, str]:
     except SystemExit as exc:  # the CLI's only failure channel
         code = int(exc.code or 0)
     # rich hard-wraps at the terminal width, so compare on collapsed whitespace.
-    return code, re.sub(r"\s+", " ", capsys.readouterr().out)
+    captured = capsys.readouterr()  # 0.36: refusals are on stderr
+    return code, re.sub(r"\s+", " ", captured.out + captured.err)
 
 
 # --------------------------------------------------------------------------- #

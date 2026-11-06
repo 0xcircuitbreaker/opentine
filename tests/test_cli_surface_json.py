@@ -246,8 +246,11 @@ def test_an_import_that_never_completed_is_a_human_message_and_never_json(worksp
     code, out = _invoke(capsys, *argv)
 
     assert code == 1
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    if "--json" in argv:  # 0.36: the shared error object, never a run's JSON
+        assert set(json.loads(out)) == {"error"}
+    else:
+        with pytest.raises(json.JSONDecodeError):
+            json.loads(out)
 
 
 # --------------------------------------------------------------------------- #
@@ -317,8 +320,7 @@ def test_the_mutating_path_refuses_json_instead_of_dropping_it(workspace, capsys
 
     assert code == 1
     assert "--json has no effect" in out.replace("\n", " ").replace("  ", " ")
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
     # Refused before the edit: the artifact still carries exactly what it did.
     assert Run.load(workspace / "run.tine").tags == ["alpha"]
 
@@ -339,5 +341,4 @@ def test_a_run_tag_cannot_find_is_a_human_message_and_never_json(workspace, caps
     code, out = _invoke(capsys, "tag", "nope.tine", "--json")
 
     assert code == 1
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object

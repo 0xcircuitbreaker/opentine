@@ -9,6 +9,7 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
+from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
@@ -71,6 +72,7 @@ class RemoteApp(UploadRoutes):
         # unguarded: enough concurrent negotiates could take every worker's CPU.
         self._walk_guard = threading.BoundedSemaphore(2)
         self._failures = FailureAudit(getattr(service, "audit", None))
+        self.auth_throttle = AuthThrottle()
 
     @contextmanager
     def _guarded(self, guard: threading.BoundedSemaphore):
@@ -113,13 +115,24 @@ class RemoteApp(UploadRoutes):
             prefix = "/v1/tenants/"
             remainder = path[len(prefix) :] if path.startswith(prefix) else ""
             tenant, separator, resource = remainder.partition("/")
+            client = environ.get("REMOTE_ADDR") or "unknown"
+            wait = self.auth_throttle.retry_after(client)
+            if wait:
+                return self._json_response(
+                    start_response,
+                    "429 Too Many Requests",
+                    {"error": "too many failed authentications"},
+                    [("Retry-After", str(wait))],
+                )
             try:
                 identity = self.service.authenticate(self._headers(environ))
             except PermissionError as exc:
+                self.auth_throttle.failed(client)
                 self._failures.unauthenticated(tenant, type(exc).__name__)
                 return self._json_response(
                     start_response, "401 Unauthorized", {"error": "authentication failed"}
                 )
+            self.auth_throttle.succeeded(client)
             if not path.startswith(prefix):
                 return self._json_response(start_response, "404 Not Found", {"error": "not found"})
             if not separator:
@@ -132,9 +145,8 @@ class RemoteApp(UploadRoutes):
             for kind, status, message in _REFUSALS:
                 if isinstance(exc, kind):
                     return self._json_response(start_response, status, {"error": message})
-            return self._json_response(
-                start_response, "500 Internal Server Error", {"error": type(exc).__name__}
-            )
+            body = internal_error(exc)
+            return self._json_response(start_response, "500 Internal Server Error", body)
 
     def _dispatch(self, identity, tenant, resource, method, environ, start_response):
         if resource == "refs" and method == "GET":

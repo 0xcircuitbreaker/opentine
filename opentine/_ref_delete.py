@@ -24,6 +24,7 @@ def delete_ref(base: Path, name: str, expected_old: str, *, actor: str = "local"
     normalized = normalize_ref(name)
     ref_path = internal_path(Path(base), "refs", *Path(normalized).parts)
     lock_path = ref_path.with_name(ref_path.name + ".lock")
+    from opentine.repository._ref_retry import RefCasMismatch
     from opentine.repository._ref_txn import locked_after_recovery
 
     # Stamped like commit_ref's lock (a crash no longer wedges the ref), and a
@@ -37,7 +38,7 @@ def delete_ref(base: Path, name: str, expected_old: str, *, actor: str = "local"
         if old is None:
             raise KeyError(f"no such ref: {normalized}")
         if old != expected_old:
-            raise ValueError(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
+            raise RefCasMismatch(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
         entry = reflog_entry(normalized, old, None, actor)
         ref_path.unlink()
         _fsync_dir(ref_path.parent)

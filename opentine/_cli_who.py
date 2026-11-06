@@ -9,7 +9,7 @@ a v3 repository's refs point at.
 from __future__ import annotations
 
 import argparse
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine import _cli_who_trust as who_trust
 from opentine._actions import extract_actions
@@ -27,14 +27,14 @@ from opentine._actions_query import (
 from opentine._actions_source import open_repo, open_runs_dir
 from opentine._cli_actions_sign import require_signed, sign_or_verify
 from opentine._cli_agent import cmd_agent
-from opentine._cli_common import _find_run, _runs_dir, _terminal, console
+from opentine._cli_common import _find_run, _runs_dir
+from opentine._cli_errors import fail
 from opentine._cli_who_parser import _FILTERS, add_actions_parsers
 from opentine._cli_who_render import emit_or_print, print_audit, render_actions, render_groups
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _open(args: argparse.Namespace, *, fresh: bool = False) -> tuple[ActionIndex, SyncReport]:

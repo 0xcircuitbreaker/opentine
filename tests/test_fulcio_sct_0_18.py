@@ -207,4 +207,4 @@ def test_trust_policy_carries_ct_key(ws, capsys) -> None:
     capsys.readouterr()
     pin = "sha256:" + "0" * 64
     assert _cli("trust", "policy", "set", "bad", "--pin", pin, "--ct-key", "ct.pub") == 1
-    assert "keyless policy" in capsys.readouterr().out
+    assert "keyless policy" in capsys.readouterr().err

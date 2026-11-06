@@ -366,8 +366,7 @@ def test_a_source_that_does_not_load_exits_one_with_human_text_not_json(
 
     assert code == 1
     assert "Cannot verify" in out
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
 
 
 def test_a_missing_source_exits_one_with_human_text_not_json(workspace, monkeypatch, capsys):
@@ -375,8 +374,7 @@ def test_a_missing_source_exits_one_with_human_text_not_json(workspace, monkeypa
 
     assert code == 1
     assert "Run not found" in out
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
 
 
 def test_an_unresolvable_step_reference_exits_one_without_a_verdict(workspace, monkeypatch, capsys):
@@ -385,8 +383,7 @@ def test_an_unresolvable_step_reference_exits_one_without_a_verdict(workspace, m
     )
 
     assert code == 1
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(out)
+    assert set(json.loads(out)) == {"error"}  # 0.36 error object
 
 
 def test_rerun_verify_without_a_harness_refuses_instead_of_pretending(
@@ -507,9 +504,8 @@ def test_force_replaces_the_destination(workspace, monkeypatch, capsys):
         (("--json",), "--json has no effect without --verify"),
         (("--ignore-cost-drift",), "--ignore-cost-drift has no effect without --verify"),
         (("--inspect", "--verify"), "--verify has no effect with --inspect/--dry-run"),
-        (("--dry-run", "--json"), "--json has no effect with --inspect/--dry-run"),
-    ],
-    ids=["json", "ignore-cost-drift", "inspect+verify", "dry-run+json"],
+    ],  # --dry-run --json is honoured since 0.36 (tests/test_036_cli_contract.py)
+    ids=["json", "ignore-cost-drift", "inspect+verify"],
 )
 def test_replay_refuses_verification_flags_its_mode_ignores(
     workspace, monkeypatch, capsys, argv, expected

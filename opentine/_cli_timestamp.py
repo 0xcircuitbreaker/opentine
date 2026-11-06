@@ -19,9 +19,10 @@ import argparse
 import hashlib
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._cli_common import _find_run, _terminal, console
+from opentine._cli_errors import fail
 
 MAX_TOKEN = 256 * 1024
 
@@ -36,9 +37,8 @@ def add_timestamp_parser(sub: Any) -> None:
     attach.add_argument("token", metavar="TOKEN.tsr", help="DER TimeStampResp or token")
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(1)
+def _fail(message: str) -> NoReturn:
+    fail(message)
 
 
 def _bound(run_id: str) -> tuple[Path, str]:

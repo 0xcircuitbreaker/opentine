@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import NoReturn
 
 from opentine._cli_common import _terminal, console
+from opentine._cli_errors import fail
 from opentine._trust_policy import FIELDS, PolicyError, check_name, check_policy, load, save
 
 __all__ = ["add_policy_parser", "cmd_trust_policy"]
@@ -44,9 +46,8 @@ def add_policy_parser(group_sub: argparse._SubParsersAction) -> None:
     default.add_argument("--clear", action="store_true", help="Apply no policy by default")
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]trust policy: {_terminal(message)}[/]")
-    raise SystemExit(1)
+def _fail(message: str) -> NoReturn:
+    fail(message, prefix="trust policy: ")
 
 
 def _absolute_file(path: str, flag: str, reader) -> str:

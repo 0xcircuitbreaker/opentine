@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import NoReturn
 
 from opentine._cli_common import BRAND, _find_run, _terminal, console
+from opentine._cli_errors import fail
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_sigstore import (
     EXPORT_DESTS,
@@ -54,9 +56,8 @@ def add_attestation_verify_args(parser: argparse.ArgumentParser) -> None:
     add_sigstore_verify_args(parser)
 
 
-def _fail(message: str, code: int = 1) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(code)
+def _fail(message: str, code: int = 1) -> NoReturn:
+    fail(message, code)
 
 
 def _signing_key(args: argparse.Namespace):

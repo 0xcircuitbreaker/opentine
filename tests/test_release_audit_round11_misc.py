@@ -273,6 +273,7 @@ def test_the_inspection_module_has_no_hookless_json_reader_left():
 #: running.  Extend the mapping, never drop the guard.
 BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_cli_replay_verify_harness.py": "sh",
+    "tests/test_036_push_preview.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_git_push_sync_0_23.py": "git",

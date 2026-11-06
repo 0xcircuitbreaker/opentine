@@ -8,7 +8,7 @@ import os
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from opentine._bisect import (
     BisectError,
@@ -21,6 +21,7 @@ from opentine._bisect import (
     start,
 )
 from opentine._cli_common import _runs_dir, _terminal, console
+from opentine._cli_errors import fail
 from opentine._cli_who_render import emit_or_print
 from opentine._git_link_runs import RunCatalog, open_catalog
 from opentine.repository._search_scores import MAX_UNSIGNED_SCORE, _signed
@@ -28,9 +29,8 @@ from opentine.repository._search_scores import MAX_UNSIGNED_SCORE, _signed
 MAX_RUN_ROUNDS = 64
 
 
-def _fail(message: str) -> None:
-    console.print(f"[red]{_terminal(message)}[/]")
-    raise SystemExit(2)
+def _fail(message: str) -> NoReturn:
+    fail(message, 2)
 
 
 def _state_path(args: argparse.Namespace) -> Path:

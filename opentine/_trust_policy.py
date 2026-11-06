@@ -26,7 +26,7 @@ import os
 import re
 import stat
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 FILE_NAME = "trust-policies.json"
 MAX_BYTES = 256 * 1024
@@ -177,11 +177,10 @@ def save(table: dict[str, Any]) -> None:
     write_private(path, text.encode("utf-8"))
 
 
-def _fail(message: str) -> None:
-    from opentine._cli_common import _terminal, console
+def _fail(message: str) -> NoReturn:
+    from opentine._cli_errors import fail
 
-    console.print(f"[red]trust policy: {_terminal(message)}[/]")
-    raise SystemExit(1)
+    fail(message, prefix="trust policy: ")
 
 
 def apply(args: argparse.Namespace) -> None:

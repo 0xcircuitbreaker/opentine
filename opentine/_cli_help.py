@@ -10,6 +10,7 @@ import argparse
 import sys
 
 from opentine._cli_groups import add_group_parsers
+from opentine._cli_json_fallback import add_json_fallback
 from opentine._cli_registry import VISIBLE, advanced
 from opentine._user_settings import add_text_flags
 
@@ -47,6 +48,7 @@ def finish_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     sub.help = _HINT
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.epilog = "\n".join(["everyday commands:", *_everyday(summaries)])
+    add_json_fallback(parser)  # `--json` on every leaf (0.36, A3)
     add_text_flags(parser)  # `--text` beside every `--json` (0.17 output.format)
     return parser
 

@@ -268,7 +268,7 @@ def test_trust_policy_carries_trusted_root(ws, capsys) -> None:
     assert _cli("trust", "policy", "set", "bad", "--trusted-root", name, "--rekor-key",
                 "rekor.pub", "--cert-identity", IDENTITY, "--cert-oidc-issuer",
                 ISSUER_URL) == 1  # fmt: skip
-    assert "replaces" in capsys.readouterr().out
+    assert "replaces" in capsys.readouterr().err
     (root / "junk.json").write_text("{}")
     assert _cli("trust", "policy", "set", "bad", "--trusted-root", "junk.json", "--cert-identity",
                 IDENTITY, "--cert-oidc-issuer", ISSUER_URL) == 1  # fmt: skip

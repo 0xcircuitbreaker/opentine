@@ -9,6 +9,7 @@ from pathlib import Path
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_du import DU_COMMANDS
 from opentine._cli_hold import HOLD_COMMANDS
+from opentine._cli_op import OP_COMMANDS
 
 _CODECS = ("zstd", "zlib")
 
@@ -26,10 +27,12 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
     from opentine._cli_du import add_du_parsers
     from opentine._cli_fanout import add_fanout_parsers
     from opentine._cli_hold import add_hold_parser
+    from opentine._cli_op import add_op_parsers
     from opentine._cli_worktree import add_worktree_parser
 
     add_du_parsers(sub)
     add_hold_parser(sub)
+    add_op_parsers(sub)
     add_fanout_parsers(sub)  # after `run`, which it extends with --parallel
     add_worktree_parser(sub)
     for name, text in (
@@ -210,6 +213,7 @@ def _worktree(args: argparse.Namespace) -> None:
 STORAGE_COMMANDS = {
     **DU_COMMANDS,
     **HOLD_COMMANDS,
+    **OP_COMMANDS,
     "fan-out": _fanout,
     "worktree": _worktree,
     "archive": cmd_archive,

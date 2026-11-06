@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from opentine.kernel import KernelError, ObjectEnvelope
-from opentine.repository import Repo, _associations, _objects, _ref_store
+from opentine.repository import Repo, _associations, _objects, _ref_retry, _ref_store
 from opentine.repository._associations import associated_map
 from opentine.repository._migration_preflight import _MemoryRepo
 from opentine.repository._semantic_view import SemanticView
@@ -166,6 +166,7 @@ def test_ref_guard_orders_ref_and_reflog_across_writers(tmp_path, monkeypatch):
     assert entered.wait(5)
     assert (repo.path / "refs" / "tags" / "main.lock").exists()
     assert competing.list_refs()["tags/main"] == first
+    monkeypatch.setattr(_ref_retry, "LOCK_WAIT_SECONDS", 0)  # report at once
     with pytest.raises(ValueError, match="locked by a concurrent write"):
         competing.update_ref("tags/main", second, expected_old=first)
     release.set()

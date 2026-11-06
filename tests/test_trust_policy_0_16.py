@@ -121,7 +121,7 @@ def test_explicit_flag_overrides_policy(ws, capsys) -> None:
 def test_unknown_policy_and_conflicting_switches(ws, capsys) -> None:
     capsys.readouterr()
     assert _cli(*VERIFY, "--policy", "nope") == 1
-    assert "unknown policy 'nope'" in capsys.readouterr().out
+    assert "unknown policy 'nope'" in capsys.readouterr().err
     assert _cli(*VERIFY, "--policy", "nope", "--no-policy") == 1
 
 
@@ -148,7 +148,7 @@ def test_policy_paths_are_validated_on_use(ws, capsys) -> None:
     (ws / "k.pub").unlink()
     capsys.readouterr()
     assert _cli(*VERIFY, "--policy", "prod") == 1
-    assert "not a readable file" in capsys.readouterr().out
+    assert "not a readable file" in capsys.readouterr().err
 
 
 def test_repository_cannot_define_or_select_a_policy(ws, capsys) -> None:
@@ -180,7 +180,7 @@ def test_policy_file_is_private_and_refused_when_unsafe(ws, capsys) -> None:
     path.chmod(0o666)
     capsys.readouterr()
     assert _cli(*VERIFY, "--policy", "prod") == 1
-    assert "writable" in capsys.readouterr().out
+    assert "writable" in capsys.readouterr().err
     assert _cli("trust", "policy", "list") == 1
     path.chmod(0o600)
     real = ws / "elsewhere.json"
@@ -188,7 +188,7 @@ def test_policy_file_is_private_and_refused_when_unsafe(ws, capsys) -> None:
     path.symlink_to(real)
     capsys.readouterr()
     assert _cli(*VERIFY, "--policy", "prod") == 1
-    assert "symlink" in capsys.readouterr().out
+    assert "symlink" in capsys.readouterr().err
     assert _cli("trust", "policy", "set", "x", "--pubkey", "k.pub") == 1
     assert path.is_symlink()
 
