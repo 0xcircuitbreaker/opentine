@@ -35,6 +35,8 @@ from opentine.repository._pack_index import (  # noqa: F401 -- re-exported
     _block_sizes,
     _parse_index,
 )
+from opentine.repository._pack_lazy import LazyIndexes
+from opentine.repository._pack_lookup import LegacyIndex, MappedIndex, open_index
 from opentine.repository._paths import internal_path
 
 #: Inflated blocks kept per repository; v3 blocks are up to 16 MiB each.
@@ -73,16 +75,15 @@ def _read_file(path: Path, offset: int = 0, length: int | None = None, *, limit:
     return data
 
 
-class PackSet:
+class PackSet(LazyIndexes):
     """The packs of one repository, loaded once and refreshed on a miss."""
 
     def __init__(self, root: Path):
         self.root = root
         self.fingerprint: tuple | None = None
-        self.where: dict[str, tuple[str, int, int, int]] = {}
+        self.indexes: dict[str, LegacyIndex | MappedIndex] = {}  # in name order
         self.blocks: dict[str, list] = {}
-        #: v3 packs only: digest -> oid -> (block, start, length, size, encoding)
-        self.v3: dict[str, dict[str, tuple[int, int, int, int, int]]] = {}
+        self._where = self._v3 = None  # built lazily (``_pack_lazy``)
         self._recent: OrderedDict[tuple[str, int], bytes] = OrderedDict()
         self._ends: dict[str, dict[tuple[int, int], str]] = {}
         self._rebuilt: tuple[str, dict[str, tuple[bytes, int]]] = ("", {})
@@ -104,14 +105,12 @@ class PackSet:
         fingerprint = self._scan()
         if fingerprint == self.fingerprint:
             return
-        where: dict[str, tuple[str, int, int, int]] = {}
-        blocks: dict[str, list] = {}
-        v3: dict[str, dict] = {}
+        indexes: dict[str, LegacyIndex | MappedIndex] = {}
         complete = True
         for name, _, _ in fingerprint:
             digest = name[:64]
             try:
-                table, entries, version = _winretry.retry(lambda: load_index(self.root, digest))
+                indexes[digest] = _winretry.retry(lambda: open_index(self.root, digest))
             except ValueError:  # KernelError and CodecError included
                 continue  # its objects read as missing; fsck names the broken pack
             except OSError:
@@ -119,22 +118,16 @@ class PackSet:
                 # gone): skip it, but don't remember this listing, or that pack's
                 # objects would stay invisible to this process.
                 complete = False
-                continue
-            blocks[digest] = table
-            if version == 3:
-                v3[digest] = entries
-            for oid, place in entries.items():
-                where.setdefault(oid, (digest, *place[:3]))
-        self.where, self.blocks, self.v3 = where, blocks, v3
+        self.indexes, self._where, self._v3 = indexes, None, None
+        self.blocks = {digest: index.table for digest, index in indexes.items()}
         self.fingerprint = fingerprint if complete else None
         self._recent.clear()
-        self._ends = {}
-        self._rebuilt = ("", {})
+        self._ends, self._rebuilt = {}, ("", {})
 
     def locate(self, oid: str) -> tuple[str, int, int, int] | None:
         if self.fingerprint is None:
             self.refresh()
-        found = self.where.get(oid)
+        found = self._find(oid)
         # A miss rescans. A listing that skipped a pack another process deleted
         # mid-scan (a gc merge) is incomplete: its replacement may not have been
         # listed yet, so scan again before calling the object missing.
@@ -142,10 +135,16 @@ class PackSet:
             if found is not None:
                 break
             self.refresh()
-            found = self.where.get(oid)
+            found = self._find(oid)
             if self.fingerprint is not None:
                 break
         return found
+
+    def known(self, oid: str) -> bool:
+        """Whether the packs as last listed hold *oid* (no rescan on a miss)."""
+        if self.fingerprint is None:
+            self.refresh()
+        return self._find(oid) is not None
 
     def block(self, digest: str, number: int) -> bytes:
         key = (digest, number)
@@ -170,7 +169,7 @@ class PackSet:
         found = self.locate(oid)
         if found is None:
             return None
-        entry = self.v3.get(found[0], {}).get(oid)
+        entry = self._entry(found[0], oid)
         return found[3] if entry is None else entry[3]
 
     def read(self, oid: str) -> bytes | None:
@@ -188,7 +187,7 @@ class PackSet:
         if found is None:
             return None
         digest = found[0]
-        if digest in self.v3:
+        if self._entry(digest, oid) is not None:  # a v3 pack
             from opentine.repository._pack_v3 import resolve
 
             if self._rebuilt[0] != digest:  # run bytes of one pack, checked by resolve
@@ -211,11 +210,12 @@ class PackSet:
         return data[start : start + length]
 
     def _stored3(self, digest: str, oid: str) -> tuple[bytes, int, int, str | None]:
-        number, start, length, size, encoding = self.v3[digest][oid]
+        number, start, length, size, encoding = self._entry(digest, oid)
         before = None
         if encoding == 1 and start:  # RUN_DELTA: its base is the object stored before it
             if digest not in self._ends:
-                ends = {(e[0], e[1] + e[2]): key for key, e in self.v3[digest].items()}
+                entries = self.v3[digest]  # every entry of this pack, checked whole
+                ends = {(e[0], e[1] + e[2]): key for key, e in entries.items()}
                 self._ends = {digest: ends}  # one pack's map at a time
             before = self._ends[digest].get((number, start))
         return self._slice(digest, number, start, length, oid), encoding, size, before
@@ -227,9 +227,9 @@ class PackSet:
 
     def oids(self, object_types: set[str] | None = None) -> list[str]:
         self.refresh()
-        if object_types is None:
-            return sorted(self.where)
-        return sorted(oid for oid in self.where if oid.split(":", 1)[0] in object_types)
+        if self._where is None:  # read from the indexes: no oid -> place map is built
+            return self.typed_oids(object_types)
+        return sorted(o for o in self.where if not object_types or o.split(":")[0] in object_types)
 
 
 def load_index(root: Path, digest: str) -> tuple[list, dict, int]:
