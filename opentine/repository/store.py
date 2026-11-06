@@ -226,10 +226,10 @@ class Repo:
                 refs[name] = value
         return refs
 
-    def fsck(self, *, deep: bool = True):
+    def fsck(self, *, deep: bool = True, **budget):
         from opentine.repository.verify import fsck
 
-        return fsck(self, deep=deep)
+        return fsck(self, deep=deep, **budget)
 
     verify = fsck
 

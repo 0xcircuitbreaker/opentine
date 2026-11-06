@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
@@ -66,8 +67,12 @@ def cmd_clone(args: argparse.Namespace, console) -> None:
 
 def cmd_fsck(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
-    result = repo.fsck(deep=not args.shallow)
+    budget = {"budget": args.budget, "max_objects": args.max_objects}
+    result = repo.fsck(deep=not args.shallow, **budget)
     print(json.dumps(asdict(result), indent=2))
+    if not result.complete:  # a clean stop, not a failure: say how far it got
+        done = f"{result.checked} of {result.objects}"
+        print(f"fsck: budget reached after {done} objects", file=sys.stderr)
     if not result.ok:
         raise SystemExit(1)
 

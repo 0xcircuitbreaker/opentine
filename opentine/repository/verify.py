@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import stat
+import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -33,6 +34,9 @@ class FsckResult:
     objects: int
     refs: int
     errors: tuple[str, ...]
+    #: Objects verified; fewer than ``objects`` when a budget stopped the walk.
+    checked: int = 0
+    complete: bool = True
 
 
 def _cycle_errors(repo: Repo, oids: list[str]) -> list[str]:
@@ -155,8 +159,14 @@ def _check_upgraded_from(payload: object) -> None:
         require_upgraded_from(payload["upgraded_from"])
 
 
-def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
+def fsck(
+    repo: Repo, *, deep: bool = True, budget: float | None = None, max_objects: int | None = None
+) -> FsckResult:
+    """Verify objects, refs and layout; *budget* seconds or *max_objects* stop the
+    object walk early (``complete`` false), skipping the whole-graph cycle check."""
     errors: list[str] = []
+    deadline = None if budget is None else time.monotonic() + budget
+    checked = 0
     view = SemanticView(repo)
     oids = repo.iter_oids()
     try:
@@ -165,6 +175,11 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
     except (KernelError, OSError, UnicodeError) as exc:
         errors.append(f"shallow: {exc}")
     for oid in oids:
+        if (max_objects is not None and checked >= max_objects) or (
+            deadline is not None and time.monotonic() >= deadline
+        ):
+            break
+        checked += 1
         try:
             verify_object(repo.raw(oid), oid, repo._link_exists if deep else None)
             envelope = ObjectEnvelope.decode(repo.raw(oid), oid)
@@ -193,7 +208,8 @@ def fsck(repo: Repo, *, deep: bool = True) -> FsckResult:
             errors.append(f"ref {name}: {exc}")
             continue
     errors.extend(_layout_errors(repo))
+    complete = checked == len(oids)
     if deep:
         errors.extend(_pack_errors(repo))
-        errors.extend(_cycle_errors(view, oids))
-    return FsckResult(not errors, len(oids), len(refs), tuple(errors))
+        errors.extend(_cycle_errors(view, oids) if complete else ())
+    return FsckResult(not errors, len(oids), len(refs), tuple(errors), checked, complete)
