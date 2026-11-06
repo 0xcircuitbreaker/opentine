@@ -497,6 +497,25 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 `127.0.0.1:0` (the chosen port is printed on stderr). See
 [CAPTURE.md](CAPTURE.md#6b-live-capture-an-mcp-session-038).
 
+## Assurance tiers (0.39)
+
+| Command | What it does |
+| --- | --- |
+| `tine proxy keygen [--force] [--json]` | Creates the proxy witness key (Ed25519) under `$XDG_CONFIG_HOME/opentine/proxy-keys/`, apart from every agent key; `tine record` and `tine mcp-proxy` sign their finished runs with it (`tine-sig/3`) |
+| `tine verify RUN --min-assurance T0..T3` | Exits 4 (`verification_failed`) when the *verified* tier is below the floor |
+| `tine verify RUN --proxy-pubkey FILE` | Also trusts this proxy public key as a T2 witness (repeatable) |
+| `tine verify RUN --min-assurance T3 --tsa-roots FILE.pem` | Lets an attached RFC 3161 token count toward T3 (outside `--offline`, `--tsa-roots` needs a floor) |
+| `tine verify RUN --compare-capture OTHER [--json]` | Divergence report: the better-witnessed run against the other, step by step (MCP `tools/call` and prompts); exits 4 when they diverge |
+
+Tiers: **T0** self-reported import, **T1** hook-captured, **T2** witnessed by
+the record proxy or `tine mcp-proxy` and signed with a trusted proxy key,
+**T3** T2 plus a verified timestamp. The tier a capture *claims* is recorded
+(`metadata.capture.claimed_tier`); the tier reported is *computed* at verify
+time, and a claim alone never rises above T1. Every report carries an
+`assurance` object, `{"claimed", "verified", "witness", "reasons"}`: `tine
+verify --json`, `tine verify --offline` (and so the MCP `verify_run` tool) and
+`tine show --json`; the human output prints one `assurance` line.
+
 ## Push preview and manifest (0.36)
 
 `tine push REMOTE --dry-run` (alias `--outgoing`) prints, as JSON, exactly what

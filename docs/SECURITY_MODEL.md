@@ -752,6 +752,36 @@ The git-link commands (`tine repo integrate git`, `tine agent blame --git`) run 
 
 Repository aliases, client hooks and remote token files take effect only after `tine repo config --trust` on this machine, which records the exact bytes of `.tine/porcelain.json` under `$XDG_CONFIG_HOME/opentine/trusted-repos.json`; any other edit makes them inert, so a cloned repository never runs anything. Hooks run with a scrubbed environment and a timeout.
 
+## Assurance tiers (0.39, X21)
+
+A transcript or trace the agent wrote is evidence the agent could have edited;
+captures that the agent itself can write cannot be told apart from honest
+ones. Every run therefore carries an assurance tier, and the *verified* tier is
+computed by `tine verify`, never read from the run:
+
+| Tier | Meaning | What verify checks |
+| --- | --- | --- |
+| T0 | Self-reported import (Claude Code, Codex, Gemini, ATIF, OTel, ...) | nothing beyond integrity |
+| T1 | Captured turn by turn by `tine hook capture` | the recorded claim (no signature) |
+| T2 | Witnessed by `tine record` or `tine mcp-proxy` | a `tine-sig/3` Ed25519 signature that a trusted **proxy key** verifies |
+| T3 | T2 plus an RFC 3161 timestamp | additionally, a timestamp token over the run digest that a `--tsa-roots` root verifies |
+
+- The proxy key is made by `tine proxy keygen` and lives in
+  `$XDG_CONFIG_HOME/opentine/proxy-keys/` (private half 0600), a sibling of the
+  agent-key directory. A key whose fingerprint is also one of this user's agent
+  keys is never accepted as a witness, so an agent signing its own run with its
+  own key cannot reach T2.
+- A run whose claim says T2 but whose signature is missing, forged, made by
+  another key, or whose digest fails, is reported T0. The claim is reported
+  beside the verified tier so the gap is visible.
+- `--min-assurance TIER` turns the tier into a gate (exit 4).
+- Limit: in 0.39 the proxy key is a file readable by the user the proxy runs
+  as. An agent running as that same user with file access can read it; T2 is
+  meaningful when the proxy runs under a separate account or on another host.
+  PKCS#11 and KMS backends arrive in 0.41.
+- `tine verify --compare-capture` lines up the witnessed actions with the
+  transcript's and reports each missing, unwitnessed or changed step.
+
 ## Known Non-Goals
 
 - OpenTine does not sandbox arbitrary third-party CLI agents by itself.
