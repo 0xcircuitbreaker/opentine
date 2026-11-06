@@ -14,7 +14,7 @@ exists to absorb, so this map is allowed to land on a group rather than a code.
 
     python docs/conformance/run_conformance.py \\
         --adapter "python scripts/conformance_adapter.py" --level 2 \\
-        --capability zlib --capability ed25519 --capability wtf8
+        --capability zlib --capability ed25519 --capability ml-dsa-65 --capability wtf8
 """
 
 from __future__ import annotations
@@ -67,6 +67,7 @@ _CODES: tuple[tuple[str, str], ...] = (
     ("unknown object type or encoding", "envelope.unknown-type"),
     ("object id mismatch", "envelope.oid-mismatch"),
     ("invalid typed object id", "oid.malformed"),
+    ("unsupported hash algorithm", "oid.hash-unsupported"),
     ("parent_ids must contain event ids", "link.parent-ids-not-events"),
     ("causal_ids must contain event ids", "link.parent-ids-not-events"),
     ("_blob must contain a blob id", "link.event-blob-not-blob"),

@@ -159,6 +159,13 @@ REASONS: dict[str, Reason] = {
         "a string that is not TYPE:sha256:<64 lowercase hex>",
         "lowercase an uppercase digest, or accept a bare digest",
     ),
+    "oid.hash-unsupported": R(
+        "1.3.1",
+        "_hash_tag.SUPPORTED_HASH_ALGORITHMS",
+        "a TYPE:TAG:HEX oid whose hash-algorithm TAG is not sha256 (sha3-256, sha512 and "
+        "blake3 are reserved)",
+        "hash with sha256 anyway, or strip the tag",
+    ),
     # --- links (1.5) --------------------------------------------------------- #
     "link.parent-ids-not-events": R(
         "1.5.2",

@@ -32,6 +32,7 @@ from opentine._attest_view import ATTEST_SCHEMES, SIGNATURE_KEY
 from opentine._attest_view import signed_message as attest_message
 from opentine._canon import _canonical_bytes, _integrity_digest
 from opentine._graph_serde import verify_integrity
+from opentine._hash_tag import parse_oid as parse_hash_tagged
 from opentine._signing_v4 import artifact_message as v4_artifact_message
 from opentine._signing_v4 import verify_artifact_v4
 from opentine._signing_verify import verify_block
@@ -42,7 +43,6 @@ from opentine.kernel import (
     ObjectEnvelope,
     canonical_json,
     object_id,
-    parse_oid,
     validate_json_shape,
     validate_links,
 )
@@ -129,7 +129,7 @@ def op_oid_derive(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
 
 
 def op_oid_parse(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
-    object_type, digest = parse_oid(inp.value)
+    object_type, digest = parse_hash_tagged(inp.value)  # SPEC 1.3.1: names the tag
     return {"type": object_type, "digest": digest}
 
 

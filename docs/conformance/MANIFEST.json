@@ -600,6 +600,20 @@
       "verdict": 7
     },
     {
+      "core": 13,
+      "count": 13,
+      "file": "vectors/55-sig-pq.json",
+      "name": "sig-pq",
+      "ops": [
+        "oid.parse",
+        "sig.verify"
+      ],
+      "reject": 2,
+      "section": "4.6.1",
+      "stress": 0,
+      "verdict": 11
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -622,8 +636,8 @@
   ],
   "files": {
     "PROTOCOL.md": "80c83c5628e2c0ca8c197dbfecbef5ac0bbe3ce8656c1cb13101d80520f559f2",
-    "README.md": "aed46d46399974d4efa32f460159d8f2e2e2a3c838e06e368af8a5f2d4100d98",
-    "REASON_CODES.md": "bcdd383115e72156ff575a7e3271c874d949660861dee87dc1f6c28153dd5e54",
+    "README.md": "5e72ab9c602a970976784138ee311d8fada64ec1a594e6a2606abdd1342a8f9a",
+    "REASON_CODES.md": "2579d88feb88ea5bde02d986ab88e87a92f9df5f9fbfd0b081d41ca9754bb2cd",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1715,6 +1729,7 @@
     "vectors/51-compat.json": "5a72c9675d01885fdd3fdae31463cf0176fa903ef08874660dbc1ec9b6725886",
     "vectors/53-sig-v4.json": "5354493549805e23eff5355b83172936bb0d0a8cc7059b9b57ef9dc65b3c246a",
     "vectors/54-artifact-v5.json": "a2fa969a61ef02116cede2218791821dc296690c59cbdb673c2e051d17e5b316",
+    "vectors/55-sig-pq.json": "df2d0b51e5d69e83d30fa4b1b9cbe16a4c07dd7f4dc971cbfc9674de375477fc",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.40.0",
@@ -2320,13 +2335,13 @@
   "spec_version": "0.9.0",
   "suite_version": 1,
   "totals": {
-    "cases": 645,
-    "core": 635,
-    "families": 31,
+    "cases": 658,
+    "core": 648,
+    "families": 32,
     "ops": 36,
-    "reason_codes": 108,
-    "reject": 217,
+    "reason_codes": 109,
+    "reject": 219,
     "stress": 10,
-    "verdict": 91
+    "verdict": 102
   }
 }

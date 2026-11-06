@@ -103,6 +103,7 @@ EXPECTED_COUNTS = {
     "vectors/51-compat.json": (70, 0),
     "vectors/53-sig-v4.json": (19, 0),
     "vectors/54-artifact-v5.json": (9, 0),
+    "vectors/55-sig-pq.json": (13, 2),
     "vectors/99-repair.json": (14, 14),
 }
 
@@ -483,7 +484,7 @@ def test_an_op_declares_exactly_what_every_one_of_its_cases_requires() -> None:
 
 
 def test_a_capability_a_case_names_is_one_the_documentation_explains() -> None:
-    known = {"zlib", "ed25519", WTF8}
+    known = {"zlib", "ed25519", "ml-dsa-65", WTF8}
     for record in RECORDS.values():
         assert set(record.get("requires") or ()) <= known, record["id"]
     readme = (SUITE / "README.md").read_text("utf-8")
