@@ -19,6 +19,7 @@ from typing import Any
 
 from opentine._format_v4 import ARTIFACT_V4_KIND, ARTIFACT_V4_VERSION, is_v4_artifact
 from opentine._signing_keys import SignatureError
+from opentine._signing_pq import PQ_ALGORITHMS
 from opentine._signing_verify import HEADER_KEYS, SignatureResult, sign_block, verify_block
 from opentine.kernel import KernelError, canonical_json, parse_oid
 
@@ -112,6 +113,7 @@ def verify_artifact_v4(
     hmac_key: bytes | None = None,
     public_key: Any | None = None,
     trust_embedded: bool = False,
+    require_pq: bool = False,
 ) -> SignatureResult:
     """The §4.7 verdict for a v4 artifact, with the v2 vocabulary.
 
@@ -119,7 +121,8 @@ def verify_artifact_v4(
     root first: a tampered envelope under an intact signature is ``mismatch``,
     exactly what an edited v2 body under a v2 signature reports. With several
     blocks, the first one the supplied key verifies wins; otherwise the first
-    block's verdict is returned.
+    block's verdict is returned. With *require_pq* only post-quantum blocks
+    (SPEC 4.6.1) count, so a classical block alone is ``unsigned``.
     """
     signatures = data.get("signatures")
     if not isinstance(signatures, list) or len(signatures) > MAX_V4_SIGNATURES:
@@ -130,6 +133,10 @@ def verify_artifact_v4(
         return _refusal("error", "unsupported signature scheme")
     from opentine._artifact_v4_read import verify_v4
 
+    if require_pq:
+        signatures = [b for b in signatures if b.get("alg") in PQ_ALGORITHMS]
+        if not signatures:
+            return _refusal("unsigned", "no post-quantum signature present")
     integrity = verify_v4(data)
     if not integrity.ok:
         return _refusal("mismatch", f"content does not match the signed root: {integrity.reason}")

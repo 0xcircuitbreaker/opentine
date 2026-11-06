@@ -370,6 +370,43 @@ for expiry (TUF 1.0 §5); an expired or unreadable one refuses keyless
 verification (exit 6) with a pointer to `tine trust root update`.
 `--allow-stale-root` overrides it with a warning.
 
+## Post-quantum signatures and the hash tag (0.41, X29)
+
+**Signatures.** `tine-sig/3` blocks may use `ml-dsa-65` (FIPS 204) or the
+composite `ed25519+ml-dsa-65` (SPEC 4.6.1). The composite is the recommended
+form: it stays sound while *either* Ed25519 or ML-DSA-65 is unbroken, because
+it verifies only when both halves do, and neither half can be stripped and
+relabelled (the algorithm is in the signed header; the ML-DSA half is also
+signed under its own context string). What it protects against: a future
+quantum adversary forging the Ed25519 half of a signature over content that
+was recorded today. What it does not change: the trust model is still a key
+the operator chooses (`--pubkey`, or `verified-tofu` for the embedded key);
+there is still no PKI; key windows and local revocation are X23 above.
+
+**Compatibility is the downgrade surface.** A hybrid writer puts a classical
+Ed25519 block first so a 0.34 verifier still accepts the run (it skips the
+post-quantum block). Such a verifier, and any current verifier not asked for
+post-quantum assurance, accepts the classical block alone; an attacker who
+can break Ed25519 can therefore forge a run that *those* verifiers accept,
+whatever post-quantum blocks the honest run carried. A verifier that needs
+post-quantum assurance must demand it: `verify_artifact_v4(...,
+require_pq=True)` counts only post-quantum blocks, and a document without one
+is `unsigned`.
+
+**Implementations.** Signing uses `cryptography` (OpenSSL 3.5+); its signer is
+hedged (randomized), so a PQ signature is not reproducible byte for byte. The
+stdlib verifier `opentine/_pyz/_mldsa.py` (shipped in `tine-verify.pyz`) is
+verify-only, handles public data only, and makes no constant-time claim; it is
+checked against NIST ACVP ML-DSA-65 sigVer vectors (valid and modified
+signature, hint, commitment and message cases) and against `cryptography`.
+
+**Hash agility is deliberately absent.** An oid's middle field is a reserved
+hash-algorithm tag (SPEC 1.3.1); only `sha256` exists. A reader refuses an oid
+whose tag it does not implement, naming the algorithm, instead of hashing with
+sha256 or ignoring the tag: silently re-interpreting the tag would let two
+different digests name "the same" object. Moving to another hash is a format
+migration, never a per-object negotiation.
+
 ## Fork identity (v2)
 
 A run id read from an artifact is **untrusted input**, exactly like every other
@@ -729,7 +766,8 @@ v2) or an evidence folder with only the Python 3.11+ standard library: run it as
   pure-Python RFC 8032 routine (`opentine/_pyz/_ed25519.py`, verify only) that is
   tested against the RFC 8032 and Wycheproof vectors and agrees with OpenSSL on
   all 210 Wycheproof cases. No secret ever reaches it, so it does not need to
-  be constant-time.
+  be constant-time. ML-DSA-65 (0.41) is likewise a pure-Python FIPS 204
+  verifier (`opentine/_pyz/_mldsa.py`), tested against NIST ACVP sigVer vectors.
 - **What it checks.** The `digest` and `signature` checks of
   `tine verify --offline`, with the same outcomes and reason codes. They are
   computed with `opentine/kernel.py` vendored verbatim: every v4 envelope oid is

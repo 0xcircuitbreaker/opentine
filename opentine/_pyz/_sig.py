@@ -20,7 +20,7 @@ from typing import Any
 
 from .. import kernel
 from .._ed25519_order import weak_public_key
-from . import _ed25519
+from . import _ed25519, _pqsig
 
 HEADER_KEYS = ("alg", "key_id", "scheme", "signed_at", "signer")
 BLOCK_KEYS = frozenset((*HEADER_KEYS, "value", "public_key"))
@@ -58,22 +58,26 @@ def verify_block(
     if hmac_key is not None and public_key is not None:
         return False, "error", "pass exactly one verification key"
     algorithm = block.get("alg")
-    if set(block) - BLOCK_KEYS or (algorithm != "ed25519" and "public_key" in block):
+    if set(block) - BLOCK_KEYS or (
+        algorithm not in ("ed25519", *_pqsig.SIZES) and "public_key" in block
+    ):
         return False, "error", "malformed signature header"
     if any(item is None for item in block.values()) or not isinstance(algorithm, str):
         return False, "error", "malformed signature header"
     if any(not isinstance(block.get(k, ""), str) for k in ("key_id", "signer", "signed_at")):
         return False, "error", "malformed signature header"
-    if algorithm not in VALUE_LENGTHS:
+    if algorithm not in VALUE_LENGTHS and algorithm not in _pqsig.SIZES:
         return False, "error", "unsupported signature algorithm"
     value = block.get("value")
-    if not lower_hex(value, VALUE_LENGTHS[algorithm]):
+    if algorithm in VALUE_LENGTHS and not lower_hex(value, VALUE_LENGTHS[algorithm]):
         return False, "error", "malformed signature value"
     header = {name: block.get(name) for name in HEADER_KEYS}
     try:
         signed = message(header)
     except (RecursionError, TypeError, ValueError):
         return False, "error", "malformed signed artifact content"
+    if algorithm in _pqsig.SIZES:
+        return _pqsig.verdict(algorithm, value, block.get("public_key"), signed, public_key)
     if algorithm == "hmac-sha256":
         if hmac_key is None:
             return False, "no-key", "HMAC signature present but no key supplied"
