@@ -45,6 +45,13 @@ def key_paths() -> tuple[Path, Path]:
     return base.with_suffix(".key"), base.with_suffix(".pub")
 
 
+def public_key_path() -> Path:
+    """Where the proxy's public key lives (never derived from the private half)."""
+    from opentine._agent_keys import key_dir
+
+    return (key_dir().parent / "proxy-keys" / "proxy").with_suffix(".pub")
+
+
 def keygen(force: bool = False) -> tuple[Path, str]:
     """Write a new proxy key pair; ``(public key path, fingerprint)``."""
     from opentine._agent_keys import local_fingerprints
@@ -52,7 +59,7 @@ def keygen(force: bool = False) -> tuple[Path, str]:
     from opentine._signing_pins import key_fingerprint
     from opentine.signing import generate_ed25519
 
-    private, public = key_paths()
+    private, public = key_paths()[0], public_key_path()
     if (private.exists() or public.exists()) and not force:
         raise FileExistsError(f"{private} already exists; pass --force to replace it")
     keypair = generate_ed25519()
@@ -63,7 +70,8 @@ def keygen(force: bool = False) -> tuple[Path, str]:
     atomic_write_text(public, keypair[1] + "\n")
     # Report only what is read back from the public file: nothing derived from the
     # generated pair (seed included) can reach the caller's output.
-    return public, key_fingerprint(bytes.fromhex(public.read_text().strip()))
+    shown = public_key_path()
+    return shown, key_fingerprint(bytes.fromhex(shown.read_text().strip()))
 
 
 def signing_key() -> Any | None:
