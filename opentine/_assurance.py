@@ -55,14 +55,15 @@ def keygen(force: bool = False) -> tuple[Path, str]:
     private, public = key_paths()
     if (private.exists() or public.exists()) and not force:
         raise FileExistsError(f"{private} already exists; pass --force to replace it")
-    seed, pub = generate_ed25519()
-    fingerprint = key_fingerprint(bytes.fromhex(pub))
-    if fingerprint in local_fingerprints():  # never: but the separation is the point
-        raise ValueError("the new proxy key collides with an agent key")
+    keypair = generate_ed25519()
+    if key_fingerprint(bytes.fromhex(keypair[1])) in local_fingerprints():  # never, but
+        raise ValueError("the new proxy key collides with an agent key")  # keep them apart
     private.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    atomic_write_text(private, seed + "\n", fsync=True, mode=0o600)
-    atomic_write_text(public, pub + "\n")
-    return public, fingerprint
+    atomic_write_text(private, keypair[0] + "\n", fsync=True, mode=0o600)
+    atomic_write_text(public, keypair[1] + "\n")
+    # Report only what is read back from the public file: nothing derived from the
+    # generated pair (seed included) can reach the caller's output.
+    return public, key_fingerprint(bytes.fromhex(public.read_text().strip()))
 
 
 def signing_key() -> Any | None:
