@@ -11,6 +11,11 @@ Sending ``q.tsq`` to a TSA is the user's job; opentine never contacts one.
 the run's current digest, then stores it beside the run
 (``_timestamp_sidecar``). It does not judge trust: ``tine verify RUN --offline
 --tsa-roots FILE.pem`` does.
+
+0.39 (X20): ``data --signature [N]`` prints ``sig:sha256:<hex>`` of the run's
+N-th signature block (default the first) instead, so the token covers that
+signature and ``tine verify`` reports the verified signing time. ``attach``
+accepts a token over the digest or over any signature the run carries.
 """
 
 from __future__ import annotations
@@ -32,6 +37,15 @@ def add_timestamp_parser(sub: Any) -> None:
     actions = stamp.add_subparsers(dest="timestamp_command", required=True)
     data = actions.add_parser("data", help="Print the bytes a timestamp token must cover")
     data.add_argument("run_id", metavar="RUN")
+    data.add_argument(
+        "--signature",
+        nargs="?",
+        type=int,
+        const=0,
+        default=None,
+        metavar="N",
+        help="Bind to the run's N-th signature block (default 0) instead of its digest",
+    )
     attach = actions.add_parser("attach", help="Store a TSA response beside the run")
     attach.add_argument("run_id", metavar="RUN")
     attach.add_argument("token", metavar="TOKEN.tsr", help="DER TimeStampResp or token")
@@ -60,7 +74,13 @@ def cmd_timestamp(args: argparse.Namespace) -> None:
     from opentine._tsp import HASHES, parse
 
     path, bound = _bound(args.run_id)
+    sig_bounds = sidecar.signature_bounds(path)
     if args.timestamp_command == "data":
+        index = getattr(args, "signature", None)
+        if index is not None:
+            if not 0 <= index < len(sig_bounds):
+                _fail(f"{path} has no signature block {index} ({len(sig_bounds)} stored)")
+            bound = sig_bounds[index]
         sys.stdout.write(bound)
         sys.stdout.flush()
         return
@@ -77,8 +97,14 @@ def cmd_timestamp(args: argparse.Namespace) -> None:
         _fail(f"{args.token} is not an RFC 3161 timestamp token: {exc}")
     if token.hash_oid not in HASHES:
         _fail(f"unsupported imprint hash {token.hash_oid}")
-    if hashlib.new(token.hash_name, bound.encode("utf-8")).digest() != token.imprint:
+    covered = [
+        b
+        for b in (bound, *sig_bounds)
+        if hashlib.new(token.hash_name, b.encode("utf-8")).digest() == token.imprint
+    ]
+    if not covered:
         _fail(f"the token does not cover this run's digest {bound}; see `tine timestamp data`")
+    bound = covered[0]
     try:
         added = sidecar.attach(path, bound, raw)
     except (OSError, ValueError) as exc:
