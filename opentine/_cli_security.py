@@ -18,6 +18,7 @@ from opentine._cli_verify_report import (
     unchecked_signature,
 )
 from opentine._key_hygiene import ed25519_private, hmac_key
+from opentine._key_lifecycle_verify import refuse_out_of_window
 from opentine._signing_pins import apply_pins, normalize_pins, used_key_fingerprint
 from opentine._trust_policy import apply as apply_trust_policy
 from opentine.core import Run, short_id
@@ -158,6 +159,7 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
             f"{_terminal(signature.reason)}"
         )
         raise SystemExit(1)
+    window = refuse_out_of_window(fingerprint, signature.signed_at, args)
     tofu = (
         " [yellow](TOFU — self-asserted key, not verified)[/]" if "tofu" in signature.state else ""
     )
@@ -166,6 +168,7 @@ def _verify_signature_if_requested(args: argparse.Namespace, path: Path) -> None
         f"[green]SIGNATURE OK[/] alg={_terminal(signature.algorithm)} "
         f"key_id={_terminal(signature.key_id or '-')} "
         f"signer={_terminal(signature.signer or '-')}{key}{tofu}"
+        + (f" [yellow]({window})[/]" if window else "")
     )
 
 

@@ -761,6 +761,8 @@ tine agent audit --policy p.toml --require-signed   Also fail unless every run's
 tine agent id --harness claude-code --model M       The agt_ ref an agent records (definition files hashed)
 tine agent show <run|agt_ref>                       Identity, trust state and lineage of a run or agent
 tine trust keygen --agent coder                     An agent signing key, kept in the user config dir
+tine key rotate --agent coder                       New key; the old one gets not_after=now and endorses it
+tine key revoke sha256:... --at 2026-01-01T00:00:00Z  Signatures verified as made after that time fail
 tine agent actions <run> --sign --agent coder       Sign the run's actions (tine-actions/1)
 tine agent actions <run> --verify --pin sha256:...  Trust state: verified, unsigned, mismatch or unknown-key
 tine agent who --lineage agt_... --verified-only    An agent and its subagents, verified runs only

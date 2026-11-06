@@ -301,8 +301,8 @@ Old spellings (`tine sign`, `tine keygen`, `tine attest`, …) still work; see [
 bound to `sig:sha256:<hex>` (the hash of one signature block) proves the
 *signature* existed at genTime, which is the **verified signing time** the
 report records as `signing_time`. A token for a signature the run no longer
-carries fails (`timestamp.signature-mismatch`). This release establishes the
-time only: checking that the signing key was valid at that time is 0.41.
+carries fails (`timestamp.signature-mismatch`). 0.41 checks the signing
+key's lifecycle window against this time (below).
 
 **X22.** A verify report used to be a claim anyone could edit. With
 `--sign-key` it is canonical JSON signed (`tine-sig/3`, domain
@@ -324,6 +324,51 @@ the key holder chose, bound to nothing but the key.
 
 **replay/v1.** The attestation signs the replay verdict for one source digest;
 it is evidence of what the verifier observed, and carries no transcript text.
+
+## Key lifecycle and verifier hardening (0.41)
+
+**X23, key lifecycle.** Every Ed25519 key (local signing keys, agent keys, the
+proxy witness key) is named by its fingerprint and can carry `not_before`,
+`not_after` and `revoked_at`. Windows come from the user-scoped
+`$XDG_CONFIG_HOME/opentine/key-lifecycle.json` (written by `tine key rotate`
+and `tine key revoke`, refused when it is a symlink), a *trusted*
+`.tine/agents.toml`, and a trust policy's `key_lifecycle` table; the strictest
+window wins, so a cloned project can shorten a window but never lengthen one
+the user recorded. The window is judged against the **verified signing time**
+(0.39, X20): a signature whose token is dated at or after `revoked_at`, after
+`not_after` or before `not_before` fails. Without a verified time the verdict
+is the explicit *unverified time* state, and it fails closed for a revoked key:
+the signer's own `signed_at` can show a signature is too late, never that it is
+early enough. Rotation has the old key sign `opentine.key-rotation.v1:` + JCS
+of `{schema, old, new, new_public_key, at}`, so the chain from a pinned key to
+its successor can be checked; a revoked key cannot endorse a successor. Not
+covered: revocation is local state, not distributed (there is no CRL or
+transparency log of revocations), and a token's `accuracy` does not yet widen
+the signing time used for the window.
+
+**X26, RFC 3161.** Tokens must carry exactly one ESS `signingCertificate` or
+`signingCertificateV2` attribute (RFC 3161 §2.4.1, RFC 5816) whose first
+`certHash` (and `issuerSerial`, when present) is the certificate that verified
+the signature; the timeStamping EKU must be critical and the only purpose
+(§2.3); a critical TSTInfo extension, or an unrecognised critical extension in
+any certificate on the path, is refused; genTime plus or minus `accuracy` must
+lie inside the TSA certificate's validity; an issuer with a KeyUsage extension
+must allow `keyCertSign`; `--tsa-policy OID` restricts the accepted policies;
+the nonce is reported (offline there is no request to match it against, so
+`verify_token(nonce=...)` checks it only for a caller that kept one).
+
+**X27, attestation binding.** A `tine-attest/2` record inside an in-toto
+statement now names `signer_key` (the signer's fingerprint), and verification
+requires the record to be signed by the DSSE envelope's key and, when named,
+the named key to be that key. Records written before 0.41 have no
+`signer_key`: they still verify when their signature is the envelope key's,
+and the attestation check reports them as `record unbound`.
+
+**X31, stale TUF roots.** Before the TUF-installed `trusted_root.json` is used,
+the stored `root`, `timestamp`, `snapshot` and `targets` metadata are checked
+for expiry (TUF 1.0 §5); an expired or unreadable one refuses keyless
+verification (exit 6) with a pointer to `tine trust root update`.
+`--allow-stale-root` overrides it with a warning.
 
 ## Fork identity (v2)
 

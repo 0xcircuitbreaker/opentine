@@ -451,6 +451,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine", "--offline"], ["--tsa-roots", "tsa.pem"], "honoured"),
     # 0.35: --hermetic re-runs the offline verifier in an OS no-network sandbox
     (["verify", "source.tine"], ["--hermetic"], "refused"),
+    # 0.41: --tsa-policy restricts the offline timestamp check's TSA policies
+    # (--allow-stale-root only matters when a TUF-installed root is used; it rides
+    # in the base here, tests/test_041_key_lifecycle.py checks what it does)
+    (["verify", "source.tine", "--allow-stale-root"], ["--tsa-policy", "1.2.3"], "refused"),
     # 0.39: assurance tiers -- a floor, an extra witness key, the divergence report
     (["verify", "source.tine"], ["--min-assurance", "T2"], "honoured"),
     (["verify", "source.tine"], ["--proxy-pubkey", "missing.pub"], "honoured"),

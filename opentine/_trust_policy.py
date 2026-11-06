@@ -43,6 +43,7 @@ FIELDS = (
     "fulcio_root",
     *SCT_FIELDS,
     "trusted_root",
+    "key_lifecycle",  # 0.41 (X23): {fingerprint: {not_before, not_after, revoked_at}}
 )
 KEY_DESTS = ("key_env", "key_file", "pubkey", "pin", "trust_embedded_key")
 #: Any of these given on the command line means the caller chose trust explicitly.
@@ -164,6 +165,13 @@ def check_policy(name: str, policy: Any) -> dict[str, Any]:
     from opentine._signing_pins import normalize_pins
 
     normalize_pins(pins)
+    if "key_lifecycle" in policy:
+        from opentine._key_lifecycle import check_table
+
+        try:
+            check_table(policy["key_lifecycle"])
+        except ValueError as exc:
+            raise PolicyError(f"policy {name!r}: {exc}") from None
     return policy
 
 
@@ -209,7 +217,9 @@ def apply(args: argparse.Namespace) -> None:
             _fail(f"policy {name!r}: {field} {path} is not a readable file")
     keyed = bool(given(args, KEY_DESTS))
     for field, value in policy.items():
-        if (field in ("pubkey", "pin") and keyed) or given(args, (field,)):
+        if (field in ("pubkey", "pin") and keyed) or (
+            field in EXPLICIT_DESTS and given(args, (field,))
+        ):
             continue
         setattr(args, field, list(value) if field in ("pin", "ct_key") else value)
         applied.append(field)

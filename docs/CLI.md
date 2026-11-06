@@ -592,6 +592,41 @@ The flag is not spelled `--signer` there because `tine sign --signer` already
 names the signer recorded in the block. Every backend's signature is checked
 against its public key before it is used.
 
+## Key lifecycle and verifier hardening (0.41)
+
+| Command | What it does |
+| --- | --- |
+| `tine key rotate KEY [--out NEW] [--json]` | A new Ed25519 key, written as encrypted PKCS#8, replaces the private key file KEY (and `KEY.pub`); the old pair is kept as `KEY-retired-<fp12>`. The old key gets `not_after = now`, the new one `not_before = now`, and the old key signs an endorsement of the new one (`tine-key-rotation/1`). `--out NEW` writes the new key elsewhere and leaves KEY in place |
+| `tine key rotate --agent NAME` / `--proxy` | The same for an agent key (`keygen --agent`) or the proxy witness key (`proxy keygen`); the retired proxy key goes to `proxy-keys/retired/`, as with `proxy migrate`, and stays trusted for T2. A proxy key held by a signer is refused (use `proxy migrate`) |
+| `tine key revoke KEY [--at TIME] [--json]` | Records `revoked_at` (RFC 3339, default now) for `sha256:<hex>`, a `.pub` file or a private key file. An earlier revocation already recorded stands; a malformed `--at` is a usage error (exit 2) |
+| `tine verify RUN --offline --tsa-policy OID` | Accept only RFC 3161 tokens issued under this TSA policy (repeatable) |
+| `tine verify RUN ... --allow-stale-root` | Use the TUF-installed trusted root even though its metadata has expired (a warning on stderr) |
+
+Both `tine key` verbs write only `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`.
+A trusted `.tine/agents.toml` may also carry windows
+(`[agents.NAME.lifecycle."sha256:<hex>"] not_after = "..."`), as may a trust
+policy's `key_lifecycle` table; the strictest window wins.
+
+`tine verify RUN --offline` adds a `key-lifecycle` check whenever a window
+names the signer key, judged against the report's verified `signing_time` (a
+signature-bound RFC 3161 token): `lifecycle.valid`, `lifecycle.expired`,
+`lifecycle.not-yet-valid` or `lifecycle.revoked`. With no verified time it is
+`unavailable-offline` / `lifecycle.unverified-time`, except that a revoked key
+fails (`lifecycle.revoked-unverified-time`) and a claimed `signed_at` outside
+the window fails. Plain `tine verify RUN --pubkey/--pin` has no verified time:
+it exits 4 (`verification_failed`) on those failures and otherwise notes that
+the window was checked against an unverified time.
+
+Timestamp tokens now fail with `timestamp.signing-cert-mismatch` (no single
+ESS signingCertificate/V2 attribute binding the TSA certificate),
+`timestamp.critical-extension`, `timestamp.policy-not-allowed`, or
+`timestamp.missing-eku` when the timeStamping EKU is not critical or not alone;
+genTime plus or minus the token's accuracy must lie inside the TSA validity.
+An attestation's `tine-attest/2` record must be signed by the DSSE envelope's
+key; the detail says `record bound` (0.41 records name `signer_key`) or
+`record unbound` (older records, still accepted). Keyless verification refuses
+(exit 6) a TUF-installed trusted root whose stored metadata has expired.
+
 ## Push preview and manifest (0.36)
 
 `tine push REMOTE --dry-run` (alias `--outgoing`) prints, as JSON, exactly what
