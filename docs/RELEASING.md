@@ -126,8 +126,10 @@ before changing a workflow.
    `github-release` jobs pass. `gates` runs the fast gates and test suite;
    `build` then runs the source and version checks, the CI gate, both builds,
    the inventory, metadata, and installed-wheel checks, and generates the
-   CycloneDX SBOM (`opentine.cdx.json`). The GitHub release carries the SBOM
-   and lists it in `SHA256SUMS`; PyPI receives only the wheel and sdist.
+   CycloneDX SBOM (`opentine.cdx.json`). `build` also builds
+   `tine-verify.pyz` with `scripts/build_verifier.py --check` (see below). The
+   GitHub release carries the SBOM and the pyz and lists both in `SHA256SUMS`;
+   PyPI receives only the wheel and sdist.
 7. Verify that PyPI and the GitHub release contain the same wheel and sdist.
    Check `SHA256SUMS` and the GitHub build-provenance attestation:
 
@@ -135,6 +137,7 @@ before changing a workflow.
    sha256sum -c SHA256SUMS
    gh attestation verify opentine-0.3.0-py3-none-any.whl \
      --repo 0xcircuitbreaker/opentine
+   gh attestation verify tine-verify.pyz --repo 0xcircuitbreaker/opentine
    ```
 8. Now that the tag exists, follow the pinned URLs from step 2 and confirm they
    resolve: the rendered `README.md` on GitHub and the project links on PyPI.
@@ -142,3 +145,27 @@ before changing a workflow.
 PyPI distributions are immutable. If publication fails after either destination
 has accepted an artifact, diagnose the existing workflow run; never rebuild and
 upload different bytes under the same version.
+
+## `tine-verify.pyz` (0.39)
+
+The release carries `tine-verify.pyz`, a zipapp that verifies `.tine` files and
+evidence folders with nothing but Python 3.11+. It needs no pip, no native code
+and no network. `opentine/_pyz_build.py` builds it from `opentine/_pyz/`, plus
+`opentine/kernel.py` and `opentine/_ed25519_order.py` vendored verbatim.
+
+The build is reproducible. Members are stored, not deflated, in sorted order.
+Each has the same timestamp (`SOURCE_DATE_EPOCH`, which the `build` job sets to
+the release commit's time), mode 0644 and LF line endings. Anyone can rebuild
+the pyz from the tag and compare the bytes:
+
+```bash
+git checkout v0.39.0
+SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)" \
+  python3 scripts/build_verifier.py --out rebuilt --check
+sha256sum rebuilt/tine-verify.pyz   # equals the tine-verify.pyz line in SHA256SUMS
+```
+
+`--check` builds twice and fails unless the two builds are identical. The asset
+is covered by `SHA256SUMS` and by the same build-provenance attestation as the
+wheel and sdist. For the same sources, `tine evidence export --with-verifier`
+writes the same bytes into the folder it exports.

@@ -640,6 +640,41 @@ tool access is running their task: pass `--prompt` to send your own. A key
 pinned in `agents.toml` verifies only runs whose identity claims the agent it is
 listed under.
 
+## The standalone verifier (`tine-verify.pyz`, 0.39)
+
+`tine-verify.pyz` is a release asset that verifies a `.tine` file (format v4 or
+v2) or an evidence folder with only the Python 3.11+ standard library: run it as
+`python3 -I -S tine-verify.pyz PATH [--pubkey KEY.pub | --key-file KEY]`.
+
+- **What it trusts.** Its own bytes, checked against `SHA256SUMS` and the
+  release's build-provenance attestation, or rebuilt from the tag (the build
+  is reproducible, see `docs/RELEASING.md`). It contains no native code: SHA-256,
+  HMAC, zlib and xz come from the stdlib, and Ed25519 verification is a
+  pure-Python RFC 8032 routine (`opentine/_pyz/_ed25519.py`, verify only) that is
+  tested against the RFC 8032 and Wycheproof vectors and agrees with OpenSSL on
+  all 210 Wycheproof cases. No secret ever reaches it, so it does not need to
+  be constant-time.
+- **What it checks.** The `digest` and `signature` checks of
+  `tine verify --offline`, with the same outcomes and reason codes. They are
+  computed with `opentine/kernel.py` vendored verbatim: every v4 envelope oid is
+  re-derived, links are validated, the root's closure must reach every object
+  and annotations form one chain. A trusted Ed25519 key must equal the embedded
+  key and must not be of small order. Evidence folders also get the manifest
+  and custody checks. A test holds its verdicts equal to `tine verify --offline`
+  on the compat fixtures, the conformance integrity vectors and tampered v4 runs.
+- **What it does not check.** The full run-record validators of
+  `opentine.repository.runs.load_run`, the `upgraded_from` record's shape,
+  attestations, Rekor receipts, certificates, timestamps and action manifests.
+  For those, use `tine verify --offline`.
+- **Network.** Before it reads anything, the verifier replaces every socket
+  connect and name lookup in its process with a refusal. Offline verification
+  never touches the network (ROADMAP §2).
+- **zstd.** zstd needs a native decoder, so zstd-coded content is refused with
+  `digest.zstd-unsupported` and the hint to re-export. `tine evidence export
+  --with-verifier` re-encodes zstd runs to the archival codec (xz, else zlib)
+  over the same uncompressed bytes, which leaves digests, roots and signatures
+  unchanged, and puts the pyz in the folder under the manifest.
+
 ## Storage compression and indexes
 
 Compressed artifacts, objects and packs are inflated only after their declared length is checked against the reader's limit and a 1000:1 ratio, and they must inflate to exactly that length with nothing after the frame; nested compression and unknown codecs are refused. Packed objects are checked against their ids on every read and by fsck. A pack index must tile each block exactly, a block of several objects stays within 1 MiB and must inflate to exactly the size its entries describe, and fsck, gc and archive restore read block by block, so a crafted pack cannot force a large block to be re-inflated per object. Each stored body is one object or one run, so compression never mixes a secret with attacker-chosen input in one frame, and identities and signatures never cover stored bytes. The action index (`actions.sqlite`) is a rebuildable cache built only from redacted run content; every query filter is bound as an SQL parameter.
