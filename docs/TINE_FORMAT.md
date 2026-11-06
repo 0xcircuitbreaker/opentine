@@ -243,6 +243,24 @@ v3 content plus a deterministic old→new map. The run object
 sets `signature_scope = "legacy_blob_only"`; a legacy signature is never an
 attestation over the generated v3 objects.
 
+## Format v5: text blobs (0.40.0)
+
+`.tine` v5 (`kind: tine-artifact/5`, SPEC Part 10) is format v4 with one
+change of spelling: a blob whose bytes are well-formed UTF-8 is carried as a
+JSON string (`{"encoding": "text", "schema": N, "text": S, "type": "blob"}`)
+instead of base64; a blob that is not UTF-8 text keeps the v4 base64 envelope.
+The spelling is forced (a reader refuses UTF-8 text spelled as base64), so
+each run has exactly one v5 byte sequence. A reader rebuilds every stored
+envelope as `{"encoding":"raw",...}` header, newline, `UTF-8(S)`, so oids,
+the root and `tine-sig/3` signatures are the v4 ones, unchanged.
+
+Policy (ROADMAP §2): 0.40 ships the reader everywhere (`Run.load`,
+`tine verify`, `--offline`, `tine-verify.pyz`, `tine import --repo`, the
+TypeScript verifier). The writer is opt-in only, `tine --format 5` or
+`OPENTINE_FORMAT=5`; v4 stays the default until at least 0.42. Releases
+before 0.40 refuse a v5 file as an unknown format. Measured on a
+transcript-shaped corpus: -26.5% after zstd-3, -27.6% after zstd-19.
+
 ## Golden Fixtures
 
 `tests/fixtures/` holds `golden_v1.tine` (still verified under v1),

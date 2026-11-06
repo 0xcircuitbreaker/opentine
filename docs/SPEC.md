@@ -3,8 +3,9 @@
 **Status:** normative for opentine 0.9.0-dev. **Formats covered:** portable
 `.tine` artifact `format_version` 1 and 2; the v3 `.tine/` repository object
 model, wire format and pack format; the three signature schemes `tine-sig/1`,
-`tine-sig/2` and `tine-attest/1`; and, since 0.26.0, format v4 (Part 9, the
-default writer) with `tine-sig/3` and `tine-attest/2`.
+`tine-sig/2` and `tine-attest/1`; since 0.26.0, format v4 (Part 9, the
+default writer) with `tine-sig/3` and `tine-attest/2`; and, since 0.40.0, the
+format v5 reader (Part 10: text blobs, opt-in writer).
 
 This document is written for someone implementing a **reader, writer or
 verifier in another language**. Everything here is derived from the reference
@@ -1743,7 +1744,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 636 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 645 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 
@@ -2310,3 +2311,117 @@ A v4 file and a v3 repository hold the same envelopes, so they share oids.
   repository run is representable (§0.2 already refuses what v4 refuses).
 - **Bundles and packs** carry v4 runs unchanged (§9.1 rule 5).
 
+
+# Part 10 — Format v5: text blobs (0.40.0)
+
+**Status:** normative since 0.40.0 for **readers**. Format v5 is a second
+*spelling* of a format v4 document (Part 9) in which blobs that are UTF-8 text
+travel as JSON strings instead of base64. It changes no object, no oid, no
+root and no signature: a v5 file and the v4 file of the same run carry the
+same envelopes and the same `tine-sig/3` blocks. The writer is **opt-in**:
+`tine --format 5 ...` or `OPENTINE_FORMAT=5` (`_format_v4.writer_format`);
+**v4 remains the default writer**. Following ROADMAP §2 (a new file format
+becomes the default only two minor releases after its reader ships), v5 may
+become the default no earlier than 0.42. A v5 file needs opentine 0.40 or
+newer (or the 0.40 TypeScript verifier) to read; 0.26–0.39 refuse it as an
+unknown format, never misread it.
+
+Reference: `opentine/_tine_v5.py` (standard library only; `tine-verify.pyz`
+vendors it verbatim).
+
+## 10.1 The document
+
+A v5 file is one JCS object (§0.2), optionally inside the `TINEZ1\0` wrapper of
+§2.3, with exactly the six top-level keys of §9.3. It differs from a v4
+document in three places only:
+
+| Key | v4 | v5 |
+|---|---|---|
+| `format_version` | the integer `4` | the integer `5` |
+| `kind` | `tine-artifact/4` | `tine-artifact/5` |
+| `objects` blob envelopes | `{"encoding": "raw", "schema": N, "type": "blob", "data": <base64>}` | a **text envelope** when the blob bytes are UTF-8 text (§10.2), else the v4 raw envelope unchanged |
+
+A **text envelope** has exactly the four keys
+`{"encoding": "text", "schema": N, "text": S, "type": "blob"}`, where `S` is a
+JSON string. JSON-encoded objects (`"encoding": "json"`), `annotations`,
+`root` and `signatures` are spelled exactly as in v4. Detection is by
+`format_version` **and** `kind` together (`_tine_v5.is_v5_artifact`).
+
+## 10.2 Which spelling: exactly one per blob
+
+A reader tells the spellings apart by the envelope's `encoding` member alone:
+`"text"` is a text envelope, `"raw"` is base64, `"json"` is a JSON object.
+
+Let `B` be a raw blob's stored body bytes. `B` is **UTF-8 text** when it is
+well-formed UTF-8 per RFC 3629 / Unicode Table 3-7: no byte `C0`, `C1` or
+`F5`–`FF`, no overlong form, no encoded surrogate (`ED A0 80`–`ED BF BF`), no
+scalar above U+10FFFF, no truncated sequence. The empty body is UTF-8 text.
+U+0000, CR, CRLF, a leading U+FEFF, U+2028/U+2029 and every other scalar value
+are text. (This is exactly what a strict decoder such as Python's
+`bytes.decode("utf-8")` or WHATWG `TextDecoder("utf-8", {fatal: true,
+ignoreBOM: true})` accepts.)
+
+- A writer MUST spell a raw blob as a text envelope when `B` is UTF-8 text,
+  with `S` the string whose UTF-8 encoding is `B`, and as the v4 raw envelope
+  (canonical base64, §9.3) when it is not.
+- A reader MUST refuse a raw envelope whose base64 decodes to UTF-8 text (a
+  second spelling of the same blob), a text envelope whose `type` is not
+  `blob` or whose keys are not exactly the four above, and a `text` that is
+  not a string or that holds an unpaired surrogate (§0.1; `\ud800` escapes
+  are refused by the §3.7 parser before this point).
+
+Because the choice is forced and the document is JCS, the v5 bytes of a run
+are a function of its v4 bytes: re-writing yields byte-identical output.
+
+## 10.3 Rebuilding canonical bytes
+
+A reader converts a v5 document to the v4 document it spells
+(`_tine_v5.to_v4`) and then applies §9.4 unchanged:
+
+1. Replace `format_version` with `4` and `kind` with `tine-artifact/4`.
+2. Replace each text envelope `{"encoding": "text", "schema": N, "text": S,
+   "type": "blob"}` with `{"data": base64(UTF-8(S)), "encoding": "raw",
+   "schema": N, "type": "blob"}` (RFC 4648 with padding).
+3. Leave every other member as it is.
+
+The stored envelope (§1.2) is therefore `JCS({"encoding": "raw", "schema": N,
+"type": "blob"}) || 0x0A || UTF-8(S)`: the header still says `raw`, because
+`text` is a transport spelling and never a stored encoding. The oid is §1.3
+over those bytes, so it is identical to the v4 oid. JSON escaping inside `S`
+(`\n`, `\r`, `\u0000`, `\"`, …) is undone by the JSON parser before step 2;
+nothing else is normalized — no newline conversion, no Unicode normalization,
+no BOM stripping.
+
+## 10.4 Signatures and attestations
+
+`tine-sig/3` (§9.6) signs `format_version: 4` and `kind: tine-artifact/4`
+whatever the spelling, together with the root, the annotation head and the
+header. A signature made over a v4 file therefore verifies, unchanged, over
+the v5 spelling of the same file and back. `tine-attest/2` (§9.7) targets the
+root and is unaffected.
+
+## 10.5 Reading, verifying and installing
+
+`Run.load`, `tine verify` (and `--offline`), `tine-verify.pyz`, datasets
+(§8.3) and `tine import FILE --repo` read a v5 file as its §10.3 v4 document,
+so every §9.4 refusal applies and every report names the v4 root. A tampered
+text blob no longer re-derives its oid: integrity fails and a signature over
+it is `mismatch`, exactly as for v4. Any tool that rewrites a v5 file (for
+example `tine sign`, `tine migrate`) writes the current writer format, which
+is v4 unless `--format 5` is given. TINEPACK, bundles and repositories store
+envelopes, not spellings, and are unaffected.
+
+## 10.6 Size
+
+On a transcript-shaped corpus (11 Claude Code sessions whose tool results are
+source files, test output and grep output), v5 is 15.1% smaller raw, **26.5%
+smaller after zstd-3** and **27.6% smaller after zstd-19** than v4. Base64
+costs 4/3 in size and destroys the redundancy zstd would find in the text.
+Binary blobs (images, compressed payloads) are unchanged.
+
+## 10.7 Conformance
+
+`docs/conformance/vectors/54-artifact-v5.json` carries the v5 cases: the
+golden run re-spelled as v5 under `tine-sig/3` (verified, tampered text,
+non-canonical base64 spelling, text on a non-blob, lone surrogate), and
+`oid.derive` cases showing a text blob's oid is its v4 oid.
