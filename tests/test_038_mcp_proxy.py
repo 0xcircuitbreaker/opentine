@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -98,7 +99,9 @@ class _Upstream(BaseHTTPRequestHandler):
         msg = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         reply = {"jsonrpc": "2.0", "id": msg["id"], "result": {"text": "token " + SECRET}}
         self.send_response(200)
-        self.send_header("Mcp-Session-Id", self.headers.get("Mcp-Session-Id") or "sess-1")
+        session = self.headers.get("Mcp-Session-Id") or "sess-1"
+        session = session if re.fullmatch(r"[A-Za-z0-9-]{1,64}", session) else "sess-1"
+        self.send_header("Mcp-Session-Id", session)
         if msg["method"] == "tools/call":
             body = f"event: message\ndata: {json.dumps(reply)}\n\n".encode()
             self.send_header("Content-Type", "text/event-stream")
