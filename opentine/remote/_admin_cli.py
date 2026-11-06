@@ -55,9 +55,9 @@ def add_admin_parsers(serve: argparse.ArgumentParser) -> None:
         help="Allow --grace-seconds below 60, which can race a push in progress",
     )
     reseal = actions.add_parser(
-        "reseal", help="Rewrite stored objects as aes3 (for a 0.11 rollback) or aes4 (compressed)"
+        "reseal", help="Rewrite stored objects as aes3 (0.11 rollback), aes4 (compressed) or aes6"
     )
-    reseal.add_argument("--to", required=True, choices=("aes3", "aes4"))
+    reseal.add_argument("--to", required=True, choices=("aes3", "aes4", "aes6"))
     reseal.add_argument(
         "--from",
         dest="source",

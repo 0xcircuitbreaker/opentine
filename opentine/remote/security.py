@@ -166,12 +166,18 @@ class LocalKeyProvider:
         self.refuse_legacy = refuse_legacy
 
     @classmethod
-    def from_env(cls, name: str = "TINE_KMS_KEY") -> LocalKeyProvider:
+    def from_env(cls, name: str = "TINE_KMS_KEY") -> Any:
+        """``LocalKeyProvider``, or ``XAESKeyProvider`` (TINEAES6) when a key id is set."""
         raw = os.environ.get(name)
         if not raw:
             raise RuntimeError(f"{name} is required for encrypted remote storage")
         try:
-            return cls(base64.b64decode(raw, validate=True))
+            key = base64.b64decode(raw, validate=True)
+            if os.environ.get("TINE_KMS_KEY_ID"):
+                from opentine.remote._xaes_provider import XAESKeyProvider
+
+                return XAESKeyProvider.from_env(key)
+            return cls(key)
         except ValueError as exc:
             raise ValueError(f"{name} must be a base64 AES key") from exc
 

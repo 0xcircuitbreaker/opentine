@@ -32,6 +32,7 @@ from typing import Any
 SEALED = b"TINEAES3"
 SEALED4 = b"TINEAES4"
 SEALED5 = b"TINEAES5"  # KMS envelope, ``_sealed_envelope``
+SEALED6 = b"TINEAES6"  # key id, epoch, XAES-256-GCM (0.41), ``_sealed6``
 _HEADER4 = len(SEALED4) + 1 + 8  # magic, codec byte, uncompressed length (u64 BE)
 OBJECT = "object"
 UPLOAD_FRAME = "upload-frame"
@@ -167,7 +168,7 @@ def refuse_legacy(configured: bool = False) -> bool:
 
 
 def check_legacy(ciphertext: bytes, configured: bool = False) -> None:
-    if refuse_legacy(configured) and not ciphertext.startswith((SEALED, SEALED4, SEALED5)):
+    if refuse_legacy(configured) and not ciphertext.startswith((SEALED, SEALED4, SEALED5, SEALED6)):
         raise ValueError(
             f"legacy TINEAES1/TINEAES2 ciphertext refused ({REFUSE_LEGACY_ENV}); "
             "run `tine serve reseal --from aes2` with the old setting first"
