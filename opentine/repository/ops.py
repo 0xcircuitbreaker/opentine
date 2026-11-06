@@ -140,6 +140,7 @@ def semantic_diff(repo: Repo, left: str, right: str) -> SemanticDiff:
                 "usage",
                 "billing",
                 "input_blob",
+                "input_parts",
                 "output_blob",
                 "artifact_blob",
                 "tool",

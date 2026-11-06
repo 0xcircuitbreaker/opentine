@@ -8,6 +8,7 @@ from opentine._blob_guard import guarded_blob_body
 from opentine._canon import _redact
 from opentine._jsonsafe import json_safe
 from opentine._v4_values import find_unrepresentable, warning_text
+from opentine.repository._prompt_parts import put_event_inputs
 from opentine.trace.schema import TraceEvent
 
 #: Where a trace event lists the fields it stored as strings (``metadata.warnings``
@@ -75,7 +76,6 @@ def put_trace_event(
         "causal_ids": causal,
         "cost": json_safe(cost or 0),
         "duration": json_safe(event.duration),
-        "input_blob": json_blob(repo, event.inputs),
         "kind": str(event.kind),
         "model": str(event.model),
         "output_blob": json_blob(repo, event.outputs),
@@ -89,6 +89,7 @@ def put_trace_event(
     # always-present key would re-address every event imported without a provider.
     if event.provider:
         payload["provider"] = str(event.provider)
+    put_event_inputs(payload, event.inputs, lambda value: json_blob(repo, value))
     if softened and isinstance(payload["attributes"], dict):
         listed = payload["attributes"].get(WARNINGS_KEY)
         listed = list(listed) if isinstance(listed, list) else []

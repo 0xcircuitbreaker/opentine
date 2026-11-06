@@ -274,6 +274,7 @@ def test_the_inspection_module_has_no_hookless_json_reader_left():
 BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_036_push_preview.py": "git",
+    "tests/test_038_tree_snapshots.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_git_push_sync_0_23.py": "git",
@@ -290,6 +291,8 @@ BINARY_DEPENDENT_TEST_MODULES = {
 #: usable git, so each must decide with a skip and must tolerate a missing binary --
 #: either by testing for it or by containing the OSError the spawn raises.
 CHECKOUT_AWARE_TEST_MODULES = {
+    # Plants .git in a workspace to prove snapshots and rewind leave it alone.
+    "tests/test_038_tree_snapshots.py",
     "tests/test_release_audit_round10_lows.py",
     # Plants a .git in tmp_path to prove the fs tool refuses writes into one.
     "tests/test_security_0_9_1.py",

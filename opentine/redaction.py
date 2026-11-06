@@ -14,6 +14,8 @@ from typing import Any
 from opentine._canon_redact import MAX_CANONICAL_DEPTH, _too_deep
 from opentine._redact_b64 import b64_text_step
 from opentine._redact_edits import Edit, Step, run, sub_step
+from opentine._redact_edits import keep_ends as _keep_ends
+from opentine._redact_edits import keep_head as _keep_head
 from opentine._redact_fields import FIELD, NAME_TAIL, quoted_field_edits
 from opentine._redact_flags import flag_edits
 from opentine._redact_forms import B64_KEY_STEP, FORM_STEPS
@@ -23,7 +25,9 @@ from opentine._redact_names import secret_name
 from opentine._redact_obfuscated import disguised_edits, entropy_edits
 from opentine._redact_pem import private_key_edits
 from opentine._redact_ppk import ppk_edits
-from opentine._redact_shapes import QUERY_SECRET, TOKEN_SHAPES, URL_USERINFO
+from opentine._redact_shapes import HEADER_NEEDLES as _HEADERS
+from opentine._redact_shapes import NAME_NEEDLES as _NAMES
+from opentine._redact_shapes import QUERY_SECRET, TOKEN_NEEDLES, TOKEN_SHAPES, URL_USERINFO
 from opentine._unicode_text import assert_unicode_text
 
 # A credential-bearing identifier: an optional vendor/scope prefix (OPENAI_, X-, AWS_, …)
@@ -151,14 +155,6 @@ def _redact_blob(value: bytes) -> bytes:
     return redact_json(value, _scan, STEPS)
 
 
-def _keep_ends(match: re.Match[bytes]) -> bytes:
-    return match.group(1) + b"[REDACTED]" + match.group(3)
-
-
-def _keep_head(match: re.Match[bytes]) -> bytes:
-    return match.group(1) + b"[REDACTED]"
-
-
 #: The byte scan, in order. ``_redact_json`` also runs each step alone to find
 #: where a step would remove something. Private-key blocks go first, PEM and
 #: base64-wrapped alike: a value pattern that runs across a JSON-escaped ``\\n``
@@ -170,19 +166,23 @@ STEPS: list[Step] = [
     B64_KEY_STEP,
     b64_text_step(lambda value: _scan(value)),  # other base64-wrapped secrets
     _quoted_field_edits,
-    *(sub_step(p, _keep_ends) for p in (_NAMED_HEADER, _REVERSED_NAMED_HEADER, _HEADER_PAIR)),
-    *(sub_step(p, _keep_ends) for p in (_QUOTED_HEADER_LINE, _QUOTED_HEADER, _QUOTED_TOKEN)),
-    sub_step(_LINE_ASSIGNMENT, _keep_head),
-    sub_step(_HEADER_LINE, _keep_head),
-    sub_step(_ASSIGNMENT, _assignment),
-    sub_step(_BEARER, _keep_head),
+    *(
+        sub_step(p, _keep_ends, needles=_NAMES + _HEADERS)
+        for p in (_NAMED_HEADER, _REVERSED_NAMED_HEADER, _HEADER_PAIR)
+    ),
+    *(sub_step(p, _keep_ends, needles=_HEADERS) for p in (_QUOTED_HEADER_LINE, _QUOTED_HEADER)),
+    sub_step(_QUOTED_TOKEN, _keep_ends, needles=(b"token",)),
+    sub_step(_LINE_ASSIGNMENT, _keep_head, needles=_NAMES),
+    sub_step(_HEADER_LINE, _keep_head, needles=_HEADERS),
+    sub_step(_ASSIGNMENT, _assignment, needles=_NAMES),
+    sub_step(_BEARER, _keep_head, needles=(b"bearer",)),
     flag_edits,  # ``--password x`` / ``--token "x"`` (``_redact_flags``)
     # Tokens before the bounded form values, so a value cut at its bound cannot take
     # a token's prefix and leave the rest behind (see also ``_redact_tails``).
     disguised_edits,  # URL-escaped, zero-width-split or fullwidth tokens
-    sub_step(TOKEN_SHAPES, b"[REDACTED]"),
-    sub_step(URL_USERINFO, _keep_ends),
-    sub_step(QUERY_SECRET, _keep_head),
+    sub_step(TOKEN_SHAPES, b"[REDACTED]", needles=TOKEN_NEEDLES),
+    sub_step(URL_USERINFO, _keep_ends, needles=(b"://",)),
+    sub_step(QUERY_SECRET, _keep_head, needles=(b"=",)),
     *FORM_STEPS,
     entropy_edits,  # high-entropy values under key-ish names (``_redact_obfuscated``)
 ]

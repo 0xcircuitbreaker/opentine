@@ -22,17 +22,55 @@ from opentine.repository._packs import pack_set
 from opentine.repository._paths import internal_path
 from opentine.repository._storage import _PACK_FRESHEN
 
+_close = os.close  # bound once: a test that patches os.close is watching other fds
+_DIR_FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+#: ``openat``-style walking: each component is opened relative to its parent with
+#: O_NOFOLLOW, so the kernel refuses a symlinked component during the walk itself
+#: and no per-component ``lstat`` plus two ``realpath`` calls are needed per link.
+_OPENAT = (
+    os.open in os.supports_dir_fd
+    and os.utime in os.supports_dir_fd
+    and os.utime in os.supports_follow_symlinks
+    and bool(getattr(os, "O_NOFOLLOW", 0) and getattr(os, "O_DIRECTORY", 0))
+)
+
+
+def _touch_loose_at(base: Path, parts: tuple[str, ...]) -> bool | None:
+    """``touch_stored``'s loose half through directory fds: what the confined walk
+    decides, without it. ``None`` means not stored loose (FileNotFoundError)."""
+    fds: list[int] = []
+    try:
+        fds.append(os.open(base, _DIR_FLAGS))
+        for part in parts[:-1]:
+            fds.append(os.open(part, _DIR_FLAGS, dir_fd=fds[-1]))
+        # Not following a final symlink: the confined walk refused one (and so
+        # counted it as stored), and touching the link itself changes nothing else.
+        os.utime(parts[-1], dir_fd=fds[-1], follow_symlinks=False)
+        return True
+    except FileNotFoundError:
+        return None if fds else True  # a missing root is refused, as internal_path does
+    except OSError:
+        return True  # a symlinked or special component, a read-only store: as before
+    finally:
+        for fd in fds:
+            _close(fd)
+
 
 def touch_stored(base: Path, oid: str) -> bool:
     """Re-touch *oid* where it is stored; ``False`` when it is not stored."""
     object_type, digest = parse_oid(oid)
-    try:
-        os.utime(internal_path(base, "objects", object_type, digest[:2], digest[2:]))
-        return True
-    except FileNotFoundError:
-        pass
-    except (KernelError, OSError):
-        return True  # read-only store, or a path being deleted by a gc (Windows)
+    parts = ("objects", object_type, digest[:2], digest[2:])
+    if _OPENAT:
+        if _touch_loose_at(base, parts):
+            return True
+    else:
+        try:
+            os.utime(internal_path(base, *parts))
+            return True
+        except FileNotFoundError:
+            pass
+        except (KernelError, OSError):
+            return True  # read-only store, or a path being deleted by a gc (Windows)
     packs = pack_set(base)
     for _ in range(2):  # a stale pack listing: rescan once
         found = packs.locate(oid)

@@ -36,6 +36,7 @@ EVENT_COPY_FIELDS = (
     "duration",
     "error",
     "input_blob",
+    "input_parts",
     "kind",
     "model",
     "output_blob",

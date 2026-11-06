@@ -12,6 +12,7 @@ OBJECT_TYPES = frozenset({"blob", "event", "run", "attestation", "annotation"})
 OID_RE = re.compile(r"^(blob|event|run|attestation|annotation):sha256:([0-9a-f]{64})$")
 #: One nesting bound for both directions: what ``_encode`` writes, ``validate_json_shape`` reads.
 MAX_JSON_DEPTH = 512
+TREE_SCHEMA = 2  # a schema-2 blob is a workspace tree; its entries' oids are links (SPEC 1.5.7)
 
 
 class KernelError(ValueError):
@@ -51,11 +52,8 @@ def _number(value: int | float) -> str:
         return "0"
     raw = repr(value).lower()
     if 1e-6 <= abs(value) < 1e21:
-        if "e" in raw:
-            raw = format(Decimal(raw), "f")
-        if "." in raw:
-            raw = raw.rstrip("0").rstrip(".")
-        return raw
+        raw = format(Decimal(raw), "f") if "e" in raw else raw
+        return raw.rstrip("0").rstrip(".") if "." in raw else raw
     coefficient, exponent = (raw if "e" in raw else format(value, ".15e")).split("e")
     return f"{coefficient.rstrip('0').rstrip('.')}e{int(exponent):+d}"
 
@@ -179,45 +177,49 @@ def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
     def event_ids(ids: Any) -> bool:
         return isinstance(ids, list) and all(parse_oid(oid)[0] == "event" for oid in ids)
 
-    if envelope.encoding == "raw":
+    if envelope.encoding == "raw" and envelope.schema != TREE_SCHEMA:
         return ()
-    payload = envelope.payload()
+    try:
+        payload = envelope.payload() if envelope.encoding == "json" else json.loads(envelope.body)
+    except (ValueError, RecursionError) as exc:
+        raise KernelError("malformed tree blob") from exc
     if not isinstance(payload, dict):
         raise KernelError(f"{envelope.object_type} payload must be an object")
     links: list[str] = []
+    if envelope.encoding == "raw":
+        entries = payload["entries"] if isinstance(payload.get("entries"), list) else [None]
+        links = [entry.get("oid") if isinstance(entry, dict) else None for entry in entries]
+        if any(not isinstance(link, str) or parse_oid(link)[0] != "blob" for link in links):
+            raise KernelError("tree entries must link blob ids")
     if envelope.object_type == "event":
         for field in ("parent_ids", "causal_ids"):
-            values = payload.get(field, [])
-            if not event_ids(values) or len(set(values)) != len(values):
+            if not event_ids(values := payload.get(field, [])) or len(set(values)) != len(values):
                 raise KernelError(f"{field} must contain event ids; unique event ids are required")
             links.extend(values)
-        for field in ("input_blob", "output_blob", "artifact_blob"):
-            if payload.get(field) and parse_oid(payload[field])[0] != "blob":
+        parts = payload.get("input_parts", {})  # prompt parts, SPEC 1.5.2
+        pairs = [(k, payload.get(k)) for k in "input_blob output_blob artifact_blob tree".split()]
+        pairs += parts.items() if isinstance(parts, dict) else [("input_parts", "-")]
+        for field, value in pairs:
+            if value and parse_oid(value)[0] != "blob":
                 raise KernelError(f"{field} must contain a blob id")
-            if payload.get(field):
-                links.append(payload[field])
+            links.extend([value] if value else [])
     if envelope.object_type == "run":
         if not isinstance(payload.get("manifests", {}), dict):
             raise KernelError("manifests must be an object")
-        event_values = payload.get("events", [])
-        if not event_ids(event_values) or len(set(event_values)) != len(event_values):
+        if not event_ids(evs := payload.get("events", [])) or len(set(evs)) != len(evs):
             raise KernelError("events must contain unique event ids")
-        events = set(event_values)
         field_values: list[str] = []
         for field in ("roots", "tips"):
-            values = payload.get(field, [])
-            if not event_ids(values) or len(set(values)) != len(values):
+            if not event_ids(values := payload.get(field, [])) or len(set(values)) != len(values):
                 raise KernelError(f"{field} must contain unique events from the run")
-            if not set(values) <= events:
+            if not set(values) <= set(evs):
                 raise KernelError(f"{field} must be a subset of events")
             field_values.extend(values)
-        blobs = [
-            *payload.get("manifests", {}).values(),
-            *(value for key, value in payload.items() if key.endswith("_blob") and value),
-        ]
+        blobs = [*payload.get("manifests", {}).values()]
+        blobs += [value for key, value in payload.items() if key.endswith("_blob") and value]
         if any(parse_oid(value)[0] != "blob" for value in blobs):
             raise KernelError("run blob fields must contain blob ids")
-        links = [*field_values, *event_values, *blobs]
+        links = [*field_values, *evs, *blobs]
     if envelope.object_type in {"annotation", "attestation"}:
         links = [payload["target_id"]] if payload.get("target_id") else []
         if envelope.object_type == "annotation" and payload.get("previous_id"):
@@ -229,11 +231,10 @@ def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
         if envelope.object_type == "attestation":
             if parse_oid(payload.get("target_id", ""))[0] != "run":
                 raise KernelError("attestation target_id must contain a run id")
-    envelope_oid = envelope.oid
+    if envelope.oid in links:
+        raise KernelError("object cannot link to itself")
     for link in links:
         parse_oid(link)
-        if link == envelope_oid:
-            raise KernelError("object cannot link to itself")
         if exists is not None and not exists(link):
             raise KernelError(f"missing linked object: {link}")
     return tuple(links)

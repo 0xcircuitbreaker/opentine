@@ -19,6 +19,7 @@ from opentine._fork_edit import UNSET, edit_fields
 from opentine._graph_types import StepKind, step_id
 from opentine._jsonsafe import json_stored
 from opentine._unicode_text import assert_unicode_text
+from opentine.repository._prompt_parts import join_inputs, put_event_inputs
 from opentine.repository._run_blobs import blob_json, json_blob, put_transcript, transcript_blob
 
 if TYPE_CHECKING:
@@ -59,6 +60,7 @@ def _edited_event(repo: Repo, point: str, edits: list[tuple[str, Any]]) -> tuple
     event = dict(repo.get(point).payload())
     event["parent_ids"] = list(event.get("parent_ids") or [])
     inputs = blob_json(repo, event["input_blob"]) if event.get("input_blob") else {}
+    inputs = join_inputs(inputs, event, lambda oid: blob_json(repo, oid))
     fields = {"inputs": inputs, "model_info": event.get("model") or "",
               "tool_info": dict(event.get("tool") or {})}  # fmt: skip
     before = copy.deepcopy(fields)
@@ -66,8 +68,8 @@ def _edited_event(repo: Repo, point: str, edits: list[tuple[str, Any]]) -> tuple
     if fields == before:
         raise ValueError("The edit changes nothing: step K already holds these values")
     event.pop("provider", None)
-    event.update(_CLEARED, input_blob=json_blob(repo, fields["inputs"]),
-                 output_blob=json_blob(repo, {}), model=fields["model_info"],
+    put_event_inputs(event, fields["inputs"], lambda value: json_blob(repo, value))
+    event.update(_CLEARED, output_blob=json_blob(repo, {}), model=fields["model_info"],
                  tool=_redact(fields["tool_info"]))  # fmt: skip
     if legacy := _legacy_id(repo, event, fields):
         event["legacy_step_id"] = legacy

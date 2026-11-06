@@ -24,6 +24,8 @@ the same output and exit code. The old spellings keep working unchanged.
 | `tine fsck` | `tine repo storage fsck` |
 | `tine reindex` | `tine repo storage reindex` |
 | `tine hook` | `tine repo integrate hook` |
+| `tine enable` | `tine repo integrate enable` |
+| `tine disable` | `tine repo integrate disable` |
 | `tine plugin` | `tine repo integrate plugin` |
 | `tine harnesses` | `tine repo integrate harnesses` |
 | `tine git` | `tine repo integrate git` |
@@ -99,6 +101,19 @@ New flags in 0.37 (no new subcommands):
   checked failed), and stderr says how far it got.
 - `gc` also removes staging files left by killed writers once they are an hour
   old (`reaped_temp` in `--json`); live writers' files are never touched.
+
+New in 0.38: `tine rewind` restores a workspace snapshot (a tree blob, SPEC
+§1.5.7) exactly. `tine rewind TREE_OID` takes the tree id directly;
+`tine rewind RUN[@STEP] --tree` uses the tree linked from that step
+(`outputs.tree`, or the nearest earlier step with one). `--repo DIR` names the
+repository holding the snapshot (default: the one containing `--root`). Dry run
+by default; `--apply` writes every file, link and executable bit back byte for
+byte and removes tracked paths the snapshot did not have, so changes made
+through a shell are undone too. Writes go through the 0.35 `O_NOFOLLOW`
+directory-descriptor writer; control files are refused without
+`--allow-control-dirs`; ignored, version-control and omitted paths (too large
+or unreadable at capture) are left alone; a file stored redacted is refused.
+`--json` reports `restore`, `remove`, `unchanged`, `refused` and `kept`.
 
 ## Errors, `--json` and exit codes (0.36)
 
@@ -434,6 +449,31 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+
+## Per-turn capture (0.38)
+
+| Command | What it does |
+| --- | --- |
+| `tine hook capture [--agent NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
+| `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex and Gemini CLI hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
+| `tine disable [--agent NAME] [--dry-run]` | Restores each hook file byte for byte (or removes only the shims if it was edited since) |
+
+Capture records nothing unless the repository's trusted config sets
+`hooks.capture`. See [CAPTURE.md](CAPTURE.md#per-turn-capture-tine-hook-capture-opentine-hook1).
+
+## MCP proxy capture (0.38)
+
+```text
+tine mcp-proxy [--save PATH] [--force] [--repo PATH [--ref REF]] -- CMD [ARGS...]
+tine mcp-proxy --http-upstream URL [--listen HOST:PORT] [--allow-non-loopback] [--save PATH] [-- CMD...]
+```
+
+Relays an MCP session over stdio (spawning CMD) or Streamable HTTP and records
+each JSON-RPC exchange as a redacted `tool` step, saved incrementally. In HTTP
+mode an optional CMD is run alongside and the proxy stops when it exits;
+otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
+`127.0.0.1:0` (the chosen port is printed on stderr). See
+[CAPTURE.md](CAPTURE.md#6b-live-capture-an-mcp-session-038).
 
 ## Push preview and manifest (0.36)
 

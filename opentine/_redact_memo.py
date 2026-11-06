@@ -10,17 +10,30 @@ a memo keyed on the exact input bytes returns exactly what the scan would have.
 The memo exists only inside :func:`save_memo`, which the save paths enter; every
 other caller scans as before. It holds at most ``MAX_BYTES`` of inputs and skips
 values over ``MAX_VALUE``, so a huge run costs bounded memory, and it is dropped
-when the save ends so no plaintext outlives the write. A stdlib-only leaf.
+when the save ends so no plaintext outlives the write.
+
+Outside a save (a live recorder appending one event at a time, an importer)
+the scan falls back to a process-wide bounded LRU keyed by the SHA-256 of the
+input. It holds digests and *redacted* outputs only -- never the plaintext it
+was asked to scrub -- and at most ``LRU_ENTRIES`` of them, ``LRU_BYTES`` in all.
+A stdlib-only leaf.
 """
 
 from __future__ import annotations
 
+import hashlib
+import threading
+from collections import OrderedDict
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
 MAX_VALUE = 1 << 20
 MAX_BYTES = 64 << 20
+LRU_ENTRIES = 8192
+LRU_BYTES = 32 << 20
+#: Below this a hash costs about what the scan does on text this short.
+LRU_MIN = 16
 
 
 class _Memo(dict):
@@ -47,10 +60,56 @@ def save_memo() -> Iterator[None]:
         _ACTIVE.reset(token)
 
 
-def cached(value: bytes, scrub: Callable[[bytes], bytes]) -> bytes:
-    memo = _ACTIVE.get()
-    if memo is None or type(value) is not bytes or len(value) > MAX_VALUE:
+class _Lru:
+    """Digest -> redacted output, least recently used evicted first."""
+
+    def __init__(self) -> None:
+        self.items: OrderedDict[bytes, bytes] = OrderedDict()
+        self.size = 0
+        self.lock = threading.Lock()
+
+    def get(self, key: bytes) -> bytes | None:
+        with self.lock:
+            hit = self.items.get(key)
+            if hit is not None:
+                self.items.move_to_end(key)
+            return hit
+
+    def put(self, key: bytes, value: bytes) -> None:
+        with self.lock:
+            if key in self.items:
+                return
+            self.items[key] = value
+            self.size += len(value)
+            while len(self.items) > LRU_ENTRIES or self.size > LRU_BYTES:
+                self.size -= len(self.items.popitem(last=False)[1])
+
+    def clear(self) -> None:
+        with self.lock:
+            self.items.clear()
+            self.size = 0
+
+
+LRU = _Lru()
+
+
+def _lru(value: bytes, scrub: Callable[[bytes], bytes]) -> bytes:
+    if len(value) < LRU_MIN:
         return scrub(value)
+    key = hashlib.sha256(value).digest()
+    hit = LRU.get(key)
+    if hit is None:
+        hit = scrub(value)
+        LRU.put(key, hit)
+    return hit
+
+
+def cached(value: bytes, scrub: Callable[[bytes], bytes]) -> bytes:
+    if type(value) is not bytes or len(value) > MAX_VALUE:
+        return scrub(value)
+    memo = _ACTIVE.get()
+    if memo is None:
+        return _lru(value, scrub)
     hit = memo.get(value)
     if hit is None:
         hit = scrub(value)
@@ -60,4 +119,4 @@ def cached(value: bytes, scrub: Callable[[bytes], bytes]) -> bytes:
     return hit
 
 
-__all__ = ["active", "cached", "save_memo"]
+__all__ = ["LRU", "active", "cached", "save_memo"]

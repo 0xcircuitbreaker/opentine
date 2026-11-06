@@ -46,6 +46,13 @@ def add_rewind_parser(sub: Any) -> None:
         action="store_true",
         help="Also restore into .git/, .tine/, .github/workflows/ and other VCS/CI files",
     )
+    rewind.add_argument(
+        "--tree",
+        action="store_true",
+        help="Restore the step's workspace snapshot exactly (also shell changes); "
+        "TARGET may be a tree id",
+    )
+    rewind.add_argument("--repo", metavar="DIR", help="Repository holding the snapshot")
     rewind.add_argument("--json", action="store_true")
 
 
@@ -100,8 +107,12 @@ def _decide(plan: Plan, current: str | None, force: bool) -> tuple[str, str, str
 
 
 def cmd_rewind(args: argparse.Namespace) -> None:
+    from opentine._cli_rewind_tree import is_tree_target, rewind_tree, step_tree
     from opentine.graph import Run
 
+    if is_tree_target(args.target):
+        rewind_tree(args, args.target, {"run": None, "step": None})
+        return
     name, at, step_ref = args.target.rpartition("@") if "@" in args.target else ("", "", "")
     name = name if at else args.target
     found = _find_run(name)
@@ -114,6 +125,13 @@ def cmd_rewind(args: argparse.Namespace) -> None:
         _fail(f"Cannot read {name}: {exc}")
         raise  # unreachable
     until = next((i for i, step in enumerate(run.steps) if step.id == step_id), -1)
+    if getattr(args, "tree", False):
+        if (tree := step_tree(run, until)) is None:
+            _fail(f"No workspace snapshot is linked from {args.target}")
+        if args.apply:
+            _refuse_held(Path(args.root or ".").resolve(), run, name)
+        rewind_tree(args, tree, {"run": run.id, "step": step_id or None, "step_index": until})
+        return
     root = Path(args.root or ".").resolve()
     rows: dict[str, list[dict[str, Any]]] = {
         key: [] for key in ("restore", "unchanged", "conflict", "unrecoverable", "refused")

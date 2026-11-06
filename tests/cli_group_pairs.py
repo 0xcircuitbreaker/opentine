@@ -102,6 +102,8 @@ PAIRS: tuple[tuple, ...] = (
     ("plain", ["git", "trailers", "msg.txt"], ["repo", "integrate", "git", "trailers", "msg.txt"]),
     ("plain", ["git", "push-runs", "origin"], ["repo", "integrate", "git", "push-runs", "origin"]),
     ("plain", ["hook", "install"], ["repo", "integrate", "hook", "install"]),
+    ("plain", ["enable", "--dry-run"], ["repo", "integrate", "enable", "--dry-run"]),
+    ("plain", ["disable"], ["repo", "integrate", "disable"]),
     (
         "plain",
         ["hook", "install", "--global", "--agent", "claude-code", "--dry-run"],

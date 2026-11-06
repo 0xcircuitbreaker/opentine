@@ -253,7 +253,9 @@ errors surface from the subsequent parse.
 ## 1.1 Object types
 
 `kernel.OBJECT_TYPES` = exactly `{"blob", "event", "run", "attestation",
-"annotation"}`. There is no extension point: an unknown type is rejected.
+"annotation"}`. There is no extension point: an unknown type is rejected. New
+structured kinds therefore ride on a blob schema instead (the 0.38 tree,
+§1.5.7), which older readers accept as opaque bytes.
 
 | Type | Encoding | Purpose |
 |---|---|---|
@@ -365,7 +367,9 @@ that the reference writers emit.
 
 ### 1.5.1 `blob`
 
-No structure. Opaque bytes. No links.
+At schema 1 (and every schema other than 2): no structure, opaque bytes, no
+links. A blob at **schema 2** is a *tree blob* (§1.5.7, 0.38+): its raw body is
+canonical JSON and each `entries[].oid` is a link.
 
 ### 1.5.2 `event`
 
@@ -376,6 +380,7 @@ Enforced (`kernel.validate_links`, `repository._run_graph.validate_event_metrics
 | `parent_ids` | absent or a list of **event** oids, no duplicates. Defaults to `[]`. |
 | `causal_ids` | same rule as `parent_ids`. |
 | `input_blob`, `output_blob`, `artifact_blob` | if present **and truthy**, MUST be a **blob** oid |
+| `tree` (0.38+) | if present **and truthy**, MUST be a **blob** oid: the workspace snapshot (a tree blob, §1.5.7) taken at this step |
 | `cost`, `duration` | absent or a finite, **non-negative** number. Default `0`. |
 | `time_unix` | if the key is present, a finite number; **may be negative** |
 | `usage` | if truthy, MUST be an object; each value MUST be exactly an `int` or `float` (a bool is rejected), finite and non-negative |
@@ -401,6 +406,33 @@ Conventional event fields written by opentine: `kind`, `model`, `provider`
 (only when known — §6.2), `tool`, `error`, `billing`, `legacy_step_id`
 (compatibility writer), and `actor`, `attributes`, `span_id`, `trace_id`,
 `unresolved_span_refs` (trace recorder).
+
+#### Prompt parts: `input_parts` (0.38.0+)
+
+| Field | Rule |
+|---|---|
+| `input_parts` | absent, or an object whose values, if truthy, MUST be **blob** oids (`kernel.validate_links`; any other shape is rejected). Each value is a link, so `fsck`, `gc`, packs and transfer keep the part blobs. |
+
+A model call's request repeats the same system prompt and tool definitions on
+every turn. From 0.38.0 the writers (`repository.runs.put_run`, the trace
+recorder and importers, fork edits) split them out at record time
+(`repository._prompt_parts`):
+
+1. For each key `K` in `instructions`, `system`, `tools` (in that order) at the
+   **top level** of a step's inputs whose value is a non-empty string, array or
+   object, the writer stores the blob `{K: value}` — canonical JSON, guarded and
+   redacted exactly as the whole input blob is — and sets `input_parts[K]` to its oid.
+2. `input_blob` holds the inputs **without** those keys. With no key split,
+   `input_parts` is omitted and the event is byte-identical to a 0.37 event.
+
+A reader reconstructs the inputs as `input_blob`'s object plus, for every
+`input_parts` entry, the one field its blob holds. It MUST refuse a part whose
+key is not one of the three, whose blob is not an object with exactly that one
+key, or whose key the base object already holds. The full inputs are therefore
+the same value the step was recorded with; only their storage differs, and
+identical prompts across steps and runs are one blob. Events written before
+0.38.0 carry no `input_parts`, are read exactly as before, and keep their ids
+and signatures (§5.2: the field is additive).
 
 > **⚠ Hazard — `artifact_blob` is validated but never written.** No writer in
 > the reference implementation emits it; `repository.ops.semantic_diff` reads
@@ -470,6 +502,58 @@ them, and a reader takes the run's own fields.
 
 Note the asymmetry with §1.5.4: an **attestation**'s `target_id` must be a run;
 an **annotation**'s may be any object type, and may be absent.
+
+### 1.5.7 Tree blobs (0.38+)
+
+A workspace snapshot is a git-like **nested** tree: one tree blob per
+directory, so an unchanged directory keeps its oid from turn to turn and a turn
+stores only the files and directories on the path to what changed. A tree is a
+`blob` envelope with `schema` 2 and `encoding` `raw`; the body is the RFC 8785
+canonical JSON (§0.2) of:
+
+```json
+{"entries":[{"mode":"100644","name":"README.md","oid":"blob:sha256:…"},
+            {"mode":"40000","name":"src","oid":"blob:sha256:…"}],
+ "omitted":[{"name":"big.bin","reason":"size"}],
+ "type":"opentine.tree"}
+```
+
+The oid is therefore `blob:sha256:` over `blob\0 2\0 <canonical bytes>` (§1.3),
+distinct from a schema-1 blob with the same bytes.
+
+Enforced by the kernel (`kernel.validate_links`, `TREE_SCHEMA = 2`): the body
+parses as a JSON object; `entries` is a list of objects; each `oid` is a
+**blob** oid and is a link (§1.5.6: it MUST resolve). Enforced by the tree
+reader (`opentine._tree.parse_tree`), which every snapshot writer and restorer
+uses:
+
+| Field | Rule |
+|---|---|
+| `type` | exactly `"opentine.tree"` |
+| body | byte-equal to its canonical re-encoding; no keys besides `entries`, `omitted`, `type` |
+| `entries[].name` | one path component: non-empty UTF-8, not `.` or `..`, no `/`, `\` or NUL |
+| `entries` order | sorted by the UTF-8 bytes of `name`, names unique |
+| `entries[].mode` | `100644` file, `100755` executable file, `120000` symbolic link (the blob holds the link target's bytes; it is never followed), `40000` directory (the oid is a tree blob) |
+| `entries[].redacted` | absent or `true`: the stored bytes were changed by redaction (§1.4), so the file cannot be restored byte for byte |
+| `omitted` | absent or a list of `{"name", "reason"}`, names disjoint from `entries`: paths deliberately not captured (`size`, `unreadable`, `tineignore redact`); a restore leaves them alone |
+| entry count | at most 100 000 per tree; nesting at most 256 levels |
+
+A snapshot never contains a version-control directory (`.git`, `.tine`,
+`.hg`, `.svn`, `.bzr`, `_darcs`, `.jj`, `.pijul`), paths matched by
+`.gitignore` files met on the walk, `.tineignore` excludes, or the caller's
+ignore patterns. Sockets, FIFOs and devices are skipped. A name that is not
+valid UTF-8 is skipped (and reported to the caller), never encoded.
+
+**Why a blob, not a sixth object type.** 0.34 readers reject an unknown object
+type (`OBJECT_TYPES` has no extension point, §1.1) in `fsck`, in the pack
+reader and on every `get`. They accept a blob at any schema `1 <= schema <
+2**53`, decode it as opaque bytes and find no links in it, so a 0.34 `fsck`,
+pack reader (`install_pack`) and `pack` accept a repository holding trees
+(tested against the `v0.34.0` code in `tests/test_038_tree_snapshots.py`). A
+0.34 reader does not *validate* tree links, but its `prune` reachability walk
+also collects every oid that appears in an object's raw bytes, so it keeps a
+reachable tree's children. An event's `tree` field is an unknown field to 0.34:
+stored and round-tripped, not checked.
 
 ### 1.5.6 Link existence
 

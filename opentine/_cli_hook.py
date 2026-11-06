@@ -11,6 +11,9 @@ needed) lists the events each CLI has opentine commands on. ``--agent hermes``
 only prints a ``config.yaml`` snippet (:mod:`opentine._cli_hook_hermes`).
 ``tine hook event --repo PATH`` is what the plugin's subagent hooks run: it
 journals one payload read from stdin (:mod:`opentine._hook_journal`).
+``tine hook capture --agent NAME --repo PATH`` is the generic per-turn protocol
+``opentine-hook/1`` (:mod:`opentine._hook_protocol`); ``tine enable`` points the
+agent CLIs at it.
 """
 
 from __future__ import annotations
@@ -21,6 +24,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_enable import COMMANDS as ENABLE_COMMANDS
+from opentine._cli_enable import add_enable_parsers
 from opentine._cli_errors import error
 from opentine._cli_hook_agents import (
     AGENTS,
@@ -34,17 +39,18 @@ from opentine._cli_hook_hermes import hermes
 
 
 def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
+    add_enable_parsers(subparsers)  # ``tine enable``/``disable`` (per-turn shims)
     parser = subparsers.add_parser(
         "hook", help="Install agent-CLI hooks that import every finished session"
     )
-    parser.add_argument("action", choices=("install", "uninstall", "status", "event"))
+    parser.add_argument("action", choices=("install", "uninstall", "status", "event", "capture"))
     parser.add_argument(
         "--global", dest="global_", action="store_true",
         help="Edit the user-level hook files (the only scope supported)",
     )  # fmt: skip
     parser.add_argument(
-        "--agent", action="append", choices=sorted([*AGENTS, "hermes"]),
-        help="Only this agent CLI (repeatable; default: every one)",
+        "--agent", action="append", choices=sorted([*AGENTS, "hermes", "generic"]),
+        help="Only this agent CLI (repeatable; default: every one); capture: the sender",
     )  # fmt: skip
     parser.add_argument("--repo", help="v3 repository the sessions are imported into (install)")
     parser.add_argument("--dry-run", action="store_true", help="Show the change, write nothing")
@@ -86,6 +92,12 @@ def cmd_hook(args: argparse.Namespace) -> None:
         from opentine._hook_journal import run_event
 
         raise SystemExit(run_event(args.repo))
+    if args.action == "capture":  # opentine-hook/1: JSON on stdin, JSON on stdout
+        from opentine._hook_protocol import run_capture
+
+        raise SystemExit(run_capture(args.repo, (args.agent or ["generic"])[-1]))
+    if "generic" in (args.agent or []):
+        raise _fail("--agent generic only applies to `tine hook capture`")
     if not args.global_ and args.action != "status":
         raise _fail("pass --global: hooks are installed in your user-level agent settings")
     names = args.agent or sorted([*AGENTS, "hermes"])
@@ -129,6 +141,6 @@ def cmd_hook(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"hook": cmd_hook}
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"hook": cmd_hook, **ENABLE_COMMANDS}
 
 __all__ = ["COMMANDS", "add_hook_parser", "cmd_hook"]

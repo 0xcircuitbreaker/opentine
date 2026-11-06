@@ -14,6 +14,7 @@ from opentine.policies import run_redaction
 from opentine.repository._annotations import load_run_annotation, write_run_annotation
 from opentine.repository._autopack import after_write
 from opentine.repository._migration_preflight import preflight_run
+from opentine.repository._prompt_parts import join_inputs, put_event_inputs
 from opentine.repository._run_blobs import (
     apply_legacy_migration,
     blob_json,
@@ -72,7 +73,6 @@ def _put_run(
             event_map[step.id] = event_id
             events.append(event_id)
             continue
-        input_blob = json_blob(repo, step.inputs)
         output_blob = json_blob(repo, step.outputs)
         raw_kind = step.v3_kind or step.kind.value
         # The step's own edges are the fallback: a repository run exported to
@@ -84,7 +84,6 @@ def _put_run(
             "cost": step.cost,
             "duration": step.duration,
             "error": _redact(step.error),
-            "input_blob": input_blob,
             "kind": raw_kind,
             "legacy_step_id": step.id,
             "model": step.model_info,
@@ -99,6 +98,7 @@ def _put_run(
         # pre-0.8.0 run ever stored, for a field that would always be empty.
         if step.provider:
             payload["provider"] = step.provider
+        put_event_inputs(payload, step.inputs, lambda value: json_blob(repo, value))
         event_id = repo.put("event", json_stored(payload, "event"))
         event_map[step.id] = event_id
         events.append(event_id)
@@ -185,6 +185,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
     graph = Graph()
     blobs: dict[str, dict[str, Any]] = {}
     causal_ids: dict[str, list[str]] = {}
+    read = lambda oid: _blob(repo, blobs, oid)  # noqa: E731  (prompt parts, SPEC 1.5.2)
     for event_id in payload.get("events") or []:
         event = repo.get(event_id).payload()
         causal_ids[event_id] = list(event.get("causal_ids") or [])
@@ -197,7 +198,7 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 id=event_id,
                 parent_ids=list(event.get("parent_ids") or []),
                 kind=legacy_kind,
-                inputs=_blob(repo, blobs, event.get("input_blob")),
+                inputs=join_inputs(_blob(repo, blobs, event.get("input_blob")), event, read),
                 outputs=_blob(repo, blobs, event.get("output_blob")),
                 model_info=event.get("model", ""),
                 tool_info=as_mapping(event.get("tool")),
