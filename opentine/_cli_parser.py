@@ -8,6 +8,7 @@ from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_export import add_export_parser
 from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
+from opentine._cli_globals import add_global_flags
 from opentine._cli_harnesses import _add_harness_args, add_harnesses_parser
 from opentine._cli_help import finish_parser
 from opentine._cli_hook import add_hook_parser
@@ -35,11 +36,7 @@ from opentine.remote.server import add_serve_parser
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
     parser.add_argument("-V", "--version", action="version", version=f"opentine {__version__}")
-    parser.add_argument(
-        "--no-compress",
-        action="store_true",
-        help="Write plain .tine files and repositories that releases before 0.11 can read",
-    )
+    add_global_flags(parser)  # --no-compress, --fips
     parser.add_argument(  # 0.26: v4 by default; 2 (or 3) is the deprecated legacy writer
         "--format", dest="write_format", type=format_arg, metavar="{2,4,5}", default=None,
         help="Writer format: 4 (default), 5 (text blobs; opentine >=0.40 reads) or 2 (deprecated)",

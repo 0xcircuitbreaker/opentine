@@ -34,6 +34,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from opentine import _fips
 from opentine._signing_keys import (
     HAS_ED25519,
     SignatureError,
@@ -99,6 +100,7 @@ def sign_block(
     """
     if algorithm not in ALGORITHMS | PQ_ALGORITHMS:
         raise SignatureError(f"unsupported signature algorithm {algorithm!r}")
+    _fips.require(algorithm)  # both are approved (FIPS 198-1, FIPS 186-5)
     if any(item is not None and not isinstance(item, str) for item in (key_id, signer, signed_at)):
         raise SignatureError("signature metadata values must be strings")
     if algorithm == "hmac-sha256":

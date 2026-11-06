@@ -72,6 +72,7 @@ JSON_SCHEMA: dict[str, Any] = {
         "location": {"type": "object"},
         "timestamps": {"type": "array", "items": {"type": "object"}},
         "assurance": {"type": "object", "required": ["claimed", "verified"]},
+        "crypto": {"type": "object", "required": ["mode", "provider_fips", "openssl"]},
         "signing_time": _STRING,
         "signature": {"type": "object"},
         "signature_timestamps": {"type": "array", "items": {"type": "object"}},
@@ -163,6 +164,7 @@ class Report:
             **({"timestamps": self.timestamps} if self.timestamps else {}),
             **({"assurance": self.assurance} if self.assurance is not None else {}),
             **({"signing_time": self.signing_time} if self.signing_time else {}),
+            **_crypto_mode(),
         }
 
     @property
@@ -228,3 +230,10 @@ __all__ = [
     "Report",
     "render",
 ]
+
+
+def _crypto_mode() -> dict[str, Any]:
+    """0.41 (X30): under ``--fips`` the report records the mode and the provider."""
+    from opentine import _fips
+
+    return {"crypto": _fips.status()} if _fips.enabled() else {}

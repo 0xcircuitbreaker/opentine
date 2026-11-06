@@ -101,3 +101,69 @@ jobs:
 
       - name: Build and run the conformance vectors
         run: npm test
+
+  fips:
+    # 0.41 (X30): the real gate for --fips. cryptography is built against the
+    # image's system OpenSSL 3 and runs with the FIPS provider forced on through
+    # OPENSSL_CONF; tests that need the provider skip elsewhere.
+    name: FIPS (UBI 9, OpenSSL 3 FIPS provider)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    container:
+      image: registry.access.redhat.com/ubi9/python-311@sha256:a0bdb55576fc5b8d6704279307817828ef027e1065533ceba133fe9516003a6c
+      options: --user 0
+    defaults:
+      run:
+        shell: bash
+    env:
+      OPENSSL_CONF: /etc/pki/tls/openssl-fips-ci.cnf
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: dnf install -y --setopt=install_weak_deps=False openssl openssl-devel gcc libffi-devel rust cargo
+
+      - name: Write a FIPS-only OpenSSL config
+        run: |
+          cat > "$OPENSSL_CONF" <<'CNF'
+          config_diagnostics = 1
+          openssl_conf = openssl_init
+          [openssl_init]
+          providers = provider_sect
+          alg_section = algorithm_sect
+          [provider_sect]
+          fips = fips_sect
+          base = base_sect
+          [fips_sect]
+          activate = 1
+          [base_sect]
+          activate = 1
+          [algorithm_sect]
+          default_properties = fips=yes
+          CNF
+          openssl list -providers
+
+      - name: Build cryptography against the system OpenSSL
+        run: |
+          python3.11 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          OPENSSL_CONF=/dev/null .venv/bin/pip install --no-binary cryptography "cryptography>=48.0.1"
+          OPENSSL_CONF=/dev/null .venv/bin/pip install -e . pytest
+
+      - name: Check the FIPS provider is active in cryptography
+        run: |
+          .venv/bin/python - <<'PY'
+          from opentine import _fips
+          status = _fips.status()
+          print(status)
+          assert status["provider_fips"], "FIPS provider is not active in cryptography"
+          PY
+
+      - name: Run the FIPS tests
+        run: .venv/bin/python -m pytest tests/test_041_tineaes_fips.py -v -rs
+
+      - name: tine --fips accepts an approved run
+        run: .venv/bin/tine --fips ls
