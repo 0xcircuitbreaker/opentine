@@ -809,9 +809,49 @@ computed by `tine verify`, never read from the run:
 - Limit: in 0.39 the proxy key is a file readable by the user the proxy runs
   as. An agent running as that same user with file access can read it; T2 is
   meaningful when the proxy runs under a separate account or on another host.
-  PKCS#11 and KMS backends arrive in 0.41.
+  Since 0.41 the key is encrypted at rest, and `tine proxy migrate --to URI`
+  moves it into ssh-agent, a PKCS#11 HSM or a cloud KMS (below).
 - `tine verify --compare-capture` lines up the witnessed actions with the
   transcript's and reports each missing, unwitnessed or changed step.
+
+## Key storage and signers (0.41, X24)
+
+Until 0.40 every private key was a plaintext-hex seed in a 0600 file. Since
+0.41:
+
+- **Encrypted at rest.** `tine keygen`, `tine keygen --agent` and `tine proxy
+  keygen` write encrypted PKCS#8 (PBES2, AES-256-CBC, PBKDF2-HMAC-SHA256 via
+  `cryptography`'s `BestAvailableEncryption`). The passphrase comes from
+  `OPENTINE_KEY_PASSPHRASE`, the OS keyring (opt-in, `OPENTINE_KEY_KEYRING=1`),
+  or an interactive prompt; it is never written beside the key. A wrong
+  passphrase fails closed. The environment variable is visible to other
+  processes of the same user and to anything the process spawns: it protects a
+  copied or backed-up key file, not a key on a host an attacker already runs
+  code on as that user.
+- **Legacy keys.** A plaintext-hex key still loads, with a
+  `PlaintextKeyWarning`; `tine key encrypt PATH` converts it. `--unencrypted`
+  still writes one, deprecated. The op-log/custody log key
+  (`.tine/log/*/key`) stays plaintext so the log can append unattended.
+- **One `Signer` interface.** Every Ed25519 signature (`tine-sig/3` run blocks,
+  attestations, custody records, verify reports, push manifests, evidence
+  custody, in-toto envelopes, the proxy key) goes through `sign(message)`,
+  `public_key`, `algorithm`, `key_id`. Backends: a key file; **ssh-agent** (the
+  agent protocol over `SSH_AUTH_SOCK`, no SSH library); **PKCS#11**
+  (`CKM_EDDSA`); **AWS KMS** and **GCP Cloud KMS** (pure Ed25519, never
+  Ed25519ph). The key never leaves the agent, HSM or KMS. A returned signature
+  is verified against the backend's public key before use, so a misconfigured
+  backend signing with another key fails instead of producing a block nobody
+  can verify. The signatures are ordinary Ed25519, so every existing verifier,
+  the standalone `tine-verify.pyz` and the TypeScript verifier included,
+  checks them unchanged.
+- **Proxy key in hardware.** With the T2 proxy key in an HSM, KMS or an agent
+  on another host, an agent running as the proxy's user can no longer copy the
+  key, only ask the signer to sign while it has access (an ssh-agent socket or
+  KMS credentials are still that user's to use). `proxy.signer` stores the URI,
+  never a `pin-value`.
+- Not covered: key validity windows (`not_after`, `revoked_at`) are the 0.41
+  verifier-hardening work; AWS KMS signs at most 4096 bytes of raw message,
+  so a large run cannot be signed there directly.
 
 ## Known Non-Goals
 

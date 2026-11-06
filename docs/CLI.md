@@ -559,6 +559,39 @@ time, and a claim alone never rises above T1. Every report carries an
 verify --json`, `tine verify --offline` (and so the MCP `verify_run` tool) and
 `tine show --json`; the human output prints one `assurance` line.
 
+## Key storage and signers (0.41)
+
+| Command | What it does |
+| --- | --- |
+| `tine keygen --out PATH` / `--agent NAME` | Writes the private key as encrypted PKCS#8 (PEM, PBES2/AES-256); `--unencrypted` writes the deprecated plaintext-hex form |
+| `tine key encrypt PATH [--json]` | Rewrites a plaintext-hex private key as encrypted PKCS#8 in place; an encrypted key is left alone (`"changed": false`) |
+| `tine key show SIGNER [--json]` | Opens a signer and prints its `signer`, `algorithm`, `key_id` (`sha256:<hex>`) and `public_key` |
+| `tine proxy keygen --signer URI [--force]` | Makes the key an agent, HSM or KMS holds the proxy witness key; only the URI and the public half are stored |
+| `tine proxy migrate --to URI [--json]` | Moves the proxy key into a signer; the old pair goes to `proxy-keys/retired/` and stays trusted for runs it signed |
+
+The passphrase for an encrypted key comes from `OPENTINE_KEY_PASSPHRASE`, the
+OS keyring (`OPENTINE_KEY_KEYRING=1` with `pip install 'opentine[keyring]'`),
+or a prompt when stdin is a terminal; with none, `keygen` refuses (exit 1) and
+loading the key fails. A plaintext-hex key still loads, with a
+`PlaintextKeyWarning` on stderr.
+
+Every flag that takes an Ed25519 signing key file (`sign --ed25519-key-file`,
+`custody record --sign-key`, `verify --offline --report --sign-key`, `evidence
+export --sign`, `replay --attest-key`, `push --ed25519-key-file`, `export
+--format intoto --ed25519-key-file`, `actions sign`) also takes a signer URI:
+
+| Signer | Backend |
+| --- | --- |
+| `file:PATH` or `PATH` | A key file (encrypted PKCS#8, or legacy hex) |
+| `ssh-agent:FINGERPRINT` | An Ed25519 key in `ssh-agent` (`SSH_AUTH_SOCK`); `SHA256:...` as `ssh-add -l` prints it, `sha256:<hex>`, or `*` for the only one |
+| `pkcs11:token=T;object=O?module-path=LIB` | An HSM via `opentine[pkcs11]` (`CKM_EDDSA`); PIN from `pin-source=env:VAR`, `pin-value=` or `OPENTINE_PKCS11_PIN` |
+| `kms:aws:ARN` | AWS KMS `ECC_NIST_EDWARDS25519`, `ED25519_SHA_512` over the raw message (at most 4096 bytes), via `opentine[kms-aws]` |
+| `kms:gcp:RESOURCE` | GCP Cloud KMS `EC_SIGN_ED25519` (`.../cryptoKeyVersions/N`), via `opentine[kms-gcp]` |
+
+The flag is not spelled `--signer` there because `tine sign --signer` already
+names the signer recorded in the block. Every backend's signature is checked
+against its public key before it is used.
+
 ## Push preview and manifest (0.36)
 
 `tine push REMOTE --dry-run` (alias `--outgoing`) prints, as JSON, exactly what
