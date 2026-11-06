@@ -9,6 +9,8 @@ dropped the unadopted record would let a planted annotation be adopted. Caches
 (indexes) are rebuilt, and the reflog is history, not state. Restoring checks
 the pack's digest and every object's id, then sets each ref through the normal
 validated path, so an archive cannot install anything a fetch could not.
+``--archival`` (0.37) writes it with xz (zlib without lzma), so a stock Python
+3.11 restores and verifies it with no optional package installed.
 """
 
 from __future__ import annotations
@@ -46,7 +48,7 @@ def create_archive(repo, output: str | Path, *, codec: str | None = None) -> dic
     unadopted = read_unadopted(repo.path)
     if not unadopted.complete:
         raise KernelError("refusing to archive: the unadopted annotation record is damaged")
-    digest, body, index = build_pack(objects, chosen, GC_LEVEL if chosen == "zstd" else 9)
+    digest, body, index = build_pack(objects, chosen, {"zstd": GC_LEVEL, "xz": 6}.get(chosen, 9))
     manifest = canonical_json(
         {
             "objects": len(objects),

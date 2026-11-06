@@ -1,4 +1,4 @@
-"""Storage compression: one wrapper, three codecs, hard limits on every read.
+"""Storage compression: one wrapper, four codecs, hard limits on every read.
 
 A compressed file or object is ``b"TINEZ1\\0" + codec byte + uvarint(raw length)
 + frame``. The declared raw length comes first so a reader can refuse an
@@ -14,7 +14,10 @@ same artifact.
 Codecs: 0 stores the bytes as they are, 1 is zlib (always available), 2 is
 zstd (``compression.zstd`` on Python 3.14, the ``backports.zstd`` package on
 3.11-3.13 via ``opentine[zstd]``). Writers fall back to zlib when zstd is
-missing; a reader that meets zstd without it says how to install it.
+missing; a reader that meets zstd without it says how to install it. 4 is xz
+(``lzma``, stdlib, 0.37): the archival codec, smaller than zlib and readable
+with nothing but Python. Readers before 0.37 refuse codec 4, so it is written
+only where a caller asks for it (``--archival``), never by default.
 """
 
 from __future__ import annotations
@@ -23,9 +26,11 @@ import os
 import zlib
 from typing import Any
 
+from opentine import _codec_xz
+
 MAGIC = b"TINEZ1\0"
-RAW, ZLIB, ZSTD = 0, 1, 2
-CODECS = {"raw": RAW, "zlib": ZLIB, "zstd": ZSTD}
+RAW, ZLIB, ZSTD, XZ = 0, 1, 2, 4
+CODECS = {"raw": RAW, "zlib": ZLIB, "zstd": ZSTD, "xz": XZ}
 NAMES = {value: key for key, value in CODECS.items()}
 
 #: Largest raw-to-stored ratio a reader accepts. Writers never produce more:
@@ -63,7 +68,14 @@ def _zstd() -> Any:
 
 
 def available(codec: str) -> bool:
+    if codec == "xz":
+        return _codec_xz.lzma_module() is not None
     return codec in ("raw", "zlib") or (codec == "zstd" and _zstd() is not None)
+
+
+def archival_codec() -> str:
+    """The smallest codec Python 3.11+ reads with the stdlib alone: xz, else zlib."""
+    return "xz" if available("xz") else "zlib"
 
 
 def default_codec() -> str:
@@ -130,6 +142,8 @@ def compress_frame(raw: bytes, codec: str, level: int | None = None) -> bytes:
         if module is None:
             raise CodecError("zstd is not available; install opentine[zstd]")
         return module.compress(raw, level=3 if level is None else level)
+    if codec == "xz":
+        return _codec_xz.compress(raw, level, CodecError)
     raise CodecError(f"unknown storage codec {codec!r}")
 
 
@@ -180,6 +194,8 @@ def _decompress(codec: int, frame: bytes, size: int) -> bytes:
         if not engine.eof or engine.unused_data:
             raise CodecError("compressed body has trailing or missing data")
         return out
+    if codec == XZ:
+        return _codec_xz.decompress(frame, size, CodecError)
     raise CodecError(f"unknown storage codec byte {codec}; a newer opentine wrote this")
 
 
