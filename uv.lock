@@ -1019,6 +1019,7 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "anthropic" },
+    { name = "backports-zstd", marker = "python_full_version < '3.14'" },
     { name = "cryptography" },
     { name = "google-genai" },
     { name = "openai" },
@@ -1067,6 +1068,7 @@ zstd = [
 requires-dist = [
     { name = "anthropic", marker = "extra == 'all'", specifier = ">=0.87" },
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.87" },
+    { name = "backports-zstd", marker = "python_full_version < '3.14' and extra == 'all'", specifier = ">=1.0" },
     { name = "backports-zstd", marker = "python_full_version < '3.14' and extra == 'zstd'", specifier = ">=1.0" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
     { name = "build", marker = "extra == 'release'", specifier = ">=1.2" },

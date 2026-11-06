@@ -47,6 +47,7 @@ all = [
     "openai>=1.75.0",
     "google-genai>=2.8.0",
     "cryptography>=48.0.1",
+    "backports.zstd>=1.0; python_version < '3.14'",
 ]
 
 # Build-only toolchain for the release build job: no test runner, no SDKs.
