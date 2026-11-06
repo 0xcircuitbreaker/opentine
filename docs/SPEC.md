@@ -527,6 +527,7 @@ A repository is the directory `.tine/` (or, bare, any directory holding
   config.json                      repository descriptor (§2.2)
   objects/<type>/<aa>/<62 hex>     loose objects (§2.3)
   refs/<namespace>/<name>          one oid per file (§2.4)
+  packed-refs                      every packed ref in one file (§2.4, 0.37+)
   logs/<namespace>/<name>          append-only reflog (§2.6)
   packs/<64 hex>.pack              TINEPACK3 frames (§2.8)
   indexes/                         non-normative caches (below)
@@ -625,7 +626,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.26.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.37.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
@@ -696,6 +697,26 @@ bytes, reject any internal whitespace, require ASCII, require a file of at most
 256 bytes, and require a regular file with link count ≤ 1 (a *hard-linked* ref
 is rejected; link count 0 — an unlinked-but-open inode, which a concurrent
 update legitimately produces — is fine).
+
+### `packed-refs` (0.37+)
+
+A repository may also hold refs in one file, `.tine/packed-refs`:
+
+```text
+# opentine packed-refs 1 LF
+<oid> SP <ref name> LF            one line per ref, sorted by name, unique
+```
+
+A reader MUST look for the loose file first and use the packed value only when
+there is none (a loose ref shadows its packed value), and MUST refuse a file
+that does not begin with that header, does not end in LF, has a line whose oid
+or name is invalid, or lists names out of order or twice. Writers move refs by
+writing the loose file, as before; a delete removes the packed value first and
+then the loose file, both under `packed-refs.lock`. `tine gc` packs refs only
+in a repository whose descriptor carries `"refs": "packed"` together with a
+`min_reader` of at least `0.37.0` (`tine gc --pack-refs` writes both; `tine
+gc --unpack-refs` writes every ref loose again and removes them), so a release
+that would ignore the file refuses the repository instead of missing its refs.
 
 ### Ref names
 

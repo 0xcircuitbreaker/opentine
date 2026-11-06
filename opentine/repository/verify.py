@@ -145,6 +145,12 @@ def _layout_errors(repo: Repo) -> list[str]:
         except ValueError as exc:
             errors.append(f"ref file {name!r}: not a legal ref name ({exc})")
     try:
+        from opentine.repository._packed_refs import read_packed
+
+        read_packed(repo.path)
+    except (KernelError, OSError) as exc:
+        errors.append(f"packed-refs: {exc}")
+    try:
         read_unadopted(repo.path, strict=True)
     except (KernelError, OSError, ValueError) as exc:
         errors.append(f"unadopted: {exc}")

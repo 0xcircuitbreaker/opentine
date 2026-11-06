@@ -13,6 +13,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from opentine._canon import _fsync_dir
+from opentine.repository import _winretry
+from opentine.repository._packed_refs import drop_packed, packed_lock
 from opentine.repository._paths import internal_path
 from opentine.repository._ref_store import read_ref_oid
 from opentine.repository._reflog import append_reflog, reflog_entry
@@ -40,7 +42,15 @@ def delete_ref(base: Path, name: str, expected_old: str, *, actor: str = "local"
         if old != expected_old:
             raise RefCasMismatch(f"concurrent ref update: expected {expected_old!r}, found {old!r}")
         entry = reflog_entry(normalized, old, None, actor)
-        ref_path.unlink()
+        # Packed value first, then the loose file, both under packed-refs.lock:
+        # a crash in between leaves the loose value (the ref is still there),
+        # and a concurrent gc cannot fold the loose value back in after we drop it.
+        packed = packed_lock(Path(base))
+        try:
+            drop_packed(Path(base), normalized)
+            _winretry.unlink(ref_path)  # Windows: outlast a reader
+        finally:
+            _winretry.unlink(packed)
         _fsync_dir(ref_path.parent)
         append_reflog(Path(base), normalized, entry)
     finally:

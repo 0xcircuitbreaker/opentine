@@ -16,8 +16,8 @@ from opentine.repository._discovery import find_repository
 from opentine.repository._link_touch import touch_links
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
-from opentine.repository._paths import ensure_layout, internal_files, internal_path, linklike
-from opentine.repository._ref_store import commit_ref, read_ref_oid
+from opentine.repository._paths import ensure_layout, internal_path, linklike
+from opentine.repository._ref_store import commit_ref, list_all_refs, read_ref_oid
 from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._shallow import read_shallow, shallow_fingerprint
@@ -213,18 +213,7 @@ class Repo:
         return recover(self.path)
 
     def list_refs(self) -> dict[str, str]:
-        refs: dict[str, str] = {}
-        root = internal_path(self.path, "refs")
-        for path in sorted(internal_files(self.path, "refs")):
-            if path.name.casefold().endswith(".lock"):
-                continue
-            try:  # a name that is not a legal ref is not a ref: one stray .DS_Store
-                name = self._ref_name(path.relative_to(root).as_posix())
-            except ValueError:  # used to raise here, so fsck saw a healthy repo as
-                continue  # broken with zero refs, masking every real error behind it
-            if (value := read_ref_oid(self.path, name)) is not None:
-                refs[name] = value
-        return refs
+        return list_all_refs(self.path)
 
     def fsck(self, *, deep: bool = True, **budget):
         from opentine.repository.verify import fsck

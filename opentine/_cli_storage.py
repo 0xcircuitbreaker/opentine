@@ -79,6 +79,16 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             action="store_true",
             help="Rewrite every pack for storage version 2, which opentine 0.11-0.12 read",
         )
+        refs = command.add_mutually_exclusive_group()
+        refs.add_argument(
+            "--pack-refs",
+            action="store_true",
+            help="Opt in to packed-refs (one file for every ref; opentine 0.36 and older "
+            "then refuse the repository until --unpack-refs)",
+        )
+        refs.add_argument(
+            "--unpack-refs", action="store_true", help="Write every ref loose again (0.36 reads)"
+        )
     archive = sub.add_parser("archive", help="Write or restore a whole-repository archive")
     actions = archive.add_subparsers(dest="archive_action", required=True)
     create = actions.add_parser("create", help="Archive a repository into one compressed file")
@@ -137,8 +147,13 @@ def _prune_now(args: argparse.Namespace):
 
 
 def _gc_run(gc, args: argparse.Namespace):
-    return gc(
-        _repo(args.repo),
+    from opentine.repository import _gc_refs
+
+    repo = _repo(args.repo)
+    if args.pack_refs:
+        _gc_refs.enable(repo)  # descriptor first; gc then folds the loose refs
+    result = gc(
+        repo,
         repack=args.command == "repack",
         codec=args.codec,
         keep_transfer_packs=args.keep_transfer_packs,
@@ -146,6 +161,9 @@ def _gc_run(gc, args: argparse.Namespace):
         downgrade=args.downgrade,
         **({} if args.level is None else {"level": args.level}),
     )
+    if args.unpack_refs:
+        _gc_refs.disable(repo)
+    return result
 
 
 def _report_gc(args: argparse.Namespace, result, pruned=None) -> None:
@@ -163,6 +181,8 @@ def _report_gc(args: argparse.Namespace, result, pruned=None) -> None:
     if args.upgrade or args.downgrade:
         version = 3 if args.upgrade else 2
         console.print(f"  repository is now at storage version {version}")
+    if result.refs_packed:
+        console.print(f"  packed {result.refs_packed} loose ref(s) into packed-refs")
     if result.removed_transfer_packs:
         console.print(f"  removed {result.removed_transfer_packs} received transfer pack copy(ies)")
 

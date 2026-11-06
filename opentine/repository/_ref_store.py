@@ -9,14 +9,45 @@ from pathlib import Path
 from opentine._canon import _fsync_dir
 from opentine.kernel import KernelError, parse_oid
 from opentine.repository import _winretry
-from opentine.repository._paths import durable_directory, internal_path
+from opentine.repository._packed_refs import read_packed
+from opentine.repository._paths import durable_directory, internal_files, internal_path
 from opentine.repository._ref_retry import RefCasMismatch, RefLockContended
 from opentine.repository._reflog import append_reflog, reflog_entry
+from opentine.repository._refs import normalize_ref
 
 MAX_REF_BYTES = 256
 
 
 def read_ref_oid(base: Path, normalized: str) -> str | None:
+    """The loose ref's value, else its packed one (``_packed_refs``), else ``None``."""
+    value = read_loose_oid(base, normalized)
+    return read_packed(base).get(normalized) if value is None else value
+
+
+def loose_refs(base: Path) -> dict[str, str]:
+    """Every loose ref by name (illegal names and lock files are not refs)."""
+    refs: dict[str, str] = {}
+    root = internal_path(base, "refs")
+    for path in sorted(internal_files(base, "refs")):
+        if path.name.casefold().endswith(".lock"):
+            continue
+        try:  # a name that is not a legal ref is not a ref: one stray .DS_Store
+            name = normalize_ref(path.relative_to(root).as_posix())
+        except ValueError:  # used to raise here, so fsck saw a healthy repo as
+            continue  # broken with zero refs, masking every real error behind it
+        if (value := read_loose_oid(base, name)) is not None:
+            refs[name] = value
+    return refs
+
+
+def list_all_refs(base: Path) -> dict[str, str]:
+    """Packed refs overlaid by loose ones: one read of packed-refs, not one per ref."""
+    packed = read_packed(base)
+    loose = loose_refs(base)
+    return dict(sorted({**packed, **loose}.items())) if packed else loose
+
+
+def read_loose_oid(base: Path, normalized: str) -> str | None:
     path = internal_path(base, "refs", *Path(normalized).parts)
     try:  # Windows: a ref mid-replace (delete pending) is briefly unopenable
         fd = _winretry.open_fd(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))

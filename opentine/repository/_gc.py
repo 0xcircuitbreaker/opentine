@@ -27,7 +27,7 @@ from opentine.repository._config import (
     storage_codec,
     storage_version,
 )
-from opentine.repository._fanout_tidy import tidy_fanouts
+from opentine.repository._gc_refs import housekeep
 from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
 from opentine.repository._pack_write import load_pack, write_pack
@@ -51,6 +51,7 @@ class GcResult:
     disk_after: int
     codec: str
     reaped_temp: int = 0  # stale staging files of killed writers (X18, 0.37)
+    refs_packed: int = 0  # loose ref files folded into packed-refs
 
 
 def footprint(tine: Path) -> tuple[int, int]:
@@ -183,8 +184,8 @@ def gc(
         result = _gc_locked(*args, (min_age, own), merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)
-        tidy_fanouts(repo.path)  # finished fan-out state past its grace period
-        return replace(result, reaped_temp=reap_temp(repo.path))
+        refs_packed = housekeep(repo)  # finished fan-out state, then packed refs
+        return replace(result, reaped_temp=reap_temp(repo.path), refs_packed=refs_packed)
 
 
 def _is_v3(repo, codec: str) -> bool:

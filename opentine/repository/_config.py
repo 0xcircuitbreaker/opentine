@@ -37,7 +37,7 @@ OBJECTS_V4 = 4
 V4_MIN_READER = "0.26.0"
 #: The newest ``min_reader`` this build honours (the format it implements; it
 #: moves with the format, not with the package version).
-READER_VERSION = (0, 26, 0)
+READER_VERSION = (0, 37, 0)  # 0.37: packed refs (_packed_refs)
 _FIXED_V4 = {"object_hash": "sha256", "objects": OBJECTS_V4, "repository": "opentine"}
 _SEMVER = re.compile(r"(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,5})")
 _REFUSED = "repository config is incompatible"
