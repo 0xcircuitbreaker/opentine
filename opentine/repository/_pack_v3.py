@@ -208,7 +208,7 @@ def resolve(
         if encoding not in (forms.RUN_DELTA, forms.BLOB_DELTA):
             break
         if len(chain) >= forms.MAX_DELTA_DEPTH:
-            raise KernelError(f"packed delta chain is too deep: {oid}")
+            raise KernelError(f"packed {oid.split(':')[0]} delta chain is too deep: {oid}")
         if encoding == forms.BLOB_DELTA:
             payload: object = _blob_delta.parse(data)
             base = payload[1]  # named by id (``_blob_delta``)
@@ -223,7 +223,7 @@ def resolve(
         raw, below = known[current]  # rebuilt and checked against its id before
         depth += below
         if depth > forms.MAX_DELTA_DEPTH:
-            raise KernelError(f"packed delta chain is too deep: {oid}")
+            raise KernelError(f"packed {oid.split(':')[0]} delta chain is too deep: {oid}")
     else:
         raw = forms.unslim_event(data) if encoding == forms.EVENT_SLIM else data
         _check(current, raw, size, oid_of)
