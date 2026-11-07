@@ -116,7 +116,10 @@ def test_note_survives_interactive_rebase(repo, capsys) -> None:
     _git(repo, "add", "later.txt")
     _git(repo, "commit", "-q", "-m", "later")
     # Reorder the two commits with rebase -i: both are rewritten.
-    script = 'grep "^pick" "$1" | tac > "$1.t" && mv "$1.t" "$1"'
+    # awk, not tac: macOS has no tac.
+    script = (
+        'awk \'/^pick/ {l[n++] = $0} END {while (n) print l[--n]}\' "$1" > "$1.t" && mv "$1.t" "$1"'
+    )
     editor = repo.parent / "editor.sh"
     editor.write_text(f"#!/bin/sh\n{script}\n")
     editor.chmod(0o755)
