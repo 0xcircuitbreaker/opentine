@@ -91,6 +91,11 @@ def run_origin(repo: Repo, run: Any) -> dict[str, Any]:
         from opentine._provenance_v4 import require_upgraded_from
 
         base["upgraded_from"] = require_upgraded_from(upgraded)
+    parents = getattr(run, "parents", None)  # 0.43: set_run_parents; omitted when empty
+    if parents is not None:
+        from opentine.repository._run_parents import set_parents
+
+        set_parents(base, parents)
     return base
 
 
@@ -124,6 +129,7 @@ def _stored_origin(repo: Repo, run: Any) -> dict[str, Any]:
             manifests["pricing"] = json_blob(repo, wrapper["pricing"])
         base["manifests"] = manifests
         base["forked_from"] = source_id
+        base.pop("parents", None)  # a fork continues one run; parents name a merge's
         return base
     origin_id = getattr(run, "_v3_run_id", None)
     origin_payload = getattr(run, "_v3_payload", None)

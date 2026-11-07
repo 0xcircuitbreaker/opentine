@@ -482,6 +482,7 @@ Enforced (`kernel.validate_links`, `repository._run_graph.validate_run_graph`):
 | **any key ending `_blob`** | if truthy, MUST be a **blob** oid |
 | `status` | absent (⇒ `"running"`) or one of `running`, `paused`, `completed`, `failed` |
 | `legacy_refs` | absent or an object mapping **string** names to oids **in `events`** |
+| `parents` (0.43+) | absent, or a **non-empty** list of **unique run** oids (at most 64), each a link (`kernel.validate_links`, `repository._run_parents`). A writer MUST omit it when there are none and MUST NOT write `[]` (rejected), so a run without parents has the oid it had before 0.43. |
 | ordering | for every locally present event in `events`, each of its `parent_ids` and `causal_ids` MUST appear at a **strictly earlier index** in `events` |
 | `roots` / `tips` exactness | **only when every event in `events` is present locally**: `set(roots)` MUST equal the set of parentless events, and `set(tips)` MUST equal `events` minus every event named as someone's parent. When any event is missing (a shallow fetch), both checks are skipped. |
 
@@ -489,6 +490,13 @@ Enforced (`kernel.validate_links`, `repository._run_graph.validate_run_graph`):
 > list: *any* top-level run key whose name ends in `_blob` and whose value is
 > truthy must be a blob oid. A writer adding `patch_blob` inherits the
 > constraint automatically; a writer adding `patch_blob: {"a": 1}` is rejected.
+
+`parents` names the runs a merge combined (F2, `docs/design/F2-merge.md`);
+it is distinct from `forked_from`, the one run a fork or resume continues, and a
+fork of a run does not inherit its `parents`. A 0.42 reader validates and
+hashes a run with `parents` correctly but does not follow the field as a link,
+so its `gc` may drop a parent run no ref names; merges are not written before
+the release that also sets `min_reader` for them (0.45+).
 
 Conventional run fields: `created_at`, `model`, `source_run_id`, `system_blob`,
 `prompt_blob`, `session_id`, `forked_from`, and the manifest slots `budget`,
