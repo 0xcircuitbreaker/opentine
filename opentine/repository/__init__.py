@@ -12,14 +12,20 @@ from opentine.repository.verify import FsckResult
 
 class Repo(ObjectDatabase):
     def import_pack(self, data: bytes):
+        from opentine.repository._search_index import update
         from opentine.repository.pack import install_pack
 
-        return install_pack(self, data)
+        result = install_pack(self, data)
+        update(self, result.objects)  # the derived search index, when present
+        return result
 
     def put_run(self, run, *, ref: str | None = None):
+        from opentine.repository._search_index import update
         from opentine.repository.runs import put_run
 
-        return put_run(self, run, ref=ref)
+        result = put_run(self, run, ref=ref)
+        update(self, [result.run_id])
+        return result
 
     def load_run(self, oid_or_ref: str):
         from opentine.repository.runs import load_run

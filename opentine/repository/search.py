@@ -10,6 +10,7 @@ from opentine.kernel import KernelError, ObjectEnvelope, validate_links
 from opentine.repository._blob_io import read_verified_blob_prefix, stored_object_size
 from opentine.repository._inspect import inspect as inspect
 from opentine.repository._run_graph import validate_event_metrics
+from opentine.repository._search_query import indexed_search
 from opentine.repository._search_scores import best_score, collect_scores
 from opentine.repository._semantic_view import CachedEnvelope
 
@@ -137,6 +138,7 @@ def search(
     model: str | None = None,
     limit: int = 20,
     signed_only: bool = False,
+    use_index: bool = True,
 ) -> list[SearchResult]:
     if not isinstance(query, str):
         raise TypeError("search query must be a string")
@@ -144,6 +146,11 @@ def search(
         raise ValueError("search query exceeds the 4096-character limit")
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError("search limit must be between 1 and 1000")
+    if use_index:  # the derived FTS5 index (_search_query); None: scan as before
+        filters = dict(min_score=min_score, model=model, limit=limit, signed_only=signed_only)
+        found = indexed_search(repo, query, successful_only=successful_only, **filters)
+        if found is not None:
+            return found
     oids = repo.iter_oids(limit=MAX_SEARCH_OBJECTS)
     object_cache: dict[str, ObjectEnvelope] = {}
     structured_remaining = [MAX_SEARCH_STRUCTURED_SOURCE_BYTES]
