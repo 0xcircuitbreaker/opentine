@@ -848,7 +848,7 @@ that would ignore the file refuses the repository instead of missing its refs.
 The stored name has any leading `refs/` removed. It MUST match:
 
 ```text
-^(?:annotations|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$
+^(?:annotations|coord|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$
 ```
 
 and additionally: be ≤ 512 bytes total; be equal to its own case-fold (i.e.
@@ -867,6 +867,7 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `experiments/` | `run` |
 | `promotions/` | `run` |
 | `annotations/` | `annotation` |
+| `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
