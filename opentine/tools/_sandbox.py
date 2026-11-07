@@ -59,6 +59,9 @@ def sandbox_exec_available() -> bool:
 
 @functools.cache
 def oci_runtime() -> str | None:
+    """podman or docker on a POSIX host; Windows hosts cannot bind-mount the root."""
+    if sys.platform == "win32":
+        return None
     for name in ("podman", "docker"):
         exe = shutil.which(name)
         if exe and _probe([exe, "info"]):
