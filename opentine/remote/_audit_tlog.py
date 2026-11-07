@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from opentine.kernel import canonical_json
+from opentine.kernel import _parse_int, canonical_json
 from opentine.repository import _tlog, _tlog_note, _tlog_proof, _tlog_receipt
 from opentine.repository._paths import atomic_bytes, durable_directory
 
@@ -49,7 +49,7 @@ def origin(root: Path) -> str:
 def entry(row: dict[str, str], row_hash: str) -> bytes:
     body = {k: row[k] for k in ("action", "event_id", "outcome", "tenant", "timestamp")}
     if row["action"] == "update_ref":
-        details = json.loads(row["details"])
+        details = json.loads(row["details"], parse_int=_parse_int)
         body.update(name=details.get("name"), new=details.get("new"))
     return canonical_json({**body, "format": ENTRY_FORMAT, "row_hash": row_hash})
 

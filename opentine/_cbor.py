@@ -71,7 +71,10 @@ class _Reader:
         if major == 4:
             if value > len(self.data):
                 raise CBORError("CBOR array is longer than the input")
-            return [self.item(depth + 1) for _ in range(value)]
+            items = []
+            for _ in range(value):
+                items.append(self.item(depth + 1))
+            return items
         if major == 5:
             if value > len(self.data):
                 raise CBORError("CBOR map is longer than the input")
@@ -127,9 +130,15 @@ def dumps(value: Any) -> bytes:
         raw = value.encode("utf-8")
         return _head(3, len(raw)) + raw
     if isinstance(value, list | tuple):
-        return _head(4, len(value)) + b"".join(dumps(v) for v in value)
+        out = bytearray(_head(4, len(value)))
+        for item in value:  # a loop, not a comprehension: one frame per level (3.11)
+            out += dumps(item)
+        return bytes(out)
     if isinstance(value, dict):
-        return _head(5, len(value)) + b"".join(dumps(k) + dumps(v) for k, v in value.items())
+        out = bytearray(_head(5, len(value)))
+        for key, item in value.items():
+            out += dumps(key) + dumps(item)
+        return bytes(out)
     if isinstance(value, Tag):
         return _head(6, value.tag) + dumps(value.value)
     raise CBORError(f"cannot encode {type(value).__name__} as CBOR")

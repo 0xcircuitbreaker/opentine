@@ -120,7 +120,9 @@ def fetch(
             raise ValueError("remote object format is incompatible")
         _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         remote_refs = _refs(refs)
-        state = _remote_tlog.state_root(repo.path, base, namespace)  # before any import
+        state = _remote_tlog.state_root(
+            getattr(repo, "path", None), base, namespace
+        )  # before any import
         logged = _remote_tlog.advance(state, client, _prefix(namespace), timeout)
         selected = wants or ([remote_refs[ref]] if ref in remote_refs else [])
         if not selected:
@@ -202,7 +204,7 @@ def push(
             moves.append((annotation, local_annotation, _refs(refs).get(annotation)))
         prefix = _prefix(namespace)
         move_refs(client, _request_json, prefix, caps, moves, timeout=timeout, force=force)
-        state = _remote_tlog.state_root(repo.path, base, namespace)
+        state = _remote_tlog.state_root(getattr(repo, "path", None), base, namespace)
         logged = _remote_tlog.receipt(state, client, prefix, destination, local_oid, timeout)
     return TransferResult(objects, pack_id, destination, len(short), logged)
 

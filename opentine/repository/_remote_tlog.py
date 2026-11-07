@@ -20,19 +20,27 @@ from typing import Any
 from urllib.parse import urlencode
 
 from opentine.repository import _tlog, _tlog_note, _tlog_proof, _tlog_receipt
-from opentine.repository._http import request_json
 from opentine.repository._paths import atomic_bytes, durable_directory, internal_path
 
 
-def state_root(base: Path, remote: str, tenant: str) -> Path:
+def state_root(base: Path | None, remote: str, tenant: str) -> Path | None:
+    """None for a repository with no directory (nothing to pin or store)."""
+    if base is None:
+        return None
     key = hashlib.sha256(f"{remote}|{tenant}".encode()).hexdigest()[:32]
     return internal_path(Path(base), "log", "remotes", key)
 
 
 def _get(client: Any, path: str, timeout: float, **query: Any) -> dict[str, Any] | None:
     url = path + ("?" + urlencode(query) if query else "")
-    status, body = request_json(client, "GET", url, allowed=(200, 404), max_seconds=timeout)
-    return body if status == 200 else None
+    from opentine.repository import client as transport  # its _request_json, as patched
+
+    status, body = transport._request_json(
+        client, "GET", url, allowed=(200, 404), max_seconds=timeout
+    )
+    # A body with no checkpoint is no log at all: the same as a 404 (and refused alike
+    # once a log was pinned), never a pass.
+    return body if status == 200 and isinstance(body, dict) and "checkpoint" in body else None
 
 
 def _stored(state: Path) -> tuple[str, int, bytes] | None:
@@ -43,8 +51,10 @@ def _stored(state: Path) -> tuple[str, int, bytes] | None:
     return vkey, size, root
 
 
-def advance(state: Path, client: Any, prefix: str, timeout: float) -> dict[str, Any]:
+def advance(state: Path | None, client: Any, prefix: str, timeout: float) -> dict[str, Any] | None:
     """Check the remote's newest checkpoint against the stored one; store it."""
+    if state is None:
+        return None
     stored = _stored(state)
     old = stored[1] if stored else 0
     body = _get(client, prefix + "/transparency/consistency", timeout, old=old)
@@ -68,11 +78,11 @@ def advance(state: Path, client: Any, prefix: str, timeout: float) -> dict[str, 
 
 
 def receipt(
-    state: Path, client: Any, prefix: str, ref: str, new: str, timeout: float
-) -> dict[str, Any]:
+    state: Path | None, client: Any, prefix: str, ref: str, new: str, timeout: float
+) -> dict[str, Any] | None:
     """Advance, then verify and store the inclusion receipt for ``ref -> new``."""
     report = advance(state, client, prefix, timeout)
-    if report["status"] == "unavailable":
+    if report is None or report["status"] == "unavailable":
         return report
     body = _get(client, prefix + "/transparency/receipt", timeout, name=ref, new=new)
     if body is None:
