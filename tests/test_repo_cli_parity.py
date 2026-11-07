@@ -156,9 +156,18 @@ def repo_with_run(tmp_path: Path) -> tuple[Path, str, str]:
     return root, run, event
 
 
+#: MCP tools with no verb twin of their own. ``recall`` (0.44) is a bounded,
+#: index-only view of ``repo-search`` (which keeps ``search_runs`` as its twin):
+#: it never scans and returns snippets, not ``SearchResult`` rows.
+MCP_ONLY_TOOLS = {"recall"}
+
+
 def _mcp(root: Path, *, allow_promotion: bool = True) -> FakeMCP:
     mcp = FakeMCP()
     register_repository_tools(mcp, str(root), allow_promotion=allow_promotion)
+    assert MCP_ONLY_TOOLS <= set(mcp.tools)
+    for name in MCP_ONLY_TOOLS:
+        del mcp.tools[name]
     return mcp
 
 

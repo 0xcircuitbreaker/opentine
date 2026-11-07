@@ -113,6 +113,39 @@ def test_an_unknown_index_format_is_ignored(repo):
     assert len(repo.search("parser")) == 2
 
 
+class _FakeMCP:
+    def __init__(self):
+        self.tools = {}
+
+    def tool(self, *args, **kwargs):
+        return lambda function: self.tools.setdefault(function.__name__, function)
+
+    def resource(self, *args, **kwargs):
+        return lambda function: function
+
+
+def test_mcp_recall_is_read_only_bounded_and_index_only(repo):
+    from opentine._mcp_readonly import READ_ONLY_TOOLS
+    from opentine.mcp_repository import register_repository_tools
+
+    assert "recall" in READ_ONLY_TOOLS
+    mcp = _FakeMCP()
+    register_repository_tools(mcp, str(repo.worktree))
+    recall = mcp.tools["recall"]
+    missing = recall("parser")
+    assert missing["indexed"] is False and missing["results"] == []
+    assert not _search_index.index_path(repo).exists()  # recall never builds one
+    _search_index.rebuild(repo)
+    found = recall("parser", limit=1)
+    assert found["indexed"] is True and len(found["results"]) == 1
+    row = found["results"][0]
+    assert set(row) == {"run_id", "status", "models", "snippet"}
+    assert len(row["snippet"]) <= 240
+    for bad in ({"query": ""}, {"query": "x", "limit": 51}, {"query": "x" * 5000}):
+        with pytest.raises(ValueError):
+            recall(**bad)
+
+
 def test_cli_rebuild_and_search(repo, capsys):
     cli.main(["repo-search", "parser", "--rebuild-index", "--repo", str(repo.worktree), "--json"])
     captured = capsys.readouterr()

@@ -589,6 +589,13 @@ payload as their command's `--json`:
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
 
+New in 0.44, `recall(query, limit=10)` is a hand-written read tool over the
+derived search index (`tine repo-search --rebuild-index`, see
+[REPOSITORY.md](REPOSITORY.md)): runs whose stored text mentions every word of
+the query, best BM25 match first, at most 50 rows of run id, status, models and
+a snippet of at most 240 characters. It never scans the store or builds the
+index; without one it answers `{"indexed": false, ...}`.
+
 ## Per-turn capture (0.38)
 
 | Command | What it does |
