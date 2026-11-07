@@ -3368,4 +3368,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "verify", "attestation": "a", "allow_stale_root": True},
     ),
+    (
+        "plain:explain r1 --narrative --no-store --json",
+        "plain",
+        ["explain", "r1", "--narrative", "--no-store", "--json"],
+        "opentine._cli_explain:cmd_explain",
+        False,
+        {"command": "explain", "run_id": "r1", "narrative": True, "no_store": True, "json": True},
+    ),
 )

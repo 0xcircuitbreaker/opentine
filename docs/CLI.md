@@ -705,3 +705,33 @@ A key flag without `--manifest` or `--dry-run` is refused.
 the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
 the runs named by `Tine-Run:` trailers -- to that remote instead of the code
 remote, keeping transcripts off the code host.
+
+## Run summaries: `tine explain` (0.42)
+
+```
+tine explain RUN                 # text summary; stored as an annotation in a v3 repo
+tine explain RUN --json          # {"command": "explain", "run", "digest", "summary",
+                                 #  "stored", "annotation", "narrative"}
+tine explain RUN --no-store      # print only
+tine explain RUN --narrative     # plus a narrative from a local model
+```
+
+A deterministic, offline summary built from the recorded run alone: what was
+asked, models, steps by kind, tools used, files written and read, hosts, the
+outcome, errors and failed tool calls, and tokens and cost when the run records
+them (absent otherwise, never 0). The same run always gives byte-identical
+output. `summary.schema` is `opentine-explain/1`; `digest` is the SHA-256 of the
+summary as sorted, compact JSON.
+
+In a v3 repository (`--repo PATH`, or one in the current directory) the
+summary is stored on the run's annotation chain under
+`metadata["opentine.explain"]`; re-running it writes nothing new. A legacy
+`.tine` run is explained but not stored.
+
+`--narrative` asks the model named in `OPENTINE_EXPLAIN_MODEL`
+(`provider[:model]`, for example `ollama:llama3.1`) for a few sentences. Only a
+local provider is accepted; with none configured the command refuses with exit
+code 2 and sends nothing. The narrative is stored apart from the summary, under
+`metadata["opentine.explain.narrative"]`, with `generated_by: "model"`, a
+`label` saying it is model-generated and not evidence, the model spec and the
+digest of the summary it describes.

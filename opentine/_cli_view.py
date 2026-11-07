@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_common import _cost_str, _terminal, console
+from opentine._cli_explain import COMMANDS as EXPLAIN_COMMANDS
+from opentine._cli_explain import add_explain_parser
 from opentine._codec_io import atomic_write_bytes
 
 
@@ -21,6 +23,7 @@ def add_view_parser(sub: Any) -> None:
         "-o", "--output", metavar="FILE", help="HTML file to write (default: RUN-ID.html)"
     )
     view.add_argument("--open", action="store_true", help="Open the page in a web browser")
+    add_explain_parser(sub)  # its sibling: the same run, summarised as text
 
 
 def cmd_view(args: argparse.Namespace) -> None:
@@ -42,6 +45,6 @@ def cmd_view(args: argparse.Namespace) -> None:
         webbrowser.open(target.resolve().as_uri())
 
 
-COMMANDS = {"view": cmd_view}
+COMMANDS = {"view": cmd_view, **EXPLAIN_COMMANDS}
 
 __all__ = ["COMMANDS", "add_view_parser", "cmd_view"]
