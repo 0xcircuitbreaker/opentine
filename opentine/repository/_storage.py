@@ -17,6 +17,7 @@ from opentine import _codec
 from opentine.kernel import KernelError, parse_oid
 from opentine.repository._packs import MAX_OBJECT_BYTES, pack_set
 from opentine.repository._paths import install_verified, internal_path
+from opentine.repository._write_batch import staged
 
 #: Passes over the loose store and the packs when a check hits a transient error.
 #: A gc in another process publishes its pack, then deletes the loose copies and
@@ -41,6 +42,8 @@ def _unwrap(stored: bytes) -> bytes:
 def read_object(repo, oid: str) -> bytes:
     """The canonical bytes of *oid*; ``KeyError`` when it is not stored."""
     parse_oid(oid)
+    if (batch := staged(repo)) is not None and oid in batch:
+        return batch[oid]
     for attempt in range(_PASSES):
         error: Exception | None = None
         try:
@@ -70,6 +73,8 @@ def object_exists(repo, oid: str) -> bool:
         parse_oid(oid)
     except KernelError:
         return False
+    if (batch := staged(repo)) is not None and oid in batch:
+        return True
     try:  # the pack index first: one lookup, where a loose probe is a path walk
         if pack_set(repo.path).known(oid):
             return True
@@ -145,7 +150,21 @@ def write_object(repo, oid: str, raw: bytes) -> bool:
 
     An existing loose copy must hold the same canonical bytes (a corrupt one
     is refused, as before); a packed copy was checked against its id on read.
+    Inside a write batch (``_write_batch``) a new object is staged for the
+    run's pack instead of written loose.
     """
+    batch = staged(repo)
+    if batch is not None:
+        if oid in batch:
+            return False
+        if not object_exists(repo, oid):
+            batch[oid] = raw
+            return True
+    return write_loose(repo, oid, raw)
+
+
+def write_loose(repo, oid: str, raw: bytes) -> bool:
+    """:func:`write_object` without batching: one loose file, synced alone."""
     path = repo._object_path(oid)
     if not path.exists() and (found := pack_set(repo.path).locate(oid)) is not None:
         _freshen(internal_path(repo.path, "packs", f"{found[0]}.tpk"), _PACK_FRESHEN)

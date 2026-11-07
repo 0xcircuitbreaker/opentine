@@ -1,6 +1,6 @@
 /**
  * The portable `.tine` reader (SPEC 3.1, 3.7) and the format v4 integrity
- * check (SPEC Part 9): every envelope id re-derives, the root is a run the
+ * check (SPEC Part 9, and v5 read as its v4 form, Part 10): every envelope id re-derives, the root is a run the
  * file carries, every object is reachable from it, and the annotations form
  * one chain on the root.
  */
@@ -19,6 +19,7 @@ import {
   type JObject,
   type JValue,
 } from "./json.js";
+import { asV4 } from "./v5.js";
 
 export const V4_KIND = "tine-artifact/4";
 export const V4_KEYS = ["annotations", "format_version", "kind", "objects", "root", "signatures"];
@@ -188,7 +189,8 @@ function pyList(keys: string[]): string {
  * Check a parsed v4 artifact's integrity (a port of `_artifact_v4_read.read_v4_data`
  * up to, not including, the v3 run loader's graph validators).
  */
-export function readV4(data: JValue): V4Contents {
+export function readV4(input: JValue): V4Contents {
+  const data = asV4(input); // SPEC Part 10: a v5 document is checked as the v4 one it spells
   if (!isV4Artifact(data)) throw new TineError(`not a format v4 artifact (kind '${V4_KIND}')`);
   if (!sameKeys(data, V4_KEYS)) throw new TineError(`v4 artifact keys must be exactly ${pyList(V4_KEYS)}`);
   const objects = data.get("objects");

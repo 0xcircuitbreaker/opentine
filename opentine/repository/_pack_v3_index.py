@@ -22,7 +22,7 @@ import hashlib
 import struct
 
 from opentine.kernel import KernelError
-from opentine.repository._run_delta import ENCODINGS, EVENT_SLIM, FULL, RUN_DELTA
+from opentine.repository._run_delta import BLOB_DELTA, ENCODINGS, EVENT_SLIM, FULL, RUN_DELTA
 
 INDEX_MAGIC = b"TINEIX3\n"
 PACK3_MAGIC = b"TINELP3\n"
@@ -33,7 +33,7 @@ MAX_PACK_OBJECTS = 4_000_000
 _HEAD = struct.Struct(">8s32sII")
 _BLOCK = struct.Struct(">IIB")
 _ENTRY = struct.Struct(">B32sIIIIB")
-_ALLOWED = {FULL: set(KINDS), RUN_DELTA: {"run"}, EVENT_SLIM: {"event"}}
+_ALLOWED = {FULL: set(KINDS), RUN_DELTA: {"run"}, EVENT_SLIM: {"event"}, BLOB_DELTA: {"blob"}}
 
 
 def encode_index(digest: str, blocks: list[tuple[int, int, int]], entries: list[tuple]) -> bytes:

@@ -25,8 +25,8 @@ from typing import Any
 
 from opentine.kernel import KernelError, canonical_json, validate_json_shape
 
-FULL, RUN_DELTA, EVENT_SLIM = 0, 1, 2
-ENCODINGS = (FULL, RUN_DELTA, EVENT_SLIM)
+FULL, RUN_DELTA, EVENT_SLIM, BLOB_DELTA = 0, 1, 2, 3  # BLOB_DELTA: ``_blob_delta`` (0.40)
+ENCODINGS = (FULL, RUN_DELTA, EVENT_SLIM, BLOB_DELTA)
 #: A reader resolves at most this many deltas for one object (writers stay below).
 MAX_DELTA_DEPTH = 64
 #: A writer starts a fresh full snapshot after this many deltas in a row.

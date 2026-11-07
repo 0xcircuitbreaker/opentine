@@ -84,6 +84,12 @@ test("every format v4 vector passes (0.39.0 acceptance)", () => {
   }
 });
 
+test("every format v5 vector passes (0.40.0 acceptance)", () => {
+  const selected = rows.filter((row) => row.file === "vectors/54-artifact-v5.json");
+  assert.ok(selected.length > 0);
+  assert.equal(tally(selected).pass, selected.length);
+});
+
 test("out-of-scope vectors are skipped only under the named categories", () => {
   const seen = new Set<string>();
   for (const row of rows.filter((item) => item.status === "skip")) {

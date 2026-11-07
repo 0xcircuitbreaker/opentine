@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine.kernel import KernelError, ObjectEnvelope, validate_links
+from opentine.repository._write_batch import flush
 
 _MUTABLE_FIELDS = {"events", "finished_at", "roots", "status", "tips"}
 
@@ -62,8 +63,10 @@ def advance_run(
     update = getattr(repo, "_update_ref_validated", None)
     if callable(store) and callable(update):
         next_run = store(envelope)
+        flush(repo)  # P2: a batched recording's pack is durable before the ref moves
         update(ref, next_run, envelope, expected_old=current, log=log)
         return next_run
     next_run = repo.put("run", payload)
+    flush(repo)
     repo.update_ref(ref, next_run, expected_old=current)
     return next_run

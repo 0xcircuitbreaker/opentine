@@ -25,6 +25,7 @@ from opentine._format_v4 import (
     ARTIFACT_V4_VERSION,
     MAX_V4_OBJECTS,
     V4Unrepresentable,
+    v5_if_requested,
 )
 from opentine._v3_guards import guarded_redaction
 from opentine._v4_values import prepare_run
@@ -231,6 +232,7 @@ def save_v4(run: Any, target: Any, *, fsync: bool = False, sign_key: Any = None,
         from opentine._signing_v4 import append_signature
 
         encoded = append_signature(json.loads(encoded), sign_key, **sign)
+    encoded = v5_if_requested(encoded)  # SPEC Part 10: opt-in, same oids and signatures
     write_artifact(target, encoded.decode("utf-8"), fsync=fsync)
     return target
 

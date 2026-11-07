@@ -1,0 +1,2066 @@
+{
+  "cases": [
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "v5.oid.binary-blob",
+      "input": {
+        "bytes_b64": "7aCA/w==",
+        "sha256": "c0ef68d86ea201b02ec508e7e479a57083b7b879c670e41eb427172cd5462b19"
+      },
+      "intent": "bytes that are not UTF-8 (an encoded surrogate) keep the base64 spelling and the same oid rule",
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:bd734b519863433731aaf4069899d23439aaaa8f5e2e96c0aecb256060e5b895"
+      },
+      "profile": "reader",
+      "section": "10.3",
+      "tier": "core",
+      "x_display": "\\xed\\xa0\\x80\\xff",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "header": {
+          "schema": 1,
+          "type": "blob"
+        }
+      },
+      "checklist": [
+        3
+      ],
+      "expect": "accept",
+      "id": "v5.oid.text-blob",
+      "input": {
+        "bytes_b64": "77u/bGluZQ0KbnVsACDigKgg8J+YgCDDqQ==",
+        "sha256": "81926ced3d58ae919a5820c2014b7f9ae9d7034f917ad81965738456f93aab08"
+      },
+      "intent": "a text blob's stored body is UTF-8(text) under the raw header: CR, LF, NUL, a BOM and a non-BMP scalar survive, nothing is normalized",
+      "op": "oid.derive",
+      "output": {
+        "oid": "blob:sha256:564cbc3565f0d4c35413c00617a79c6b9b36071b9ab565a8c1d1a61e73543448"
+      },
+      "profile": "reader",
+      "section": "10.3",
+      "tier": "core",
+      "x_display": "\\xef\\xbb\\xbfline\\x0d\\nnul\\x00 \\xe2\\x80\\xa8 \\xf0\\x9f\\x98\\x80 \\xc3\\xa9",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.mismatch-edited-text",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"} ",
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "one added space in a text blob changes its UTF-8 bytes, so its oid no longer re-derives: mismatch under an intact signature",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62]: object id mismatch",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "10.5",
+      "tier": "core",
+      "twin": "v5.verdict.verified-hmac",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.mismatch-extra-key",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "",
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"}",
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "a text envelope is exactly encoding, schema, text and type",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62]: a v5 text envelope is encoding, schema, type=blob and text",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "10.2",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.mismatch-text-as-base64",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "data": "eyJhcmd1bWVudHMiOnsicGF0aCI6IlJFQURNRS5tZCJ9LCJuYW1lIjoicmVhZCJ9",
+              "encoding": "raw",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "UTF-8 text spelled as base64 is a second spelling of the same blob: refused, even though the bytes and the oid are right",
+      "must_differ": true,
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62]: UTF-8 text must be spelled as v5 text, not base64",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "10.2",
+      "tier": "core",
+      "twin": "v5.verdict.verified-hmac",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.mismatch-text-event",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"}",
+              "type": "event"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "only blobs have a text spelling: a text envelope typed event is refused",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "content does not match the signed root: invalid v4 artifact: objects[blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62]: a v5 text envelope is encoding, schema, type=blob and text",
+        "signed_at": null,
+        "signer": null,
+        "state": "mismatch"
+      },
+      "profile": "verifier",
+      "section": "10.2",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.unsigned",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"}",
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": []
+        }
+      },
+      "intent": "an unsigned v5 document is unsigned, as in v4",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": null,
+        "key_id": null,
+        "ok": false,
+        "reason": "no signature present",
+        "signed_at": null,
+        "signer": null,
+        "state": "unsigned"
+      },
+      "profile": "verifier",
+      "section": "10.4",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.verified-ed25519",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"}",
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "ed25519",
+              "key_id": "ed-demo",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "value": "108f887e951ebf992d8e521098b2a6b250820dff72554729ab7293f8f289c8b2f4d9a4f4bd663222f7362afac1e0bbaef876f4d23075bc29ad89944e92382607"
+            }
+          ]
+        }
+      },
+      "intent": "an Ed25519 tine-sig/3 block carries over to v5 as well",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "ed25519",
+        "key_id": "ed-demo",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": null,
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "10.4",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "family": "artifact-v5",
+        "key": "hmac_a"
+      },
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "v5.verdict.verified-hmac",
+      "input": {
+        "value": {
+          "annotations": [
+            {
+              "body": {
+                "compatibility": "run-metadata-v1",
+                "previous_id": null,
+                "target_id": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+                "value": {
+                  "metadata": {
+                    "fixture": "golden-v2"
+                  },
+                  "tags": []
+                }
+              },
+              "encoding": "json",
+              "id": "annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "annotation"
+            }
+          ],
+          "format_version": {
+            "$i": "5"
+          },
+          "kind": "tine-artifact/5",
+          "objects": {
+            "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"arguments\":{\"path\":\"README.md\"},\"name\":\"read\"}",
+              "type": "blob"
+            },
+            "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"messages\":[{\"content\":\"task\",\"role\":\"user\"},{\"content\":\"plan\",\"role\":\"assistant\",\"step_id\":\"event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa\"},{\"content\":\"ok\",\"name\":\"read\",\"role\":\"tool\",\"step_id\":\"event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0\"},{\"content\":\"done\",\"role\":\"assistant\",\"step_id\":\"event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7\"}]}",
+              "type": "blob"
+            },
+            "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"profile\":\"secure\"}",
+              "type": "blob"
+            },
+            "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "task",
+              "type": "blob"
+            },
+            "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "system",
+              "type": "blob"
+            },
+            "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"result\":\"ok\"}",
+              "type": "blob"
+            },
+            "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{}",
+              "type": "blob"
+            },
+            "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"done\"}",
+              "type": "blob"
+            },
+            "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"kind\":\"opentine-native\",\"model\":{\"name\":\"mock-golden\"},\"replay\":[\"cache\",\"rerun\"],\"resume\":true,\"tools\":[\"read\"]}",
+              "type": "blob"
+            },
+            "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"fixture-cache-key\":\"[REDACTED]\"}",
+              "type": "blob"
+            },
+            "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a": {
+              "encoding": "text",
+              "schema": {
+                "$i": "1"
+              },
+              "text": "{\"text\":\"plan\"}",
+              "type": "blob"
+            },
+            "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.2"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:21692b9498da5406321d94de374139a6b0cfafbd3b4b2a8b64b700afb6977f62",
+                "kind": "tool",
+                "legacy_step_id": "3b9a57549586df19d617e9a4ac0f67940c231ee3c2adb48e808cd4799d5b656f",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:78a79b824e7f2aa28a1b59da191c2be99321edeff8f287da82b245878780abaf",
+                "parent_ids": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "time_unix": {
+                  "$i": "1710000002"
+                },
+                "tool": {
+                  "name": "read"
+                },
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.1"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:edbc6af7f92a127c7fc941a48674fce3d010522723aff58f72fc311a196e565a",
+                "kind": "think",
+                "legacy_step_id": "5770e6d6688ddaf607114a0c44b0db2ae67530b16a8ac29bb22b64848e6f9bdd",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [],
+                "time_unix": {
+                  "$i": "1710000001"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7": {
+              "body": {
+                "billing": {},
+                "causal_ids": [],
+                "cost": {
+                  "$i": "0"
+                },
+                "duration": {
+                  "$f": "0.3"
+                },
+                "error": {},
+                "input_blob": "blob:sha256:817a68f7043fa1a0594efb4118b989db7a594949a2b669cc640bac993f7094f3",
+                "kind": "done",
+                "legacy_step_id": "61d775725adcf0a334c77eb77643cca671d5a64fb05b98a2acb2d77443292178",
+                "model": "mock-golden",
+                "output_blob": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+                "parent_ids": [
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0"
+                ],
+                "time_unix": {
+                  "$i": "1710000003"
+                },
+                "tool": {},
+                "usage": {}
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "event"
+            },
+            "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965": {
+              "body": {
+                "created_at": {
+                  "$i": "1710000000"
+                },
+                "events": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa",
+                  "event:sha256:2c7f05b20d49e5a3e85ed802bf58143933c6e8a9c8ed9839462d5941768a36c0",
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ],
+                "legacy_refs": {
+                  "main": "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                },
+                "manifests": {
+                  "cache": "blob:sha256:de43a103d3b58427ea1eebc38c9e41a76e6f74e213498f7cc681539c8abf0847",
+                  "policy": "blob:sha256:566e59d661036f029f57de36105238cc49f4891deee9831c8f205489d9aa5170",
+                  "run": "blob:sha256:c3195325262ebf602a6cc3e91113295e61eef5836b0e5abe7e6075c9e550ead6",
+                  "transcript": "blob:sha256:3454d725e4d15574ab7bf4240b7d60dda947750fcf544164eb108af8b5e3dc51"
+                },
+                "model": "mock-golden",
+                "prompt_blob": "blob:sha256:784b35881045478212f3208865001b2e58aa282dc414484e7a03f06cd3855326",
+                "roots": [
+                  "event:sha256:424331640785beec6f8458ff172f9b141288b17a78dd77659b99a499bb16d2aa"
+                ],
+                "source_run_id": "golden-v2",
+                "status": "completed",
+                "system_blob": "blob:sha256:7871c29b6cb21bb0efd0fa9e3e22f2d5c806164e44913c08cd1de457dfe44e20",
+                "tips": [
+                  "event:sha256:c264c32a6944e3523a424bf0907958e46322d8badd12646c4b9b892bd9f805d7"
+                ]
+              },
+              "encoding": "json",
+              "schema": {
+                "$i": "1"
+              },
+              "type": "run"
+            }
+          },
+          "root": "run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965",
+          "signatures": [
+            {
+              "alg": "hmac-sha256",
+              "key_id": "demo-key",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-01T00:00:00Z",
+              "signer": "release-bot",
+              "value": "aff919d541098909ee25de889287708b634755d39656f1de670a8102245b50e0"
+            }
+          ]
+        }
+      },
+      "intent": "the v4 tine-sig/3 block verifies unchanged over the v5 spelling: text blobs rebuild the v4 stored bytes, so the root is the same",
+      "op": "sig.verify",
+      "output": {
+        "algorithm": "hmac-sha256",
+        "key_id": "demo-key",
+        "ok": true,
+        "reason": "ok",
+        "signed_at": "2026-11-01T00:00:00Z",
+        "signer": "release-bot",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "10.4",
+      "tier": "core",
+      "x_display": "{\"annotations\": [{\"body\": {\"compatibility\": \"run-metadata-v1\", \"previous_id\": null, \"target_id\": \"run:sha256:60e0915800bf591ac65eb1405409b0da4320d61a6c55ab7cd09570a3c4f06965\", \"value\": {\"metadata\": {\"fixture\": \"golden-v2\"}, \"tags\": []}}, \"encoding\": \"json\", \"id\": \"annotation:sha256:f138e3500b053f5041ce1bb09f2edd235d28f23bc0458524390d5325447afd9c\", \"schema\": {\"$i\": \"1\"}, \"type\": \"annotation\"}], \"fo...",
+      "x_reference": null
+    }
+  ],
+  "family": "artifact-v5",
+  "section": "10",
+  "suite_version": 1
+}

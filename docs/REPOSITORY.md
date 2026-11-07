@@ -697,6 +697,22 @@ take the same flags.
   those releases refuse the repository; without the opt-in gc never touches a
   ref. `tine repo storage gc --unpack-refs` writes every ref loose again and
   lowers `min_reader` back to 0.26.0. Reflogs stay one file per ref.
+- `tine repo storage gc --blob-deltas` (0.40+, opt-in) stores blobs in local v3
+  packs as **blob deltas**: the bytes that differ from a similar blob of the
+  same pack (its base, chosen by the longest shared prefix plus suffix among the
+  16 blobs before it in recording order). A run's transcript, which
+  `put_transcript` saves whole after every turn, then costs one turn per save.
+  Every read rebuilds the canonical bytes and re-hashes each object of the
+  chain against its id; a chain deeper than 64 or one that loops is refused
+  with an error naming the object. The opt-in moves the repository to storage
+  version 3 and object format 4 and writes `"packs": "delta"` plus
+  `"min_reader": "0.40.0"`, so opentine 0.39 and older refuse it instead of
+  failing on a pack entry. Push, fetch, bundles and exports send canonical
+  objects, so peers on older releases are unaffected. `gc` and auto-pack both
+  write the form once opted in (auto-pack only because it met the 0.40 latency
+  gate, `docs/bench/0.40-cdc-bakeoff.md`). `tine repo storage gc
+  --no-blob-deltas` rewrites every pack without deltas, then lowers
+  `min_reader` again (0.37.0 with packed refs, else 0.26.0).
 - Pack indexes are read lazily (0.37+): the binary v3 `.tidx` is mapped into
   memory (read into memory on Windows, where a mapping would stop gc from
   replacing it) and searched through a fanout table, instead of every entry

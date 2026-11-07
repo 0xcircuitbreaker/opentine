@@ -20,6 +20,13 @@ from opentine.graph import RunStatus, StepKind
 from opentine.repository import Repo
 from opentine.repository._gc import gc
 
+
+@pytest.fixture(autouse=True)
+def _loose_writes(monkeypatch):
+    """These tests pack loose objects themselves; 0.40 run packs would pre-empt them."""
+    monkeypatch.setenv("OPENTINE_RUN_PACK", "0")
+
+
 MODES = ["zlib", *(["zstd"] if _codec.available("zstd") else []), "packed"]
 KEY = b"k" * 32
 

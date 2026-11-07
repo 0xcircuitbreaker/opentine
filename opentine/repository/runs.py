@@ -26,6 +26,7 @@ from opentine.repository._run_blobs import (
 )
 from opentine.repository._run_graph import _meter, compatibility_float
 from opentine.repository._shallow_read import require_deep
+from opentine.repository._write_batch import batched, flush
 
 if TYPE_CHECKING:
     from opentine.graph import Run
@@ -93,9 +94,8 @@ def _put_run(
             "tool": _redact(step.tool_info),
             "usage": _redact(step.usage),
         }
-        # Written only when the run knows it, exactly like the .tine side: an
-        # unconditional key would re-address (and so duplicate) every event a
-        # pre-0.8.0 run ever stored, for a field that would always be empty.
+        # Only when known, like the .tine side: an unconditional key would
+        # re-address every pre-0.8.0 event for a field that is always empty.
         if step.provider:
             payload["provider"] = step.provider
         put_event_inputs(payload, step.inputs, lambda value: json_blob(repo, value))
@@ -133,6 +133,7 @@ def _put_run(
     }
     apply_legacy_migration(payload, legacy_blob, legacy_verification, migration_map_blob)
     run_id = repo.put("run", json_stored(payload, "run"))
+    flush(repo)  # P2: one pack, durable before any ref (annotation or run) names it
     annotation_id = write_run_annotation(repo, run_id, run.metadata, run.tags)
     if ref:
         old = repo.read_ref(ref)
@@ -149,9 +150,8 @@ def put_run(
     legacy_blob: str | None = None,
     legacy_verification: dict[str, Any] | None = None,
 ) -> RunObjectResult:
-    # Spelled once: preflight must reject exactly what the writer would attempt.
     conversion = dict(ref=ref, legacy_blob=legacy_blob, legacy_verification=legacy_verification)
-    with run_redaction(run.policies):  # RedactionPolicy.extra_secret_keys, every object
+    with run_redaction(run.policies), batched(repo):  # extra_secret_keys; one pack (P2)
         preflight_run(repo, run, **conversion)
         return _put_run(repo, run, **conversion)
 

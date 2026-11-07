@@ -73,17 +73,20 @@ def fall_back_to_v2(run: Any, reason: Exception) -> None:
 
 
 def writer_format() -> int:
-    """The format the writers use: 4 by default, 2 when a legacy one is chosen."""
+    """The format the writers use: 4 by default, 5 when chosen (SPEC Part 10),
+    2 when a legacy one is chosen."""
     override = _OVERRIDE.get()
-    if override is not None:
-        return 2 if override in LEGACY_FORMATS else ARTIFACT_V4_VERSION
-    text = os.environ.get(FORMAT_ENV, "").strip()
-    return 2 if text in {str(n) for n in LEGACY_FORMATS} else ARTIFACT_V4_VERSION
+    if override is None:
+        text = os.environ.get(FORMAT_ENV, "").strip()
+        override = int(text) if text in {"2", "3", "5"} else None
+    if override in LEGACY_FORMATS:
+        return 2
+    return 5 if override == 5 else ARTIFACT_V4_VERSION
 
 
 def v4_requested() -> bool:
-    """True unless a legacy writer was chosen: format v4 is the 0.26 default."""
-    return writer_format() == ARTIFACT_V4_VERSION
+    """True unless a legacy writer was chosen: v4 (the default) or its v5 spelling."""
+    return writer_format() >= ARTIFACT_V4_VERSION
 
 
 def strict_v4() -> bool:
@@ -93,12 +96,13 @@ def strict_v4() -> bool:
 
 
 def format_arg(text: str) -> int:
-    """``tine --format N``: 4 (the default) or the deprecated 2 (or 3)."""
+    """``tine --format N``: 4 (the default), 5 (opt-in, SPEC Part 10) or the
+    deprecated 2 (or 3)."""
     import argparse
 
     value = text.strip().lower().removeprefix("v")
-    if value not in {"2", "3", "4"}:
-        raise argparse.ArgumentTypeError(f"choose 4 or 2 (deprecated), not {text!r}")
+    if value not in {"2", "3", "4", "5"}:
+        raise argparse.ArgumentTypeError(f"choose 4, 5 or 2 (deprecated), not {text!r}")
     return int(value)
 
 
@@ -110,6 +114,17 @@ def write_format(version: int | None) -> Iterator[None]:
         yield
     finally:
         _OVERRIDE.reset(token)
+
+
+def v5_if_requested(encoded: bytes) -> bytes:
+    """Canonical v4 artifact bytes, re-spelled as v5 when ``--format 5`` chose it."""
+    if writer_format() != 5:
+        return encoded
+    from opentine._artifact_io import parse_artifact_json
+    from opentine._tine_v5 import to_v5
+    from opentine.kernel import canonical_json
+
+    return canonical_json(to_v5(parse_artifact_json(encoded)))
 
 
 def warn_legacy() -> None:

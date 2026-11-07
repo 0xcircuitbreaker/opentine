@@ -13,6 +13,7 @@ from opentine.redaction import redact_blob
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._config import config_bytes, read_config, storage_codec
 from opentine.repository._discovery import find_repository
+from opentine.repository._external import known as external_pointer
 from opentine.repository._link_touch import touch_links
 from opentine.repository._objects import iter_object_oids, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
@@ -22,6 +23,7 @@ from opentine.repository._refs import normalize_ref, validate_ref_oid, validate_
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._shallow import read_shallow, shallow_fingerprint
 from opentine.repository._storage import object_exists, read_object
+from opentine.repository._write_batch import flush as flush_batch
 
 _UNSET = object()
 
@@ -83,7 +85,7 @@ class Repo:
         return set(self._shallow_set())
 
     def _link_exists(self, oid: str) -> bool:
-        return self.has(oid) or oid in self._shallow_set()
+        return self.has(oid) or oid in self._shallow_set() or external_pointer(self, oid)
 
     def put(
         self,
@@ -177,6 +179,7 @@ class Repo:
         if target.oid != new_oid:
             raise KernelError("validated ref target does not match its object id")
         validate_ref_target(normalized, target.object_type, target.payload())
+        flush_batch(self)  # P2: staged objects are durable before any ref names them
         touch_links(self, [new_oid])  # a ref is a link: tine prune must keep it
         commit_ref(
             self.path,

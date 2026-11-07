@@ -202,7 +202,7 @@ _VERDICT_FIELDS = ("ok", "state", "algorithm", "key_id", "signer", "signed_at", 
 def op_sig_verify(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
     document = parse_artifact_json(inp.raw) if inp.kind == "bytes" else inp.value
     family = args.get("family", "attestation")
-    if family == "artifact-v4":
+    if family in ("artifact-v4", "artifact-v5"):  # v5: SPEC Part 10, read as v4
         result = verify_artifact_v4(
             document,
             hmac_key=KEYS[args["key"]] if args.get("key") else None,

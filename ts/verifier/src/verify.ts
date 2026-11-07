@@ -1,12 +1,13 @@
 /**
- * One file in, one report out: the `.tine` v4 check the CLI prints.
+ * One file in, one report out: the `.tine` v4 / v5 check the CLI prints.
  */
 
 import { readFileSync, statSync } from "node:fs";
 import { isV4Artifact, parseArtifactJson, verifyV4 } from "./artifact.js";
 import { MAX_TINE_ARTIFACT_BYTES, unwrap } from "./codec.js";
 import { TineError } from "./errors.js";
-import { isObject } from "./json.js";
+import { isObject, type JObject } from "./json.js";
+import { isV5Artifact, V5_KIND } from "./v5.js";
 import { verifyArtifactV4, type SignatureResult, type VerifyKeys } from "./signature.js";
 
 export const REPORT_SCHEMA = "opentine-verify-ts/1";
@@ -42,19 +43,20 @@ export function verifyBytes(raw: Uint8Array, path: string, keys: VerifyKeys = {}
     report.integrity.reason = exc.message;
     return report;
   }
-  if (!isV4Artifact(data)) {
+  const v5 = isV5Artifact(data);
+  if (!v5 && !isV4Artifact(data)) {
     const version = isObject(data) ? data.get("format_version") : undefined;
     report.format = typeof version === "bigint" ? `tine/${version}` : null;
     report.integrity.reason =
-      "only format v4 (tine-artifact/4) is verified by this build; " +
+      "only format v4 or v5 (tine-artifact/4, tine-artifact/5) is verified by this build; " +
       "upgrade the file with `tine migrate` or verify it with the Python reader";
     return report;
   }
-  report.format = "tine-artifact/4";
+  report.format = v5 ? V5_KIND : "tine-artifact/4";
   const integrity = verifyV4(data);
   report.root = integrity.root;
   report.integrity = { ok: integrity.ok, reason: integrity.reason };
-  report.signature = verifyArtifactV4(data, keys);
+  report.signature = verifyArtifactV4(data as JObject, keys);
   const signatureFailed = report.signature.state === "mismatch" || report.signature.state === "error";
   report.ok = integrity.ok && !signatureFailed;
   report.verdict = report.ok ? "pass" : "fail";

@@ -11,6 +11,7 @@ from typing import Any
 from opentine._import_billing import distrust_source_billing
 from opentine._unicode_text import assert_unicode_text
 from opentine.repository._autopack import after_write, settle
+from opentine.repository._write_batch import batched
 from opentine.trace._record_event import SpanMap, json_blob, put_trace_event, span_key
 from opentine.trace._run_state import advance_run
 from opentine.trace._span_state import resumed_span_map, validated_span_map
@@ -48,8 +49,7 @@ class Recorder:
         pricing: dict[str, Any] | None = None,
         capture: bool = True,
     ) -> Recorder:
-        # The only text this class encodes itself; every manifest and event below
-        # is guarded inside Repo.put. Refused before the first blob is written.
+        # The only text encoded here (the rest is guarded in Repo.put).
         assert_unicode_text({"prompt": prompt, "system": system}, where="recorder prompt")
         captured_code = code if code is not None else code_manifest() if capture else {}
         manifests = {
@@ -128,8 +128,7 @@ class Recorder:
         updated["roots"] = roots if parents else [*roots, event_id]
         old_tips = [tip for tip in run.get("tips") or [] if tip not in parents]
         updated["tips"] = [*old_tips, event_id]
-        # No reflog row per event (start/import/finalize log one), so superseded
-        # snapshots are prunable; a long session auto-packs its cold ones live.
+        # No reflog row per event, so superseded snapshots stay prunable.
         self._advance(updated, log=False)
         self.span_map[key] = event_id
         after_write(self.repo, own=True)  # bursts pack their own objects
@@ -138,9 +137,7 @@ class Recorder:
     def import_events(
         self, events: list[TraceEvent], *, trusted_billing: bool = False
     ) -> list[str]:
-        # Imported billing and cost are text from a source file: dropped unless
-        # the caller already replaced them from the catalog (``tine import``
-        # passes ``trusted_billing=True`` after its own distrust + pricing).
+        # Source-file billing is dropped unless already re-priced (``tine import``).
         if not trusted_billing:
             events = distrust_source_billing(events)
         run = self._payload
@@ -173,6 +170,10 @@ class Recorder:
                     ready.append(child)
         if len(order) != len(events):
             raise ValueError("trace parent/causal dependency cycle")
+        with batched(self.repo):  # P2: the imported events land as one pack
+            return self._import_ordered(run, events, order)
+
+    def _import_ordered(self, run: dict[str, Any], events: list, order: list[int]) -> list[str]:
         result = [""] * len(events)
         working_map = dict(self.span_map)
         ordered_ids: list[str] = []

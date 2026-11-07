@@ -3,8 +3,9 @@
 **Status:** normative for opentine 0.9.0-dev. **Formats covered:** portable
 `.tine` artifact `format_version` 1 and 2; the v3 `.tine/` repository object
 model, wire format and pack format; the three signature schemes `tine-sig/1`,
-`tine-sig/2` and `tine-attest/1`; and, since 0.26.0, format v4 (Part 9, the
-default writer) with `tine-sig/3` and `tine-attest/2`.
+`tine-sig/2` and `tine-attest/1`; since 0.26.0, format v4 (Part 9, the
+default writer) with `tine-sig/3` and `tine-attest/2`; and, since 0.40.0, the
+format v5 reader (Part 10: text blobs, opt-in writer).
 
 This document is written for someone implementing a **reader, writer or
 verifier in another language**. Everything here is derived from the reference
@@ -710,7 +711,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.37.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.40.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
@@ -1020,7 +1021,7 @@ block 1+ = the objects' stored bytes in pack order, cut every 4 MiB
 - **Recording order.** Objects come in recording order: blobs and events in
   the order the runs reached them, then each session's snapshots in append
   order.
-- **Stored forms.** `encoding` is that of pack v3: 0 `FULL`, 1 `RUN_DELTA`
+- **Stored forms.** `encoding` is that of pack v3 (blob deltas, 3, are local-only): 0 `FULL`, 1 `RUN_DELTA`
   or 2 `EVENT_SLIM`. A `RUN_DELTA`'s base is the object just before it, which
   MUST be a run, and a delta chain is at most 64 deep.
 - **Derived ids.** Ids are not listed. Each id is computed from the rebuilt
@@ -1053,6 +1054,18 @@ SHA-256 of the `.tpk` bytes.
 A packed object MUST be checked against its id when read. Local packs are a
 storage detail: they never cross the network, and transfer packs (TINEPACK3)
 always carry canonical bytes.
+
+**Run packs (0.40+).** `Repo.put_run` and `Recorder.import_events` write all
+of a run's new objects as one local pack of the repository's current pack
+format (v1, or v3 in a storage-version-3 repository) instead of one loose file
+per object, so readers since 0.11 read them unchanged. The writer MUST make
+both files durable under temporary names (one fsync each), rename the `.tpk`
+and then the `.tidx` into place, sync `packs/` once, and only then update any
+ref (`_write_batch`). A crash before the ref update leaves an unreferenced
+pack that verifies; no ref may name an object that is not yet durable. A
+batch of a single object, a storage-version-1 repository, `"run_pack": false`
+in `config.json` or `OPENTINE_RUN_PACK=0` keeps loose writes. Single-object
+writes (`Recorder.append`, annotations) stay loose.
 
 ### Pack v3 (storage version 3, 0.13+)
 
@@ -1094,6 +1107,24 @@ tells the formats apart by magic; a version-3 repository may hold both.
     `causal_ids []`, `cost 0`, `duration 0`, `parent_ids []`, `usage {}`);
     a reader adds every missing one back and canonicalizes. Storing a default
     is refused.
+  - `3` blob delta (blobs only, 0.40+): the blob's header line, LF, then
+    `<base oid> SP <prefix> SP <suffix>` LF, then the *middle* bytes. The base
+    is another **blob of the same pack**, named by its full `blob:sha256:` id
+    (prefix and suffix are decimal without leading zeros). Rebuild: take the
+    base's canonical body, keep its first `prefix` and last `suffix` bytes
+    (`prefix + suffix` MUST NOT exceed the base body), put the middle between
+    them, and prepend the header line. A reader follows bases by id, MUST
+    refuse a chain that names an id it already visited (a cycle) or that holds
+    more than 64 deltas of any kind (`MAX_DELTA_DEPTH`), and MUST refuse a base
+    the pack does not list. Writers choose bases "middle-out" (the longest
+    shared prefix plus suffix among the 16 blobs before it in pack order) and
+    keep their chains to 32. A pack holding a blob delta is written only in a
+    repository whose descriptor carries `"packs": "delta"` with a `min_reader`
+    of at least `0.40.0` (`tine gc --blob-deltas`; `tine gc --no-blob-deltas`
+    rewrites every pack without them before removing both), so a 0.37-0.39
+    reader, which refuses encoding 3, refuses the repository instead. Transfer
+    formats (wire packs, bundles, `.tine`) never carry it: they hold canonical
+    objects.
 
 Every rebuilt object — a delta's base included — MUST equal its
 `canonical_size` and hash to its id, or the read fails. Ids, digests and
@@ -1116,6 +1147,38 @@ present, is well formed (§9.9); and the
 event graph (`parent_ids` + `causal_ids`) is acyclic, reported per cycle root.
 Runs written under object format 3 and 4 coexist: both are v3 envelopes.
 `fsck` bounds itself at 1000 packs and 1 GiB of pack bytes.
+
+## 2.10 External blob pointers (0.40+)
+
+A blob may be held outside the repository (object storage, a shared disk, an
+HTTPS URL) and named by a **pointer** in the side table
+`external/<64 hex>.json`, where the hex is the blob oid's digest. The file is
+canonical JSON plus LF:
+
+```text
+{"oid":"blob:sha256:<hex>","sha256":"<hex of SHA-256(content)>","size":N,"uri":"<uri>","version":1}
+```
+
+The blob oid keeps its §1.3 meaning, `object_id("blob", 1, content)`: a pointer
+is not an object, has no oid of its own, and never enters a pack, a transfer or
+a signature. A link to a blob that is only a pointer satisfies §1.5.6 link
+existence for the writer; a reader that predates 0.40 ignores `external/` and
+sees such a blob as absent (as after a shallow fetch).
+
+- `uri` MUST be `file:`, `https:` or `http:`, without userinfo, `.`/`..` path
+  segments or backslashes; `size` is 0..256 MiB; `sha256` is 64 lowercase hex.
+- Content is not redacted (§1.4 does not apply): it is hashed as written.
+- **Resolve** (`_external.resolve`) MUST refuse a `uri` that does not start
+  with an allowed prefix (`config.json` `"external_blobs": {"allow": [...]}`,
+  each ending in `/`; none by default), MUST NOT follow redirects, MUST resolve
+  a `file:` path through symlinks and refuse it outside its allowed directory,
+  MUST stop reading after `size` bytes, and MUST check, in order, the length,
+  `sha256`, and that the content hashes to `oid`, before storing the blob as a
+  loose object. The pointer itself is untrusted; the oid is the root of trust.
+- **Offline verification** (`_external.status`, `fsck`) MUST NOT open a URI: a
+  pointer whose blob is stored locally is `resolved`, else `unresolved`, and a
+  malformed one `invalid`. `fsck` does not report an unresolved pointer as an
+  error.
 
 ---
 
@@ -1681,7 +1744,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 636 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 645 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 
@@ -2248,3 +2311,117 @@ A v4 file and a v3 repository hold the same envelopes, so they share oids.
   repository run is representable (§0.2 already refuses what v4 refuses).
 - **Bundles and packs** carry v4 runs unchanged (§9.1 rule 5).
 
+
+# Part 10 — Format v5: text blobs (0.40.0)
+
+**Status:** normative since 0.40.0 for **readers**. Format v5 is a second
+*spelling* of a format v4 document (Part 9) in which blobs that are UTF-8 text
+travel as JSON strings instead of base64. It changes no object, no oid, no
+root and no signature: a v5 file and the v4 file of the same run carry the
+same envelopes and the same `tine-sig/3` blocks. The writer is **opt-in**:
+`tine --format 5 ...` or `OPENTINE_FORMAT=5` (`_format_v4.writer_format`);
+**v4 remains the default writer**. Following ROADMAP §2 (a new file format
+becomes the default only two minor releases after its reader ships), v5 may
+become the default no earlier than 0.42. A v5 file needs opentine 0.40 or
+newer (or the 0.40 TypeScript verifier) to read; 0.26–0.39 refuse it as an
+unknown format, never misread it.
+
+Reference: `opentine/_tine_v5.py` (standard library only; `tine-verify.pyz`
+vendors it verbatim).
+
+## 10.1 The document
+
+A v5 file is one JCS object (§0.2), optionally inside the `TINEZ1\0` wrapper of
+§2.3, with exactly the six top-level keys of §9.3. It differs from a v4
+document in three places only:
+
+| Key | v4 | v5 |
+|---|---|---|
+| `format_version` | the integer `4` | the integer `5` |
+| `kind` | `tine-artifact/4` | `tine-artifact/5` |
+| `objects` blob envelopes | `{"encoding": "raw", "schema": N, "type": "blob", "data": <base64>}` | a **text envelope** when the blob bytes are UTF-8 text (§10.2), else the v4 raw envelope unchanged |
+
+A **text envelope** has exactly the four keys
+`{"encoding": "text", "schema": N, "text": S, "type": "blob"}`, where `S` is a
+JSON string. JSON-encoded objects (`"encoding": "json"`), `annotations`,
+`root` and `signatures` are spelled exactly as in v4. Detection is by
+`format_version` **and** `kind` together (`_tine_v5.is_v5_artifact`).
+
+## 10.2 Which spelling: exactly one per blob
+
+A reader tells the spellings apart by the envelope's `encoding` member alone:
+`"text"` is a text envelope, `"raw"` is base64, `"json"` is a JSON object.
+
+Let `B` be a raw blob's stored body bytes. `B` is **UTF-8 text** when it is
+well-formed UTF-8 per RFC 3629 / Unicode Table 3-7: no byte `C0`, `C1` or
+`F5`–`FF`, no overlong form, no encoded surrogate (`ED A0 80`–`ED BF BF`), no
+scalar above U+10FFFF, no truncated sequence. The empty body is UTF-8 text.
+U+0000, CR, CRLF, a leading U+FEFF, U+2028/U+2029 and every other scalar value
+are text. (This is exactly what a strict decoder such as Python's
+`bytes.decode("utf-8")` or WHATWG `TextDecoder("utf-8", {fatal: true,
+ignoreBOM: true})` accepts.)
+
+- A writer MUST spell a raw blob as a text envelope when `B` is UTF-8 text,
+  with `S` the string whose UTF-8 encoding is `B`, and as the v4 raw envelope
+  (canonical base64, §9.3) when it is not.
+- A reader MUST refuse a raw envelope whose base64 decodes to UTF-8 text (a
+  second spelling of the same blob), a text envelope whose `type` is not
+  `blob` or whose keys are not exactly the four above, and a `text` that is
+  not a string or that holds an unpaired surrogate (§0.1; `\ud800` escapes
+  are refused by the §3.7 parser before this point).
+
+Because the choice is forced and the document is JCS, the v5 bytes of a run
+are a function of its v4 bytes: re-writing yields byte-identical output.
+
+## 10.3 Rebuilding canonical bytes
+
+A reader converts a v5 document to the v4 document it spells
+(`_tine_v5.to_v4`) and then applies §9.4 unchanged:
+
+1. Replace `format_version` with `4` and `kind` with `tine-artifact/4`.
+2. Replace each text envelope `{"encoding": "text", "schema": N, "text": S,
+   "type": "blob"}` with `{"data": base64(UTF-8(S)), "encoding": "raw",
+   "schema": N, "type": "blob"}` (RFC 4648 with padding).
+3. Leave every other member as it is.
+
+The stored envelope (§1.2) is therefore `JCS({"encoding": "raw", "schema": N,
+"type": "blob"}) || 0x0A || UTF-8(S)`: the header still says `raw`, because
+`text` is a transport spelling and never a stored encoding. The oid is §1.3
+over those bytes, so it is identical to the v4 oid. JSON escaping inside `S`
+(`\n`, `\r`, `\u0000`, `\"`, …) is undone by the JSON parser before step 2;
+nothing else is normalized — no newline conversion, no Unicode normalization,
+no BOM stripping.
+
+## 10.4 Signatures and attestations
+
+`tine-sig/3` (§9.6) signs `format_version: 4` and `kind: tine-artifact/4`
+whatever the spelling, together with the root, the annotation head and the
+header. A signature made over a v4 file therefore verifies, unchanged, over
+the v5 spelling of the same file and back. `tine-attest/2` (§9.7) targets the
+root and is unaffected.
+
+## 10.5 Reading, verifying and installing
+
+`Run.load`, `tine verify` (and `--offline`), `tine-verify.pyz`, datasets
+(§8.3) and `tine import FILE --repo` read a v5 file as its §10.3 v4 document,
+so every §9.4 refusal applies and every report names the v4 root. A tampered
+text blob no longer re-derives its oid: integrity fails and a signature over
+it is `mismatch`, exactly as for v4. Any tool that rewrites a v5 file (for
+example `tine sign`, `tine migrate`) writes the current writer format, which
+is v4 unless `--format 5` is given. TINEPACK, bundles and repositories store
+envelopes, not spellings, and are unaffected.
+
+## 10.6 Size
+
+On a transcript-shaped corpus (11 Claude Code sessions whose tool results are
+source files, test output and grep output), v5 is 15.1% smaller raw, **26.5%
+smaller after zstd-3** and **27.6% smaller after zstd-19** than v4. Base64
+costs 4/3 in size and destroys the redundancy zstd would find in the text.
+Binary blobs (images, compressed payloads) are unchanged.
+
+## 10.7 Conformance
+
+`docs/conformance/vectors/54-artifact-v5.json` carries the v5 cases: the
+golden run re-spelled as v5 under `tine-sig/3` (verified, tampered text,
+non-canonical base64 spelling, text on a non-blob, lone surrogate), and
+`oid.derive` cases showing a text blob's oid is its v4 oid.
