@@ -507,10 +507,14 @@ message's `metrics`. `auto` tells Roo from Cline by the
 `rooveterinaryinc.roo-cline` folder in the path. Windsurf is not supported: it
 has no documented local session format.
 
-# Writer format (0.26)
+# Writer format (0.26, 0.42)
 
-Since 0.26 every writer produces **format v4** (SPEC Part 9): `.tine` files are
-`tine-artifact/4`, signatures `tine-sig/3`, Ed25519 attestations on a run
+Since 0.42 `.tine` files are written as **format v5** (SPEC Part 10): the v4
+document with UTF-8 text blobs spelled as text, carrying the same oids, root
+and `tine-sig/3` signatures; opentine 0.40 or newer reads it. `--for-legacy`
+writes v4 for older readers, and `tine evidence export` always copies its runs
+as v4. Since 0.26 every writer produces **format v4** objects (SPEC Part 9):
+`.tine` files were `tine-artifact/4` until 0.42, signatures `tine-sig/3`, Ed25519 attestations on a run
 `tine-attest/2`, and `tine init` creates an object-format-4 repository (an
 existing repository is marked object format 4 before the first object 0.26
 writes into it). Reading never changes: every older file and repository stays
@@ -518,10 +522,11 @@ readable, and a read never rewrites it.
 
 | Spelling | Writes |
 | --- | --- |
-| *(default)* | format v4; new repositories object format 4 |
+| *(default)* | format v5 `.tine` files (SPEC Part 10; opentine >= 0.40 reads); new repositories object format 4 |
+| `tine --for-legacy COMMAND ...` (or `--format 4`) | format v4 `.tine` files, for readers before 0.40, for this command only |
 | `tine --format 2 COMMAND ...` | the deprecated v2 file / object-format-3 repository writers, for this command only |
 | `OPENTINE_FORMAT=2` (or `3`) | the same, for the whole environment |
-| `OPENTINE_FORMAT=4` | strict v4: no deprecated block even where v4 cannot express it (an HMAC attestation, `sign_artifact` on a v2 dict) |
+| `OPENTINE_FORMAT=4` | v4 files for the whole environment, strict: no deprecated block even where v4 cannot express it (an HMAC attestation, `sign_artifact` on a v2 dict) |
 | `tine migrate FILE` | upgrades to v4 (`--to v4` is the default; `-o`/`--save` names the output, else `NAME.v4.tine`) |
 | `tine migrate FILE --to 2` | the deprecated in-file v1 -> v2 migration |
 

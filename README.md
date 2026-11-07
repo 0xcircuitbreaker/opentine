@@ -28,8 +28,10 @@ OpenTine 0.41.0 has two deliberately separate compatibility surfaces:
   `tine-sig/3`. `tine migrate --to v4 FILE` (the default `--to`) upgrades an
   older file beside the original. Every older file (v1, v2) stays readable and
   verifiable forever, and no read rewrites it. Files and repositories written
-  by 0.26 need opentine 0.26 or newer; to share with older users, write the
-  deprecated v2 with `tine --format 2 ...` or `OPENTINE_FORMAT=2`. Existing
+  by 0.26 need opentine 0.26 or newer. Since 0.42 `.tine` files are written as
+  v5 (text blobs as text; same oids, root and signatures), which needs opentine
+  0.40 or newer; `tine --for-legacy ...` writes v4 for 0.26-0.39, and the
+  deprecated v2 is `tine --format 2 ...` or `OPENTINE_FORMAT=2`. Existing
   `Run`, `Agent`, signing, replay, and `total_cost` APIs continue to work.
 - A `.tine/` repository stores verified v3 `blob`, `event`, `run`,
   `attestation`, and `annotation` objects, refs, reflogs, packs, and indexes.
@@ -157,8 +159,8 @@ tine replay result.tine --mode cache --save replayed.tine
 tine diff result.tine retry.tine
 ```
 
-`Run.load()` reads v1, v2 and v4, migrates v1 in memory, and `Run.save()` writes
-v4 (`OPENTINE_FORMAT=2` for the deprecated v2). HMAC-SHA256
+`Run.load()` reads v1, v2, v4 and v5, migrates v1 in memory, and `Run.save()` writes
+v5 (`OPENTINE_FORMAT=4` for v4, `OPENTINE_FORMAT=2` for the deprecated v2). HMAC-SHA256
 and Ed25519 signatures are implemented through `tine trust sign`, `tine trust keygen`, and
 fail-closed `tine verify` options. See [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.41.0/docs/TINE_FORMAT.md).
 
