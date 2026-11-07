@@ -153,10 +153,10 @@ def v4_bytes(raw: bytes) -> bytes:
     if f'"{ARTIFACT_V5_KIND}"'.encode() not in body:
         return raw
     try:  # the parser reads a v5 file as the v4 document it spells
-        if json.loads(body).get("kind") != ARTIFACT_V5_KIND:
-            return raw
         encoded = canonical_json(parse_artifact_json(body))
-    except (ValueError, AttributeError):
+    except ValueError:
+        return raw
+    if encoded == body:  # a canonical v4 file that merely mentions the v5 kind
         return raw
     if not wrapped:
         return encoded
