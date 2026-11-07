@@ -595,9 +595,9 @@ Note: the claim that trace self-rewriting is a risk rests on arXiv 2609.30266, w
 Rules for this stretch:
 
 - **Format changes are flagged.** Each new object kind or `caps` flag ships with vectors in Python, TS and pyz in the release that adds it.
-- **0.48 is the last release that may add a new object kind or wire format.** 0.49 and 0.50 only fix, test and document, so the 1.0 freeze review in 0.50 is not chasing new kinds. Kinds planned before the cutoff: `tine-eval-verdict/1`, the tombstone, the redacted derivative, `merge/v1`, memory annotations, Reviews, and the in-toto `agent-run/v1` predicate.
+- **0.48 is the last release that may add a new object kind or wire format.** 0.49 and 0.50 only fix, test and document, so the 1.0 freeze review in 0.50 is not chasing new kinds. Kinds planned before the cutoff: `tine-eval-verdict/1`, the tombstone, the redacted derivative, `merge/v1`, memory annotations, Reviews, the in-toto `agent-run/v1` predicate, and the three project kinds (`opentine-project/1`, `opentine-mirror-state/1`, `opentine-forge-claim/1`, §11 "Projects and code mirror"), all targeted at or before 0.47.
 - **Conformance is "the full pinned vector set"**, not a fixed count, because the set grows each release.
-- **No git hosting.** OpenTine integrates with GitHub, GitLab, Forgejo and Entire instead.
+- **No git hosting.** OpenTine integrates with GitHub, GitLab, Forgejo and Entire instead. A project's code mirror (§11) is a read-only cache in opentine-web, not a git host.
 
 ### 0.45.0: See it, score it (about 6–8 weeks)
 
@@ -611,6 +611,7 @@ Rules for this stretch:
 - **Attribution in git:** `tine blame` (accepts git-blame flags), `tine why FILE:LINE` (opens the causal run slice), a `Tine-Run:` commit trailer, and `tine attach RUN COMMIT` for a session captured after the fact. Agent Trace import. The Entire importer is tested and fixed against the current `refs/entire/checkpoints/*` layout.
 - **Witness HTTP protocol** (C2SP tlog-witness) and a **tiled log** (C2SP tlog-tiles) with O(log n) appends. **This is a format change:** tiles change `opentine-log/1` storage and proofs. The release decides, in writing, whether this is `opentine-log/2` or a compatible extension of `log/1`, and ships vectors for it before any hosted log exists.
 - **JSON Schemas** for every object kind and every `--json` output, published as a versioned package. **`docs/SPEC.md` published** as a versioned, citable spec (the web's `/protocols` pages are generated from it).
+- **Project prerequisites (§11 "Projects and code mirror"):** the trailer grammar `Tine-Run: <run-oid>[ <project_id>]` (repeatable) and `Tine-Project: <project_id>` (at most once), parsed identically by `tine git log` and the web; JSON Schemas `opentine-line-attribution/1`, `tine-blame/1` and `tine-ai-share/1`; `tine blame --json` emitting `tine-blame/1`; `tine git install-hook` setting `notes.rewriteRef refs/notes/tine` so rebase and amend keep attribution. No new object kind.
 - **Pre-push redaction gate.** `tine push` re-scans against the current ruleset and refuses on hits (`--allow-unredacted` overrides). The ruleset is exported as data so the web can re-redact identically.
 
 **Rationale:** the viewer and the eval runner are the two largest gaps in §3 and against Entire Trails and Langfuse. `tine blame`, `why` and `attach` answer Entire's `blame`/`why` and the `Entire-Checkpoint` trailer. Witness networking and the tiled log close the two gaps 0.44 left in the transparency work. Schemas, SPEC and the pre-push gate are prerequisites for any hosted service and cost little.
@@ -625,6 +626,7 @@ Rules for this stretch:
 - A 1M-entry log benchmark shows O(log n) append with p95 under 10 ms on the pinned runner. The log/1-vs-log/2 decision is recorded and the 0.34 peer compatibility job stays green.
 - Every `--json` output validates against its published schema in CI.
 - The pre-push gate refuses every secret in the fixture corpus.
+- Trailer vectors (one run; run + project; two `Tine-Project`, rejected; malformed oid) give the same link set in `tine git log` and the web parser. A rebase test keeps `refs/notes/tine`.
 
 ### 0.45.x: Parity and plumbing (point releases)
 
@@ -658,6 +660,14 @@ Rules for this stretch:
 - **Vendor I/O [0.45+]:** export and import for Langfuse, Phoenix, Braintrust and LangSmith. Whether each vendor displays `gen_ai.evaluation.result` is tested and documented per vendor, not assumed.
 - **Steer and resume for Codex and Gemini.** `opentine-hook/1` published as a versioned spec with conformance vectors.
 - **in-toto `agent-run/v1` predicate** draft, proposed upstream.
+- **Projects, CLI side (§11 "Projects and code mirror"):**
+  - `opentine-project/1` manifest (new kind): canonical JSON, tine-sig/3, a `prev` hash chain, every version logged, optional `forked_from`. Private projects must use `commitment` locators (a salted hash of the upstream URL), so the log never holds a private URL or repo name.
+  - `opentine-mirror-state/1` (new kind, host statement): signed by the service identity, never a user key; written only when the ref set or result changes, plus a daily heartbeat. Verifiers report it as `signed by host service key`, never `pass`.
+  - Ref namespace `project/` with the single ref `project/manifest`; fsck requires an `opentine-project/1` object there.
+  - Git object check in `verify-browser`: recompute sha1 (SHA-1DC) or sha256 oids and check tree and commit links. A pass reads `matches its id (checked by you)`; it says nothing about whether the upstream holds that oid.
+  - Ten new `tine-verify-report/2` reason codes, including `fail:manifest-signature`, `fail:git-object-mismatch`, `caveat:mirror-stale`, `caveat:history-truncated` and `unavailable:blob-not-mirrored`.
+  - `tine serve`: `caps.project` (`GET /api/v1/project[/history]`, `POST /api/v1/project` as a CAS on `project/manifest` that accepts only a client-signed manifest from the previous owner set) and `caps.social_export` (count-only stars and watches, for self-host parity). `tine serve` gets no code storage, no upload-pack or receive-pack for code, and no mirror cap.
+  - CLI: `tine project init|show|verify|link|unlink|set-upstream|link-check|mirror-diff`, `tine remote add --project` (pins the `project_id`), `tine git attribute --project`.
 
 **Rationale:** Entire, Traces and the harness vendors all give users a page they can link to. We match that, and the page shows a result the viewer's browser computed. Tombstones and the pre-push gate (0.45) must exist before any transcript is hosted.
 
@@ -669,6 +679,7 @@ Rules for this stretch:
 - A purged blob verifies as `content-unavailable` in Python, TS and pyz.
 - The redaction/3 recall benchmark is published with its corpus and numbers.
 - The Action is used in at least two external repos before the release is tagged.
+- Python, TS and pyz agree on accept/reject and canonical bytes for every manifest and mirror-state vector, including private + plaintext URL (must reject). 0.34–0.45 clients fetch, clone and push against a 0.46 server with `project/manifest` present. A one-byte change to a mirrored git object gives `fail:git-object-mismatch`. A private tenant's unauthenticated `GET /api/v1/project` is byte-identical to one on a nonexistent tenant.
 
 ### 0.47.0: Merge it, review it (about 6 weeks)
 
@@ -683,6 +694,7 @@ Rules for this stretch:
 - **TS capture SDK.** SCITT statement emission without `--experimental`, if the interop target is usable.
 - **Remote task backend** (`caps.coord`) and the 1,000 tasks × 50 workers scale test.
 - **Witness service support** for the hosted trust network (opentine-web M4).
+- **Projects, second half:** `opentine-forge-claim/1` (new kind, tiny): a `.opentine/project` file committed upstream, written by `tine project claim`. It arrives through the mirror, so it reads `claimed by upstream (as mirrored)` and never reaches ✓ on its own. Secondary code slots (`tine project link --role secondary`) and `tine project fork` (copies the run repository, never code). If 0.46 overruns, these are the items that move here; the manifest, mirror-state and ref namespace stay in 0.46.
 
 **Rationale:** Trails is Entire's main forge feature. Reviews give the same unit of work, with every gate decision verifiable without our server.
 
@@ -692,6 +704,7 @@ Rules for this stretch:
 - The merge queue survives a chaos test (kill -9 workers) without a double merge; fencing tokens are verified.
 - A Review exported as a bundle verifies with `tine-verify.pyz --offline` on an air-gapped machine, including every gate decision.
 - 1,000 tasks × 50 workers produce zero lost or duplicated claims.
+- Forge-claim vectors (match, wrong id, wrong fp, missing, non-default branch only) pass in three engines. `tine project verify` on a fork checks `forked_from` against the source's logged history.
 
 ### 0.48.0: Integrate everywhere (last new object kind) (about 6 weeks)
 
@@ -703,6 +716,7 @@ Rules for this stretch:
 - **`tine compliance check` profiles and the Provenance/Workflow Run Crate [0.45+]**, mapped against the primary texts (FRE 902(13)/(14), EU AI Act Art. 12/19/26, eIDAS) with a named legal reviewer.
 - **OMS model-signature checks** as an assurance factor. OTLP gRPC ingest after its security review. OTLP protobuf logs.
 - **TSA binding for Rekor v2 keyless verification**, so it no longer reports `unchecked`. Delegation × revocation registry semantics.
+- **Projects:** PR checks and blame overlays resolve projects by `forge_repo_id`. Slack for the project kinds: any of the three that slipped from 0.47 lands here; one that misses 0.48 is dropped until after 1.0, with no cutoff exception.
 - **Freeze cutoff:** after this release no new object kind or wire format is added before 1.0.
 
 **Rationale:** OpenTine is the evidence layer under any forge, not a forge. Compliance claims ship only after primary-text review.
@@ -769,7 +783,7 @@ Moved earlier, each justified above: the prompt registry (0.47), FastCDC lazy fe
 **Surfaces.**
 
 - `opentine.com`: site, docs and blog. Reference docs are generated from this repo (`docs/CLI.md`, `tine help --json`, `docs/SPEC.md`), so the site cannot drift. Today it still describes 0.34, including the old `.tine` default.
-- `app.opentine.com`: the product (run viewer, repos, search, blame, transparency, orgs).
+- `app.opentine.com`: the product (run viewer, projects, search, blame, transparency, orgs).
 - `opentine.com/r/<oid>`: short content-addressed permalinks for public runs, resolved only within the public tenant so they cannot probe private tenants for an oid.
 
 **Thesis: the server is not trusted.** Every page that shows a run also shows a verification result that the browser computed with the TS verifier, against signer keys, log checkpoints and witness cosignatures. The hosted service stores, indexes and displays; it is never the source of truth. Anything computed by the server (OG cards, README badges) is labelled as server-computed. The badge has an explicit `partial` state for blobs not downloaded, and a caveat state for checks that need the network (CRL fetch) or an encoding TS cannot read (xz).
@@ -780,13 +794,25 @@ Moved earlier, each justified above: the prompt registry (0.47), FastCDC lazy fe
 
 | Milestone | CLI release | Web deliverable | CLI prerequisites |
 |---|---|---|---|
-| M0: site resync | now (0.44.x) | Site says 0.44 and every format statement matches the CLI; `/apps` replaced by a generated compatibility page | `tine help --json`; `docs/SPEC.md` |
-| M1: offline viewer | 0.45 | `opentine.com/view` drag-and-drop viewer running fully client-side; `<opentine-run>` web component; offline single-file viewer | `run-viewer` and `verify-browser` packages; TS verifier browser build passing the full pinned vector set in Chromium, Firefox and WebKit; JSON Schemas |
-| M2: hosted alpha | 0.46 | Login, orgs of one, repos backed by `tine serve`, run viewer with browser badge, compare, search, private by default, link shares, read-only transparency page | `object_read_http`, `run_closure`, `list`, `search`, `share`, `log_http` (read); pre-push gate (0.45); tombstone/purge; `tine remote login`, `tine open` |
-| M3: teams | 0.46–0.47 | Roles, CI OIDC tokens, SSE updates, webhooks, attribution and blame, fleet view, keys and delegation, retention and holds, signed audit log, public publish with redacted copy, Reviews | SSE and webhooks (0.45.x); `--redacted-public`; VSA named policy; `caps.coord`; Reviews kind (0.47) |
-| M4: trust network | 0.47 | Hosted witness service, public log monitor, browser-cached consistency checks, viewer-supplied trust policies, signed web annotations, reproducible web build | Witness HTTP and tiled log (0.45); browser signing support in formats |
-| M5: evals and compliance | 0.48–0.50 | Eval verdict and dataset views, compliance-profile reports, Auditor role, evidence and custody views, SAML/SCIM, data residency | `tine eval run` and datasets (0.45); compliance profiles (0.48); Object Lock backend (0.49) |
-| GA | 1.0 | Third-party audit of the web app and verifier; Helm and air-gapped self-host kit | The 1.0 criteria |
+| M0: site resync | now (0.44.x) | Site says 0.44 and every format statement matches the CLI; `/apps` replaced by a generated compatibility page; site copy states rule 6 as below | `tine help --json`; `docs/SPEC.md` |
+| M1: offline viewer | 0.45 | `opentine.com/view` drag-and-drop viewer running fully client-side; `<opentine-run>` web component; offline single-file viewer. Attribution from a local bundle plus local git; no code mirror and nothing code-related on the web | `run-viewer` and `verify-browser` packages; TS verifier browser build passing the full pinned vector set in Chromium, Firefox and WebKit; JSON Schemas; `Tine-Run`/`Tine-Project` trailers, blame and AI-share schemas, `tine blame --json` |
+| M2: hosted alpha | 0.46 | Login, orgs of one, projects backed by `tine serve`, run viewer with browser badge, compare, search, private by default, link shares, read-only transparency page. Project manifest panel; primary code slot as a read-only mirror (tree, README, blob, raw, history, commits, compare, branches, tags, tag-only releases, find file) with the mirror banner on every code route; stars and watches; migration of existing repos to projects with no code slot | `object_read_http`, `run_closure`, `list`, `search`, `share`, `log_http` (read); pre-push gate (0.45); tombstone/purge; `tine remote login`, `tine open`; `opentine-project/1`, `opentine-mirror-state/1`, `project/manifest` ref, git object check, project reason codes; `caps.project`; `tine project …`, `tine remote add --project` |
+| M3: teams | 0.46–0.47 | Roles, CI OIDC tokens, SSE updates, webhooks, attribution and blame, fleet view, keys and delegation, retention and holds, signed audit log, public publish with redacted copy, Reviews. Code: blame with attribution lane, AI share, commit provenance, code search, opt-in PR-head list, secondary slots, forge claim, project forks | SSE and webhooks (0.45.x); `--redacted-public`; VSA named policy; `caps.coord`; Reviews kind (0.47); `opentine-forge-claim/1`, `tine project claim|fork` (0.47) |
+| M4: trust network | 0.47 | Hosted witness service, public log monitor (including manifest history and upstream changes), browser-cached consistency checks, viewer-supplied trust policies, signed web annotations, reproducible web build; optional browser check of ref tips against a public forge API | Witness HTTP and tiled log (0.45); browser signing support in formats |
+| M5: evals and compliance | 0.48–0.50 | Eval verdict and dataset views, compliance-profile reports, Auditor role, evidence and custody views, SAML/SCIM, data residency; PR checks resolve projects by `forge_repo_id` | `tine eval run` and datasets (0.45); compliance profiles (0.48); forge integration (0.48); Object Lock backend (0.49) |
+| GA | 1.0 | Third-party audit of the web app and verifier, including the sync-worker sandbox, renderer and usercontent origin; Helm and air-gapped self-host kit | The 1.0 criteria |
+
+**Projects and code mirror.**
+
+A project is a run repository plus a read-only mirror of the code repository it is linked to. The run repository is served by `tine serve` as today. The mirror, its sync worker, the code-read API, the renderer and stars, watches and forks are opentine-web services; the self-host kit ships the same containers.
+
+- **What is not built:** no git push or receive-pack, no CI, no hosted pull requests (reviews stay OpenTine Reviews over linked forge PRs), no clone or archive download from the mirror, no LFS, no public project over private code, and no cross-tenant object sharing.
+- **Who sets the upstream:** the owner, through a signed, logged `opentine-project/1` manifest. The service never signs or creates a manifest, so changing the upstream is a visible version in the log. Private projects store a commitment, not the URL.
+- **What the browser checks:** that each mirrored object matches its oid, and that the manifest and attribution notes are validly signed. It cannot check that an oid is what the upstream holds. Every code page therefore names the upstream and the last sync time, labelled as computed by the host, and `tine project mirror-diff` lets a user compare the host's mirror state with their own `git ls-remote`.
+- **Access:** viewer rights on private code are project membership intersected with upstream read access, checked through the viewer's forge account where the forge allows it. For a plain git URL this cannot be checked; the project says so and the owner acknowledges it when linking. Anything a viewer cannot read returns the same 404 as something that does not exist.
+- **Unlink and deletion:** unlinking or losing upstream access removes the mirrored code and its derived caches. The run repository and its log entries are untouched.
+- **Limits:** published as numbers and identical for public and private projects (mirror size per slot, slots per project, active mirrors per account, blob size, egress). Exceeding a limit stops the mirror advancing; it deletes nothing. The cost of free private mirrors is measured and published before M2.
+- **Formats** are in §10: trailers and schemas in 0.45; the manifest, mirror state, `project/` ref namespace, git object check and `caps.project` in 0.46; the forge claim, secondary slots and project forks in 0.47; 0.48 as slack under the cutoff.
 
 **Non-negotiable rules.**
 
@@ -795,11 +821,11 @@ Moved earlier, each justified above: the prompt registry (0.47), FastCDC lazy fe
 3. Signed audit logs are available to everyone.
 4. No cloud-only data types. Anything the service adds is specified in this repo first.
 5. No token resale. No preferred model or harness.
-6. No git hosting.
+6. No git hosting: a code mirror is a read-only cache of an upstream. It never accepts a push, never becomes the canonical source, and every code surface names the upstream and the last sync time.
 
 **Free for everyone.** The tools to track, audit, manage and hold agents accountable should be in the hands of everyone running AI. So:
 
-- Every feature is free for everyone, for public and private repos. There are no paid tiers, no per-seat prices and no per-feature paywalls.
+- Every feature is free for everyone, for public and private projects. There are no paid tiers, no per-seat prices and no per-feature paywalls.
 - Self-host is the same software and is free.
 - The service is sustained by sponsorship, grants and donations, and by optional paid support for organisations that want it. Paid support buys help, not features.
 - Fair-use limits on storage and egress apply to everyone, so the service stays sustainable and hard to abuse. The limits are published as numbers, and exceeding them is answered by contact, not by silent deletion; self-host has no limits.
