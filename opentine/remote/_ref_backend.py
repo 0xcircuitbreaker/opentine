@@ -45,34 +45,46 @@ class SQLiteRefMixin:
         return row[0] if row else None
 
     def update_ref(self, tenant: str, name: str, new_oid: str, expected_old: str | None) -> bool:
+        return self.update_refs(tenant, [(name, new_oid, expected_old)])
+
+    def update_refs(self, tenant: str, updates: list[tuple[str, str, str | None]]) -> bool:
+        """Move every ``(name, new_oid, expected_old)`` in one transaction, or none.
+
+        ``False`` (nothing written) when any ref is not at its expected value."""
         tenant = self.validate_tenant(tenant)
-        name = normalize_ref(name)
+        moves = {normalize_ref(name): (new, old) for name, new, old in updates}
+        if not moves or len(moves) != len(updates):
+            raise ValueError("a ref transaction names each ref once")
         with self._connect() as database:
             database.execute("BEGIN IMMEDIATE")
-            row = database.execute(
-                "SELECT oid FROM refs WHERE tenant=? AND name=?", (tenant, name)
-            ).fetchone()
-            old = row[0] if row else None
-            if old != expected_old:
+            current = {}
+            for name in moves:
+                row = database.execute(
+                    "SELECT oid FROM refs WHERE tenant=? AND name=?", (tenant, name)
+                ).fetchone()
+                current[name] = row[0] if row else None
+            if any(current[name] != old for name, (_, old) in moves.items()):
                 return False
             count, size = database.execute(
                 "SELECT count(*),coalesce(sum(length(name)+length(oid)),0) FROM refs "
                 "WHERE tenant=?",
                 (tenant,),
             ).fetchone()
-            if row is None and count >= MAX_TENANT_REFS:
+            added = sum(1 for name in moves if current[name] is None)
+            if added and count + added > MAX_TENANT_REFS:
                 raise ValueError("tenant ref count exceeds control-plane limit")
-            size += count * _ENTRY_OVERHEAD + _entry(name, new_oid)
-            if old is not None:
-                size -= _entry(name, old)
+            size += count * _ENTRY_OVERHEAD
+            for name, (new, _) in moves.items():
+                size += _entry(name, new) - (_entry(name, current[name]) if current[name] else 0)
             if size > MAX_REF_LISTING_BYTES:
                 raise ValueError("tenant ref listing exceeds its byte limit")
-            database.execute(
-                "INSERT INTO refs(tenant,name,oid) VALUES(?,?,?) "
-                "ON CONFLICT(tenant,name) DO UPDATE SET "
-                "oid=excluded.oid,updated_at=CURRENT_TIMESTAMP",
-                (tenant, name, new_oid),
-            )
+            for name, (new, _) in moves.items():
+                database.execute(
+                    "INSERT INTO refs(tenant,name,oid) VALUES(?,?,?) "
+                    "ON CONFLICT(tenant,name) DO UPDATE SET "
+                    "oid=excluded.oid,updated_at=CURRENT_TIMESTAMP",
+                    (tenant, name, new),
+                )
         return True
 
     def delete_ref(self, tenant: str, name: str, expected_old: str | None) -> bool:

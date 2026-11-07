@@ -832,3 +832,11 @@ from `tine fleet up`), once, and recorded as a `human` step with actor
 `steer`. The generic response carries `"steer": [TEXT, ...]`; Claude Code's
 `Stop` hook gets `{"decision": "block", "reason": TEXT}`, so the agent
 continues with the message. Capture must be enabled (`hooks.capture`).
+
+`tine serve` (0.43) also takes `POST /v1/tenants/T/ref-txn` with
+`{"updates": [{"name", "new", "expected_old"}, ...]}` (at most 64): every move
+is checked exactly as `PUT /refs/<name>` checks it, then all are applied in one
+index transaction or none (`409 {"updated": false}`). The server lists
+`"ref_txn": true` in `/v1/capabilities`; `tine push` then moves the head and
+the run's annotation ref in one transaction, and keeps one `PUT` per ref
+against a server that does not list it.

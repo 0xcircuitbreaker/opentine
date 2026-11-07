@@ -7,15 +7,15 @@ from datetime import UTC, datetime
 from typing import Any
 
 from opentine._version import __version__
-from opentine.kernel import parse_oid
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
-from opentine.remote._ref_policy import FORCE, fast_forward_violation, ref_permission
+from opentine.remote._ref_txn import check_move
+from opentine.remote._ref_txn import supported as ref_txn_supported
 from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
-from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref, validate_ref_listing
+from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -29,7 +29,6 @@ from opentine.remote.interfaces import (
 )
 from opentine.repository import _pack4, _pack_peer
 from opentine.repository._pack_fit import fitted_pack, typed_selection
-from opentine.repository._refs import normalize_ref, validate_ref_target
 from opentine.repository._semantic_view import SemanticView
 from opentine.repository.pack import MAX_PACK_BODY_BYTES, inspect_pack, negotiate
 
@@ -69,6 +68,7 @@ class RemoteService:
             "pack_format": "TINEPACK3",
             "pack_formats": _pack_peer.local_formats(),
             "protocol": "opentine-remote/1",
+            "ref_txn": ref_txn_supported(self.index),  # 0.43: POST ref-txn (_ref_txn)
             "resumable_upload": True,
             "roles": ["reader", "writer", "admin"],
             "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
@@ -201,31 +201,7 @@ class RemoteService:
         force: bool = False,
     ) -> bool:
         self._authorize(identity, "update_ref", tenant)
-        name = normalize_ref(name)
-        extra = ref_permission(name, expected_old)
-        if extra:  # promotions/*, or moving an existing tags/* ref (_ref_policy)
-            self._authorize(identity, extra, tenant)
-        parse_oid(new_oid)
-        if expected_old is not None:
-            parse_oid(expected_old)
-        if not self.objects.has(tenant, new_oid):
-            raise KeyError(new_oid)
-        target = TenantRepo(tenant, self.objects, self.index).get(new_oid)
-        validate_ref_target(name, target.object_type, target.payload())
-        if target.object_type == "annotation":
-            admit_annotation_ref(tenant, self.objects, self.index, name, target)
-        repo = TenantRepo(tenant, self.objects, self.index)
-        rewrite = fast_forward_violation(
-            repo, name, expected_old, new_oid, enabled=self.fast_forward_heads
-        )
-        if rewrite:  # a fast-forward-only head moved to an unrelated run (_ref_policy)
-            if not force:
-                self._audit(identity, tenant, "update_ref", "non-fast-forward", {"name": name})
-                raise PermissionError("non-fast-forward update of a protected head")
-            self._authorize(identity, FORCE, tenant)
-        self.admission.admit(
-            identity, "update_ref", {"name": name, "new": new_oid, "tenant": tenant}
-        )
+        name, rewrite = check_move(self, identity, tenant, name, new_oid, expected_old, force)
         changed = self.index.update_ref(tenant, name, new_oid, expected_old)
         self._audit(
             identity,
