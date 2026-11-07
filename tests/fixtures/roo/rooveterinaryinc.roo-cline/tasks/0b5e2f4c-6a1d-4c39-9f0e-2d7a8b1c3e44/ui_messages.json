@@ -1,0 +1,7 @@
+[
+  {"ts": 1762333199900, "type": "say", "say": "text", "text": "Why does test_parse fail?"},
+  {"ts": 1762333200100, "type": "say", "say": "api_req_started", "text": "{\"apiProtocol\":\"openai\",\"tokensIn\":5000,\"tokensOut\":120,\"cacheWrites\":0,\"cacheReads\":4096,\"cost\":0.0031}"},
+  {"ts": 1762333202500, "type": "ask", "ask": "command", "text": "pytest tests/test_parse.py -q"},
+  {"ts": 1762333205100, "type": "say", "say": "api_req_started", "text": "{\"apiProtocol\":\"openai\",\"tokensIn\":5300,\"tokensOut\":40,\"cacheWrites\":0,\"cacheReads\":4992,\"cost\":0.0012}"},
+  {"ts": 1762333207100, "type": "say", "say": "completion_result", "text": "parse() reads a missing 'name' key."}
+]

@@ -12,6 +12,7 @@ import json
 import sys
 from pathlib import Path
 
+from opentine.trace._cline_task_read import format_of, looks_like_task
 from opentine.trace._import_detect import TRANSCRIPT_IMPORTERS, detect_format
 from opentine.trace._import_guard import bounded_lines, bounded_read, shape_checked
 from opentine.trace._otel_log_import import looks_like_logs, otel_log_events
@@ -132,6 +133,8 @@ def detect_and_read(
             return "opencode-session", TRANSCRIPT_IMPORTERS["opencode-session"](source)
     if source_format == "opencode-session":
         raise ValueError("opencode-session imports read an opencode.db path, not stdin")
+    if source_format == "auto" and source != STDIN and looks_like_task(source):
+        return format_of(source), TRANSCRIPT_IMPORTERS[format_of(source)](source)
     if source_format == "auto" and source != STDIN and _is_entire_repo(source):
         return "entire", TRANSCRIPT_IMPORTERS["entire"](source)
     if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:

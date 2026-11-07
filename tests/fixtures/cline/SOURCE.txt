@@ -1,0 +1,31 @@
+Cline and Roo Code task-history fixtures (cline/ and ../roo/). Hand-built from
+the sources below; no extension was run to produce them and no user data is in
+them.
+
+Cline  https://github.com/cline/cline @ 94eecbbe1a2f899c66b118d13656651b0a884e1f (2026-11-06)
+       apps/vscode/src/core/storage/disk.ts        GlobalFileNames: api_conversation_history.json,
+                                                   ui_messages.json, task_metadata.json
+       apps/vscode/src/shared/messages/content.ts  ClineStorageMessage: Anthropic MessageParam
+                                                   plus id, modelInfo, metrics, ts
+       apps/vscode/src/shared/messages/metrics.ts  ClineMessageModelInfo {modelId, providerId,
+                                                   mode}; metrics.tokens {prompt (incl. cached),
+                                                   completion, cached}
+       apps/vscode/src/shared/ExtensionMessage.ts  ClineMessage {ts, type, say/ask, text};
+                                                   ClineApiReqInfo {tokensIn, tokensOut,
+                                                   cacheWrites, cacheReads, cost}
+       apps/vscode/src/core/context/context-tracking/ContextTrackerTypes.ts
+                                                   task_metadata.json model_usage[]
+Roo    https://github.com/RooCodeInc/Roo-Code @ b867ec9145750d0ae1ff7f02d35406e9bf2a0b16 (2026-05-15)
+       src/shared/globalFileNames.ts               the same three file names
+       src/core/task-persistence/apiMessages.ts    ApiMessage: + ts, type "reasoning" items
+       packages/types/src/message.ts               apiProtocol "openai" | "anthropic"
+
+On disk: <VS Code user dir>/User/globalStorage/<extension id>/tasks/<task id>/
+  saoudrizwan.claude-dev      -> cline/1730985600000/
+  rooveterinaryinc.roo-cline  -> roo/rooveterinaryinc.roo-cline/tasks/<uuid>/
+                                 (kept under its extension folder: auto-detection
+                                 tells Roo from Cline by that path component)
+
+Windsurf (Codeium Cascade) is deferred: its local conversation store is an
+undocumented protobuf with no published schema, so there is no documented
+format to build a faithful fixture or importer from.
