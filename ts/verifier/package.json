@@ -2,11 +2,11 @@
   "name": "@opentine/verify",
   "version": "0.0.0",
   "private": true,
-  "description": "Independent OpenTine verifier: RFC 8785 canonical JSON, object envelopes, tine-sig/3 and .tine v4/v5; its one runtime dependency is the audited @noble/post-quantum.",
+  "description": "Independent OpenTine verifier: canonical JSON, envelopes, every signature scheme (incl. ML-DSA-65), .tine v1-v5, packs and delegation chains.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19"
   },
   "bin": {
     "opentine-verify": "dist/src/cli.js"

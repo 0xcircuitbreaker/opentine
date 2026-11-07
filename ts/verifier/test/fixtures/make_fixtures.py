@@ -69,7 +69,11 @@ def objects() -> list[tuple[str, bytes]]:
 
 def answer(data: bytes) -> dict:
     pack_id, packed, shallow = inspect_pack(data)
-    return {"pack_id": pack_id, "objects": sorted(oid for oid, _ in packed), "shallow": sorted(shallow)}
+    return {
+        "pack_id": pack_id,
+        "objects": sorted(oid for oid, _ in packed),
+        "shallow": sorted(shallow),
+    }
 
 
 def main() -> None:
