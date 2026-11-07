@@ -2208,6 +2208,80 @@ record's verified signing time. `tine custody verify [--pubkey P] [--vkey V]
 the tiles, the hash chain, every record signature and every token, and exits 4
 on the first failure. `tine custody log` lists records with their `sig_bound`.
 
+## 8.10 Transparency: proofs, receipts and the remote audit log (0.44, X33)
+
+**Proofs.** Every `opentine-log/1` log (§8.9, §2) is an RFC 6962 tree; 0.44
+adds RFC 9162 §2.1.3 inclusion and §2.1.4 consistency proofs, computed from the
+C2SP tlog-tiles hash tiles (`opentine.repository._tlog_proof`) and verified
+with nothing but SHA-256. A consistency check refuses a smaller tree
+(*rollback*) and a different root at the same size or a failing proof (*fork*).
+
+**Receipt.** An `opentine-tlog-receipt/1` is JSON `{checkpoint, entry, format,
+index, inclusion, vkey}`: the signed-note checkpoint text (with any
+cosignatures), the base64 entry, its index, the base64 inclusion path and the
+log's verifier key. It verifies alone: the checkpoint under the pinned key (or
+`vkey`, reported as trust on first use), then the inclusion of
+`SHA-256(0x00 || entry)` at `index` in that checkpoint's tree.
+
+**Remote audit log.** The server appends every committed audit row to a tlog
+beside its database (`<db>.tlog`, origin `opentine.remote/log/audit/<16 hex>`,
+random per server). An entry is canonical JSON `{action, event_id, format:
+"opentine-audit/1", outcome, row_hash, tenant, timestamp[, name, new]}`;
+`row_hash` is the row's keyed chain hash, so actor and details are bound without
+being published. `GET /v1/tenants/<t>/transparency/checkpoint`,
+`consistency?old=M[&new=N]` and `receipt?name=REF&new=OID` (permission
+`read_ref`; a receipt only for the caller's tenant) return JSON with
+`checkpoint`, `size`, `vkey` and `proof` or a receipt. The client pins the
+log key on first contact in `.tine/log/remotes/<id>/` and stores the newest
+checkpoint; each fetch checks consistency *before importing* and each push
+fetches, verifies and stores the receipt of its `update_ref` row. A server
+with no log is `unavailable`; one that had a log and stops serving it is
+refused.
+
+**Bundles.** `opentine-bundle/1` manifests may carry `transparency`: a list of
+receipts, the newest op-log entry recording each bundled `ref -> oid`
+(`opentine-op/1` rows carry each reflog row's digest) and any stored push
+receipt for it. Each must verify and cover a bundled ref. The key is optional
+and written only on request, because readers before 0.44 refuse unknown keys.
+
+## 8.11 Witness cosignatures (0.44)
+
+A witness cosignature is C2SP tlog-cosignature `cosignature/v1` over Ed25519:
+the signed message is `cosignature/v1\ntime <T>\n` followed by the checkpoint
+body, `T` POSIX seconds in decimal; the signature line is `— <name>
+base64(key id || uint64be(T) || signature)` with key id
+`SHA-256(name || 0x0A || 0x04 || public key)[:4]`, and the witness verifier key
+is `name+hex(key id)+base64(0x04 || public key)`. `verify --witnesses N-of-M`
+requires exactly M distinct pinned keys and N verifying cosignatures on every
+checkpoint. A witness cosigns only a checkpoint consistent with the last one it
+cosigned for that origin, so a split view cannot reach a quorum of honest
+witnesses. Vectors for 8.10 and 8.11: `57-tlog.json`.
+
+## 8.12 Rekor v2, SigningConfig and SCITT (0.44, X34)
+
+**Rekor v2.** A `TransparencyLogEntry` with `kindVersion.version` `0.0.2` is a
+tile-log receipt: no signed entry timestamp; `inclusionProof` to the signed-note
+checkpoint in `checkpoint.envelope`. Its `logId.keyId` is the checkpoint key's
+signed-note id `SHA-256(origin || 0x0A || 0x01 || Ed25519 key)` (type `0x02`
+over the SPKI DER for ECDSA, best effort), where origin is the trusted root
+`baseUrl` host; the body is a `dsse` v0.0.2 entry whose payload hash and
+signatures must match the envelope. Proof, checkpoint and body are checked
+offline; keyless verification still reports such a receipt `unchecked`,
+because a v2 signing time comes from an RFC 3161 token, which 0.44 does not yet
+bind. **SigningConfig** (`signing_config.v0.2.json`, media type
+`application/vnd.dev.sigstore.signingconfig.v0.2+json`) is read from the
+Sigstore config directory to choose the Rekor URL: services valid now, of a
+supported major version, newest first, one per operator, then the
+`ALL`/`ANY`/`EXACT` selector. It is never fetched by the verifier.
+
+**SCITT (experimental).** A signed statement is a COSE_Sign1 (tag 18; ES256,
+ES384, ES512, EdDSA) verified against a pinned key. A receipt is a COSE_Sign1
+with protected `vds` (395) = 1 (RFC9162_SHA256), unprotected `vdp` (396) =
+`{-1: [bstr .cbor [tree_size, leaf_index, path]]}`, and a detached payload: the
+root the proof implies from leaf `SHA-256(0x00 || statement)` (the statement
+re-encoded without header 394). This leaf rule is opentine's reading of the
+drafts and is not verified against scitt-api-emulator.
+
 # Part 9 — Format v4 (0.26.0)
 
 **Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`

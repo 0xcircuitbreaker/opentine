@@ -326,6 +326,39 @@ the checkpoint, tiles, hash chain, signatures and tokens offline and exits 4
 on any break (SPEC §8.9).
 
 ```
+tine witness vkey --key KEY --name NAME
+tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
+                    [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
+tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
+tine bundle create FILE REF... --transparency
+```
+
+0.44 (X33). `witness cosign` checks a signed-note checkpoint against the pinned
+log key and against the last checkpoint this witness cosigned for that origin
+(`--state`, default `$XDG_STATE_HOME/opentine/witness`): the same size must have
+the same root, a smaller size is a rollback and a larger one needs an RFC 9162
+consistency proof (`--proof`, or computed from a local tile mirror with
+`--tiles`). Only then does it print the checkpoint with a C2SP
+`cosignature/v1` line added; a fork or rollback exits 4. `witness vkey` prints
+the key others pin with `--witness-vkey`. `verify --offline --witnesses N-of-M`
+takes a bundle, an `opentine-tlog-receipt/1` file or a bare checkpoint (with
+one `--log-vkey`) and exits 4 unless N of the M pinned witnesses cosigned every
+checkpoint; `--log-vkey` pins a log key by origin (otherwise the receipt's key
+is used, trust on first use). `bundle create --transparency` embeds op-log and
+push receipts for the bundled refs so they verify from the bundle alone; such
+bundles need opentine 0.44+ to read. `tine push` and `tine fetch` check the
+remote's audit log automatically (SPEC §8.10).
+
+```
+tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --experimental
+```
+
+0.44, **experimental**: a COSE_Sign1 SCITT signed statement and its
+RFC9162_SHA256 receipts, verified offline against pinned keys (SPEC §8.12).
+Without `--experimental` it exits 2. Interop with scitt-api-emulator is not
+claimed.
+
+```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
                      [--action-policy FILE] [--attestation FILE]
                      [--trusted-root FILE] [--operator NAME]
