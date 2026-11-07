@@ -19,21 +19,26 @@ def cmd_bundle(args: argparse.Namespace, console) -> None:
     action = args.bundle_action
     if action == "verify":
         checked = _bundle.verify(_bundle.read_file(args.file))
-        _print(
-            {
-                "bundle": checked.digest,
-                "objects": checked.objects,
-                "pack": checked.pack_id,
-                "refs": checked.refs,
-                "verified": True,
-            }
-        )
+        report = {
+            "bundle": checked.digest,
+            "objects": checked.objects,
+            "pack": checked.pack_id,
+            "refs": checked.refs,
+            "verified": True,
+        }
+        if checked.transparency:  # 0.44: embedded keys (TOFU); pin with verify --witnesses
+            from opentine._transparency import check
+
+            report["transparency"] = check(checked.transparency, checked.refs)
+        _print(report)
         return
     repo = Repo.open(args.repo)
     if action == "create":
         if bool(args.refs) == bool(args.all):
             raise ValueError("name refs to bundle, or pass --all (not both)")
-        data = _bundle.create(repo, args.refs or None, pack_format=args.pack_format)
+        data = _bundle.create(
+            repo, args.refs or None, pack_format=args.pack_format, transparency=args.transparency
+        )
         _atomic_bytes(Path(args.file), data)
         checked = _bundle.verify(data)
         _print({"bundle": checked.digest, "bytes": len(data), "refs": checked.refs})
@@ -65,6 +70,11 @@ def add_bundle_parsers(sub: argparse._SubParsersAction) -> None:
         choices=("TINEPACK3", "TINEPACK5"),
         default="TINEPACK3",
         help="TINEPACK5 is far smaller but needs opentine 0.37+ to read (default: TINEPACK3)",
+    )
+    create.add_argument(
+        "--transparency",
+        action="store_true",
+        help="Embed op-log and push receipts for the refs (needs opentine 0.44+ to read)",
     )
     verify = actions.add_parser("verify", help="Check a bundle's integrity without importing")
     verify.add_argument("file")
