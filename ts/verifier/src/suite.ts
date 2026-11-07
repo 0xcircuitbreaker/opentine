@@ -51,10 +51,6 @@ export const OUT_OF_SCOPE_OPS: Record<string, string> = {
   "object.put": "writer-side redaction, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
-  "pack.inspect": "network packs, SPEC 2.8",
-  "pack.install": "network packs, SPEC 2.8",
-  "pack.manifest": "network packs, SPEC 2.8",
-  "localpack.read": "storage-v3 local packs, SPEC 2.8",
   "integrity.digest": "the legacy v1/v2 artifact digest, SPEC 3.5",
   "integrity.verify": "the legacy v1/v2 artifact digest, SPEC 3.5",
   "attest.sign": "signing (this package only verifies), SPEC 4.5",
@@ -130,7 +126,11 @@ function assembleBytes(recipe: Record<string, unknown>): Buffer {
     const prefix = Buffer.from((recipe.prefix_b64 as string) ?? "", "base64");
     const suffix = Buffer.from((recipe.suffix_b64 as string) ?? "", "base64");
     const unit = Buffer.from(recipe.unit_b64 as string, "base64");
-    return Buffer.concat([prefix, Buffer.concat(Array(Number(recipe.count)).fill(unit)), suffix]);
+    const out = Buffer.alloc(prefix.length + unit.length * Number(recipe.count) + suffix.length);
+    prefix.copy(out);
+    if (unit.length) out.fill(unit, prefix.length, out.length - suffix.length);
+    suffix.copy(out, out.length - suffix.length);
+    return out;
   }
   if (kind === "fill") return Buffer.alloc(Number(recipe.count), Number(recipe.byte));
   if (kind === "oids") {

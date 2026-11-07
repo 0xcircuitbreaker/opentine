@@ -11,6 +11,8 @@ import { canonicalJson, validateJsonShape } from "./canon.js";
 import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
+import { readLocalPack } from "./localpack.js";
+import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
 import {
   extractLinks,
   loadObject,
@@ -261,6 +263,21 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
     case "annotation.chain":
       validateAnnotationChain(memRepo(repoArgs(args)), ObjectEnvelope.decode(bytesOf(input)));
       return {};
+    case "pack.inspect": {
+      const pack = inspectPack(bytesOf(input));
+      return { pack_id: pack.packId, objects: pack.objects.map(([oid]) => oid).sort(), shallow: [...pack.shallow].sort() };
+    }
+    case "pack.manifest": {
+      const raws = (valueOf(input) as JValue[]).map((item) => strictBase64(item));
+      const { body, packId } = packManifest(raws);
+      return { manifest_body_b64: b64(body), pack_id: packId };
+    }
+    case "pack.install": {
+      const result = checkInstall(bytesOf(input), new Set(storedObjects(args).keys()));
+      return { pack_id: result.packId, objects: result.objects };
+    }
+    case "localpack.read":
+      return readLocalPack(bytesOf(input), strictBase64(args.pack_b64));
     case "object.load":
       return { ...loadObject(bytesOf(input), (args.expected_oid as string | undefined) ?? null, repoArgs(args)) };
     default:
