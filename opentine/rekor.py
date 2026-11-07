@@ -25,8 +25,28 @@ TIMEOUT_SECONDS = 30.0
 #: ``httpx`` transport override for tests (``httpx.MockTransport``); ``None`` is the network.
 TRANSPORT: Any = None
 
+
+def default_rekor_url(given: str | None = None) -> str:
+    """*given*, unless it is absent or the bare default: then the v1 Rekor URL the installed
+    ``signing_config.v0.2.json`` selects (0.44, X34), else the default.
+
+    The file sits beside ``trusted_root.json`` in the Sigstore config directory;
+    it is only read here -- nothing is fetched to find it.
+    """
+    if given and given != DEFAULT_REKOR_URL:
+        return given
+    from opentine._signing_config import parse, select
+    from opentine._trusted_root import sigstore_dir
+
+    path = sigstore_dir() / "signing_config.v0.2.json"
+    if not path.is_file():
+        return DEFAULT_REKOR_URL
+    return select(parse(path.read_bytes()), "rekor", versions=(1,))[0]
+
+
 __all__ = [
     "DEFAULT_REKOR_URL",
+    "default_rekor_url",
     "SigstoreHTTPError",
     "entry_from_response",
     "post_json",
