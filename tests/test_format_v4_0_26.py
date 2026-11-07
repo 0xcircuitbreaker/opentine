@@ -261,6 +261,8 @@ def test_v4_is_tinez1_wrapped_like_v2(tmp_path: Path, monkeypatch) -> None:
 
 def test_without_the_env_var_writes_are_v4_and_2_or_3_pin_v2(tmp_path: Path, monkeypatch) -> None:
     # 0.26 phase 6: v4 is the default writer; 2 (or 3) is the deprecated legacy one.
+    # Since 0.42 the default spelling is v5, so v4 is pinned with OPENTINE_FORMAT=4.
+    monkeypatch.setenv(FORMAT_ENV, "4")
     path = _run().save(tmp_path / "v4.tine")
     assert is_v4_artifact(json.loads(path.read_text()))
     for value in ("2", "3"):
