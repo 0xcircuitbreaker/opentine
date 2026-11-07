@@ -276,6 +276,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_036_push_preview.py": "git",
     "tests/test_038_tree_snapshots.py": "git",
     "tests/test_041_post_quantum.py": "git",
+    "tests/test_042_line_attribution.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_entire_refs_0_42.py": "git",
