@@ -278,6 +278,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_041_post_quantum.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
+    "tests/test_entire_refs_0_42.py": "git",
     "tests/test_git_push_sync_0_23.py": "git",
     "tests/test_git_sync_0_15.py": "git",
     "tests/test_gitlink_0_12.py": "git",
