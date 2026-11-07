@@ -1,7 +1,6 @@
 /**
- * The phase-1 acceptance gate: every in-scope vector in docs/conformance agrees
- * with its pinned verdict, and every out-of-scope vector is skipped under a
- * category this file names.
+ * The GA acceptance gate: every reader and verifier vector in docs/conformance
+ * agrees with its pinned verdict; only writer-side redaction ops are skipped.
  */
 
 import assert from "node:assert/strict";
@@ -12,10 +11,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   loadSuite,
-  OUT_OF_SCOPE_ALGS,
-  OUT_OF_SCOPE_FAMILIES,
   OUT_OF_SCOPE_OPS,
-  OUT_OF_SCOPE_SCHEMES,
   reasonOk,
   runSuite,
   suiteCases,
@@ -26,13 +22,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", 
 const suite = loadSuite(ROOT);
 const rows = runSuite(suite);
 
-/** The exact set of skip categories phase 1 is allowed to report. */
-const EXPECTED_SKIPS = new Set([
-  ...Object.keys(OUT_OF_SCOPE_OPS).map((op) => `op:${op}`),
-  ...Object.keys(OUT_OF_SCOPE_SCHEMES).map((scheme) => `scheme:${scheme}`),
-  ...Object.keys(OUT_OF_SCOPE_FAMILIES).map((family) => `family:${family}`),
-  ...Object.keys(OUT_OF_SCOPE_ALGS).map((alg) => `alg:${alg}`),
-]);
+/** The only skip categories allowed: writer-side redaction ops, by name. */
+const EXPECTED_SKIPS = new Set(Object.keys(OUT_OF_SCOPE_OPS).map((op) => `op:${op}`));
 
 /** Families whose every case is format v4 (SPEC Part 9): the 0.39 acceptance set. */
 const V4_FAMILIES = ["vectors/09-canon-v4.json", "vectors/53-sig-v4.json"];
@@ -68,7 +59,7 @@ test("every in-scope vector agrees with its pinned verdict (Level 1)", () => {
   const counts = tally(rows);
   console.log(
     `conformance: ${counts.pass} pass  ${counts.fail} fail  ${counts.repaired} repaired  ` +
-      `${counts.unsupported} unimplemented  ${counts.skip} skipped (out of phase-1 scope)`,
+      `${counts.unsupported} unimplemented  ${counts.skip} skipped (writer-side redaction only)`,
   );
   assert.deepEqual(
     failures.map((row) => `${row.status} ${row.id} (${row.op}): ${row.detail}`),
@@ -92,14 +83,18 @@ test("every format v5 vector passes (0.40.0 acceptance)", () => {
   assert.equal(tally(selected).pass, selected.length);
 });
 
-test("out-of-scope vectors are skipped only under the named categories", () => {
+test("no reader or verifier vector is skipped (0.44.0 GA acceptance)", () => {
+  const cases = new Map(suiteCases(suite).map(({ testCase }) => [testCase.id, testCase]));
   const seen = new Set<string>();
   for (const row of rows.filter((item) => item.status === "skip")) {
     assert.ok(EXPECTED_SKIPS.has(row.detail), `${row.id} skipped under an unnamed category ${row.detail}`);
+    assert.equal(cases.get(row.id)?.profile, "writer", `${row.id} is a ${cases.get(row.id)?.profile} vector`);
     seen.add(row.detail);
   }
   // A named category that no longer matches anything is stale scope, not slack.
   assert.deepEqual([...EXPECTED_SKIPS].filter((name) => !seen.has(name)), []);
+  const answered = rows.filter((row) => cases.get(row.id)?.profile !== "writer");
+  assert.deepEqual(answered.filter((row) => row.status !== "pass").map((row) => row.id), []);
 });
 
 test("rejections carry the vector's reason code (Level 2)", () => {

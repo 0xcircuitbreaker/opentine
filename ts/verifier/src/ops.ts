@@ -13,6 +13,7 @@ import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
 import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
+import { verifyDelegation } from "./delegation.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -183,6 +184,17 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
   switch (op) {
     case "text.validate":
       return textValidate(input);
+    case "delegation.verify": {
+      const value = valueOf(input) as JObject;
+      const actions = value.get("actions");
+      return verifyDelegation({
+        chain: value.get("chain") as JValue,
+        signer: value.get("signer") as string,
+        at: value.get("at") as JValue,
+        agent: value.get("agent"),
+        actions: Array.isArray(actions) ? (actions as string[]) : [],
+      });
+    }
     case "actions.chain": {
       const value = valueOf(input) as JObject;
       return { chain: actionsChain(value.get("run_id") as string, value.get("digests") as string[]) };

@@ -43,54 +43,22 @@ export interface Row {
 }
 
 /**
- * Vector categories outside phase 1, each with the reason. A case is out of
- * scope exactly when `outOfScope` names it; every other case must pass.
+ * The only vectors this package does not answer: writer-side redaction (SPEC
+ * 1.4) and the two writer ops built on it, all `profile: writer`. A verifier
+ * never rewrites content, and a partial port of the reference redactor would
+ * disagree with it silently outside the vectors, so these are skipped by name.
+ * Every reader and verifier vector must pass; nothing else may be skipped.
  */
 export const OUT_OF_SCOPE_OPS: Record<string, string> = {
-  "object.put": "writer-side redaction, SPEC 1.4",
+  "object.put": "writer-side redaction before hashing, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
-  "attest.sign": "signing (this package only verifies), SPEC 4.5",
+  "attest.sign": "signing the redacted stored claim, SPEC 4.5",
 };
 
-export const OUT_OF_SCOPE_SCHEMES: Record<string, string> = {
-};
-
-export const OUT_OF_SCOPE_FAMILIES: Record<string, string> = {
-};
-
-/**
- * Signature algorithms out of scope. Empty: ML-DSA-65 and the Ed25519 +
- * ML-DSA-65 composite (SPEC 4.6.1) verify through `@noble/post-quantum`.
- */
-export const OUT_OF_SCOPE_ALGS: Record<string, string> = {};
-
-/** The category name a case is skipped under, or `null` when phase 1 must answer it. */
+/** The category name a case is skipped under, or `null` when it must be answered. */
 export function outOfScope(testCase: Case): string | null {
-  if (testCase.op in OUT_OF_SCOPE_OPS) return `op:${testCase.op}`;
-  const args = testCase.args ?? {};
-  if (testCase.op === "sig.message" && (args.scheme as string) in OUT_OF_SCOPE_SCHEMES) {
-    return `scheme:${args.scheme as string}`;
-  }
-  if (testCase.op === "sig.verify") {
-    const family = (args.family as string | undefined) ?? "attestation";
-    if (family in OUT_OF_SCOPE_FAMILIES) return `family:${family}`;
-    const value = testCase.input.value as Record<string, unknown> | undefined;
-    const blocks = value && typeof value === "object" ? value.signatures : undefined;
-    if (Array.isArray(blocks)) {
-      for (const block of blocks) {
-        const alg = block && typeof block === "object" ? (block as Record<string, unknown>).alg : undefined;
-        if (typeof alg === "string" && alg in OUT_OF_SCOPE_ALGS) return `alg:${alg}`;
-      }
-    }
-    if (family === "attestation") {
-      const value = testCase.input.value as Record<string, unknown> | undefined;
-      const block = value && typeof value === "object" ? value.signature : undefined;
-      const scheme = block && typeof block === "object" ? (block as Record<string, unknown>).scheme : undefined;
-      if (typeof scheme === "string" && scheme in OUT_OF_SCOPE_SCHEMES) return `scheme:${scheme}`;
-    }
-  }
-  return null;
+  return testCase.op in OUT_OF_SCOPE_OPS ? `op:${testCase.op}` : null;
 }
 
 // --------------------------------------------------------------------------- //
