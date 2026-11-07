@@ -146,17 +146,18 @@ def v4_bytes(raw: bytes) -> bytes:
     same codec. Its root and signatures are unchanged; anything else is as it is."""
     from opentine import _codec
     from opentine._artifact_io import MAX_TINE_ARTIFACT_BYTES, parse_artifact_json
-    from opentine._tine_v5 import is_v5_artifact, to_v4
+    from opentine._tine_v5 import ARTIFACT_V5_KIND
 
     wrapped = raw.startswith(_codec.MAGIC)
     body = _codec.unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES) if wrapped else raw
-    try:
-        data = parse_artifact_json(body)
-    except ValueError:
+    if f'"{ARTIFACT_V5_KIND}"'.encode() not in body:
         return raw
-    if not is_v5_artifact(data):
+    try:  # the parser reads a v5 file as the v4 document it spells
+        if json.loads(body).get("kind") != ARTIFACT_V5_KIND:
+            return raw
+        encoded = canonical_json(parse_artifact_json(body))
+    except (ValueError, AttributeError):
         return raw
-    encoded = canonical_json(to_v4(data))
     if not wrapped:
         return encoded
     return _codec.wrap(encoded, _codec.NAMES[raw[len(_codec.MAGIC)]]) or encoded
