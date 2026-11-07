@@ -29,6 +29,7 @@ from tests.conformance import (
     cases_canon,
     cases_canon_v4,
     cases_compat,
+    cases_delegation,
     cases_localpack,
     cases_objects,
     cases_repair,
@@ -83,6 +84,7 @@ FAMILY_MODULES = (
     cases_compat,
     cases_repair,
     cases_agent,
+    cases_delegation,
 )
 
 

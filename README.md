@@ -768,6 +768,8 @@ tine agent show <run|agt_ref>                       Identity, trust state and li
 tine trust keygen --agent coder                     An agent signing key, kept in the user config dir
 tine key rotate --agent coder                       New key; the old one gets not_after=now and endorses it
 tine key revoke sha256:... --at 2026-01-01T00:00:00Z  Signatures verified as made after that time fail
+tine key delegate boss.key --to coder.pub --agent coder --action Bash --out chain.json  Scoped, expiring authority
+tine key delegation verify chain.json --signer coder.pub   Check a delegation chain offline (exit 4 on failure)
 tine agent actions <run> --sign --agent coder       Sign the run's actions (tine-actions/1)
 tine agent actions <run> --verify --pin sha256:...  Trust state: verified, unsigned, mismatch or unknown-key
 tine agent who --lineage agt_... --verified-only    An agent and its subagents, verified runs only
@@ -810,6 +812,7 @@ tine run --parallel 4 --harness codex --prompt P      Run one invocation N times
 tine repo worktree add <path> <ref> [--git]           An isolated directory per branch; list/remove/prune
 tine fleet up fleet.toml --trust                      Run a declared fleet (fan-out or supervisor/workers)
 tine fleet status|stop|cost <id>                      Members, a stop that kills every process tree, cost
+tine fleet record run.tine --sign-key k --out rec.json  A run's fleet record, signed (--attest: in-toto fleet/v1)
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces
@@ -1173,7 +1176,7 @@ Reference:
 
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.42.0/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
-- [conformance/](docs/conformance/README.md): 658 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
+- [conformance/](docs/conformance/README.md): 665 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.42.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.42.0/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.42.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.

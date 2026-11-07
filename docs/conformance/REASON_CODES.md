@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (109)
+## The codes (115)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -68,6 +68,12 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `config.incompatible` | 2.2 | -- | a config.json missing or contradicting any of the four required pairs | accept format 2, or default a missing object_hash to sha256 |
 | `config.malformed` | 2.2 | -- | a config.json that is not parseable JSON, or fails the 10 000-token scan | fall back to repository defaults |
 | `config.oversized` | 2.2 | `_config.MAX_CONFIG_BYTES` = 65536 | a config.json larger than 65 536 bytes | read the first 64 KiB and parse that |
+| `delegation.bad-signature` | 4.10 | -- | a certificate whose tine-sig/3 block fails or is not by the named issuer | trust the certificate body without checking its signature |
+| `delegation.broken-chain` | 4.10 | -- | a link whose issuer or parent digest does not match the certificate above it | verify each certificate alone and accept a chain that does not connect |
+| `delegation.expired` | 4.10 | -- | a chain whose certificate window does not contain the signing time | accept an expired or not-yet-valid certificate because its signature verifies |
+| `delegation.scope-violation` | 4.10 | -- | an agent or tool outside the leaf scope, or a link wider than its parent | treat a delegation as unscoped, or let a child widen what it was given |
+| `delegation.too-deep` | 4.10 | -- | a link the parent's max_depth does not allow | ignore max_depth and accept a chain of any length |
+| `delegation.wrong-signer` | 4.10 | -- | work signed by a key other than the leaf certificate's subject | accept any key in the chain as the delegate |
 | `envelope.body-malformed-json` | 1.2 | -- | a json-encoded body that is not parseable JSON | store the bytes verbatim and defer the parse |
 | `envelope.body-non-canonical` | 1.2 | -- | a json body that is not byte-identical to the canonical encoding of its own value | re-serialize the body canonically, which renames the object |
 | `envelope.encoding-mismatch` | 1.2 | -- | an encoding that is not "raw" for a blob and "json" for every other type | believe the encoding field over the type field |

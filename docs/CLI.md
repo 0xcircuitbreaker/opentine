@@ -667,6 +667,24 @@ against its public key before it is used.
 | `tine verify RUN ... --allow-stale-root` | Use the TUF-installed trusted root even though its metadata has expired (a warning on stderr) |
 
 Both `tine key` verbs write only `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`.
+
+## Fleet records and delegation (0.43)
+
+| Command | What it does |
+| --- | --- |
+| `tine key delegate KEY --to PUB --agent NAME --action NAME [--max-depth N] [--not-before T] [--not-after T \| --days N] [--parent CHAIN] --out CHAIN [--json]` | KEY signs an `opentine-delegation/1` certificate (SPEC 4.10) giving PUB the named agents and tools (`*` is any) for the window (default now to now + 30 days); `--out` gets the chain, root first, with `--parent`'s certificates before the new one. `--agent` and `--action` repeat |
+| `tine key delegation show CHAIN [--json]` | Each certificate's digest, issuer, subject, window, parent and scope |
+| `tine key delegation verify CHAIN --signer PUB\|FPR [--at T] [--agent NAME] [--action NAME] [--root FPR] [--json]` | Verifies the chain offline for that signer at T (default now); exit 4 and the `delegation.*` code (`expired`, `scope-violation`, `broken-chain`, `wrong-signer`, `bad-signature`, `too-deep`, `malformed`) when it fails |
+| `tine fleet record RUN.tine [--json]` | The run's `opentine-fleet/1` record (SPEC 4.11), captured from `OPENTINE_FLEET_ID`/`_MEMBER`/`_ROLE`/`_PARENT`, and the length of its delegation chain |
+| `tine fleet record RUN.tine --sign-key KEY --out FILE` | Writes an `opentine-fleet-record/1` document: the record bound to the run's id and digest under a `tine-sig/3` block |
+| `tine fleet record RUN.tine --attest OUT --attest-key KEY` | Writes an in-toto `https://opentine.dev/attestation/fleet/v1` DSSE envelope whose subject is the run's digest |
+| `tine fleet record FILE [--pubkey PUB]` | On a signed fleet record: verifies it offline (exit 4 on failure); without `--pubkey` the embedded key is trusted on first use |
+
+A capture with `OPENTINE_DELEGATION=CHAIN` stores the chain in the run;
+`tine verify RUN --offline` then adds a required `delegation` check: the chain
+must verify for the run's signer at its signing time, its agent (agt_ ref,
+harness, fleet member or role) and every tool it used. The check's detail lists
+the chain root first; its trust basis says whether the root is one of `--pin`.
 A trusted `.tine/agents.toml` may also carry windows
 (`[agents.NAME.lifecycle."sha256:<hex>"] not_after = "..."`), as may a trust
 policy's `key_lifecycle` table; the strictest window wins.

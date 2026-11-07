@@ -44,6 +44,20 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("is not normalised", "agent.not-normalised"),
         ("is malformed", "agent.field-malformed"),
     ),
+    "delegation.verify": (
+        ("is outside", "delegation.expired"),
+        ("is not delegated", "delegation.scope-violation"),
+        ("not delegated:", "delegation.scope-violation"),
+        ("wider than the parent", "delegation.scope-violation"),
+        ("is not the signer", "delegation.wrong-signer"),
+        ("signing key is not the named issuer", "delegation.bad-signature"),
+        ("signature ", "delegation.bad-signature"),
+        ("no further delegation", "delegation.too-deep"),
+        ("max_depth must shrink", "delegation.too-deep"),
+        ("names a parent", "delegation.broken-chain"),
+        ("is not the previous", "delegation.broken-chain"),
+        ("root issuer is not", "delegation.broken-chain"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.

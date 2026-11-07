@@ -12,6 +12,10 @@ HMAC_FLOOR = b"0123456789abcdef"
 HMAC_SHORT = b"0123456789abcde"
 #: bytes(range(32)). Ed25519 is deterministic (RFC 8032), so its value is stable.
 ED25519_SEED = bytes(range(32))
+#: bytes(range(32, 64)) and bytes(range(64, 96)): the 4.10 delegation chain's
+#: intermediate and leaf keys (the root is ``ED25519_SEED``).
+ED25519_SEED_B = bytes(range(32, 64))
+ED25519_SEED_C = bytes(range(64, 96))
 #: The key every golden compat fixture was signed with by the real published
 #: release. Published in tests/test_backwards_compat.py since 0.3.0; it is here
 #: so the compat family is runnable without reading Python.
@@ -23,5 +27,7 @@ KEYS = {
     "hmac_floor": HMAC_FLOOR,
     "hmac_short": HMAC_SHORT,
     "ed25519_seed": ED25519_SEED,
+    "ed25519_seed_b": ED25519_SEED_B,
+    "ed25519_seed_c": ED25519_SEED_C,
     "hmac_compat": HMAC_COMPAT,
 }
