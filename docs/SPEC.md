@@ -341,6 +341,37 @@ event payload = {"cost": 0, "kind": "model", "parent_ids": []}
       oid    = event:sha256:49501062e21825447aa20eef34bcb3ad391102db92d76f5631714813bf6c43a7
 ```
 
+### 1.3.1 The hash-algorithm tag (reserved, 0.41.0)
+
+The middle field of an oid is a **hash-algorithm tag**:
+
+```text
+oid = TYPE ":" TAG ":" HEX
+```
+
+Every format so far defines exactly one tag, `sha256`, and `kernel.OID_RE`
+accepts no other. The field is reserved so that a future format can mint, for
+example, `blob:sha3-256:<hex>` or `blob:blake3:<hex>` without a new grammar.
+The tags `sha3-256`, `sha512` and `blake3` are **reserved**: no current
+writer produces them and no current reader accepts them.
+
+* The tag is part of the oid and therefore of every link, ref and signature
+  that names it. It is **never negotiated**, and a reader MUST NOT compute an
+  oid under a different algorithm than its tag names.
+* There is no hash agility inside one oid space: a repository or artifact is
+  one algorithm, and moving to another is a migration (Part 5), not a mix.
+* A reader that meets a well-formed `TYPE:TAG:HEX` whose `TAG` it does not
+  implement MUST refuse it with an error naming the algorithm
+  (`opentine._hash_tag.parse_oid`: *unsupported hash algorithm 'blake3' in
+  object id ...*), reason code `oid.hash-unsupported`. It MUST NOT treat the
+  oid as `sha256`, strip the tag, or store the object opaquely. Anything that
+  is not `TYPE:TAG:HEX` at all stays `oid.malformed`.
+
+The repository object store, the v4/v5 artifact reader and the conformance
+adapter route oids through that wrapper; the kernel itself keeps its single
+regex (and its line budget). Vectors: `oid.parse.reserved-hash-tag`,
+`oid.parse.unknown-hash-tag` in `vectors/55-sig-pq.json`.
+
 ## 1.4 Redaction happens before hashing
 
 Client-side credential redaction runs **before** canonicalization and hashing,
@@ -1519,6 +1550,54 @@ value   = 6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164
 A key read from a file has **exactly one** trailing LF stripped, and the file
 must be at most 1 MiB.
 
+### 4.6.1 Post-quantum algorithms (0.41.0)
+
+Two further `alg` values exist for **`tine-sig/3`** blocks (Part 9.6). The
+scheme, the signed message and the five-key header are unchanged, so the
+signature still covers only the canonical view; the block additionally
+carries `public_key`, as an Ed25519 block does. All values are lowercase hex.
+
+| Algorithm | `value` | `public_key` |
+|---|---|---|
+| `ml-dsa-65` | 6618 hex chars: a 3309-byte FIPS 204 ML-DSA-65 signature | 3904 hex chars (1952 bytes) |
+| `ed25519+ml-dsa-65` | 6746 hex chars: Ed25519 signature (64 bytes) ‖ ML-DSA-65 signature | 3968 hex chars: Ed25519 key (32 bytes) ‖ ML-DSA-65 key |
+
+* `ml-dsa-65` is ML-DSA.Sign / ML-DSA.Verify (FIPS 204 Algorithms 2 and 3,
+  "pure", no pre-hash) over the `tine-sig/3` message with the **empty**
+  context string.
+* `ed25519+ml-dsa-65` is a composite. Both halves sign the same message: the
+  Ed25519 half as RFC 8032 Ed25519, the ML-DSA-65 half with the context
+  string `opentine.tine-sig/3:ed25519+ml-dsa-65` (ASCII). The block verifies
+  **only when both halves verify** under the two halves of `public_key`; a
+  trusted key is the full 1984-byte concatenation. Because `alg` is in the
+  signed header, neither half can be stripped out and relabelled as an
+  `ed25519` or `ml-dsa-65` block: that block's message differs, and it is
+  `mismatch`. The Ed25519 half's key is subject to the small-order refusal.
+* Verdicts follow 4.7 exactly (`verified`, `verified-tofu` for the embedded
+  key, `no-key`, `mismatch`, `error`). A trusted key of the wrong length for
+  the block's algorithm is `mismatch`.
+* A verifier MAY be asked to require a post-quantum block
+  (`verify_artifact_v4(..., require_pq=True)`); then classical blocks do not
+  count and a document with none is `unsigned`.
+
+**Carriage and compatibility.** A post-quantum block is an ordinary entry in
+the v4 `signatures` list (and therefore in the repository's detached
+`tine-sig-sidecar/1` and in bundle manifests, which carry `tine-sig/3` blocks
+as they are). A hybrid writer (`_signing_pq.sign_hybrid`) always writes a
+classical `ed25519` block **first** and the composite block after it. The 0.34
+verifier, run from the real v0.34.0 sources in
+`tests/test_041_post_quantum.py`, refuses the post-quantum block as an unknown
+algorithm and accepts the run through the classical block (its "first block
+that verifies wins" rule, 9.6); given only a post-quantum block it fails
+closed. That test passing is why the blocks are inline rather than in a new
+sidecar format.
+
+Signing requires `cryptography` with ML-DSA (the `crypto` extra, built against
+OpenSSL 3.5 or later). Verification uses `cryptography` when it has ML-DSA and
+otherwise the stdlib implementation `opentine/_pyz/_mldsa.py`, which
+`tine-verify.pyz` also ships; it is checked against NIST ACVP ML-DSA-65
+sigVer vectors and takes a few milliseconds per signature on CPython.
+
 ## 4.7 The verdict vocabulary
 
 `_signing_verify.SignatureResult` carries `(ok, state, algorithm, key_id,
@@ -1744,7 +1823,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 645 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 658 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 
@@ -1838,6 +1917,7 @@ One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
 | `signing_time` | string | 0.39 (X20): the earliest `gen_time` of a passing token bound to one of the run's signatures; absent otherwise |
 | `signature` | object | 0.39 (X22), `--sign-key` only: the report's `tine-sig/3` block (§8.7) |
 | `signature_timestamps` | array of object | 0.39, unsigned: `{bound, token}` RFC 3161 tokens over `signature` (§8.7) |
+| `crypto` | object | 0.41 (X30), under `--fips` only: `{mode, provider_fips, openssl}` — `"fips"`, whether `cryptography`'s OpenSSL has the FIPS provider active, and its version text |
 
 `outcome` is one of `pass`, `fail`, `unavailable-offline`, `not-applicable`.
 Check names, in order: `digest`, `signature`, `provenance` (§9.9, never
@@ -2425,3 +2505,52 @@ Binary blobs (images, compressed payloads) are unchanged.
 golden run re-spelled as v5 under `tine-sig/3` (verified, tampered text,
 non-canonical base64 spelling, text on a non-blob, lone surrogate), and
 `oid.derive` cases showing a text blob's oid is its v4 oid.
+
+# Part 11 — Remote at-rest sealing: `TINEAES6` (0.41.0)
+
+Roadmap item X28 is named "TINEAES5" in `docs/ROADMAP.md`; 0.35 had already
+shipped `TINEAES5` as the KMS envelope (`_sealed_envelope`), so X28 is the
+magic **`TINEAES6`**. The mapping is: roadmap "TINEAES5 (X28)" = on-disk
+`TINEAES6`; on-disk `TINEAES5` = the 0.35 KMS envelope.
+
+## 11.1 Layout
+
+All integers big-endian:
+
+| Field | Size | Notes |
+|---|---|---|
+| magic | 8 | `TINEAES6` |
+| key id length | 1 | 1..64 |
+| key id | n | ASCII |
+| epoch | 4 | u32 |
+| flags | 1 | bit 0: Padmé padded; other bits must be zero |
+| codec | 1 | the `_codec` byte of the inner wrapper |
+| size | 8 | the uncompressed plaintext length (checked against the reader's limit before decrypting) |
+| nonce | 24 | random |
+| ciphertext | rest | XAES-256-GCM, 16-byte tag |
+
+The per-tenant key is `HMAC-SHA256(master, "opentine.tenant-key.v6\0" ||
+lp(key_id) || lp(u32 epoch) || lp(tenant))` over a 32-byte master, where `lp(x)`
+is a u32 length then `x`. The associated data is `"opentine.sealed.v6\0"`
+followed by `lp` of purpose, tenant, context (oid, or upload id and offset), key
+id, epoch, `flags||codec` and the u64 size, so the ciphertext cannot be moved to
+another slot or relabelled to another key id, epoch, codec, size or padding.
+
+XAES-256-GCM is <https://c2sp.org/XAES-256-GCM>: the first 12 nonce bytes derive
+a per-message AES-256 key through the SP 800-108r1 counter KDF over AES-256-CMAC;
+the last 12 bytes are the AES-256-GCM nonce. The implementation is checked
+against the C2SP vectors.
+
+The plaintext is the `_codec` wrapper (as in `TINEAES4`). When padded it is
+`u64 len || wrapper || zeros`, zero-filled to the Padmé size of `8 + len`
+(Nikitin et al., PURBs), which bounds the overhead at about 12% and leaks
+O(log log L) bits of length. Non-zero padding is rejected. Padding exists in
+`TINEAES6` only.
+
+## 11.2 Readers
+
+A `TINEAES6` reader holds a keyring of `(key_id, epoch) -> master`; an unknown
+pair fails with a clear error. `TINEAES1`–`TINEAES4` keep opening through the
+same master, `TINEAES5` through its KMS provider, and `tine serve reseal --to
+aes6` rewrites older objects.
+

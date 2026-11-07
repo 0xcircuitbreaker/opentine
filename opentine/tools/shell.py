@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from opentine.policies import ShellPolicy
+from opentine.tools import _sandbox
 from opentine.tools._git_guard import git_env, is_git, is_git_family
 from opentine.tools._git_guard import hardened as hardened_git
 from opentine.tools._git_guard import refusal as git_refusal
@@ -48,6 +49,10 @@ def _bound_executable(executable: str, allowed: tuple[str, ...]) -> str | None:
     return shutil.which(executable)
 
 
+def _bound_or_none(executable: str) -> str | None:
+    return executable if Path(executable).is_absolute() else shutil.which(executable)
+
+
 def run(
     command: str,
     timeout: int = 30,
@@ -83,6 +88,11 @@ def run(
     if is_git_family(executable):
         return f"Error: '{executable}' is a git helper; run it through git"
 
+    try:
+        backend = _sandbox.choose(pol.sandbox, image=pol.sandbox_image)
+    except _sandbox.SandboxUnavailable as exc:
+        return f"Error: {exc}"
+
     cwd_root = Path(pol.cwd_root).resolve()
     try:
         Path.cwd().resolve().relative_to(cwd_root)
@@ -111,9 +121,22 @@ def run(
             return f"Error: '{executable}' was not found on PATH"
         parts = [bound, *parts[1:]]
 
+    # Every allow-listed program may be exec'd inside the sandbox, so the
+    # command can still run what the policy already permits it to start.
+    allowed = [] if backend == "none" else map(_bound_or_none, pol.executables)
+    argv = _sandbox.wrap(
+        backend,
+        _subprocess_parts(parts),
+        root=cwd_root,
+        cwd=Path.cwd().resolve(),
+        executables=[parts[0], *(exe for exe in allowed if exe)],
+        network=pol.sandbox_network or (is_git(executable) and pol.git_network),
+        env=env,
+        image=pol.sandbox_image,
+    )
     try:
         result = run_bounded(
-            _subprocess_parts(parts),
+            argv,
             timeout=pol.timeout_seconds,
             max_chars=pol.max_output_chars,
             cwd=str(Path.cwd()),

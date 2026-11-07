@@ -195,8 +195,13 @@ def verify_envelope(
     return EnvelopeResult(False, "mismatch", "no signature verifies over the payload")
 
 
-def check_subject(statement: dict[str, Any], artifact: str | Path) -> str | None:
-    """Why *artifact* is not the statement's subject, or ``None`` when it is."""
+def check_subject(
+    statement: dict[str, Any], artifact: str | Path, envelope_key: str | None = None
+) -> str | None:
+    """Why *artifact* is not the statement's subject, or ``None`` when it is.
+
+    *envelope_key* binds an embedded ``tine-attest/2`` record to the DSSE signer.
+    """
     from opentine._graph_serde import verify_integrity
 
     integrity = verify_integrity(artifact)
@@ -206,7 +211,7 @@ def check_subject(statement: dict[str, Any], artifact: str | Path) -> str | None
         return "subject digest does not match the run artifact"
     from opentine._signing_v4 import check_v4_attestation
 
-    return check_v4_attestation(statement, integrity.actual)
+    return check_v4_attestation(statement, integrity.actual, envelope_key)
 
 
 def read_envelopes(path: str | Path) -> list[Any]:

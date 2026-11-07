@@ -12,6 +12,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   loadSuite,
+  OUT_OF_SCOPE_ALGS,
   OUT_OF_SCOPE_FAMILIES,
   OUT_OF_SCOPE_OPS,
   OUT_OF_SCOPE_SCHEMES,
@@ -30,6 +31,7 @@ const EXPECTED_SKIPS = new Set([
   ...Object.keys(OUT_OF_SCOPE_OPS).map((op) => `op:${op}`),
   ...Object.keys(OUT_OF_SCOPE_SCHEMES).map((scheme) => `scheme:${scheme}`),
   ...Object.keys(OUT_OF_SCOPE_FAMILIES).map((family) => `family:${family}`),
+  ...Object.keys(OUT_OF_SCOPE_ALGS).map((alg) => `alg:${alg}`),
 ]);
 
 /** Families whose every case is format v4 (SPEC Part 9): the 0.39 acceptance set. */

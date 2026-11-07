@@ -24,24 +24,37 @@ def add_proxy_parser(sub: Any) -> None:
     keygen = verbs.add_parser("keygen", help="Create the Ed25519 key proxies sign runs with")
     keygen.add_argument("--force", action="store_true", help="Replace an existing proxy key")
     keygen.add_argument("--json", action="store_true", help="Print a JSON object")
+    keygen.add_argument(
+        "--signer", metavar="URI", help="Use the key this signer holds (ssh-agent:, pkcs11:, kms:)"
+    )
+    migrate = verbs.add_parser("migrate", help="Move the proxy key into an agent, HSM or KMS")
+    migrate.add_argument("--to", required=True, metavar="URI", help="The signer URI to move to")
+    migrate.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
 def cmd_proxy(args: argparse.Namespace) -> None:
     from opentine import _assurance
     from opentine._cli_common import _terminal, console
     from opentine._cli_json import emit
+    from opentine._key_store import PassphraseUnavailable
+    from opentine._proxy_key import migrate
     from opentine.signing import SignatureError
 
-    if getattr(args, "proxy_command", None) != "keygen":
-        fail("name a proxy command: tine proxy keygen", 2)
+    verb = getattr(args, "proxy_command", None)
+    if verb not in ("keygen", "migrate"):
+        fail("name a proxy command: tine proxy keygen | tine proxy migrate --to URI", 2)
+    prefix = f"proxy {verb}: "
     try:
-        public, fingerprint = _assurance.keygen(force=args.force)
+        if verb == "migrate":
+            public, fingerprint = migrate(args.to)
+        else:
+            public, fingerprint = _assurance.keygen(force=args.force, signer=args.signer)
     except FileExistsError as exc:
-        fail(exc, prefix="proxy keygen: ")
-    except (OSError, SignatureError, ValueError) as exc:
-        fail(exc, TRUST_REQUIRED if isinstance(exc, SignatureError) else 1, prefix="proxy keygen: ")
+        fail(exc, prefix=prefix)
+    except (OSError, PassphraseUnavailable, SignatureError, ValueError) as exc:
+        fail(exc, TRUST_REQUIRED if isinstance(exc, SignatureError) else 1, prefix=prefix)
     if getattr(args, "json", False):
-        emit({"command": "proxy keygen", "public_key": str(public), "fingerprint": fingerprint})
+        emit({"command": f"proxy {verb}", "public_key": str(public), "fingerprint": fingerprint})
         return
     console.print(f"Wrote the proxy key; public half {_terminal(public)}")
     console.print(f"fingerprint {fingerprint}")

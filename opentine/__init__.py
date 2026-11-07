@@ -1,5 +1,6 @@
 """opentine — local-first provenance for agent runs."""
 
+import opentine._fips_shim  # noqa: F401  (before anything imports httpx)
 from opentine._version import __version__
 from opentine.core import (
     FORMAT_VERSION,

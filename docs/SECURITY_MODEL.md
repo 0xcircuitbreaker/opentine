@@ -20,6 +20,7 @@ OpenTine is local-first provenance tooling. It records agent activity and can in
   linear on malformed markup rather than applying unbounded backtracking
   expressions.
 - Shell execution is disabled unless a `ShellPolicy` enables it. Enabled shell calls are parsed to argv arrays, executable allowlists can be enforced, environment inheritance is off by default, and output is capped. **An allowlist decides which program starts, not what it does**: an allowlisted interpreter, test runner or build tool (`python`, `pytest`, `npm`, `make`) is arbitrary code execution by design. `git` is the one program whose arguments are checked. When it is allowlisted, the shell tool runs only a fixed set of read-mostly subcommands, each with an allowlist of exact options (abbreviations are refused), and keeps every path git is told to use (`-C`, file options, init/clone directories, and every positional of a local subcommand, resolved from the directory git actually runs in) inside the shell root; pathspec magic and `--pathspec-from-file` are refused. When the shell root is a subdirectory of a larger repository, forms that act on the whole work tree without a pathspec (`reset --hard`, `commit -a`, `add -A`, `stash`, `merge`, `pull`, `switch`, branch `checkout`) are refused too. Network subcommands (`git_network`) and subcommands that write files themselves (`git_write_out`) need an explicit policy opt-in, and remotes must be https/ssh URLs or remote names. Every git OpenTine starts — the shell tool's and `code_manifest`'s — runs without `GIT_*`/pager/editor variables, with hooks, the pager, external diff and every transport (except opted-in https/ssh) disabled, fsmonitor off and `safe.bareRepository=explicit`. `git-*` helpers and `scalar` are refused, and allowlist entries are resolved to absolute programs when the command runs. The fs tool refuses `.git` under its Windows and HFS+ aliases too (`.git.`, `GIT~1`, NTFS streams, ignorable code points).
+- **OS sandbox for the shell tool (0.41, X5 OS level).** `ShellPolicy(sandbox=...)` makes the operating system enforce what the argument policy checks, so a bypassed argument check (`find . -exec touch pwned ;`) still fails. Backends: `bwrap` (read-only bind of `/`, read-write bind of the policy root only, new PID/IPC/UTS namespaces, a new network namespace unless `sandbox_network=True`, `--die-with-parent`, `--new-session`; stacked with Landlock when the kernel has it); `landlock` (Linux >= 5.13, applied by a stdlib-only launcher before `execve`: read anywhere, write only beneath the root and `/dev/null`, execute only the allow-listed binaries and the dynamic loader, no TCP bind/connect from ABI 4, abstract-socket and signal scoping from ABI 6); `sandbox-exec` (macOS, a generated deny-default SBPL profile: read anywhere, write beneath the root, exec of allow-listed binaries, network only when allowed); `oci` (podman or docker with `ShellPolicy.sandbox_image`, the root bind-mounted read-write, `--read-only`, `--network none`, `--cap-drop ALL`, `no-new-privileges`). `auto` picks bwrap, then landlock, then sandbox-exec; OCI is never auto-selected because it needs an image. A named backend that is missing, or `auto` with nothing available (Windows today), is a clear error and the command does not run; only `sandbox="none"`, the default for compatibility, runs unsandboxed. Limits: Landlock does not cover UDP or reads (files the user can read stay readable), and it denies `/tmp` writes and helper programs an allow-listed tool execs itself (git's `git-*` helpers, a script's shebang interpreter); the OCI backend passes the scrubbed environment as `-e` arguments, visible in the local process list.
 - An inherited environment is scrubbed by name (`*KEY*`, `*SECRET*`, `*TOKEN*`, `*PASSWORD*`, `*PASSPHRASE*`, `*_PWD`, `*_PW`, `*PASS`, `*_PAT`, `*_DSN`, `*SESSION` — `BW_SESSION`, `OP_SESSION_*` —, `*MNEMONIC*`, `*SEED_PHRASE*`, `*WEBHOOK*`, `*CONNECTION_STRING*`, `*PRIVATE*`, `*HEADERS*` — `OPENAI_CUSTOM_HEADERS`, `ANTHROPIC_CUSTOM_HEADERS`, `OTEL_EXPORTER_OTLP_*HEADERS` —, …) **and by value**: a variable holding a vendor token shape, a URL with a password, a credential header (`Authorization:`, `X-Api-Key=`, `Bearer …`), a connection string carrying `password=`/`pwd=`/`token=` (ADO.NET, ODBC, JDBC), or a private key is dropped whatever it is called; `ConnectionStrings__*` and `*CONNECTIONSTRING*` names are dropped too.
 - Python execution is disabled unless a `PythonPolicy` enables it. Enabled snippets run in a subprocess with a scrubbed environment by default and capped output. The built-in tool provides only the `subprocess` isolation backend; a policy naming any other (`external`, `gvisor`) is refused rather than run unisolated. Snippets run in Python's isolated mode (`-I -X utf8`): the host's `PYTHON*` variables and user site-packages do not apply even when the environment is inherited, and output is UTF-8 on every platform. On Linux every bounded tool command (shell, python, `code_manifest`'s git) runs under a child-subreaper supervisor, so a descendant that leaves the process group (`setsid`) is still killed on exit and on timeout, and after each command OpenTine also kills every process still carrying the run's `OPENTINE_TOOL_SCOPE` marker. This cleans up runaway and leftover processes; it does not contain an adversarial process running as the same user, which can read OpenTine's own `/proc` entries, kill or impersonate the supervisor, and drop the marker. Real isolation needs a container or cgroups — this is resource containment, not an OS sandbox. macOS and the BSDs have no subreaper, and there the process-group kill is the boundary.
 - An agent run's tool calls are budgeted one by one: `max_steps`, `max_duration`, `max_cost` and `max_usage` are checked before every call in a batch, and calls past the budget are answered "not executed: run budget exhausted" without running, so the model cannot choose the size of the overshoot.
@@ -301,8 +302,8 @@ Old spellings (`tine sign`, `tine keygen`, `tine attest`, …) still work; see [
 bound to `sig:sha256:<hex>` (the hash of one signature block) proves the
 *signature* existed at genTime, which is the **verified signing time** the
 report records as `signing_time`. A token for a signature the run no longer
-carries fails (`timestamp.signature-mismatch`). This release establishes the
-time only: checking that the signing key was valid at that time is 0.41.
+carries fails (`timestamp.signature-mismatch`). 0.41 checks the signing
+key's lifecycle window against this time (below).
 
 **X22.** A verify report used to be a claim anyone could edit. With
 `--sign-key` it is canonical JSON signed (`tine-sig/3`, domain
@@ -324,6 +325,88 @@ the key holder chose, bound to nothing but the key.
 
 **replay/v1.** The attestation signs the replay verdict for one source digest;
 it is evidence of what the verifier observed, and carries no transcript text.
+
+## Key lifecycle and verifier hardening (0.41)
+
+**X23, key lifecycle.** Every Ed25519 key (local signing keys, agent keys, the
+proxy witness key) is named by its fingerprint and can carry `not_before`,
+`not_after` and `revoked_at`. Windows come from the user-scoped
+`$XDG_CONFIG_HOME/opentine/key-lifecycle.json` (written by `tine key rotate`
+and `tine key revoke`, refused when it is a symlink), a *trusted*
+`.tine/agents.toml`, and a trust policy's `key_lifecycle` table; the strictest
+window wins, so a cloned project can shorten a window but never lengthen one
+the user recorded. The window is judged against the **verified signing time**
+(0.39, X20): a signature whose token is dated at or after `revoked_at`, after
+`not_after` or before `not_before` fails. Without a verified time the verdict
+is the explicit *unverified time* state, and it fails closed for a revoked key:
+the signer's own `signed_at` can show a signature is too late, never that it is
+early enough. Rotation has the old key sign `opentine.key-rotation.v1:` + JCS
+of `{schema, old, new, new_public_key, at}`, so the chain from a pinned key to
+its successor can be checked; a revoked key cannot endorse a successor. Not
+covered: revocation is local state, not distributed (there is no CRL or
+transparency log of revocations), and a token's `accuracy` does not yet widen
+the signing time used for the window.
+
+**X26, RFC 3161.** Tokens must carry exactly one ESS `signingCertificate` or
+`signingCertificateV2` attribute (RFC 3161 §2.4.1, RFC 5816) whose first
+`certHash` (and `issuerSerial`, when present) is the certificate that verified
+the signature; the timeStamping EKU must be critical and the only purpose
+(§2.3); a critical TSTInfo extension, or an unrecognised critical extension in
+any certificate on the path, is refused; genTime plus or minus `accuracy` must
+lie inside the TSA certificate's validity; an issuer with a KeyUsage extension
+must allow `keyCertSign`; `--tsa-policy OID` restricts the accepted policies;
+the nonce is reported (offline there is no request to match it against, so
+`verify_token(nonce=...)` checks it only for a caller that kept one).
+
+**X27, attestation binding.** A `tine-attest/2` record inside an in-toto
+statement now names `signer_key` (the signer's fingerprint), and verification
+requires the record to be signed by the DSSE envelope's key and, when named,
+the named key to be that key. Records written before 0.41 have no
+`signer_key`: they still verify when their signature is the envelope key's,
+and the attestation check reports them as `record unbound`.
+
+**X31, stale TUF roots.** Before the TUF-installed `trusted_root.json` is used,
+the stored `root`, `timestamp`, `snapshot` and `targets` metadata are checked
+for expiry (TUF 1.0 §5); an expired or unreadable one refuses keyless
+verification (exit 6) with a pointer to `tine trust root update`.
+`--allow-stale-root` overrides it with a warning.
+
+## Post-quantum signatures and the hash tag (0.41, X29)
+
+**Signatures.** `tine-sig/3` blocks may use `ml-dsa-65` (FIPS 204) or the
+composite `ed25519+ml-dsa-65` (SPEC 4.6.1). The composite is the recommended
+form: it stays sound while *either* Ed25519 or ML-DSA-65 is unbroken, because
+it verifies only when both halves do, and neither half can be stripped and
+relabelled (the algorithm is in the signed header; the ML-DSA half is also
+signed under its own context string). What it protects against: a future
+quantum adversary forging the Ed25519 half of a signature over content that
+was recorded today. What it does not change: the trust model is still a key
+the operator chooses (`--pubkey`, or `verified-tofu` for the embedded key);
+there is still no PKI; key windows and local revocation are X23 above.
+
+**Compatibility is the downgrade surface.** A hybrid writer puts a classical
+Ed25519 block first so a 0.34 verifier still accepts the run (it skips the
+post-quantum block). Such a verifier, and any current verifier not asked for
+post-quantum assurance, accepts the classical block alone; an attacker who
+can break Ed25519 can therefore forge a run that *those* verifiers accept,
+whatever post-quantum blocks the honest run carried. A verifier that needs
+post-quantum assurance must demand it: `verify_artifact_v4(...,
+require_pq=True)` counts only post-quantum blocks, and a document without one
+is `unsigned`.
+
+**Implementations.** Signing uses `cryptography` (OpenSSL 3.5+); its signer is
+hedged (randomized), so a PQ signature is not reproducible byte for byte. The
+stdlib verifier `opentine/_pyz/_mldsa.py` (shipped in `tine-verify.pyz`) is
+verify-only, handles public data only, and makes no constant-time claim; it is
+checked against NIST ACVP ML-DSA-65 sigVer vectors (valid and modified
+signature, hint, commitment and message cases) and against `cryptography`.
+
+**Hash agility is deliberately absent.** An oid's middle field is a reserved
+hash-algorithm tag (SPEC 1.3.1); only `sha256` exists. A reader refuses an oid
+whose tag it does not implement, naming the algorithm, instead of hashing with
+sha256 or ignoring the tag: silently re-interpreting the tag would let two
+different digests name "the same" object. Moving to another hash is a format
+migration, never a per-object negotiation.
 
 ## Fork identity (v2)
 
@@ -456,7 +539,15 @@ restricted to mode 0700/0600 on POSIX, and stale uploads are reaped. `TINEAES1` 
 --from aes2`
 rewrites it first. Since 0.35 `KMSKeyProvider` writes slot-bound `TINEAES5`
 envelopes (a KMS-wrapped data key); a custom adapter opts in to slot binding by
-implementing `seal`/`unseal`. The reference server requires a key
+implementing `seal`/`unseal`. Since 0.41 (roadmap X28, on disk `TINEAES6`
+because `TINEAES5` was taken by the 0.35 envelope) setting `TINE_KMS_KEY_ID`
+(with a 32-byte `TINE_KMS_KEY`, optional `TINE_KMS_KEY_EPOCH`) selects
+`XAESKeyProvider`: the key id and epoch are in the header and the associated
+data, sealing is XAES-256-GCM with a 192-bit random nonce (no practical nonce
+reuse bound per key), retired `(key_id, epoch)` masters stay readable through
+`previous`, and `TINE_REMOTE_SEAL_PAD=1` pads to the Padmé size so ciphertext
+length leaks only O(log log L) bits. Older forms keep opening; `tine serve
+reseal --to aes6` rewrites them. The reference server requires a key
 provider; production deployments should supply a KMS-backed provider and handle
 rotation outside this minimal server. SQLite audit rows form a serialized
 HMAC-SHA256 chain. An authenticated head stored outside SQLite detects end
@@ -684,7 +775,8 @@ v2) or an evidence folder with only the Python 3.11+ standard library: run it as
   pure-Python RFC 8032 routine (`opentine/_pyz/_ed25519.py`, verify only) that is
   tested against the RFC 8032 and Wycheproof vectors and agrees with OpenSSL on
   all 210 Wycheproof cases. No secret ever reaches it, so it does not need to
-  be constant-time.
+  be constant-time. ML-DSA-65 (0.41) is likewise a pure-Python FIPS 204
+  verifier (`opentine/_pyz/_mldsa.py`), tested against NIST ACVP sigVer vectors.
 - **What it checks.** The `digest` and `signature` checks of
   `tine verify --offline`, with the same outcomes and reason codes. They are
   computed with `opentine/kernel.py` vendored verbatim: every v4 envelope oid is
@@ -809,9 +901,49 @@ computed by `tine verify`, never read from the run:
 - Limit: in 0.39 the proxy key is a file readable by the user the proxy runs
   as. An agent running as that same user with file access can read it; T2 is
   meaningful when the proxy runs under a separate account or on another host.
-  PKCS#11 and KMS backends arrive in 0.41.
+  Since 0.41 the key is encrypted at rest, and `tine proxy migrate --to URI`
+  moves it into ssh-agent, a PKCS#11 HSM or a cloud KMS (below).
 - `tine verify --compare-capture` lines up the witnessed actions with the
   transcript's and reports each missing, unwitnessed or changed step.
+
+## Key storage and signers (0.41, X24)
+
+Until 0.40 every private key was a plaintext-hex seed in a 0600 file. Since
+0.41:
+
+- **Encrypted at rest.** `tine keygen`, `tine keygen --agent` and `tine proxy
+  keygen` write encrypted PKCS#8 (PBES2, AES-256-CBC, PBKDF2-HMAC-SHA256 via
+  `cryptography`'s `BestAvailableEncryption`). The passphrase comes from
+  `OPENTINE_KEY_PASSPHRASE`, the OS keyring (opt-in, `OPENTINE_KEY_KEYRING=1`),
+  or an interactive prompt; it is never written beside the key. A wrong
+  passphrase fails closed. The environment variable is visible to other
+  processes of the same user and to anything the process spawns: it protects a
+  copied or backed-up key file, not a key on a host an attacker already runs
+  code on as that user.
+- **Legacy keys.** A plaintext-hex key still loads, with a
+  `PlaintextKeyWarning`; `tine key encrypt PATH` converts it. `--unencrypted`
+  still writes one, deprecated. The op-log/custody log key
+  (`.tine/log/*/key`) stays plaintext so the log can append unattended.
+- **One `Signer` interface.** Every Ed25519 signature (`tine-sig/3` run blocks,
+  attestations, custody records, verify reports, push manifests, evidence
+  custody, in-toto envelopes, the proxy key) goes through `sign(message)`,
+  `public_key`, `algorithm`, `key_id`. Backends: a key file; **ssh-agent** (the
+  agent protocol over `SSH_AUTH_SOCK`, no SSH library); **PKCS#11**
+  (`CKM_EDDSA`); **AWS KMS** and **GCP Cloud KMS** (pure Ed25519, never
+  Ed25519ph). The key never leaves the agent, HSM or KMS. A returned signature
+  is verified against the backend's public key before use, so a misconfigured
+  backend signing with another key fails instead of producing a block nobody
+  can verify. The signatures are ordinary Ed25519, so every existing verifier,
+  the standalone `tine-verify.pyz` and the TypeScript verifier included,
+  checks them unchanged.
+- **Proxy key in hardware.** With the T2 proxy key in an HSM, KMS or an agent
+  on another host, an agent running as the proxy's user can no longer copy the
+  key, only ask the signer to sign while it has access (an ssh-agent socket or
+  KMS credentials are still that user's to use). `proxy.signer` stores the URI,
+  never a `pin-value`.
+- Not covered: key validity windows (`not_after`, `revoked_at`) are the 0.41
+  verifier-hardening work; AWS KMS signs at most 4096 bytes of raw message,
+  so a large run cannot be signed there directly.
 
 ## Known Non-Goals
 
@@ -821,3 +953,21 @@ computed by `tine verify`, never read from the run:
 - OpenTine does not currently provide encrypted `.tine` artifacts.
 - The reference remote is not a hosted control plane, payment system, or a
   turnkey high-availability deployment.
+
+## FIPS mode (0.41, X30)
+
+`tine --fips` (or `OPENTINE_FIPS=1`) first requires that `cryptography` runs on
+an OpenSSL 3 with the FIPS provider active (`is_fips_enabled()`), and fails with
+exit 6 (`trust_required`) otherwise. It then refuses non-approved primitives
+before use: ChaCha20-Poly1305, and xz's CRC64 where it is the only integrity
+check (writing the archival xz form, whose stdlib reader relies on it). It
+accepts AES-GCM, XAES-256-GCM (AES only), HMAC-SHA256, SHA-256 and Ed25519
+(FIPS 186-5). zstd, zlib and xz used as compression under a SHA-256 content
+address are not cryptography and stay allowed. Verify reports record
+`crypto: {mode, provider_fips, openssl}`. opentine does not itself carry a
+FIPS validation: the boundary is the OpenSSL FIPS provider, and the CI job
+`fips` (Red Hat UBI 9, cryptography built against the system OpenSSL with the
+provider forced on through `OPENSSL_CONF`) is the gate; on other platforms its
+real-provider test skips. Ed25519 is approved, but an OpenSSL 3.0 FIPS provider
+may not ship it, in which case Ed25519 operations fail inside OpenSSL.
+

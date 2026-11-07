@@ -83,6 +83,7 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "report": ("--report", None),
     "provenance_source": ("--source", None),
     "tsa_roots": ("--tsa-roots", None),
+    "tsa_policy": ("--tsa-policy", None),
     "save": ("--save", None),
     "set": ("--set", []),
     "sign_key": ("--sign-key", None),

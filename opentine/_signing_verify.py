@@ -34,6 +34,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from opentine import _fips
 from opentine._signing_keys import (
     HAS_ED25519,
     SignatureError,
@@ -41,6 +42,7 @@ from opentine._signing_keys import (
 from opentine._signing_keys import (
     load_ed25519_private as _load_ed25519_private,
 )
+from opentine._signing_pq import PQ_ALGORITHMS, PQ_SIZES, pq_verdict, sign_pq
 from opentine._signing_verdicts import (
     MIN_HMAC_KEY_BYTES,
     ed25519_verdict,
@@ -61,6 +63,7 @@ HEADER_KEYS = ("alg", "key_id", "scheme", "signed_at", "signer")
 
 #: Everything a stored block may hold: the header, the value, Ed25519's key.
 _BLOCK_KEYS = frozenset((*HEADER_KEYS, "value", "public_key"))
+_EMBEDS_KEY = frozenset(("ed25519", "ml-dsa-65", "ed25519+ml-dsa-65"))
 
 
 #: ``header -> the exact bytes signed``. The one thing each family supplies.
@@ -95,14 +98,15 @@ def sign_block(
     signed header, so an absent ``key_id`` is signed as absent and cannot be
     added afterwards without the signature going ``mismatch``.
     """
-    if algorithm not in ALGORITHMS:
+    if algorithm not in ALGORITHMS | PQ_ALGORITHMS:
         raise SignatureError(f"unsupported signature algorithm {algorithm!r}")
+    _fips.require(algorithm)  # both are approved (FIPS 198-1, FIPS 186-5)
     if any(item is not None and not isinstance(item, str) for item in (key_id, signer, signed_at)):
         raise SignatureError("signature metadata values must be strings")
     if algorithm == "hmac-sha256":
         require_strong_hmac_key(key)
         private = None
-    else:
+    elif algorithm not in PQ_ALGORITHMS:
         private = _load_ed25519_private(key)
     header = {
         "alg": algorithm,
@@ -118,7 +122,9 @@ def sign_block(
     except (AttributeError, RecursionError, TypeError, ValueError) as exc:
         raise SignatureError(f"{subject} content cannot be signed") from exc
     block = {name: value for name, value in header.items() if value is not None}
-    if algorithm == "hmac-sha256":
+    if algorithm in PQ_ALGORITHMS:
+        block["value"], block["public_key"] = sign_pq(message, key, algorithm)
+    elif algorithm == "hmac-sha256":
         block["value"] = hmac.new(bytes(key), message, hashlib.sha256).hexdigest()
     else:
         block["value"] = private.sign(message).hex()
@@ -161,7 +167,7 @@ def verify_block(
         return result(False, "error", "pass exactly one verification key")
     # A block is signed byte-for-byte as sign_block writes it. Unknown keys and
     # re-spelled hex verified anyway, so one signature minted many object ids.
-    if set(block) - _BLOCK_KEYS or (algorithm != "ed25519" and "public_key" in block):
+    if set(block) - _BLOCK_KEYS or (algorithm not in _EMBEDS_KEY and "public_key" in block):
         return result(False, "error", "malformed signature header")
     # Writers drop absent header fields; an explicit null is a second spelling of
     # the same signed header, so one signature would verify under two oids.
@@ -171,10 +177,10 @@ def verify_block(
         item is not None and not isinstance(item, str) for item in raw_optional
     ):
         return result(False, "error", "malformed signature header")
-    if algorithm not in ALGORITHMS:
+    if algorithm not in ALGORITHMS | PQ_ALGORITHMS:
         return result(False, "error", "unsupported signature algorithm")
     value = block.get("value")
-    if not lower_hex(value, VALUE_LENGTHS[algorithm]):
+    if algorithm not in PQ_SIZES and not lower_hex(value, VALUE_LENGTHS[algorithm]):
         return result(False, "error", "malformed signature value")
     header = {name: block.get(name) for name in HEADER_KEYS}
     header["alg"] = algorithm
@@ -182,6 +188,8 @@ def verify_block(
         message = build_message(header)
     except (RecursionError, SignatureError, TypeError, ValueError):
         return result(False, "error", f"malformed signed {subject} content")
+    if algorithm in PQ_ALGORITHMS:  # SPEC 4.6.1; the 0.34 verifier skips these blocks
+        return pq_verdict(message, value, block, public_key, trust_embedded, result)
     if algorithm == "hmac-sha256":
         return hmac_verdict(message, value, hmac_key, result)
     if not HAS_ED25519:

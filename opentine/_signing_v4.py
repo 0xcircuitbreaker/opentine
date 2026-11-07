@@ -19,6 +19,7 @@ from typing import Any
 
 from opentine._format_v4 import ARTIFACT_V4_KIND, ARTIFACT_V4_VERSION, is_v4_artifact
 from opentine._signing_keys import SignatureError
+from opentine._signing_pq import PQ_ALGORITHMS
 from opentine._signing_verify import HEADER_KEYS, SignatureResult, sign_block, verify_block
 from opentine.kernel import KernelError, canonical_json, parse_oid
 
@@ -112,6 +113,7 @@ def verify_artifact_v4(
     hmac_key: bytes | None = None,
     public_key: Any | None = None,
     trust_embedded: bool = False,
+    require_pq: bool = False,
 ) -> SignatureResult:
     """The §4.7 verdict for a v4 artifact, with the v2 vocabulary.
 
@@ -119,7 +121,8 @@ def verify_artifact_v4(
     root first: a tampered envelope under an intact signature is ``mismatch``,
     exactly what an edited v2 body under a v2 signature reports. With several
     blocks, the first one the supplied key verifies wins; otherwise the first
-    block's verdict is returned.
+    block's verdict is returned. With *require_pq* only post-quantum blocks
+    (SPEC 4.6.1) count, so a classical block alone is ``unsigned``.
     """
     signatures = data.get("signatures")
     if not isinstance(signatures, list) or len(signatures) > MAX_V4_SIGNATURES:
@@ -130,6 +133,10 @@ def verify_artifact_v4(
         return _refusal("error", "unsupported signature scheme")
     from opentine._artifact_v4_read import verify_v4
 
+    if require_pq:
+        signatures = [b for b in signatures if b.get("alg") in PQ_ALGORITHMS]
+        if not signatures:
+            return _refusal("unsigned", "no post-quantum signature present")
     integrity = verify_v4(data)
     if not integrity.ok:
         return _refusal("mismatch", f"content does not match the signed root: {integrity.reason}")
@@ -181,13 +188,16 @@ def statement_for(run: Any, actual: str, key: Any | None) -> dict[str, Any]:
         return build_statement(run, actual)
     statement = build_statement(run, parse_oid(actual)[1])
     if key is not None:
+        from opentine._signing_pins import key_fingerprint
         from opentine.intoto import did_from_public, load_ed25519_private
 
-        signer = did_from_public(load_ed25519_private(key).public_key())
+        public = load_ed25519_private(key).public_key()
         payload = {
             "claim": {"predicateType": PREDICATE_TYPE},
             "evidence_ids": [],
-            "signer": signer,
+            "signer": did_from_public(public),
+            # 0.41 (X27): the record names the key that must sign the envelope.
+            "signer_key": key_fingerprint(public.public_bytes_raw()),
             "target_id": actual,
         }
         statement["predicate"]["attestation"] = {
@@ -197,8 +207,14 @@ def statement_for(run: Any, actual: str, key: Any | None) -> dict[str, Any]:
     return statement
 
 
-def check_v4_attestation(statement: dict[str, Any], actual: str) -> str | None:
-    """Why a statement's embedded ``tine-attest/2`` record is unacceptable, if it is."""
+def check_v4_attestation(
+    statement: dict[str, Any], actual: str, envelope_key: str | None = None
+) -> str | None:
+    """Why a statement's embedded ``tine-attest/2`` record is unacceptable, if it is.
+
+    With *envelope_key* (the DSSE signer's fingerprint) the record must be
+    signed by that key, and a record naming a ``signer_key`` must name it.
+    """
     record = (statement.get("predicate") or {}).get("attestation")
     if record is None:
         return None
@@ -211,4 +227,23 @@ def check_v4_attestation(statement: dict[str, Any], actual: str) -> str | None:
         return "embedded attestation is not tine-attest/2"
     if not verify_attestation(record, trust_embedded=True).ok:
         return "embedded tine-attest/2 signature does not verify"
+    if envelope_key is None:
+        return None
+    from opentine._signing_pins import used_key_fingerprint
+
+    named = record.get("signer_key")
+    if named is not None and named != envelope_key:
+        return (
+            f"tine-attest/2 record names signer {named}, the envelope is signed by {envelope_key}"
+        )
+    if used_key_fingerprint(block) != envelope_key:
+        return "tine-attest/2 record is signed by a different key than the envelope"
     return None
+
+
+def attestation_binding(statement: dict[str, Any]) -> str | None:
+    """``bound`` (names its signer key), ``unbound`` (pre-0.41), or ``None`` (no record)."""
+    record = (statement.get("predicate") or {}).get("attestation")
+    if not isinstance(record, dict):
+        return None
+    return "bound" if isinstance(record.get("signer_key"), str) else "unbound"

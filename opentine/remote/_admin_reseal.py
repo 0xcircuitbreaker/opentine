@@ -7,8 +7,10 @@ A 0.12 server stores new objects compressed then sealed (``TINEAES4``), which a
 compresses objects written by older servers. ``--from aes2`` rewrites only
 the tenant-bound ``TINEAES1``/``TINEAES2`` objects (a KMS provider before 0.35
 wrote these) into the provider's slot-bound form, after which an operator can
-set ``TINE_REMOTE_REFUSE_LEGACY_SEALS=1``. Each object is read and verified
-against its id before the new file atomically replaces the old one.
+set ``TINE_REMOTE_REFUSE_LEGACY_SEALS=1``. ``--to aes6`` (0.41) rewrites every
+older object as ``TINEAES6`` under the provider's current key id and epoch.
+Each object is read and verified against its id before the new file atomically
+replaces the old one.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from dataclasses import dataclass
 from opentine import _codec
 from opentine._canon import _fsync_dir
 from opentine.remote._object_file import read_object_file
-from opentine.remote._sealed import SEALED, SEALED4, SEALED5, seal_object
+from opentine.remote._sealed import SEALED, SEALED4, SEALED5, SEALED6, seal_object
 
 
 @dataclass(frozen=True)
@@ -30,10 +32,15 @@ class ResealResult:
     unchanged: int
 
 
-def _needs_rewrite(head: bytes, codec: str | None, source: str | None) -> bool:
-    legacy = not head.startswith((SEALED, SEALED4, SEALED5))
+def _needs_rewrite(head: bytes, codec: str | None, source: str | None, target: str) -> bool:
+    legacy = not head.startswith((SEALED, SEALED4, SEALED5, SEALED6))
     if source == "aes2":
         return legacy
+    if target == "aes6":  # every older form moves to the key-id/epoch/XAES form
+        return not head.startswith(SEALED6)
+    if head.startswith(SEALED6):  # flags, then the codec byte, after the key id and epoch
+        at = len(SEALED6) + 1 + head[len(SEALED6)] + 5
+        return (len(head) > at and head[at] != _codec.RAW) != (codec is not None)
     if head.startswith(SEALED5):  # magic, u16 length, wrapped key, then the codec byte
         at = len(SEALED5) + 2 + int.from_bytes(head[len(SEALED5) : len(SEALED5) + 2], "big")
         compressed = len(head) > at and head[at] != _codec.RAW
@@ -45,11 +52,13 @@ def _needs_rewrite(head: bytes, codec: str | None, source: str | None) -> bool:
 def reseal(
     objects, tenant: str, target: str, *, dry_run: bool = False, source: str | None = None
 ) -> ResealResult:
-    """Rewrite every object of *tenant* as ``aes3`` (uncompressed) or ``aes4``.
+    """Rewrite every object of *tenant* as ``aes3`` (uncompressed), ``aes4`` or ``aes6``.
 
     With *source* ``"aes2"`` only legacy tenant-bound objects are rewritten."""
-    if target not in ("aes3", "aes4"):
-        raise ValueError("--to must be aes3 or aes4")
+    if target not in ("aes3", "aes4", "aes6"):
+        raise ValueError("--to must be aes3, aes4 or aes6")
+    if target == "aes6" and not hasattr(objects.keys, "keyring"):
+        raise ValueError("--to aes6 needs TINE_KMS_KEY_ID (a TINEAES6 key provider)")
     if source not in (None, "aes2"):
         raise ValueError("--from must be aes2")
     codec = None if target == "aes3" else (objects.codec or _codec.default_codec())
@@ -57,7 +66,7 @@ def reseal(
     for oid in objects.iter(tenant):
         path = objects._path(tenant, oid)
         head = read_object_file(path)  # no-follow, bounded
-        if not _needs_rewrite(head, codec, source):
+        if not _needs_rewrite(head, codec, source, target):
             unchanged += 1
             continue
         rewritten += 1

@@ -242,9 +242,8 @@ def cmd_verify_attestation(args: argparse.Namespace) -> None:
             result, receipt = _check(args, envelopes[0])
         except ValueError as exc:
             result = EnvelopeResult(False, "error", f"cannot read attestation: {exc}")
-    subject_error = None
+    subject_error, fpr = None, result.key_fingerprint
     if result.ok:
-        subject_error = (
-            check_subject(result.statement, path) if path else f"run not found: {args.run_id}"
-        )
+        missing = f"run not found: {args.run_id}"
+        subject_error = check_subject(result.statement, path, fpr) if path else missing
     _report(args, args.attestation, path, result, subject_error, receipt)

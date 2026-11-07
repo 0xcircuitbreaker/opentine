@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections.abc import Callable
 
@@ -35,6 +34,7 @@ from opentine._cli_flow import cmd_diff, cmd_fork, cmd_resume
 from opentine._cli_fold import rewrite as fold_rewrite
 from opentine._cli_git_refs import cmd_tag_v3
 from opentine._cli_gitlink import COMMANDS as GITLINK_COMMANDS
+from opentine._cli_globals import apply_global_flags, fips_errors
 from opentine._cli_groups import COMMANDS as GROUP_COMMANDS
 from opentine._cli_groups import notice as group_notice
 from opentine._cli_groups import rewrite as group_rewrite
@@ -125,9 +125,8 @@ def main(argv: list[str] | None = None) -> None:
     """Run one ``tine`` invocation; *argv* defaults to the process arguments."""
     _common.RUNS_DIR = RUNS_DIR
     parser, args = parse_reporting_usage(list(sys.argv[1:] if argv is None else argv), parse)
-    if args.no_compress:
-        os.environ["OPENTINE_COMPRESS"] = "0"
-    with write_format(getattr(args, "write_format", None)), operation(args.command):
+    apply_global_flags(args)  # --no-compress, --fips (_cli_globals)
+    with write_format(getattr(args, "write_format", None)), operation(args.command), fips_errors():
         dispatch(args, lambda: _dispatch(parser, args))
 
 

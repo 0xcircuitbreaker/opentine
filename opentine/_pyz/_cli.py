@@ -47,17 +47,17 @@ def _key_bytes(path: str) -> bytes:
 
 
 def public_key(path: str) -> bytes:
-    """A raw 32-byte or 64-hex Ed25519 public key file (``tine keygen``'s ``.pub``)."""
+    """A raw or hex public key: Ed25519 (``tine keygen``'s ``.pub``), ML-DSA-65 or composite."""
     raw = _key_bytes(path)
     try:
         text = raw.decode("ascii").strip()
     except UnicodeDecodeError:
         text = ""
-    if len(text) == 64:
+    if len(text) in (64, 3904, 3968):
         return bytes.fromhex(text)
-    if len(raw) == 32:
+    if len(raw) in (32, 1952, 1984):
         return raw
-    raise ValueError("--pubkey must hold a raw 32-byte or 64-hex Ed25519 public key")
+    raise ValueError("--pubkey must hold an Ed25519, ml-dsa-65 or ed25519+ml-dsa-65 public key")
 
 
 def verify_file(

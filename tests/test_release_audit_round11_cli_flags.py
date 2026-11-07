@@ -222,7 +222,7 @@ def test_keygen_still_honours_force_for_a_real_destination(workspace, monkeypatc
 
     code, out = _invoke(monkeypatch, capsys, "keygen", "--out", "k.hex", "--force")
     assert code == 0, out
-    assert len((workspace / "k.hex").read_text(encoding="utf-8").strip()) == 64
+    assert (workspace / "k.hex").read_text(encoding="utf-8").startswith("-----BEGIN ENCRYPTED")
 
 
 # --------------------------------------------------------------------------- #
@@ -451,6 +451,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine", "--offline"], ["--tsa-roots", "tsa.pem"], "honoured"),
     # 0.35: --hermetic re-runs the offline verifier in an OS no-network sandbox
     (["verify", "source.tine"], ["--hermetic"], "refused"),
+    # 0.41: --tsa-policy restricts the offline timestamp check's TSA policies
+    # (--allow-stale-root only matters when a TUF-installed root is used; it rides
+    # in the base here, tests/test_041_key_lifecycle.py checks what it does)
+    (["verify", "source.tine", "--allow-stale-root"], ["--tsa-policy", "1.2.3"], "refused"),
     # 0.39: assurance tiers -- a floor, an extra witness key, the divergence report
     (["verify", "source.tine"], ["--min-assurance", "T2"], "honoured"),
     (["verify", "source.tine"], ["--proxy-pubkey", "missing.pub"], "honoured"),
@@ -470,6 +474,9 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     # --agent picks its own files under the user config dir (tested with a temp
     # XDG_CONFIG_HOME in test_agent_identity_0_13), so only the refusal runs here.
     (["keygen", "--out", "k.hex"], ["--agent", "coder"], "refused"),
+    # 0.41: --unencrypted writes the legacy plaintext form, only to a file
+    (["keygen", "--out", "k.hex"], ["--unencrypted"], "honoured"),
+    (["keygen", "--stdout"], ["--unencrypted"], "refused"),
     # tine migrate
     (["migrate", "legacy.tine"], ["--save", "out.tine"], "honoured"),
     (["migrate", "legacy.tine"], ["--in-place"], "honoured"),

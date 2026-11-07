@@ -20,10 +20,11 @@ from opentine._format_v4 import (
     V4_KEYS,
     is_v4_artifact,
 )
+from opentine._hash_tag import parse_oid
 from opentine._provenance_v4 import require_upgraded_from
 from opentine._signing_v4 import MAX_V4_SIGNATURES, SCHEME_V3
 from opentine._tine_v5 import as_v4
-from opentine.kernel import ObjectEnvelope, parse_oid
+from opentine.kernel import ObjectEnvelope
 from opentine.repository._annotations import annotation_ref
 from opentine.repository._refs import normalize_ref
 

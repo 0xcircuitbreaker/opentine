@@ -7,7 +7,7 @@ import stat
 import struct
 from pathlib import Path
 
-from opentine.remote._sealed import SEALED, UPLOAD_FRAME, seal, unseal
+from opentine.remote._sealed import SEALED, SEALED6, UPLOAD_FRAME, seal, unseal
 from opentine.remote.interfaces import KeyProvider
 
 _LENGTH = struct.Struct(">I")
@@ -90,8 +90,9 @@ def read_frames(
                 incomplete = True
                 break
             # Once a spool holds a bound frame, every later frame must be bound too.
-            sealed = sealed or ciphertext.startswith(SEALED)
-            if sealed and not ciphertext.startswith(SEALED):
+            bound = ciphertext.startswith((SEALED, SEALED6))
+            sealed = sealed or bound
+            if sealed and not bound:
                 raise ValueError("encrypted upload frame is not bound to its upload")
             context = f"{path.stem}:{len(plaintext)}"
             frame = unseal(keys, UPLOAD_FRAME, tenant, context, ciphertext)

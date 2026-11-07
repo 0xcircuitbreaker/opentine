@@ -35,6 +35,8 @@ def _run(*extra: str, report: Path | None = None) -> subprocess.CompletedProcess
         "--capability",
         "ed25519",
         "--capability",
+        "ml-dsa-65",
+        "--capability",
         "wtf8",
         *extra,
     ]

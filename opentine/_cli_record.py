@@ -19,6 +19,7 @@ from opentine._assurance import proxy_marker, witness_save
 from opentine._assurance_cli import add_proxy_parser, cmd_proxy
 from opentine._cli_common import console
 from opentine._cli_flags import _require_output_slot
+from opentine._cli_key import add_key_parser, cmd_key
 from opentine._cli_mcp_proxy import add_mcp_proxy_parser
 from opentine._cli_mcp_proxy import cmd_mcp_proxy as _cmd_mcp_proxy
 from opentine._v4_values import mark_lenient
@@ -39,6 +40,7 @@ def add_record_parser(sub: Any) -> None:
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
     add_mcp_proxy_parser(sub)
     add_proxy_parser(sub)
+    add_key_parser(sub)
 
 
 def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> Run:
@@ -92,6 +94,6 @@ def cmd_record(args: argparse.Namespace) -> None:
     raise SystemExit(code)
 
 
-COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy, "proxy": cmd_proxy}
+COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy, "proxy": cmd_proxy, "key": cmd_key}
 
 __all__ = ["COMMANDS", "add_record_parser", "build_run", "cmd_record"]

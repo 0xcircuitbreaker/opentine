@@ -491,6 +491,22 @@ and list the field under `metadata.warnings` instead of losing the run.
 `tine bundle` (and `bundle push/fetch`) carries the `tine-sig/3` blocks of
 imported v4 runs in the bundle manifest.
 
+## FIPS mode (0.41)
+
+```
+tine --fips COMMAND ...          # or OPENTINE_FIPS=1
+```
+
+`--fips` is global, like `--format`. Without an active OpenSSL FIPS provider
+in `cryptography` every command fails before it runs with exit 6
+(`trust_required`) and, under `--json`, `{"error": {"code": "trust_required",
+...}}`. A non-approved primitive met later (ChaCha20-Poly1305, writing the
+archival xz form) fails the same way. `tine verify --offline --json` adds
+`crypto: {mode, provider_fips, openssl}` to the report.
+
+`tine serve --root R --tenant T reseal --to aes6` rewrites a tenant's objects
+as `TINEAES6` (key id, epoch, XAES-256-GCM); it needs `TINE_KMS_KEY_ID` set.
+
 ## Fan-out status and MCP tools (0.36)
 
 `tine fleet status [ID] --repo PATH` lists the repository's `tine fan-out`
@@ -558,6 +574,74 @@ time, and a claim alone never rises above T1. Every report carries an
 `assurance` object, `{"claimed", "verified", "witness", "reasons"}`: `tine
 verify --json`, `tine verify --offline` (and so the MCP `verify_run` tool) and
 `tine show --json`; the human output prints one `assurance` line.
+
+## Key storage and signers (0.41)
+
+| Command | What it does |
+| --- | --- |
+| `tine keygen --out PATH` / `--agent NAME` | Writes the private key as encrypted PKCS#8 (PEM, PBES2/AES-256); `--unencrypted` writes the deprecated plaintext-hex form |
+| `tine key encrypt PATH [--json]` | Rewrites a plaintext-hex private key as encrypted PKCS#8 in place; an encrypted key is left alone (`"changed": false`) |
+| `tine key show SIGNER [--json]` | Opens a signer and prints its `signer`, `algorithm`, `key_id` (`sha256:<hex>`) and `public_key` |
+| `tine proxy keygen --signer URI [--force]` | Makes the key an agent, HSM or KMS holds the proxy witness key; only the URI and the public half are stored |
+| `tine proxy migrate --to URI [--json]` | Moves the proxy key into a signer; the old pair goes to `proxy-keys/retired/` and stays trusted for runs it signed |
+
+The passphrase for an encrypted key comes from `OPENTINE_KEY_PASSPHRASE`, the
+OS keyring (`OPENTINE_KEY_KEYRING=1` with `pip install 'opentine[keyring]'`),
+or a prompt when stdin is a terminal; with none, `keygen` refuses (exit 1) and
+loading the key fails. A plaintext-hex key still loads, with a
+`PlaintextKeyWarning` on stderr.
+
+Every flag that takes an Ed25519 signing key file (`sign --ed25519-key-file`,
+`custody record --sign-key`, `verify --offline --report --sign-key`, `evidence
+export --sign`, `replay --attest-key`, `push --ed25519-key-file`, `export
+--format intoto --ed25519-key-file`, `actions sign`) also takes a signer URI:
+
+| Signer | Backend |
+| --- | --- |
+| `file:PATH` or `PATH` | A key file (encrypted PKCS#8, or legacy hex) |
+| `ssh-agent:FINGERPRINT` | An Ed25519 key in `ssh-agent` (`SSH_AUTH_SOCK`); `SHA256:...` as `ssh-add -l` prints it, `sha256:<hex>`, or `*` for the only one |
+| `pkcs11:token=T;object=O?module-path=LIB` | An HSM via `opentine[pkcs11]` (`CKM_EDDSA`); PIN from `pin-source=env:VAR`, `pin-value=` or `OPENTINE_PKCS11_PIN` |
+| `kms:aws:ARN` | AWS KMS `ECC_NIST_EDWARDS25519`, `ED25519_SHA_512` over the raw message (at most 4096 bytes), via `opentine[kms-aws]` |
+| `kms:gcp:RESOURCE` | GCP Cloud KMS `EC_SIGN_ED25519` (`.../cryptoKeyVersions/N`), via `opentine[kms-gcp]` |
+
+The flag is not spelled `--signer` there because `tine sign --signer` already
+names the signer recorded in the block. Every backend's signature is checked
+against its public key before it is used.
+
+## Key lifecycle and verifier hardening (0.41)
+
+| Command | What it does |
+| --- | --- |
+| `tine key rotate KEY [--out NEW] [--json]` | A new Ed25519 key, written as encrypted PKCS#8, replaces the private key file KEY (and `KEY.pub`); the old pair is kept as `KEY-retired-<fp12>`. The old key gets `not_after = now`, the new one `not_before = now`, and the old key signs an endorsement of the new one (`tine-key-rotation/1`). `--out NEW` writes the new key elsewhere and leaves KEY in place |
+| `tine key rotate --agent NAME` / `--proxy` | The same for an agent key (`keygen --agent`) or the proxy witness key (`proxy keygen`); the retired proxy key goes to `proxy-keys/retired/`, as with `proxy migrate`, and stays trusted for T2. A proxy key held by a signer is refused (use `proxy migrate`) |
+| `tine key revoke KEY [--at TIME] [--json]` | Records `revoked_at` (RFC 3339, default now) for `sha256:<hex>`, a `.pub` file or a private key file. An earlier revocation already recorded stands; a malformed `--at` is a usage error (exit 2) |
+| `tine verify RUN --offline --tsa-policy OID` | Accept only RFC 3161 tokens issued under this TSA policy (repeatable) |
+| `tine verify RUN ... --allow-stale-root` | Use the TUF-installed trusted root even though its metadata has expired (a warning on stderr) |
+
+Both `tine key` verbs write only `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`.
+A trusted `.tine/agents.toml` may also carry windows
+(`[agents.NAME.lifecycle."sha256:<hex>"] not_after = "..."`), as may a trust
+policy's `key_lifecycle` table; the strictest window wins.
+
+`tine verify RUN --offline` adds a `key-lifecycle` check whenever a window
+names the signer key, judged against the report's verified `signing_time` (a
+signature-bound RFC 3161 token): `lifecycle.valid`, `lifecycle.expired`,
+`lifecycle.not-yet-valid` or `lifecycle.revoked`. With no verified time it is
+`unavailable-offline` / `lifecycle.unverified-time`, except that a revoked key
+fails (`lifecycle.revoked-unverified-time`) and a claimed `signed_at` outside
+the window fails. Plain `tine verify RUN --pubkey/--pin` has no verified time:
+it exits 4 (`verification_failed`) on those failures and otherwise notes that
+the window was checked against an unverified time.
+
+Timestamp tokens now fail with `timestamp.signing-cert-mismatch` (no single
+ESS signingCertificate/V2 attribute binding the TSA certificate),
+`timestamp.critical-extension`, `timestamp.policy-not-allowed`, or
+`timestamp.missing-eku` when the timeStamping EKU is not critical or not alone;
+genTime plus or minus the token's accuracy must lie inside the TSA validity.
+An attestation's `tine-attest/2` record must be signed by the DSSE envelope's
+key; the detail says `record bound` (0.41 records name `signer_key`) or
+`record unbound` (older records, still accepted). Keyless verification refuses
+(exit 6) a TUF-installed trusted root whose stored metadata has expired.
 
 ## Push preview and manifest (0.36)
 

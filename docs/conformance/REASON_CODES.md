@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (108)
+## The codes (109)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -111,6 +111,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `metrics.token-dimension-unsafe` | 1.5.2 | `_run_graph._MAX_SAFE_INTEGER` = 9007199254740991 | a known token dimension that is fractional or above 2**53-1 | round a fractional token count |
 | `metrics.usage-not-object` | 1.5.2 | -- | a truthy usage value that is not an object | coerce a scalar usage into an object |
 | `metrics.usage-value-not-numeric` | 1.5.2 | -- | a usage value that is not exactly an int or a float (a bool is not numeric) | read true as 1, or parse a numeric string |
+| `oid.hash-unsupported` | 1.3.1 | `_hash_tag.SUPPORTED_HASH_ALGORITHMS` | a TYPE:TAG:HEX oid whose hash-algorithm TAG is not sha256 (sha3-256, sha512 and blake3 are reserved) | hash with sha256 anyway, or strip the tag |
 | `oid.malformed` | 1.3 | `kernel.OID_RE` | a string that is not TYPE:sha256:<64 lowercase hex> | lowercase an uppercase digest, or accept a bare digest |
 | `pack.arrays-invalid` | 2.8 | -- | an objects or shallow value that is not an array | wrap a single entry in an array |
 | `pack.bad-magic` | 2.8 | -- | a frame that does not begin with TINEPACK3\x00, or is shorter than 42 bytes | sniff the compression and continue |

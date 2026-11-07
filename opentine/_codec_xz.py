@@ -23,6 +23,9 @@ def lzma_module() -> Any:
 
 
 def compress(raw: bytes, level: int | None, error: type[Exception]) -> bytes:
+    from opentine import _fips
+
+    _fips.require("xz-crc64")  # the archival form's stdlib reader leans on xz's CRC64
     module = lzma_module()
     if module is None:
         raise error("xz is not available in this Python build")

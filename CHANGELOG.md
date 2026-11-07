@@ -1,5 +1,88 @@
 # Changelog
 
+## 0.41.0 — Keys, post-quantum and FIPS (2026-11-06)
+
+### Behaviour changes
+
+- **New keys are encrypted by default.** `tine keygen --out PATH` and
+  `tine keygen --agent NAME` write encrypted PKCS#8 (PBES2/AES-256), with the
+  passphrase from `OPENTINE_KEY_PASSPHRASE`, the OS keyring
+  (`OPENTINE_KEY_KEYRING=1`) or a prompt on a terminal. With no passphrase
+  source, keygen refuses (exit 1) unless `--unencrypted` is given. Plaintext-hex
+  keys still load, with a `PlaintextKeyWarning`.
+- **RFC 3161 tokens must carry an ESS signingCertificate attribute.** Exactly
+  one `signingCertificate`/`signingCertificateV2` binding the TSA certificate
+  is required (`timestamp.signing-cert-mismatch`); a non-critical or shared
+  timeStamping EKU (`timestamp.missing-eku`) and critical extensions
+  (`timestamp.critical-extension`) are refused.
+- **A stale TUF root is refused.** Keyless verification exits 6 when the
+  TUF-installed trusted root's stored metadata has expired, unless
+  `--allow-stale-root` (a warning on stderr).
+- **Key lifecycle windows are enforced.** `not_before`, `not_after` and
+  `revoked_at` are checked against the verified signing time; `tine verify
+  --offline` adds a `key-lifecycle` check (`lifecycle.valid`,
+  `lifecycle.expired`, `lifecycle.not-yet-valid`, `lifecycle.revoked`,
+  `lifecycle.unverified-time`, `lifecycle.revoked-unverified-time`).
+
+### Added
+
+- **Signers.** Every Ed25519 key-file flag also takes a signer URI:
+  `file:PATH`, `ssh-agent:FINGERPRINT` (`SSH_AUTH_SOCK`),
+  `pkcs11:token=T;object=O?module-path=LIB` (`OPENTINE_PKCS11_MODULE`,
+  `OPENTINE_PKCS11_PIN`), `kms:aws:ARN` and `kms:gcp:RESOURCE`. Extras
+  `opentine[pkcs11]`, `opentine[kms-aws]`, `opentine[kms-gcp]` and
+  `opentine[keyring]`.
+- **`tine key`** with four subcommands: `tine key encrypt PATH` (rewrite a
+  plaintext-hex key as encrypted PKCS#8), `tine key show SIGNER` (algorithm,
+  key id, public key), `tine key rotate KEY [--out NEW]` / `--agent NAME` /
+  `--proxy` (a new encrypted key; the old key gets `not_after = now` and
+  endorses the new one, `tine-key-rotation/1`) and `tine key revoke KEY
+  [--at TIME]`. Windows live in `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`,
+  a trusted `.tine/agents.toml` and a trust policy's `key_lifecycle` table.
+- **Proxy key in a signer.** `tine proxy keygen --signer URI` and `tine proxy
+  migrate --to URI`; the old pair moves to `proxy-keys/retired/` and stays
+  trusted for T2. `tine key rotate --proxy` retires the old key the same way.
+- **`tine verify --offline --tsa-policy OID`** (repeatable) accepts only tokens
+  issued under those TSA policies.
+- **Post-quantum `tine-sig/3`.** `ml-dsa-65` (FIPS 204) and the composite
+  `ed25519+ml-dsa-65` (SPEC 4.6.1); a hybrid writer puts a classical Ed25519
+  block first. `verify_artifact_v4(..., require_pq=True)` counts only
+  post-quantum blocks. `tine-verify.pyz` verifies ML-DSA-65 with a stdlib
+  verifier checked against NIST ACVP vectors.
+- **Hash-tag reservation.** An oid whose hash-algorithm tag is not `sha256` is
+  refused by name (`oid.parse.unknown-hash-tag`).
+- **`TINEAES6` sealing** (roadmap X28): key id, epoch, XAES-256-GCM and
+  optional Padmé padding. `TINE_KMS_KEY_ID` (with `TINE_KMS_KEY_EPOCH`,
+  `TINE_REMOTE_SEAL_PAD`) selects it; `tine serve --root R --tenant T reseal
+  --to aes6` rewrites a tenant's objects. Older formats keep opening.
+- **FIPS mode.** `tine --fips` or `OPENTINE_FIPS=1` requires the OpenSSL FIPS
+  provider, refuses ChaCha20-Poly1305 and xz-only integrity, and records
+  `crypto: {mode, provider_fips, openssl}` in verify reports. A UBI 9 FIPS CI
+  job runs it.
+- **OS sandbox for the shell tool.** `ShellPolicy(sandbox="auto"|"bwrap"|
+  "landlock"|"sandbox-exec"|"oci"|"none")`, with `sandbox_network` and
+  `sandbox_image`; the default stays `"none"`. A named backend that is missing
+  is an error and the command does not run. `oci` needs a POSIX host (podman or
+  docker); on Windows it reports unavailable.
+
+### Security
+
+- `tine-attest/2` records now name `signer_key` and must be signed by the DSSE
+  envelope's key (X27); older records verify as `record unbound`.
+- RFC 3161 genTime plus or minus accuracy must lie inside the TSA validity, and
+  issuers with KeyUsage must allow `keyCertSign` (X26).
+- Every signer backend's signature is checked against its public key before
+  it is used.
+
+### Compatibility
+
+- Readers before 0.41 skip `ml-dsa-65` and `ed25519+ml-dsa-65` blocks and
+  accept a hybrid run through its classical block; they cannot open
+  `TINEAES6` objects.
+- Conformance family `55-sig-pq.json` (`sig-pq`). The suite is now
+  **658 conformance vectors**; 219 of the 658 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
 ## 0.40.0 — Blob deltas, run packs and `.tine` v5 (2026-11-06)
 
 ### Added

@@ -33,6 +33,7 @@ from tests.conformance import (
     cases_objects,
     cases_repair,
     cases_repo,
+    cases_sig_pq,
     cases_sig_v4,
     cases_signing,
 )
@@ -78,6 +79,7 @@ FAMILY_MODULES = (
     cases_signing,
     cases_sig_v4,
     cases_artifact_v5,
+    cases_sig_pq,
     cases_compat,
     cases_repair,
     cases_agent,

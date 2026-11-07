@@ -60,7 +60,7 @@ def _require_crypto() -> None:
 
 def load_ed25519_private(key: Any):
     _require_crypto()
-    if isinstance(key, Ed25519PrivateKey):
+    if isinstance(key, Ed25519PrivateKey) or type(key).__name__ == "SignerKey":
         return key
     if isinstance(key, str):
         key = key.strip()
@@ -100,12 +100,31 @@ def _raw(key: str | bytes | bytearray) -> bytes:
     return key.strip().encode() if isinstance(key, str) else bytes(key)
 
 
-def ed25519_private_from_file(path: str | Path):
+def ed25519_private_from_file(path: str | Path, *, signer: bool = True, legacy_warn: bool = True):
+    """The signing key a path or signer URI names (``_signer``).
+
+    With *signer* (the default) the result is a ``SignerKey``; an encrypted
+    PKCS#8 file asks ``_key_store`` for its passphrase, and a 0.40 plaintext-hex
+    seed still loads, with a ``PlaintextKeyWarning`` unless *legacy_warn* is off.
+    """
+    from opentine import _key_store, _signer
+
+    if _signer.is_uri(str(path)) and not str(path).startswith("file:"):
+        if not signer:
+            raise SignatureError(f"{path} is not a key file")
+        return _signer.key_for(path)
+    path = str(path)[5:] if str(path).startswith("file:") else path
     raw = hmac_key_from_file(path)
-    try:
-        return load_ed25519_private(raw.decode())
-    except UnicodeDecodeError:
-        return load_ed25519_private(raw)
+    if _key_store.is_pem(raw):
+        private = _key_store.load_pem(raw, str(path))
+    else:
+        try:
+            private = load_ed25519_private(raw.decode())
+        except UnicodeDecodeError:
+            private = load_ed25519_private(raw)
+        if legacy_warn and len(raw.strip()) == 64:
+            _key_store.warn_plaintext(str(path))
+    return _signer.SignerKey(_signer.LocalSigner(private, f"file:{path}")) if signer else private
 
 
 def ed25519_public_from_file(path: str | Path):

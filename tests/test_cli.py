@@ -207,11 +207,11 @@ def test_cli_keygen_atomically_restricts_existing_output_mode(monkeypatch, tmp_p
 
     _invoke(monkeypatch, "keygen", "--out", str(private), "--force")
 
-    # The atomic overwrite replaced the placeholder with a fresh 64-char hex seed;
-    # this proves the write landed on every platform.
+    # The atomic overwrite replaced the placeholder with a fresh key -- since 0.41
+    # an encrypted PKCS#8 PEM; this proves the write landed on every platform.
     written = private.read_text(encoding="utf-8").strip()
     assert written != "public placeholder"
-    assert len(written) == 64 and all(char in "0123456789abcdef" for char in written)
+    assert written.startswith("-----BEGIN ENCRYPTED PRIVATE KEY-----")
     if os.name != "nt":
         # POSIX-only: Windows files report 0o666 and os.chmod is a near-noop, so
         # there is no 0o600 mode to assert even though keygen still requests it.

@@ -13,9 +13,25 @@ export const TREE_SCHEMA = 2n;
 const MAX_SCHEMA = 2n ** 53n;
 const encoder = new TextEncoder();
 
+/** A `TYPE:TAG:HEX` oid shape with any hash-algorithm tag (SPEC 1.3.1). */
+const TAGGED_OID_RE = /^(blob|event|run|attestation|annotation):([a-z0-9][a-z0-9-]{0,31}):[0-9a-f]+$/;
+const RESERVED_HASH_ALGORITHMS = new Set(["sha3-256", "sha512", "blake3"]);
+
 export function parseOid(oid: unknown): [string, string] {
   const match = typeof oid === "string" ? OID_RE.exec(oid) : null;
-  if (!match) throw new TineError(`invalid typed object id: ${pyRepr(oid)}`, "oid.malformed");
+  if (!match) {
+    // A well-formed oid under a hash tag other than sha256 is refused by name.
+    const tag = typeof oid === "string" ? TAGGED_OID_RE.exec(oid)?.[2] : undefined;
+    if (tag !== undefined && tag !== "sha256") {
+      const kind = RESERVED_HASH_ALGORITHMS.has(tag) ? "reserved" : "unknown";
+      throw new TineError(
+        `unsupported hash algorithm ${pyRepr(tag)} in object id ${pyRepr(oid)}: the tag is ${kind}, ` +
+          "and this reader implements only sha256 (SPEC 1.3.1)",
+        "oid.hash-unsupported",
+      );
+    }
+    throw new TineError(`invalid typed object id: ${pyRepr(oid)}`, "oid.malformed");
+  }
   return [match[1], match[2]];
 }
 

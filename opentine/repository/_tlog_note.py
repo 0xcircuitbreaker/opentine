@@ -57,7 +57,7 @@ def _signer(root: Path, origin: str):
         with os.fdopen(fd, "w", encoding="ascii") as handle:
             handle.write(seed + "\n")
         atomic_bytes(root / "vkey", (vkey_for(origin, bytes.fromhex(public)) + "\n").encode())
-    return ed25519_private_from_file(key)
+    return ed25519_private_from_file(key, legacy_warn=False)
 
 
 def stored_vkey(root: Path) -> str:

@@ -20,6 +20,8 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+from opentine._proxy_key import key_paths, keygen, signing_key
+
 TIERS = ("T0", "T1", "T2", "T3")
 #: Metadata ``capture.method`` values whose runs a proxy saw (and signs).
 PROXY_METHODS = frozenset({"mcp-proxy", "record-proxy"})
@@ -35,56 +37,6 @@ def rank(tier: str) -> int:
 def proxy_marker(method: str) -> dict[str, Any]:
     """The ``metadata.capture`` a proxy records: a T2 *claim*, checked at verify time."""
     return {"method": method, "claimed_tier": "T2", "agent_writable": False}
-
-
-def key_paths() -> tuple[Path, Path]:
-    """The proxy key pair, a sibling of the agent keys in this user's key store."""
-    from opentine._agent_keys import key_dir
-
-    base = key_dir().parent / "proxy-keys" / "proxy"
-    return base.with_suffix(".key"), base.with_suffix(".pub")
-
-
-def public_key_path() -> Path:
-    """Where the proxy's public key lives (never derived from the private half)."""
-    from opentine._agent_keys import key_dir
-
-    return (key_dir().parent / "proxy-keys" / "proxy").with_suffix(".pub")
-
-
-def keygen(force: bool = False) -> tuple[Path, str]:
-    """Write a new proxy key pair; ``(public key path, fingerprint)``."""
-    from opentine._agent_keys import local_fingerprints
-    from opentine._canon import atomic_write_text
-    from opentine._signing_pins import key_fingerprint
-    from opentine.signing import generate_ed25519
-
-    private, public = key_paths()[0], public_key_path()
-    if (private.exists() or public.exists()) and not force:
-        raise FileExistsError(f"{private} already exists; pass --force to replace it")
-    keypair = generate_ed25519()
-    if key_fingerprint(bytes.fromhex(keypair[1])) in local_fingerprints():  # never, but
-        raise ValueError("the new proxy key collides with an agent key")  # keep them apart
-    private.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    atomic_write_text(private, keypair[0] + "\n", fsync=True, mode=0o600)
-    atomic_write_text(public, keypair[1] + "\n")
-    # Report only what is read back from the public file: nothing derived from the
-    # generated pair (seed included) can reach the caller's output.
-    shown = public_key_path()
-    return shown, key_fingerprint(bytes.fromhex(shown.read_text().strip()))
-
-
-def signing_key() -> Any | None:
-    """This user's proxy private key, or ``None`` when ``tine proxy keygen`` never ran."""
-    from opentine.signing import SignatureError, ed25519_private_from_file
-
-    private = key_paths()[0]
-    if not private.is_file():
-        return None
-    try:
-        return ed25519_private_from_file(private)
-    except (OSError, SignatureError):
-        return None
 
 
 def witness_save(run: Any, path: Path) -> bool:
@@ -107,17 +59,19 @@ def proxy_witnesses(extra: list[str] | None = None) -> list[tuple[str, Any]]:
     also one of this user's agent keys is never a proxy key: the agent holds it.
     """
     from opentine._agent_keys import local_fingerprints
+    from opentine._proxy_key import retired_publics
     from opentine._signing_pins import key_fingerprint
     from opentine.signing import SignatureError, ed25519_public_from_file
 
-    paths = [key_paths()[1], *(Path(p) for p in extra or [])]
+    own = [key_paths()[1], *retired_publics()]
+    paths = [*own, *(Path(p) for p in extra or [])]
     agents = local_fingerprints()
     found: list[tuple[str, Any]] = []
     for path in paths:
         try:
             public = ed25519_public_from_file(path)
         except (OSError, SignatureError):
-            if path in (key_paths()[1],):
+            if path in own:
                 continue
             raise
         fpr = key_fingerprint(public.public_bytes_raw())
