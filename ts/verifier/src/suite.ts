@@ -50,8 +50,6 @@ export const OUT_OF_SCOPE_OPS: Record<string, string> = {
   "object.put": "writer-side redaction, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
-  "integrity.digest": "the legacy v1/v2 artifact digest, SPEC 3.5",
-  "integrity.verify": "the legacy v1/v2 artifact digest, SPEC 3.5",
   "attest.sign": "signing (this package only verifies), SPEC 4.5",
   "actions.chain": "tine-actions/1, SPEC 4.8",
   "delegation.verify": "opentine-delegation/1 chains, SPEC 4.10",
