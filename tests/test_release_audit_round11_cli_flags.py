@@ -462,6 +462,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     # 0.39: --sign-key/--timestamp sign the --report; both need --offline
     (["verify", "source.tine"], ["--sign-key", "k.hex"], "refused"),
     (["verify", "source.tine"], ["--timestamp"], "refused"),
+    # 0.44 X33: the witness quorum check runs only offline
+    (["verify", "source.tine"], ["--witnesses", "2-of-3"], "refused"),
+    (["verify", "source.tine"], ["--witness-vkey", "w+00000000+AA=="], "refused"),
+    (["verify", "source.tine"], ["--log-vkey", "l+00000000+AA=="], "refused"),
     # tine keygen
     (["keygen"], ["--force"], "refused"),
     (["keygen"], ["--out", "k.hex"], "honoured"),
