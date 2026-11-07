@@ -11,6 +11,7 @@ import { canonicalJson, validateJsonShape } from "./canon.js";
 import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
+import { canonicalBytesV2 } from "./canon2.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
 import {
@@ -172,6 +173,8 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
   switch (op) {
     case "text.validate":
       return textValidate(input);
+    case "canon.v2":
+      return { bytes_b64: b64(canonicalBytesV2(valueOf(input))) };
     case "canon.v3":
       return { bytes_b64: b64(canonicalJson(valueOf(input))) };
     case "envelope.decode": {

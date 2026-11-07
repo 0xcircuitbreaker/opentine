@@ -47,7 +47,6 @@ export interface Row {
  * scope exactly when `outOfScope` names it; every other case must pass.
  */
 export const OUT_OF_SCOPE_OPS: Record<string, string> = {
-  "canon.v2": "the legacy (format v1-v3) canonicalizer, SPEC 0.3",
   "object.put": "writer-side redaction, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
