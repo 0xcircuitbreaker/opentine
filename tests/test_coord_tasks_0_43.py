@@ -140,7 +140,9 @@ def _tine(capsys, *argv: str) -> tuple[int, dict]:
 
 def test_the_task_cli_round_trip_with_json(tmp_path, capsys):
     root = str(Path(Repo.init(tmp_path / "repo").path).parent)
-    code, out = _tine(capsys, "task", "add", "lint", "--title", "Run lint", "--repo", root, "--json")
+    code, out = _tine(
+        capsys, "task", "add", "lint", "--title", "Run lint", "--repo", root, "--json"
+    )
     assert code == 0 and out == {"command": "task add", "task": out["task"]}
     code, out = _tine(capsys, "task", "claim", "lint", "--holder", "a", "--repo", root, "--json")
     assert code == 0 and out["task"]["fencing"] == 1
