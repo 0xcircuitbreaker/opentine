@@ -164,6 +164,10 @@ def test_sbpl_profile_allows_a_symlinked_binary_by_its_real_path(tmp_path):
 
 def test_oci_is_unavailable_on_a_windows_host(monkeypatch):
     monkeypatch.setattr(_sandbox.sys, "platform", "win32")
-    assert _sandbox.oci_runtime() is None
-    with pytest.raises(_sandbox.SandboxUnavailable):
-        _sandbox.choose("oci", image="img")
+    _sandbox.oci_runtime.cache_clear()
+    try:
+        assert _sandbox.oci_runtime() is None
+        with pytest.raises(_sandbox.SandboxUnavailable):
+            _sandbox.choose("oci", image="img")
+    finally:
+        _sandbox.oci_runtime.cache_clear()
