@@ -25,7 +25,7 @@ from opentine._cli_storage import add_storage_parsers
 from opentine._cli_unify import add_unify_args
 from opentine._cli_verify_offline import add_verify_args
 from opentine._cli_who import add_actions_parsers
-from opentine._format_v4 import format_arg
+from opentine._format_v4 import add_writer_args
 from opentine._replay_fidelity import LABELS as FIDELITY_LABELS
 from opentine._repo_cli_parser import add_repo_parsers
 from opentine._version import __version__
@@ -37,10 +37,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tine", description="opentine — git for agent runs")
     parser.add_argument("-V", "--version", action="version", version=f"opentine {__version__}")
     add_global_flags(parser)  # --no-compress, --fips
-    parser.add_argument(  # 0.26: v4 by default; 2 (or 3) is the deprecated legacy writer
-        "--format", dest="write_format", type=format_arg, metavar="{2,4,5}", default=None,
-        help="Writer format: 4 (default), 5 (text blobs; opentine >=0.40 reads) or 2 (deprecated)",
-    )  # fmt: skip
+    add_writer_args(parser)  # 0.42: v5 by default (SPEC Part 10)
     sub = parser.add_subparsers(dest="command")
 
     run = sub.add_parser("run", help="Execute a script, a harness, or a bundled model")
