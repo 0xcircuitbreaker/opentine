@@ -3,8 +3,8 @@
 XAES-256-GCM extends AES-256-GCM to a 192-bit nonce, so a random nonce per
 message is safe for any practical number of messages under one key. The first
 12 nonce bytes derive a per-message AES-256 key from the master with the NIST
-SP 800-108r1 counter KDF over AES-256-CMAC (computed directly from AES-ECB,
-as the spec describes); the last 12 bytes are the AES-256-GCM nonce. Every
+SP 800-108r1 counter KDF over AES-256-CMAC (computed directly from the AES
+block function, as the spec describes); the last 12 bytes are the AES-256-GCM nonce. Every
 primitive is FIPS-approved AES, so XAES-256-GCM is usable in ``--fips`` mode.
 """
 
@@ -15,9 +15,18 @@ KEY_SIZE = 32
 
 
 def _aes_block(key: bytes, block: bytes) -> bytes:
+    """The raw AES-256 block function, AES_K(block), on exactly one block.
+
+    CBC over a single block with an all-zero IV is AES_K(block XOR 0) =
+    AES_K(block): byte-identical to ECB on that block, and the length check
+    keeps it from ever chaining (or acting as a mode) over more data. CMAC and
+    XAES are defined over this block function, not over a mode of operation.
+    """
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-    encryptor = Cipher(algorithms.AES(key), modes.ECB()).encryptor()
+    if len(block) != 16:
+        raise ValueError("the AES block function takes exactly one 16-byte block")
+    encryptor = Cipher(algorithms.AES(key), modes.CBC(bytes(16))).encryptor()
     return encryptor.update(block) + encryptor.finalize()
 
 
