@@ -1,6 +1,6 @@
-# OpenTine roadmap: 0.35 to 0.44
+# OpenTine roadmap: 0.35 to 0.50
 
-*Baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
+*Status, 2026-11-07: 0.35–0.44 are delivered (§8). §10 plans 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
 
 ## 1. Prior roadmap items, copied inline
 
@@ -70,6 +70,22 @@ These come from `docs/audit-roadmap:docs/ROADMAP.md`.
 | Transparency log with witnesses | No | | | | | | | | 0.44 |
 
 Sources: entireio/cli README, docs.entire.io, code.claude.com/docs/en/checkpointing, docs.gitbutler.com, github.com/git-ai-project/git-ai, the jj operation-log docs, langfuse.com/self-hosting, huggingface.co/docs/xet/deduplication, docs.dolthub.com, blog.sigstore.dev/rekor-v2-ga, datatracker.ietf.org/wg/scitt. The earlier draft's cells "Entire Web UI = Yes", "Entire Undo", "GitButler Undo" and "jj per-turn snapshots" were not supported by the research and have been removed. We do not claim any capability is "unique". We say only that it was not found in the tools we surveyed.
+
+
+### 3a. Update, 2026-11-07
+
+The table above describes the 0.34-era survey and is kept as written. The facts below were re-collected for the 0.45–0.50 plan. A fact with a single secondary source, or that is a vendor claim, is marked (unverified). We still make no "unique" claims: "not found" means not found in the tools and pages we checked, as of this date.
+
+| Tool | What it is now | Relevant to | Source |
+|---|---|---|---|
+| Entire | "The Git forge for agent-human collaboration". Founded and led by Thomas Dohmke, GitHub's CEO until August 2025. $60M seed led by Felicis (reported $300M valuation). MIT-licensed Go CLI that captures checkpoints under `refs/entire/checkpoints/*` with an `Entire-Checkpoint` trailer, plus `entire blame` and `entire why`. Hosted forge: git hosting and GitHub mirrors, Trails (a PR replacement with approvals and gates), Continuous Memory (entire-brain, entire-graph), Agentic Search, CI, and hosted agents billed per token. Hosting, Trails, sessions, memory, search and the CLI are free during the preview. Redaction is documented as "best effort", and the HTTP API as "internal, subject to change". Checkpoints are git refs protected by git commit signing; gittuf RSL covers Entire-hosted repos only. Forge launch about 2026-10-26 with four regions and "418 pushes/s" (unverified). Opus 5.5 at $4/$20 per million tokens on the pricing page (unverified) | 0.45 blame/attach/importer, 0.46 hosted beta, 0.47 Reviews | entire.com, entire.com/company, entire.com/pricing, entire.com/features/trails, docs.entire.com (privacy-and-redaction, reference-state-log), github.com/entireio/cli; TechCrunch 2026-02-10; SiliconANGLE |
+| Git AI | `git ai blame`, a commit-time AI share, and Git AI Standard v3 notes. Its builders reportedly joined OpenAI's Codex team around 2026-09 (unverified: one X post and one outlet; OpenAI's post does not describe an acquisition). Whether its paid platform winds down is also unverified | 0.45.x v3 notes reader and writer | github.com/git-ai-project/git-ai, usegitai.com; The New Stack |
+| Traces | Hosted session sharing, plus `refs/notes/traces` | 0.46 share links | traces.com |
+| AgentLogs | Hosted transcript sharing; pushes transcripts by default (unverified) | 0.45 pre-push redaction gate, 0.46 share links | to verify against its own docs |
+| GitHub artifact attestations | `actions/attest-build-provenance`: Sigstore-backed signed build provenance on github.com. Signed provenance therefore exists at the platform level; it covers build artifacts, not agent runs | 0.46 CI Action, 0.46 in-toto `agent-run/v1` predicate | docs.github.com (artifact attestations) |
+| Aegis Ledger SDK, AIR blackbox / ProofTrail | Each claims signed or tamper-evident agent logs (unverified, not analysed). Until they are checked, we do not say that nobody signs agent runs | 0.46: analyse before any comparison claim | to verify |
+
+The harness vendors' own sharing (Claude Code session sharing, Codex cloud task logs, Devin replay, Amp threads) also competes with share links, and users get it free inside the tool.
 
 ---
 
@@ -261,6 +277,21 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 ---
 
 ## 8. The ten releases
+
+**Status (2026-11-07):** all ten are delivered on `feat/transparency-search-0.44`. The scope and acceptance text below is kept as planned; deviations are recorded in `CHANGELOG.md`.
+
+| Release | Status |
+|---|---|
+| 0.35.0 | Delivered |
+| 0.36.0 | Delivered |
+| 0.37.0 | Delivered |
+| 0.38.0 | Delivered |
+| 0.39.0 | Delivered |
+| 0.40.0 | Delivered |
+| 0.41.0 | Delivered |
+| 0.42.0 | Delivered |
+| 0.43.0 | Delivered |
+| 0.44.0 | Delivered |
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
@@ -557,38 +588,167 @@ Note: the claim that trace self-rewriting is a risk rests on arXiv 2609.30266, w
 0.39 TS phase 1 ─> 0.40 v5 vectors ─> 0.44 TS GA
 ```
 
-## 10. After 0.44 (0.45+) and the 1.0 track
+## 10. Releases 0.45 to 0.50, and the 1.0 track
 
-**0.45+ (named, not hidden):**
+*Planned 2026-11-07. Principle: close the visible gaps first (viewer, evals, sharing, CI), then go further on verifiable evidence end to end. Every hosted feature reads the same open formats the CLI writes. Items from the earlier "0.45+" list are marked **[0.45+]**. The rival facts behind this plan are in §3a.*
 
-- Run merge, pick and merge queue (F2).
-- SSE events, webhooks, `tine watch`.
-- `tine eval run` and compare, with signed verdicts.
-- Datasets: `add --from-run`, JSONL/HF/Langfuse I/O.
-- Direct export and import for Langfuse, Phoenix, Braintrust and LangSmith. Whether those vendors display `gen_ai.evaluation.result` is *unconfirmed* and will be tested, not assumed.
-- Read-only `tine ui`.
-- `tine compliance check` profiles and the Provenance/Workflow Run Crate.
-- `tine publish zenodo`.
-- An **artifact-evaluation package**: crate, `replay/v1` attestation and the pyz verifier.
-- Full air-gapped audit kit.
-- Webhook and OTLP alerts.
-- MCP 2025-11-25 tasks.
-- S3 Object Lock / Azure immutable retention backends.
-- Jules importer.
+Rules for this stretch:
 
-**1.0 track:**
+- **Format changes are flagged.** Each new object kind or `caps` flag ships with vectors in Python, TS and pyz in the release that adds it.
+- **0.48 is the last release that may add a new object kind or wire format.** 0.49 and 0.50 only fix, test and document, so the 1.0 freeze review in 0.50 is not chasing new kinds. Kinds planned before the cutoff: `tine-eval-verdict/1`, the tombstone, the redacted derivative, `merge/v1`, memory annotations, Reviews, and the in-toto `agent-run/v1` predicate.
+- **Conformance is "the full pinned vector set"**, not a fixed count, because the set grows each release.
+- **No git hosting.** OpenTine integrates with GitHub, GitLab, Forgejo and Entire instead.
 
-- Per-kind dictionaries (P3).
-- FastCDC lazy fetch for payloads ≥8 MiB, plus an S3 store and promisor fetch.
-- Oid token table; columnar pack v6; prolly-tree index; OpenZL spike.
-- RFC 4998 evidence records with PQ re-timestamping (`attest --renew`) and embedded CRL/OCSP.
-- eIDAS LOTL/JAdES.
-- C2PA `tine media sign`.
-- Pluggable snapshot providers and `rewind --with-side-effects`, with compensation records.
-- Bedrock CONNECT proxy.
-- A2A importer.
-- Budgets and the prompt registry.
-- Hash agility, activated.
+### 0.45.0: See it, score it (about 6–8 weeks)
+
+**Scope:**
+
+- **`tine ui` [0.45+].** A read-only local viewer on 127.0.0.1: run timeline (prompts, tool calls, diffs, workspace trees), run DAG and fleet graph, verify and assurance badge, attribution view. It re-redacts at render time and makes no network calls.
+  - It is built from a **shared viewer package** (`run-viewer`) and a **browser verifier package** (`verify-browser`) that live in this repo, so `tine ui` and opentine-web (§11) use the same code.
+  - A spike at the start measures the browser bundle size and ML-DSA-65 / zstd WASM feasibility before the viewer timeline is committed.
+- **`tine eval run|compare` [0.45+]** with signed `tine-eval-verdict/1` objects (new kind). Scorers: deterministic, regex, LLM-judge (the judge model and prompt are recorded as a run) and Python callables.
+- **Datasets [0.45+]:** `tine dataset add --from-run`, JSONL and HF import and export.
+- **Attribution in git:** `tine blame` (accepts git-blame flags), `tine why FILE:LINE` (opens the causal run slice), a `Tine-Run:` commit trailer, and `tine attach RUN COMMIT` for a session captured after the fact. Agent Trace import. The Entire importer is tested and fixed against the current `refs/entire/checkpoints/*` layout.
+- **Witness HTTP protocol** (C2SP tlog-witness) and a **tiled log** (C2SP tlog-tiles) with O(log n) appends. **This is a format change:** tiles change `opentine-log/1` storage and proofs. The release decides, in writing, whether this is `opentine-log/2` or a compatible extension of `log/1`, and ships vectors for it before any hosted log exists.
+- **JSON Schemas** for every object kind and every `--json` output, published as a versioned package. **`docs/SPEC.md` published** as a versioned, citable spec (the web's `/protocols` pages are generated from it).
+- **Pre-push redaction gate.** `tine push` re-scans against the current ruleset and refuses on hits (`--allow-unredacted` overrides). The ruleset is exported as data so the web can re-redact identically.
+
+**Rationale:** the viewer and the eval runner are the two largest gaps in §3 and against Entire Trails and Langfuse. `tine blame`, `why` and `attach` answer Entire's `blame`/`why` and the `Entire-Checkpoint` trailer. Witness networking and the tiled log close the two gaps 0.44 left in the transparency work. Schemas, SPEC and the pre-push gate are prerequisites for any hosted service and cost little.
+
+**Acceptance:**
+
+- `tine ui` renders a 10k-step run in under 2 s. No unredacted secret from the fixture corpus appears in the DOM. A socket-audit test shows no outbound connections.
+- `tine eval run` on a 1k-item dataset produces signed verdicts that `tine-verify.pyz` and the TS verifier both check. The full pinned vector set, including the new eval-verdict vectors, passes in Python, TS and pyz.
+- `tine blame` output matches `git blame --porcelain` byte for byte on 20 fixture repos when no AI lines are present.
+- The Entire current-layout import and export round-trips on a fixture from Entire CLI 0.10.x.
+- Two independent witness processes cosign over HTTP. `verify --witnesses 2-of-3` passes and fails closed on a split view.
+- A 1M-entry log benchmark shows O(log n) append with p95 under 10 ms on the pinned runner. The log/1-vs-log/2 decision is recorded and the 0.34 peer compatibility job stays green.
+- Every `--json` output validates against its published schema in CI.
+- The pre-push gate refuses every secret in the fixture corpus.
+
+### 0.45.x: Parity and plumbing (point releases)
+
+**Scope:**
+
+- **Harness parity:** Copilot CLI, Antigravity, Factory Droid and Pi, each with fixtures and a named owner.
+- **Git AI Standard v3 notes** reader and writer (imports their notes and signs them; OpenTine notes stay canonical). A post-commit AI-share line.
+- **`tine doctor [--bundle]`:** environment, keys, hooks and harness checks, plus a redacted support bundle.
+- **SSE events, `tine watch`, and webhooks with signed payloads [0.45+].**
+
+**Rationale:** these are split out of 0.45 so it stays within 6–8 weeks. None of them changes a format except the signed webhook payload, which is a wire format negotiated by `caps`.
+
+**Acceptance:**
+
+- Each new harness passes the hook-protocol fixtures.
+- Git AI v3 notes round-trip.
+- `tine doctor --bundle` contains no secret from the fixture corpus.
+- A webhook payload verifies with a documented 20-line verifier.
+
+### 0.46.0: Share it, gate it (hosted beta starts) (about 6–8 weeks)
+
+**Scope:**
+
+- **Hosted beta (opentine-web M2/M3, §11)** against the CLI's `tine serve`. The CLI side adds the `caps` the web needs: `object_read_http`, `run_closure`, `list`, `search` (`tine repo-search --remote`), `share`, `log_http` read side, and `admin`. Remote-aware commands: `tine share create|revoke`, `tine open`, `tine remote login` (device-code OIDC).
+- **Stable public API v1** (OpenAPI) for `tine serve`, plus a TS SDK. The hosted service implements the same spec and passes the same conformance suite.
+- **Tombstone and purge** (new kind): a signed record that a blob was purged, the oid kept and the content gone. `verify` reports `content-unavailable`, not `failed`. `tine purge` uses the quarantine machinery.
+- **Redacted public copy** (new kind): `tine bundle create --redacted-public` produces a pack holding only redacted blobs, with an attestation linking it to the original run oid.
+- **CI:** a GitHub Action and a GitLab component for `tine verify`, `tine eval` and a VSA gate with a PR comment. The server-side named trust policy for the VSA. An Action that preserves attribution through squash and rebase merges.
+- **`opentine-redaction/3`:** PII detectors and an optional classifier layer that runs locally (the model is named in the release notes), with a signed redaction report per run.
+- **Hybrid search:** an optional local embedding index (`opentine[embed]`), computed only on redacted text.
+- **Vendor I/O [0.45+]:** export and import for Langfuse, Phoenix, Braintrust and LangSmith. Whether each vendor displays `gen_ai.evaluation.result` is tested and documented per vendor, not assumed.
+- **Steer and resume for Codex and Gemini.** `opentine-hook/1` published as a versioned spec with conformance vectors.
+- **in-toto `agent-run/v1` predicate** draft, proposed upstream.
+
+**Rationale:** Entire, Traces and the harness vendors all give users a page they can link to. We match that, and the page shows a result the viewer's browser computed. Tombstones and the pre-push gate (0.45) must exist before any transcript is hosted.
+
+**Acceptance:**
+
+- A run pushed from the CLI appears in the web app in under 5 s through SSE.
+- A share link verifies in the browser with the verifier script pinned by SRI. Changing one byte in storage turns the badge to `failed`.
+- `tine serve` and the hosted service pass the same API conformance suite in CI.
+- A purged blob verifies as `content-unavailable` in Python, TS and pyz.
+- The redaction/3 recall benchmark is published with its corpus and numbers.
+- The Action is used in at least two external repos before the release is tagged.
+
+### 0.47.0: Merge it, review it (about 6 weeks)
+
+**Scope:**
+
+- **Run merge, pick and merge queue (F2) [0.45+].** The queue runs on `coord/` leases. Gates combine signed VSAs, eval verdicts and human approvals. A merge emits a signed `merge/v1` attestation (new kind).
+- **Reviews** (new kind, specified in this repo first): a unit of work across runs and commits, with findings, monitors (risk, intent drift, coverage, as eval scorers) and gates. Each gate decision is a signed object that exports and verifies offline. Multi-repo Reviews need a multi-repo object model; its spec lands here.
+- **Push-triggered evals** (`.tine/evals.toml`), run locally, in CI or on a self-hosted runner.
+- **Team memory:** signed, syncable memory annotations (new kind), exposed through MCP `recall`. **MCP 2025-11-25 tasks [0.45+].**
+- **Prompt registry**, moved from the 1.0 track: `tine prompt push|label|get`, signed and linked to runs. *Justification: eval comparisons are not reproducible without versioned prompts, and the object kind must land before the 0.48 cutoff.*
+- **Plugin API** for importers, signers, scorers and snapshot providers. `tine experts PATH`.
+- **TS capture SDK.** SCITT statement emission without `--experimental`, if the interop target is usable.
+- **Remote task backend** (`caps.coord`) and the 1,000 tasks × 50 workers scale test.
+- **Witness service support** for the hosted trust network (opentine-web M4).
+
+**Rationale:** Trails is Entire's main forge feature. Reviews give the same unit of work, with every gate decision verifiable without our server.
+
+**Acceptance:**
+
+- Merging two forked runs is deterministic: the same inputs give the same merge oid in Python and TS (new vectors).
+- The merge queue survives a chaos test (kill -9 workers) without a double merge; fencing tokens are verified.
+- A Review exported as a bundle verifies with `tine-verify.pyz --offline` on an air-gapped machine, including every gate decision.
+- 1,000 tasks × 50 workers produce zero lost or duplicated claims.
+
+### 0.48.0: Integrate everywhere (last new object kind) (about 6 weeks)
+
+**Scope:**
+
+- **Forge integration:** PR checks, comments and blame overlays for GitHub, GitLab and Forgejo, and an Entire forge integration that maps runs onto Entire-hosted repos. This replaces any plan to host git.
+- **`tine review`:** multi-agent review through the fleet; each finding is a signed annotation. Optional `tine graph` code map, exposed to MCP.
+- **IDE extensions** (VS Code, JetBrains): AI blame gutter and "verify this line's provenance".
+- **`tine compliance check` profiles and the Provenance/Workflow Run Crate [0.45+]**, mapped against the primary texts (FRE 902(13)/(14), EU AI Act Art. 12/19/26, eIDAS) with a named legal reviewer.
+- **OMS model-signature checks** as an assurance factor. OTLP gRPC ingest after its security review. OTLP protobuf logs.
+- **TSA binding for Rekor v2 keyless verification**, so it no longer reports `unchecked`. Delegation × revocation registry semantics.
+- **Freeze cutoff:** after this release no new object kind or wire format is added before 1.0.
+
+**Rationale:** OpenTine is the evidence layer under any forge, not a forge. Compliance claims ship only after primary-text review.
+
+**Acceptance:**
+
+- A PR check shows the AI share and verify status, with a link to an offline-verifiable bundle.
+- Each compliance profile cites the article or rule number, and an external counsel sign-off is recorded in the repo.
+- The gRPC ingest security review is published, and 72 h of fuzzing finds no crash.
+- Every object kind in the tree has vectors in Python, TS and pyz.
+
+### 0.49.0: Audit kit and public proof (about 5 weeks)
+
+**Scope:**
+
+- **Full air-gapped audit kit [0.45+]:** pyz and TS verifier, the crate, `replay/v1`, the witness set and a printed verification report. **Artifact-evaluation package [0.45+].** **`tine publish zenodo` [0.45+]** and `tine publish hf`.
+- **S3 Object Lock and Azure immutable backends [0.45+].**
+- **FastCDC lazy fetch for payloads ≥8 MiB and the S3 store**, moved from the 1.0 track. *Justification: the hosted service needs object storage with lazy fetch, and chunking is a stored form, not a new canonical kind, so it does not cross the 0.48 cutoff.*
+- **Webhook and OTLP alerts [0.45+]. Jules importer [0.45+].** A2A importer, moved from the 1.0 track. *Justification: a thin importer that produces T0 runs; no format change.*
+- **Public witness** operated by the project, and independent witnesses recruited.
+
+**Acceptance:**
+
+- The audit kit verifies on Linux, macOS and Windows with networking disabled (1.0 criterion 4).
+- At least three independent witness operators are live, and hosted logs require 2-of-3 cosignatures.
+- The Object Lock backend refuses deletes within retention (integration test against MinIO and AWS).
+
+### 0.50.0: Freeze candidate (about 5 weeks)
+
+**Scope:**
+
+- **Format freeze review.** Python, TS and pyz parity on the full pinned vector set (criterion 2). Deprecation policy published (criterion 7). Third-party security audit started, covering the CLI and the hosted service (criterion 1).
+- **RFC 4998 evidence records** with PQ re-timestamping (`attest --renew`) and embedded CRL/OCSP, moved from the 1.0 track. *Justification: long-term evidence must be fixed before the freeze, or 1.0 freezes formats that cannot carry it.*
+- **Per-kind dictionaries (P3).** Compression bench within 5% of 0.40 (criterion 6).
+- **Nightly stress** runs green for 30 days (criterion 5). The 0.34 peer compatibility job stays green (criterion 3).
+- **"Leave the hosted service" test:** export, then `tine serve` import, then a byte-identical verify.
+
+**Rationale:** 0.50 exists to meet the 1.0 criteria, not to add features.
+
+**Acceptance:** every 1.0 criterion except the completion of the audit is met. The leave-the-service test passes on every release from here on.
+
+### 1.0 track
+
+Still on the track: columnar pack v6, prolly-tree index, OpenZL spike, oid token table, eIDAS LOTL/JAdES, C2PA `tine media sign`, `rewind --with-side-effects` with compensation records, Bedrock CONNECT proxy, budgets, hash agility (activated).
+
+Moved earlier, each justified above: the prompt registry (0.47), FastCDC lazy fetch and the S3 store (0.49), the A2A importer (0.49), RFC 4998 evidence records (0.50), per-kind dictionaries (0.50). Pluggable snapshot providers move to the 0.47 plugin API.
 
 **1.0 criteria:**
 
@@ -600,4 +760,53 @@ Note: the claim that trace self-rewriting is a risk rests on arXiv 2609.30266, w
 6. The compression bench has regressed by no more than 5% since 0.40.
 7. The deprecation policy in §2 is published.
 
-The FRE 902, AI Act and eIDAS mappings still need to be checked against the primary texts before any compliance profile ships.
+---
+
+## 11. Web platform (opentine-web)
+
+*Planned 2026-11-07. Separate repo, `opentine-web`. The CLI repo stays the system of record for formats, verifiers and `tine serve`.*
+
+**Surfaces.**
+
+- `opentine.com`: site, docs and blog. Reference docs are generated from this repo (`docs/CLI.md`, `tine help --json`, `docs/SPEC.md`), so the site cannot drift. Today it still describes 0.34, including the old `.tine` default.
+- `app.opentine.com`: the product (run viewer, repos, search, blame, transparency, orgs).
+- `opentine.com/r/<oid>`: short content-addressed permalinks for public runs, resolved only within the public tenant so they cannot probe private tenants for an oid.
+
+**Thesis: the server is not trusted.** Every page that shows a run also shows a verification result that the browser computed with the TS verifier, against signer keys, log checkpoints and witness cosignatures. The hosted service stores, indexes and displays; it is never the source of truth. Anything computed by the server (OG cards, README badges) is labelled as server-computed. The badge has an explicit `partial` state for blobs not downloaded, and a caveat state for checks that need the network (CRL fetch) or an encoding TS cannot read (xz).
+
+**Shared code.** The viewer (`run-viewer`) and browser verifier (`verify-browser`) packages live in this CLI repo, so `tine ui`, the web app, embeds and a single-file offline viewer share one implementation. Web data types are generated from the 0.45 JSON Schemas.
+
+**Milestones.**
+
+| Milestone | CLI release | Web deliverable | CLI prerequisites |
+|---|---|---|---|
+| M0: site resync | now (0.44.x) | Site says 0.44 and every format statement matches the CLI; `/apps` replaced by a generated compatibility page | `tine help --json`; `docs/SPEC.md` |
+| M1: offline viewer | 0.45 | `opentine.com/view` drag-and-drop viewer running fully client-side; `<opentine-run>` web component; offline single-file viewer | `run-viewer` and `verify-browser` packages; TS verifier browser build passing the full pinned vector set in Chromium, Firefox and WebKit; JSON Schemas |
+| M2: hosted alpha | 0.46 | Login, orgs of one, repos backed by `tine serve`, run viewer with browser badge, compare, search, private by default, link shares, read-only transparency page | `object_read_http`, `run_closure`, `list`, `search`, `share`, `log_http` (read); pre-push gate (0.45); tombstone/purge; `tine remote login`, `tine open` |
+| M3: teams | 0.46–0.47 | Roles, CI OIDC tokens, SSE updates, webhooks, attribution and blame, fleet view, keys and delegation, retention and holds, signed audit log, public publish with redacted copy, Reviews | SSE and webhooks (0.45.x); `--redacted-public`; VSA named policy; `caps.coord`; Reviews kind (0.47) |
+| M4: trust network | 0.47 | Hosted witness service, public log monitor, browser-cached consistency checks, viewer-supplied trust policies, signed web annotations, reproducible web build | Witness HTTP and tiled log (0.45); browser signing support in formats |
+| M5: evals and compliance | 0.48–0.50 | Eval verdict and dataset views, compliance-profile reports, Auditor role, evidence and custody views, SAML/SCIM, data residency | `tine eval run` and datasets (0.45); compliance profiles (0.48); Object Lock backend (0.49) |
+| GA | 1.0 | Third-party audit of the web app and verifier; Helm and air-gapped self-host kit | The 1.0 criteria |
+
+**Non-negotiable rules.**
+
+1. Every object the service shows can be exported and verified with no OpenTine server.
+2. The service never signs as the user. User keys stay client-side or in the user's KMS. Service signatures use a separate, published, rotatable identity and are labelled.
+3. Signed audit logs are available to everyone.
+4. No cloud-only data types. Anything the service adds is specified in this repo first.
+5. No token resale. No preferred model or harness.
+6. No git hosting.
+
+**Free for everyone.** The tools to track, audit, manage and hold agents accountable should be in the hands of everyone running AI. So:
+
+- Every feature is free for everyone, for public and private repos. There are no paid tiers, no per-seat prices and no per-feature paywalls.
+- Self-host is the same software and is free.
+- The service is sustained by sponsorship, grants and donations, and by optional paid support for organisations that want it. Paid support buys help, not features.
+- Fair-use limits on storage and egress apply to everyone, so the service stays sustainable and hard to abuse. The limits are published as numbers, and exceeding them is answered by contact, not by silent deletion; self-host has no limits.
+
+**Open questions.**
+
+- **Unit economics and staffing.** Neither plan estimates the cost of free private storage, CDN egress, per-tenant indexes and witnesses, or the headcount to run a 24/7 service alongside the CLI. These figures are needed before M2, and scope is cut if funding does not cover them. Start in one region.
+- **Security and privacy before M2:** CSRF and cookie model, SSE auth, per-tenant authz on CDN object reads, rate limits on share tokens, browser key storage, an npm supply-chain policy, `security.txt` and a disclosure process, a DPA and subprocessor list, retention defaults and a deletion SLA, what the server sees per mode in E2EE projects, and no third-party analytics.
+- **Operations:** backup and disaster recovery, incident response, a status page, and an accessibility target (WCAG 2.2 AA).
+- **Ownership:** trademark, domain and repo ownership moved to a legal entity, and a CLA/DCO policy, before M2.
