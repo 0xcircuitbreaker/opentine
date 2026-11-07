@@ -1,4 +1,4 @@
-"""``tine fleet up|status|stop|cost|record``: run a declared fleet of agents.
+"""``tine fleet up|status|stop|cost|record|resume|logs|send``: run a declared fleet.
 
 ``tine fleet up fleet.toml --trust`` reviews-then-trusts the manifest's exact
 bytes and runs its members (``--dry-run`` lists them, running nothing);
@@ -9,7 +9,9 @@ the members' reported costs. ``cost --repo PATH RUN`` instead totals a fleet
 recorded by ``tine import --fleet`` (each shared step counted once). ``--dir``
 is the state directory (default ``.tine_fleet``, beside the manifest for ``up``).
 ``record RUN.tine`` shows, signs or attests a run's ``opentine-fleet/1`` record
-(``_cli_fleet_record``).
+(``_cli_fleet_record``). ``resume``, ``logs`` and ``send`` live in
+:mod:`opentine._cli_fleet_ops`; this module also registers ``tine task``
+(:mod:`opentine._cli_task`).
 """
 
 from __future__ import annotations
@@ -23,20 +25,27 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_task import COMMANDS as TASK_COMMANDS
+from opentine._cli_task import add_task_parser
 
 
 def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("fleet", help="Run a declared fleet of agents (fleet.toml)")
     from opentine._cli_fleet_record import add_record_args
 
-    parser.add_argument("action", choices=("up", "status", "stop", "cost", "record"))
+    actions = ("up", "status", "stop", "cost", "record", "resume", "logs", "send")
+    parser.add_argument("action", choices=actions)
     parser.add_argument("target", nargs="?", help="fleet.toml (up), a fleet ID, or a RUN")
     parser.add_argument("--trust", action="store_true", help="Trust this manifest's exact bytes")
     parser.add_argument("--dry-run", action="store_true", help="up: list members, run nothing")
     parser.add_argument("--dir", metavar="DIR", help="Fleet state directory")
     parser.add_argument("--repo", metavar="PATH", help="cost: an imported fleet; status: fan-outs")
+    parser.add_argument("--id", metavar="ID", help="resume: the fleet to resume")
+    parser.add_argument("--member", metavar="KEY", help="logs/send: one member (key or name)")
+    parser.add_argument("--message", metavar="TEXT", help="send: the steer message")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     add_record_args(parser)
+    add_task_parser(subparsers)
 
 
 def _fail(message: object) -> SystemExit:
@@ -159,6 +168,12 @@ def cmd_fleet(args: argparse.Namespace) -> None:
             from opentine._cli_fleet_record import record
 
             raise SystemExit(record(args))
+        if args.action in ("resume", "logs", "send"):
+            from opentine import _cli_fleet_ops as ops
+
+            if args.action == "resume":
+                raise SystemExit(ops.resume(args))
+            raise SystemExit(getattr(ops, args.action)(args, _directory(args)))
         from opentine.fleet._runner import request_stop
 
         path = request_stop(_directory(args), args.target or "")
@@ -167,6 +182,6 @@ def cmd_fleet(args: argparse.Namespace) -> None:
         raise _fail(exc) from exc
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"fleet": cmd_fleet}
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"fleet": cmd_fleet, **TASK_COMMANDS}
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

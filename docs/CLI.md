@@ -805,3 +805,30 @@ counts the lines whose originating commit's attribution note credits them to
 a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
 attributed.
+
+## Fleet coordination: tasks, leases and steering (0.43)
+
+| Command | What it does |
+| --- | --- |
+| `tine task add ID [--title T] --repo PATH` | Creates `coord/tasks/ID` (`opentine-coord/1`) |
+| `tine task claim ID --holder NAME [--ttl S] --repo PATH` | Takes the lease by one compare-and-swap ref move; prints the new `fencing` token |
+| `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
+| `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
+| `tine task list --repo PATH` | Every task, its status, holder, token and lease end |
+| `tine fleet resume fleet.toml --id ID [--trust]` | Runs the members of fleet `ID` that did not finish; the manifest digest must match the record |
+| `tine fleet logs ID [--member KEY]` | Prints each member's captured output |
+| `tine fleet send ID --member M --message TEXT --repo PATH` | Queues a steer message in `coord/mailbox/ID/M` |
+
+Every task and mailbox version is an annotation chained by `previous_id`, so
+the ref's history is the record's audit trail. Of any number of racing
+claimants exactly one compare-and-swap wins; an expired lease is re-claimed
+with a higher fencing token. With `--json` each `task` verb prints
+`{"command": "task <verb>", "task": {...}}` (`"tasks": [...]` for `list`); a
+refused operation exits 1 with `{"error": {"code": "held|stale|done|exists|missing|contended", ...}}`.
+
+A sent message is delivered by the member's `tine hook capture` at its next
+turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
+from `tine fleet up`), once, and recorded as a `human` step with actor
+`steer`. The generic response carries `"steer": [TEXT, ...]`; Claude Code's
+`Stop` hook gets `{"decision": "block", "reason": TEXT}`, so the agent
+continues with the message. Capture must be enabled (`hooks.capture`).

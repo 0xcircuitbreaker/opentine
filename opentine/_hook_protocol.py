@@ -158,6 +158,7 @@ def _step(event: dict[str, Any], agent: str, extra: dict[str, Any]):
 def record(repo: Any, event: dict[str, Any], agent: str) -> dict[str, Any]:
     """Append *event* to its session's run, durably; the protocol response."""
     from opentine import _hook_turns
+    from opentine._hook_mailbox import STEER_KEY, steer_steps
     from opentine.repository._paths import internal_path
     from opentine.trace.recorder import Recorder
 
@@ -174,13 +175,18 @@ def record(repo: Any, event: dict[str, Any], agent: str) -> dict[str, Any]:
         extra: dict[str, Any] = {}
         if event["event"] == "turn_end":
             extra = _hook_turns.run_turn_end(repo, recorder, event, agent)
+        mail = extra.pop(STEER_KEY, None)  # 0.43: `tine fleet send` (_hook_mailbox)
         if event["event"] != "session_end" or event["message"] is not None:
             recorder.append(_step(event, agent, extra))
+        steer = steer_steps(event["session"], mail)
+        for step in steer:
+            recorder.append(step)
         if event["event"] == "session_end":
             recorder.finalize("completed")
         steps = len(recorder.payload.get("events") or [])
     return {"protocol": PROTOCOL, "ok": True, "event": event["event"], "ref": ref,
-            "run": recorder.run_id, "steps": steps}  # fmt: skip
+            "run": recorder.run_id, "steps": steps,
+            **({"steer": [s.inputs["prompt"] for s in steer]} if steer else {})}  # fmt: skip
 
 
 def handle(raw: bytes, repo_path: str | None, agent: str) -> dict[str, Any]:
@@ -214,8 +220,10 @@ def run_capture(
         raw = b""
     response = handle(raw, repo_path, agent or "generic")
     if agent and agent != "generic":
-        # A vendor CLI parses stdout as its own control JSON: say nothing it acts on.
-        response = {"suppressOutput": True} if agent == "claude-code" else {}
+        # A vendor CLI parses stdout as its own control JSON: say only a steer.
+        from opentine._hook_mailbox import vendor_response
+
+        response = vendor_response(agent, response)
     try:
         (out or sys.stdout).write(json.dumps(response, sort_keys=True) + "\n")
         (out or sys.stdout).flush()

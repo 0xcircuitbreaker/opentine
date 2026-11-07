@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.42.
 
 ## CLI Reference
 
-`tine` ships 93 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 94 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -813,6 +813,8 @@ tine repo worktree add <path> <ref> [--git]           An isolated directory per 
 tine fleet up fleet.toml --trust                      Run a declared fleet (fan-out or supervisor/workers)
 tine fleet status|stop|cost <id>                      Members, a stop that kills every process tree, cost
 tine fleet record run.tine --sign-key k --out rec.json  A run's fleet record, signed (--attest: in-toto fleet/v1)
+tine fleet resume|logs|send <id>                      Resume unfinished members, read output, steer one
+tine task add|claim|heartbeat|done|list               Leases with fencing tokens (opentine-coord/1)
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces
