@@ -129,6 +129,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     stats.add_argument("--limit", type=int, default=20, help="Max groups to show; 0 for all")
     stats.add_argument("--repo", help="Aggregate this v3 repository (default: one in the cwd)")
+    stats.add_argument("--ai-share", action="store_true", help="Share of git lines agents wrote")
+    stats.add_argument("--rev", help="With --ai-share: the revision to count (default: HEAD)")
 
     tag = sub.add_parser("tag", help="Tag a v3 run (tags/NAME), or edit a legacy run's labels")
     tag.add_argument("run_id", nargs="?", metavar="NAME_OR_RUN")

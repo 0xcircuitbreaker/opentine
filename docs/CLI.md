@@ -735,3 +735,50 @@ code 2 and sends nothing. The narrative is stored apart from the summary, under
 `metadata["opentine.explain.narrative"]`, with `generated_by: "model"`, a
 `label` saying it is model-generated and not evidence, the model spec and the
 digest of the summary it describes.
+
+## Line attribution (0.42)
+
+```
+tine git attribute COMMIT [RUN...] [--sign-key KEY] [--no-configure] [--json]
+tine git attribution COMMIT [--verify] [--pubkey KEY.pub] [--json]
+tine git attribution COMMIT --format agent-trace
+tine stats --ai-share [--rev REV] [--json]
+```
+
+`tine git attribute` diffs `COMMIT` against its first parent and matches each
+added line to the recorded write that inserted it (the matching `tine blame`
+uses), over the runs given, or else the runs the commit already links through
+`Tine-Run` trailers or notes. The result is stored in the commit's
+`refs/notes/tine` note as one `Tine-Attribution: {...}` line (schema
+`opentine-line-attribution/1`): per file, ranges with `start_line`,
+`end_line`, the `run`, `step`, `seq`, `tool` and `model` that wrote them, and
+the `content_hash` (SHA-256) of the lines covered. `Tine-Run` lines for the
+runs are kept or added, so `tine git log` sees the same note. With
+`--sign-key` the record carries an Ed25519 `tine-sig/3` block under the domain
+`opentine.line-attribution.v1:`.
+
+The record names no commit, so it stays true when git copies the note to a
+rewritten commit. `tine git attribute` adds this to the repository's config
+(skip with `--no-configure`):
+
+```
+git config --add notes.rewriteRef refs/notes/tine
+```
+
+With it, `git commit --amend` and `git rebase` (including `rebase -i`) copy the
+note to the new commit. Set it yourself in clones where `attribute` has not
+run; git does not copy notes by default.
+
+`tine git attribution COMMIT --verify` checks the signature (against
+`--pubkey`, or the embedded key as trust on first use) and that every range's
+hash still matches the lines the commit adds; it exits 1 when either fails.
+`--format agent-trace` prints the note as an [Agent Trace](https://agent-trace.dev/)
+record: `vcs` is `{"type": "git", "revision": COMMIT}`, one conversation per
+model with contributor `ai`, ranges with `content_hash`, and run and step ids
+in `metadata["io.github.0xcircuitbreaker.opentine"]`.
+
+`tine stats --ai-share` blames every text file at `--rev` (default `HEAD`) and
+counts the lines whose originating commit's attribution note credits them to
+a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
+`commits_with_attribution`. Lines in commits without a note count as not
+attributed.
