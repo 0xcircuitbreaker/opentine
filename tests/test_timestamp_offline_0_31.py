@@ -126,12 +126,15 @@ def token(
         seq(oid("1.2.840.113549.1.9.3"), der_set(oid("1.2.840.113549.1.9.16.1.4"))),
         seq(oid("1.2.840.113549.1.9.4"), der_set(octets(hashlib.sha256(tst).digest()))),
     ]
-    cert_bytes = tsa.public_bytes(serialization.Encoding.DER)
+    tsa_der = tsa.public_bytes(serialization.Encoding.DER)
     if ess == "v1":
-        cert_id = seq(octets(hashlib.sha1(cert_bytes).digest()))  # noqa: S324
+        # RFC 2634 ESSCertID (v1) fixes the certHash to SHA-1. It only names
+        # which certificate signed (an identifier the verifier compares, not a
+        # security hash); v2 (the default) uses SHA-256.
+        cert_id = seq(octets(hashlib.new("sha1", tsa_der, usedforsecurity=False).digest()))
         attrs.append(seq(oid("1.2.840.113549.1.9.16.2.12"), der_set(seq(seq(cert_id)))))
     elif ess in ("v2", "wrong"):
-        digest = hashlib.sha256(cert_bytes if ess == "v2" else b"other").digest()
+        digest = hashlib.sha256(tsa_der if ess == "v2" else b"other").digest()
         cert_id = seq(octets(digest))
         attrs.append(seq(oid("1.2.840.113549.1.9.16.2.47"), der_set(seq(seq(cert_id)))))
     signed_attrs = der_set(*attrs)
