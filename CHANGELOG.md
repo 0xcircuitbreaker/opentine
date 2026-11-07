@@ -237,7 +237,8 @@
 - **OS sandbox for the shell tool.** `ShellPolicy(sandbox="auto"|"bwrap"|
   "landlock"|"sandbox-exec"|"oci"|"none")`, with `sandbox_network` and
   `sandbox_image`; the default stays `"none"`. A named backend that is missing
-  is an error and the command does not run.
+  is an error and the command does not run. `oci` needs a POSIX host (podman or
+  docker); on Windows it reports unavailable.
 
 ### Security
 
