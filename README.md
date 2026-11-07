@@ -492,8 +492,11 @@ AutoGen, CrewAI, and OpenAI Agents logs. OTLP logs (`--format otel-logs`) and
 Claude Code's own OTel traces import priced, and the session logs Claude Code,
 Codex, Gemini CLI and Qwen Code keep for themselves import directly
 (`claude-code-transcript`, `codex-session`, `gemini-session`, `qwen-session`).
-Sessions [Entire](https://entire.io) recorded on its `entire/checkpoints/v1`
-branch import from the git repository itself (`--format entire`).
+Sessions [Entire](https://entire.io) recorded as `refs/entire/checkpoints/*`
+(or on its older `entire/checkpoints/v1` branch) import from the git repository
+itself (`--format entire`, `--all` for every checkpoint), and `tine export
+--format entire` writes a run back in that layout. Cline and Roo Code task
+histories import from VS Code's globalStorage (`cline-task`, `roo-task`).
 `--format` defaults to `auto`, which recognizes each of these by shape.
 `tine import` (see the CLI reference) is the shell-level front end for exactly
 these importers.

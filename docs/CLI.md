@@ -464,6 +464,49 @@ usage. `full.jsonl` holds the session up to that checkpoint, so the run is the
 session so far. Session metadata over 1 MiB and transcripts over 64 MiB are
 refused before they are read.
 
+### Per-checkpoint refs, `--all` and export (0.42)
+
+```
+tine import . --format entire --save run.tine          # refs first, v1 branch as fallback
+tine import . --format entire --all --repo runs        # every checkpoint session, one run each
+tine export run.tine --format entire --output ~/proj   # write the run as a checkpoint ref
+```
+
+Current entireio/cli keeps one ref per checkpoint,
+`refs/entire/checkpoints/<id[-2:]>/<id>`, whose commit tree *is* the checkpoint
+(`metadata.json`, `0/`, `1/` ...; sessions listed as `/<N>/metadata.json`).
+Those refs are read first, newest commit first; any checkpoint id found only on
+the `entire/checkpoints/v1` branch is read from there. `attributes["entire"]
+["layout"]` says which (`refs` or `branch`). `--all` records each session of
+each checkpoint on `heads/entire/<id, lowercased>/<N>` and needs `--repo`
+(`--save`, `--ref` and `--fleet` are refused with it); with `--json` it prints
+`{"command": "import", "format": "entire", "all": true, "runs": [...]}`.
+
+`export --format entire` writes the run, redacted, as one checkpoint in the
+`--output` git repository: a 12-hex id derived from the run id, a Claude Code
+`full.jsonl`, `prompt.txt`, `content_hash.txt` and both metadata files, committed
+with Entire's `Checkpoint: <id>` message and `Entire-Session`/`-Strategy`/`-Agent`
+trailers. Only git objects and that one ref are written. Exporting the same run
+again is a no-op; a changed run becomes a child commit on the same ref.
+
+## Cline and Roo Code task import (0.42)
+
+```
+tine import ~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/1730985600000 --save run.tine
+tine import --from-default-location --format roo-task          # list Roo Code tasks
+```
+
+SOURCE is a task directory (or its `api_conversation_history.json`);
+`ui_messages.json` and Cline's `task_metadata.json` beside it are read when
+present. Each assistant message is a model step, tool results (native
+`tool_result` blocks or the `[tool for 'x'] Result:` text convention) are tool
+steps, and other user turns human steps, with `<environment_details>` blocks
+dropped. Token usage comes from the matching `api_req_started` record (Roo's
+`apiProtocol: "openai"` counts cache reads inside `tokensIn`), else from the
+message's `metrics`. `auto` tells Roo from Cline by the
+`rooveterinaryinc.roo-cline` folder in the path. Windsurf is not supported: it
+has no documented local session format.
+
 # Writer format (0.26)
 
 Since 0.26 every writer produces **format v4** (SPEC Part 9): `.tine` files are
