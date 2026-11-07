@@ -86,6 +86,16 @@ export const OUT_OF_SCOPE_FAMILIES: Record<string, string> = {
   artifact: "legacy tine-sig/1 and tine-sig/2 artifact verdicts, SPEC 4.7",
 };
 
+/**
+ * Signature algorithms outside phase 1. The TypeScript verifier implements
+ * Ed25519 only; ML-DSA-65 (FIPS 204) has no vetted dependency here, so a
+ * tine-sig/3 artifact carrying any such block is skipped, not misjudged.
+ */
+export const OUT_OF_SCOPE_ALGS: Record<string, string> = {
+  "ml-dsa-65": "post-quantum ML-DSA-65 signatures, SPEC 4.6.1",
+  "ed25519+ml-dsa-65": "hybrid Ed25519 + ML-DSA-65 signatures, SPEC 4.6.1",
+};
+
 /** The category name a case is skipped under, or `null` when phase 1 must answer it. */
 export function outOfScope(testCase: Case): string | null {
   if (testCase.op in OUT_OF_SCOPE_OPS) return `op:${testCase.op}`;
@@ -96,6 +106,14 @@ export function outOfScope(testCase: Case): string | null {
   if (testCase.op === "sig.verify") {
     const family = (args.family as string | undefined) ?? "attestation";
     if (family in OUT_OF_SCOPE_FAMILIES) return `family:${family}`;
+    const value = testCase.input.value as Record<string, unknown> | undefined;
+    const blocks = value && typeof value === "object" ? value.signatures : undefined;
+    if (Array.isArray(blocks)) {
+      for (const block of blocks) {
+        const alg = block && typeof block === "object" ? (block as Record<string, unknown>).alg : undefined;
+        if (typeof alg === "string" && alg in OUT_OF_SCOPE_ALGS) return `alg:${alg}`;
+      }
+    }
     if (family === "attestation") {
       const value = testCase.input.value as Record<string, unknown> | undefined;
       const block = value && typeof value === "object" ? value.signature : undefined;
