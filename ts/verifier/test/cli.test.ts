@@ -84,12 +84,12 @@ test("zlib trailing data and a wrong declared length are refused", () => {
   assert.throws(() => unwrap(wrap(raw.subarray(1), 1, frame)), TineError);
 });
 
-test("zstd is refused with a message that says what to do", () => {
+test("xz is refused with a message that names it", () => {
   const raw = artifact("sig3.verdict.verified-hmac");
-  assert.throws(() => unwrap(wrap(raw, 2, raw)), (exc: Error) => exc instanceof TineError && /zstd/.test(exc.message));
-  const report = verifyBytes(wrap(raw, 2, raw), "x.tine");
+  assert.throws(() => unwrap(wrap(raw, 4, raw)), (exc: Error) => exc instanceof TineError && /xz/.test(exc.message));
+  const report = verifyBytes(wrap(raw, 4, raw), "x.tine");
   assert.equal(report.ok, false);
-  assert.match(report.integrity.reason, /zstd-compressed/);
+  assert.match(report.integrity.reason, /xz-compressed/);
 });
 
 test("a tampered envelope fails integrity before any key is consulted", () => {
