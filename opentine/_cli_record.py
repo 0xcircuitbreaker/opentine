@@ -37,6 +37,13 @@ def add_record_parser(sub: Any) -> None:
     record.add_argument(
         "--force", action="store_true", help="Replace an existing --save destination"
     )
+    record.add_argument(
+        "--upstream",
+        action="append",
+        default=[],
+        metavar="NAME=URL",
+        help="Forward a dialect (openai, anthropic, gemini, azure, ...) to URL",
+    )
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
     add_mcp_proxy_parser(sub)
     add_proxy_parser(sub)
@@ -74,12 +81,17 @@ def cmd_record(args: argparse.Namespace) -> None:
         raise SystemExit(1)
     if args.save:
         _require_output_slot(Path(args.save), args.force)
+    try:
+        overrides = _record_proxy.parse_upstreams(list(getattr(args, "upstream", None) or []))
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise SystemExit(2) from None
     records: list[dict[str, Any]] = []
-    server = _record_proxy.start(records.append)
+    server = _record_proxy.start(records.append, overrides)
     try:
         try:
             code = subprocess.call(
-                command, env=_record_proxy.child_env(dict(os.environ), server.port)
+                command, env=_record_proxy.child_env(dict(os.environ), server.port, server.bases)
             )
         except OSError as exc:
             console.print(f"[red]Cannot run {redact_text(command[0])}:[/] {exc.strerror or exc}")

@@ -11,7 +11,7 @@ import json
 from typing import Any
 
 from opentine._record_proxy import UPSTREAMS
-from opentine.models._usage import anthropic_usage, openai_usage
+from opentine.models._usage import anthropic_usage, google_usage, openai_usage
 
 
 def _json(raw: bytes) -> Any:
@@ -71,6 +71,31 @@ def _anthropic_reply(body: Any, events: list[dict[str, Any]]) -> tuple[str, str,
     return model, "".join(parts), usage or None
 
 
+def _gemini_reply(body: Any, events: list[dict[str, Any]]) -> tuple[str, str, Any]:
+    chunks = [body] if isinstance(body, dict) else events
+    model, parts, usage = "", [], None
+    for chunk in chunks:
+        model = str(chunk.get("modelVersion") or model)
+        usage = chunk.get("usageMetadata") or usage
+        for candidate in (chunk.get("candidates") or [])[:1]:
+            content = candidate.get("content") if isinstance(candidate, dict) else None
+            found = content.get("parts") if isinstance(content, dict) else None
+            for part in found if isinstance(found, list) else []:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    parts.append(part["text"])
+    return model, "".join(parts), usage
+
+
+def _path_model(path: str) -> str:
+    """``gemini-x`` from ``/v1beta/models/gemini-x:generateContent``."""
+    _, found, rest = path.partition("/models/")
+    return rest.split(":", 1)[0].split("/", 1)[0] if found else ""
+
+
+_REPLIES = {"anthropic": _anthropic_reply, "gemini": _gemini_reply}
+_USAGE = {"anthropic": anthropic_usage, "gemini": google_usage}
+
+
 def step_args(record: dict[str, Any]) -> dict[str, Any]:
     """Keyword arguments for ``add_step`` describing one model call."""
     _, _, provider, dialect = UPSTREAMS[record["upstream"]]
@@ -80,19 +105,17 @@ def step_args(record: dict[str, Any]) -> dict[str, Any]:
     sse = "event-stream" in str(record.get("content_type") or "")
     body = None if sse else _json(raw)
     events = _sse_events(raw) if sse else []
-    reply = _anthropic_reply if dialect == "anthropic" else _openai_reply
-    model, text, raw_usage = reply(body, events)
-    model = model or str(request.get("model") or "")
+    model, text, raw_usage = _REPLIES.get(dialect, _openai_reply)(body, events)
+    # The query string can carry a key (Gemini's ``?key=``): never record it.
+    path = str(record.get("path", "")).split("?", 1)[0]
+    model = model or str(request.get("model") or "") or _path_model(path)
     usage = None
     if isinstance(raw_usage, dict):
         try:
-            normal = (
-                anthropic_usage(raw_usage) if dialect == "anthropic" else openai_usage(raw_usage)
-            )
-            usage = normal.to_dict()
+            usage = _USAGE.get(dialect, openai_usage)(raw_usage).to_dict()
         except ValueError:
             usage = None
-    inputs = {"path": record.get("path", "")}
+    inputs = {"path": path}
     inputs.update(request)
     outputs: dict[str, Any] = {"text": text, "status": record.get("status", 0)}
     error = None
