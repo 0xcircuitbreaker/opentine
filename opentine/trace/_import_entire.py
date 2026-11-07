@@ -1,8 +1,10 @@
 """Import an Entire checkpoint session (``tine import --format entire``).
 
-SOURCE is a git repository with Entire's ``entire/checkpoints/v1`` branch (see
-:mod:`opentine.trace._entire_git` for the on-branch layout, as written by
-``github.com/entireio/cli``). ``REPO`` imports the newest checkpoint's last
+SOURCE is a git repository with Entire's per-checkpoint refs
+(``refs/entire/checkpoints/*``, :mod:`opentine.trace._entire_refs`) or, the
+fallback for older CLIs, its ``entire/checkpoints/v1`` branch
+(:mod:`opentine.trace._entire_git`), as ``github.com/entireio/cli`` writes
+them. ``REPO`` imports the newest checkpoint's last
 session, ``REPO::ID`` a checkpoint by id or unique prefix, and ``REPO::ID/N``
 its session ``N`` (0-based, in the order the checkpoint summary lists them).
 
@@ -26,6 +28,7 @@ from typing import Any
 
 from opentine._git_link import GitLinkError
 from opentine.trace import _entire_git as eg
+from opentine.trace import _entire_refs as er
 from opentine.trace._import_helpers import note_import_warning
 from opentine.trace._transcript_claude import claude_transcript_events
 from opentine.trace._transcript_codex import codex_session_events
@@ -131,13 +134,23 @@ def _events(source: Any) -> list[TraceEvent]:
     repo, wanted, index = split_source(source)
     if not repo.is_dir():
         raise ValueError(f"{repo} is not a directory")
-    ref = eg.find_ref(repo)
-    checkpoint = eg.resolve_checkpoint(repo, ref, wanted)
-    base = eg.checkpoint_path(checkpoint)
-    summary = _json(eg.read_blob(repo, ref, f"{base}/metadata.json", eg.MAX_METADATA_BYTES), base)
-    dirs = eg.session_dirs(checkpoint, summary)
+    return session_events(repo, er.locate(repo, wanted), index)
+
+
+def session_dirs(repo: Path, where: er.Location) -> list[str]:
+    """The session directories of the checkpoint at *where*."""
+    path = f"{where.base}/metadata.json" if where.base else "metadata.json"
+    summary = _json(eg.read_blob(repo, where.ref, path, eg.MAX_METADATA_BYTES), path)
+    dirs = eg.session_dirs(where.checkpoint, summary, where.base)
     if not dirs:
-        raise ValueError(f"checkpoint {checkpoint} lists no readable sessions")
+        raise ValueError(f"checkpoint {where.checkpoint} lists no readable sessions")
+    return dirs
+
+
+def session_events(repo: Path, where: er.Location, index: int | None) -> list[TraceEvent]:
+    """Session *index* (default: the last) of the checkpoint at *where*."""
+    ref, checkpoint = where.ref, where.checkpoint
+    dirs = session_dirs(repo, where)
     if index is None:
         index = len(dirs) - 1
     if index >= len(dirs):
@@ -146,6 +159,7 @@ def _events(source: Any) -> list[TraceEvent]:
     raw = eg.read_blob(repo, ref, f"{session}/metadata.json", eg.MAX_METADATA_BYTES)
     meta = _json(raw, f"{session}/metadata.json")
     attrs = entire_attributes(checkpoint, index, meta)
+    attrs["layout"] = "refs" if ref.startswith(er.REF_PREFIX) else "branch"
     importer = AGENT_IMPORTERS.get(str(meta.get("agent", "")))
     events: list[TraceEvent] = []
     transcript = eg.transcript_bytes(repo, ref, session) if importer else None

@@ -72,19 +72,6 @@ def newest_checkpoint(repo: Path, ref: str) -> str:
     raise EntireError(f"{BRANCH} holds no checkpoints")
 
 
-def resolve_checkpoint(repo: Path, ref: str, wanted: str | None) -> str:
-    """*wanted* (an id or unique prefix), or the newest checkpoint."""
-    if not wanted:
-        return newest_checkpoint(repo, ref)
-    if not re.fullmatch(r"[0-9A-Za-z]{1,26}", wanted):
-        raise EntireError(f"not a checkpoint id: {wanted[:40]!r}")
-    matches = [item for item in checkpoint_ids(repo, ref) if item.startswith(wanted)]
-    if len(matches) != 1:
-        problem = "matches no checkpoint" if not matches else "is ambiguous"
-        raise EntireError(f"checkpoint {wanted!r} {problem}")
-    return matches[0]
-
-
 def list_dir(repo: Path, ref: str, directory: str) -> list[str]:
     """Entry names directly under *directory* (empty when it is absent)."""
     try:
@@ -125,19 +112,21 @@ def transcript_bytes(repo: Path, ref: str, session_dir: str) -> bytes | None:
     return b"".join(parts)
 
 
-def session_dirs(checkpoint: str, summary: dict) -> list[str]:
+def session_dirs(checkpoint: str, summary: dict, base: str | None = None) -> list[str]:
     """Each session's directory, from the summary's ``sessions[].metadata``.
 
     A path is used only when it is exactly ``/<shard>/<rest>/<N>/metadata.json``
-    for this checkpoint: anything else (``..``, another checkpoint, a missing
-    index) is skipped, never followed.
+    for this checkpoint (``/<N>/metadata.json`` at a per-checkpoint ref's root,
+    *base* ``""``): anything else (``..``, another checkpoint, a missing index)
+    is skipped, never followed.
     """
-    base = checkpoint_path(checkpoint)
+    base = checkpoint_path(checkpoint) if base is None else base
+    prefix = f"{re.escape(base)}/" if base else ""
     found = []
     sessions = summary.get("sessions")
     for entry in sessions[:MAX_SESSIONS] if isinstance(sessions, list) else []:
         meta = entry.get("metadata") if isinstance(entry, dict) else None
-        match = re.fullmatch(rf"/?{re.escape(base)}/(\d{{1,4}})/metadata\.json", str(meta))
+        match = re.fullmatch(rf"/?{prefix}(\d{{1,4}})/metadata\.json", str(meta))
         if match:
-            found.append(f"{base}/{match.group(1)}")
+            found.append(f"{base}/{match.group(1)}" if base else match.group(1))
     return found
