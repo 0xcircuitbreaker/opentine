@@ -10,6 +10,7 @@ from urllib.parse import unquote
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
+from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
 from opentine.remote._uploads import UploadRegistry
@@ -28,6 +29,7 @@ class ServerBusy(RuntimeError):
 _REFUSALS = (
     (json.JSONDecodeError, "400 Bad Request", "invalid JSON"),
     (ServerBusy, "503 Service Unavailable", "server is busy"),
+    (QuotaExceeded, "429 Too Many Requests", "quota exceeded"),
     (PermissionError, "403 Forbidden", "forbidden"),
     (KeyError, "404 Not Found", "not found"),
     (ValueError, "400 Bad Request", "invalid request"),
@@ -145,7 +147,8 @@ class RemoteApp(UploadRoutes):
                 self._failures.failed(identity, tenant, action, exc)
             for kind, status, message in _REFUSALS:
                 if isinstance(exc, kind):
-                    return self._json_response(start_response, status, {"error": message})
+                    extra = getattr(exc, "headers", ()) if kind is QuotaExceeded else ()
+                    return self._json_response(start_response, status, {"error": message}, extra)
             body = internal_error(exc)
             return self._json_response(start_response, "500 Internal Server Error", body)
 

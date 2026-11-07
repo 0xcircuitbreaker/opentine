@@ -15,6 +15,7 @@ from urllib.parse import urlparse, urlsplit
 import httpx
 
 from opentine.kernel import validate_json_shape
+from opentine.repository._http_retry import retry_wait
 from opentine.repository.pack import MAX_PACK_BYTES
 
 MAX_CONTROL_BYTES = 1024 * 1024
@@ -172,10 +173,16 @@ def request_json(
     **kwargs: Any,
 ) -> tuple[int, dict[str, Any]]:
     def operation() -> tuple[int, dict[str, Any]]:
-        with session.stream(method, url, **kwargs) as response:
-            if response.status_code not in allowed:
-                raise_for_status(response)
-            return response.status_code, read_json(response, max_seconds=max_seconds)
+        started, attempt = time.monotonic(), 0
+        while True:
+            with session.stream(method, url, **kwargs) as response:
+                wait = retry_wait(response, attempt, started, max_seconds)
+                if wait is None:
+                    if response.status_code not in allowed:
+                        raise_for_status(response)
+                    return response.status_code, read_json(response, max_seconds=max_seconds)
+            time.sleep(wait)
+            attempt += 1
 
     return run_request(session, max_seconds, "control request", operation)
 
@@ -190,11 +197,16 @@ def request_pack(
     **kwargs: Any,
 ) -> bytes:
     def operation() -> bytes:
-        with session.stream(method, url, **kwargs) as response:
-            raise_for_status(response)
-            if response_headers is not None:
-                response_headers.update((k.lower(), v) for k, v in response.headers.items())
-            return read_pack(response, max_seconds=max_seconds)
+        started, attempt = time.monotonic(), 0
+        while True:
+            with session.stream(method, url, **kwargs) as response:
+                if (wait := retry_wait(response, attempt, started, max_seconds)) is None:
+                    raise_for_status(response)
+                    if response_headers is not None:
+                        response_headers.update((k.lower(), v) for k, v in response.headers.items())
+                    return read_pack(response, max_seconds=max_seconds)
+            time.sleep(wait)
+            attempt += 1
 
     return run_request(session, max_seconds, "pack request", operation)
 

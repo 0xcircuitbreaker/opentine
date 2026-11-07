@@ -163,6 +163,16 @@ rotated. After 5 consecutive failed authentications a client gets 429 with
 `Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
 answers only `{"error":"internal","request_id":...}`, logging the exception.
 
+New in 0.44: `serve --quota-rate PER_SECOND [--quota-burst N]` gives every
+(tenant, subject) a token bucket; an upload or ref update over quota gets 429
+with `Retry-After`. At most `--quota-max-keys` buckets (10,000) are held, the
+least recently used evicted first. Clients retry a 429 at most 3 times,
+honouring `Retry-After` up to 30 seconds and within the request deadline; a
+0.34 client reports `remote returned HTTP 429` and stops. `serve --vsa-dir DIR`
+writes an in-toto SLSA Verification Summary Attestation
+(`https://slsa.dev/verification_summary/v1`) for every admitted push to
+`DIR/<tenant>/<sha256>.json`.
+
 ## Default output format
 
 ```
