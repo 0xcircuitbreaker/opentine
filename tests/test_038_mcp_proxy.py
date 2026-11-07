@@ -98,7 +98,11 @@ class _Upstream(BaseHTTPRequestHandler):
         msg = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         reply = {"jsonrpc": "2.0", "id": msg["id"], "result": {"text": "token " + SECRET}}
         self.send_response(200)
-        self.send_header("Mcp-Session-Id", self.headers.get("Mcp-Session-Id") or "sess-1")
+        # Answer only with ids this fake server issued: never echo request bytes.
+        issued = {"sess-1": "sess-1", "sess-9": "sess-9"}
+        self.send_header(
+            "Mcp-Session-Id", issued.get(self.headers.get("Mcp-Session-Id", ""), "sess-1")
+        )
         if msg["method"] == "tools/call":
             body = f"event: message\ndata: {json.dumps(reply)}\n\n".encode()
             self.send_header("Content-Type", "text/event-stream")

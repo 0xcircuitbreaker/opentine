@@ -52,7 +52,7 @@ def witness_save(run: Any, path: Path) -> bool:
     return True
 
 
-def trusted_keys(extra: list[str] | None = None) -> list[tuple[str, Any]]:
+def proxy_witnesses(extra: list[str] | None = None) -> list[tuple[str, Any]]:
     """``(fingerprint, public key)`` of every proxy key trusted here.
 
     This user's own proxy key plus each ``--proxy-pubkey FILE``. A key that is
@@ -142,7 +142,7 @@ def assess(path: str | Path, args: Any = None) -> dict[str, Any]:
     from opentine.core import Run
 
     args = args or argparse.Namespace()
-    keys = trusted_keys(getattr(args, "proxy_pubkey", None))  # a bad --proxy-pubkey fails
+    witnesses = proxy_witnesses(getattr(args, "witness_files", None))  # bad --proxy-pubkey fails
     source = read_once(path)
     integrity = Run.verify_integrity(source if isinstance(source, dict) else path)
     try:
@@ -155,7 +155,7 @@ def assess(path: str | Path, args: Any = None) -> dict[str, Any]:
         reasons.append("integrity failed: no tier above the claim's floor")
         verified = "T0"
     elif claimed in ("T2", "T3") and isinstance(source, dict):
-        witness, why = _witness(source, keys)
+        witness, why = _witness(source, witnesses)
         reasons.append(why)
         if witness:
             verified = "T2"
@@ -190,6 +190,6 @@ __all__ = [
     "proxy_marker",
     "rank",
     "signing_key",
-    "trusted_keys",
+    "proxy_witnesses",
     "witness_save",
 ]

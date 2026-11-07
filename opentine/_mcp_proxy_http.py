@@ -111,7 +111,7 @@ class _Handler(BaseHTTPRequestHandler):
             response = connection.getresponse()
             self.send_response(response.status)
             for key, value in response.getheaders():
-                if key.lower() not in _HOP:
+                if key.lower() not in _HOP and "\r" not in value and "\n" not in value:
                     self.send_header(key, value)
             self.send_header("Connection", "close")
             self.end_headers()

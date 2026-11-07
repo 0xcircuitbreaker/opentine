@@ -86,7 +86,15 @@ def keygen(force: bool = False, signer: str | None = None) -> tuple[Path, str]:
     signer_path().unlink(missing_ok=True)
     write_private(private, private_key)
     atomic_write_text(public, raw.hex() + "\n")
-    return public, fingerprint
+    del fingerprint
+    return _shown(public)
+
+
+def _shown(public: Path) -> tuple[Path, str]:
+    """Report only what is read back from the public file, never the generated pair."""
+    from opentine._signing_pins import key_fingerprint
+
+    return public, key_fingerprint(bytes.fromhex(public.read_text().strip()))
 
 
 def _adopt(uri: str, *, retire: bool) -> tuple[Path, str]:
@@ -107,7 +115,15 @@ def _adopt(uri: str, *, retire: bool) -> tuple[Path, str]:
     stored = found.uri if uri.startswith("pkcs11:") else uri  # never store a pin-value
     atomic_write_text(signer_path(), stored + "\n", mode=0o600)
     atomic_write_text(public, raw.hex() + "\n")
-    return public, fingerprint
+    del fingerprint
+    return _shown(public)
+
+
+def _shown(public: Path) -> tuple[Path, str]:
+    """Report only what is read back from the public file, never the generated pair."""
+    from opentine._signing_pins import key_fingerprint
+
+    return public, key_fingerprint(bytes.fromhex(public.read_text().strip()))
 
 
 def migrate(uri: str) -> tuple[Path, str]:

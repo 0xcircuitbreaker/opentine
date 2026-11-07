@@ -3126,7 +3126,7 @@ ROWS: tuple[tuple, ...] = (
         ["verify", "r1", "--min-assurance", "T2"],
         "opentine._cli_security:cmd_verify",
         False,
-        {"command": "verify", "min_assurance": "T2", "proxy_pubkey": None},
+        {"command": "verify", "min_assurance": "T2", "witness_files": None},
     ),
     (
         "plain:verify r1 --compare-capture r2",

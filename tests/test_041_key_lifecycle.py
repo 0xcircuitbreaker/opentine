@@ -237,7 +237,7 @@ def test_key_rotate_agent_key(room, monkeypatch, capsys):
 
 
 def test_key_rotate_proxy_keeps_the_retired_key_trusted(room, monkeypatch, capsys):
-    from opentine._assurance import trusted_keys
+    from opentine._assurance import proxy_witnesses
     from opentine._proxy_key import key_paths
 
     assert tine(monkeypatch, "proxy", "keygen") == 0
@@ -248,7 +248,7 @@ def test_key_rotate_proxy_keeps_the_retired_key_trusted(room, monkeypatch, capsy
     new_hex = key_paths()[1].read_text(encoding="ascii").strip()
     assert new_hex != old_hex and out["private_key"] == str(key_paths()[0])
     assert (key_paths()[0].parent / "retired" / f"{old_hex}.pub").is_file()
-    trusted = {bytes(k.public_bytes_raw()).hex() for _, k in trusted_keys()}
+    trusted = {bytes(k.public_bytes_raw()).hex() for _, k in proxy_witnesses()}
     assert {old_hex, new_hex} <= trusted
 
 
