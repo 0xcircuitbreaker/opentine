@@ -88,14 +88,10 @@ export const OUT_OF_SCOPE_FAMILIES: Record<string, string> = {
 };
 
 /**
- * Signature algorithms outside phase 1. The TypeScript verifier implements
- * Ed25519 only; ML-DSA-65 (FIPS 204) has no vetted dependency here, so a
- * tine-sig/3 artifact carrying any such block is skipped, not misjudged.
+ * Signature algorithms out of scope. Empty: ML-DSA-65 and the Ed25519 +
+ * ML-DSA-65 composite (SPEC 4.6.1) verify through `@noble/post-quantum`.
  */
-export const OUT_OF_SCOPE_ALGS: Record<string, string> = {
-  "ml-dsa-65": "post-quantum ML-DSA-65 signatures, SPEC 4.6.1",
-  "ed25519+ml-dsa-65": "hybrid Ed25519 + ML-DSA-65 signatures, SPEC 4.6.1",
-};
+export const OUT_OF_SCOPE_ALGS: Record<string, string> = {};
 
 /** The category name a case is skipped under, or `null` when phase 1 must answer it. */
 export function outOfScope(testCase: Case): string | null {

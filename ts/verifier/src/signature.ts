@@ -9,7 +9,15 @@
 
 import { verifyV4, SCHEME_V3, MAX_V4_SIGNATURES, V4_KIND } from "./artifact.js";
 import { canonicalJson } from "./canon.js";
-import { constantTimeEqual, ed25519Verify, hmacSha256Hex, weakPublicKey } from "./crypto.js";
+import {
+  constantTimeEqual,
+  ed25519Verify,
+  hmacSha256Hex,
+  mldsa65Verify,
+  MLDSA65_PUBLIC_KEY_BYTES,
+  MLDSA65_SIGNATURE_BYTES,
+  weakPublicKey,
+} from "./crypto.js";
 import { parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
 import { isObject, type JObject, type JValue } from "./json.js";
@@ -17,6 +25,16 @@ import { isObject, type JObject, type JValue } from "./json.js";
 export const HEADER_KEYS = ["alg", "key_id", "scheme", "signed_at", "signer"] as const;
 const BLOCK_KEYS = new Set<string>([...HEADER_KEYS, "value", "public_key"]);
 const VALUE_LENGTHS: Record<string, number> = { "hmac-sha256": 64, ed25519: 128 };
+export const MLDSA65 = "ml-dsa-65";
+export const COMPOSITE = "ed25519+ml-dsa-65";
+/** The ML-DSA context the composite's post-quantum half signs under (SPEC 4.6.1). */
+export const COMPOSITE_CONTEXT = new TextEncoder().encode("opentine.tine-sig/3:ed25519+ml-dsa-65");
+/** Post-quantum algorithms: [value bytes, public key bytes]. */
+const PQ_SIZES: Record<string, [number, number]> = {
+  [MLDSA65]: [MLDSA65_SIGNATURE_BYTES, MLDSA65_PUBLIC_KEY_BYTES],
+  [COMPOSITE]: [64 + MLDSA65_SIGNATURE_BYTES, 32 + MLDSA65_PUBLIC_KEY_BYTES],
+};
+const EMBEDS_KEY = new Set(["ed25519", MLDSA65, COMPOSITE]);
 export const MIN_HMAC_KEY_BYTES = 16;
 export const SCHEME_ATTEST_V2 = "tine-attest/2";
 export const SCHEME_ATTEST_V1 = "tine-attest/1";
@@ -152,16 +170,20 @@ export function verifyBlock(
   }
   const supplied = Number(keys.hmacKey != null) + Number(keys.publicKey != null) + Number(Boolean(keys.trustEmbedded));
   if (supplied > 1) return result(false, "error", "pass exactly one verification key");
-  if ([...block.keys()].some((key) => !BLOCK_KEYS.has(key)) || (algorithm !== "ed25519" && block.has("public_key"))) {
+  if ([...block.keys()].some((key) => !BLOCK_KEYS.has(key)) || (!EMBEDS_KEY.has(algorithm as string) && block.has("public_key"))) {
     return result(false, "error", "malformed signature header");
   }
   if ([...block.values()].some((item) => item === null)) return result(false, "error", "malformed signature header");
   if (typeof algorithm !== "string" || rawOptional.some((item) => item !== undefined && typeof item !== "string")) {
     return result(false, "error", "malformed signature header");
   }
-  if (!(algorithm in VALUE_LENGTHS)) return result(false, "error", "unsupported signature algorithm");
+  if (!(algorithm in VALUE_LENGTHS) && !(algorithm in PQ_SIZES)) {
+    return result(false, "error", "unsupported signature algorithm");
+  }
   const value = block.get("value");
-  if (!lowerHex(value, VALUE_LENGTHS[algorithm])) return result(false, "error", "malformed signature value");
+  if (!(algorithm in PQ_SIZES) && !lowerHex(value, VALUE_LENGTHS[algorithm])) {
+    return result(false, "error", "malformed signature value");
+  }
   const header: Header = new Map(HEADER_KEYS.map((key) => [key, block.has(key) ? (block.get(key) as JValue) : null]));
   header.set("alg", algorithm);
   let message: Uint8Array;
@@ -171,6 +193,7 @@ export function verifyBlock(
     if (exc instanceof TineError) return result(false, "error", `malformed signed ${subject} content`);
     throw exc;
   }
+  if (algorithm in PQ_SIZES) return pqVerdict(algorithm, message, value as JValue, block, keys, result);
   if (algorithm === "hmac-sha256") {
     const key = keys.hmacKey;
     if (key == null) return result(false, "no-key", "HMAC signature present but no key supplied");
@@ -178,7 +201,7 @@ export function verifyBlock(
     if (key.length < MIN_HMAC_KEY_BYTES) {
       return result(false, "error", `HMAC key too short (${key.length} bytes); use at least ${MIN_HMAC_KEY_BYTES}`);
     }
-    const valid = constantTimeEqual(hmacSha256Hex(key, message), value);
+    const valid = constantTimeEqual(hmacSha256Hex(key, message), value as string);
     return result(valid, valid ? "verified" : "mismatch", valid ? "ok" : "signature mismatch");
   }
   const embedded = block.get("public_key");
@@ -204,7 +227,50 @@ export function verifyBlock(
   } else {
     return result(false, "no-key", "ed25519 signature present but no trusted public key");
   }
-  if (!ed25519Verify(publicKey, hex(value), message)) return result(false, "mismatch", "signature mismatch");
+  if (!ed25519Verify(publicKey, hex(value as string), message)) return result(false, "mismatch", "signature mismatch");
+  return result(true, state, "ok");
+}
+
+/** The keyed verdict for a post-quantum block (`_signing_pq.pq_verdict`). */
+function pqVerdict(
+  algorithm: string,
+  message: Uint8Array,
+  value: JValue | undefined,
+  block: JObject,
+  keys: VerifyKeys,
+  result: (ok: boolean, state: State, reason: string) => SignatureResult,
+): SignatureResult {
+  const [valueLength, keyLength] = PQ_SIZES[algorithm];
+  const embedded = block.get("public_key");
+  if (!lowerHex(value, 2 * valueLength)) return result(false, "error", "malformed signature value");
+  if (!lowerHex(embedded, 2 * keyLength)) return result(false, "error", `malformed ${algorithm} public key`);
+  let state: State;
+  if (keys.publicKey != null) {
+    if (keys.publicKey.length !== keyLength) return result(false, "mismatch", `the trusted key is not a ${algorithm} key`);
+    if (Buffer.from(keys.publicKey).toString("hex") !== embedded) {
+      return result(false, "mismatch", "embedded public key is not the trusted key");
+    }
+    state = "verified";
+  } else if (keys.trustEmbedded) {
+    state = "verified-tofu";
+  } else {
+    return result(false, "no-key", `${algorithm} signature present but no trusted public key`);
+  }
+  const publicKey = hex(embedded as string);
+  const signature = hex(value as string);
+  let valid: boolean;
+  if (algorithm === MLDSA65) {
+    valid = mldsa65Verify(publicKey, message, signature);
+  } else {
+    if (weakPublicKey(publicKey.subarray(0, 32))) {
+      return result(false, "error", "ed25519 public key has small order or non-canonical");
+    }
+    // Both halves are always checked: neither may stand in for the other.
+    const classical = ed25519Verify(publicKey.subarray(0, 32), signature.subarray(0, 64), message);
+    const quantum = mldsa65Verify(publicKey.subarray(32), message, signature.subarray(64), COMPOSITE_CONTEXT);
+    valid = classical && quantum;
+  }
+  if (!valid) return result(false, "mismatch", "signature mismatch");
   return result(true, state, "ok");
 }
 
