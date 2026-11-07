@@ -3353,6 +3353,64 @@ ROWS: tuple[tuple, ...] = (
         {"command": "key", "key_command": "revoke", "key": "k.pub", "at": "2026-01-01T00:00:00Z"},
     ),
     (
+        "plain:key delegate p.key --to a.pub --agent coder --action Bash --out c.json",
+        "plain",
+        [
+            "key",
+            "delegate",
+            "p.key",
+            "--to",
+            "a.pub",
+            "--agent",
+            "coder",
+            "--action",
+            "Bash",
+            "--out",
+            "c.json",
+        ],  # fmt: skip
+        "opentine._cli_key:cmd_key",
+        False,
+        {
+            "command": "key",
+            "key_command": "delegate",
+            "key": "p.key",
+            "to": "a.pub",
+            "agent": ["coder"],
+            "action": ["Bash"],
+            "max_depth": 0,
+            "out": "c.json",
+        },  # fmt: skip
+    ),
+    (
+        "plain:key delegation verify c.json --signer a.pub --json",
+        "plain",
+        ["key", "delegation", "verify", "c.json", "--signer", "a.pub", "--json"],
+        "opentine._cli_key:cmd_key",
+        False,
+        {
+            "command": "key",
+            "key_command": "delegation",
+            "delegation_command": "verify",
+            "chain": "c.json",
+            "signer": "a.pub",
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:fleet record r.tine --sign-key k --out rec.json",
+        "plain",
+        ["fleet", "record", "r.tine", "--sign-key", "k", "--out", "rec.json"],
+        "opentine._cli_fleet:cmd_fleet",
+        False,
+        {
+            "command": "fleet",
+            "action": "record",
+            "target": "r.tine",
+            "sign_key": "k",
+            "out": "rec.json",
+        },  # fmt: skip
+    ),
+    (
         "plain:verify r1 --offline --tsa-policy 1.2.3",
         "plain",
         ["verify", "r1", "--offline", "--tsa-policy", "1.2.3"],

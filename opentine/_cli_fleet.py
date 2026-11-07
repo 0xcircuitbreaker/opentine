@@ -1,4 +1,4 @@
-"""``tine fleet up|status|stop|cost``: run a declared fleet of agents.
+"""``tine fleet up|status|stop|cost|record``: run a declared fleet of agents.
 
 ``tine fleet up fleet.toml --trust`` reviews-then-trusts the manifest's exact
 bytes and runs its members (``--dry-run`` lists them, running nothing);
@@ -8,6 +8,8 @@ asks the running ``up`` to kill every member's process tree; ``cost ID`` sums
 the members' reported costs. ``cost --repo PATH RUN`` instead totals a fleet
 recorded by ``tine import --fleet`` (each shared step counted once). ``--dir``
 is the state directory (default ``.tine_fleet``, beside the manifest for ``up``).
+``record RUN.tine`` shows, signs or attests a run's ``opentine-fleet/1`` record
+(``_cli_fleet_record``).
 """
 
 from __future__ import annotations
@@ -25,13 +27,16 @@ from opentine._cli_errors import error
 
 def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("fleet", help="Run a declared fleet of agents (fleet.toml)")
-    parser.add_argument("action", choices=("up", "status", "stop", "cost"))
+    from opentine._cli_fleet_record import add_record_args
+
+    parser.add_argument("action", choices=("up", "status", "stop", "cost", "record"))
     parser.add_argument("target", nargs="?", help="fleet.toml (up), a fleet ID, or a RUN")
     parser.add_argument("--trust", action="store_true", help="Trust this manifest's exact bytes")
     parser.add_argument("--dry-run", action="store_true", help="up: list members, run nothing")
     parser.add_argument("--dir", metavar="DIR", help="Fleet state directory")
     parser.add_argument("--repo", metavar="PATH", help="cost: an imported fleet; status: fan-outs")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
+    add_record_args(parser)
 
 
 def _fail(message: object) -> SystemExit:
@@ -150,6 +155,10 @@ def cmd_fleet(args: argparse.Namespace) -> None:
             raise SystemExit(_status(args))
         if args.action == "cost":
             raise SystemExit(_cost(args))
+        if args.action == "record":
+            from opentine._cli_fleet_record import record
+
+            raise SystemExit(record(args))
         from opentine.fleet._runner import request_stop
 
         path = request_stop(_directory(args), args.target or "")
