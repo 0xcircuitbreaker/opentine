@@ -66,7 +66,7 @@ def _commit_tree(root: Path, files: dict[str, bytes], branch: str) -> str:
 def _fixture_files(prefix: str = "") -> dict[str, bytes]:
     base = FIXTURES / "entire" / "git-refs" / ULID
     return {
-        prefix + str(path.relative_to(base)): path.read_bytes()
+        prefix + path.relative_to(base).as_posix(): path.read_bytes()
         for path in sorted(base.rglob("*"))
         if path.is_file()
     }
