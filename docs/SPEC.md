@@ -1883,7 +1883,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 665 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 683 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 

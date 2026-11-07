@@ -627,6 +627,21 @@
       "verdict": 0
     },
     {
+      "core": 18,
+      "count": 18,
+      "file": "vectors/57-tlog.json",
+      "name": "tlog",
+      "ops": [
+        "tlog.consistency",
+        "tlog.inclusion",
+        "tlog.quorum"
+      ],
+      "reject": 0,
+      "section": "8.10",
+      "stress": 0,
+      "verdict": 18
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -648,8 +663,8 @@
     }
   ],
   "files": {
-    "PROTOCOL.md": "80c83c5628e2c0ca8c197dbfecbef5ac0bbe3ce8656c1cb13101d80520f559f2",
-    "README.md": "b2a1769ec003160c8ec0886e0162fc28a7a8b8b24383ed9ff397e46ed23a2d94",
+    "PROTOCOL.md": "fa8ee0260ab798108d325f6a5f16f40bf09e29f25f01fc18b25559cb71fe1588",
+    "README.md": "3e4d27b71788b48f6745fb2c467032f1e27a4743f6c641d0e8a6e8bc38e98e65",
     "REASON_CODES.md": "7817ffee0628e1abe1c34f9bd57c39e6930df428a9bc79c45641bf18f65d07bf",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -1744,6 +1759,7 @@
     "vectors/54-artifact-v5.json": "a2fa969a61ef02116cede2218791821dc296690c59cbdb673c2e051d17e5b316",
     "vectors/55-sig-pq.json": "df2d0b51e5d69e83d30fa4b1b9cbe16a4c07dd7f4dc971cbfc9674de375477fc",
     "vectors/56-delegation.json": "98509dda24449c3f2e62cce5df1de8ba562099c6b8afe9a170e388aaa345e2d5",
+    "vectors/57-tlog.json": "0cebba2f3059b0a9e90cba4f73528d620546f3151ad71c5192508d3872391652",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.43.0",
@@ -2350,6 +2366,49 @@
       "requires": [],
       "summary": "refuse a document whose text holds an unpaired UTF-16 surrogate",
       "unordered": []
+    },
+    "tlog.consistency": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "class"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 8.10: an RFC 9162 consistency proof; class consistent, fork, rollback",
+      "unordered": []
+    },
+    "tlog.inclusion": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 8.10: an RFC 9162 inclusion proof of SHA-256(0x00 || entry) to a root",
+      "unordered": []
+    },
+    "tlog.quorum": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "cosigners"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
+      "unordered": []
     }
   },
   "profiles": [
@@ -2363,13 +2422,13 @@
   "spec_version": "0.9.0",
   "suite_version": 1,
   "totals": {
-    "cases": 665,
-    "core": 655,
-    "families": 33,
-    "ops": 37,
+    "cases": 683,
+    "core": 673,
+    "families": 34,
+    "ops": 40,
     "reason_codes": 115,
     "reject": 225,
     "stress": 10,
-    "verdict": 102
+    "verdict": 120
   }
 }

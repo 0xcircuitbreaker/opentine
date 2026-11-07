@@ -37,6 +37,7 @@ from tests.conformance import (
     cases_sig_pq,
     cases_sig_v4,
     cases_signing,
+    cases_tlog,
 )
 from tests.conformance.cases import ACCEPT, REJECT, VERDICT, Case, Family
 from tests.conformance.engine import INLINE_BYTE_LIMIT, build_record, observe, op_input
@@ -85,6 +86,7 @@ FAMILY_MODULES = (
     cases_repair,
     cases_agent,
     cases_delegation,
+    cases_tlog,
 )
 
 
