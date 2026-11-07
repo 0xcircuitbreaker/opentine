@@ -147,9 +147,11 @@ jobs:
           openssl list -providers
 
       - name: Build cryptography against the system OpenSSL
+        # Setup runs with OpenSSL's defaults: under the FIPS-only config, venv's
+        # ensurepip (and pip itself) exit 1. Only the tests below run FIPS-only.
         run: |
-          python3.11 -m venv .venv
-          .venv/bin/pip install --upgrade pip
+          OPENSSL_CONF=/dev/null python3.11 -m venv .venv
+          OPENSSL_CONF=/dev/null .venv/bin/pip install --upgrade pip
           OPENSSL_CONF=/dev/null .venv/bin/pip install --no-binary cryptography "cryptography>=48.0.1"
           OPENSSL_CONF=/dev/null .venv/bin/pip install -e . pytest
 
