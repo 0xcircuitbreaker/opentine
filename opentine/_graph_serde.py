@@ -97,8 +97,9 @@ def save_run(
     key_id: str | None = None, signer: str | None = None, signed_at: str | None = None,
     lenient: bool = False,
 ) -> Path:  # fmt: skip
-    """Write *run* (format v4 by default). ``lenient`` marks it a recorder's run:
-    a value v4 cannot hold is stringified with a ``metadata.warnings`` entry."""
+    """Write *run* (format v5 by default; ``--for-legacy`` writes v4). ``lenient``
+    marks it a recorder's run: a value v4 cannot hold is stringified with a
+    ``metadata.warnings`` entry."""
     if lenient:
         from opentine._v4_values import mark_lenient
 
