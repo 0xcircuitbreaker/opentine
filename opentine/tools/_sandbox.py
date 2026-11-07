@@ -102,7 +102,10 @@ def sbpl_profile(root: str, execs: list[str], network: bool) -> str:
     def quote(path: str) -> str:
         return '"' + path.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
-    exec_rule = " ".join(f"(literal {quote(exe)})" for exe in execs) or '(subpath "/")'
+    # Seatbelt matches the resolved path, so a symlinked binary (a venv's python)
+    # is allowed under both its given and its real path.
+    paths = dict.fromkeys(p for exe in execs for p in (exe, os.path.realpath(exe)))
+    exec_rule = " ".join(f"(literal {quote(exe)})" for exe in paths) or '(subpath "/")'
     lines = [
         "(version 1)",
         "(deny default)",

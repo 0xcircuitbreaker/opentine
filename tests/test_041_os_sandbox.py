@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 
@@ -148,3 +149,14 @@ def test_without_a_sandbox_the_bypassed_argument_check_would_have_been_exploitab
     monkeypatch.setattr(shell, "arg_refusal", lambda *a, **k: None)
     _run(ws, "none", "find . -maxdepth 0 -exec touch pwned ;", "find")
     assert (ws / "pwned").exists()  # so the sandboxed tests above prove the OS layer
+
+
+@needs_posix
+def test_sbpl_profile_allows_a_symlinked_binary_by_its_real_path(tmp_path):
+    real = tmp_path / "real-python"
+    real.write_text("")
+    link = tmp_path / "python"
+    link.symlink_to(real)
+    profile = _sandbox.sbpl_profile("/w", [str(link)], network=False)
+    assert f'(literal "{link}")' in profile
+    assert f'(literal "{os.path.realpath(real)}")' in profile
