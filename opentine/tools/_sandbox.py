@@ -104,7 +104,8 @@ def sbpl_profile(root: str, execs: list[str], network: bool) -> str:
 
     # Seatbelt matches the resolved path, so a symlinked binary (a venv's python)
     # is allowed under both its given and its real path.
-    paths = dict.fromkeys(p for exe in execs for p in (exe, os.path.realpath(exe)))
+    real = [os.path.realpath(exe) for exe in execs if os.path.islink(exe)]
+    paths = dict.fromkeys([*execs, *real])
     exec_rule = " ".join(f"(literal {quote(exe)})" for exe in paths) or '(subpath "/")'
     lines = [
         "(version 1)",
