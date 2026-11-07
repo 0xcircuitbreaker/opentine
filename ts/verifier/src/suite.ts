@@ -51,9 +51,6 @@ export const OUT_OF_SCOPE_OPS: Record<string, string> = {
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
   "attest.sign": "signing (this package only verifies), SPEC 4.5",
-  "actions.chain": "tine-actions/1, SPEC 4.8",
-  "delegation.verify": "opentine-delegation/1 chains, SPEC 4.10",
-  "agent.ref": "opentine-agent/1 records, SPEC 4.9",
 };
 
 export const OUT_OF_SCOPE_SCHEMES: Record<string, string> = {

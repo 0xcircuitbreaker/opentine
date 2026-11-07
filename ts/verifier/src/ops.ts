@@ -11,6 +11,7 @@ import { canonicalJson, validateJsonShape } from "./canon.js";
 import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
+import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
@@ -182,6 +183,14 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
   switch (op) {
     case "text.validate":
       return textValidate(input);
+    case "actions.chain": {
+      const value = valueOf(input) as JObject;
+      return { chain: actionsChain(value.get("run_id") as string, value.get("digests") as string[]) };
+    }
+    case "agent.ref": {
+      const { ref, hashed } = agentRef(validateAgent(valueOf(input)));
+      return { ref, hashed_b64: b64(hashed) };
+    }
     case "integrity.digest": {
       const data = parseArtifactJson(bytesOf(input));
       if (!isObject(data)) throw new TineError("'list' object has no attribute 'items'");
