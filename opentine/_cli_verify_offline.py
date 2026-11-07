@@ -31,6 +31,9 @@ OFFLINE_DESTS = (
     "hermetic",
     "sign_key",
     "timestamp",
+    "witnesses",  # 0.44 X33 (``_cli_verify_tlog``)
+    "witness_vkey",
+    "log_vkey",
 )
 
 
@@ -78,6 +81,9 @@ def add_offline_verify_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="--offline: re-run inside an OS no-network sandbox (exit 6 if unsupported)",
     )
+    from opentine._cli_verify_tlog import add_tlog_verify_args
+
+    add_tlog_verify_args(parser)
 
 
 def add_verify_args(parser: argparse.ArgumentParser) -> None:
@@ -114,6 +120,16 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
         from opentine._hermetic import reexec_hermetic
 
         reexec_hermetic()
+    if getattr(args, "witnesses", None):
+        from opentine._cli_verify_tlog import cmd_verify_tlog
+
+        return cmd_verify_tlog(args)
+    refuse_unhonoured(
+        args,
+        ("witness_vkey", "log_vkey"),
+        mode="without --witnesses",
+        hint="Add --witnesses N-of-M.",
+    )
     if getattr(args, "attestation", None):
         from opentine._keyless_root import refuse_root_conflicts
 

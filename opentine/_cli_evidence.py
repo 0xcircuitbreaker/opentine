@@ -28,6 +28,8 @@ from opentine._cli_custody import add_custody_parser, cmd_custody
 from opentine._cli_errors import NOT_FOUND, TRUST_REQUIRED, fail
 from opentine._cli_report_check import add_report_check_parser, cmd_verify_report
 from opentine._cli_timestamp import add_timestamp_parser, cmd_timestamp
+from opentine._cli_witness import COMMANDS as WITNESS_COMMANDS
+from opentine._cli_witness import add_witness_parsers
 
 
 def add_evidence_parser(sub: Any) -> None:
@@ -58,6 +60,7 @@ def add_evidence_parser(sub: Any) -> None:
     add_timestamp_parser(sub)  # 0.31: evidence's sibling, a token beside the run
     add_report_check_parser(sub)  # 0.39 X22: a signed verify report, checked offline
     add_custody_parser(sub)  # 0.39: chain of custody on opentine-log/1
+    add_witness_parsers(sub)  # 0.44: tine witness, tine scitt (experimental)
 
 
 def _fail(message: str) -> NoReturn:
@@ -176,6 +179,7 @@ COMMANDS = {
     "timestamp": cmd_timestamp,
     "verify-report": cmd_verify_report,
     "custody": cmd_custody,
+    **WITNESS_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_evidence_parser", "cmd_evidence"]
