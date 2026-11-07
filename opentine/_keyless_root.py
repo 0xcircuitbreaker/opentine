@@ -16,6 +16,8 @@ import binascii
 from datetime import UTC, datetime
 from typing import Any
 
+from opentine._rekor_v2 import is_v2
+from opentine._rekor_v2_body import check_v2_entry
 from opentine._trusted_root import TrustedRoot
 from opentine.sigstore_bundle import ReceiptResult, check_entry
 
@@ -37,6 +39,9 @@ def root_receipt(root: TrustedRoot, envelope: dict, entries: list, signer: Any) 
         return ReceiptResult(False, "absent", "attestation carries no transparency-log receipt")
     results = []
     for entry in entries:
+        if is_v2(entry):  # 0.44 X34: a tile-log receipt has no SET or integratedTime
+            results.append(check_v2_entry(root.tile_logs, entry, envelope, signer))
+            continue
         try:
             key_id, when = _claimed(entry)
         except (binascii.Error, ValueError, OverflowError, OSError) as exc:

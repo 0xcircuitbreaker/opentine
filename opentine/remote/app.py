@@ -9,7 +9,9 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
+from opentine.remote._audit_tlog_http import audit_routes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
+from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
 from opentine.remote._uploads import UploadRegistry
@@ -28,6 +30,7 @@ class ServerBusy(RuntimeError):
 _REFUSALS = (
     (json.JSONDecodeError, "400 Bad Request", "invalid JSON"),
     (ServerBusy, "503 Service Unavailable", "server is busy"),
+    (QuotaExceeded, "429 Too Many Requests", "quota exceeded"),
     (PermissionError, "403 Forbidden", "forbidden"),
     (KeyError, "404 Not Found", "not found"),
     (ValueError, "400 Bad Request", "invalid request"),
@@ -130,9 +133,8 @@ class RemoteApp(UploadRoutes):
             except PermissionError as exc:
                 self.auth_throttle.failed(client)
                 self._failures.unauthenticated(tenant, type(exc).__name__)
-                return self._json_response(
-                    start_response, "401 Unauthorized", {"error": "authentication failed"}
-                )
+                denied = {"error": "authentication failed"}
+                return self._json_response(start_response, "401 Unauthorized", denied)
             self.auth_throttle.succeeded(client)
             if not path.startswith(prefix):
                 return self._json_response(start_response, "404 Not Found", {"error": "not found"})
@@ -145,7 +147,8 @@ class RemoteApp(UploadRoutes):
                 self._failures.failed(identity, tenant, action, exc)
             for kind, status, message in _REFUSALS:
                 if isinstance(exc, kind):
-                    return self._json_response(start_response, status, {"error": message})
+                    extra = getattr(exc, "headers", ()) if kind is QuotaExceeded else ()
+                    return self._json_response(start_response, status, {"error": message}, extra)
             body = internal_error(exc)
             return self._json_response(start_response, "500 Internal Server Error", body)
 
@@ -228,9 +231,8 @@ class RemoteApp(UploadRoutes):
                 data = self._body(environ)  # off the guard: a slow body must not hold it
                 with self._guarded(self._install_guard):
                     pack_id, count = self.service.install_pack(identity, tenant, data)
-                return self._json_response(
-                    start_response, "201 Created", {"objects": count, "pack_id": pack_id}
-                )
+                body = {"objects": count, "pack_id": pack_id}
+                return self._json_response(start_response, "201 Created", body)
             return self._start_upload(
                 identity, tenant, self._json(environ, "sha256", "size"), start_response
             )
@@ -243,7 +245,6 @@ class RemoteApp(UploadRoutes):
             results = self.service.search(identity, tenant, query, truncated=cut)
             body = {"objects": results, "truncated": bool(cut)}
             return self._json_response(start_response, "200 OK", body)
-        if resource == "audit/verify" and method == "GET":
-            result = self.service.verify_audit_chain(identity, tenant)
-            return self._json_response(start_response, "200 OK", result)
+        if method == "GET" and (resource == "audit/verify" or resource.startswith("transparency/")):
+            return audit_routes(self, identity, tenant, resource, environ, start_response)
         return self._json_response(start_response, "404 Not Found", {"error": "not found"})

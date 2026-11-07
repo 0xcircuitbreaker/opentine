@@ -19,6 +19,7 @@ from opentine._cli_common import (
     _terminal,
     console,
 )
+from opentine._cli_cost_export import handle_cost_export
 from opentine._cli_flags import (
     AUTOSAVE_FLAGS,
     HARNESS_CONFIG_FLAGS,
@@ -167,6 +168,8 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 def cmd_cost(args: argparse.Namespace) -> None:
     _, run = _loaded_run(args.run_id)
+    if handle_cost_export(args, run):  # --otlp / --statement / --verify-statement
+        return
     if getattr(args, "json", False):
         # Same exit status as the human path: a breached budget is a failure.
         if emit_cost(run):

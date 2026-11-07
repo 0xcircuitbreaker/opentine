@@ -43,86 +43,22 @@ export interface Row {
 }
 
 /**
- * Vector categories outside phase 1, each with the reason. A case is out of
- * scope exactly when `outOfScope` names it; every other case must pass.
+ * The only vectors this package does not answer: writer-side redaction (SPEC
+ * 1.4) and the two writer ops built on it, all `profile: writer`. A verifier
+ * never rewrites content, and a partial port of the reference redactor would
+ * disagree with it silently outside the vectors, so these are skipped by name.
+ * Every reader and verifier vector must pass; nothing else may be skipped.
  */
 export const OUT_OF_SCOPE_OPS: Record<string, string> = {
-  "canon.v2": "the legacy (format v1-v3) canonicalizer, SPEC 0.3",
-  "links.extract": "repository link existence checks, SPEC 1.5",
-  "annotation.chain": "repository annotation chains, SPEC 1.5.5",
-  "event.metrics": "event metric rules, SPEC 1.5.2",
-  "run.graph": "the v3 run graph loader, SPEC 1.5.3",
-  "object.load": "full repository object reads, SPEC 1.5",
-  "object.put": "writer-side redaction, SPEC 1.4",
+  "object.put": "writer-side redaction before hashing, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",
-  "config.validate": "repository layout, SPEC 2.2",
-  "object.path": "repository layout, SPEC 2.3",
-  "ref.file": "repository refs, SPEC 2.4",
-  "ref.name": "repository refs, SPEC 2.4",
-  "ref.target": "repository refs, SPEC 2.5",
-  "reflog.row": "repository reflog, SPEC 2.6",
-  "shallow.encode": "repository shallow state, SPEC 2.7",
-  "shallow.parse": "repository shallow state, SPEC 2.7",
-  "pack.inspect": "network packs, SPEC 2.8",
-  "pack.install": "network packs, SPEC 2.8",
-  "pack.manifest": "network packs, SPEC 2.8",
-  "localpack.read": "storage-v3 local packs, SPEC 2.8",
-  "integrity.digest": "the legacy v1/v2 artifact digest, SPEC 3.5",
-  "integrity.verify": "the legacy v1/v2 artifact digest, SPEC 3.5",
-  "attest.sign": "signing (this package only verifies), SPEC 4.5",
-  "actions.chain": "tine-actions/1, SPEC 4.8",
-  "delegation.verify": "opentine-delegation/1 chains, SPEC 4.10",
-  "agent.ref": "opentine-agent/1 records, SPEC 4.9",
+  "attest.sign": "signing the redacted stored claim, SPEC 4.5",
 };
 
-export const OUT_OF_SCOPE_SCHEMES: Record<string, string> = {
-  "tine-sig/1": "legacy artifact signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-sig/2": "legacy artifact signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-attest/1": "legacy attestation signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-actions/1": "tine-actions/1, SPEC 4.8",
-};
-
-export const OUT_OF_SCOPE_FAMILIES: Record<string, string> = {
-  artifact: "legacy tine-sig/1 and tine-sig/2 artifact verdicts, SPEC 4.7",
-};
-
-/**
- * Signature algorithms outside phase 1. The TypeScript verifier implements
- * Ed25519 only; ML-DSA-65 (FIPS 204) has no vetted dependency here, so a
- * tine-sig/3 artifact carrying any such block is skipped, not misjudged.
- */
-export const OUT_OF_SCOPE_ALGS: Record<string, string> = {
-  "ml-dsa-65": "post-quantum ML-DSA-65 signatures, SPEC 4.6.1",
-  "ed25519+ml-dsa-65": "hybrid Ed25519 + ML-DSA-65 signatures, SPEC 4.6.1",
-};
-
-/** The category name a case is skipped under, or `null` when phase 1 must answer it. */
+/** The category name a case is skipped under, or `null` when it must be answered. */
 export function outOfScope(testCase: Case): string | null {
-  if (testCase.op in OUT_OF_SCOPE_OPS) return `op:${testCase.op}`;
-  const args = testCase.args ?? {};
-  if (testCase.op === "sig.message" && (args.scheme as string) in OUT_OF_SCOPE_SCHEMES) {
-    return `scheme:${args.scheme as string}`;
-  }
-  if (testCase.op === "sig.verify") {
-    const family = (args.family as string | undefined) ?? "attestation";
-    if (family in OUT_OF_SCOPE_FAMILIES) return `family:${family}`;
-    const value = testCase.input.value as Record<string, unknown> | undefined;
-    const blocks = value && typeof value === "object" ? value.signatures : undefined;
-    if (Array.isArray(blocks)) {
-      for (const block of blocks) {
-        const alg = block && typeof block === "object" ? (block as Record<string, unknown>).alg : undefined;
-        if (typeof alg === "string" && alg in OUT_OF_SCOPE_ALGS) return `alg:${alg}`;
-      }
-    }
-    if (family === "attestation") {
-      const value = testCase.input.value as Record<string, unknown> | undefined;
-      const block = value && typeof value === "object" ? value.signature : undefined;
-      const scheme = block && typeof block === "object" ? (block as Record<string, unknown>).scheme : undefined;
-      if (scheme === "tine-attest/1") return "scheme:tine-attest/1";
-    }
-  }
-  return null;
+  return testCase.op in OUT_OF_SCOPE_OPS ? `op:${testCase.op}` : null;
 }
 
 // --------------------------------------------------------------------------- //
@@ -147,7 +83,11 @@ function assembleBytes(recipe: Record<string, unknown>): Buffer {
     const prefix = Buffer.from((recipe.prefix_b64 as string) ?? "", "base64");
     const suffix = Buffer.from((recipe.suffix_b64 as string) ?? "", "base64");
     const unit = Buffer.from(recipe.unit_b64 as string, "base64");
-    return Buffer.concat([prefix, Buffer.concat(Array(Number(recipe.count)).fill(unit)), suffix]);
+    const out = Buffer.alloc(prefix.length + unit.length * Number(recipe.count) + suffix.length);
+    prefix.copy(out);
+    if (unit.length) out.fill(unit, prefix.length, out.length - suffix.length);
+    suffix.copy(out, out.length - suffix.length);
+    return out;
   }
   if (kind === "fill") return Buffer.alloc(Number(recipe.count), Number(recipe.byte));
   if (kind === "oids") {

@@ -1,5 +1,76 @@
 # Changelog
 
+## 0.44.0 — Transparency, search and TS verifier GA (2026-11-07)
+
+### Added
+
+- **Transparency (X33).** `opentine-log/1` is an RFC 9162 Merkle log with
+  C2SP signed-note checkpoints, inclusion and consistency proofs and tlog
+  receipts. `tine serve` publishes its audit chain over it; `tine fetch`
+  refuses a fork or a rollback of the remote log, and `tine push` stores the
+  receipt for each ref it moves.
+- **Witnesses.** `tine witness cosign|vkey` writes and pins C2SP
+  `cosignature/v1` cosignatures; `tine verify --offline --witnesses N-of-M`
+  requires N verifying cosignatures from exactly M pinned witnesses.
+- **`tine bundle create --transparency`** embeds the receipts for every
+  bundled ref. Reading such a bundle needs opentine 0.44 or newer.
+- **Rekor v2 (X34).** Rekor v2 tile-log receipts verify offline, and
+  Sigstore SigningConfig v0.2 is read.
+- **SCITT, experimental.** `tine scitt verify --experimental` checks a
+  CBOR/COSE signed statement and its receipt. Interoperability with
+  scitt-api-emulator is not claimed.
+- **Quotas.** `tine serve` answers `429` with `Retry-After` when a quota is
+  spent, with LRU-bounded per-key buckets (`--quota-rate`, `--quota-burst`,
+  `--quota-max-keys`); the client retries at most three times.
+- **TrustPolicyAdmission** emits a verification summary attestation (VSA)
+  for each admitted push (`--vsa-dir`).
+- **Search index.** A derived SQLite FTS5 index with BM25 ranking at
+  `.tine/index/search.sqlite`: `tine repo-search --rebuild-index` rebuilds
+  it and `--no-index` bypasses it. With the index there is no 10,000-run cap,
+  and queries match words and rank by BM25.
+- **MCP `recall`**: a read-only tool over the search index.
+- **Cost export.** `tine cost --otlp` writes OTLP metrics, and a signed
+  `tine-cost-statement/1` is written with `--statement` and checked with
+  `--verify-statement`.
+- **TypeScript verifier GA.** The TypeScript verifier passes every reader
+  and verifier conformance vector with full reason-code agreement; the four
+  writer-side redaction ops are not answered, since a verifier never rewrites
+  content. It now covers ML-DSA-65 and the Ed25519 + ML-DSA-65 composite,
+  zstd bodies, network and local packs, the legacy canonicalizer, integrity
+  digests and signature schemes, `tine-actions/1` chains, `opentine-agent/1`
+  refs, `opentine-delegation/1` chains (`delegation.verify`) and the tlog
+  proof and quorum ops. New runtime dependencies, all MIT:
+  `@noble/post-quantum` 0.5.4, `@noble/curves` 2.0.1, `@noble/hashes` 2.0.1
+  and `fzstd` 0.1.1. It requires Node 20.19 or newer.
+- The 57-tlog conformance family (SPEC 8.10, 8.11).
+
+### Compatibility
+
+- Clients from 0.34 see `remote returned HTTP 429` and stop; they do not
+  retry.
+- Readers before 0.44 refuse bundles made with `--transparency`.
+- Object ids are unchanged.
+- The suite is now **683 conformance vectors**; 225 of the 683 refuse input,
+  and the adapter contract still has one entry point: 40 ops.
+
+### Deferred
+
+- Rekor v2 in keyless verification fails closed as `unchecked`: there is no
+  TSA binding yet.
+- Rekor v2 key ids for ECDSA keys are best-effort.
+- The Rekor v2 fixture is synthetic.
+- The SCITT leaf rule has not been checked against the emulator.
+- SigningConfig does not yet choose TSA URLs.
+- Server log appends are O(n).
+- A failed log append only warns.
+- There is no network protocol for witnesses.
+- xz is not read by the TypeScript verifier.
+- Quotas do not meter reads.
+- The server-side named trust policy is not wired for the VSA.
+- `tine cost --otlp` writes files only.
+- The search benchmark was measured on a development machine (100k runs:
+  78 ms p95, dense, cold, three terms), not on the pinned runner.
+
 ## 0.43.0 — Fleet record, delegation and leases (2026-11-07)
 
 ### Added

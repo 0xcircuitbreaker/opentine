@@ -23,6 +23,7 @@ from opentine._cli_git_sync import (
     push_hook,
     resolve_remote,
 )
+from opentine._cli_search_index import apply_index_flags
 from opentine._repo_cli_json import (
     emit_context,
     emit_repo_diff,
@@ -150,6 +151,7 @@ def cmd_repo_diff(args: argparse.Namespace, console) -> None:
 def cmd_repo_search(args: argparse.Namespace, console) -> None:
     repo = Repo.open(args.repo)
     successful_only = not args.include_unsuccessful
+    use_index = apply_index_flags(args, repo)
     results = repo.search(
         args.query,
         successful_only=successful_only,
@@ -157,6 +159,7 @@ def cmd_repo_search(args: argparse.Namespace, console) -> None:
         model=args.model,
         limit=args.limit,
         signed_only=args.signed_only,
+        use_index=use_index,
     )
     if getattr(args, "json", False):
         emit_repo_search(

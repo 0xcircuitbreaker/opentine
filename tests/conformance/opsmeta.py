@@ -1,4 +1,4 @@
-"""What each of the 36 ops consumes and produces, for ``MANIFEST.json``.
+"""What each of the 39 ops consumes and produces, for ``MANIFEST.json``.
 
 A third-party runner reads this table, not this file: it is emitted into
 ``MANIFEST.ops`` so an implementer can tell, without reading Python, which ops
@@ -345,5 +345,32 @@ OP_META: dict[str, dict[str, object]] = {
         "unordered": [],
         "requires": [],
         "summary": "SPEC 4.8: the tine-actions/1 entry hash chain, seeded from the run id",
+    },
+    "tlog.inclusion": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 8.10: an RFC 9162 inclusion proof of SHA-256(0x00 || entry) to a root",
+    },
+    "tlog.consistency": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok", "class"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 8.10: an RFC 9162 consistency proof; class consistent, fork, rollback",
+    },
+    "tlog.quorum": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok", "cosigners"],
+        "unordered": [],
+        "requires": ["ed25519"],
+        "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
     },
 }

@@ -1,9 +1,38 @@
 /**
  * The platform primitives: SHA-256, HMAC-SHA256 and Ed25519 verification from
- * Node's built-in `crypto` (OpenSSL), and nothing else.
+ * Node's built-in `crypto` (OpenSSL), plus ML-DSA-65 (FIPS 204) verification
+ * from the audited `@noble/post-quantum`, since Node has no FIPS 204 primitive.
  */
 
 import { createHash, createHmac, createPublicKey, timingSafeEqual, verify } from "node:crypto";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
+
+/** ML-DSA-65 public key and signature sizes (FIPS 204, Table 2). */
+export const MLDSA65_PUBLIC_KEY_BYTES = 1952;
+export const MLDSA65_SIGNATURE_BYTES = 3309;
+
+/** ML-DSA-65 Verify (FIPS 204 Algorithm 3, pure); any failure, including a bad key, is `false`. */
+export function mldsa65Verify(
+  publicKey: Uint8Array,
+  message: Uint8Array,
+  signature: Uint8Array,
+  context: Uint8Array = new Uint8Array(0),
+): boolean {
+  try {
+    return ml_dsa65.verify(signature, message, publicKey, { context });
+  } catch {
+    return false;
+  }
+}
+
+/** ML-DSA-65 Verify_internal (FIPS 204 Algorithm 8) over an already formatted M'. */
+export function mldsa65VerifyInternal(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean {
+  try {
+    return ml_dsa65.internal.verify(signature, message, publicKey);
+  } catch {
+    return false;
+  }
+}
 
 export function sha256Hex(data: Uint8Array): string {
   return createHash("sha256").update(data).digest("hex");

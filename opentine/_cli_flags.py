@@ -95,6 +95,9 @@ FLAG_DEFAULTS: dict[str, tuple[str, object]] = {
     "trust_policy": ("--policy", None),
     "unset_paths": ("--unset", []),
     "verify": ("--verify", False),
+    "witnesses": ("--witnesses", None),
+    "witness_vkey": ("--witness-vkey", None),
+    "log_vkey": ("--log-vkey", None),
 }
 
 AUTOSAVE_FLAGS = ("autosave", "autosave_interval", "autosave_seconds")

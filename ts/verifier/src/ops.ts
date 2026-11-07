@@ -11,10 +11,40 @@ import { canonicalJson, validateJsonShape } from "./canon.js";
 import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
+import { actionsChain, agentRef, validateAgent } from "./agent.js";
+import { canonicalBytesV2 } from "./canon2.js";
+import { verifyDelegation } from "./delegation.js";
+import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
+import { integrityDigest, verifyIntegrity } from "./integrity.js";
+import { readLocalPack } from "./localpack.js";
+import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
+import {
+  extractLinks,
+  loadObject,
+  memRepo,
+  validateAnnotationChain,
+  validateEventMetrics,
+  validateRunGraph,
+  type RepoArgs,
+} from "./graph.js";
+import {
+  encodeShallow,
+  normalizeRef,
+  objectPath,
+  parseShallow,
+  readRefFile,
+  reflogRow,
+  validateConfig,
+  validateRefTarget,
+} from "./repo.js";
 import { containsLoneSurrogate, isObject, LENIENT, parseText, type JObject, type JValue } from "./json.js";
 import {
+  actionsMessage,
   artifactMessage,
+  attestationMessage,
   attestMessage,
+  legacyArtifactMessage,
+  verifyLegacyArtifact,
   verifyArtifactV4,
   verifyAttestation,
   type Header,
@@ -103,6 +133,25 @@ function textValidate(input: OpInput): Output {
   return {};
 }
 
+/** `args.objects`, base64 stored envelopes, as an oid -> bytes map. */
+export function storedObjects(args: Args): Map<string, Uint8Array> {
+  const out = new Map<string, Uint8Array>();
+  for (const encoded of (args.objects as string[] | undefined) ?? []) {
+    const raw = Uint8Array.from(Buffer.from(encoded, "base64"));
+    out.set(ObjectEnvelope.decode(raw).oid, raw);
+  }
+  return out;
+}
+
+function repoArgs(args: Args): RepoArgs {
+  return {
+    objects: storedObjects(args),
+    present: (args.present as string[] | undefined) ?? [],
+    shallow: (args.shallow as string[] | undefined) ?? [],
+    checkExistence: ["present", "objects", "shallow"].some((key) => key in args),
+  };
+}
+
 function verdict(result: SignatureResult): Output {
   return { ...result };
 }
@@ -124,6 +173,10 @@ function keysFrom(args: Args, table: KeyTable): VerifyKeys {
 }
 
 const MESSAGES: Record<string, (document: JValue, header: Header) => Uint8Array> = {
+  "tine-sig/1": legacyArtifactMessage,
+  "tine-sig/2": legacyArtifactMessage,
+  "tine-attest/1": attestationMessage,
+  "tine-actions/1": actionsMessage,
   "tine-sig/3": artifactMessage,
   "tine-attest/2": attestMessage,
 };
@@ -132,6 +185,40 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
   switch (op) {
     case "text.validate":
       return textValidate(input);
+    case "tlog.inclusion":
+      return tlogInclusion(valueOf(input));
+    case "tlog.consistency":
+      return tlogConsistency(valueOf(input));
+    case "tlog.quorum":
+      return tlogQuorum(valueOf(input));
+    case "delegation.verify": {
+      const value = valueOf(input) as JObject;
+      const actions = value.get("actions");
+      return verifyDelegation({
+        chain: value.get("chain") as JValue,
+        signer: value.get("signer") as string,
+        at: value.get("at") as JValue,
+        agent: value.get("agent"),
+        actions: Array.isArray(actions) ? (actions as string[]) : [],
+      });
+    }
+    case "actions.chain": {
+      const value = valueOf(input) as JObject;
+      return { chain: actionsChain(value.get("run_id") as string, value.get("digests") as string[]) };
+    }
+    case "agent.ref": {
+      const { ref, hashed } = agentRef(validateAgent(valueOf(input)));
+      return { ref, hashed_b64: b64(hashed) };
+    }
+    case "integrity.digest": {
+      const data = parseArtifactJson(bytesOf(input));
+      if (!isObject(data)) throw new TineError("'list' object has no attribute 'items'");
+      return { digest: integrityDigest(data) };
+    }
+    case "integrity.verify":
+      return { ...verifyIntegrity(parseArtifactJson(bytesOf(input))) };
+    case "canon.v2":
+      return { bytes_b64: b64(canonicalBytesV2(valueOf(input))) };
     case "canon.v3":
       return { bytes_b64: b64(canonicalJson(valueOf(input))) };
     case "envelope.decode": {
@@ -182,18 +269,59 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         if (!isObject(document)) throw new TineError("'NoneType' object has no attribute 'get'");
         return verdict(verifyArtifactV4(document, keys));
       }
-      if (family === "attestation") {
-        const block = isObject(document) ? document.get("signature") : undefined;
-        if (isObject(block) && block.get("scheme") === "tine-attest/1") {
-          throw new Unsupported("tine-attest/1 (the legacy canonicalizer)");
-        }
-        return verdict(verifyAttestation(document, keys));
-      }
+      if (family === "attestation") return verdict(verifyAttestation(document, keys));
+      if (family === "artifact") return verdict(verifyLegacyArtifact(document, keys));
       throw new Unsupported(`signature family ${family}`);
     }
     case "shape.scan":
       validateJsonShape(bytesOf(input), Number(args.max_tokens ?? 200_000));
       return {};
+    case "config.validate":
+      validateConfig(bytesOf(input));
+      return {};
+    case "object.path":
+      return { path: objectPath(valueOf(input)) };
+    case "ref.name":
+      return { name: normalizeRef(valueOf(input)) };
+    case "ref.file":
+      return { oid: readRefFile(bytesOf(input)) };
+    case "ref.target":
+      validateRefTarget(args.name as string, valueOf(input), storedObjects(args));
+      return {};
+    case "reflog.row":
+      return { bytes_b64: b64(reflogRow(valueOf(input))) };
+    case "shallow.parse":
+      return { oids: parseShallow(bytesOf(input)) };
+    case "shallow.encode":
+      return { bytes_b64: b64(encodeShallow(valueOf(input))) };
+    case "links.extract":
+      return { links: extractLinks(bytesOf(input), repoArgs(args)) };
+    case "event.metrics":
+      validateEventMetrics(ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "run.graph":
+      validateRunGraph(memRepo(repoArgs(args)), ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "annotation.chain":
+      validateAnnotationChain(memRepo(repoArgs(args)), ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "pack.inspect": {
+      const pack = inspectPack(bytesOf(input));
+      return { pack_id: pack.packId, objects: pack.objects.map(([oid]) => oid).sort(), shallow: [...pack.shallow].sort() };
+    }
+    case "pack.manifest": {
+      const raws = (valueOf(input) as JValue[]).map((item) => strictBase64(item));
+      const { body, packId } = packManifest(raws);
+      return { manifest_body_b64: b64(body), pack_id: packId };
+    }
+    case "pack.install": {
+      const result = checkInstall(bytesOf(input), new Set(storedObjects(args).keys()));
+      return { pack_id: result.packId, objects: result.objects };
+    }
+    case "localpack.read":
+      return readLocalPack(bytesOf(input), strictBase64(args.pack_b64));
+    case "object.load":
+      return { ...loadObject(bytesOf(input), (args.expected_oid as string | undefined) ?? null, repoArgs(args)) };
     default:
       throw new Unsupported(op);
   }

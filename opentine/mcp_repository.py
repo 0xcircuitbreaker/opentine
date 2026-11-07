@@ -7,6 +7,7 @@ import math
 from dataclasses import asdict
 from typing import Any
 
+from opentine._mcp_recall import register_recall
 from opentine._mcp_safety import safe_errors, visible
 from opentine.kernel import parse_oid
 from opentine.repo import Repo
@@ -143,6 +144,8 @@ def register_repository_tools(mcp, repo_path: str = ".", *, allow_promotion: boo
                 )
             ]
         )
+
+    register_recall(mcp, repo, visible)  # 0.44: read-only, index-only (_mcp_recall)
 
     @mcp.tool()
     def inspect_object(object_id: str, resolve_blobs: bool = True) -> dict[str, Any]:

@@ -111,7 +111,7 @@ def _token(args: argparse.Namespace) -> str:
 def sign_for_export(args: argparse.Namespace, statement: dict, signing_key) -> dict[str, Any]:
     """The JSON object to write: a bare envelope, or a bundle with a receipt."""
     from opentine.intoto import sign_statement
-    from opentine.rekor import DEFAULT_REKOR_URL, upload_dsse
+    from opentine.rekor import default_rekor_url, upload_dsse
     from opentine.sigstore_bundle import make_bundle
 
     if getattr(args, "keyless", False):
@@ -124,7 +124,7 @@ def sign_for_export(args: argparse.Namespace, statement: dict, signing_key) -> d
             raise ValueError(str(exc).replace(token, "[REDACTED]")) from None
         del token
         envelope = signer.sign(statement)
-        entry = upload_dsse(envelope, signer.leaf_pem, args.rekor or DEFAULT_REKOR_URL)
+        entry = upload_dsse(envelope, signer.leaf_pem, default_rekor_url(args.rekor))
         return make_bundle(envelope, signer.material(), [entry])
     refuse_unhonoured(
         args,
@@ -144,7 +144,7 @@ def sign_for_export(args: argparse.Namespace, statement: dict, signing_key) -> d
     pem = public.public_bytes(
         serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    entry = upload_dsse(envelope, pem, args.rekor)
+    entry = upload_dsse(envelope, pem, default_rekor_url(args.rekor))
     return make_bundle(envelope, {"publicKey": {"hint": did_from_public(public)}}, [entry])
 
 

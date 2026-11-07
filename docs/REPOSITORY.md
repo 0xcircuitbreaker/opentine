@@ -201,6 +201,23 @@ fast. Exceeding any of the scan budgets is a refusal, printed as a single
 `tine repo-search: <message>` line with exit 1, never a partial result presented
 as a complete one.
 
+**The derived index (0.44).** `tine repo-search --rebuild-index` writes an
+SQLite FTS5 index to `.tine/index/search.sqlite` (format `opentine-search/1`)
+holding each run's stored prompts and completions, tool names and arguments,
+file paths named in those arguments, and run metadata (status, models, tags,
+annotation metadata). It is derived and never authoritative: it copies only what
+the store holds, after redaction; deleting it loses nothing. Once it exists,
+`put_run` and every pack import (push, fetch, bundle import) update it; if an
+update fails the file is removed and search scans again. While it is present
+`repo-search` (and `tine search --repo`, and MCP `search_runs` and `recall`)
+answer from it: every query word must occur (case- and diacritic-insensitive
+tokens, not a substring match), results rank by BM25, an empty query lists runs
+newest first, and the 10,000-candidate cap does not apply. Evaluation scores are
+still read from the attestations, for the returned rows only. `--no-index`
+forces the scan. A Python whose `sqlite3` lacks FTS5 never builds the index and
+keeps scanning; `--rebuild-index` then exits with that reason.
+`scripts/bench/search_index.py` measures a cold 3-term query over 100,000 runs.
+
 The JSON objects come from the same writer as `tine show --json` — literally the
 one function `opentine/_cli_json.py:serialize`, which every `--json` surface in
 the CLI calls: keys are

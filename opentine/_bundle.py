@@ -41,7 +41,8 @@ FORMAT = "opentine-bundle/1"
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REFS = 10_000
 MAX_BUNDLE_BYTES = len(MAGIC) + 32 + 4 + MAX_MANIFEST_BYTES + MAX_PACK_BYTES
-_KEYS = {"format", "pack", "pack_bytes", "refs"}  # + optional "signatures" (0.26)
+_KEYS = {"format", "pack", "pack_bytes", "refs"}  # + "signatures" (0.26), "transparency" (0.44)
+_OPTIONAL = {"signatures", "transparency"}
 _NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
 
 
@@ -57,9 +58,12 @@ class Verified:
     pack_id: str
     objects: int
     signatures: dict = field(default_factory=dict)
+    transparency: list = field(default_factory=list)  # 0.44: tlog receipts, unchecked here
 
 
-def create(repo: Repo, refs: list[str] | None = None, *, pack_format: str = V3) -> bytes:
+def create(
+    repo: Repo, refs: list[str] | None = None, *, pack_format: str = V3, transparency: bool = False
+) -> bytes:
     """Bundle *refs* (default: every local ref outside ``remotes/``) and their objects."""
     local = repo.list_refs()
     if refs:
@@ -73,10 +77,12 @@ def create(repo: Repo, refs: list[str] | None = None, *, pack_format: str = V3) 
         chosen = {k: v for k, v in local.items() if not k.startswith("remotes/")}
     if not chosen:
         raise ValueError("nothing to bundle: name refs or pass --all in a repository with refs")
-    return create_refs(repo, chosen, pack_format=pack_format)
+    return create_refs(repo, chosen, pack_format=pack_format, transparency=transparency)
 
 
-def create_refs(repo: Repo, chosen: dict[str, str], *, pack_format: str = V3) -> bytes:
+def create_refs(
+    repo: Repo, chosen: dict[str, str], *, pack_format: str = V3, transparency: bool = False
+) -> bytes:
     """Bundle exactly the ``ref name -> object id`` mapping *chosen*.
 
     The pack is ``TINEPACK3``, which every reader since 0.11 opens, unless
@@ -94,7 +100,13 @@ def create_refs(repo: Repo, chosen: dict[str, str], *, pack_format: str = V3) ->
         "refs": dict(sorted(chosen.items())),
     }
     signatures = _bundle_sigs.collect(repo, carried)  # tine-sig/3 sidecars travel too
-    manifest = canonical_json({**fields, "signatures": signatures} if signatures else fields)
+    if signatures:
+        fields["signatures"] = signatures
+    if transparency:  # opt-in: readers before 0.44 refuse the extra manifest key
+        from opentine._transparency import receipts_for
+
+        fields["transparency"] = receipts_for(repo.path, chosen)
+    manifest = canonical_json(fields)
     body = len(manifest).to_bytes(4, "big") + manifest + pack
     return MAGIC + hashlib.sha256(body).digest() + body
 
@@ -122,7 +134,7 @@ def _manifest(raw: bytes) -> dict:
             raise BundleError("bundle manifest is not canonical")
     except (KernelError, ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise BundleError(f"invalid bundle manifest: {exc}") from None
-    if not isinstance(payload, dict) or set(payload) - {"signatures"} != _KEYS:
+    if not isinstance(payload, dict) or set(payload) - _OPTIONAL != _KEYS:
         raise BundleError("invalid bundle manifest shape")
     if payload["format"] != FORMAT:
         raise BundleError(f"unsupported bundle format: {str(payload['format'])[:40]!r}")
@@ -172,8 +184,11 @@ def verify(data: bytes) -> Verified:
             raise BundleError(f"bundle refs {other} and {name} collide on one tracking ref")
         refs[name] = oid
     signatures = _bundle_sigs.check(manifest.get("signatures", {}), present)
+    receipts = manifest.get("transparency", [])
+    if not isinstance(receipts, list) or len(receipts) > MAX_REFS:
+        raise BundleError("invalid bundle transparency receipts")
     digest = "sha256:" + hashlib.sha256(data).hexdigest()
-    return Verified(digest, refs, pack, pack_id, len(objects), signatures)
+    return Verified(digest, refs, pack, pack_id, len(objects), signatures, receipts)
 
 
 def namespace(value: str) -> str:

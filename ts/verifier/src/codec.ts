@@ -1,11 +1,12 @@
 /**
  * The `TINEZ1\0` storage wrapper (SPEC 2.3): magic, codec byte, uvarint length,
- * frame. Codec 0 is stored, 1 is zlib. zstd (2) and xz (4) are refused with a
- * clear message in phase 1.
+ * frame. Codec 0 is stored, 1 is zlib, 2 is zstd (`./zstd.ts`). xz (4), the
+ * opt-in archival codec, is refused with a clear message.
  */
 
 import { inflateSync } from "node:zlib";
 import { TineError } from "./errors.js";
+import { zstdDecompress } from "./zstd.js";
 
 export const MAGIC = new Uint8Array([0x54, 0x49, 0x4e, 0x45, 0x5a, 0x31, 0x00]);
 export const MAX_TINE_ARTIFACT_BYTES = 256 * 1024 * 1024;
@@ -19,7 +20,7 @@ export function isWrapped(data: Uint8Array): boolean {
   return MAGIC.every((byte, index) => data[index] === byte);
 }
 
-function readUvarint(data: Uint8Array, start: number): [number, number] {
+export function readUvarint(data: Uint8Array, start: number): [number, number] {
   let value = 0;
   let scale = 1;
   for (let index = start; index < Math.min(data.length, start + MAX_VARINT_BYTES); index++) {
@@ -66,11 +67,7 @@ export function unwrap(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES): Uint8
     }
     out = result.buffer;
   } else if (codec === 2) {
-    throw new TineError(
-      "this file is zstd-compressed, which @opentine/verify does not read yet; " +
-        "re-export it with OPENTINE_COMPRESS=zlib (or 0) to verify it here",
-      "codec.unsupported",
-    );
+    out = zstdDecompress(frame, size);
   } else if (codec === 4) {
     throw new TineError("this file is xz-compressed, which @opentine/verify does not read yet", "codec.unsupported");
   } else {

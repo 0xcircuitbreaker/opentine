@@ -58,6 +58,7 @@ HANDWRITTEN: tuple[ToolSpec, ...] = (
     _hand("inspect_object"),
     _hand("context_slice"),
     _hand("semantic_diff"),
+    _hand("recall"),  # 0.44: the derived FTS5 index, read-only (_mcp_recall)
     _hand("fork_run", writes=True),
     _hand("fork_run_v3", writes=True),
     _hand("resume_run_v3", writes=True),

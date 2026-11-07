@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 
 from opentine._cli_push_preview import add_push_parser
+from opentine._cli_search_index import add_index_arguments
 from opentine._repo_cli_keys import add_key_args
 
 
@@ -66,6 +67,7 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Also return non-completed runs (the default is completed runs only)",
     )
+    add_index_arguments(search)
 
     # --json is purely additive on the read verbs: without it each renders as before.
     for readable in (log, show, context, diff, search):

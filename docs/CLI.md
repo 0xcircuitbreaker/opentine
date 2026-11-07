@@ -163,6 +163,16 @@ rotated. After 5 consecutive failed authentications a client gets 429 with
 `Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
 answers only `{"error":"internal","request_id":...}`, logging the exception.
 
+New in 0.44: `serve --quota-rate PER_SECOND [--quota-burst N]` gives every
+(tenant, subject) a token bucket; an upload or ref update over quota gets 429
+with `Retry-After`. At most `--quota-max-keys` buckets (10,000) are held, the
+least recently used evicted first. Clients retry a 429 at most 3 times,
+honouring `Retry-After` up to 30 seconds and within the request deadline; a
+0.34 client reports `remote returned HTTP 429` and stops. `serve --vsa-dir DIR`
+writes an in-toto SLSA Verification Summary Attestation
+(`https://slsa.dev/verification_summary/v1`) for every admitted push to
+`DIR/<tenant>/<sha256>.json`.
+
 ## Default output format
 
 ```
@@ -314,6 +324,39 @@ that actor's Ed25519 key. A `timestamp` record stores a TSA token over an
 earlier record's `sig_bound` (printed by `record` and `log`). `verify` checks
 the checkpoint, tiles, hash chain, signatures and tokens offline and exits 4
 on any break (SPEC §8.9).
+
+```
+tine witness vkey --key KEY --name NAME
+tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
+                    [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
+tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
+tine bundle create FILE REF... --transparency
+```
+
+0.44 (X33). `witness cosign` checks a signed-note checkpoint against the pinned
+log key and against the last checkpoint this witness cosigned for that origin
+(`--state`, default `$XDG_STATE_HOME/opentine/witness`): the same size must have
+the same root, a smaller size is a rollback and a larger one needs an RFC 9162
+consistency proof (`--proof`, or computed from a local tile mirror with
+`--tiles`). Only then does it print the checkpoint with a C2SP
+`cosignature/v1` line added; a fork or rollback exits 4. `witness vkey` prints
+the key others pin with `--witness-vkey`. `verify --offline --witnesses N-of-M`
+takes a bundle, an `opentine-tlog-receipt/1` file or a bare checkpoint (with
+one `--log-vkey`) and exits 4 unless N of the M pinned witnesses cosigned every
+checkpoint; `--log-vkey` pins a log key by origin (otherwise the receipt's key
+is used, trust on first use). `bundle create --transparency` embeds op-log and
+push receipts for the bundled refs so they verify from the bundle alone; such
+bundles need opentine 0.44+ to read. `tine push` and `tine fetch` check the
+remote's audit log automatically (SPEC §8.10).
+
+```
+tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --experimental
+```
+
+0.44, **experimental**: a COSE_Sign1 SCITT signed statement and its
+RFC9162_SHA256 receipts, verified offline against pinned keys (SPEC §8.12).
+Without `--experimental` it exits 2. Interop with scitt-api-emulator is not
+claimed.
 
 ```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
@@ -578,6 +621,33 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+
+New in 0.44, `recall(query, limit=10)` is a hand-written read tool over the
+derived search index (`tine repo-search --rebuild-index`, see
+[REPOSITORY.md](REPOSITORY.md)): runs whose stored text mentions every word of
+the query, best BM25 match first, at most 50 rows of run id, status, models and
+a snippet of at most 240 characters. It never scans the store or builds the
+index; without one it answers `{"indexed": false, ...}`.
+
+## Cost export (0.44)
+
+```text
+tine cost RUN --otlp PATH|-                     # OTLP/JSON metrics from the cost aggregate
+tine cost RUN --statement PATH --sign-key KEY [--signer NAME]
+tine cost RUN --verify-statement PATH [--pubkey KEY.pub]
+```
+
+`--otlp` writes an `ExportMetricsServiceRequest` (a `/v1/metrics` body):
+`gen_ai.client.token.usage` by `gen_ai.token.type` and `opentine.cost.usd` in
+total, by `gen_ai.request.model` and by `opentine.step.kind`, as cumulative
+sums on a resource carrying `opentine.run.id`. `--statement` writes a
+`tine-cost-statement/1`: the aggregate (totals, tokens, by model, by kind) with
+an Ed25519 `tine-sig/3` block under `opentine.cost-statement.v1:`.
+`--verify-statement` recomputes the aggregate from RUN and prints
+`{"ok", "matches_run", "signature", "basis"}`, exiting 4 unless both the numbers
+and the signature check (without `--pubkey` the embedded key is trusted on first
+use, and `basis` says so). The statement covers the cost the run *recorded*;
+`tine price` re-prices from the catalog.
 
 ## Per-turn capture (0.38)
 

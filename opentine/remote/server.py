@@ -12,6 +12,7 @@ from wsgiref.simple_server import make_server
 
 from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
+from opentine.remote._serve_admission import add_admission_arguments, serve_admission
 from opentine.remote._serve_auth import add_auth_arguments, serve_identities
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
@@ -143,6 +144,7 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         "--otlp-idle", type=float, default=30.0, help="Save a trace after this many idle seconds"
     )
     add_auth_arguments(parser)
+    add_admission_arguments(parser)
     add_admin_parsers(parser)
 
 
@@ -174,6 +176,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         args.root,
         identities=identities,
         authorization=RoleAuthorizationPolicy(writer_promotes=args.writer_promotes),
+        admission=serve_admission(args),
         max_request_bytes=args.max_body_mb * 1024 * 1024,
         max_upload_bytes=args.max_upload_mb * 1024 * 1024,
         migrate_legacy_audit=args.migrate_legacy_audit,

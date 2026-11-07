@@ -14,6 +14,7 @@ from opentine.remote._audit import (
     read_anchor,
     write_anchor,
 )
+from opentine.remote._audit_tlog import publish
 from opentine.remote.interfaces import AuditEvent
 
 _LAST_ROW = (
@@ -66,6 +67,7 @@ class SQLiteAuditMixin:
             # The row is durable before the external checkpoint advances. Startup can
             # safely heal the single committed row if this write is interrupted.
             write_anchor(self._anchor_path, current, self._audit_key)
+            publish(self, row, current)  # 0.44 X33: the publicly verifiable copy
 
     def audit_head(self) -> str:
         with self._connect() as database:

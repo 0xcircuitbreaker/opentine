@@ -72,6 +72,8 @@ class TrustedRoot:
     timestamp_authorities: list[tuple[list[x509.Certificate], _Window]] = field(
         default_factory=list
     )
+    #: 0.44 (X34): Rekor v2 tile logs as ``(note key id, origin, key)`` (``_rekor_v2``).
+    tile_logs: list[tuple[bytes, str, Any]] = field(default_factory=list)
 
     def rekor_key(self, key_id: bytes, when: datetime) -> Any:
         """The Rekor key with *key_id* valid at *when*, else ``None``."""
@@ -196,7 +198,10 @@ def parse_trusted_root(raw: bytes) -> TrustedRoot:
         _authority(t, f"timestampAuthorities[{i}]")
         for i, t in enumerate(_list(doc, "timestampAuthorities"))
     ]
-    if not root.tlogs or not root.authorities:
+    from opentine._rekor_v2 import tile_logs
+
+    root.tile_logs = tile_logs(doc)
+    if not (root.tlogs or root.tile_logs) or not root.authorities:
         raise ValueError("trusted root lists no tlogs or no certificateAuthorities")
     return root
 
