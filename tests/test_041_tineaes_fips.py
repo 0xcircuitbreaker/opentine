@@ -232,10 +232,24 @@ def test_real_fips_provider_runs_tineaes6_and_hmac(monkeypatch):
     sealed = _sealed.seal_object(keys, "acme", OID_A, b"fips", "zlib")
     assert _sealed.unseal(keys, _sealed.OBJECT, "acme", OID_A, sealed) == b"fips"
     assert hmac.new(b"k" * 32, b"m", hashlib.sha256).digest()
-    from cryptography.hazmat.backends.openssl import backend
+    from cryptography.exceptions import InternalError, UnsupportedAlgorithm
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    if backend.ed25519_supported():  # FIPS 186-5; OpenSSL 3.0's provider may not ship it
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
+    # Ed25519 is FIPS 186-5, but a FIPS provider may not ship it, and
+    # cryptography's ed25519_supported() probe does not ask the provider.
+    try:
         private = Ed25519PrivateKey.generate()
-        private.public_key().verify(private.sign(b"m"), b"m")
+    except (InternalError, UnsupportedAlgorithm):
+        return
+    private.public_key().verify(private.sign(b"m"), b"m")
+
+
+def test_opentine_imports_where_hashlib_has_no_md5(monkeypatch):
+    """A FIPS-only Python has no hashlib.md5; httpx needs it at import."""
+    from opentine import _fips_shim
+
+    monkeypatch.delattr(hashlib, "md5")
+    assert _fips_shim.install() is True
+    with pytest.raises(ValueError, match="FIPS"):
+        hashlib.md5(b"x")
+    assert _fips_shim.install() is False
