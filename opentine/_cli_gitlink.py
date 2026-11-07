@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from opentine._blame import blame, git_blame
+from opentine._cli_attribute import HANDLERS as GIT_EXTRAS
+from opentine._cli_attribute import add_git_extras
 from opentine._cli_common import RUNS_DIR, _runs_dir, _terminal, console
 from opentine._cli_errors import fail
 from opentine._cli_evidence import add_evidence_parser
@@ -35,7 +37,7 @@ from opentine._git_link_hook import (
 )
 from opentine._git_link_runs import RunCatalog, open_catalog, run_summary
 from opentine._git_push_sync import HOOK as PRE_PUSH
-from opentine._git_push_sync import add_push_runs_parser, cmd_push_runs, script
+from opentine._git_push_sync import script
 
 
 def _fail(message: str) -> NoReturn:
@@ -56,7 +58,7 @@ def cmd_git(args: argparse.Namespace) -> None:
         "note": _note,
         "log": _log,
         "trailers": _trailers,
-        "push-runs": cmd_push_runs,
+        **GIT_EXTRAS,
     }.get(args.git_command)
     if handler is None:
         _fail("usage: tine git {install-hook,note,log}")
@@ -217,7 +219,7 @@ def add_gitlink_parsers(sub: Any) -> None:
     install.add_argument("--push", action="store_true", help="Also push trailer runs on git push")
     install.add_argument("--strict", action="store_true", help="With --push: block on failure")
     install.add_argument("--json", action="store_true")
-    add_push_runs_parser(git_sub)
+    add_git_extras(git_sub)  # push-runs, attribute, attribution
     note = git_sub.add_parser("note", help="Record runs on a commit under refs/notes/tine")
     note.add_argument("commit")
     note.add_argument("runs", nargs="*", help="Run ids (default: the commit's Tine-Run trailers)")

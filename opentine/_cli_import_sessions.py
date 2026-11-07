@@ -2,9 +2,10 @@
 
 A session log is useful only if the user can find it: Claude Code, Codex, Gemini
 CLI and Qwen Code each bury theirs under a hashed or dated directory in the home
-directory. This module knows those places, lists the newest sessions, and
-resolves ``latest`` (or a session-id prefix) to a file, so importing the session
-an agent just finished is one command. Only well-known locations are read; the
+directory, and Cline and Roo Code under VS Code's ``globalStorage``. This module
+knows those places, lists the newest sessions, and resolves ``latest`` (or a
+session-id prefix) to a file, so importing the session an agent just finished
+is one command. Only well-known locations are read; the
 environment overrides each CLI itself honours (``CLAUDE_CONFIG_DIR``,
 ``CODEX_HOME``, ``GEMINI_CLI_HOME``, ``QWEN_HOME``, ``XDG_DATA_HOME`` for OpenCode's
 SQLite store) are respected.
@@ -13,9 +14,11 @@ SQLite store) are respected.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from opentine.trace._cline_task_read import EXTENSIONS, HISTORY
 from opentine.trace._transcript_agents import agent_files
 
 #: How many sessions a listing shows, and how many files one scan may visit.
@@ -50,7 +53,24 @@ def _locations() -> list[tuple[str, Path, str]]:
         # GEMINI_CLI_HOME replaces the home directory itself, not ~/.gemini.
         ("gemini-session", _gemini_root(), "*/chats/session-*.json*"),
         ("qwen-session", _home("QWEN_HOME", ".qwen") / "projects", "*/chats/*.jsonl"),
+        *(
+            (fmt, storage / ext / "tasks", f"*/{HISTORY}")
+            for storage in _vscode_storage()
+            for ext, fmt in EXTENSIONS.items()
+        ),
     ]
+
+
+def _vscode_storage() -> list[Path]:
+    """VS Code's (and its common forks') ``User/globalStorage`` on this platform."""
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    elif sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
+    else:
+        base = _home("XDG_CONFIG_HOME", ".config")
+    editors = ("Code", "Code - Insiders", "VSCodium")
+    return [base / name / "User" / "globalStorage" for name in editors]
 
 
 def sessions(source_format: str | None = None) -> list[Session]:
@@ -106,7 +126,11 @@ def resolve(name: str, source_format: str | None) -> Session:
         raise ValueError("no agent session logs found in the default locations")
     if name == "latest":
         return candidates[0]
-    matches = [item for item in candidates if name in item.path.name]
+    matches = [
+        item
+        for item in candidates
+        if name in item.path.name or (item.path.name == HISTORY and name in item.path.parent.name)
+    ]
     if not matches:
         raise ValueError(f"no session log matching {name!r} in the default locations")
     return matches[0]

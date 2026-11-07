@@ -256,8 +256,9 @@ the root and `tine-sig/3` signatures are the v4 ones, unchanged.
 
 Policy (ROADMAP §2): 0.40 ships the reader everywhere (`Run.load`,
 `tine verify`, `--offline`, `tine-verify.pyz`, `tine import --repo`, the
-TypeScript verifier). The writer is opt-in only, `tine --format 5` or
-`OPENTINE_FORMAT=5`; v4 stays the default until at least 0.42. Releases
+TypeScript verifier); 0.42 makes v5 the default writer. `tine --for-legacy`
+(or `--format 4`, `OPENTINE_FORMAT=4`) writes v4 for older readers, and
+`tine evidence export` always writes its runs as v4. Releases
 before 0.40 refuse a v5 file as an unknown format. Measured on a
 transcript-shaped corpus: -26.5% after zstd-3, -27.6% after zstd-19.
 

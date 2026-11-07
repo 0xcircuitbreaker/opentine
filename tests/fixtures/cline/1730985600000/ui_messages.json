@@ -1,0 +1,10 @@
+[
+  {"ts": 1730985600000, "type": "say", "say": "task", "text": "Add a --verbose flag to cli.py"},
+  {"ts": 1730985600200, "type": "say", "say": "api_req_started", "text": "{\"request\":\"<task>\\nAdd a --verbose flag to cli.py\\n</task>\",\"tokensIn\":2400,\"tokensOut\":60,\"cacheWrites\":2100,\"cacheReads\":0,\"cost\":0.0089}"},
+  {"ts": 1730985602000, "type": "say", "say": "text", "text": "I'll read the file first."},
+  {"ts": 1730985602500, "type": "say", "say": "tool", "text": "{\"tool\":\"readFile\",\"path\":\"cli.py\"}"},
+  {"ts": 1730985603600, "type": "say", "say": "api_req_started", "text": "{\"request\":\"[read_file for 'cli.py'] Result:\",\"tokensIn\":15,\"tokensOut\":90,\"cacheWrites\":120,\"cacheReads\":2100,\"cost\":0.0027}"},
+  {"ts": 1730985606000, "type": "say", "say": "text", "text": "Adding the flag."},
+  {"ts": 1730985609000, "type": "ask", "ask": "completion_result", "text": ""},
+  {"ts": 1730985610000, "type": "say", "say": "user_feedback", "text": "Also add -v as a short alias"}
+]

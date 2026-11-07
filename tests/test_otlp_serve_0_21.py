@@ -181,7 +181,7 @@ def test_gzip_body_is_accepted(receiver):
 
 def test_refusals(receiver):
     url, _, collector, runs = receiver
-    status, body = _post(url + "/v1/traces", b"\x0a\x00", "application/x-protobuf")
+    status, body = _post(url + "/v1/logs", b"\x0a\x00", "application/x-protobuf")
     assert status == 415 and body["message"] == PROTOBUF_HINT
     assert _post(url + "/v1/traces", b"x", "text/plain")[0] == 415
     assert _post(url + "/v1/traces", b"{not json")[0] == 400

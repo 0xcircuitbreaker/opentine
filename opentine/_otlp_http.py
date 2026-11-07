@@ -3,8 +3,9 @@
 ``POST /v1/traces`` and ``POST /v1/logs`` accept OTLP/JSON
 (``application/json``, optionally gzip-encoded) and answer the OTLP success body
 ``{}`` -- or ``{"partialSuccess": ...}`` when spans without a ``traceId`` were
-rejected. OpenTine has no protobuf decoder, so ``application/x-protobuf`` is
-refused with 415 and a hint to switch the exporter to ``http/json``. Bodies are
+rejected. ``/v1/traces`` also takes ``application/x-protobuf``, decoded by the
+stdlib reader in :mod:`opentine.trace._otlp_proto` (and answered in JSON);
+protobuf logs are refused with 415 and a hint to use ``http/json``. Bodies are
 bounded before they are read (413) and decompressed under the same bound; a
 body that is not JSON is a 400. Grouping and saving live in
 :mod:`opentine._otlp_collect`.
@@ -23,7 +24,7 @@ from opentine._otlp_collect import OtlpCollector
 from opentine.trace._import_guard import shape_checked
 
 PROTOBUF_HINT = (
-    "OTLP/HTTP protobuf is not supported; set OTEL_EXPORTER_OTLP_PROTOCOL=http/json "
+    "OTLP/HTTP protobuf logs are not supported; set OTEL_EXPORTER_OTLP_PROTOCOL=http/json "
     "to send OTLP/JSON"
 )
 ROUTES = {"/v1/traces": "add_spans", "/v1/logs": "add_logs"}
@@ -72,6 +73,17 @@ def _check_limits(document: Any) -> None:
             stack.append(value)
 
 
+def _protobuf(data: bytes) -> Any:
+    from opentine.trace._otlp_proto import decode_traces
+
+    try:
+        document = decode_traces(data)
+    except ValueError as exc:
+        raise _Refused(400, f"body is not valid OTLP protobuf: {exc}") from exc
+    _check_limits(document)
+    return document
+
+
 def _host_name(header: str) -> str:
     host = header.strip().lower()
     if host.startswith("["):
@@ -103,11 +115,12 @@ class OtlpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def _body(self) -> Any:
+    def _body(self, route: str = "add_spans") -> Any:
         kind = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-        if "protobuf" in kind:
+        protobuf = kind == "application/x-protobuf"
+        if "protobuf" in kind and not (protobuf and route == "add_spans"):
             raise _Refused(415, PROTOBUF_HINT)
-        if kind != "application/json":
+        if kind != "application/json" and not protobuf:
             raise _Refused(415, f"unsupported Content-Type {kind or '(none)'!r}; send JSON")
         try:
             length = int(self.headers.get("Content-Length") or "")
@@ -122,6 +135,8 @@ class OtlpHandler(BaseHTTPRequestHandler):
             data = _inflate(data, self.max_bytes)
         elif encoding != "identity":
             raise _Refused(415, f"unsupported Content-Encoding {encoding!r}")
+        if protobuf:
+            return _protobuf(data)
         try:
             document = json.loads(shape_checked(data).decode("utf-8"))
         except (RecursionError, UnicodeDecodeError, ValueError) as exc:
@@ -153,7 +168,7 @@ class OtlpHandler(BaseHTTPRequestHandler):
             if route is None:
                 raise _Refused(404, "OTLP/HTTP serves POST /v1/traces and /v1/logs")
             self._check_origin()
-            rejected = getattr(self.collector, route)(self._body())
+            rejected = getattr(self.collector, route)(self._body(route))
         except _Refused as exc:
             self._reply(exc.status, {"code": exc.status, "message": str(exc)})
             return

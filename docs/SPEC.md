@@ -4,8 +4,8 @@
 `.tine` artifact `format_version` 1 and 2; the v3 `.tine/` repository object
 model, wire format and pack format; the three signature schemes `tine-sig/1`,
 `tine-sig/2` and `tine-attest/1`; since 0.26.0, format v4 (Part 9, the
-default writer) with `tine-sig/3` and `tine-attest/2`; and, since 0.40.0, the
-format v5 reader (Part 10: text blobs, opt-in writer).
+default writer until 0.42) with `tine-sig/3` and `tine-attest/2`; and, since
+0.40.0, format v5 (Part 10: text blobs; the default writer since 0.42.0).
 
 This document is written for someone implementing a **reader, writer or
 verifier in another language**. Everything here is derived from the reference
@@ -2152,8 +2152,11 @@ on the first failure. `tine custody log` lists records with their `sig_bound`.
 
 **Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`
 artifact (Part 3) and the v3 object model (Part 1) into one single-file bundle
-of v3 objects. It is the **default writer**: `Run.save`, `tine import --save`,
-`tine record`, forks and replays write v4, new repositories are object format 4
+of v3 objects. It was the **default writer** from 0.26 to 0.41; since 0.42 the
+default `.tine` spelling is v5 (Part 10), which carries the same v4 objects,
+root and signatures. `Run.save`, `tine import --save`, `tine record`, forks
+and replays write v4 under `tine --for-legacy` (or `--format 4`,
+`OPENTINE_FORMAT=4`), and v5 otherwise; new repositories are object format 4
 (§9.10) and `tine migrate` upgrades to v4 by default. The older writers are
 deprecated and opt-in: `OPENTINE_FORMAT=2` (or `3`; for repositories, object
 format 3), or `tine --format 2` for one command, select them and print one
@@ -2394,15 +2397,18 @@ A v4 file and a v3 repository hold the same envelopes, so they share oids.
 
 # Part 10 — Format v5: text blobs (0.40.0)
 
-**Status:** normative since 0.40.0 for **readers**. Format v5 is a second
+**Status:** normative since 0.40.0 for **readers** and, since 0.42.0, the
+**default writer**. Format v5 is a second
 *spelling* of a format v4 document (Part 9) in which blobs that are UTF-8 text
 travel as JSON strings instead of base64. It changes no object, no oid, no
 root and no signature: a v5 file and the v4 file of the same run carry the
-same envelopes and the same `tine-sig/3` blocks. The writer is **opt-in**:
-`tine --format 5 ...` or `OPENTINE_FORMAT=5` (`_format_v4.writer_format`);
-**v4 remains the default writer**. Following ROADMAP §2 (a new file format
-becomes the default only two minor releases after its reader ships), v5 may
-become the default no earlier than 0.42. A v5 file needs opentine 0.40 or
+same envelopes and the same `tine-sig/3` blocks. Since 0.42 it is the
+**default writer** (`_format_v4.writer_format`), following ROADMAP §2 (a new
+file format becomes the default only two minor releases after its reader
+ships). `tine --for-legacy ...`, `tine --format 4 ...` or `OPENTINE_FORMAT=4`
+write v4 for readers before 0.40, and `tine evidence export` always copies runs
+into the evidence folder as v4 (§10.3 conversion, same root and signatures).
+A v5 file needs opentine 0.40 or
 newer (or the 0.40 TypeScript verifier) to read; 0.26–0.39 refuse it as an
 unknown format, never misread it.
 
@@ -2488,7 +2494,7 @@ so every §9.4 refusal applies and every report names the v4 root. A tampered
 text blob no longer re-derives its oid: integrity fails and a signature over
 it is `mismatch`, exactly as for v4. Any tool that rewrites a v5 file (for
 example `tine sign`, `tine migrate`) writes the current writer format, which
-is v4 unless `--format 5` is given. TINEPACK, bundles and repositories store
+is v5 unless `--for-legacy` (or `--format 4`) is given. TINEPACK, bundles and repositories store
 envelopes, not spellings, and are unaffected.
 
 ## 10.6 Size

@@ -2,8 +2,8 @@
 
 v5 re-spells a v4 document; it never re-addresses one. Every fixture written as
 v4 and re-spelled as v5 reads back to the same canonical v4 bytes, so its root,
-every oid and every ``tine-sig/3`` block are unchanged. v4 stays the default
-writer; v5 is written only under ``--format 5`` / ``OPENTINE_FORMAT=5``.
+every oid and every ``tine-sig/3`` block are unchanged. Since 0.42 v5 is the default
+writer; v4 is written under ``--format 4`` / ``--for-legacy`` / ``OPENTINE_FORMAT=4``.
 """
 
 from __future__ import annotations
@@ -69,29 +69,28 @@ def test_signatures_carry_over_unchanged_and_still_verify():
     assert verify_artifact_v4(parse_artifact_json(canonical_json(v5)), hmac_key=KEY).ok
 
 
-def test_format_5_writes_v5_and_the_default_is_still_v4(tmp_path, monkeypatch):
+def test_v5_is_the_default_and_format_4_writes_v4(tmp_path, monkeypatch):
     monkeypatch.delenv(FORMAT_ENV, raising=False)
-    assert writer_format() == 4 and format_arg("5") == 5
+    assert writer_format() == 5 and format_arg("4") == 4  # 0.42: v5 is the default
     run = _run()
-    run.save(tmp_path / "default.tine")
-    assert json.loads(read_artifact_bytes(tmp_path / "default.tine"))["kind"] == "tine-artifact/4"
-    with write_format(5):
+    run.save(tmp_path / "default.tine", sign_key=KEY, key_id="k", signed_at=AT)
+    with write_format(4):
         run.save(tmp_path / "flag.tine", sign_key=KEY, key_id="k", signed_at=AT)
-    monkeypatch.setenv(FORMAT_ENV, "5")
+    monkeypatch.setenv(FORMAT_ENV, "4")
     run.save(tmp_path / "env.tine")
     for name in ("flag", "env"):
         raw = read_artifact_bytes(tmp_path / f"{name}.tine")
-        assert json.loads(raw)["kind"] == ARTIFACT_V5_KIND
+        assert json.loads(raw)["kind"] == "tine-artifact/4"
         assert verify_integrity(tmp_path / f"{name}.tine").ok
     monkeypatch.delenv(FORMAT_ENV)
-    run.save(tmp_path / "plain.tine", sign_key=KEY, key_id="k", signed_at=AT)
+    default = json.loads(read_artifact_bytes(tmp_path / "default.tine"))
     flag = json.loads(read_artifact_bytes(tmp_path / "flag.tine"))
-    plain = json.loads(read_artifact_bytes(tmp_path / "plain.tine"))
-    assert flag["root"] == plain["root"] and flag["signatures"] == plain["signatures"]
-    assert canonical_json(to_v4(flag)) == canonical_json(plain)
-    loaded = Run.load(tmp_path / "flag.tine")
+    assert default["kind"] == ARTIFACT_V5_KIND
+    assert default["root"] == flag["root"] and default["signatures"] == flag["signatures"]
+    assert canonical_json(to_v4(default)) == canonical_json(flag)
+    loaded = Run.load(tmp_path / "default.tine")
     assert [s.inputs for s in loaded.steps] == [
-        s.inputs for s in Run.load(tmp_path / "plain.tine").steps
+        s.inputs for s in Run.load(tmp_path / "flag.tine").steps
     ]
 
 

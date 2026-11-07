@@ -18,6 +18,7 @@ from opentine._atif_parse import is_atif
 from opentine.trace._import_entire import entire_events
 from opentine.trace._import_hermes import hermes_events, looks_like_hermes
 from opentine.trace._transcript_claude import claude_transcript_events, looks_like_claude
+from opentine.trace._transcript_cline import cline_task_events, roo_events
 from opentine.trace._transcript_codex import codex_session_events, looks_like_codex
 from opentine.trace._transcript_gemini import gemini_session_events, looks_like_gemini
 from opentine.trace._transcript_opencode import opencode_events
@@ -33,6 +34,8 @@ TRANSCRIPT_IMPORTERS: dict[str, Callable[[Any], list[TraceEvent]]] = {
     "opencode-session": opencode_events,  # a SQLite path only, never stdin text
     "hermes-trajectory": hermes_events,  # path or path::N; the last record by default
     "entire": entire_events,  # a git repo path[::checkpoint[/session]], never stdin
+    "cline-task": cline_task_events,  # a globalStorage task dir or its history file
+    "roo-task": roo_events,
 }
 TRANSCRIPT_FORMATS = tuple(TRANSCRIPT_IMPORTERS)
 _SNIFF_LINES = 64

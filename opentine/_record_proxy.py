@@ -28,6 +28,12 @@ UPSTREAMS: dict[str, tuple[tuple[str, ...], str, str, str]] = {
     "anthropic": (("ANTHROPIC_BASE_URL",), "https://api.anthropic.com", "anthropic", "anthropic"),
     "deepseek": (("DEEPSEEK_BASE_URL",), "https://api.deepseek.com", "deepseek", "openai"),
     "xai": (("XAI_BASE_URL",), "https://api.x.ai/v1", "xai", "openai"),
+    "gemini": (
+        ("GOOGLE_GEMINI_BASE_URL", "GEMINI_BASE_URL"),
+        "https://generativelanguage.googleapis.com", "google", "gemini",
+    ),
+    # No public default: an Azure resource is always the child's own endpoint.
+    "azure": (("AZURE_OPENAI_ENDPOINT",), "", "azure", "openai"),
 }  # fmt: skip
 
 _HOP = {
@@ -38,18 +44,41 @@ _HOP = {
 MAX_CAPTURE = 16 * 1024 * 1024
 
 
-def upstream_bases(environ: dict[str, str]) -> dict[str, str]:
-    """Where each provider's calls really go: the child's own setting, else the default."""
+def upstream_bases(
+    environ: dict[str, str], overrides: dict[str, str] | None = None
+) -> dict[str, str]:
+    """Where each provider's calls go: ``--upstream``, the child's setting, the default."""
     bases = {}
     for name, (variables, default, _, _) in UPSTREAMS.items():
         found = next((environ[v] for v in variables if environ.get(v)), default)
-        bases[name] = found.rstrip("/")
+        bases[name] = (overrides or {}).get(name, found).rstrip("/")
     return bases
 
 
-def child_env(environ: dict[str, str], port: int) -> dict[str, str]:
+def parse_upstreams(values: list[str]) -> dict[str, str]:
+    """``--upstream NAME=URL`` values as a mapping; a ``ValueError`` names a bad one."""
+    out = {}
+    for value in values:
+        name, sep, url = value.partition("=")
+        if not sep or name not in UPSTREAMS:
+            raise ValueError(f"--upstream wants NAME=URL with NAME one of {', '.join(UPSTREAMS)}")
+        if urlsplit(url).scheme not in ("http", "https") or not urlsplit(url).netloc:
+            raise ValueError(f"--upstream {name}: {url!r} is not an http(s) URL")
+        out[name] = url
+    return out
+
+
+def child_env(
+    environ: dict[str, str], port: int, bases: dict[str, str] | None = None
+) -> dict[str, str]:
+    """The child's environment, each provider's base URL pointed at the proxy.
+
+    A provider with nowhere to forward to (Azure with no endpoint) is left unset,
+    so the child's SDK does not think it was configured."""
     env = dict(environ)
     for name, (variables, _, _, _) in UPSTREAMS.items():
+        if bases is not None and not bases.get(name):
+            continue
         for variable in variables:
             env[variable] = f"http://127.0.0.1:{port}/{name}"
     return env
@@ -74,6 +103,9 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_error(400, "invalid Content-Length")
             return
         body = self.rfile.read(length) if length else b""
+        if not self.server.bases.get(name):
+            self.send_error(502, f"no upstream for {name}: set its endpoint or --upstream")
+            return
         started = time.monotonic()
         record: dict[str, Any] = {"upstream": name, "path": "/" + rest, "request": body}
         record["started"] = started
@@ -145,7 +177,9 @@ class RecordingServer(ThreadingHTTPServer):
         return int(self.server_address[1])
 
 
-def start(on_record: Callable[[dict[str, Any]], None]) -> RecordingServer:
-    server = RecordingServer(upstream_bases(dict(os.environ)), on_record)
+def start(
+    on_record: Callable[[dict[str, Any]], None], overrides: dict[str, str] | None = None
+) -> RecordingServer:
+    server = RecordingServer(upstream_bases(dict(os.environ), overrides), on_record)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

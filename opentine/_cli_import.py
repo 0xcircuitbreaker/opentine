@@ -16,7 +16,8 @@ Formats
 ``claude-code-transcript`` ``codex-session`` ``gemini-session`` ``qwen-session``
 ``atif`` ``opencode-session`` an agent's session log (opencode.db[::id]);
                    ``--from-default-location`` lists them; ``latest`` or an id prefix.
-``entire``         a git repo with Entire's checkpoint branch (REPO[::ID[/N]]).
+``entire``         a git repo with Entire checkpoints (REPO[::ID[/N]]); ``--all``: each one.
+``cline-task`` ``roo-task`` a Cline / Roo Code globalStorage task directory.
 ``auto``           (the default) recognize the source by its shape.
 
 Persistence — at least one target is required
@@ -36,11 +37,9 @@ the one running ``tine import``.
 Pricing
 -------
 ``--price``        run the post-hoc pricing pass (:mod:`opentine._pricing_pass`)
-                   over the parsed events before any of them is written, so the
-                   model steps land carrying the catalog's cost and billing
-                   record. A step no rate card covers is recorded ``unknown``,
-                   not ``$0.00``, and a cost the source itself reported is kept.
-                   Without the flag import behaviour is unchanged.
+                   over the parsed events before any is written. A step no rate
+                   card covers is recorded ``unknown``, not ``$0.00``, and a
+                   cost the source itself reported is kept.
 
 With ``--json`` the human lines are replaced by one object naming the run and
 both targets (schema: :mod:`opentine._cli_json_surface`). Reading and routing
@@ -55,6 +54,7 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
+from opentine._cli_import_entire_all import import_entire_all
 from opentine._cli_import_fleet import add_extra_args, check_fleet, import_fleet
 from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spelling of "-"
 from opentine._cli_import_read import detect_and_read
@@ -77,7 +77,7 @@ IMPORT_FORMATS = (
     "otel-json",
     "otel-logs",
     "otel-spans",
-    "jsonl",
+    *("jsonl", "otlp-proto", "har"),
     *TRANSCRIPT_FORMATS,
     *FRAMEWORK_FORMATS,
 )
@@ -180,7 +180,7 @@ def cmd_import(args: argparse.Namespace) -> None:
             args.source = str(resolve(args.source, args.format).path)
         except ValueError as exc:
             raise _refused(exc) from exc
-    if import_v4_file(args):  # a format v4 .tine: its envelopes, installed unchanged
+    if import_v4_file(args) or import_entire_all(args):  # v4 .tine; Entire --all
         return
     _refuse_unusable_flags(args)
     output = Path(args.save) if args.save else None

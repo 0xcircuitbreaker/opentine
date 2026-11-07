@@ -29,7 +29,9 @@ _LEGACY_ONLY = ("tag", "model", "status", "cost_min", "cost_max", "since", "unti
 
 
 def wants_repo(args: argparse.Namespace) -> bool:
-    """``--repo`` given, or the working directory itself holds a repository."""
+    """``--repo`` given, the cwd holds a repository, or ``--ai-share`` (git) was asked."""
+    if getattr(args, "ai_share", False):
+        return True
     if getattr(args, "repo", None):
         return True
     return (Path(".tine") / "config.json").is_file()
@@ -129,6 +131,10 @@ def _refuse(message: str) -> None:
 
 
 def cmd_stats_repo(args: argparse.Namespace) -> None:
+    if getattr(args, "ai_share", False):
+        from opentine._cli_attribute import cmd_ai_share
+
+        return cmd_ai_share(args)
     from opentine.repository import Repo
 
     used = [name for name in _LEGACY_ONLY if getattr(args, name, None)]

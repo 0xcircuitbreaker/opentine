@@ -21,3 +21,43 @@ Layout on refs/heads/entire/checkpoints/v1:
   <id[:2]>/<id[2:]>/<N>/full.jsonl     raw agent transcript (+ .001 chunks;
                                        full.log in old versions)
   <id[:2]>/<id[2:]>/<N>/prompt.txt
+
+This branch layout is now the *fallback*: current CLIs write per-checkpoint
+refs (below), and a checkpoint not yet migrated stays on the branch.
+
+0.42: per-checkpoint refs (the git-refs backend; read first)
+-------------------------------------------------------------
+Read from: https://github.com/entireio/cli
+Commit:    17108c4550e4e39887b679b6f0b3424dec057556 (2026-11-06)
+Files:     cmd/entire/cli/checkpoint/refs_naming.go   (CheckpointRefPrefix
+                                                       "refs/entire/checkpoints/",
+                                                       RefName / ParseRef; shard =
+                                                       id.ShardFor() = last 2 chars)
+           cmd/entire/cli/checkpoint/id/id.go          (ShardFor)
+           docs/architecture/ref-checkpoint-backend.md (tree root is the checkpoint;
+                                                       orphan first commit, then
+                                                       parented per ref)
+           cmd/entire/cli/checkpoint/persistent.go     (buildCommitMessage:
+                                                       "Checkpoint: <id>" plus
+                                                       Entire-Session / -Strategy /
+                                                       -Agent trailers; sessions[]
+                                                       paths "/" + subtree path;
+                                                       content hash "sha256:<hex>")
+           api/checkpoint/metadata.go                  (SessionFilePaths, Metadata,
+                                                       CheckpointSummary)
+
+Layout of refs/entire/checkpoints/<id[-2:]>/<id> (the commit's tree root):
+  metadata.json          CheckpointSummary (sessions[].metadata = "/<N>/metadata.json")
+  <N>/metadata.json      session Metadata
+  <N>/full.jsonl         raw agent transcript
+  <N>/prompt.txt
+  <N>/content_hash.txt   "sha256:<hex of full.jsonl>"
+
+git-refs/01JD5Z8K3QX7M2N4P6R8T0V9WA/ is one such tree, built by hand field for
+field from the structs above: no Entire binary was run to produce it (the
+session's transcript is a minimal Claude Code one), so the acceptance check
+"an Entire export round-trips through the current entireio/cli" is asserted
+against this documented shape, not against a live `entire` run.
+tests/test_entire_refs_0_42.py commits it under its ref. `tine export --format
+entire` writes the same layout with a 12-hex (legacy-form) id, which Entire's
+ref naming and parsing accept as well.

@@ -82,7 +82,7 @@ def test_format_2_writes_v2_with_one_warning(room, monkeypatch, capsys, value):
     _run("b").save(room / "b.tine")
     assert read_artifact_json(first)["format_version"] == 2
     err = capsys.readouterr().err
-    assert err.count("deprecated") == 1 and "format v4" in err
+    assert err.count("deprecated") == 1 and "format v5" in err
 
 
 def test_tine_format_2_flag_pins_the_legacy_writer(room, capsys):

@@ -13,7 +13,10 @@ FLEET_HELP = "Claude Code: one child run per subagent, forked at its spawning st
 
 
 def add_extra_args(parser: argparse.ArgumentParser) -> None:
+    from opentine._cli_import_entire_all import ALL_HELP
+
     parser.add_argument("--fleet", action="store_true", help=FLEET_HELP)
+    parser.add_argument("--all", action="store_true", help=ALL_HELP)
     parser.add_argument(
         "--adapter",
         metavar="NAME",

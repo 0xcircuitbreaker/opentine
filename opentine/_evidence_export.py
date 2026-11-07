@@ -140,6 +140,29 @@ def archival_bytes(raw: bytes) -> bytes:
     return _codec.wrap(body, _codec.archival_codec()) or body
 
 
+def v4_bytes(raw: bytes) -> bytes:
+    """*raw* as format v4: evidence stays readable by every v4 verifier, so a v5
+    file (SPEC Part 10) is re-spelled as the v4 document it encodes, under the
+    same codec. Its root and signatures are unchanged; anything else is as it is."""
+    from opentine import _codec
+    from opentine._artifact_io import MAX_TINE_ARTIFACT_BYTES, parse_artifact_json
+    from opentine._tine_v5 import ARTIFACT_V5_KIND
+
+    wrapped = raw.startswith(_codec.MAGIC)
+    body = _codec.unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES) if wrapped else raw
+    if f'"{ARTIFACT_V5_KIND}"'.encode() not in body:
+        return raw
+    try:  # the parser reads a v5 file as the v4 document it spells
+        encoded = canonical_json(parse_artifact_json(body))
+    except ValueError:
+        return raw
+    if encoded == body:  # a canonical v4 file that merely mentions the v5 kind
+        return raw
+    if not wrapped:
+        return encoded
+    return _codec.wrap(encoded, _codec.NAMES[raw[len(_codec.MAGIC)]]) or encoded
+
+
 def write_evidence(
     out: Path,
     runs: list[tuple[Path, Any, dict[str, Any]]],
@@ -157,7 +180,7 @@ def write_evidence(
         run_id = data.get("run_id") if isinstance(data, dict) else None
         run_id = run_id if isinstance(run_id, str) else source.stem
         target = out / "runs" / source.name
-        raw = source.read_bytes()
+        raw = v4_bytes(source.read_bytes())
         raw = archival_bytes(raw) if with_verifier else raw
         target.write_bytes(raw)
         rel = f"runs/{source.name}"

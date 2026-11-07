@@ -464,10 +464,57 @@ usage. `full.jsonl` holds the session up to that checkpoint, so the run is the
 session so far. Session metadata over 1 MiB and transcripts over 64 MiB are
 refused before they are read.
 
-# Writer format (0.26)
+### Per-checkpoint refs, `--all` and export (0.42)
 
-Since 0.26 every writer produces **format v4** (SPEC Part 9): `.tine` files are
-`tine-artifact/4`, signatures `tine-sig/3`, Ed25519 attestations on a run
+```
+tine import . --format entire --save run.tine          # refs first, v1 branch as fallback
+tine import . --format entire --all --repo runs        # every checkpoint session, one run each
+tine export run.tine --format entire --output ~/proj   # write the run as a checkpoint ref
+```
+
+Current entireio/cli keeps one ref per checkpoint,
+`refs/entire/checkpoints/<id[-2:]>/<id>`, whose commit tree *is* the checkpoint
+(`metadata.json`, `0/`, `1/` ...; sessions listed as `/<N>/metadata.json`).
+Those refs are read first, newest commit first; any checkpoint id found only on
+the `entire/checkpoints/v1` branch is read from there. `attributes["entire"]
+["layout"]` says which (`refs` or `branch`). `--all` records each session of
+each checkpoint on `heads/entire/<id, lowercased>/<N>` and needs `--repo`
+(`--save`, `--ref` and `--fleet` are refused with it); with `--json` it prints
+`{"command": "import", "format": "entire", "all": true, "runs": [...]}`.
+
+`export --format entire` writes the run, redacted, as one checkpoint in the
+`--output` git repository: a 12-hex id derived from the run id, a Claude Code
+`full.jsonl`, `prompt.txt`, `content_hash.txt` and both metadata files, committed
+with Entire's `Checkpoint: <id>` message and `Entire-Session`/`-Strategy`/`-Agent`
+trailers. Only git objects and that one ref are written. Exporting the same run
+again is a no-op; a changed run becomes a child commit on the same ref.
+
+## Cline and Roo Code task import (0.42)
+
+```
+tine import ~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/1730985600000 --save run.tine
+tine import --from-default-location --format roo-task          # list Roo Code tasks
+```
+
+SOURCE is a task directory (or its `api_conversation_history.json`);
+`ui_messages.json` and Cline's `task_metadata.json` beside it are read when
+present. Each assistant message is a model step, tool results (native
+`tool_result` blocks or the `[tool for 'x'] Result:` text convention) are tool
+steps, and other user turns human steps, with `<environment_details>` blocks
+dropped. Token usage comes from the matching `api_req_started` record (Roo's
+`apiProtocol: "openai"` counts cache reads inside `tokensIn`), else from the
+message's `metrics`. `auto` tells Roo from Cline by the
+`rooveterinaryinc.roo-cline` folder in the path. Windsurf is not supported: it
+has no documented local session format.
+
+# Writer format (0.26, 0.42)
+
+Since 0.42 `.tine` files are written as **format v5** (SPEC Part 10): the v4
+document with UTF-8 text blobs spelled as text, carrying the same oids, root
+and `tine-sig/3` signatures; opentine 0.40 or newer reads it. `--for-legacy`
+writes v4 for older readers, and `tine evidence export` always copies its runs
+as v4. Since 0.26 every writer produces **format v4** objects (SPEC Part 9):
+`.tine` files were `tine-artifact/4` until 0.42, signatures `tine-sig/3`, Ed25519 attestations on a run
 `tine-attest/2`, and `tine init` creates an object-format-4 repository (an
 existing repository is marked object format 4 before the first object 0.26
 writes into it). Reading never changes: every older file and repository stays
@@ -475,10 +522,11 @@ readable, and a read never rewrites it.
 
 | Spelling | Writes |
 | --- | --- |
-| *(default)* | format v4; new repositories object format 4 |
+| *(default)* | format v5 `.tine` files (SPEC Part 10; opentine >= 0.40 reads); new repositories object format 4 |
+| `tine --for-legacy COMMAND ...` (or `--format 4`) | format v4 `.tine` files, for readers before 0.40, for this command only |
 | `tine --format 2 COMMAND ...` | the deprecated v2 file / object-format-3 repository writers, for this command only |
 | `OPENTINE_FORMAT=2` (or `3`) | the same, for the whole environment |
-| `OPENTINE_FORMAT=4` | strict v4: no deprecated block even where v4 cannot express it (an HMAC attestation, `sign_artifact` on a v2 dict) |
+| `OPENTINE_FORMAT=4` | v4 files for the whole environment, strict: no deprecated block even where v4 cannot express it (an HMAC attestation, `sign_artifact` on a v2 dict) |
 | `tine migrate FILE` | upgrades to v4 (`--to v4` is the default; `-o`/`--save` names the output, else `NAME.v4.tine`) |
 | `tine migrate FILE --to 2` | the deprecated in-file v1 -> v2 migration |
 
@@ -662,3 +710,80 @@ A key flag without `--manifest` or `--dry-run` is refused.
 the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
 the runs named by `Tine-Run:` trailers -- to that remote instead of the code
 remote, keeping transcripts off the code host.
+
+## Run summaries: `tine explain` (0.42)
+
+```
+tine explain RUN                 # text summary; stored as an annotation in a v3 repo
+tine explain RUN --json          # {"command": "explain", "run", "digest", "summary",
+                                 #  "stored", "annotation", "narrative"}
+tine explain RUN --no-store      # print only
+tine explain RUN --narrative     # plus a narrative from a local model
+```
+
+A deterministic, offline summary built from the recorded run alone: what was
+asked, models, steps by kind, tools used, files written and read, hosts, the
+outcome, errors and failed tool calls, and tokens and cost when the run records
+them (absent otherwise, never 0). The same run always gives byte-identical
+output. `summary.schema` is `opentine-explain/1`; `digest` is the SHA-256 of the
+summary as sorted, compact JSON.
+
+In a v3 repository (`--repo PATH`, or one in the current directory) the
+summary is stored on the run's annotation chain under
+`metadata["opentine.explain"]`; re-running it writes nothing new. A legacy
+`.tine` run is explained but not stored.
+
+`--narrative` asks the model named in `OPENTINE_EXPLAIN_MODEL`
+(`provider[:model]`, for example `ollama:llama3.1`) for a few sentences. Only a
+local provider is accepted; with none configured the command refuses with exit
+code 2 and sends nothing. The narrative is stored apart from the summary, under
+`metadata["opentine.explain.narrative"]`, with `generated_by: "model"`, a
+`label` saying it is model-generated and not evidence, the model spec and the
+digest of the summary it describes.
+
+## Line attribution (0.42)
+
+```
+tine git attribute COMMIT [RUN...] [--sign-key KEY] [--no-configure] [--json]
+tine git attribution COMMIT [--verify] [--pubkey KEY.pub] [--json]
+tine git attribution COMMIT --format agent-trace
+tine stats --ai-share [--rev REV] [--json]
+```
+
+`tine git attribute` diffs `COMMIT` against its first parent and matches each
+added line to the recorded write that inserted it (the matching `tine blame`
+uses), over the runs given, or else the runs the commit already links through
+`Tine-Run` trailers or notes. The result is stored in the commit's
+`refs/notes/tine` note as one `Tine-Attribution: {...}` line (schema
+`opentine-line-attribution/1`): per file, ranges with `start_line`,
+`end_line`, the `run`, `step`, `seq`, `tool` and `model` that wrote them, and
+the `content_hash` (SHA-256) of the lines covered. `Tine-Run` lines for the
+runs are kept or added, so `tine git log` sees the same note. With
+`--sign-key` the record carries an Ed25519 `tine-sig/3` block under the domain
+`opentine.line-attribution.v1:`.
+
+The record names no commit, so it stays true when git copies the note to a
+rewritten commit. `tine git attribute` adds this to the repository's config
+(skip with `--no-configure`):
+
+```
+git config --add notes.rewriteRef refs/notes/tine
+```
+
+With it, `git commit --amend` and `git rebase` (including `rebase -i`) copy the
+note to the new commit. Set it yourself in clones where `attribute` has not
+run; git does not copy notes by default.
+
+`tine git attribution COMMIT --verify` checks the signature (against
+`--pubkey`, or the embedded key as trust on first use) and that every range's
+hash still matches the lines the commit adds; it exits 1 when either fails.
+`--format agent-trace` prints the note as an [Agent Trace](https://agent-trace.dev/)
+record: `vcs` is `{"type": "git", "revision": COMMIT}`, one conversation per
+model with contributor `ai`, ranges with `content_hash`, and run and step ids
+in `metadata["io.github.0xcircuitbreaker.opentine"]`.
+
+`tine stats --ai-share` blames every text file at `--rev` (default `HEAD`) and
+counts the lines whose originating commit's attribution note credits them to
+a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
+`commits_with_attribution`. Lines in commits without a note count as not
+attributed.

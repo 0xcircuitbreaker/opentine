@@ -28,6 +28,8 @@ HARNESS_OF = {
     "atif": "atif",
     "hermes-trajectory": "hermes",
     "entire": "entire",
+    "cline-task": "cline",
+    "roo-task": "roo-code",
 }
 
 
