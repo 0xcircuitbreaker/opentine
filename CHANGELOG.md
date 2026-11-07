@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.42.0 — Protocol capture, importers and attribution (2026-11-07)
+
+### Behaviour changes
+
+- **`.tine` v5 is the default writer** (SPEC Part 10): the v4 document with
+  UTF-8 text blobs spelled as text, carrying the same oids, root and
+  `tine-sig/3` signatures. Reading it needs opentine 0.40 or newer.
+- **`tine --for-legacy ...`** writes v4 for readers from 0.26 to 0.39;
+  `--format 2` / `OPENTINE_FORMAT=2` still selects the deprecated v2.
+- **`tine evidence export` stays on v4.** Runs copied into an evidence bundle
+  are re-spelled as `tine-artifact/4` even when the source run is v5.
+
+### Added
+
+- **OTLP protobuf.** `tine serve --otlp` accepts `application/x-protobuf` on
+  `/v1/traces`, decoded by a bounded stdlib wire reader (malformed, overlong
+  or too-deep input is a 400; fuzzed). `tine import --format otlp-proto`
+  imports a protobuf trace file and is detected for `.binpb`/`.pb` sources.
+- **HAR import.** `tine import --format har` reads the LLM API calls in a HAR
+  1.2 archive (OpenAI, Anthropic, Gemini, Azure OpenAI, DeepSeek, xAI or a
+  gateway's API paths) with the record proxy's own parsers; headers and query
+  strings are never read.
+- **`tine record` dialects.** A `gemini` dialect (`generateContent` and SSE
+  `streamGenerateContent`), an `azure` upstream on the OpenAI wire, and
+  `--upstream NAME=URL` to override where a dialect forwards. Query strings
+  are stripped from recorded paths, so a Gemini `?key=` never reaches the run.
+- **Entire.** `tine import --format entire` reads the per-checkpoint refs
+  (`refs/entire/checkpoints/<shard>/<id>`) first, with the
+  `entire/checkpoints/v1` branch as fallback; `--all` imports every
+  checkpoint session into `--repo`; `tine export --format entire` writes a
+  redacted run back as one checkpoint ref.
+- **Cline and Roo Code.** `--format cline-task` / `roo-task` import VS Code
+  task histories; `auto` detects them and `--from-default-location` lists
+  tasks.
+- **`tine explain`** prints a deterministic run summary and stores it as an
+  `opentine.explain` annotation; `--narrative` adds a labelled summary from a
+  local model named in `OPENTINE_EXPLAIN_MODEL`.
+- **Line attribution.** `tine git attribute COMMIT` stores signed line
+  attribution in `refs/notes/tine`; `tine git attribution` reads, verifies
+  or exports it as an Agent Trace record; `tine stats --ai-share` reports
+  the share of lines notes credit to agents.
+- `tests/fixtures/OWNERS` and provenance for the new importer fixtures.
+
+### Compatibility
+
+- Readers before 0.40 cannot open the v5 `.tine` files 0.42 writes by
+  default; write them with `--for-legacy`. Repositories are unchanged.
+- No new conformance families. The suite is now
+  **658 conformance vectors**; 219 of the 658 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+### Deferred
+
+- OTLP gRPC ingest, pending a security review.
+- OTLP protobuf logs (traces only for now).
+- Windsurf import: it has no documented local session format.
+- `tine git install-hook` does not set `notes.rewriteRef`; only
+  `tine git attribute` does.
+
 ## 0.41.0 — Keys, post-quantum and FIPS (2026-11-06)
 
 ### Behaviour changes
