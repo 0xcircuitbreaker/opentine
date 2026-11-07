@@ -9,6 +9,7 @@ from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
+from opentine.remote._audit_tlog_http import audit_routes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
@@ -246,7 +247,6 @@ class RemoteApp(UploadRoutes):
             results = self.service.search(identity, tenant, query, truncated=cut)
             body = {"objects": results, "truncated": bool(cut)}
             return self._json_response(start_response, "200 OK", body)
-        if resource == "audit/verify" and method == "GET":
-            result = self.service.verify_audit_chain(identity, tenant)
-            return self._json_response(start_response, "200 OK", result)
+        if method == "GET" and (resource == "audit/verify" or resource.startswith("transparency/")):
+            return audit_routes(self, identity, tenant, resource, environ, start_response)
         return self._json_response(start_response, "404 Not Found", {"error": "not found"})

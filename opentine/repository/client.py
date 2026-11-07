@@ -11,7 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository import _pack4, _pack_peer
+from opentine.repository import _pack4, _pack_peer, _remote_tlog
 from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
@@ -41,6 +41,8 @@ class TransferResult:
     ref: str | None = None
     #: Runs whose attestations (or annotations) did not fit in a fetched pack.
     associations_omitted: int = 0
+    #: 0.44 (X33): the remote audit log check (``_remote_tlog``), when it ran.
+    transparency: dict[str, Any] | None = None
 
 
 def _omitted(headers: dict[str, str]) -> int:
@@ -118,6 +120,8 @@ def fetch(
             raise ValueError("remote object format is incompatible")
         _, refs = _request_json(client, "GET", _prefix(namespace) + "/refs", max_seconds=timeout)
         remote_refs = _refs(refs)
+        state = _remote_tlog.state_root(repo.path, base, namespace)  # before any import
+        logged = _remote_tlog.advance(state, client, _prefix(namespace), timeout)
         selected = wants or ([remote_refs[ref]] if ref in remote_refs else [])
         if not selected:
             raise KeyError(f"remote ref not found: {ref}")
@@ -148,7 +152,7 @@ def fetch(
         adopt_advertised_annotations(
             repo, remote_refs, held_before, remote_name, adopt_held=adopt_annotations
         )
-    return TransferResult(len(result.objects), result.pack_id, ref, _omitted(received))
+    return TransferResult(len(result.objects), result.pack_id, ref, _omitted(received), logged)
 
 
 def push(
@@ -198,7 +202,9 @@ def push(
             moves.append((annotation, local_annotation, _refs(refs).get(annotation)))
         prefix = _prefix(namespace)
         move_refs(client, _request_json, prefix, caps, moves, timeout=timeout, force=force)
-    return TransferResult(objects, pack_id, destination, len(short))
+        state = _remote_tlog.state_root(repo.path, base, namespace)
+        logged = _remote_tlog.receipt(state, client, prefix, destination, local_oid, timeout)
+    return TransferResult(objects, pack_id, destination, len(short), logged)
 
 
 def clone(
