@@ -45,6 +45,34 @@ def _read_text(source: str) -> str:
     return data.decode("utf-8", "replace") if isinstance(data, bytes) else data
 
 
+def _read_bytes(source: str) -> bytes:
+    if source == STDIN:
+        stream = getattr(sys.stdin, "buffer", None)
+        if stream is None:
+            raise ValueError("a binary format needs a byte stream on stdin")
+        data = bounded_read(stream, MAX_TRACE_IMPORT_BYTES)
+    else:
+        with Path(source).open("rb") as handle:
+            data = bounded_read(handle, MAX_TRACE_IMPORT_BYTES)
+    return data.encode() if isinstance(data, str) else data
+
+
+def _otlp_proto_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._otlp_proto import decode_traces
+
+    return otel_genai_events(decode_traces(data))
+
+
+def _har_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._import_har import har_events
+
+    return har_events(data)
+
+
+#: Formats read as raw bytes rather than text: a protobuf file, a HAR archive.
+BINARY_FORMATS = {"otlp-proto": _otlp_proto_events, "har": _har_events}
+
+
 def _records(text: str) -> list:
     """Decode a JSON array, a single JSON object, or one JSON object per line.
 
@@ -109,6 +137,10 @@ def detect_and_read(
     if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:
         # Transcripts are read line by line from a path, each line bounded.
         return source_format, TRANSCRIPT_IMPORTERS[source_format](source)
+    if source_format == "auto" and source.endswith((".binpb", ".pb")):
+        source_format = "otlp-proto"
+    if source_format in BINARY_FORMATS:
+        return source_format, BINARY_FORMATS[source_format](_read_bytes(source))
     text = _read_text(source)
     if source_format == "auto":
         source_format = detect_format(text)

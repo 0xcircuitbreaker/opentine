@@ -839,11 +839,15 @@ directory layout included), and its files are written 0600. Export it on each
 machine instead of sharing or publishing it.
 
 Record any program's model calls through a local proxy (OpenAI-, Anthropic-,
-DeepSeek- and xAI-style clients that honour their `*_BASE_URL` variable):
+Gemini-, Azure OpenAI-, DeepSeek- and xAI-style clients that honour their base-URL
+variable, such as `OPENAI_BASE_URL`, `GOOGLE_GEMINI_BASE_URL` or
+`AZURE_OPENAI_ENDPOINT`). `--upstream NAME=URL` sets where a dialect forwards;
+query strings (a Gemini `?key=`) are never recorded:
 
 ```text
 tine record -- python my_agent.py --task "fix the bug"
 tine record --save run.tine -- node agent.js
+tine record --upstream azure=https://my-resource.openai.azure.com -- python agent.py
 ```
 
 Record an MCP session (stdio or Streamable HTTP) by putting `tine mcp-proxy`
@@ -853,7 +857,8 @@ between client and server; payloads are redacted before they are stored:
 tine mcp-proxy --save mcp.tine -- python my_server.py
 ```
 
-Receive live OpenTelemetry from any OTLP/JSON exporter; each trace is saved
+Receive live OpenTelemetry from any OTLP/HTTP exporter (JSON, or protobuf for
+traces, decoded without a protobuf dependency); each trace is saved
 as a run when its root span ends, after `--otlp-idle` quiet seconds, or on
 Ctrl-C:
 
@@ -959,7 +964,9 @@ tine export <run> --endpoint https://collector.example/v1/traces
 
 `tine import` reads a foreign agent trace — `otel-json` (a complete OTLP/JSON
 export document), `otel-spans` (a JSON array of GenAI spans, or one per line),
-`jsonl` (OpenTine `TraceEvent` records), or one of `langchain`, `llamaindex`,
+`otlp-proto` (an OTLP protobuf `ExportTraceServiceRequest`; auto-detected for
+`.binpb`/`.pb` files), `har` (the LLM API calls in a HAR 1.2 archive; headers
+and query strings are never read), `jsonl` (OpenTine `TraceEvent` records), or one of `langchain`, `llamaindex`,
 `autogen`, `crewai`, `openai-agents` — from a file or `-` for stdin, and records
 it as an ordinary run. At least one destination is required: `--save PATH`
 writes a portable v2 `.tine` artifact (refusing an existing file without

@@ -10,8 +10,10 @@ import urllib.request
 
 import pytest
 
+from opentine import Run
 from opentine._otlp_collect import OtlpCollector
 from opentine._otlp_http import start
+from opentine.cli import main
 from opentine.trace._otlp_proto import decode_traces
 from opentine.trace._protobuf_wire import WireError, fields, varint
 from opentine.trace.importers import otel_genai_events
@@ -229,3 +231,14 @@ def test_serve_refuses_bad_protobuf_with_400(receiver):
     status, body = _post(url + "/v1/traces", b"\x0a\x05ab")
     assert status == 400 and "protobuf" in body["message"]
     assert runs == []
+
+
+def test_import_format_otlp_proto(tmp_path, capsys, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    source = tmp_path / "trace.binpb"
+    source.write_bytes(_request())
+    main(["import", str(source), "--save", "out.tine"])  # auto by extension
+    run = Run.load(tmp_path / "out.tine")
+    assert len(run.graph.steps) == 2
+    main(["import", str(source), "--format", "otlp-proto", "--save", "b.tine"])
+    assert len(Run.load(tmp_path / "b.tine").graph.steps) == 2

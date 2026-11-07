@@ -77,7 +77,7 @@ IMPORT_FORMATS = (
     "otel-json",
     "otel-logs",
     "otel-spans",
-    "jsonl",
+    *("jsonl", "otlp-proto", "har"),
     *TRANSCRIPT_FORMATS,
     *FRAMEWORK_FORMATS,
 )
