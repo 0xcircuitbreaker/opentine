@@ -48,11 +48,6 @@ export interface Row {
  */
 export const OUT_OF_SCOPE_OPS: Record<string, string> = {
   "canon.v2": "the legacy (format v1-v3) canonicalizer, SPEC 0.3",
-  "links.extract": "repository link existence checks, SPEC 1.5",
-  "annotation.chain": "repository annotation chains, SPEC 1.5.5",
-  "event.metrics": "event metric rules, SPEC 1.5.2",
-  "run.graph": "the v3 run graph loader, SPEC 1.5.3",
-  "object.load": "full repository object reads, SPEC 1.5",
   "object.put": "writer-side redaction, SPEC 1.4",
   "redact.blob": "writer-side redaction, SPEC 1.4",
   "redact.value": "writer-side redaction, SPEC 1.4",

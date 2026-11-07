@@ -12,6 +12,15 @@ import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
 import {
+  extractLinks,
+  loadObject,
+  memRepo,
+  validateAnnotationChain,
+  validateEventMetrics,
+  validateRunGraph,
+  type RepoArgs,
+} from "./graph.js";
+import {
   encodeShallow,
   normalizeRef,
   objectPath,
@@ -123,6 +132,15 @@ export function storedObjects(args: Args): Map<string, Uint8Array> {
   return out;
 }
 
+function repoArgs(args: Args): RepoArgs {
+  return {
+    objects: storedObjects(args),
+    present: (args.present as string[] | undefined) ?? [],
+    shallow: (args.shallow as string[] | undefined) ?? [],
+    checkExistence: ["present", "objects", "shallow"].some((key) => key in args),
+  };
+}
+
 function verdict(result: SignatureResult): Output {
   return { ...result };
 }
@@ -232,6 +250,19 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       return { oids: parseShallow(bytesOf(input)) };
     case "shallow.encode":
       return { bytes_b64: b64(encodeShallow(valueOf(input))) };
+    case "links.extract":
+      return { links: extractLinks(bytesOf(input), repoArgs(args)) };
+    case "event.metrics":
+      validateEventMetrics(ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "run.graph":
+      validateRunGraph(memRepo(repoArgs(args)), ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "annotation.chain":
+      validateAnnotationChain(memRepo(repoArgs(args)), ObjectEnvelope.decode(bytesOf(input)));
+      return {};
+    case "object.load":
+      return { ...loadObject(bytesOf(input), (args.expected_oid as string | undefined) ?? null, repoArgs(args)) };
     default:
       throw new Unsupported(op);
   }
