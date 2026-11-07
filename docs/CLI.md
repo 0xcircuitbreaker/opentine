@@ -596,6 +596,26 @@ the query, best BM25 match first, at most 50 rows of run id, status, models and
 a snippet of at most 240 characters. It never scans the store or builds the
 index; without one it answers `{"indexed": false, ...}`.
 
+## Cost export (0.44)
+
+```text
+tine cost RUN --otlp PATH|-                     # OTLP/JSON metrics from the cost aggregate
+tine cost RUN --statement PATH --sign-key KEY [--signer NAME]
+tine cost RUN --verify-statement PATH [--pubkey KEY.pub]
+```
+
+`--otlp` writes an `ExportMetricsServiceRequest` (a `/v1/metrics` body):
+`gen_ai.client.token.usage` by `gen_ai.token.type` and `opentine.cost.usd` in
+total, by `gen_ai.request.model` and by `opentine.step.kind`, as cumulative
+sums on a resource carrying `opentine.run.id`. `--statement` writes a
+`tine-cost-statement/1`: the aggregate (totals, tokens, by model, by kind) with
+an Ed25519 `tine-sig/3` block under `opentine.cost-statement.v1:`.
+`--verify-statement` recomputes the aggregate from RUN and prints
+`{"ok", "matches_run", "signature", "basis"}`, exiting 4 unless both the numbers
+and the signature check (without `--pubkey` the embedded key is trusted on first
+use, and `basis` says so). The statement covers the cost the run *recorded*;
+`tine price` re-prices from the catalog.
+
 ## Per-turn capture (0.38)
 
 | Command | What it does |

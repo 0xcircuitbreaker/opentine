@@ -3496,4 +3496,38 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "fleet", "action": "resume", "target": "fleet.toml", "id": "0123456789ab"},
     ),
+    (
+        "plain:repo-search q --rebuild-index --no-index",
+        "plain",
+        ["repo-search", "q", "--rebuild-index", "--no-index"],
+        "opentine._repo_cli_plumbing:cmd_repo_search",
+        True,
+        {"command": "repo-search", "query": "q", "rebuild_index": True, "no_index": True},
+    ),
+    (
+        "plain:serve --quota-rate 5 --quota-burst 10 --quota-max-keys 99 --vsa-dir v",
+        "plain",
+        ["serve", "--quota-rate", "5", "--quota-burst", "10", "--quota-max-keys", "99"]
+        + ["--vsa-dir", "v"],
+        "opentine.cli:<lambda>",
+        False,
+        {"command": "serve", "quota_rate": 5.0, "quota_burst": 10.0, "quota_max_keys": 99},
+    ),
+    (
+        "plain:cost r1 --otlp m.json --statement s.json --sign-key k --signer ci",
+        "plain",
+        ["cost", "r1", "--otlp", "m.json", "--statement", "s.json", "--sign-key", "k"]
+        + ["--signer", "ci"],
+        "opentine._cli_execute:cmd_cost",
+        False,
+        {"command": "cost", "otlp": "m.json", "statement": "s.json", "sign_key": "k"},
+    ),
+    (
+        "plain:cost r1 --verify-statement s.json --pubkey k.pub",
+        "plain",
+        ["cost", "r1", "--verify-statement", "s.json", "--pubkey", "k.pub"],
+        "opentine._cli_execute:cmd_cost",
+        False,
+        {"command": "cost", "verify_statement": "s.json", "pubkey": "k.pub"},
+    ),
 )

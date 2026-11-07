@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 
 from opentine._cli_bisect import add_bisect_parser
+from opentine._cli_cost_export import add_cost_export_arguments
 from opentine._cli_export import add_export_parser
 from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
@@ -138,6 +139,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("reindex", help="Rebuild the legacy run index")
     cost = sub.add_parser("cost", help="Show cost and budget state")
     cost.add_argument("run_id")
+    add_cost_export_arguments(cost)
 
     # The other half of the cost story, and deliberately a separate verb: `cost`
     # sums the price each step RECORDED at capture, `price` recomputes it from
