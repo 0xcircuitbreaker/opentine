@@ -5,9 +5,9 @@ direction, and the same converter runs it. The document is built by
 :func:`opentine.trace.exporters.to_otel_genai_document`, the exact inverse of
 the ``otel-json`` importer, so a run exported here and imported back is the run
 that was exported — a round trip this command's tests assert rather than assume.
-
 Export is read-only over provenance; mapping limits live in the exporters.
-``atif``, ``agent-trace``, ``citation`` and ``ro-crate`` have their own modules.
+``atif``, ``agent-trace``, ``citation``, ``ro-crate`` and ``entire`` (a checkpoint
+ref in the ``--output`` git repo, :mod:`opentine._cli_export_entire`) have their own modules.
 
 Destinations
 ------------
@@ -43,6 +43,7 @@ import httpx
 
 from opentine._citation_export import CITATION_FORMATS
 from opentine._cli_common import BRAND, _find_run, _terminal, console
+from opentine._cli_export_entire import export_entire
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_intoto import add_intoto_export_args, export_intoto
 from opentine._cli_json import emit, serialize
@@ -58,7 +59,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", *CITATION_FORMATS)
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", "entire", *CITATION_FORMATS)
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -199,6 +200,8 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
 def cmd_export(args: argparse.Namespace) -> None:
     if export_intoto(args):  # handled there, or its signing flags refused here
         return
+    if args.format == "entire":  # --output is a git repository: _cli_export_entire
+        return export_entire(args)
     endpoint = _endpoint(args)
     _refuse_unusable_flags(args, endpoint)
     output = Path(args.output) if args.output else None
@@ -212,12 +215,9 @@ def cmd_export(args: argparse.Namespace) -> None:
         console.print(f"[red]Run not found: {_terminal(args.run_id)}[/]")
         raise SystemExit(1)
     try:
-        # Scrubbed again on the way out: a .tine written before 0.9.1 still holds
-        # the secrets its writer kept -- in prose (tokens, PEM keys, URL passwords)
-        # and under field names it did not know (``github_token``, ``pwd``). The
-        # run goes through the writer's own redaction, field names included, before
-        # it becomes spans: the ``gen_ai.prompt`` kvlist carries each name and value
-        # as separate strings, where the free-text pass alone cannot pair them.
+        # Scrubbed again on the way out (a pre-0.9.1 .tine keeps secrets in prose
+        # and under unknown field names) by the writer's own redaction, field names
+        # included: the ``gen_ai.prompt`` kvlist splits each name from its value.
         raw = Run.load(path)
         run = run_from_dict(run_to_dict(raw, redact=True), type(raw))
         if args.format in CITATION_FORMATS:  # pinned to the digest: _citation_export
