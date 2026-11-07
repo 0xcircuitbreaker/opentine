@@ -89,7 +89,9 @@ def update_refs(
     changed = service.index.update_refs(tenant, rows)
     outcome = ("forced" if forced else "ok") if changed else "conflict"
     names = [row[0] for row in rows]
-    service._audit(identity, tenant, "update_ref", outcome, {"names": names, "txn": True})
+    # name/new of the first (head) row: the 0.44 transparency entry a push receipt names
+    head = {"name": rows[0][0], "new": rows[0][1]}
+    service._audit(identity, tenant, "update_ref", outcome, {"names": names, "txn": True, **head})
     return changed
 
 

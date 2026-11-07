@@ -133,9 +133,8 @@ class RemoteApp(UploadRoutes):
             except PermissionError as exc:
                 self.auth_throttle.failed(client)
                 self._failures.unauthenticated(tenant, type(exc).__name__)
-                return self._json_response(
-                    start_response, "401 Unauthorized", {"error": "authentication failed"}
-                )
+                denied = {"error": "authentication failed"}
+                return self._json_response(start_response, "401 Unauthorized", denied)
             self.auth_throttle.succeeded(client)
             if not path.startswith(prefix):
                 return self._json_response(start_response, "404 Not Found", {"error": "not found"})
@@ -232,9 +231,8 @@ class RemoteApp(UploadRoutes):
                 data = self._body(environ)  # off the guard: a slow body must not hold it
                 with self._guarded(self._install_guard):
                     pack_id, count = self.service.install_pack(identity, tenant, data)
-                return self._json_response(
-                    start_response, "201 Created", {"objects": count, "pack_id": pack_id}
-                )
+                body = {"objects": count, "pack_id": pack_id}
+                return self._json_response(start_response, "201 Created", body)
             return self._start_upload(
                 identity, tenant, self._json(environ, "sha256", "size"), start_response
             )
