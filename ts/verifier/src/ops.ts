@@ -11,6 +11,16 @@ import { canonicalJson, validateJsonShape } from "./canon.js";
 import { hmacSha256Hex } from "./crypto.js";
 import { ObjectEnvelope, objectId, parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
+import {
+  encodeShallow,
+  normalizeRef,
+  objectPath,
+  parseShallow,
+  readRefFile,
+  reflogRow,
+  validateConfig,
+  validateRefTarget,
+} from "./repo.js";
 import { containsLoneSurrogate, isObject, LENIENT, parseText, type JObject, type JValue } from "./json.js";
 import {
   artifactMessage,
@@ -101,6 +111,16 @@ function textValidate(input: OpInput): Output {
     throw new TineError("conformance input holds an unpaired UTF-16 surrogate", "text.lone-surrogate");
   }
   return {};
+}
+
+/** `args.objects`, base64 stored envelopes, as an oid -> bytes map. */
+export function storedObjects(args: Args): Map<string, Uint8Array> {
+  const out = new Map<string, Uint8Array>();
+  for (const encoded of (args.objects as string[] | undefined) ?? []) {
+    const raw = Uint8Array.from(Buffer.from(encoded, "base64"));
+    out.set(ObjectEnvelope.decode(raw).oid, raw);
+  }
+  return out;
 }
 
 function verdict(result: SignatureResult): Output {
@@ -194,6 +214,24 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
     case "shape.scan":
       validateJsonShape(bytesOf(input), Number(args.max_tokens ?? 200_000));
       return {};
+    case "config.validate":
+      validateConfig(bytesOf(input));
+      return {};
+    case "object.path":
+      return { path: objectPath(valueOf(input)) };
+    case "ref.name":
+      return { name: normalizeRef(valueOf(input)) };
+    case "ref.file":
+      return { oid: readRefFile(bytesOf(input)) };
+    case "ref.target":
+      validateRefTarget(args.name as string, valueOf(input), storedObjects(args));
+      return {};
+    case "reflog.row":
+      return { bytes_b64: b64(reflogRow(valueOf(input))) };
+    case "shallow.parse":
+      return { oids: parseShallow(bytesOf(input)) };
+    case "shallow.encode":
+      return { bytes_b64: b64(encodeShallow(valueOf(input))) };
     default:
       throw new Unsupported(op);
   }
