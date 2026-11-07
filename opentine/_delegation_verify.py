@@ -68,14 +68,15 @@ def verify_chain(
     *,
     signer: str,
     at: str,
-    agent: str | None = None,
+    agent: str | list[str] | None = None,
     actions: list[str] | tuple[str, ...] = (),
     root: str | None = None,
 ) -> dict[str, Any]:
     """The verified chain as ``{root, signer, links: [digest...], scope}``; raises else.
 
     *signer* is the fingerprint of the key that signed the work; *at* is the
-    time the work was signed; *root*, when given, is the only trusted issuer.
+    time the work was signed; *agent* (a name, or several names the agent goes
+    by) must be delegated; *root*, when given, is the only trusted issuer.
     """
     if not isinstance(chain, list) or not chain or len(chain) > MAX_CHAIN:
         raise DelegationError("delegation.malformed", f"a chain holds 1..{MAX_CHAIN} certificates")
@@ -102,7 +103,8 @@ def verify_chain(
     leaf = checked[-1]
     if leaf["subject"] != signer:
         raise _fail("wrong-signer", len(chain) - 1, f"subject is not the signer {signer}")
-    if agent is not None and not _covers(leaf["scope"]["agents"], [agent]):
+    names = [agent] if isinstance(agent, str) else list(agent or [])
+    if agent is not None and not any(_covers(leaf["scope"]["agents"], [n]) for n in names):
         raise _fail("scope-violation", len(chain) - 1, f"agent {agent!r} is not delegated")
     outside = [a for a in actions if not _covers(leaf["scope"]["actions"], [a])]
     if outside:
