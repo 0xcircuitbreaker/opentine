@@ -7,7 +7,9 @@ per-run instance nonce. Optional environment, set by whoever launched the agent:
 * ``OPENTINE_AGENT_KEY`` -- a ``tine keygen --agent`` name whose key the run
   will be signed with (its fingerprint becomes part of the ref);
 * ``OPENTINE_AGENT_PARENT`` / ``OPENTINE_AGENT_PARENT_RUN`` /
-  ``OPENTINE_AGENT_SPAWN_STEP`` -- a subagent's claimed parent link.
+  ``OPENTINE_AGENT_SPAWN_STEP`` -- a subagent's claimed parent link;
+* ``OPENTINE_FLEET_*`` / ``OPENTINE_DELEGATION`` -- the fleet member record and
+  delegation chain (``_fleet_record``), as ``metadata.fleet`` / ``.delegation``.
 
 A malformed value is dropped, never guessed; a resumed run keeps its record.
 """
@@ -64,6 +66,13 @@ def harness_metadata(harness: Any, context: Any, existing: Any = None) -> dict[s
     record = kept or _record(str(harness.name), str(getattr(harness, "model_info", "") or ""))
     if record is not None:
         meta["agent_identity"] = record
+    from opentine._fleet_record import capture_metadata
+
+    captured = capture_metadata()
+    for name in ("fleet", "delegation"):
+        kept = existing.get(name) if isinstance(existing, dict) else None
+        if kept is not None or name in captured:
+            meta[name] = kept if kept is not None else captured[name]
     return meta
 
 
