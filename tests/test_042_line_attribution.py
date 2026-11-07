@@ -123,7 +123,9 @@ def test_note_survives_interactive_rebase(repo, capsys) -> None:
     editor = repo.parent / "editor.sh"
     editor.write_text(f"#!/bin/sh\n{script}\n")
     editor.chmod(0o755)
-    _git(repo, "rebase", "-q", "-i", "HEAD~2", GIT_SEQUENCE_EDITOR=str(editor))
+    # sh plus a posix path: on Windows git runs the editor under its own sh.
+    seq_editor = f'sh "{editor.as_posix()}"'
+    _git(repo, "rebase", "-q", "-i", "HEAD~2", GIT_SEQUENCE_EDITOR=seq_editor)
     assert _git(repo, "log", "-1", "--format=%s").strip() == "agent change"
     shown = _verified(repo, capsys)
     assert shown["verification"]["content_matches"] is True
