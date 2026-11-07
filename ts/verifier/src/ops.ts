@@ -14,6 +14,7 @@ import { TineError } from "./errors.js";
 import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
+import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -184,6 +185,12 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
   switch (op) {
     case "text.validate":
       return textValidate(input);
+    case "tlog.inclusion":
+      return tlogInclusion(valueOf(input));
+    case "tlog.consistency":
+      return tlogConsistency(valueOf(input));
+    case "tlog.quorum":
+      return tlogQuorum(valueOf(input));
     case "delegation.verify": {
       const value = valueOf(input) as JObject;
       const actions = value.get("actions");

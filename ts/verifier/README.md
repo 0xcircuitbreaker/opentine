@@ -5,8 +5,9 @@ canonical JSON, object envelopes, every signature scheme (`tine-sig/1-3`,
 `tine-attest/1-2`, `tine-actions/1`, with HMAC-SHA256, Ed25519, ML-DSA-65 and
 the Ed25519 + ML-DSA-65 composite), `.tine` v1/v2 integrity and v4/v5
 artifacts, repository layout and refs, network packs (`TINEPACK3/4/5`),
-storage-v3 local packs with the 0.40 stored forms, `opentine-agent/1` refs and
-`opentine-delegation/1` chains.
+storage-v3 local packs with the 0.40 stored forms, `opentine-agent/1` refs,
+`opentine-delegation/1` chains, and RFC 9162 inclusion/consistency proofs with
+C2SP `cosignature/v1` witness quorums (`src/tlog.ts`, SPEC 8.10-8.11).
 
 ```
 npm ci && npm test      # builds, then runs docs/conformance in-process
@@ -41,7 +42,7 @@ Runtime dependencies are pinned exactly in `package.json` and the lockfile;
 | `@noble/hashes` | 2.0.1 | MIT | transitive: SHAKE/SHA-3 for ML-DSA |
 | `fzstd` | 0.1.1 | MIT | zstd decoding (codec 2 bodies, `TINEPACK4` zstd, the `TINEPACK5` long-mode frame); pure JS, decode only. |
 
-Everything else (SHA-256, HMAC, Ed25519, zlib) is Node's built-in OpenSSL.
+Everything else (SHA-256, HMAC, Ed25519, the RFC 9162 Merkle proofs, zlib) is Node's built-in OpenSSL.
 Before `fzstd` sees a frame, `src/zstd.ts` walks its structure and refuses a
 second frame, a dictionary, a window above 2**27 or a short or trailing frame,
 and output is bounded by the declared size. `fzstd` does not check the

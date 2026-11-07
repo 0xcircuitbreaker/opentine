@@ -2,7 +2,7 @@
   "name": "@opentine/verify",
   "version": "0.0.0",
   "private": true,
-  "description": "Independent OpenTine verifier: canonical JSON, envelopes, every signature scheme (incl. ML-DSA-65), .tine v1-v5, packs and delegation chains.",
+  "description": "Independent OpenTine verifier: canonical JSON, envelopes, every signature scheme (incl. ML-DSA-65), .tine v1-v5, packs, delegation chains and transparency-log proofs.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
