@@ -57,14 +57,9 @@ export const OUT_OF_SCOPE_OPS: Record<string, string> = {
 };
 
 export const OUT_OF_SCOPE_SCHEMES: Record<string, string> = {
-  "tine-sig/1": "legacy artifact signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-sig/2": "legacy artifact signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-attest/1": "legacy attestation signatures over the v2 canonicalizer, SPEC 4.2",
-  "tine-actions/1": "tine-actions/1, SPEC 4.8",
 };
 
 export const OUT_OF_SCOPE_FAMILIES: Record<string, string> = {
-  artifact: "legacy tine-sig/1 and tine-sig/2 artifact verdicts, SPEC 4.7",
 };
 
 /**
@@ -95,7 +90,7 @@ export function outOfScope(testCase: Case): string | null {
       const value = testCase.input.value as Record<string, unknown> | undefined;
       const block = value && typeof value === "object" ? value.signature : undefined;
       const scheme = block && typeof block === "object" ? (block as Record<string, unknown>).scheme : undefined;
-      if (scheme === "tine-attest/1") return "scheme:tine-attest/1";
+      if (typeof scheme === "string" && scheme in OUT_OF_SCOPE_SCHEMES) return `scheme:${scheme}`;
     }
   }
   return null;

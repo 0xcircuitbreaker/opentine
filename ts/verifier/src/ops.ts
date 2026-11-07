@@ -36,8 +36,12 @@ import {
 } from "./repo.js";
 import { containsLoneSurrogate, isObject, LENIENT, parseText, type JObject, type JValue } from "./json.js";
 import {
+  actionsMessage,
   artifactMessage,
+  attestationMessage,
   attestMessage,
+  legacyArtifactMessage,
+  verifyLegacyArtifact,
   verifyArtifactV4,
   verifyAttestation,
   type Header,
@@ -166,6 +170,10 @@ function keysFrom(args: Args, table: KeyTable): VerifyKeys {
 }
 
 const MESSAGES: Record<string, (document: JValue, header: Header) => Uint8Array> = {
+  "tine-sig/1": legacyArtifactMessage,
+  "tine-sig/2": legacyArtifactMessage,
+  "tine-attest/1": attestationMessage,
+  "tine-actions/1": actionsMessage,
   "tine-sig/3": artifactMessage,
   "tine-attest/2": attestMessage,
 };
@@ -233,13 +241,8 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         if (!isObject(document)) throw new TineError("'NoneType' object has no attribute 'get'");
         return verdict(verifyArtifactV4(document, keys));
       }
-      if (family === "attestation") {
-        const block = isObject(document) ? document.get("signature") : undefined;
-        if (isObject(block) && block.get("scheme") === "tine-attest/1") {
-          throw new Unsupported("tine-attest/1 (the legacy canonicalizer)");
-        }
-        return verdict(verifyAttestation(document, keys));
-      }
+      if (family === "attestation") return verdict(verifyAttestation(document, keys));
+      if (family === "artifact") return verdict(verifyLegacyArtifact(document, keys));
       throw new Unsupported(`signature family ${family}`);
     }
     case "shape.scan":

@@ -20,7 +20,8 @@ import {
 } from "./crypto.js";
 import { parseOid } from "./envelope.js";
 import { TineError } from "./errors.js";
-import { isObject, type JObject, type JValue } from "./json.js";
+import { isObject, truthy, type JObject, type JValue } from "./json.js";
+import { canonicalBytesV2 } from "./canon2.js";
 
 export const HEADER_KEYS = ["alg", "key_id", "scheme", "signed_at", "signer"] as const;
 const BLOCK_KEYS = new Set<string>([...HEADER_KEYS, "value", "public_key"]);
@@ -101,6 +102,101 @@ export function artifactMessage(data: JValue, header: Header): Uint8Array {
   } catch (exc) {
     throw new SignatureError(`v4 signed view cannot be canonicalized: ${(exc as Error).message}`);
   }
+}
+
+// --------------------------------------------------------------------------- //
+// The legacy schemes over the v2 canonicalizer (SPEC 4.2) and tine-actions/1
+// --------------------------------------------------------------------------- //
+
+export const SCHEME_V1 = "tine-sig/1";
+export const SCHEME_V2 = "tine-sig/2";
+export const LEGACY_ARTIFACT_SCHEMES = [SCHEME_V1, SCHEME_V2] as const;
+export const SCHEME_ACTIONS = "tine-actions/1";
+const DOMAIN_V1 = "opentine.signature.v1:";
+const ATTEST_DOMAIN_V1 = "opentine.attestation.v1:";
+const ACTIONS_DOMAIN = "opentine.actions.v1:";
+/** The `metadata` keys `tine-sig/1` signs. FROZEN (`_signing_view._SIGNED_METADATA_KEYS`). */
+const SIGNED_METADATA_V1 = [
+  "model_info",
+  "system_prompt",
+  "user_prompt",
+  "forked_from",
+  "fork_point",
+  "warnings",
+  "replay",
+  "context",
+  "next_harness",
+  "migration",
+  "fork",
+];
+
+function legacyCanonical(view: JValue, what: string): Uint8Array {
+  try {
+    return canonicalBytesV2(view);
+  } catch (exc) {
+    const code = exc instanceof TineError ? exc.code : "error";
+    throw new SignatureError(`${what} cannot be canonicalized: ${(exc as Error).message}`, code);
+  }
+}
+
+/** `tine-sig/1` and `tine-sig/2`: the v1/v2 artifact signed view (`_signing_view`). */
+export function legacyArtifactMessage(data: JValue, header: Header): Uint8Array {
+  if (!isObject(data)) throw new SignatureError("artifact must be an object", "sig.payload-not-object");
+  const rawMetadata = data.get("metadata");
+  const metadata = truthy(rawMetadata) ? rawMetadata : new Map();
+  if (!isObject(metadata)) throw new SignatureError("artifact metadata must be an object", "sig.payload-not-object");
+  const signed: JObject =
+    header.get("scheme") === SCHEME_V2
+      ? new Map([...metadata].filter(([key]) => key !== "integrity"))
+      : new Map(SIGNED_METADATA_V1.filter((key) => metadata.has(key)).map((key) => [key, metadata.get(key) as JValue]));
+  const view: JObject = new Map<string, JValue>([
+    ["body", new Map([...data].filter(([key]) => key !== "metadata"))],
+    ["header", headerView(header)],
+    ["metadata", signed],
+  ]);
+  return prefixed(DOMAIN_V1, legacyCanonical(view, "artifact signed view"));
+}
+
+/** `tine-attest/1` over the v2 canonicalizer, or `tine-attest/2` (`_attest_view.signed_message`). */
+export function attestationMessage(payload: JValue, header: Header): Uint8Array {
+  if (header.get("scheme") === SCHEME_ATTEST_V2) return attestMessage(payload, header);
+  if (!isObject(payload)) {
+    throw new SignatureError("attestation payload must be an object", "sig.payload-not-object");
+  }
+  const view: JObject = new Map<string, JValue>([
+    ["body", new Map([...payload].filter(([key]) => key !== "signature"))],
+    ["header", headerView(header)],
+  ]);
+  return prefixed(ATTEST_DOMAIN_V1, legacyCanonical(view, "attestation"));
+}
+
+/** `tine-actions/1`: the action manifest body beside the header, in JCS. */
+export function actionsMessage(body: JValue, header: Header): Uint8Array {
+  const view: JObject = new Map<string, JValue>([
+    ["body", body],
+    ["header", headerView(header)],
+  ]);
+  try {
+    return prefixed(ACTIONS_DOMAIN, canonicalJson(view));
+  } catch (exc) {
+    throw new SignatureError(`action manifest cannot be canonicalized: ${(exc as Error).message}`);
+  }
+}
+
+/** The verdict for a v1/v2 artifact's `metadata.integrity.signature` block. */
+export function verifyLegacyArtifact(data: JValue, keys: VerifyKeys = {}): SignatureResult {
+  if (!isObject(data)) throw new SignatureError("'list' object has no attribute 'get'");
+  const metadata = truthy(data.get("metadata")) ? data.get("metadata") : new Map();
+  if (!isObject(metadata)) throw new SignatureError("'list' object has no attribute 'get'");
+  const integrity = truthy(metadata.get("integrity")) ? metadata.get("integrity") : new Map();
+  if (!isObject(integrity)) throw new SignatureError("'list' object has no attribute 'get'");
+  return verifyBlock(
+    integrity.get("signature"),
+    (header) => legacyArtifactMessage(data, header),
+    LEGACY_ARTIFACT_SCHEMES,
+    "artifact",
+    keys,
+  );
 }
 
 /** `tine-attest/2`: Ed25519 over the JCS payload without `signature`, beside the header. */
@@ -300,21 +396,12 @@ export function verifyArtifactV4(data: JObject, keys: VerifyKeys = {}): Signatur
   return results.find((result) => result.ok) ?? results[0];
 }
 
-/**
- * The verdict for an attestation payload's `signature` block. Phase 1 builds
- * only `tine-attest/2` messages; a `tine-attest/1` block (the legacy v2
- * canonicalizer) is reported as an error rather than guessed at.
- */
+/** The verdict for an attestation payload's `signature` block (`tine-attest/1` or `/2`). */
 export function verifyAttestation(payload: JValue, keys: VerifyKeys = {}): SignatureResult {
   const block = isObject(payload) ? payload.get("signature") : undefined;
   return verifyBlock(
     block,
-    (header) => {
-      if (header.get("scheme") !== SCHEME_ATTEST_V2) {
-        throw new SignatureError("tine-attest/1 needs the legacy canonicalizer, not in phase 1");
-      }
-      return attestMessage(payload, header);
-    },
+    (header) => attestationMessage(payload, header),
     [SCHEME_ATTEST_V1, SCHEME_ATTEST_V2],
     "attestation",
     keys,
