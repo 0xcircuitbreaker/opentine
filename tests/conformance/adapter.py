@@ -1,4 +1,4 @@
-"""The 34 conformance ops, answered by the reference implementation.
+"""The 37 conformance ops, answered by the reference implementation.
 
 This module, ``adapter_repo`` and ``adapter_write`` are the only place an
 **answer** is produced. A third-party adapter replaces exactly these three files
@@ -48,6 +48,7 @@ from opentine.kernel import (
 )
 from opentine.redaction import redact_blob, redact_value
 from tests.conformance import adapter_agent as agent_ops
+from tests.conformance import adapter_delegation as delegation_ops
 from tests.conformance import adapter_repo as repo_ops
 from tests.conformance import adapter_write as write_ops
 from tests.conformance.keys import KEYS
@@ -275,4 +276,5 @@ OPS = {
     **repo_ops.OPS,
     **write_ops.OPS,
     **agent_ops.OPS,
+    **delegation_ops.OPS,
 }

@@ -104,6 +104,7 @@ EXPECTED_COUNTS = {
     "vectors/53-sig-v4.json": (19, 0),
     "vectors/54-artifact-v5.json": (9, 0),
     "vectors/55-sig-pq.json": (13, 2),
+    "vectors/56-delegation.json": (7, 6),
     "vectors/99-repair.json": (14, 14),
 }
 

@@ -35,6 +35,7 @@ _MAX_PENDING_KEYS = 64
 _ACTIONS = {
     ("refs", "GET"): "read_ref",
     ("refs/", "PUT"): "update_ref",
+    ("ref-txn", "POST"): "update_ref",
     ("negotiate", "POST"): "negotiate",
     ("fetch", "POST"): "fetch",
     ("packs", "POST"): "upload",

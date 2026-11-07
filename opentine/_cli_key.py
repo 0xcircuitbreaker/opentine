@@ -14,6 +14,9 @@
 * ``tine key revoke KEY [--at TIME]``: ``revoked_at`` (default now) for a
   fingerprint, a ``.pub`` file or a private key file.
 
+* ``tine key delegate`` / ``tine key delegation show|verify``: X32 delegation
+  certificates (``_cli_key_delegate``).
+
 Rotate and revoke write ``$XDG_CONFIG_HOME/opentine/key-lifecycle.json``; ``tine
 verify`` reads it (``_key_lifecycle_verify``).
 """
@@ -28,7 +31,9 @@ from opentine._cli_errors import ERROR, NOT_FOUND, USAGE, fail
 
 
 def add_key_parser(sub: Any) -> None:
-    key = sub.add_parser("key", help="Encrypt, inspect, rotate or revoke signing keys")
+    from opentine._cli_key_delegate import add_delegate_parsers
+
+    key = sub.add_parser("key", help="Encrypt, inspect, rotate, revoke or delegate signing keys")
     verbs = key.add_subparsers(dest="key_command")
     encrypt = verbs.add_parser("encrypt", help="Rewrite a plaintext-hex key as encrypted PKCS#8")
     encrypt.add_argument("path", metavar="PATH")
@@ -46,6 +51,7 @@ def add_key_parser(sub: Any) -> None:
     revoke.add_argument("key", metavar="KEY", help="sha256:<hex>, a .pub file or a key file")
     revoke.add_argument("--at", metavar="TIME", help="RFC 3339 revocation time (default: now)")
     revoke.add_argument("--json", action="store_true", help="Print a JSON object")
+    add_delegate_parsers(verbs)
 
 
 def _rotate_paths(args: argparse.Namespace) -> tuple[Path, Path | None, Path | None]:
@@ -118,8 +124,13 @@ def cmd_key(args: argparse.Namespace) -> None:
     if verb in ("rotate", "revoke"):
         _lifecycle(args, verb)
         return
+    if verb in ("delegate", "delegation"):
+        from opentine._cli_key_delegate import cmd_key_delegate
+
+        cmd_key_delegate(args)
+        return
     if verb not in ("encrypt", "show"):
-        fail("name a key command: tine key encrypt|show|rotate|revoke", USAGE)
+        fail("name a key command: tine key encrypt|show|rotate|revoke|delegate|delegation", USAGE)
     prefix = f"key {verb}: "
     if verb == "encrypt":
         if not Path(args.path).is_file():

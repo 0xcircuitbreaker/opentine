@@ -328,6 +328,15 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.9: validate an opentine-agent/1 record and derive its agt_ ref",
     },
+    "delegation.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["root", "links"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.10: verify an opentine-delegation/1 chain for a signer, time and scope",
+    },
     "actions.chain": {
         "profile": VERIFIER,
         "input": ["value"],

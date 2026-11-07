@@ -114,6 +114,11 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
     if lifecycle is not None:  # 0.41 (X23): the signer key's window
         report.add(lifecycle)
     data, run = _read(path)
+    from opentine._delegation_check import delegation_check
+
+    delegated = delegation_check(args, path, run, signature, report.signing_time)
+    if delegated is not None:  # 0.43 (X32): the signer key's delegation chain
+        report.add(delegated)
     for check in actions_checks(args, run if integrity.ok else None):
         report.add(check)
     stored = _manifest(args, data)

@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from opentine.kernel import KernelError, ObjectEnvelope
+from opentine.repository._run_parents import validate_parents
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
 _TOKEN_USAGE = {
@@ -100,6 +101,7 @@ def validate_run_graph(repo: Any, envelope: ObjectEnvelope) -> None:
     payload = envelope.payload()
     if payload.get("status", "running") not in _RUN_STATUSES:
         raise KernelError("run status is invalid")
+    validate_parents(payload)  # 0.43: optional, omitted when empty (_run_parents)
     events = list(payload.get("events") or [])
     event_set = set(events)
     legacy_refs = payload.get("legacy_refs", {})

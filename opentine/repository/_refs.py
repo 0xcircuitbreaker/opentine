@@ -6,11 +6,14 @@ from opentine.kernel import parse_oid
 
 TYPED_REF_NAMESPACES = {
     "annotations": "annotation",
+    "coord": "annotation",  # opentine-coord/1 tasks and mailboxes (0.43, opentine.coord)
     "experiments": "run",
     "heads": "run",
     "promotions": "run",
 }
-_REF = re.compile(r"^(?:annotations|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$")
+_REF = re.compile(
+    r"^(?:annotations|coord|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$"
+)
 _WINDOWS_NAMES = {"con", "prn", "aux", "nul"} | {
     f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
 }

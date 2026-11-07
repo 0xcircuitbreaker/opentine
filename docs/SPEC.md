@@ -482,6 +482,7 @@ Enforced (`kernel.validate_links`, `repository._run_graph.validate_run_graph`):
 | **any key ending `_blob`** | if truthy, MUST be a **blob** oid |
 | `status` | absent (⇒ `"running"`) or one of `running`, `paused`, `completed`, `failed` |
 | `legacy_refs` | absent or an object mapping **string** names to oids **in `events`** |
+| `parents` (0.43+) | absent, or a **non-empty** list of **unique run** oids (at most 64), each a link (`kernel.validate_links`, `repository._run_parents`). A writer MUST omit it when there are none and MUST NOT write `[]` (rejected), so a run without parents has the oid it had before 0.43. |
 | ordering | for every locally present event in `events`, each of its `parent_ids` and `causal_ids` MUST appear at a **strictly earlier index** in `events` |
 | `roots` / `tips` exactness | **only when every event in `events` is present locally**: `set(roots)` MUST equal the set of parentless events, and `set(tips)` MUST equal `events` minus every event named as someone's parent. When any event is missing (a shallow fetch), both checks are skipped. |
 
@@ -489,6 +490,13 @@ Enforced (`kernel.validate_links`, `repository._run_graph.validate_run_graph`):
 > list: *any* top-level run key whose name ends in `_blob` and whose value is
 > truthy must be a blob oid. A writer adding `patch_blob` inherits the
 > constraint automatically; a writer adding `patch_blob: {"a": 1}` is rejected.
+
+`parents` names the runs a merge combined (F2, `docs/design/F2-merge.md`);
+it is distinct from `forked_from`, the one run a fork or resume continues, and a
+fork of a run does not inherit its `parents`. A 0.42 reader validates and
+hashes a run with `parents` correctly but does not follow the field as a link,
+so its `gc` may drop a parent run no ref names; merges are not written before
+the release that also sets `min_reader` for them (0.45+).
 
 Conventional run fields: `created_at`, `model`, `source_run_id`, `system_blob`,
 `prompt_blob`, `session_id`, `forked_from`, and the manifest slots `budget`,
@@ -848,7 +856,7 @@ that would ignore the file refuses the repository instead of missing its refs.
 The stored name has any leading `refs/` removed. It MUST match:
 
 ```text
-^(?:annotations|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$
+^(?:annotations|coord|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$
 ```
 
 and additionally: be ≤ 512 bytes total; be equal to its own case-fold (i.e.
@@ -867,6 +875,7 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `experiments/` | `run` |
 | `promotions/` | `run` |
 | `annotations/` | `annotation` |
+| `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
@@ -1700,6 +1709,57 @@ and the parent's signed `spawns` list contains the child's `spawn_step`.
 **Worked vector:** the record in `49-agent.json` `agent.worked-vector` has the ref
 `agt_7151540cb1895e1d66ae5b90f9a5012d`.
 
+## 4.10 `opentine-delegation/1` — delegation certificates (0.43.0+)
+
+A principal key hands scoped authority to an agent key, so a fleet member's
+identity rests on a signature rather than on its own claim (X32). A certificate
+is a JSON object with exactly these keys:
+
+| Key | Value |
+|---|---|
+| `scheme` | `"opentine-delegation/1"` |
+| `issuer` / `subject` | `sha256:` + 64 lower hex, §4.6 Ed25519 fingerprints |
+| `scope` | `{agents, actions, max_depth}`: two sorted, duplicate-free, non-empty lists of names (`[A-Za-z0-9_.:*/-]{1,128}`, `"*"` is any) and an integer `0..7`, the further delegations the subject may issue |
+| `not_before` / `not_after` | RFC 3339 with a zone; `not_after` later |
+| `parent` | `""` (root) or the digest of the certificate above it |
+| `signature` | a `tine-sig/3` block (§9.6 header, Ed25519, embedded `public_key`) over `b"opentine.delegation.v1:"` + JCS(`{"body": <the certificate without signature>, "header": <header>}`) |
+
+A certificate's **digest** is `sha256:` + hex SHA-256 of
+`b"opentine.delegation.v1:"` + JCS of the whole certificate, signature included.
+A **chain** is a list of 1–8 certificates, root first. A verifier, given the
+fingerprint of the key that signed the work, the signing time, and optionally the
+agent names and tools used, MUST refuse, with the first applicable code:
+`delegation.malformed`; `delegation.bad-signature` (the signature fails, or the
+embedded key is not `issuer`); `delegation.broken-chain` (a root with a
+`parent`, a root other than a trusted one, or a link whose `issuer` is not the
+previous `subject` or whose `parent` is not the previous digest);
+`delegation.too-deep` (a parent with `max_depth` 0, or a child `max_depth` not
+below its parent's); `delegation.scope-violation` (a child list or window wider
+than its parent's, or an agent or tool outside the leaf scope);
+`delegation.expired` (the time outside a window, `not_after` exclusive);
+`delegation.wrong-signer` (the leaf `subject` is not the signer). Everything
+needed is in the certificates: verification is offline. The root is trusted
+only by pinning its fingerprint.
+
+A run captured with `OPENTINE_DELEGATION=<chain file>` stores the chain at
+`metadata.delegation`; `tine verify --offline` adds a required `delegation`
+check against the run's signer, its agent ref, harness, fleet member or role,
+and its tool names. Vectors: `56-delegation.json`.
+
+## 4.11 `opentine-fleet/1` — fleet member record (0.43.0+)
+
+Stored at run `metadata.fleet` from `OPENTINE_FLEET_ID`, `_MEMBER`, `_ROLE` and
+`_PARENT` (the variables `tine fleet up` sets): exactly `scheme`
+(`"opentine-fleet/1"`), `fleet_id` (`[A-Za-z0-9_.-]{1,128}`), `member`, `role`,
+`parent`, each a §4.9-normalised string. It is a claim. Signed, it is an
+`opentine-fleet-record/1` document `{scheme, record, run_id, run_digest,
+signature}` whose `tine-sig/3` block is over `b"opentine.fleet.v1:"` +
+JCS(`{"body": {scheme, record, run_id, run_digest}, "header"}`), so it cannot
+be moved to another run. The in-toto predicate
+`https://opentine.dev/attestation/fleet/v1` has subject the run's digest and
+predicate `{producer, fleet, agent_ref, delegation}` (`delegation` is the
+chain's certificate digests, root first).
+
 ---
 
 # Part 5 — The compatibility contract
@@ -1823,7 +1883,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
 correct, so this specification ships a machine-readable vector suite alongside
-it: **[`docs/conformance/`](conformance/README.md)**, 658 vectors covering the
+it: **[`docs/conformance/`](conformance/README.md)**, 665 vectors covering the
 nine checklist items of Part 6, runnable from any language against a
 standard-library harness.
 

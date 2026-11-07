@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.43.0 — Fleet record, delegation and leases (2026-11-07)
+
+### Added
+
+- **Delegation certificates (X32).** `opentine-delegation/1` certificates
+  chain a member key to a fleet root and verify offline. `tine key delegate`
+  issues one; `tine key delegation show|verify` reads or checks a chain and
+  exits 4 when it does not verify.
+- **Delegation in `tine verify --offline`.** A run whose
+  `OPENTINE_DELEGATION` names a chain gets a required `delegation` check,
+  against a pinned root when one is given and reported as unpinned otherwise.
+- **Fleet record.** `OPENTINE_FLEET_*` is captured into a run's
+  `metadata.fleet`; `tine fleet record` shows, signs, attests (in-toto
+  `fleet/v1` predicate) and verifies it.
+- **Tasks and leases (`opentine-coord/1`).** `tine task add|claim|heartbeat|done|list`
+  moves tasks as compare-and-swap ref updates with fencing tokens, under the
+  newly reserved `coord/` ref namespace.
+- **Steering.** A per-member mailbox, `tine fleet send`, and steer steps
+  injected through the Claude Code Stop hook; `tine fleet resume` and
+  `tine fleet logs` resume unfinished members and read their output.
+- **`tine serve` POST ref-txn**: an all-or-nothing ref transaction,
+  advertised as `caps.ref_txn` and used by push when offered.
+- **Run `parents[]`**: optional, omitted when empty.
+- The F2 merge design doc (`docs/design/F2-merge.md`).
+- The 56-delegation conformance family (SPEC 4.10).
+
+### Compatibility
+
+- Object ids are unchanged: `parents[]` is omitted when empty, so existing
+  runs hash as before.
+- `tine gc` before 0.43 does not follow `parents[]`.
+- Readers before 0.43 ignore delegation; they do not run the check.
+- The suite is now **665 conformance vectors**; 225 of the 665 refuse input,
+  and the adapter contract still has one entry point: 37 ops.
+
+### Deferred
+
+- The acceptance-scale claim test (1,000 tasks × 50 workers).
+- A remote backend for `tine task`.
+- F3 and F4.
+- Steer injection for Codex and Gemini.
+- `parents[]` in `.tine` artifacts and `tine log --graph`.
+- `tine fleet up` issuing delegation certificates automatically.
+- How delegation interacts with the revocation registry.
+
 ## 0.42.0 — Protocol capture, importers and attribution (2026-11-07)
 
 ### Behaviour changes

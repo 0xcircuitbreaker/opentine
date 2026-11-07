@@ -719,6 +719,43 @@ REASONS: dict[str, Reason] = {
         "a record with an empty harness",
         "derive a ref for an agent that names no harness",
     ),
+    # --- delegation (4.10) ---------------------------------------------------- #
+    "delegation.expired": R(
+        "4.10",
+        None,
+        "a chain whose certificate window does not contain the signing time",
+        "accept an expired or not-yet-valid certificate because its signature verifies",
+    ),
+    "delegation.scope-violation": R(
+        "4.10",
+        None,
+        "an agent or tool outside the leaf scope, or a link wider than its parent",
+        "treat a delegation as unscoped, or let a child widen what it was given",
+    ),
+    "delegation.broken-chain": R(
+        "4.10",
+        None,
+        "a link whose issuer or parent digest does not match the certificate above it",
+        "verify each certificate alone and accept a chain that does not connect",
+    ),
+    "delegation.wrong-signer": R(
+        "4.10",
+        None,
+        "work signed by a key other than the leaf certificate's subject",
+        "accept any key in the chain as the delegate",
+    ),
+    "delegation.bad-signature": R(
+        "4.10",
+        None,
+        "a certificate whose tine-sig/3 block fails or is not by the named issuer",
+        "trust the certificate body without checking its signature",
+    ),
+    "delegation.too-deep": R(
+        "4.10",
+        None,
+        "a link the parent's max_depth does not allow",
+        "ignore max_depth and accept a chain of any length",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

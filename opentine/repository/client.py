@@ -19,6 +19,7 @@ from opentine.repository._http import request_pack as _request_pack
 from opentine.repository._http import require_secure_remote as _require_secure_remote
 from opentine.repository._http import split_remote as _remote
 from opentine.repository._pack_fit import fitted_pack
+from opentine.repository._push_refs import move_refs
 from opentine.repository._tips import negotiation_fields
 from opentine.repository._unadopted import adopt_advertised_annotations, runs_held
 from opentine.repository._upload_client import upload as _upload
@@ -188,31 +189,15 @@ def push(
         objects, pack_id = _upload_result(
             uploaded, expected_objects=len(missing), expected_pack=expected_pack
         )
-        status, _ = _request_json(
-            client,
-            "PUT",
-            _prefix(namespace) + "/refs/" + quote(destination, safe=""),
-            allowed=(200, 409),
-            max_seconds=timeout,
-            json={"expected_old": old, "new": local_oid, **({"force": True} if force else {})},
-        )
-        if status == 409:
-            raise ValueError("remote ref changed concurrently")
+        moves: list[tuple[str, str, str | None]] = [(destination, local_oid, old)]
         annotation = (
             "annotations/" + local_oid[11:] if local_oid.startswith("run:sha256:") else None
         )
         local_annotation = repo.read_ref(annotation) if annotation else None
         if annotation and local_annotation:
-            annotation_status, _ = _request_json(
-                client,
-                "PUT",
-                _prefix(namespace) + "/refs/" + quote(annotation, safe=""),
-                allowed=(200, 409),
-                max_seconds=timeout,
-                json={"expected_old": _refs(refs).get(annotation), "new": local_annotation},
-            )
-            if annotation_status == 409:
-                raise ValueError("remote annotation ref changed concurrently")
+            moves.append((annotation, local_annotation, _refs(refs).get(annotation)))
+        prefix = _prefix(namespace)
+        move_refs(client, _request_json, prefix, caps, moves, timeout=timeout, force=force)
     return TransferResult(objects, pack_id, destination, len(short))
 
 

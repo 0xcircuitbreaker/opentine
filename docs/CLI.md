@@ -667,6 +667,24 @@ against its public key before it is used.
 | `tine verify RUN ... --allow-stale-root` | Use the TUF-installed trusted root even though its metadata has expired (a warning on stderr) |
 
 Both `tine key` verbs write only `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`.
+
+## Fleet records and delegation (0.43)
+
+| Command | What it does |
+| --- | --- |
+| `tine key delegate KEY --to PUB --agent NAME --action NAME [--max-depth N] [--not-before T] [--not-after T \| --days N] [--parent CHAIN] --out CHAIN [--json]` | KEY signs an `opentine-delegation/1` certificate (SPEC 4.10) giving PUB the named agents and tools (`*` is any) for the window (default now to now + 30 days); `--out` gets the chain, root first, with `--parent`'s certificates before the new one. `--agent` and `--action` repeat |
+| `tine key delegation show CHAIN [--json]` | Each certificate's digest, issuer, subject, window, parent and scope |
+| `tine key delegation verify CHAIN --signer PUB\|FPR [--at T] [--agent NAME] [--action NAME] [--root FPR] [--json]` | Verifies the chain offline for that signer at T (default now); exit 4 and the `delegation.*` code (`expired`, `scope-violation`, `broken-chain`, `wrong-signer`, `bad-signature`, `too-deep`, `malformed`) when it fails |
+| `tine fleet record RUN.tine [--json]` | The run's `opentine-fleet/1` record (SPEC 4.11), captured from `OPENTINE_FLEET_ID`/`_MEMBER`/`_ROLE`/`_PARENT`, and the length of its delegation chain |
+| `tine fleet record RUN.tine --sign-key KEY --out FILE` | Writes an `opentine-fleet-record/1` document: the record bound to the run's id and digest under a `tine-sig/3` block |
+| `tine fleet record RUN.tine --attest OUT --attest-key KEY` | Writes an in-toto `https://opentine.dev/attestation/fleet/v1` DSSE envelope whose subject is the run's digest |
+| `tine fleet record FILE [--pubkey PUB]` | On a signed fleet record: verifies it offline (exit 4 on failure); without `--pubkey` the embedded key is trusted on first use |
+
+A capture with `OPENTINE_DELEGATION=CHAIN` stores the chain in the run;
+`tine verify RUN --offline` then adds a required `delegation` check: the chain
+must verify for the run's signer at its signing time, its agent (agt_ ref,
+harness, fleet member or role) and every tool it used. The check's detail lists
+the chain root first; its trust basis says whether the root is one of `--pin`.
 A trusted `.tine/agents.toml` may also carry windows
 (`[agents.NAME.lifecycle."sha256:<hex>"] not_after = "..."`), as may a trust
 policy's `key_lifecycle` table; the strictest window wins.
@@ -787,3 +805,38 @@ counts the lines whose originating commit's attribution note credits them to
 a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
 attributed.
+
+## Fleet coordination: tasks, leases and steering (0.43)
+
+| Command | What it does |
+| --- | --- |
+| `tine task add ID [--title T] --repo PATH` | Creates `coord/tasks/ID` (`opentine-coord/1`) |
+| `tine task claim ID --holder NAME [--ttl S] --repo PATH` | Takes the lease by one compare-and-swap ref move; prints the new `fencing` token |
+| `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
+| `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
+| `tine task list --repo PATH` | Every task, its status, holder, token and lease end |
+| `tine fleet resume fleet.toml --id ID [--trust]` | Runs the members of fleet `ID` that did not finish; the manifest digest must match the record |
+| `tine fleet logs ID [--member KEY]` | Prints each member's captured output |
+| `tine fleet send ID --member M --message TEXT --repo PATH` | Queues a steer message in `coord/mailbox/ID/M` |
+
+Every task and mailbox version is an annotation chained by `previous_id`, so
+the ref's history is the record's audit trail. Of any number of racing
+claimants exactly one compare-and-swap wins; an expired lease is re-claimed
+with a higher fencing token. With `--json` each `task` verb prints
+`{"command": "task <verb>", "task": {...}}` (`"tasks": [...]` for `list`); a
+refused operation exits 1 with `{"error": {"code": "held|stale|done|exists|missing|contended", ...}}`.
+
+A sent message is delivered by the member's `tine hook capture` at its next
+turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
+from `tine fleet up`), once, and recorded as a `human` step with actor
+`steer`. The generic response carries `"steer": [TEXT, ...]`; Claude Code's
+`Stop` hook gets `{"decision": "block", "reason": TEXT}`, so the agent
+continues with the message. Capture must be enabled (`hooks.capture`).
+
+`tine serve` (0.43) also takes `POST /v1/tenants/T/ref-txn` with
+`{"updates": [{"name", "new", "expected_old"}, ...]}` (at most 64): every move
+is checked exactly as `PUT /refs/<name>` checks it, then all are applied in one
+index transaction or none (`409 {"updated": false}`). The server lists
+`"ref_txn": true` in `/v1/capabilities`; `tine push` then moves the head and
+the run's annotation ref in one transaction, and keeps one `PUT` per ref
+against a server that does not list it.

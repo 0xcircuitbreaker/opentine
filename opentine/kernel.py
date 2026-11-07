@@ -15,8 +15,7 @@ MAX_JSON_DEPTH = 512
 TREE_SCHEMA = 2  # a schema-2 blob is a workspace tree; its entries' oids are links (SPEC 1.5.7)
 
 
-class KernelError(ValueError):
-    pass
+class KernelError(ValueError): ...
 
 
 def validate_json_shape(raw: bytes | str, *, max_tokens: int = 200_000) -> None:
@@ -219,7 +218,8 @@ def validate_links(envelope: ObjectEnvelope, exists=None) -> tuple[str, ...]:
         blobs += [value for key, value in payload.items() if key.endswith("_blob") and value]
         if any(parse_oid(value)[0] != "blob" for value in blobs):
             raise KernelError("run blob fields must contain blob ids")
-        links = [*field_values, *evs, *blobs]
+        parents = payload.get("parents", [])  # 0.43: optional parent runs (SPEC 1.5.3)
+        links = [*field_values, *evs, *blobs, *(parents if type(parents) is list else [None])]
     if envelope.object_type in {"annotation", "attestation"}:
         links = [payload["target_id"]] if payload.get("target_id") else []
         if envelope.object_type == "annotation" and payload.get("previous_id"):

@@ -10,6 +10,7 @@ from urllib.parse import unquote
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
+from opentine.remote._ref_txn import route as ref_txn_route
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
@@ -166,6 +167,8 @@ class RemoteApp(UploadRoutes):
             )
             status = "200 OK" if changed else "409 Conflict"
             return self._json_response(start_response, status, {"updated": changed})
+        if resource == "ref-txn" and method == "POST":  # 0.43, all-or-nothing (_ref_txn)
+            return ref_txn_route(self, identity, tenant, environ, start_response)
         if resource == "negotiate" and method == "POST":
             request = self._json(environ, "depth", "haves", "wants")
             with self._guarded(self._walk_guard):
