@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-redaction-rules-1.schema.json",
+  "title": "tine-redaction-rules/1",
+  "description": "`tine redact rules --json`: the redaction ruleset as data, one row per scan step in the order the redactor runs them. `digest` is SHA-256 of JCS({ruleset, rules}).",
+  "type": "object",
+  "required": [
+    "schema",
+    "ruleset",
+    "rules_version",
+    "digest",
+    "marker",
+    "rules",
+    "token_prefixes"
+  ],
+  "properties": {
+    "command": {
+      "const": "redact-rules"
+    },
+    "schema": {
+      "const": "tine-redaction-rules/1"
+    },
+    "ruleset": {
+      "type": "string"
+    },
+    "rules_version": {
+      "const": 1
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "marker": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order",
+          "id",
+          "family",
+          "description"
+        ],
+        "properties": {
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "family": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "token_prefixes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

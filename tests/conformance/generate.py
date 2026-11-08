@@ -33,6 +33,7 @@ from tests.conformance import (
     cases_eval,
     cases_localpack,
     cases_objects,
+    cases_redaction_report,
     cases_repair,
     cases_repo,
     cases_sig_pq,
@@ -91,6 +92,7 @@ FAMILY_MODULES = (
     cases_tlog,
     cases_eval,
     cases_webhook,
+    cases_redaction_report,
 )
 
 

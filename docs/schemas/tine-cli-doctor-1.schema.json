@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-doctor-1.schema.json",
+  "title": "tine doctor --json",
+  "description": "Offline environment checks. `status` is `fail` when any row fails (the command then exits 1); `warn` rows do not change it. `--bundle` writes the same object, without `command`, redacted, as canonical JSON.",
+  "type": "object",
+  "required": [
+    "command",
+    "kind",
+    "doctor_version",
+    "status",
+    "checks"
+  ],
+  "properties": {
+    "command": {
+      "const": "doctor"
+    },
+    "kind": {
+      "const": "opentine.doctor"
+    },
+    "doctor_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "fail"
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "check": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warn",
+              "fail"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

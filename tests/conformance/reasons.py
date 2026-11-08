@@ -787,6 +787,43 @@ REASONS: dict[str, Reason] = {
         "an llm-judge verdict without a judge_run, or another scorer with one",
         "accept a model's judgement that no recorded run backs",
     ),
+    # --- redaction reports (4.13) ------------------------------------------- #
+    "redaction-report.malformed": R(
+        "4.13",
+        None,
+        "a report with a missing, extra or ill-formed field",
+        "verify a signature over fields the report format does not define",
+    ),
+    "redaction-report.unsigned": R(
+        "4.13",
+        None,
+        "a report with no signature block",
+        "treat an unsigned report as evidence that a run was scanned",
+    ),
+    "redaction-report.no-key": R(
+        "4.13",
+        None,
+        "an HMAC report checked with no key",
+        "report an HMAC-signed report as verified without its key",
+    ),
+    "redaction-report.wrong-key": R(
+        "4.13",
+        None,
+        "an Ed25519 report signed by a key other than the trusted one",
+        "accept the embedded key when the caller supplied a trusted one",
+    ),
+    "redaction-report.bad-signature": R(
+        "4.13",
+        None,
+        "a report whose tine-sig/3 block does not hold over its body",
+        "trust clean or the findings without checking the signature",
+    ),
+    "redaction-report.inconsistent": R(
+        "4.13",
+        None,
+        "a signed report whose clean is not 'no findings'",
+        "read clean without re-deriving it from the findings",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

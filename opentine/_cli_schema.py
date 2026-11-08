@@ -5,8 +5,10 @@
 checks a JSON document (``-`` reads stdin), choosing the schema from the
 document's ``schema``/``scheme``/``format`` tag or its ``command`` when none is
 named. ``validate`` exits 4 (verify failed) on an invalid document; an unknown schema
-or a missing file exits 3 (not found). ``show --json`` wraps the schema in the
-CLI envelope (``definition``) because a bare schema names no ``command``.
+or a missing file exits 3 (not found); a document nested deeper than
+:data:`MAX_DEPTH` is refused as a usage error (exit 2) before any recursion.
+``show --json`` wraps the schema in the CLI envelope (``definition``) because a
+bare schema names no ``command``.
 """
 
 from __future__ import annotations
@@ -17,10 +19,29 @@ import sys
 from pathlib import Path
 
 from opentine import _schemas
-from opentine._cli_errors import NOT_FOUND, VERIFICATION_FAILED, fail
+from opentine._cli_errors import NOT_FOUND, USAGE, VERIFICATION_FAILED, fail
 from opentine._cli_json import emit
 
 MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
+#: Deepest nesting ``validate`` accepts (the canonical JSON bound, SPEC 1.1).
+MAX_DEPTH = 512
+
+
+def _too_deep(document: object) -> bool:
+    """Whether *document* nests past :data:`MAX_DEPTH`, measured without recursion."""
+    stack = [(document, 1)]
+    while stack:
+        value, depth = stack.pop()
+        if isinstance(value, (dict, list)):
+            if depth > MAX_DEPTH:
+                return True
+            items = value.values() if isinstance(value, dict) else value
+            stack.extend((item, depth + 1) for item in items)
+    return False
+
+
+def _deep(path: str) -> None:
+    fail(f"{path} nests deeper than {MAX_DEPTH} levels; not validated", USAGE)
 
 
 def add_schema_parser(sub: argparse._SubParsersAction) -> None:
@@ -45,14 +66,18 @@ def _read(path: str) -> object:
         )
         if len(raw) > MAX_DOCUMENT_BYTES:
             fail(f"{path} is larger than {MAX_DOCUMENT_BYTES} bytes")
-        return json.loads(raw.decode("utf-8"))
+        document = json.loads(raw.decode("utf-8"))
+    except RecursionError:
+        _deep(path)
     except FileNotFoundError:
         fail(f"cannot read {path}: no such file", NOT_FOUND)
     except OSError as exc:
         fail(f"cannot read {path}: {exc.strerror or exc}")
     except (UnicodeDecodeError, ValueError) as exc:
         fail(f"{path} is not JSON: {exc}")
-    raise AssertionError("unreachable")  # pragma: no cover
+    if _too_deep(document):
+        _deep(path)
+    return document
 
 
 def cmd_schema(args: argparse.Namespace) -> None:

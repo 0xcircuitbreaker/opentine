@@ -3813,9 +3813,31 @@ ROWS: tuple[tuple, ...] = (
         "plain:redact check --json",
         "plain",
         ["redact", "check", "--json"],
-        "opentine._cli_hygiene:cmd_redact",
+        "opentine._cli_redact:cmd_redact",
         False,
         {"command": "redact", "redact_command": "check", "json": True},
+    ),
+    (
+        "plain:redact verify r.json --pubkey k.pub --json",
+        "plain",
+        ["redact", "verify", "r.json", "--pubkey", "k.pub", "--json"],
+        "opentine._cli_redact:cmd_redact",
+        False,
+        {
+            "command": "redact",
+            "redact_command": "verify",
+            "report": "r.json",
+            "pubkey": "k.pub",
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:redact rules --json",
+        "plain",
+        ["redact", "rules", "--json"],
+        "opentine._cli_redact:cmd_redact",
+        False,
+        {"command": "redact", "redact_command": "rules", "json": True},
     ),
     (
         "plain:doctor --bundle b.json",

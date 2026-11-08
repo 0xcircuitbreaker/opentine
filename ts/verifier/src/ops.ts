@@ -15,6 +15,7 @@ import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
+import { verifyRedactionReport } from "./redactreport.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { webhookVerify } from "./webhook.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
@@ -212,6 +213,15 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const trusted = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
       const found = verifyEvalVerdict(value.get("verdict") as JValue, trusted);
       return { item: found.item, passed: found.passed, signer: found.signer };
+    }
+    case "redaction-report.verify": {
+      const value = valueOf(input) as JObject;
+      const hexKey = (name: string) => {
+        const key = value.get(name);
+        return typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
+      };
+      const found = verifyRedactionReport(value.get("report") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"));
+      return { ...found };
     }
     case "actions.chain": {
       const value = valueOf(input) as JObject;

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-redact-verify-1.schema.json",
+  "title": "tine redact verify --json",
+  "description": "One row per report in the file: the verified fields, or the `redaction-report.*` reason it was refused with. The command exits 4 unless every row is ok.",
+  "type": "object",
+  "required": [
+    "command",
+    "file",
+    "ok",
+    "reports"
+  ],
+  "properties": {
+    "command": {
+      "const": "redact-verify"
+    },
+    "file": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ok",
+              "run",
+              "clean",
+              "objects",
+              "findings",
+              "state"
+            ],
+            "properties": {
+              "ok": {
+                "const": true
+              },
+              "run": {
+                "type": "string"
+              },
+              "clean": {
+                "type": "boolean"
+              },
+              "objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "findings": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "state": {
+                "enum": [
+                  "verified",
+                  "verified-tofu"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ok",
+              "run",
+              "reason",
+              "message"
+            ],
+            "properties": {
+              "ok": {
+                "const": false
+              },
+              "run": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "pattern": "^redaction-report\\."
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

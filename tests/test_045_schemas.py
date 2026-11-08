@@ -21,6 +21,7 @@ from opentine.core import Run, RunStatus, StepKind
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "tests" / "fixtures" / "compat" / "v0_5_0" / "repo"
+REPORT_VECTORS = ROOT / "tests" / "fixtures" / "redaction_report" / "vectors.json"
 
 
 def _tine(monkeypatch, capsys, *argv: str) -> tuple[int, str]:
@@ -44,6 +45,9 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     run.status = RunStatus.completed
     run.save(tmp_path / "run.tine")
     shutil.copytree(GOLDEN, tmp_path / "repo")
+    vectors = json.loads(REPORT_VECTORS.read_text("utf-8"))["cases"]
+    signed = next(case["report"] for case in vectors if case["id"].endswith("ed25519"))
+    (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
     return tmp_path
 
 
@@ -81,6 +85,11 @@ DRIVEN = (
     (("schema", "show", "no-such", "--json"), "tine-cli-envelope-1"),
     (("show", "no-such-run", "--json"), "tine-cli-envelope-1"),
     (("bisect", "--help-not-a-flag", "--json"), None),
+    (("doctor", "--repo", "repo", "--json"), "tine-cli-doctor-1"),
+    (("redact", "check", "--repo", "repo", "--json"), "tine-cli-redact-check-1"),
+    (("redact", "verify", "report.json", "--json"), "tine-cli-redact-verify-1"),
+    (("redact", "rules", "--json"), "tine-redaction-rules-1"),
+    (("redact", "check", "--repo", "repo", "--run", "no-such", "--json"), "tine-cli-envelope-1"),
 )
 
 

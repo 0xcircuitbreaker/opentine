@@ -863,6 +863,8 @@ tine push REMOTE [--allow-unredacted REASON] ...
 tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
 tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
                   [--out PATH] [--json] [--repo R]
+tine redact verify REPORT [--key-file K | --pubkey K.pub] [--json]   # 0.45.1
+tine redact rules [--json]                                           # 0.45.1
 tine doctor [--bundle PATH] [--json] [--repo R]
 ```
 
@@ -885,13 +887,32 @@ gated; it warns on stderr when the real push would be refused.
 report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
 key flag signs each report with a `tine-sig/3` header block over
 `opentine.redaction-report.v1:` + JCS of `{body, header}`; pinned HMAC and
-Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`. It exits
-1 when any report has findings.
+Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`, and the
+`59-redaction-report.json` conformance family (SPEC 4.13) pins how Python, the
+TS verifier and `tine-verify.pyz` check them. It exits 4 (verification failed)
+when any report has findings and 3 (not found) when a `--run` does not resolve
+(0.45.1; 0.45.0 exited 1 for both). `--json` prints `{command: "redact-check",
+clean, reports}` (`tine-cli-redact-check-1`; each report follows
+`opentine-redaction-report-1`).
+
+`tine redact verify REPORT` checks every report in REPORT (one report, the list
+`--out` writes, or `--json` output): the field rules, the `tine-sig/3` block
+under `--key-file` (HMAC) or `--pubkey` (Ed25519; without one, the embedded key,
+reported as `verified-tofu`), and that `clean` means no findings. It exits 4
+when any report fails, naming its `redaction-report.*` reason; `--json` follows
+`tine-cli-redact-verify-1`. `python tine-verify.pyz REPORT.json [--pubkey K |
+--key-file K]` performs the same check offline (mode `redaction-report`).
+
+`tine redact rules --json` prints the ruleset as data (`tine-redaction-rules/1`):
+the ruleset name a report records, one row per scan step in the order the
+redactor runs them (`order`, `id`, `family`, `description`), the vendor token
+prefixes, and a `digest` over the ruleset name and rows.
 
 `tine doctor` runs offline checks (opentine and Python versions, platform, git,
 the names of `OPENTINE_*`/`TINE_*` variables, agent keys by name, tine git
 hooks, installed harnesses, the repository and its configured remotes; remote
-capabilities are not probed). It exits 1 only on a `fail` row. `--bundle PATH`
+capabilities are not probed). It exits 1 only on a `fail` row. `--json` follows
+`tine-cli-doctor-1` (0.45.1 adds `command: "doctor"`). `--bundle PATH`
 writes the report as canonical JSON after `redact_value`, and refuses to write
 it if any credential shape survives.
 
@@ -1155,7 +1176,7 @@ check the same verdicts without opentine installed.
 | --- | --- |
 | `tine schema list [--json]` | Names every published JSON Schema (`docs/schemas/NAME.schema.json`) |
 | `tine schema show NAME [--json]` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`). `--json` wraps it as `{"command": "schema-show", "name", "definition"}`; an unknown name exits 3 |
-| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist |
+| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist, 2 when it nests deeper than 512 levels |
 | `tine help [COMMAND] --json` | The command and flag tree as `tine-help/1`, for generated reference docs |
 
 `validate` picks the schema from the document's `schema`, `scheme` or `format`

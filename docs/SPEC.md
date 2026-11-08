@@ -1868,6 +1868,34 @@ spliced in even under trust on first use), a repeated `item`
 (`eval.mixed-evals`). Vectors:
 `58-eval-verdict.json`.
 
+<a id="s-4.13"></a>
+## 4.13 `opentine.redaction-report` — signed redaction reports (0.45.1+)
+
+`tine redact check` re-scans every object reachable from a run with the current
+redaction ruleset and writes one report per run. A report is a JSON object with
+exactly these keys, plus an optional `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.redaction-report"` |
+| `report_version` | `1` |
+| `ruleset` | the ruleset name (`opentine-redaction/2`); `tine redact rules --json` describes it (`tine-redaction-rules/1`) |
+| `run` | the run oid (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `objects` | the number of objects re-scanned, a non-negative integer |
+| `findings` | a list of `{oid, kind}`, one per object the ruleset would still change, at most `objects` long; never the matched bytes |
+| `clean` | boolean, equal to "`findings` is empty" |
+| `signature` | a `tine-sig/3` block (§9.6 header; HMAC-SHA256, or Ed25519 with embedded `public_key`) over `b"opentine.redaction-report.v1:"` + JCS(`{"body": <the report without signature>, "header": <header>}`) |
+
+A verifier MUST refuse, with the first applicable code:
+`redaction-report.malformed` (a missing, extra or ill-formed key);
+`redaction-report.unsigned` (no `signature`); `redaction-report.no-key` (an
+HMAC report checked without a key); `redaction-report.wrong-key` (a trusted
+Ed25519 key was supplied and the embedded key is not it);
+`redaction-report.bad-signature` (the block does not verify);
+`redaction-report.inconsistent` (`clean` is not "no findings"). Without a
+trusted key an Ed25519 report rests on its embedded key (trust on first use,
+state `verified-tofu`). Vectors: `59-redaction-report.json`.
+
 ---
 
 <a id="part-5"></a>
@@ -2925,8 +2953,10 @@ the command and flag tree.
 ## 12.4 Validating
 
 `tine schema validate FILE [--schema NAME]` picks the schema from the
-document's `schema`, `scheme` or `format` tag, else its `command`, and exits 4
-on an invalid document. The reference validator (`opentine._jsonschema`)
+document's `schema`, `scheme` or `format` tag, else its `command` (a document
+with neither, such as a redaction report, by its `kind`), and exits 4 on an
+invalid document. A document nested deeper than 512 levels is refused with
+exit 2 (usage) before it is validated. The reference validator (`opentine._jsonschema`)
 implements the keyword subset the published schemas use and refuses a schema
 that uses any other keyword; any conforming 2020-12 validator gives the same
 verdicts on these schemas.

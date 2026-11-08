@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import _artifact, _evalv, _evidence
+from . import _artifact, _evalv, _evidence, _redactr
 
 SCHEMA = "tine-pyz-verify/1"
 MAX_KEY_BYTES = 1 << 20
@@ -109,7 +109,10 @@ def main(argv: list[str] | None = None) -> int:
     def one(item: Path) -> dict[str, Any]:
         return verify_file(item, hmac_key=secret, pubkey=pubkey, strict=args.strict)
 
-    if _evalv.is_eval(path):
+    if _redactr.is_report(path):
+        checks = _redactr.verify_report(path, secret, pubkey)
+        result = report("redaction-report", path, checks, args.strict)
+    elif _evalv.is_eval(path):
         result = report("eval", path, _evalv.verify_eval(path, pubkey), args.strict)
     elif path.is_dir():
         if not (path / "MANIFEST.sha256").is_file():
