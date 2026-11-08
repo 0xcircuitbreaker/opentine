@@ -1060,3 +1060,19 @@ verifies both evals, then lists `regressed` (pass to fail), `fixed`,
 `--exit-code` exits 1 on any regression. A failed verification exits 4.
 `tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
 check the same verdicts without opentine installed.
+
+## JSON Schemas and `tine help --json` (0.45)
+
+| Command | What it does |
+| --- | --- |
+| `tine schema list [--json]` | Names every published JSON Schema (`docs/schemas/NAME.schema.json`) |
+| `tine schema show NAME` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`) |
+| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid |
+| `tine help [COMMAND] --json` | The command and flag tree as `tine-help/1`, for generated reference docs |
+
+`validate` picks the schema from the document's `schema`, `scheme` or `format`
+tag, else from its `command`, so `tine verify RUN --offline --json | tine schema
+validate -` needs no `--schema`. Every `--json` object meets the envelope
+`tine-cli-envelope-1`, and the commands with a fixed shape (`show`, `verify`,
+`ls`, `search`, `cost`, `blame`, `repo-show`, `repo-search`) also meet their own
+schema. The rules are in SPEC.md Part 12.
