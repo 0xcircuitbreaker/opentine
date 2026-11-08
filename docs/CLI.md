@@ -173,6 +173,23 @@ writes an in-toto SLSA Verification Summary Attestation
 (`https://slsa.dev/verification_summary/v1`) for every admitted push to
 `DIR/<tenant>/<sha256>.json`.
 
+New in 0.46: `serve --trust-policy NAME=FILE` (repeatable) admits ref updates
+only under a named server-side policy (`opentine.admission-policy` version 1,
+schema `docs/schemas/opentine-admission-policy-1.schema.json`): `refs` globs
+(required) and optional `tenants`, `roles`, `subjects`, `object_types` and the
+`levels` the VSA records. Policies are tried in order and the first whose
+tenants and refs cover the update decides; an update no policy covers, or one
+the deciding policy refuses, gets 403, so naming any policy makes admission
+fail-closed. Each VSA's `predicate.policy` is
+`{"uri": "opentine:trust-policy/NAME", "digest": {"sha256": <file sha256>}}`.
+`serve --vsa-signing-key FILE` (a 32-byte seed or 64-char hex) wraps each VSA
+in a DSSE envelope signed by the server's own Ed25519 key, and
+`GET /v1/capabilities` then lists `vsa.keys` (`{"kid", "alg", "public_key"}`,
+as `webhooks.keys`) and the policy URIs under `vsa.policies` for a CI gate to
+pin. The policy is operator configuration: nothing in a pushed repository
+selects one, and the server signs VSAs only with its own key, never as a user. CI
+integrations that gate on these VSAs are in [CI.md](CI.md).
+
 ## Default output format
 
 ```

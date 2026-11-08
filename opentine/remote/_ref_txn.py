@@ -59,7 +59,7 @@ def check_move(
             service._audit(identity, tenant, "update_ref", "non-fast-forward", {"name": name})
             raise PermissionError("non-fast-forward update of a protected head")
         service._authorize(identity, FORCE, tenant)
-    facts = {"name": name, "new": new_oid, "tenant": tenant}
+    facts = {"name": name, "new": new_oid, "tenant": tenant, "object_type": target.object_type}
     service.admission.admit(identity, "update_ref", facts)
     return name, rewrite
 

@@ -681,6 +681,19 @@
       "verdict": 0
     },
     {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/61-vsa.json",
+      "name": "vsa",
+      "ops": [
+        "vsa.verify"
+      ],
+      "reject": 0,
+      "section": "8.14",
+      "stress": 0,
+      "verdict": 12
+    },
+    {
       "core": 23,
       "count": 23,
       "file": "vectors/63-tombstone.json",
@@ -1829,6 +1842,7 @@
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
     "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
     "vectors/60-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
+    "vectors/61-vsa.json": "64354b4717e16d8aa4c4aabfc6a2b2ee8017ea1a0e7563c289439dd0b3095602",
     "vectors/63-tombstone.json": "decd2cc717c5ac4fa70ad69125a7e5f4d65f885b60b04f81863a7e0db5ae8ad6",
     "vectors/64-redacted-copy.json": "720af7e02bc2297b439a524dbcc32cb870e4eb9ba2ebdc4e9797ffa88dde5871",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
@@ -2562,6 +2576,22 @@
       "summary": "SPEC 4.14: verify a signed opentine.tombstone under the key given",
       "unordered": []
     },
+    "vsa.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "class"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.14: a remote's signed SLSA VSA: pinned key, subject, policy, levels",
+      "unordered": []
+    },
     "webhook.verify": {
       "args": [],
       "input": [
@@ -2590,13 +2620,13 @@
   "spec_version": "0.46.0",
   "suite_version": 1,
   "totals": {
-    "cases": 755,
-    "core": 745,
-    "families": 39,
-    "ops": 46,
+    "cases": 767,
+    "core": 757,
+    "families": 40,
+    "ops": 47,
     "reason_codes": 139,
     "reject": 270,
     "stress": 10,
-    "verdict": 130
+    "verdict": 142
   }
 }

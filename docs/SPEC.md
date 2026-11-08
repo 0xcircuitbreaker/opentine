@@ -2631,6 +2631,48 @@ what it fetches by recomputing every oid (2.8, and the TS SDK's
 `@opentine/sdk/verified`). `tests/api_conformance/` is the black-box suite an
 implementation runs against its base URL. No byte format changed.
 
+<a id="s-8.16"></a>
+## 8.16 Admission VSAs and named server trust policies (0.46.0)
+
+A remote run as `tine serve --vsa-dir DIR` or `--trust-policy NAME=FILE`
+records every admitted ref update as an in-toto Statement v1 whose
+`predicateType` is `https://slsa.dev/verification_summary/v1` (a SLSA VSA):
+one `subject` `{"name": <oid>, "digest": {"sha256": <oid hex>}}`, and a
+`predicate` with `verifier.id`, `timeVerified`, `resourceUri`
+(`tine://<tenant>/<ref>`), `policy`, `inputAttestations` (empty),
+`verificationResult` (`PASSED`) and the sorted `verifiedLevels`. With a server
+key it is wrapped in a DSSE envelope (`payloadType`
+`application/vnd.in-toto+json`, Ed25519 over the DSSE v1 PAE, as 9.x
+`tine-attest` envelopes). The key is the server's own: a remote never signs as
+a user. `GET /v1/capabilities` advertises it as `vsa.keys` (entries
+`{"kid", "alg": "ed25519", "public_key"}` exactly as `webhooks.keys` in 8.13),
+with `vsa.predicate_type`, `vsa.verifier` and the configured `vsa.policies`
+URIs.
+
+A named policy is an `opentine.admission-policy` version 1 JSON document
+(`docs/schemas/opentine-admission-policy-1.schema.json`): required `refs`
+(fnmatch globs over the normalized ref name), optional `tenants`, `roles`
+(any one), `subjects`, `object_types` (of the ref's target) and `levels`
+(default `["OPENTINE_ADMITTED"]`). Policies are tried in the order given; the
+first whose `tenants` and `refs` cover the update decides it, and an update no
+policy covers is refused. The VSA's `predicate.policy` is then
+`{"uri": "opentine:trust-policy/<NAME>", "digest": {"sha256": <sha256 of the
+policy file's bytes>}}`; without a named policy it is
+`{"uri": "opentine:admission/default"}`.
+
+A verifier holding the server's 32-byte key pinned checks an envelope for an
+expected subject, optionally a required policy URI, and a set of required
+levels, and answers in this order: **malformed** (not a DSSE envelope of that
+payload type, a non-base64 payload or signature, a signature entry with keys
+other than `keyid`/`sig`, or no signatures), **bad-signature** (no signature
+verifies under the pinned key), **malformed** (the signed payload is not a
+Statement v1 VSA with exactly one subject carrying a 64-hex sha256, a
+`verifiedLevels` string list and a `policy.uri` string), **wrong-subject**,
+**failed** (`verificationResult` is not `PASSED`), **wrong-policy**,
+**missing-level**; otherwise **valid**. Reference: `opentine/_vsa_verify.py`
+(standard library plus an injectable Ed25519, vendored into
+`tine-verify.pyz`). Vectors for 8.16: `61-vsa.json`.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -3134,7 +3176,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.46.0 | 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; Part 12 adds their schemas. No existing byte format changed. |
+| 0.46.0 | 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

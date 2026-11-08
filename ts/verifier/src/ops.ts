@@ -18,6 +18,7 @@ import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
+import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
@@ -197,6 +198,8 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       return tlogQuorum(valueOf(input));
     case "webhook.verify":
       return webhookVerify(valueOf(input));
+    case "vsa.verify":
+      return vsaVerify(valueOf(input));
     case "delegation.verify": {
       const value = valueOf(input) as JObject;
       const actions = value.get("actions");

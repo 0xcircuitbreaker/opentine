@@ -54,6 +54,7 @@ from tests.conformance import adapter_redaction_report as report_ops
 from tests.conformance import adapter_repo as repo_ops
 from tests.conformance import adapter_share as share_ops
 from tests.conformance import adapter_tlog as tlog_ops
+from tests.conformance import adapter_vsa as vsa_ops
 from tests.conformance import adapter_webhook as webhook_ops
 from tests.conformance import adapter_write as write_ops
 from tests.conformance.keys import KEYS
@@ -287,4 +288,5 @@ OPS = {
     **share_ops.OPS,
     **tlog_ops.OPS,
     **webhook_ops.OPS,
+    **vsa_ops.OPS,
 }

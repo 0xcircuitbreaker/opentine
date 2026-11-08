@@ -3584,6 +3584,19 @@ ROWS: tuple[tuple, ...] = (
         {"command": "serve", "quota_rate": 5.0, "quota_burst": 10.0, "quota_max_keys": 99},
     ),
     (
+        "plain:serve --trust-policy prod=p.json --trust-policy ci=c.json --vsa-signing-key k",
+        "plain",
+        ["serve", "--trust-policy", "prod=p.json", "--trust-policy", "ci=c.json"]
+        + ["--vsa-signing-key", "k"],
+        "opentine.cli:<lambda>",
+        False,
+        {
+            "command": "serve",
+            "admission_policy": ["prod=p.json", "ci=c.json"],
+            "vsa_signing_key": "k",
+        },
+    ),
+    (
         "plain:cost r1 --otlp m.json --statement s.json --sign-key k --signer ci",
         "plain",
         ["cost", "r1", "--otlp", "m.json", "--statement", "s.json", "--sign-key", "k"]

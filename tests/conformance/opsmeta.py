@@ -427,4 +427,13 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": ["ed25519"],
         "summary": "SPEC 8.13: a tine-webhook/1 delivery: replay window, pinned key id, Ed25519",
     },
+    "vsa.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok", "class"],
+        "unordered": [],
+        "requires": ["ed25519"],
+        "summary": "SPEC 8.14: a remote's signed SLSA VSA: pinned key, subject, policy, levels",
+    },
 }
