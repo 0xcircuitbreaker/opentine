@@ -840,6 +840,36 @@ JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
 `/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
 `/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
 interface yet.
+## Pre-push redaction gate, `tine redact check` and `tine doctor` (0.45)
+
+```
+tine push REMOTE [--allow-unredacted REASON] ...
+tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
+                  [--out PATH] [--json] [--repo R]
+tine doctor [--bundle PATH] [--json] [--repo R]
+```
+
+Before a real push sends anything, every outgoing object (the same set
+`--dry-run` counts) is re-scanned with the current redaction ruleset
+(`opentine-redaction/2`). An object the redactor would still change is a
+finding, and the push is refused (exit 1) naming the object ids -- never the
+matched bytes. `--allow-unredacted REASON` pushes anyway and records
+`allow-unredacted: REASON (N object(s))` as the `note` of that push's op-log
+entry (`tine op log`). `--dry-run` is not gated.
+
+`tine redact check` prints one redaction report per run reachable from
+`heads/*` (or each `--run`): `{kind: "opentine.redaction-report",
+report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
+key flag signs each report with a `tine-sig/3` header block over
+`opentine.redaction-report.v1:` + JCS of `{body, header}`. It exits 1 when any
+report has findings.
+
+`tine doctor` runs offline checks (opentine and Python versions, platform, git,
+the names of `OPENTINE_*`/`TINE_*` variables, agent keys by name, tine git
+hooks, installed harnesses, the repository and its configured remotes; remote
+capabilities are not probed). It exits 1 only on a `fail` row. `--bundle PATH`
+writes the report as canonical JSON after `redact_value`, and refuses to write
+it if any credential shape survives.
 
 ## Run summaries: `tine explain` (0.42)
 

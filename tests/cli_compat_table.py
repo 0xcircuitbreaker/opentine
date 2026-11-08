@@ -3763,4 +3763,28 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "help", "json": True},
     ),
+    (
+        "plain:push https://r.invalid/v1 --allow-unredacted fixture",
+        "plain",
+        ["push", "https://r.invalid/v1", "--allow-unredacted", "fixture"],
+        "opentine._repo_cli_plumbing:cmd_push",
+        True,
+        {"command": "push", "allow_unredacted": "fixture"},
+    ),
+    (
+        "plain:redact check --json",
+        "plain",
+        ["redact", "check", "--json"],
+        "opentine._cli_hygiene:cmd_redact",
+        False,
+        {"command": "redact", "redact_command": "check", "json": True},
+    ),
+    (
+        "plain:doctor --bundle b.json",
+        "plain",
+        ["doctor", "--bundle", "b.json"],
+        "opentine._cli_hygiene:cmd_doctor",
+        False,
+        {"command": "doctor", "bundle": "b.json"},
+    ),
 )
