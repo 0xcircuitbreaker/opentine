@@ -53,6 +53,18 @@ def open_(required: list[str], props: dict[str, Any], **extra: Any) -> dict[str,
     return {"type": "object", "required": required, "properties": props, **extra}
 
 
+BLAME_LINES = open_(["command", "schema", "path", "revision", "lines", "total_lines", "ai_lines"], {
+    "command": {"const": "blame"}, "schema": {"const": "tine-blame/1"}, "path": STR,
+    "revision": STR, "total_lines": INT,
+    "ai_lines": INT, "lines": {"type": "array", "items": open_(
+        ["line", "commit", "orig_path", "orig_line", "author", "author_mail", "author_time",
+         "summary", "text", "ai"], {
+            "line": INT, "commit": STR, "orig_path": STR, "orig_line": INT, "author": STR,
+            "author_mail": STR, "author_time": INT, "summary": STR, "text": STR,
+            "ai": opt(open_(["run", "seq", "model"], {"run": STR, "seq": opt(INT),
+                                                     "model": STR}))})},
+})  # fmt: skip
+
 STEP_KEYS = ["id", "kind", "parent_ids", "provider", "model", "cost", "duration", "timestamp",
              "inputs", "outputs", "usage", "billing", "error", "tool"]  # fmt: skip
 STEP = open_(STEP_KEYS, {
@@ -106,9 +118,12 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                         "start_line": INT, "end_line": INT, "content_hash": STR,
                         "run": STR, "step": STR, "seq": INT, "tool": STR, "model": STR})}})},
         })),
-    "tine-blame-1": doc("tine-blame-1", "tine-blame/1", "`tine blame PATH[:LINE] --json`: "
-        "the recorded writes that inserted a line or wrote a file.",
-        open_(["command", "path", "line", "commit", "linked_runs", "hits"], {
+    "tine-blame-1": doc("tine-blame-1", "tine-blame/1", "One of two shapes: "
+        "`tine blame PATH[:LINE] --json`, the recorded writes that inserted a line or wrote "
+        "a file, or `tine blame FILE --lines --json`, one row per line with `ai` set "
+        "from the attribution notes.",
+        {"type": "object", "anyOf": [BLAME_LINES, open_(
+            ["command", "path", "line", "commit", "linked_runs", "hits"], {
             "command": {"const": "blame"}, "schema": {"const": "tine-blame/1"},
             "path": STR, "line": opt(INT), "commit": STR, "linked_runs": {"type": "array"},
             "hits": {"type": "array", "items": open_(
@@ -116,7 +131,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                 {"run_id": STR, "step_id": STR, "seq": INT, "tool": STR, "model": STR,
                  "agent": STR, "ts": NUM, "path": STR, "match": {"enum": ["line", "file"]},
                  "commit": STR})},
-        })),
+        })]}),
     "agent-trace-0.1": doc("agent-trace-0.1", "Agent Trace record (OpenTine export)",
         "`tine export --format agent-trace`: the subset of agent-trace.dev trace-record "
         "v0.1 OpenTine writes. The upstream schema is authoritative.",

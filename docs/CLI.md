@@ -840,6 +840,7 @@ JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
 `/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
 `/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
 interface yet.
+
 ## Pre-push redaction gate, `tine redact check` and `tine doctor` (0.45)
 
 ```
@@ -973,7 +974,7 @@ content line that a commit's attribution note credits to a run it adds three
 header lines, `tine-run RUN`, `tine-step SEQ` and `tine-model MODEL`; a file
 with no attributed lines is byte for byte what git prints. `--lines` shows one
 row per line (commit, run, line number, text) and `--lines --json` emits a
-`tine-blame/1` record: `path`, `revision`, `total_lines`, `ai_lines` and per
+`tine-blame/1` record: `command` (`blame`), `path`, `revision`, `total_lines`, `ai_lines` and per
 line `line`, `commit`, `orig_path`, `orig_line`, `author`, `author_mail`,
 `author_time`, `summary`, `text` and `ai` (`{run, seq, model}` or `null`).
 `tine blame PATH[:LINE]` without these flags is unchanged.

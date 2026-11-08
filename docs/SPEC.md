@@ -1829,6 +1829,7 @@ be moved to another run. The in-toto predicate
 predicate `{producer, fleet, agent_ref, delegation}` (`delegation` is the
 chain's certificate digests, root first).
 
+<a id="s-4.12"></a>
 ## 4.12 `tine-eval-verdict/1` — signed eval verdicts (0.45.0+)
 
 `tine eval run` scores every item of a dataset and signs one verdict per item.

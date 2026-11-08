@@ -165,6 +165,7 @@ def blame_record(cwd: Path | str, path: str, *, rev: str = "HEAD", lines: str = 
         })  # fmt: skip
     ai = sum(1 for row in rows if row["ai"])
     return {
+        "command": "blame",
         "schema": SCHEMA,
         "path": path,
         "revision": rev,

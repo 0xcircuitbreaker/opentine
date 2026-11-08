@@ -2,95 +2,218 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-blame-1.schema.json",
   "title": "tine-blame/1",
-  "description": "`tine blame PATH[:LINE] --json`: the recorded writes that inserted a line or wrote a file.",
+  "description": "One of two shapes: `tine blame PATH[:LINE] --json`, the recorded writes that inserted a line or wrote a file, or `tine blame FILE --lines --json`, one row per line with `ai` set from the attribution notes.",
   "type": "object",
-  "required": [
-    "command",
-    "path",
-    "line",
-    "commit",
-    "linked_runs",
-    "hits"
-  ],
-  "properties": {
-    "command": {
-      "const": "blame"
-    },
-    "schema": {
-      "const": "tine-blame/1"
-    },
-    "path": {
-      "type": "string"
-    },
-    "line": {
-      "anyOf": [
-        {
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "path",
+        "revision",
+        "lines",
+        "total_lines",
+        "ai_lines"
+      ],
+      "properties": {
+        "command": {
+          "const": "blame"
+        },
+        "schema": {
+          "const": "tine-blame/1"
+        },
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "total_lines": {
           "type": "integer",
           "minimum": 0
         },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "commit": {
-      "type": "string"
-    },
-    "linked_runs": {
-      "type": "array"
-    },
-    "hits": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "run_id",
-          "step_id",
-          "seq",
-          "tool",
-          "model",
-          "agent",
-          "ts",
-          "path",
-          "match"
-        ],
-        "properties": {
-          "run_id": {
-            "type": "string"
-          },
-          "step_id": {
-            "type": "string"
-          },
-          "seq": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "tool": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "agent": {
-            "type": "string"
-          },
-          "ts": {
-            "type": "number"
-          },
-          "path": {
-            "type": "string"
-          },
-          "match": {
-            "enum": [
+        "ai_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
               "line",
-              "file"
-            ]
-          },
-          "commit": {
-            "type": "string"
+              "commit",
+              "orig_path",
+              "orig_line",
+              "author",
+              "author_mail",
+              "author_time",
+              "summary",
+              "text",
+              "ai"
+            ],
+            "properties": {
+              "line": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "commit": {
+                "type": "string"
+              },
+              "orig_path": {
+                "type": "string"
+              },
+              "orig_line": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "author": {
+                "type": "string"
+              },
+              "author_mail": {
+                "type": "string"
+              },
+              "author_time": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "summary": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "ai": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "run",
+                      "seq",
+                      "model"
+                    ],
+                    "properties": {
+                      "run": {
+                        "type": "string"
+                      },
+                      "seq": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "model": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "path",
+        "line",
+        "commit",
+        "linked_runs",
+        "hits"
+      ],
+      "properties": {
+        "command": {
+          "const": "blame"
+        },
+        "schema": {
+          "const": "tine-blame/1"
+        },
+        "path": {
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "commit": {
+          "type": "string"
+        },
+        "linked_runs": {
+          "type": "array"
+        },
+        "hits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "run_id",
+              "step_id",
+              "seq",
+              "tool",
+              "model",
+              "agent",
+              "ts",
+              "path",
+              "match"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string"
+              },
+              "step_id": {
+                "type": "string"
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tool": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "agent": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "number"
+              },
+              "path": {
+                "type": "string"
+              },
+              "match": {
+                "enum": [
+                  "line",
+                  "file"
+                ]
+              },
+              "commit": {
+                "type": "string"
+              }
+            }
           }
         }
       }
     }
-  }
+  ]
 }
