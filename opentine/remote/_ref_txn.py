@@ -76,7 +76,7 @@ def update_refs(
         raise ValueError("this server's index cannot apply ref transactions")
     if not isinstance(updates, list) or not 1 <= len(updates) <= MAX_TXN_UPDATES:
         raise ValueError(f"a ref transaction moves 1 to {MAX_TXN_UPDATES} refs")
-    rows, forced = [], False
+    rows, moved, forced = [], [], False
     for update in updates:
         if not isinstance(update, dict) or set(update) - {"expected_old", "name", "new"}:
             raise ValueError("a ref transaction update is {name, new, expected_old}")
@@ -85,6 +85,7 @@ def update_refs(
             raise ValueError("a ref transaction update needs a new oid")
         name, rewrite = check_move(service, identity, tenant, update.get("name"), new, old, force)
         rows.append((name, new, old))
+        moved.append(rewrite)
         forced = forced or rewrite
     changed = service.index.update_refs(tenant, rows)
     outcome = ("forced" if forced else "ok") if changed else "conflict"
@@ -93,8 +94,8 @@ def update_refs(
     head = {"name": rows[0][0], "new": rows[0][1]}
     service._audit(identity, tenant, "update_ref", outcome, {"names": names, "txn": True, **head})
     hub = getattr(service, "events", None)
-    for name, new, old in rows if changed and hub is not None else ():
-        hub.ref_moved(tenant, name, old, new, forced)
+    for (name, new, old), rewrite in zip(rows, moved) if changed and hub else ():
+        hub.ref_moved(tenant, name, old, new, rewrite)
     return changed
 
 

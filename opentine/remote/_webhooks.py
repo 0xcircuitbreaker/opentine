@@ -58,7 +58,16 @@ def _address(text: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
     return mapped or ip
 
 
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
 def blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if isinstance(ip, ipaddress.IPv6Address):
+        embedded = ip.sixtofour or (ip.teredo or (None, None))[1]
+        if embedded is None and ip in _NAT64:
+            embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        if embedded is not None and blocked(embedded):
+            return True
     return not ip.is_global or ip.is_multicast or ip.is_reserved or ip.is_unspecified
 
 

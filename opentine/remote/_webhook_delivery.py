@@ -110,7 +110,11 @@ class Dispatcher:
 
     def _run(self) -> None:
         while True:
-            self.deliver(self._next())
+            job = self._next()
+            try:
+                self.deliver(job)
+            except Exception:  # noqa: BLE001 - one bad delivery never stops the thread
+                self.dropped += 1
 
     def deliver(self, job: dict[str, Any]) -> None:
         payload = job["payload"]

@@ -63,7 +63,11 @@ class EventHub:
                 "tenant": tenant,
                 "time": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             }
-            buffer = self._tenants.pop(tenant, None) or deque(maxlen=self._buffer)
+            buffer = self._tenants.pop(tenant, None)
+            if buffer is None:
+                buffer = deque(maxlen=self._buffer)
+                if self._dropped_tenants:  # it may have been evicted: resuming needs a reset
+                    self._dropped[tenant] = self._dropped_tenants
             if len(buffer) == buffer.maxlen:
                 self._dropped[tenant] = buffer[0][0]
             buffer.append((self._seq, event))

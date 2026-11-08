@@ -53,38 +53,56 @@ def events_route(app: Any, identity, tenant: str, environ, start_response):
             ("X-Accel-Buffering", "no"),
         ],
     )
-    return _stream(
-        hub,
-        tenant,
-        seq,
-        reset,
-        getattr(app, "stream_seconds", STREAM_SECONDS),
-        getattr(app, "heartbeat_seconds", HEARTBEAT),
+    return _Released(
+        hub.streams,
+        _stream(
+            hub,
+            tenant,
+            seq,
+            reset,
+            getattr(app, "stream_seconds", STREAM_SECONDS),
+            getattr(app, "heartbeat_seconds", HEARTBEAT),
+        ),
     )
 
 
+class _Released:
+    """The stream, releasing its slot exactly once on ``close()`` even if never iterated."""
+
+    def __init__(self, slot, frames):
+        self._slot, self._frames, self._open = slot, frames, True
+
+    def __iter__(self):
+        return self._frames
+
+    def close(self) -> None:
+        try:
+            self._frames.close()
+        finally:
+            if self._open:
+                self._open = False
+                self._slot.release()
+
+
 def _stream(hub, tenant: str, seq: int, reset: bool, seconds: float, heartbeat: float):
-    try:
-        yield b"retry: 2000\n\n"
-        end = time.monotonic() + seconds
-        beat = time.monotonic() + heartbeat
-        while True:
-            events, lost, head = hub.after(tenant, seq)
-            if reset or lost:
-                reset = False
-                yield b"event: reset\ndata: {}\n\n"
-            for item in events:
-                seq = item[0]
-                yield _frame(item)
-            now = time.monotonic()
-            if now >= end:
-                return
-            if now >= beat:
-                beat = now + heartbeat
-                yield b": heartbeat\n\n"
-            hub.wait(head, min(end, beat) - now)
-    finally:
-        hub.streams.release()
+    yield b"retry: 2000\n\n"
+    end = time.monotonic() + seconds
+    beat = time.monotonic() + heartbeat
+    while True:
+        events, lost, head = hub.after(tenant, seq)
+        if reset or lost:
+            reset = False
+            yield b"event: reset\ndata: {}\n\n"
+        for item in events:
+            seq = item[0]
+            yield _frame(item)
+        now = time.monotonic()
+        if now >= end:
+            return
+        if now >= beat:
+            beat = now + heartbeat
+            yield b": heartbeat\n\n"
+        hub.wait(head, min(end, beat) - now)
 
 
 def webhook_routes(app: Any, identity, tenant: str, resource: str, method: str, environ, sr):

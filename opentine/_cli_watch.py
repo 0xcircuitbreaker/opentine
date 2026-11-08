@@ -83,7 +83,8 @@ def _emit(args, event: dict[str, Any] | None) -> None:
     else:
         data = event["data"]
         what = data.get("name") or data.get("command") or data.get("size") or data.get("total")
-        console.print(f"{event['time']} [{BRAND}]{event['kind']}[/] {_terminal(str(what))}")
+        when, kind = _terminal(str(event.get("time"))), _terminal(str(event.get("kind")))
+        console.print(f"{when} [{BRAND}]{kind}[/] {_terminal(str(what))}")
     sys.stdout.flush()
 
 
@@ -99,6 +100,8 @@ def _watch_remote(args, base: str, tenant: str, token) -> None:
                     _emit(args, None)
                     continue
                 event = json.loads(frame["data"])
+                if not isinstance(event, dict) or not isinstance(event.get("data"), dict):
+                    raise ValueError("event stream sent a malformed event")
                 last = frame.get("id") or last
                 _emit(args, event)
                 seen += 1
