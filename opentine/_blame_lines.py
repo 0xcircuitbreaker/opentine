@@ -29,6 +29,14 @@ SCHEMA = "tine-blame/1"
 _HEADER = re.compile(rb"^([0-9a-f]{40,64}) (\d+) (\d+)(?: \d+)?$")
 _RANGE = re.compile(r"^\d{1,9},\d{1,9}$")
 _ZERO = re.compile(r"^0+$")
+#: A note is repository data anyone can push: cap how many lines it may credit.
+MAX_NOTE_LINES = 200_000
+_UNSAFE = re.compile(r"[\x00-\x20\x7f]")
+
+
+def _word(value: Any) -> str:
+    """*value* as one header word: no whitespace or control bytes (no forged headers)."""
+    return _UNSAFE.sub("_", str(value or ""))[:200]
 
 
 def _note_lines(cwd: Path | str, sha: str) -> dict[str, dict[int, dict[str, Any]]]:
@@ -40,16 +48,30 @@ def _note_lines(cwd: Path | str, sha: str) -> dict[str, dict[int, dict[str, Any]
         record = read_note(cwd, sha)
     except (GitLinkError, ValueError):
         return out
-    for entry in (record or {}).get("files") or []:
+    budget = MAX_NOTE_LINES
+    files = (record or {}).get("files")
+    for entry in files if isinstance(files, list) else []:
+        ranges = entry.get("ranges") if isinstance(entry, dict) else None
+        if not isinstance(ranges, list):
+            continue
         lines = out.setdefault(str(entry.get("path")), {})
-        for item in entry.get("ranges") or []:
+        for item in ranges:
+            start = item.get("start_line") if isinstance(item, dict) else None
+            end = item.get("end_line") if isinstance(item, dict) else None
+            if not (type(start) is int and type(end) is int and 1 <= start <= end):
+                continue  # a malformed range credits nothing
+            seq = item.get("seq")
             found = {
-                "run": str(item.get("run") or ""),
-                "seq": item.get("seq"),
-                "model": str(item.get("model") or ""),
+                "run": _word(item.get("run")),
+                "seq": seq if type(seq) is int else None,
+                "model": _word(item.get("model")),
             }
-            for number in range(int(item["start_line"]), int(item["end_line"]) + 1):
+            end = min(end, start + budget - 1)
+            budget -= end - start + 1
+            for number in range(start, end + 1):
                 lines[number] = found
+            if budget <= 0:
+                return out
     return out
 
 
@@ -67,16 +89,18 @@ def raw_blame(
 
 def _walk(raw: bytes):
     """Yield ``(line bytes, (sha, orig line, orig path) or None)`` for each porcelain line."""
-    sha, orig, name = "", 0, ""
+    # git prints ``filename`` only the first time it names a commit (unless the
+    # commit touches several paths), so remember the path per commit.
+    sha, orig, names = "", 0, {}
     for line in raw.splitlines(keepends=True):
         body = line.rstrip(b"\n")
         if body.startswith(b"\t"):
-            yield line, (sha, orig, name)
+            yield line, (sha, orig, names.get(sha, ""))
             continue
         if match := _HEADER.match(body):
             sha, orig = match.group(1).decode(), int(match.group(2))
         elif body.startswith(b"filename "):
-            name = body[len(b"filename ") :].decode("utf-8", "replace")
+            names[sha] = body[len(b"filename ") :].decode("utf-8", "replace")
         yield line, None
 
 

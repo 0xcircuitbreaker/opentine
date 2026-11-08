@@ -147,10 +147,11 @@ def cmd_why(args: argparse.Namespace) -> None:
     }  # fmt: skip
 
     def human() -> None:
+        where = _terminal(f"{path}:{line}")
         if not run_name:
-            console.print(f"{path}:{line}: no agent run is linked to this line.")
+            console.print(f"{where}: no agent run is linked to this line.")
             return
-        console.print(f"{path}:{line}  commit {commit[:12] or '-'}  run {_terminal(run_name)}")
+        console.print(f"{where}  commit {commit[:12] or '-'}  run {_terminal(run_name)}")
         for step in steps:
             console.print(
                 f"  step {step['seq']}  {step['kind']}  {_terminal(step['tool'] or step['model'])}",

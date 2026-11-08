@@ -110,8 +110,73 @@ def test_trailer_vectors(case) -> None:
         return
     links = [link.to_dict() for link in parse(case["message"])]
     assert links == case["links"]
-    # The lenient reader `tine git log` uses names the same runs.
+    if case.get("strict_only"):
+        return
+    # The lenient reader the commit-msg hook uses names the same runs.
     assert run_ids(case["message"]) == list(dict.fromkeys(link["run"] for link in links))
+
+
+def _note(root: Path, sha: str, ranges: list, path: str = "a.txt") -> None:
+    from opentine._line_attrib import PREFIX, SCHEMA
+
+    record = {"schema": SCHEMA, "files": [{"path": path, "ranges": ranges}]}
+    body = PREFIX + json.dumps(record)
+    _git(root, "notes", "--ref=refs/notes/tine", "add", "-f", "-m", body, sha)
+
+
+def _one_commit_repo(root: Path, name: str, data: bytes) -> str:
+    root.mkdir()
+    _git(root, "init", "-q", "-b", "main")
+    (root / name).write_bytes(data)
+    _git(root, "add", name)
+    _git(root, "commit", "-q", "-m", "A")
+    return _git(root, "rev-parse", "HEAD").decode().strip()
+
+
+def test_porcelain_keeps_each_commits_path_after_a_rename(tmp_path, monkeypatch, capsys) -> None:
+    # git names a commit's filename once; a later group of that commit must reuse it.
+    root = tmp_path / "rn"
+    first = _one_commit_repo(root, "old.txt", b"a1\na2\na3\n")
+    _git(root, "mv", "old.txt", "new.txt")
+    (root / "new.txt").write_bytes(b"a1\nb2\na3\n")
+    _git(root, "add", "new.txt")
+    _git(root, "commit", "-q", "-m", "B")
+    agent = {"start_line": 3, "end_line": 3, "run": "r-agent", "seq": 0, "model": "m"}
+    _note(root, first, [agent], path="old.txt")
+    monkeypatch.chdir(root)
+    out = _blame_bytes(capsys, "new.txt", "--porcelain")
+    assert out.count(b"tine-run r-agent\n") == 1
+    headers = b"tine-run r-agent\ntine-step 0\ntine-model m\n"
+    assert out.replace(headers, b"") == _git(root, "blame", "--porcelain", "new.txt")
+
+
+def test_a_hostile_note_cannot_forge_headers_or_exhaust_memory(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "evil"
+    sha = _one_commit_repo(root, "a.txt", b"x\ny\n")
+    _note(root, sha, [
+        {"start_line": 1, "end_line": 10**12, "run": "r\nauthor Mallory", "model": "m x"},
+        {"start_line": "1", "end_line": None, "run": "bad"},
+        "not a range",
+    ])  # fmt: skip
+    monkeypatch.chdir(root)
+    out = _blame_bytes(capsys, "a.txt", "--porcelain")
+    assert b"\nauthor Mallory" not in out
+    assert out.count(b"tine-run r_author_Mallory\n") == 2
+    assert b"tine-model m_x\n" in out
+
+
+def test_git_log_reports_the_strict_link_set(tmp_path, monkeypatch, capsys) -> None:
+    root = tmp_path / "log"
+    root.mkdir()
+    _git(root, "init", "-q", "-b", "main")
+    monkeypatch.chdir(root)
+    for name in ("run-with-own-project", "two-projects-rejected"):
+        case = next(c for c in VECTORS["cases"] if c["name"] == name)
+        _git(root, "commit", "-q", "--allow-empty", "-m", case["message"])
+        _code, payload = _json(capsys, "git", "log", "--commit", "HEAD")
+        (row,) = payload["links"]
+        assert row["links"] == case.get("links", [])
+        assert (case.get("error") or "") in row["error"] and bool(row["error"]) == ("error" in case)
 
 
 def test_trailer_round_trip() -> None:
