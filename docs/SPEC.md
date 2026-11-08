@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.45.0 (draft until opentine 0.45.0 is tagged). **Previous
-version:** 0.9.0. Changes between versions are listed in
+**Spec version:** 0.45.1 (draft until opentine 0.45.1 is tagged). **Previous
+version:** 0.45.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.1.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.1/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -2972,6 +2972,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |
 | 0.40.0 | Part 10: format v5 text blobs; 2.10 external blob pointers. |

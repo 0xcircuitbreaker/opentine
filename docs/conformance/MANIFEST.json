@@ -1804,7 +1804,7 @@
     "vectors/60-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.45.0",
+  "generated_by": "opentine 0.45.1",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2509,7 +2509,7 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.45.0",
+  "spec_version": "0.45.1",
   "suite_version": 1,
   "totals": {
     "cases": 716,

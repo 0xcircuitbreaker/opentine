@@ -1,8 +1,138 @@
 # Changelog
 
-## Unreleased
+## 0.45.1 — Parity and plumbing (2026-11-08)
 
+### Behaviour changes
+
+- `tine redact check` exits 4 on findings and 3 on an unknown `--run` (was
+  1). `redact check --json` and `doctor --json` now include `command`.
+- `tine schema validate` refuses documents nested deeper than 512 levels with
+  exit 2.
+
+### Added
+
+- **More agent CLIs.** `tine enable` / `tine disable` now cover GitHub
+  Copilot CLI (`$COPILOT_HOME/hooks/opentine.json`, default
+  `~/.copilot/hooks`; bash and PowerShell commands), Factory Droid
+  (`~/.factory/hooks.json`) and Google Antigravity (an `opentine-capture`
+  hook in `~/.gemini/config/hooks.json`). Each session is recorded as one run
+  through `opentine-hook/1`, and `disable` restores the file, keeping the
+  user's own hooks and settings.
+- `tine hook capture --event NAME` names the event for agent CLIs whose hook
+  payload leaves it out (Antigravity `PreInvocation` / `PostToolUse` /
+  `Stop`). Copilot's `tool_result` is recorded as the tool's output.
+- **`tine import --format pi-session`** for Pi session files
+  (`~/.pi/agent/sessions/*/*.jsonl`, or `$PI_CODING_AGENT_DIR`). It records
+  model, provider, token usage and Pi's own cost, is picked up by `--format
+  auto`, and is found by `--from-default-location`.
+- `tine doctor` adds an `agent-capture` row listing the supported agent CLIs
+  found on this machine and how each is captured (hooks, importer, or both).
+- **Git AI Standard v3.** `tine import REPO[::RANGE] --format git-ai
+  [--sign-key KEY] [--force]` reads `authorship/3.0.0` notes under
+  `refs/notes/ai` into `opentine-line-attribution/1` notes, signed when
+  `--sign-key` is given. OpenTine notes stay canonical: a commit that already
+  has one is skipped unless `--force`. Human attestations are kept and never
+  credited to an agent. Notes with CRLF line endings are accepted.
+  `tine export REV|A..B --format git-ai [--output REPO] [--force]` writes v3
+  notes from OpenTine attribution; importing a note and exporting it again
+  gives back the same Git AI note when parsed, and native ranges get
+  deterministic session and trace keys.
+- The `tine-ai-share/1` schema is published. `tine stats --ai-share --json`
+  names it, and `tine git share-line --json` emits the post-commit AI-share
+  line as an object.
+- **Events.** `tine serve` streams per-tenant `ref.updated`, `run.created`
+  and `log.checkpoint` events (`tine-event/1`) over Server-Sent Events at
+  `GET /v1/tenants/<tenant>/events` (`caps.events_sse`; needs `read_ref`;
+  heartbeats, `Last-Event-ID` resume with an `event: reset` frame after a gap,
+  a 1024-event buffer per tenant and at most four open streams).
+- **`tine watch [REMOTE|REPO]`** tails a remote's event stream, or polls a
+  local repository's op log (`op.logged`); `--json` writes `tine-watch/1`
+  JSON Lines.
+- **Signed webhooks.** Admins register up to 16 targets per tenant
+  (`/v1/tenants/<tenant>/webhooks`). Each delivery is a canonical
+  `tine-webhook/1` body signed with the server's Ed25519 webhook key
+  (`OpenTine-Signature`, key advertised under `caps.webhooks`), retried with
+  backoff and de-duplicated by `OpenTine-Delivery`. SPEC 8.13,
+  `docs/EVENTS.md` (with Python and JavaScript verifiers), and schemas
+  `tine-event-1`, `tine-webhook-1` and `tine-watch-1`.
+- **`tine redact rules [--json]`** exports the redaction ruleset as data
+  (`tine-redaction-rules/1`): one row per scan step in order, vendor token
+  prefixes, and a digest.
+- **`tine redact verify REPORT`** checks signed redaction reports (SPEC
+  4.13): HMAC under `--key-file`, or Ed25519 under `--pubkey` or else the
+  embedded key (reported as `verified-tofu`). `tine-verify.pyz` and the TS
+  verifier check reports too. It exits 4 if any report fails.
+- JSON Schemas for the redaction report, the ruleset, `redact check --json`,
+  `redact verify --json` and `doctor --json`. The Agent Trace export is
+  validated against `agent-trace-0.1`.
+- **`tine ui`** re-checks runs in the browser with the bundled TS verifier
+  (`tine-verifier.js`) and shows the browser's own integrity and signature
+  verdicts. `/api/run/RUN/artifact` serves an artifact's bytes only when the
+  decoded artifact is UTF-8 text and the redaction scan finds nothing;
+  otherwise it returns 403 and the browser column reads `unchecked`.
+- Conformance families `59-webhook.json` (10 cases) and
+  `60-redaction-report.json` (13 cases). `docs/SPEC.md` is version 0.45.1.
+- Fixed: line attribution for files whose names contain a space was reported
+  as stale.
+
+### Security
+
+- `tine redact verify --key-file K` never falls back to the key embedded in
+  the report: an Ed25519 report checked under an HMAC key fails with
+  `redaction-report.wrong-key`, so a report self-signed by an attacker cannot
+  pass as `verified-tofu` (Python, pyz and TS; vector
+  `hmac-key-ed25519-report`).
+- `tine ui` withholds artifacts that are not valid UTF-8, which the redaction
+  scan cannot read.
+- Git AI import refuses file paths that are absolute, contain `..`, a
+  backslash, a drive letter, control characters or empty segments, when a
+  note is parsed and again when one is rendered. Export refuses run, step and
+  `human_lines` keys that could inject attestation lines, and treats a run as
+  a Git AI session only if the whole `s_…::t_…` key matches. Malformed
+  records are refused with "Export failed" instead of a traceback.
+- Webhook targets must be `https://` and resolve only to global addresses;
+  loopback, private, link-local (cloud metadata), CGNAT, multicast, reserved
+  and 6to4/Teredo/NAT64 addresses embedding a private IPv4 are refused at
+  registration and at each delivery, and the delivery connects to the
+  address it checked (`tine serve --webhooks-allow-private` lifts this).
+  Redirects are not followed.
+- An SSE stream releases its slot on close even if never read; a tenant whose
+  event buffer was evicted gets a reset, not a silent gap; `tine watch`
+  escapes server-sent text and refuses malformed events.
+- `tine enable` refuses to overwrite an Antigravity `opentine-capture` hook it
+  did not write, and `tine disable` keeps other Copilot settings in the hooks
+  file.
+
+### Compatibility
+
+- Object ids and existing byte formats are unchanged. The attribution record
+  gains an optional `git_ai` field.
+- Scripts that relied on `tine redact check` exiting 1 should read 3 (unknown
+  run) and 4 (findings).
 - The suite is now **716 conformance vectors**; 242 of the 716 refuse input, and the adapter contract still has one entry point: 43 ops.
+
+### Deferred
+
+- Copilot, Droid and Antigravity event names and payload shapes follow their
+  documentation and are not yet checked against the real CLIs (notably
+  Copilot's PascalCase event names); `PI_CODING_AGENT_DIR` and the `agy`
+  binary name are assumptions. A captured Antigravity run stays `running`
+  (no session-end event).
+- No Pi capture hook (Pi only supports TypeScript extensions); no importers
+  for Copilot, Droid or Antigravity sessions; fleet steering through the
+  Copilot and Droid `Stop` hook is not wired. Branched Pi sessions are
+  imported in file order without `parentId`.
+- Git AI notes are not yet checked against notes written by git-ai itself;
+  `tine export|import --format git-ai --json` use the generic envelope
+  schema; native exports use deterministic trace ids. Git AI notes are
+  unsigned, and `--sign-key` signs what they claim.
+- With no key, a validly self-signed Ed25519 redaction report verifies as
+  `verified-tofu` (exit 0): CI gates should pass `--pubkey` (a
+  `--require-pinned` flag is planned). A signed report that lists findings
+  still verifies.
+- The browser verifier is tested in Node only, does not check HMAC
+  signatures, and refuses xz-compressed artifacts.
+- The schemas are not shipped as a separate package.
 
 ## 0.45.0 — See it, score it (2026-11-08)
 
