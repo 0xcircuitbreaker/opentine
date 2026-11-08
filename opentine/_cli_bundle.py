@@ -48,7 +48,11 @@ def cmd_bundle(args: argparse.Namespace, console) -> None:
     elif action == "push":
         if bool(args.refs) and args.all:
             raise ValueError("name refs to push, or pass --all (not both)")
-        _print(_bundle_git.push(repo, args.remote, args.refs or None, timeout=args.timeout))
+        from opentine._push_gate import Gate  # 0.45 pre-push redaction gate
+
+        gate = Gate(repo, args.allow_unredacted)
+        refs = args.refs or None
+        _print(_bundle_git.push(repo, args.remote, refs, timeout=args.timeout, gate=gate))
     elif action == "fetch":
         name = args.as_name or _bundle.namespace(args.remote)
         _print(_bundle_git.fetch(repo, args.remote, name, force=args.force, timeout=args.timeout))
@@ -87,6 +91,11 @@ def add_bundle_parsers(sub: argparse._SubParsersAction) -> None:
     push.add_argument("refs", nargs="*", help="Refs to push (default: every local ref)")
     push.add_argument("--all", action="store_true", help="Every local ref (the default)")
     push.add_argument("--timeout", type=float, default=120.0)
+    push.add_argument(
+        "--allow-unredacted",
+        metavar="REASON",
+        help="Push even if bundled objects fail the redaction scan; REASON goes in the op log",
+    )
     fetch = actions.add_parser("fetch", help="Fetch and import refs/tine/bundle from a git remote")
     fetch.add_argument("remote", help="A git URL (https, ssh, file) or a local repository path")
     fetch.add_argument("--timeout", type=float, default=120.0)
