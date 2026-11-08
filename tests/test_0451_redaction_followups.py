@@ -152,7 +152,7 @@ def test_the_59_family_agrees_in_python_and_the_pyz(verifier):
     run, refused = (check, ReportError) if verifier == "python" else (
         _redactr.verify, _redactr.Refused)  # fmt: skip
     cases = _cases()
-    assert len(cases) == 12
+    assert len(cases) == 13
     for case in cases:
         value = tagged.decode(case["input"]["value"])
         if case["expect"] == "accept":
