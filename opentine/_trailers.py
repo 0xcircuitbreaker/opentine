@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from opentine._git_link import MAX_RUNS_PER_COMMIT, RUN_ID
 
@@ -31,7 +32,21 @@ PROJECT_KEY = "Tine-Project"
 #: A project id: lower-case slug, the shape the web uses for project URLs.
 PROJECT_ID = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$")
 OID = re.compile(r"^run:sha256:[0-9a-f]{64}$")
-_LINE = re.compile(r"^(Tine-Run|Tine-Project):(.*)$", re.MULTILINE | re.IGNORECASE)
+_KEYS = (RUN_KEY.lower(), PROJECT_KEY.lower())
+
+
+def _lines(message: str):
+    """``(lower-case key, rest)`` per trailer line, split exactly as the web parser does.
+
+    Lines end at ``\\n`` only (one trailing ``\\r`` is dropped), the key is ASCII
+    and matched without case, and words split on spaces and tabs only, so no
+    Unicode line-break or case-folding rule can make two parsers disagree.
+    """
+    for raw in message.split("\n"):
+        line = raw[:-1] if raw.endswith("\r") else raw
+        key, colon, rest = line.partition(":")
+        if colon and key.isascii() and key.lower() in _KEYS:
+            yield key.lower(), rest
 
 
 class TrailerError(ValueError):
@@ -66,9 +81,9 @@ def parse(message: str) -> list[Link]:
     runs: list[tuple[str, str]] = []
     project = ""
     seen_project = False
-    for key, rest in _LINE.findall(message):
-        words = rest.split()
-        if key.lower() == PROJECT_KEY.lower():  # git trailer keys ignore case
+    for key, rest in _lines(message):
+        words = [word for word in re.split(r"[ \t]+", rest) if word]
+        if key == PROJECT_KEY.lower():  # git trailer keys ignore case
             if seen_project:
                 raise TrailerError(f"{PROJECT_KEY} may appear at most once")
             if len(words) != 1:
@@ -93,4 +108,15 @@ def format_links(links: list[Link], project: str = "") -> list[str]:
     return lines
 
 
-__all__ = ["Link", "PROJECT_ID", "TrailerError", "format_links", "parse"]
+def commit_links(cwd: Any, sha: str) -> dict[str, Any]:
+    """``{commit, links, error}``: *sha*'s strict link set, as ``tine git log`` reports it."""
+    from opentine._git_link import git
+
+    try:
+        links = [link.to_dict() for link in parse(git(cwd, "log", "-1", "--format=%B", sha))]
+    except TrailerError as exc:
+        return {"commit": sha, "links": [], "error": str(exc)}
+    return {"commit": sha, "links": links, "error": ""}
+
+
+__all__ = ["Link", "PROJECT_ID", "TrailerError", "commit_links", "format_links", "parse"]

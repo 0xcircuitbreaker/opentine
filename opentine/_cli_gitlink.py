@@ -39,6 +39,7 @@ from opentine._git_link_hook import (
 )
 from opentine._git_link_runs import RunCatalog, open_catalog, run_summary
 from opentine._git_share_hook import add_install_flags, extra_hooks
+from opentine._trailers import commit_links
 
 
 def _fail(message: str) -> NoReturn:
@@ -159,7 +160,8 @@ def _log(args: argparse.Namespace) -> None:
                 f"{row['commit'][:12]}  {_terminal(row['run'])}  ({row['source']})  {detail}"
             )
 
-    emit_or_print(args, "git log", {"commits": shas, "runs": rows}, human)
+    links = [commit_links(cwd, sha) for sha in shas]  # the strict 0.45 trailer link set
+    emit_or_print(args, "git log", {"commits": shas, "runs": rows, "links": links}, human)
 
 
 def cmd_blame(args: argparse.Namespace) -> None:

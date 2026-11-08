@@ -949,8 +949,13 @@ Tine-Project: <project_id>             (at most once)
 
 A `Tine-Run` without its own project takes the `Tine-Project` one. A strict
 parse rejects two `Tine-Project` lines, a malformed run id or project id
-(lower-case slug), and extra words; `tine git log` keeps reading leniently.
-Vectors: `tests/data/trailer_vectors.json`.
+(lower-case slug), and extra words. `tine git log --json` reports each
+commit's strict link set under `links` (`{commit, links, error}`); its `runs`
+rows and the commit-msg hook keep reading leniently. Lines end at `\n` only (a
+trailing `\r` is dropped), keys are ASCII and case-insensitive, and words split
+on spaces and tabs only. The TypeScript parser the web uses
+(`ts/verifier/src/trailers.ts`) passes the same vectors:
+`tests/data/trailer_vectors.json`.
 
 `tine git install-hook` now also sets `notes.rewriteRef=refs/notes/tine` in the
 repository (not with `--global`) and reports `rewrite_ref_configured`.
