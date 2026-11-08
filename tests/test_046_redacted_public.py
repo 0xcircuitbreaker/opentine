@@ -169,7 +169,7 @@ def _keys(value: dict) -> dict:
     }
 
 
-FAMILIES = (("61-tombstone.json", 23), ("62-redacted-copy.json", 16))
+FAMILIES = (("63-tombstone.json", 23), ("64-redacted-copy.json", 16))
 
 
 def _closure(run_closure):
@@ -247,7 +247,7 @@ def test_the_built_pyz_verifies_a_tombstone_file_offline(tmp_path):
 
 
 def test_the_record_schemas_hold_the_vectors_and_detect_them():
-    for name, field in (("61-tombstone.json", "tombstone"), ("62-redacted-copy.json", "record")):
+    for name, field in (("63-tombstone.json", "tombstone"), ("64-redacted-copy.json", "record")):
         from tests.conformance import tagged
 
         for case in _cases(name):

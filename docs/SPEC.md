@@ -1934,7 +1934,7 @@ their signatures, which are checked as above. Its result is `{run, objects,
 content_unavailable, state}`, `state` being `content-unavailable` when any
 object is, else `verified`. An absent object no tombstone names is
 `tombstone.missing-content`; only a blob can be content-unavailable. Vectors:
-`61-tombstone.json` (ops `tombstone.verify` and `tombstone.closure`).
+`63-tombstone.json` (ops `tombstone.verify` and `tombstone.closure`).
 
 **Where tombstones live.** A repository keeps one canonical-JSON tombstone per
 purged blob at `tombstones/<blob hex>.json` and lists the oid in `shallow`
@@ -1947,7 +1947,10 @@ remote whose capabilities list `tombstones: true`, `PUT
 /v1/tenants/<t>/tombstones/<oid>` before the pack is uploaded and `GET` of the
 same path after a fetch (`404` when the tenant holds none, whatever the reason).
 A received tombstone is stored only for a blob the receiver does not hold: it
-never deletes bytes the receiver has.
+never deletes bytes the receiver has. A remote purge (a `PUT` for a blob the
+tenant holds) is refused for any object a hold reaches, and a remote never
+stores a tombstoned blob again: a pushed pack that carries one is installed
+without it.
 
 <a id="s-4.15"></a>
 ## 4.15 `opentine.redacted-copy` — redacted public copies (0.46.0+)
@@ -1981,7 +1984,7 @@ A verifier MUST refuse, with the first applicable code:
 `redacted-copy.inconsistent` (`redacted` exceeds `objects`, or `redacted == 0`
 and `source_run == public_run` disagree); `redacted-copy.pack-mismatch` (the
 record names a pack other than the one it came with). Vectors:
-`62-redacted-copy.json`.
+`64-redacted-copy.json`.
 
 ---
 

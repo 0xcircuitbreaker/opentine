@@ -6,9 +6,11 @@ another tenant's (no oid-existence oracle). ``PUT`` stores a client-signed
 ``opentine.tombstone`` after its shape checks (the server holds no user key, so
 it cannot and does not vouch for the signature, and it never signs one). When
 the tenant still holds the blob, the ``PUT`` is a purge: it needs ``purge``
-(admin-only under the reference role policy), refuses a held object, writes the
-record first and then deletes the bytes, undoing the record if the delete
-fails. Recording a tombstone for a blob the tenant does not hold needs
+(admin-only under the reference role policy), refuses an object a hold reaches
+(not only a held root), writes the record first and then deletes the bytes and
+their index row, undoing the record if the delete fails. A pushed pack never
+restores a tombstoned blob (``_pack_ingest``). Recording a tombstone for a blob
+the tenant does not hold needs
 ``upload``: it is what ``tine push`` sends before a pack whose shallow
 boundaries are purged blobs.
 """
@@ -27,6 +29,32 @@ PREFIX = "tombstones/"
 
 def _not_found(app: Any, sr: Any):
     return app._json_response(sr, "404 Not Found", {"error": "not found"})
+
+
+def _refuse_held(service: Any, tenant: str, oid: str) -> None:
+    """A legal hold covers everything its roots reach, not only the held oids themselves."""
+    roots = getattr(service.objects, "held", lambda _t: set())(tenant)
+    if not roots:
+        return
+    if oid in roots:
+        raise PermissionError(f"{oid} is held")
+    from opentine.remote._admin_graph import scan
+
+    if oid in scan(service.objects, service.index, tenant).live(roots):
+        raise PermissionError(f"{oid} is reachable from a hold")
+
+
+def _delete(service: Any, tenant: str, oid: str) -> None:
+    """Delete the bytes and drop the index row, as ``tine serve admin delete-objects`` does."""
+    exclusive = getattr(service.index, "exclusive", None)
+    if not callable(exclusive):
+        service.objects.delete(tenant, oid)
+        return
+    from opentine.remote._admin_backend import forget
+
+    with exclusive() as database:
+        service.objects.delete(tenant, oid)
+        forget(database, tenant, [oid])
 
 
 def tombstone_routes(app: Any, identity, tenant: str, resource: str, method: str, environ, sr):
@@ -54,13 +82,13 @@ def tombstone_routes(app: Any, identity, tenant: str, resource: str, method: str
     record = app._json(environ, *FIELDS, "signature")
     if record.get("oid") != oid:
         raise ValueError("the tombstone names another oid")
-    if held and oid in getattr(service.objects, "held", lambda _t: set())(tenant):
-        raise PermissionError(f"{oid} is held")
+    if held:
+        _refuse_held(service, tenant, oid)
     stored = _tombstone_store.write(root, tenant, record)
     purged = False
     if held:
         try:
-            service.objects.delete(tenant, oid)
+            _delete(service, tenant, oid)
             purged = True
         except BaseException:
             if stored:

@@ -111,7 +111,7 @@ _T_HMAC = _signed(_tombstone, _tomb(), "hmac")
 _T_ED = _signed(_tombstone, _tomb(), "ed25519_seed")
 
 TOMBSTONE = Family(
-    "61-tombstone.json",
+    "63-tombstone.json",
     "4.14",
     "tombstone",
     (
@@ -188,7 +188,7 @@ _C_ED = _signed(_redacted_copy, _copy(), "ed25519_seed")
 _SAME = _signed(_redacted_copy, _copy(public_run=RUN, redacted=0), "hmac")
 
 REDACTED_COPY = Family(
-    "62-redacted-copy.json",
+    "64-redacted-copy.json",
     "4.15",
     "redacted-copy",
     (

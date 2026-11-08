@@ -13,7 +13,7 @@ gone, who removed them and when. A tombstone is exactly these fields plus a
 ``reason`` is free text, redacted like any stored string before it is signed,
 1 to 1024 UTF-8 bytes with no control characters. :func:`check` is the
 reference for the ``tombstone.verify`` conformance op
-(``docs/conformance/vectors/61-tombstone.json``), ported to the pyz
+(``docs/conformance/vectors/63-tombstone.json``), ported to the pyz
 (``opentine._pyz._records``) and the TS verifier (``src/records.ts``).
 """
 

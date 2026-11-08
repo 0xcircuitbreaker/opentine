@@ -19,7 +19,7 @@ from the private object they were derived from. Content addressing makes the
 two run oids equal exactly when nothing changed, so ``redacted == 0`` and
 ``source_run == public_run`` must agree (``redacted-copy.inconsistent``), and
 ``redacted`` cannot exceed ``objects``. :func:`check` is the reference for the
-``redacted-copy.verify`` conformance op (``62-redacted-copy.json``).
+``redacted-copy.verify`` conformance op (``64-redacted-copy.json``).
 """
 
 from __future__ import annotations

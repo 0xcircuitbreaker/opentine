@@ -40,4 +40,8 @@ def verified_write_order(
                 raise ValueError(f"pack has unresolved link: {link}")
     if set(shallow) != external:
         raise ValueError("pack shallow boundaries do not match its external links")
-    return _dependency_order(packed, internal)
+    # 0.46: a purged blob stays purged. A writer that still holds its bytes
+    # cannot restore them by pushing them again; the tombstone keeps every link
+    # to it resolved, so the blob is dropped from the write plan.
+    kept = [(oid, raw) for oid, raw in packed if not tombstoned(objects, tenant, oid)]
+    return _dependency_order(kept, internal)

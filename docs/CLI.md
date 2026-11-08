@@ -1007,7 +1007,7 @@ without exposing that run. `tine bundle verify` reports a bundle's
 record's state (as for `purge --list`); a `failed` record exits 4. `python
 tine-verify.pyz RECORD.json [--pubkey K | --key-file K]` checks a tombstone or
 redacted-copy record offline (modes `tombstone`, `redacted-copy`); the
-`61-tombstone.json` and `62-redacted-copy.json` conformance families pin
+`63-tombstone.json` and `64-redacted-copy.json` conformance families pin
 Python, the TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)
