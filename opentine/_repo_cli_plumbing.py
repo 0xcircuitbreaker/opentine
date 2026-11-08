@@ -223,6 +223,9 @@ def cmd_push(args: argparse.Namespace, console) -> None:
         if args.dry_run:  # offline: nothing below this line runs
             push_preview.emit_preview(body)
             return
+    from opentine._push_gate import enforce  # 0.45 pre-push redaction gate
+
+    enforce(repo, tracking, refs, getattr(args, "allow_unredacted", None))
     results = []
     for ref in refs:
         push_hook(repo, tracking, ref)

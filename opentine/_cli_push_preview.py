@@ -31,6 +31,11 @@ def add_push_parser(subparsers, remote_args: Callable[[argparse.ArgumentParser],
     push.add_argument(
         "--manifest", metavar="PATH", help="Write the canonical-JSON push manifest to PATH"
     )
+    push.add_argument(
+        "--allow-unredacted",
+        metavar="REASON",
+        help="Push even if outgoing objects fail the redaction scan; REASON goes in the op log",
+    )
     keys = push.add_mutually_exclusive_group()
     keys.add_argument("--key-file", metavar="PATH", help="Sign the manifest (HMAC key file)")
     keys.add_argument("--ed25519-key-file", metavar="PATH", help="Sign the manifest (Ed25519)")
