@@ -93,6 +93,21 @@ def test_an_artifact_the_redaction_scan_flags_is_withheld(tmp_path):
         server.server_close()
 
 
+def test_a_non_utf8_artifact_is_withheld_not_served_unscanned(tmp_path):
+    path = _signed(tmp_path)
+    run = Run.load(path)
+    secret = b"sk-ant-api03-" + b"Q" * 80
+    server, base = _serve([path])
+    try:
+        assert _get(base + "/api/runs")[0] == 200
+        path.write_bytes(path.read_bytes().replace(b'"hello"', b'"\xff' + secret + b'"', 1))
+        status, body, _ = _get(base + f"/api/run/{run.id}/artifact")
+        assert status == 403 and secret not in body
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def _node(script: str, *args: str) -> dict:
     done = subprocess.run([NODE, "--input-type=module", "-e", script, *args],
                           capture_output=True, text=True, timeout=120, cwd=UI)  # fmt: skip

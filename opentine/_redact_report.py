@@ -80,6 +80,8 @@ def check(
     algorithm = block.get("alg")
     if algorithm == "hmac-sha256" and hmac_key is None:
         raise ReportError("redaction-report.no-key", "no key for an hmac-sha256 report")
+    if hmac_key is not None and algorithm != "hmac-sha256":
+        raise ReportError("redaction-report.wrong-key", "not the trusted key's algorithm")
     if public_key is not None:
         if algorithm != "ed25519":
             raise ReportError("redaction-report.wrong-key", "not the trusted key's algorithm")

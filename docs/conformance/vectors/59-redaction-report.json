@@ -99,6 +99,56 @@
         8
       ],
       "expect": "reject",
+      "id": "redaction-report.hmac-key-ed25519-report",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "clean": false,
+            "findings": [
+              {
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "1"
+            },
+            "ruleset": "opentine-redaction/2",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "0705e6cbfa35649c65051f4d2ce74b555340c77e418275714e8042fcdb7d557ce20d7758c70cede926b7e3f3511e61d4fa180591f8c2961a19ea64736c2b4206"
+            }
+          }
+        }
+      },
+      "intent": "an Ed25519 report cannot pass under a supplied HMAC key (no TOFU fallback)",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.wrong-key",
+      "section": "4.13",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"clean\": false, \"findings\": [{\"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"1\"}, \"ruleset\": \"opentine-redaction/2\", \"run\": \"run:sha256:111...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "not the trusted key's algorithm"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
       "id": "redaction-report.inconsistent",
       "input": {
         "value": {

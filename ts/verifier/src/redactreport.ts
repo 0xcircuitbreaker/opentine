@@ -80,6 +80,7 @@ export function verifyRedactionReport(
   if (!isObject(block)) fail("bad-signature", "the report signature is not a block");
   const algorithm = block.get("alg");
   if (algorithm === "hmac-sha256" && hmacKey == null) fail("no-key", "no key for an hmac-sha256 report");
+  if (hmacKey != null && algorithm !== "hmac-sha256") fail("wrong-key", "not the trusted key's algorithm");
   if (publicKey != null) {
     if (algorithm !== "ed25519") fail("wrong-key", "not the trusted key's algorithm");
     if (block.get("public_key") !== Buffer.from(publicKey).toString("hex")) {

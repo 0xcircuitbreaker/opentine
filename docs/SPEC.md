@@ -1890,7 +1890,9 @@ A verifier MUST refuse, with the first applicable code:
 `redaction-report.malformed` (a missing, extra or ill-formed key);
 `redaction-report.unsigned` (no `signature`); `redaction-report.no-key` (an
 HMAC report checked without a key); `redaction-report.wrong-key` (a trusted
-Ed25519 key was supplied and the embedded key is not it);
+Ed25519 key was supplied and the embedded key is not it, or an HMAC key was
+supplied and the report is not HMAC: a supplied key never falls back to the
+embedded key);
 `redaction-report.bad-signature` (the block does not verify);
 `redaction-report.inconsistent` (`clean` is not "no findings"). Without a
 trusted key an Ed25519 report rests on its embedded key (trust on first use,

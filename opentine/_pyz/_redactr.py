@@ -78,6 +78,8 @@ def verify(
     algorithm = block.get("alg")
     if algorithm == "hmac-sha256" and hmac_key is None:
         raise Refused("redaction-report.no-key", "no key for an hmac-sha256 report")
+    if hmac_key is not None and algorithm != "hmac-sha256":
+        raise Refused("redaction-report.wrong-key", "not the trusted key's algorithm")
     state = "verified"
     if public_key is not None:
         if algorithm != "ed25519" or block.get("public_key") != bytes(public_key).hex():

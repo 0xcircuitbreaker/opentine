@@ -101,6 +101,10 @@ def artifact_bytes(catalog: Catalog, run_id: str) -> tuple[int, bytes]:
         body = unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES)
     except (OSError, ValueError):
         return 404, b"artifact unreadable"
+    try:  # redact_blob passes non-UTF-8 bytes through unscanned: never serve those
+        body.decode("utf-8")
+    except UnicodeDecodeError:
+        return 403, b"artifact withheld: not UTF-8 text, so the redaction scan cannot vouch"
     if len(raw) > MAX_TINE_ARTIFACT_BYTES or redact_blob(body) != body:
         return 403, b"artifact withheld: the redaction scan found something"
     return 200, raw

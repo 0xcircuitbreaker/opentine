@@ -655,14 +655,14 @@
       "verdict": 0
     },
     {
-      "core": 12,
-      "count": 12,
+      "core": 13,
+      "count": 13,
       "file": "vectors/59-redaction-report.json",
       "name": "redaction-report",
       "ops": [
         "redaction-report.verify"
       ],
-      "reject": 9,
+      "reject": 10,
       "section": "4.13",
       "stress": 0,
       "verdict": 0
@@ -703,7 +703,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "9b35c6ff0fb9660897c9b42db7f47b2f2c61efe68f5bf1f082c6b2e40ff66018",
+    "README.md": "bfbe9b27d7442f2ca3f870dad58e9a1c946ebca1e9a5026c6e276babc2aa0265",
     "REASON_CODES.md": "903d5bdec2f1c3635f3cc6836b325d450e48ea820480230e96dcb2c208eeb344",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -1800,7 +1800,7 @@
     "vectors/56-delegation.json": "98509dda24449c3f2e62cce5df1de8ba562099c6b8afe9a170e388aaa345e2d5",
     "vectors/57-tlog.json": "0cebba2f3059b0a9e90cba4f73528d620546f3151ad71c5192508d3872391652",
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
-    "vectors/59-redaction-report.json": "cb53005ed7c36c2601ce7314f1d2f5ebeaca6a9fdab33e1a5a9406464b41ce91",
+    "vectors/59-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
     "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
@@ -2512,12 +2512,12 @@
   "spec_version": "0.45.0",
   "suite_version": 1,
   "totals": {
-    "cases": 715,
-    "core": 705,
+    "cases": 716,
+    "core": 706,
     "families": 37,
     "ops": 43,
     "reason_codes": 126,
-    "reject": 241,
+    "reject": 242,
     "stress": 10,
     "verdict": 130
   }
