@@ -799,6 +799,35 @@ the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
 the runs named by `Tine-Run:` trailers -- to that remote instead of the code
 remote, keeping transcripts off the code host.
 
+## Local run viewer: `tine ui` (0.45)
+
+`tine ui [RUN] [--port N] [--open]` serves a read-only viewer on 127.0.0.1
+(never another interface; `--port 0`, the default, picks a free port). Without
+RUN it lists every run in the runs directory (up to the CLI scan limit). Tabs:
+timeline (prompt, model, tool, human and steer steps; each step's input parts,
+tool arguments and results load when expanded), workspace (files rebuilt from
+recorded writes at step N, and a unified diff between two steps), run DAG
+(`parents[]`, `forked_from`, children, merge steps), fleet groups, verify and
+attribution (the step and model that last wrote each file).
+
+- **Redaction:** every string, keys included, is re-redacted at serve time;
+  text the redactor cannot read is withheld.
+- **No network:** the server answers GET and HEAD only, and its
+  Content-Security-Policy allows nothing but its own origin (`connect-src
+  'self'`). The page fetches no external resource.
+- **Verification states** are `verified`, `failed`, `partial`, `unchecked` and
+  `unpinned`, each labelled with who computed it. Integrity and assurance are
+  checked by the local `tine`; a signature is `unpinned` because `tine ui` pins
+  no key (use `tine verify --pubkey`). The browser's own re-check reads
+  `unchecked` until the TS verifier's browser bundle ships.
+- **Assets** are built from `ts/run-viewer` (`npm ci && npm run build`) into
+  `opentine/data/ui` and committed; a test rebuilds them and compares bytes.
+
+JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
+`/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
+`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
+interface yet.
+
 ## Run summaries: `tine explain` (0.42)
 
 ```

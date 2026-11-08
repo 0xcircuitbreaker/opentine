@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.44.
 
 ## CLI Reference
 
-`tine` ships 96 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 97 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -920,6 +920,16 @@ for the same run, so it can be attached to an issue or archived:
 ```text
 tine view 3f9c2a -o run.html
 tine view run.tine --open
+```
+
+Or browse runs interactively with `tine ui`: a read-only viewer served on
+127.0.0.1 only (timeline, step details, workspace tree and diff at any step, run
+DAG, fleet groups, verification states and file attribution). Every value is
+re-redacted before it is served and the page makes no outbound request:
+
+```text
+tine ui                 # every run in the runs directory
+tine ui 3f9c2a --open   # one run, opened in the browser
 ```
 
 Verify anywhere, offline, and hand over an evidence folder. `--offline` runs

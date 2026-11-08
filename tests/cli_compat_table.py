@@ -3097,6 +3097,14 @@ ROWS: tuple[tuple, ...] = (
         {"command": "view", "run_id": "r1", "output": "r.html", "open": False},
     ),
     (
+        "plain:ui r1 --port 8123",
+        "plain",
+        ["ui", "r1", "--port", "8123"],
+        "opentine._cli_ui:cmd_ui",
+        False,
+        {"command": "ui", "run_id": "r1", "port": 8123, "open": False},
+    ),
+    (
         "plain:evidence export r1 --out ev",
         "plain",
         ["evidence", "export", "r1", "--out", "ev"],
