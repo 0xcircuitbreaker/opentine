@@ -34,9 +34,15 @@ def scrub(value: Any, depth: int = 0) -> Any:
             return text[:FIELD_CAP] + f"\n… [truncated {len(text) - FIELD_CAP} characters]"
         return text
     if isinstance(value, dict):
-        return {str(scrub(str(k), depth + 1)): scrub(v, depth + 1) for k, v in value.items()}
+        out: dict[str, Any] = {}
+        for key, item in value.items():  # a loop, not a comprehension: one frame per level
+            out[str(scrub(str(key), depth + 1))] = scrub(item, depth + 1)
+        return out
     if isinstance(value, (list, tuple)):
-        return [scrub(item, depth + 1) for item in value]
+        items = []
+        for item in value:
+            items.append(scrub(item, depth + 1))
+        return items
     if value is None or isinstance(value, (bool, int, float)):
         return value
     return scrub(str(value), depth + 1)
