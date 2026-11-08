@@ -148,3 +148,28 @@ def test_cli_hybrid_flag_conflicts(repo):
         with pytest.raises(SystemExit) as info:
             cli.main(["repo-search", "x", *argv, "--repo", str(repo.worktree)])
         assert info.value.code != 0
+
+
+def test_a_classifier_change_drops_vectors_embedded_under_another_redaction(tmp_path):
+    import sqlite3
+
+    from opentine._pii_classify import RuleClassifier
+    from opentine.repository import _embed_index
+    from opentine.repository._embed import HashEmbedder
+
+    class _Repo:
+        path = tmp_path
+
+    connection = _embed_index._open(_Repo())
+    with connection:
+        connection.execute(
+            "INSERT INTO vectors VALUES ('run:stale', ?, 1, ?)", (HashEmbedder.name, b"\0" * 4)
+        )
+        connection.execute("INSERT INTO meta VALUES ('redaction', 'opentine-redaction/3+none')")
+    connection.close()
+    _embed_index.refresh(_Repo(), [], HashEmbedder(), RuleClassifier())
+    with sqlite3.connect(_embed_index.index_path(_Repo())) as check:
+        assert check.execute("SELECT COUNT(*) FROM vectors").fetchone() == (0,)
+        assert check.execute("SELECT value FROM meta WHERE key='redaction'").fetchone() == (
+            "opentine-redaction/3+rules/1",
+        )

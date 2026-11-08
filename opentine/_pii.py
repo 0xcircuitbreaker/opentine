@@ -26,6 +26,8 @@ from typing import Any
 from opentine import _pii_ids as ids
 
 PII_RULESET = "opentine-redaction/3"
+#: A plug-in classifier's kind must be a report name; anything else is reported as ``other``.
+_KIND = re.compile(r"[a-z0-9_-]{1,32}")
 _STREET = (
     r"Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Way|Place|Pl"
     r"|Terrace|Parkway|Pkwy|Highway|Hwy|Square|Sq|Close|Crescent"
@@ -79,8 +81,9 @@ def find(text: str, classifier: Any = None) -> list[Hit]:
                 _place(hits, taken, Hit(match.start(), match.end(), kind))
     if classifier is not None:
         for start, end, kind in classifier.classify(text):
-            if 0 <= start < end <= len(text):
-                _place(hits, taken, Hit(start, end, f"classifier:{kind}"))
+            if type(start) is int and type(end) is int and 0 <= start < end <= len(text):
+                label = kind if isinstance(kind, str) and _KIND.fullmatch(kind) else "other"
+                _place(hits, taken, Hit(start, end, f"classifier:{label}"))
     return sorted(hits)
 
 

@@ -192,3 +192,16 @@ def test_the_61_family_agrees_in_python_and_the_pyz(verifier):
             with pytest.raises(refused) as caught:
                 run(value["report"], **keys)
             assert caught.value.code == case["reason"], case["id"]
+
+
+def test_a_plugin_classifier_kind_that_is_not_a_name_is_reported_as_other():
+    from opentine._pii import find
+
+    class Loose:
+        name = "loose/1"
+
+        def classify(self, text):
+            return [(0, 4, "Person Name!"), (5, 9, "dob"), (True, 3, "x")]
+
+    kinds = [hit.kind for hit in find("abcd efgh", Loose())]
+    assert kinds == ["classifier:other", "classifier:dob"]

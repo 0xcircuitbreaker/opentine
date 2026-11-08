@@ -87,8 +87,22 @@ def _open(repo: Repo) -> sqlite3.Connection:
 
 
 def refresh(repo: Repo, run_ids: list[str], embedder: Any, classifier: Any) -> int:
-    """Embed the runs among *run_ids* the index does not hold for *embedder*."""
+    """Embed the runs among *run_ids* the index does not hold for *embedder*.
+
+    Vectors are only valid for the redaction that produced them: when the
+    classifier differs from the one recorded in ``meta``, every vector is dropped
+    and re-embedded, so turning the classifier on never leaves vectors computed
+    over less-redacted text behind.
+    """
+    from opentine._pii import PII_RULESET
+    from opentine._pii_classify import name_of
+
+    redaction = f"{PII_RULESET}+{name_of(classifier)}"
     with closing(_open(repo)) as connection, connection:
+        row = connection.execute("SELECT value FROM meta WHERE key = 'redaction'").fetchone()
+        if row != (redaction,):
+            connection.execute("DELETE FROM vectors")
+            connection.execute("INSERT OR REPLACE INTO meta VALUES ('redaction', ?)", (redaction,))
         have = {
             row[0]
             for row in connection.execute(
