@@ -846,15 +846,25 @@ attribution (the step and model that last wrote each file).
 - **Verification states** are `verified`, `failed`, `partial`, `unchecked` and
   `unpinned`, each labelled with who computed it. Integrity and assurance are
   checked by the local `tine`; a signature is `unpinned` because `tine ui` pins
-  no key (use `tine verify --pubkey`). The browser's own re-check reads
-  `unchecked` until the TS verifier's browser bundle ships.
-- **Assets** are built from `ts/run-viewer` (`npm ci && npm run build`) into
-  `opentine/data/ui` and committed; a test rebuilds them and compares bytes.
+  no key (use `tine verify --pubkey`). Since 0.45.1 the browser re-checks the
+  run itself: a Web Worker runs the TS verifier's browser bundle
+  (`tine-verifier.js`) over the artifact bytes and shows its own integrity and
+  signature states beside local `tine`'s. With no key pinned, a signature that
+  holds under the key the file embeds reads `unpinned`, an HMAC one `unchecked`,
+  and one that does not hold `failed` (which fails the badge). The bytes are
+  served only when the current redaction ruleset finds nothing in the decoded
+  artifact; otherwise the request gets 403 and the browser column reads
+  `unchecked`, saying why.
+- **Assets** are built from `ts/run-viewer` (`npm ci` in `ts/verifier` and
+  `ts/run-viewer`, then `npm run build`: `tsc` for the viewer, pinned esbuild
+  for `tine-verifier.js`) into `opentine/data/ui` and committed; tests rebuild
+  them and compare bytes.
 
 JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
 `/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
-`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
-interface yet.
+`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`, and (0.45.1)
+`/api/run/RUN/artifact`, the raw artifact bytes for the browser re-check (403
+when withheld). It is not a stable interface yet.
 
 ## Pre-push redaction gate, `tine redact check` and `tine doctor` (0.45)
 

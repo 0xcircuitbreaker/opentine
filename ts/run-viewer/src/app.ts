@@ -155,9 +155,10 @@ async function renderVerify(host: HTMLElement, runId: string): Promise<void> {
     }
     box.replaceChildren(el("p", b.label, `state ${b.state}`), table);
     for (const r of v.reasons || []) box.append(el("p", r, "meta"));
+    box.append(el("p", `this browser: ${b.detail}`, "meta"));
     worker.terminate();
   };
-  worker.postMessage(v);
+  worker.postMessage({ verification: v, artifact: `/api/run/${encodeURIComponent(runId)}/artifact` });
 }
 
 async function renderAttribution(host: HTMLElement, runId: string): Promise<void> {
