@@ -36,6 +36,8 @@ from opentine._cli_hook_agents import (
     write_config,
 )
 from opentine._cli_hook_hermes import hermes
+from opentine._enable_native import NATIVE
+from opentine._hook_dialects import HINTS
 
 
 def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
@@ -49,11 +51,15 @@ def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.Argument
         help="Edit the user-level hook files (the only scope supported)",
     )  # fmt: skip
     parser.add_argument(
-        "--agent", action="append", choices=sorted([*AGENTS, "hermes", "generic"]),
+        "--agent", action="append", choices=sorted([*AGENTS, *NATIVE, "hermes", "generic"]),
         help="Only this agent CLI (repeatable; default: every one); capture: the sender",
     )  # fmt: skip
     parser.add_argument("--repo", help="v3 repository the sessions are imported into (install)")
     parser.add_argument("--dry-run", action="store_true", help="Show the change, write nothing")
+    parser.add_argument(
+        "--event", choices=HINTS,
+        help="capture: the agent's event name, for CLIs whose payload omits it",
+    )  # fmt: skip
     return parser
 
 
@@ -95,9 +101,10 @@ def cmd_hook(args: argparse.Namespace) -> None:
     if args.action == "capture":  # opentine-hook/1: JSON on stdin, JSON on stdout
         from opentine._hook_protocol import run_capture
 
-        raise SystemExit(run_capture(args.repo, (args.agent or ["generic"])[-1]))
-    if "generic" in (args.agent or []):
-        raise _fail("--agent generic only applies to `tine hook capture`")
+        raise SystemExit(run_capture(args.repo, (args.agent or ["generic"])[-1], hint=args.event))
+    if set(args.agent or []) & {"generic", *NATIVE}:
+        raise _fail("--agent generic/copilot/droid/antigravity only apply to `tine hook "
+                    "capture` (`tine enable` installs their per-turn hooks)")  # fmt: skip
     if not args.global_ and args.action != "status":
         raise _fail("pass --global: hooks are installed in your user-level agent settings")
     names = args.agent or sorted([*AGENTS, "hermes"])

@@ -492,8 +492,9 @@ attributes. Framework importers
 best-effort normalize common serialized shapes from LangChain, LlamaIndex,
 AutoGen, CrewAI, and OpenAI Agents logs. OTLP logs (`--format otel-logs`) and
 Claude Code's own OTel traces import priced, and the session logs Claude Code,
-Codex, Gemini CLI and Qwen Code keep for themselves import directly
-(`claude-code-transcript`, `codex-session`, `gemini-session`, `qwen-session`).
+Codex, Gemini CLI, Qwen Code and Pi keep for themselves import directly
+(`claude-code-transcript`, `codex-session`, `gemini-session`, `qwen-session`,
+`pi-session`).
 Sessions [Entire](https://entire.io) recorded as `refs/entire/checkpoints/*`
 (or on its older `entire/checkpoints/v1` branch) import from the git repository
 itself (`--format entire`, `--all` for every checkpoint), and `tine export

@@ -7,7 +7,8 @@ knows those places, lists the newest sessions, and resolves ``latest`` (or a
 session-id prefix) to a file, so importing the session an agent just finished
 is one command. Only well-known locations are read; the
 environment overrides each CLI itself honours (``CLAUDE_CONFIG_DIR``,
-``CODEX_HOME``, ``GEMINI_CLI_HOME``, ``QWEN_HOME``, ``XDG_DATA_HOME`` for OpenCode's
+``CODEX_HOME``, ``GEMINI_CLI_HOME``, ``QWEN_HOME``, ``PI_CODING_AGENT_DIR``,
+``XDG_DATA_HOME`` for OpenCode's
 SQLite store) are respected.
 """
 
@@ -45,6 +46,11 @@ def _gemini_root() -> Path:
     return (Path(value).expanduser() if value else Path.home()) / ".gemini" / "tmp"
 
 
+def _pi_root() -> Path:
+    """Pi's agent directory (``PI_CODING_AGENT_DIR``, default ``~/.pi/agent``)."""
+    return _home("PI_CODING_AGENT_DIR", os.path.join(".pi", "agent"))
+
+
 def _locations() -> list[tuple[str, Path, str]]:
     """``(format, root, glob)`` for every CLI whose sessions are importable."""
     return [
@@ -53,6 +59,7 @@ def _locations() -> list[tuple[str, Path, str]]:
         # GEMINI_CLI_HOME replaces the home directory itself, not ~/.gemini.
         ("gemini-session", _gemini_root(), "*/chats/session-*.json*"),
         ("qwen-session", _home("QWEN_HOME", ".qwen") / "projects", "*/chats/*.jsonl"),
+        ("pi-session", _pi_root() / "sessions", "*/*.jsonl"),
         *(
             (fmt, storage / ext / "tasks", f"*/{HISTORY}")
             for storage in _vscode_storage()

@@ -1,0 +1,4 @@
+Google Antigravity hook payloads (camelCase; the payload does not name its
+event, so each file name is the --event value). Built from the documented
+schema, fetched 2026-11-08; ids, paths and values invented.
+https://antigravity.google/docs/hooks

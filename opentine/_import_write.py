@@ -24,6 +24,7 @@ HARNESS_OF = {
     "codex-session": "codex",
     "gemini-session": "gemini",
     "qwen-session": "qwen",
+    "pi-session": "pi",
     "opencode-session": "opencode",
     "atif": "atif",
     "hermes-trajectory": "hermes",

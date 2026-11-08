@@ -29,7 +29,10 @@ from opentine._canon import atomic_write_text
 from opentine._cli_common import _terminal, console
 from opentine._cli_hook_agents import AGENTS, read_config
 from opentine._codec_io import atomic_write_bytes
+from opentine._enable_native import NATIVE
 from opentine._enable_shims import render, with_shims, without_shims
+
+ENABLE_AGENTS = tuple(sorted([*AGENTS, *NATIVE]))
 
 
 def add_enable_parsers(subparsers: argparse._SubParsersAction) -> None:
@@ -40,7 +43,7 @@ def add_enable_parsers(subparsers: argparse._SubParsersAction) -> None:
     for verb, summary in verbs:
         parser = subparsers.add_parser(verb, help=summary)
         parser.add_argument(
-            "--agent", action="append", choices=sorted(AGENTS),
+            "--agent", action="append", choices=ENABLE_AGENTS,
             help="Only this agent CLI (repeatable; default: every one)",
         )  # fmt: skip
         parser.add_argument("--dry-run", action="store_true", help="Show the edit, write nothing")
@@ -76,12 +79,31 @@ def _write(path: Path, data: bytes | None, mode: int | None) -> None:
         os.chmod(path, mode)
 
 
+def _config(name: str) -> Path:
+    from opentine import _enable_native as native
+
+    return native.config_path(name) if name in NATIVE else AGENTS[name].config()
+
+
+def _added(document: dict[str, Any], name: str, repo: Path) -> dict[str, Any]:
+    from opentine import _enable_native as native
+
+    if name in NATIVE:
+        return native.with_shims(document, name, repo)
+    return with_shims(document, AGENTS[name], repo)
+
+
+def _removed(document: dict[str, Any], name: str) -> dict[str, Any]:
+    from opentine import _enable_native as native
+
+    return native.without_shims(document, name) if name in NATIVE else without_shims(document)
+
+
 def _enable_one(name: str, repo: Path, dry_run: bool) -> None:
-    agent = AGENTS[name]
-    path = agent.config()
+    path = _config(name)
     original = _bytes(path)
     document = read_config(path)  # refuses non-JSON / non-object files before anything
-    new = render(with_shims(document, agent, repo))
+    new = render(_added(document, name, repo))
     if dry_run:
         console.print(_diff(path, original, new), markup=False, end="")
         return
@@ -91,7 +113,7 @@ def _enable_one(name: str, repo: Path, dry_run: bool) -> None:
     if record is None or record.get("written_sha256") != current:
         # First enable, or the file changed since ours: what is there now (minus any
         # shims) is the original to restore, so later edits are never rolled back.
-        base = original if record is None else render(without_shims(document))
+        base = original if record is None else render(_removed(document, name))
         record = {
             "path": str(path),
             "existed": original is not None,
@@ -111,7 +133,7 @@ def _disable_one(name: str, dry_run: bool) -> None:
     record: dict[str, Any] | None = None
     if state.exists():
         record = json.loads(state.read_text(encoding="utf-8"))
-    path = Path(record["path"]) if record else AGENTS[name].config()
+    path = Path(record["path"]) if record else _config(name)
     current = _bytes(path)
     note = "restored"
     if (
@@ -123,7 +145,7 @@ def _disable_one(name: str, dry_run: bool) -> None:
     elif current is None:
         target, note = None, "absent"
     else:
-        target, note = render(without_shims(read_config(path))), "shims removed (edited since)"
+        target, note = render(_removed(read_config(path), name)), "shims removed (edited since)"
         if json.loads(target) == json.loads(current):
             target, note = current, "unchanged"
     if dry_run:
@@ -154,7 +176,7 @@ def _run(args: argparse.Namespace, enable: bool) -> None:
 
         repo = _repo(args.repo)
     failed = False
-    for name in args.agent or sorted(AGENTS):
+    for name in args.agent or ENABLE_AGENTS:
         try:
             if enable:
                 assert repo is not None

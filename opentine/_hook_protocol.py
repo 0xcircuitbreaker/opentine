@@ -59,12 +59,19 @@ EVENTS = {
 _AGENT = re.compile(r"[^a-z0-9-]")
 
 
-def normalize(payload: Any) -> dict[str, Any] | None:
-    """The protocol form of one payload (generic or vendor), or ``None``."""
+def normalize(payload: Any, hint: str | None = None) -> dict[str, Any] | None:
+    """The protocol form of one payload (generic or vendor), or ``None``.
+
+    *hint* is ``--event``: the vendor event name, for CLIs whose payload omits it.
+    """
+    from opentine._hook_dialects import EXTRA_EVENTS, translate
+
+    payload = translate(payload, hint)
     if not isinstance(payload, dict):
         return None
     kind = payload.get("event") if payload.get("protocol") == PROTOCOL else None
-    kind = kind or EVENTS.get(str(payload.get("hook_event_name", "")))
+    vendor = str(payload.get("hook_event_name", ""))
+    kind = kind or EVENTS.get(vendor) or EXTRA_EVENTS.get(vendor)
     session = payload.get("session") or payload.get("session_id")
     if kind not in KINDS or not isinstance(session, str) or not session:
         return None
@@ -189,12 +196,14 @@ def record(repo: Any, event: dict[str, Any], agent: str) -> dict[str, Any]:
             **({"steer": [s.inputs["prompt"] for s in steer]} if steer else {})}  # fmt: skip
 
 
-def handle(raw: bytes, repo_path: str | None, agent: str) -> dict[str, Any]:
+def handle(
+    raw: bytes, repo_path: str | None, agent: str, hint: str | None = None
+) -> dict[str, Any]:
     """Process one stdin payload; never raises."""
     try:
         if len(raw) > MAX_PAYLOAD_BYTES:
             return {"protocol": PROTOCOL, "ok": False, "reason": "payload too large"}
-        event = normalize(json.loads(raw.decode("utf-8")))
+        event = normalize(json.loads(raw.decode("utf-8")), hint)
         if event is None:
             return {"protocol": PROTOCOL, "ok": False, "reason": "not a capture event"}
         if not repo_path:
@@ -211,14 +220,14 @@ def handle(raw: bytes, repo_path: str | None, agent: str) -> dict[str, Any]:
 
 def run_capture(
     repo_path: str | None, agent: str | None, stream: IO[bytes] | None = None,
-    out: IO[str] | None = None,
+    out: IO[str] | None = None, hint: str | None = None,
 ) -> int:  # fmt: skip
     """``tine hook capture``: read stdin, write the response; always 0."""
     try:
         raw = (stream or sys.stdin.buffer).read(MAX_PAYLOAD_BYTES + 1)
     except Exception:  # noqa: BLE001
         raw = b""
-    response = handle(raw, repo_path, agent or "generic")
+    response = handle(raw, repo_path, agent or "generic", hint)
     if agent and agent != "generic":
         # A vendor CLI parses stdout as its own control JSON: say only a steer.
         from opentine._hook_mailbox import vendor_response
