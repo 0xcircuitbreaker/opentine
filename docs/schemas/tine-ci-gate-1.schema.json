@@ -51,7 +51,9 @@
               "malformed",
               "valid",
               "bad-signature",
+              "unpinned",
               "wrong-subject",
+              "wrong-resource",
               "wrong-policy",
               "missing-level"
             ]
