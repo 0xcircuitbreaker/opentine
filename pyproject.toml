@@ -42,6 +42,9 @@ langchain = ["langchain-core>=0.3"]
 crypto = ["cryptography>=48.0.1"]
 # zstd storage compression: stdlib compression.zstd on 3.14, the PEP 784 backport before.
 zstd = ["backports.zstd>=1.0; python_version < '3.14'"]
+# Hybrid search (`tine repo-search --hybrid`): numpy speeds the local embedding scan;
+# the default embedder and the scan also work without it.
+embed = ["numpy>=1.26"]
 # PDF evidence reports (`tine evidence report --format pdf`).
 pdf = ["pikepdf>=9"]
 # 0.41 signer backends (`--ed25519-key-file pkcs11:... | kms:aws:... | kms:gcp:...`)

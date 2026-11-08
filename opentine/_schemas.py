@@ -26,6 +26,7 @@ from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
+from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
 from opentine._schema_defs_redact import SCHEMAS as _REDACT
 from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
 from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
@@ -90,7 +91,8 @@ def detect(document: Any) -> str:
         command = document.get("command")
         kind = document.get("kind")
         if command is None and isinstance(kind, str) and kind in KIND_SCHEMAS:
-            return KIND_SCHEMAS[kind]
+            versioned = (kind, document.get("report_version"))
+            return KIND_VERSION_SCHEMAS.get(versioned, KIND_SCHEMAS[kind])  # type: ignore[arg-type]
         if tagged and isinstance(command, str):
             # It names a format of its own that is not published (yet): hold it
             # to the envelope, not to the schema of another shape of `command`.

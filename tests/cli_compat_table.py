@@ -3985,4 +3985,20 @@ ROWS: tuple[tuple, ...] = (
         True,
         {"command": "bundle", "bundle_action": "verify", "pubkey": "k.pub"},
     ),
+    (
+        "plain:redact check --pii --classifier none --json",
+        "plain",
+        ["redact", "check", "--pii", "--classifier", "none", "--json"],
+        "opentine._cli_redact:cmd_redact",
+        False,
+        {"command": "redact", "redact_command": "check", "pii": True, "classifier": "none"},
+    ),
+    (
+        "plain:repo-search q --hybrid --embedder hash --json",
+        "plain",
+        ["repo-search", "q", "--hybrid", "--embedder", "hash", "--json"],
+        "opentine._repo_cli_plumbing:cmd_repo_search",
+        True,
+        {"command": "repo-search", "query": "q", "hybrid": True, "embedder": "hash"},
+    ),
 )

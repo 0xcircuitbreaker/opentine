@@ -68,6 +68,12 @@
     "truncated": {
       "type": "boolean"
     },
+    "hybrid": {
+      "type": "boolean"
+    },
+    "embedder": {
+      "type": "string"
+    },
     "results": {
       "type": "array",
       "items": {

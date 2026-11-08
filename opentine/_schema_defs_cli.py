@@ -116,6 +116,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "successful_only": BOOL, "signed_only": BOOL, "limit": INT,
             "min_score": opt(NUM), "model": opt(STR), "count": INT,
             "remote": opt(STR), "truncated": BOOL,  # 0.46: repo-search --remote
+            "hybrid": BOOL, "embedder": STR,
             "results": {"type": "array", "items": open_(["run_id", "status"], {
                 "run_id": STR, "status": STR, "score": opt(NUM), "cost": opt(NUM),
                 "latency": opt(NUM), "models": strs(), "matched_text": opt(STR)})}})),

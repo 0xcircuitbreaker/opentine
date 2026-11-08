@@ -694,6 +694,19 @@
       "verdict": 13
     },
     {
+      "core": 12,
+      "count": 12,
+      "file": "vectors/62-redaction-report-v2.json",
+      "name": "redaction-report",
+      "ops": [
+        "redaction-report.verify"
+      ],
+      "reject": 9,
+      "section": "4.13.1",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 23,
       "count": 23,
       "file": "vectors/63-tombstone.json",
@@ -1841,8 +1854,9 @@
     "vectors/57-tlog.json": "0cebba2f3059b0a9e90cba4f73528d620546f3151ad71c5192508d3872391652",
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
     "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
-    "vectors/60-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
+    "vectors/60-redaction-report.json": "41deb8fe483de22baaa33435906ec23ab56e5fce19ba4b5ac4d08d1c1690155a",
     "vectors/61-vsa.json": "55322a92397c96963037fd1e4f783437bcbbc109b610975911aab036e660725b",
+    "vectors/62-redaction-report-v2.json": "0ca2225239676d57c6080a12fbfcd30f21af57c1478d24331fe0f5ca95d1e024",
     "vectors/63-tombstone.json": "decd2cc717c5ac4fa70ad69125a7e5f4d65f885b60b04f81863a7e0db5ae8ad6",
     "vectors/64-redacted-copy.json": "720af7e02bc2297b439a524dbcc32cb870e4eb9ba2ebdc4e9797ffa88dde5871",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
@@ -2620,12 +2634,12 @@
   "spec_version": "0.46.0",
   "suite_version": 1,
   "totals": {
-    "cases": 768,
-    "core": 758,
-    "families": 40,
+    "cases": 780,
+    "core": 770,
+    "families": 41,
     "ops": 47,
     "reason_codes": 139,
-    "reject": 270,
+    "reject": 279,
     "stress": 10,
     "verdict": 143
   }

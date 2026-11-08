@@ -92,8 +92,11 @@ def indexed_search(
     model: str | None,
     limit: int,
     signed_only: bool,
+    rows: Any = None,
 ) -> list[SearchResult] | None:
-    rows = ranked_rows(repo, query, successful_only=successful_only)
+    """*rows* (0.46): pre-ranked rows to filter instead of the BM25 ranking (hybrid search)."""
+    if rows is None:
+        rows = ranked_rows(repo, query, successful_only=successful_only)
     if rows is None:
         return None
     from opentine.repository._associations import associated_map, association_indexes

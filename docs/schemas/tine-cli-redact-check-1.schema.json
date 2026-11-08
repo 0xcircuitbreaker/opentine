@@ -19,7 +19,14 @@
     "reports": {
       "type": "array",
       "items": {
-        "$ref": "opentine-redaction-report-1.schema.json"
+        "anyOf": [
+          {
+            "$ref": "opentine-redaction-report-1.schema.json"
+          },
+          {
+            "$ref": "opentine-redaction-report-2.schema.json"
+          }
+        ]
       }
     }
   }

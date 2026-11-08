@@ -1898,6 +1898,31 @@ embedded key);
 trusted key an Ed25519 report rests on its embedded key (trust on first use,
 state `verified-tofu`). Vectors: `60-redaction-report.json`.
 
+<a id="s-4.13.1"></a>
+### 4.13.1 Report version 2: `opentine-redaction/3` with PII (0.46.0+)
+
+`tine redact check --pii` writes version 2 reports. The ruleset
+`opentine-redaction/3` is `opentine-redaction/2` (credentials, detector
+`secret`) plus validated PII detectors (`email`, `phone`, `address`, `iban`
+with ISO 7064 mod 97, `card` with Luhn and an issuer prefix, and
+`gov-id:us-ssn`, `gov-id:uk-nino`, `gov-id:es-dni` with their issuing rules)
+and an optional local classifier layer whose spans are reported as
+`classifier:<kind>` (docs/PII.md). An object that cannot be decoded is reported
+with the detector `unreadable` (fail closed). A version 2 report differs from
+version 1 in exactly these ways:
+
+| Key | Value |
+|---|---|
+| `report_version` | `2` |
+| `ruleset` | `opentine-redaction/3` |
+| `classifier` | the classifier layer's name (`rules/1`, `none`, or a local plug-in's name), same grammar as `run` |
+| `findings` | a list of `{oid, kind, detectors}`; `detectors` is a non-empty, sorted list of distinct names (same grammar as `run`) — never the matched text |
+| `signature` | as in 4.13 but over `b"opentine.redaction-report.v2:"` + JCS(`{"body", "header"}`), so neither version's signature verifies the other's body |
+
+The refusal codes and their order are those of 4.13; a `report_version` other
+than 1 or 2 is `redaction-report.malformed`. Vectors:
+`62-redaction-report-v2.json`.
+
 <a id="s-4.14"></a>
 ## 4.14 `opentine.tombstone` — signed purge records (0.46.0+)
 
@@ -3179,7 +3204,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.46.0 | 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
+| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

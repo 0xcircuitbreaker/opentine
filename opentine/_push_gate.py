@@ -33,6 +33,8 @@ from opentine.repository.pack import reachable
 REPORT_KIND = "opentine.redaction-report"
 REPORT_VERSION = 1
 DOMAIN_PREFIX = b"opentine.redaction-report.v1:"
+#: report_version -> signing domain; version 2 (0.46, ``--pii``) is :mod:`opentine._pii_report`.
+DOMAINS = {1: DOMAIN_PREFIX, 2: b"opentine.redaction-report.v2:"}
 
 
 def _body(repo: Any, oid: str) -> bytes | None:
@@ -152,7 +154,9 @@ def run_report(repo: Any, run: str) -> dict[str, Any]:
 
 def _message(body: dict[str, Any], header: dict[str, Any]) -> bytes:
     view = {"body": body, "header": {key: header.get(key) for key in HEADER_KEYS}}
-    return DOMAIN_PREFIX + canonical_json(view)
+    version = body.get("report_version")
+    domain = DOMAINS.get(version, DOMAIN_PREFIX) if type(version) is int else DOMAIN_PREFIX
+    return domain + canonical_json(view)
 
 
 def sign(body: dict[str, Any], key: Any, *, algorithm: str, **header: Any) -> dict[str, Any]:
@@ -179,6 +183,7 @@ def verify(report: dict[str, Any], **keys: Any) -> SignatureResult:
 
 
 __all__ = [
+    "DOMAINS",
     "DOMAIN_PREFIX",
     "REPORT_KIND",
     "Gate",

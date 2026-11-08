@@ -132,7 +132,7 @@ def webhook_routes(app: Any, identity, tenant: str, resource: str, method: str, 
 
 
 def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, environ, sr):
-    """Routes past the core protocol: audit and transparency, events, webhooks, tombstones, hosted."""
+    """Routes past the core protocol: audit, transparency, events, webhooks, tombstones, hosted."""
     hosted = tenant_routes(app, identity, tenant, resource, method, environ, sr)
     if hosted is not None:
         return hosted

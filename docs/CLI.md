@@ -698,6 +698,13 @@ the query, best BM25 match first, at most 50 rows of run id, status, models and
 a snippet of at most 240 characters. It never scans the store or builds the
 index; without one it answers `{"indexed": false, ...}`.
 
+New in 0.46, `tine repo-search QUERY --hybrid [--embedder hash|MODULE:ATTR]`
+fuses the BM25 ranking with a local embedding index of redacted text
+(`.tine/index/embed.sqlite`) by reciprocal rank fusion; `--json` adds
+`hybrid` and `embedder`. `--hybrid` with `--no-index`, and `--embedder` without
+`--hybrid`, are usage errors. The `embed` extra (`opentine[embed]`) adds numpy
+for the similarity scan. See [PII.md](PII.md#hybrid-search).
+
 ## Cost export (0.44)
 
 ```text
@@ -916,6 +923,7 @@ tine push REMOTE [--allow-unredacted REASON] ...
 tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
 tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
                   [--out PATH] [--json] [--repo R]
+                  [--pii [--classifier rules|none|MODULE:ATTR]]     # 0.46
 tine redact verify REPORT [--key-file K | --pubkey K.pub] [--json]   # 0.45.1
 tine redact rules [--json]                                           # 0.45.1
 tine doctor [--bundle PATH] [--json] [--repo R]
@@ -947,6 +955,13 @@ when any report has findings and 3 (not found) when a `--run` does not resolve
 (0.45.1; 0.45.0 exited 1 for both). `--json` prints `{command: "redact-check",
 clean, reports}` (`tine-cli-redact-check-1`; each report follows
 `opentine-redaction-report-1`).
+
+`--pii` (0.46) re-scans under `opentine-redaction/3` (credentials plus the
+PII detectors and local classifier layer of [PII.md](PII.md)) and writes
+version 2 reports (SPEC 4.13.1, `opentine-redaction-report-2`): each finding is
+`{oid, kind, detectors}` and the report carries `classifier`; they are signed
+over `opentine.redaction-report.v2:` and checked by `62-redaction-report-v2.json`.
+`--classifier` without `--pii` is a usage error.
 
 `tine redact verify REPORT` checks every report in REPORT (one report, the list
 `--out` writes, or `--json` output): the field rules, the `tine-sig/3` block
