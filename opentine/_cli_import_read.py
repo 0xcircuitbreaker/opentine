@@ -70,8 +70,18 @@ def _har_events(data: bytes) -> list[TraceEvent]:
     return har_events(data)
 
 
-#: Formats read as raw bytes rather than text: a protobuf file, a HAR archive.
-BINARY_FORMATS = {"otlp-proto": _otlp_proto_events, "har": _har_events}
+def _agent_trace_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._import_agent_trace import agent_trace_events
+
+    return agent_trace_events(data)
+
+
+#: Formats read as raw bytes rather than text: protobuf, HAR, Agent Trace records.
+BINARY_FORMATS = {
+    "otlp-proto": _otlp_proto_events,
+    "har": _har_events,
+    "agent-trace": _agent_trace_events,
+}
 
 
 def _records(text: str) -> list:

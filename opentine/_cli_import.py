@@ -18,6 +18,7 @@ Formats
                    ``--from-default-location`` lists them; ``latest`` or an id prefix.
 ``entire``         a git repo with Entire checkpoints (REPO[::ID[/N]]); ``--all``: each one.
 ``cline-task`` ``roo-task`` a Cline / Roo Code globalStorage task directory.
+``agent-trace``    Agent Trace records (agent-trace.dev v1): line attribution, no content.
 ``auto``           (the default) recognize the source by its shape.
 
 Persistence — at least one target is required
@@ -77,7 +78,7 @@ IMPORT_FORMATS = (
     "otel-json",
     "otel-logs",
     "otel-spans",
-    *("jsonl", "otlp-proto", "har"),
+    *("jsonl", "otlp-proto", "har", "agent-trace"),
     *TRANSCRIPT_FORMATS,
     *FRAMEWORK_FORMATS,
 )
