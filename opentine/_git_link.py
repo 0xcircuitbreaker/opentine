@@ -101,6 +101,10 @@ def git_raw(
     return result.stdout
 
 
+#: Identity only (no code paths): git needs it to write a note, and CI sets it this way.
+IDENTITY_ENV = ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL")
+
+
 def checked_revision(revision: str) -> str:
     if not REVISION.match(revision or ""):
         raise GitLinkError(f"not a revision: {revision[:80]!r}")
@@ -164,7 +168,10 @@ def write_note(cwd: Path | str, sha: str, entries: list[NoteEntry]) -> list[str]
             blocks.append("\n".join(entry.lines()))
             known.append(entry.run_id)
     body = ("\n\n".join(blocks) + "\n").encode("utf-8")
-    git(cwd, "notes", f"--ref={NOTES_REF}", "add", "-f", "-F", "-", sha, stdin=body)
+    git(
+        cwd, "notes", f"--ref={NOTES_REF}", "add", "-f", "-F", "-", sha,
+        stdin=body, keep_env=IDENTITY_ENV,
+    )  # fmt: skip
     return known
 
 
@@ -202,6 +209,7 @@ def pr_commits(cwd: Path | str, number: int) -> list[str]:
 
 __all__ = [
     "HOOK_ENV",
+    "IDENTITY_ENV",
     "NOTES_REF",
     "RUN_ID",
     "TRAILER",

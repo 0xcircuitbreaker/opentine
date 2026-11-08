@@ -208,6 +208,8 @@ def repo(tmp_path, monkeypatch) -> Path:
     root.mkdir()
     _git(root, "init", "-q", "-b", "main")
     monkeypatch.chdir(root)
+    for name, value in IDENTITY.items():  # how CI supplies a git identity
+        monkeypatch.setenv(name, value)
     monkeypatch.setattr(cli, "RUNS_DIR", Path(".tine_runs"))
     (root / ".tine_runs").mkdir()
     (root / "seed.txt").write_text("seed\n")
@@ -231,7 +233,7 @@ def repo(tmp_path, monkeypatch) -> Path:
 def test_attach_blame_why_and_rewrites(repo, capsys) -> None:
     plain = _git(repo, "blame", "--porcelain", "a.py")
     code, attached = _json(capsys, "attach", "runattr45", "HEAD")
-    assert code == 0 and attached["runs"] == ["runattr45"]
+    assert code == 0 and attached["runs"] == ["runattr45"], attached
     assert attached["lines_attributed"] == 2 and attached["rewrite_ref_configured"] is True
     annotated = _blame_bytes(capsys, "a.py", "--porcelain")
     assert annotated.count(b"tine-run runattr45\n") == 2
@@ -274,7 +276,8 @@ def test_install_hook_sets_rewrite_ref_and_share_line(repo, capsys) -> None:
     assert any(Path(hook).name == "post-commit" for hook in installed["hooks"])
     assert b"refs/notes/tine" in _git(repo, "config", "--get-all", "notes.rewriteRef")
     assert share_line(repo) == ""  # HEAD links no run yet
-    _json(capsys, "attach", "runattr45", "HEAD")
+    code, attached = _json(capsys, "attach", "runattr45", "HEAD")
+    assert code == 0, attached
     assert share_line(repo).startswith("tine: 2/3 added line(s) by agents (67%)")
 
 
