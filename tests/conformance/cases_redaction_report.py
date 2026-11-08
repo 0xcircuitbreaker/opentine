@@ -77,7 +77,7 @@ def _case(name, expect, intent, report, reason=None, *, hmac=None, public=None) 
 _HMAC_A = KEYS["hmac_a"].hex()
 
 REDACTION_REPORT = Family(
-    "59-redaction-report.json",
+    "60-redaction-report.json",
     "4.13",
     "redaction-report",
     (

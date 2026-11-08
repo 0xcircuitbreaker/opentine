@@ -6,7 +6,7 @@ verifies OpenTine data the way the specification says.
 
 **What you need:** SHA-256, HMAC-SHA256, base64 and a JSON parser. Four
 capabilities beyond that are optional: zlib *inflate* for the pack family,
-Ed25519 for a handful of verifier cases (the witness quorums of `57-tlog.json`, the verdicts of `58-eval-verdict.json` and the reports of `59-redaction-report.json`
+Ed25519 for a handful of verifier cases (the witness quorums of `57-tlog.json`, the verdicts of `58-eval-verdict.json` and the reports of `60-redaction-report.json`
 among them), `ml-dsa-65` (FIPS 204 verification, for the post-quantum family
 `55-sig-pq.json`), and `wtf8` — a string type that can hold
 an unpaired UTF-16 surrogate — for five canonicalization cases. Every case that

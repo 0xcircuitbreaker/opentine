@@ -1,7 +1,7 @@
 """0.45.1: the redaction follow-ups deferred from 0.45.0.
 
 The ruleset as data (``tine redact rules``), ``tine redact verify`` and the
-59-redaction-report conformance family in Python and the pyz, the exit codes of
+60-redaction-report conformance family in Python and the pyz, the exit codes of
 ``tine redact check``, the new schemas (and the Agent Trace export held to
 ``agent-trace-0.1``), and ``tine schema validate`` on over-deep documents.
 """
@@ -26,7 +26,7 @@ from opentine.policies import PolicySet
 from opentine.repository import Repo
 
 ROOT = Path(__file__).resolve().parents[1]
-FAMILY = ROOT / "docs" / "conformance" / "vectors" / "59-redaction-report.json"
+FAMILY = ROOT / "docs" / "conformance" / "vectors" / "60-redaction-report.json"
 FAKE = "sk-proj-" + "Zq7Xw2Lr9Tb4Nc8Vm1Hs6Jd3Kf5Gp0Ya"
 SEED = bytes(range(32))
 pytestmark = pytest.mark.filterwarnings("ignore::opentine._key_store.PlaintextKeyWarning")

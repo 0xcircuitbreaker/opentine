@@ -1,7 +1,7 @@
 """Verifying a signed redaction report: ``tine redact verify REPORT`` (0.45.1).
 
 :func:`check` is the reference for the ``redaction-report.verify`` conformance
-op (``docs/conformance/vectors/59-redaction-report.json``) and is ported to the
+op (``docs/conformance/vectors/60-redaction-report.json``) and is ported to the
 pyz (``opentine._pyz._redactr``) and the TS verifier (``src/redactreport.ts``).
 A report is exactly the fields :func:`opentine._push_gate.run_report` writes plus
 a ``tine-sig/3`` block; ``clean`` must equal "no findings" even when signed.

@@ -898,7 +898,7 @@ report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
 key flag signs each report with a `tine-sig/3` header block over
 `opentine.redaction-report.v1:` + JCS of `{body, header}`; pinned HMAC and
 Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`, and the
-`59-redaction-report.json` conformance family (SPEC 4.13) pins how Python, the
+`60-redaction-report.json` conformance family (SPEC 4.13) pins how Python, the
 TS verifier and `tine-verify.pyz` check them. It exits 4 (verification failed)
 when any report has findings and 3 (not found) when a `--run` does not resolve
 (0.45.1; 0.45.0 exited 1 for both). `--json` prints `{command: "redact-check",

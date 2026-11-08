@@ -1896,7 +1896,7 @@ embedded key);
 `redaction-report.bad-signature` (the block does not verify);
 `redaction-report.inconsistent` (`clean` is not "no findings"). Without a
 trusted key an Ed25519 report rests on its embedded key (trust on first use,
-state `verified-tofu`). Vectors: `59-redaction-report.json`.
+state `verified-tofu`). Vectors: `60-redaction-report.json`.
 
 ---
 

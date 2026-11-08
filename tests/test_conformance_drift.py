@@ -108,7 +108,7 @@ EXPECTED_COUNTS = {
     "vectors/57-tlog.json": (18, 0),
     "vectors/58-eval-verdict.json": (10, 7),
     "vectors/59-webhook.json": (10, 0),
-    "vectors/59-redaction-report.json": (13, 10),
+    "vectors/60-redaction-report.json": (13, 10),
     "vectors/99-repair.json": (14, 14),
 }
 
