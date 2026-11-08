@@ -2,7 +2,7 @@
 
 ``python -m opentine._ci_gate`` reads what the CI job already produced --
 ``tine verify --json`` and ``tine eval verify --json`` outputs, and a remote's
-signed admission VSA (SPEC 8.14) -- and decides one gate::
+signed admission VSA (SPEC 8.17) -- and decides one gate::
 
     python -m opentine._ci_gate --verify v.json --eval e.json \\
         --vsa vsa.json --vsa-key server.pub --subject run:<hex> \\

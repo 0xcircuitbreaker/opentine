@@ -1,4 +1,4 @@
-"""SPEC 8.14 (0.46): a remote's signed SLSA VSA for one pushed object.
+"""SPEC 8.17 (0.46): a remote's signed SLSA VSA for one pushed object.
 
 Every case is a verdict: ``ok`` and a ``class`` (valid, malformed,
 bad-signature, wrong-subject, wrong-resource, failed, wrong-policy, missing-level), never a
@@ -42,7 +42,7 @@ def _value(envelope=SIGNED, subject=OID, levels=("OPENTINE_ADMITTED",), policy="
 
 
 def _case(cid: str, intent: str, value: dict) -> Case:
-    return Case(id=cid, section="8.14", checklist=(8,), op="vsa.verify", profile="verifier",
+    return Case(id=cid, section="8.17", checklist=(8,), op="vsa.verify", profile="verifier",
                 expect=VERDICT, intent=intent, input=V(value), requires=("ed25519",))  # fmt: skip
 
 
@@ -58,7 +58,7 @@ _NOT_VSA = {**_vsa(), "predicateType": "https://opentine.dev/attestation/run/v1"
 
 VSA = Family(
     "61-vsa.json",
-    "8.14",
+    "8.17",
     "vsa",
     (
         _case("vsa.valid", "admitted under the pinned server key", _value()),

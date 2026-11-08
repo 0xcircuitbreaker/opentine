@@ -1,4 +1,4 @@
-"""Reference op for SPEC 8.14: a remote's signed SLSA VSA, as a verdict."""
+"""Reference op for SPEC 8.17: a remote's signed SLSA VSA, as a verdict."""
 
 from __future__ import annotations
 

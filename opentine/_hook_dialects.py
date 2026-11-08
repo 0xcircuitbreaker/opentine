@@ -9,6 +9,9 @@
 * **Factory Droid**: Claude-shaped as is (``hook_event_name``, ``session_id``,
   ``tool_name``/``tool_input``/``tool_response``, ``prompt``)
   (docs.factory.com/reference/hooks-reference).
+* **Gemini CLI** ``AfterAgent`` names the turn's final text
+  ``prompt_response`` (geminicli.com/docs/hooks/reference); it is read as
+  ``last_assistant_message``.
 * **Google Antigravity**: camelCase, and the payload does not name its event,
   so the shim passes ``--event``: ``PreInvocation`` (``lastUserInput``),
   ``PostToolUse`` (``toolCall.name``/``args``, ``error``), ``Stop``
@@ -50,6 +53,8 @@ def translate(payload: Any, event: str | None) -> Any:
         return _antigravity(payload, event)
     if event and "hook_event_name" not in payload and "protocol" not in payload:
         payload = {**payload, "hook_event_name": event}
+    if "last_assistant_message" not in payload and "prompt_response" in payload:  # Gemini CLI
+        payload = {**payload, "last_assistant_message": payload["prompt_response"]}
     if "tool_response" not in payload and "tool_result" in payload:  # Copilot CLI
         result = payload["tool_result"]
         if isinstance(result, dict) and "text_result_for_llm" in result:

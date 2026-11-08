@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-admission-policy-1.schema.json",
   "title": "opentine.admission-policy (version 1)",
-  "description": "A named server-side trust policy for `tine serve --trust-policy NAME=FILE` (SPEC 8.14). `refs` are fnmatch globs; the optional lists narrow tenants, pusher roles (any one) and subjects, and the ref target's object type; `levels` are the VSA's verifiedLevels (default OPENTINE_ADMITTED). First covering policy decides.",
+  "description": "A named server-side trust policy for `tine serve --trust-policy NAME=FILE` (SPEC 8.17). `refs` are fnmatch globs; the optional lists narrow tenants, pusher roles (any one) and subjects, and the ref target's object type; `levels` are the VSA's verifiedLevels (default OPENTINE_ADMITTED). First covering policy decides.",
   "type": "object",
   "additionalProperties": false,
   "required": [

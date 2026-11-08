@@ -1,4 +1,4 @@
-"""SPEC 8.14 (0.46): check a remote's signed SLSA VSA for one pushed object.
+"""SPEC 8.17 (0.46): check a remote's signed SLSA VSA for one pushed object.
 
 ``tine serve --vsa-dir`` (and ``--trust-policy``) emits, for every admitted ref
 update, an in-toto Statement v1 whose predicate is a SLSA Verification Summary

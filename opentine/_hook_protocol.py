@@ -82,13 +82,18 @@ def normalize(payload: Any, hint: str | None = None) -> dict[str, Any] | None:
         "session": session[:512],
         "prompt": payload.get("prompt"),
         "tool": {
-            "name": str(tool.get("name") or payload.get("tool_name") or "")[:256],
+            "name": _text(tool.get("name")) or _text(payload.get("tool_name")),
             "input": tool.get("input", payload.get("tool_input")),
             "output": tool.get("output", payload.get("tool_response")),
         },
         "message": message,
         "cwd": payload.get("cwd") if isinstance(payload.get("cwd"), str) else "",
     }
+
+
+def _text(value: Any) -> str:
+    """A tool name: a string, at most 256 code points; anything else is no name."""
+    return value[:256] if isinstance(value, str) else ""
 
 
 def session_ref(agent: str, session: str) -> str:

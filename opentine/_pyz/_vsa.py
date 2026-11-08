@@ -1,4 +1,4 @@
-"""SPEC 8.14: check a remote's signed SLSA VSA, stdlib only (0.46).
+"""SPEC 8.17: check a remote's signed SLSA VSA, stdlib only (0.46).
 
 The pyz runs the vendored :mod:`opentine._vsa_verify` (copied verbatim into the
 archive) with Ed25519 from the pure-Python :mod:`._ed25519` instead of

@@ -38,7 +38,7 @@ inputs:
     required: false
     default: ""
   vsa:
-    description: A remote's DSSE-signed admission VSA (SPEC 8.14) to gate on.
+    description: A remote's DSSE-signed admission VSA (SPEC 8.17) to gate on.
     required: false
     default: ""
   vsa-key:

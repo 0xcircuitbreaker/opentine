@@ -2657,7 +2657,23 @@ what it fetches by recomputing every oid (2.8, and the TS SDK's
 implementation runs against its base URL. No byte format changed.
 
 <a id="s-8.16"></a>
-## 8.16 Admission VSAs and named server trust policies (0.46.0)
+## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
+
+`tine hook capture` reads one JSON event on stdin and answers one JSON object
+on stdout, always exiting 0. The protocol is published as its own versioned
+document, [`docs/spec/hook-1.md`](spec/hook-1.md), which is normative for: the
+generic envelope (`protocol`, `event` one of `prompt`/`tool`/`turn_end`/
+`session_end`, `session`, `prompt`, `tool`, `message`, `cwd`); the vendor event
+names and payload translations (Claude Code, Codex, Gemini CLI, Copilot CLI,
+Droid, Antigravity); the rules that refuse a payload (not an object, an
+undefined event, a session that is not a non-empty string); the session ref
+`heads/capture/<agent>/<digest>`; and each vendor's turn-end answer when steer
+messages are delivered (`decision: "block"` for Claude Code and Codex,
+`decision: "deny"` for Gemini CLI). Vectors for 8.16: `67-hook.json` (ops
+`hook.normalize`, `hook.respond`).
+
+<a id="s-8.17"></a>
+## 8.17 Admission VSAs and named server trust policies (0.46.0)
 
 A remote run as `tine serve --vsa-dir DIR` or `--trust-policy NAME=FILE`
 records every admitted ref update as an in-toto Statement v1 whose
@@ -2699,7 +2715,7 @@ and `predicate.resourceUri` differs: objects are content-addressed, so without
 this a VSA one tenant's ref earned could be replayed for another's), **failed** (`verificationResult` is not `PASSED`), **wrong-policy**,
 **missing-level**; otherwise **valid**. Reference: `opentine/_vsa_verify.py`
 (standard library plus an injectable Ed25519, vendored into
-`tine-verify.pyz`). Vectors for 8.16: `61-vsa.json`.
+`tine-verify.pyz`). Vectors for 8.17: `61-vsa.json`.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)

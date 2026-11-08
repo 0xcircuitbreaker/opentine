@@ -689,7 +689,7 @@
         "vsa.verify"
       ],
       "reject": 0,
-      "section": "8.14",
+      "section": "8.17",
       "stress": 0,
       "verdict": 13
     },
@@ -732,6 +732,20 @@
       "section": "4.15",
       "stress": 0,
       "verdict": 0
+    },
+    {
+      "core": 35,
+      "count": 35,
+      "file": "vectors/67-hook.json",
+      "name": "hook",
+      "ops": [
+        "hook.normalize",
+        "hook.respond"
+      ],
+      "reject": 0,
+      "section": "8.16",
+      "stress": 0,
+      "verdict": 35
     },
     {
       "core": 14,
@@ -1855,10 +1869,11 @@
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
     "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
     "vectors/60-redaction-report.json": "41deb8fe483de22baaa33435906ec23ab56e5fce19ba4b5ac4d08d1c1690155a",
-    "vectors/61-vsa.json": "55322a92397c96963037fd1e4f783437bcbbc109b610975911aab036e660725b",
+    "vectors/61-vsa.json": "4d158faaf2f7a8fcb6f5bca2016f44a27ff6df01d1bc2f27d15813b94260f866",
     "vectors/62-redaction-report-v2.json": "0ca2225239676d57c6080a12fbfcd30f21af57c1478d24331fe0f5ca95d1e024",
     "vectors/63-tombstone.json": "decd2cc717c5ac4fa70ad69125a7e5f4d65f885b60b04f81863a7e0db5ae8ad6",
     "vectors/64-redacted-copy.json": "720af7e02bc2297b439a524dbcc32cb870e4eb9ba2ebdc4e9797ffa88dde5871",
+    "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.45.1",
@@ -2077,6 +2092,36 @@
       "profile": "reader",
       "requires": [],
       "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
+      "unordered": []
+    },
+    "hook.normalize": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "event",
+        "session",
+        "tool_name",
+        "cwd"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 8.16: one opentine-hook/1 payload (generic or vendor) -> its event",
+      "unordered": []
+    },
+    "hook.respond": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "stdout"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 8.16: a vendor CLI's turn-end answer carrying steer messages",
       "unordered": []
     },
     "integrity.digest": {
@@ -2603,7 +2648,7 @@
       "requires": [
         "ed25519"
       ],
-      "summary": "SPEC 8.14: a remote's signed SLSA VSA: pinned key, subject, policy, levels",
+      "summary": "SPEC 8.17: a remote's signed SLSA VSA: pinned key, subject, policy, levels",
       "unordered": []
     },
     "webhook.verify": {
@@ -2634,13 +2679,13 @@
   "spec_version": "0.46.0",
   "suite_version": 1,
   "totals": {
-    "cases": 780,
-    "core": 770,
-    "families": 41,
-    "ops": 47,
+    "cases": 815,
+    "core": 805,
+    "families": 42,
+    "ops": 49,
     "reason_codes": 139,
     "reject": 279,
     "stress": 10,
-    "verdict": 143
+    "verdict": 178
   }
 }

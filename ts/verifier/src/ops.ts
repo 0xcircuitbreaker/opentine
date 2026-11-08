@@ -20,6 +20,7 @@ import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
+import { hookNormalize, hookRespond } from "./hook.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -200,6 +201,10 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       return webhookVerify(valueOf(input));
     case "vsa.verify":
       return vsaVerify(valueOf(input));
+    case "hook.normalize":
+      return hookNormalize(valueOf(input));
+    case "hook.respond":
+      return hookRespond(valueOf(input));
     case "delegation.verify": {
       const value = valueOf(input) as JObject;
       const actions = value.get("actions");

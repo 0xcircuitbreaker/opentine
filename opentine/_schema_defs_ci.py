@@ -1,7 +1,7 @@
 """JSON Schemas for the 0.46 CI integrations and server trust policies.
 
 ``opentine-admission-policy-1`` is a ``tine serve --trust-policy`` file (SPEC
-8.14); ``tine-ci-gate-1`` is the summary ``python -m opentine._ci_gate`` (and
+8.17); ``tine-ci-gate-1`` is the summary ``python -m opentine._ci_gate`` (and
 so ``actions/gate`` and the GitLab component) writes.
 """
 
@@ -19,7 +19,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "opentine-admission-policy-1",
         "opentine.admission-policy (version 1)",
         "A named server-side trust policy for `tine serve --trust-policy NAME=FILE` (SPEC "
-        "8.14). `refs` are fnmatch globs; the optional lists narrow tenants, pusher roles "
+        "8.17). `refs` are fnmatch globs; the optional lists narrow tenants, pusher roles "
         "(any one) and subjects, and the ref target's object type; `levels` are the VSA's "
         "verifiedLevels (default OPENTINE_ADMITTED). First covering policy decides.",
         closed(

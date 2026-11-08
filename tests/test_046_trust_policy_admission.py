@@ -1,4 +1,4 @@
-"""0.46: named server trust policies for VSA admission, and the VSA verifier (SPEC 8.14)."""
+"""0.46: named server trust policies for VSA admission, and the VSA verifier (SPEC 8.17)."""
 
 from __future__ import annotations
 

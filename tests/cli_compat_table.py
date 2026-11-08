@@ -1213,6 +1213,20 @@ ROWS: tuple[tuple, ...] = (
         {"command": "hook", "action": "capture", "agent": ["codex"], "repo": "r"},
     ),
     (
+        "plain:hook resume --agent gemini --session s --message m",
+        "plain",
+        ["hook", "resume", "--agent", "gemini", "--session", "s", "--message", "m"],
+        "opentine._cli_hook:cmd_hook",
+        False,
+        {
+            "command": "hook",
+            "action": "resume",
+            "agent": ["gemini"],
+            "session": "s",
+            "message": "m",
+        },
+    ),
+    (
         "plain:enable --agent gemini --dry-run --repo r",
         "plain",
         ["enable", "--agent", "gemini", "--dry-run", "--repo", "r"],

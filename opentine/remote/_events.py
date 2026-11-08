@@ -148,7 +148,7 @@ def capabilities(service: Any) -> dict[str, Any]:
     if hooks is not None:
         caps["webhooks"] = hooks.capabilities()
     vsa = getattr(getattr(service, "admission", None), "capabilities", None)
-    if callable(vsa):  # 0.46: TrustPolicyAdmission (SPEC 8.14)
+    if callable(vsa):  # 0.46: TrustPolicyAdmission (SPEC 8.17)
         caps["vsa"] = vsa()
     return caps
 

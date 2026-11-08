@@ -1,5 +1,5 @@
 /**
- * SPEC 8.14 (0.46): a remote's DSSE-signed SLSA Verification Summary
+ * SPEC 8.17 (0.46): a remote's DSSE-signed SLSA Verification Summary
  * Attestation for one pushed object. A port of `opentine/_vsa_verify.py`:
  * the same checks, answered in the same order. A verdict: never throws.
  */

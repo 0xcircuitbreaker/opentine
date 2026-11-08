@@ -120,6 +120,10 @@ DRIVEN = (
         "tine-cli-purge-1",
     ),
     (("purge", "--list", "--repo", "repo", "--json"), "tine-cli-purge-list-1"),
+    (
+        ("hook", "resume", "--agent", "codex", "--session", "s1", "--message", "go", "--dry-run"),
+        "tine-cli-hook-resume-1",
+    ),
 )
 
 

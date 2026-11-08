@@ -536,6 +536,18 @@ paths are made relative to the enclosing repository (the nearest directory with
 id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
 published schema accepts. `--endpoint` is refused.
 
+### Vendor I/O (0.46)
+
+```sh
+tine export RUN --format langfuse --output langfuse.json      # POST /api/public/ingestion body
+tine export RUN --format phoenix|braintrust|langsmith --output FILE
+tine import FILE --format langfuse|phoenix|braintrust|langsmith --repo runs
+```
+
+Files only (an `--endpoint` is refused): the vendor's ingestion body, or its own
+export, through the OTLP importer. Scores travel as `gen_ai.evaluation.result`
+and each vendor's native score record. See [VENDOR_IO.md](VENDOR_IO.md).
+
 ## Citation export (0.25)
 
 ```
@@ -732,9 +744,16 @@ use, and `basis` says so). The statement covers the cost the run *recorded*;
 | `tine hook capture [--agent NAME] [--event NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
 | `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex, Gemini CLI, Copilot CLI, Factory Droid and Antigravity hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
 | `tine disable [--agent NAME] [--dry-run]` | Restores each hook file byte for byte (or removes only the shims if it was edited since) |
+| `tine hook resume --agent codex\|gemini\|claude-code --session ID --message TEXT [--repo PATH] [--dry-run]` | 0.46: continues an ended session with the CLI's own resume command (`codex exec resume`, `gemini --resume`, `claude --resume`), run without a shell; `--repo` first records the message as a `steer` step on the session's capture run; `--dry-run` prints the plan (`tine-cli-hook-resume-1`) |
 
 Capture records nothing unless the repository's trusted config sets
 `hooks.capture`. See [CAPTURE.md](CAPTURE.md#per-turn-capture-tine-hook-capture-opentine-hook1).
+
+Since 0.46 a `tine fleet send` message steers Codex (its `Stop` hook answers
+`{"decision": "block", "reason": ...}`) and Gemini CLI (`AfterAgent`,
+`{"decision": "deny", "reason": ...}`) as well as Claude Code. The protocol
+is published as [`docs/spec/hook-1.md`](spec/hook-1.md) (SPEC 8.16, vectors
+`67-hook.json`).
 
 ## MCP proxy capture (0.38)
 

@@ -36,7 +36,7 @@ jobs:
 ```
 
 Each path is checked with `tine verify --json` / `tine eval verify --json`;
-the VSA with the SPEC 8.14 verifier under the pinned server key. The job fails
+the VSA with the SPEC 8.17 verifier under the pinned server key. The job fails
 (exit 4) unless at least one check ran and every check passed. Outputs: `ok`
 and `summary` (a `tine-ci-gate/1` document,
 `docs/schemas/tine-ci-gate-1.schema.json`).
@@ -88,7 +88,7 @@ note is skipped and the gate still decides the job.
 The VSA comes from the remote: `tine serve --trust-policy prod=prod.json
 --vsa-dir vsa/ --vsa-signing-key server.key` admits a ref update only when a named
 `opentine.admission-policy` covers it and records that policy's name and file
-digest in the VSA (see [CLI.md](CLI.md) and SPEC 8.14); the key a gate pins is in
+digest in the VSA (see [CLI.md](CLI.md) and SPEC 8.17); the key a gate pins is in
 `GET /v1/capabilities` as `vsa.keys`. The
 server signs VSAs with its own key, never a user's, and nothing in a pushed
 repository can choose the policy.
