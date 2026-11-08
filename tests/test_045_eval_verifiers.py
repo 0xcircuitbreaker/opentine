@@ -79,3 +79,26 @@ def test_the_ts_verifier_verifies_the_1k_eval(evaluated):
     assert done.returncode == 0, done.stderr
     report = json.loads(done.stdout)
     assert report["ok"] and report["verified"] == 1000 and report["passed"] == 750
+
+
+def test_a_verdict_spliced_in_by_another_key_is_refused_without_a_pubkey(evaluated):
+    from opentine import _eval_verdict
+    from opentine._pyz import _evalv
+
+    room, ev = evaluated
+    rows = read_verdicts(ev)[:3]
+    names = ("eval", "dataset", "item_digest", "run", "scorer", "scorer_version", "created_at")
+    fields = {name: rows[0][name] for name in names}
+    forged = _eval_verdict.make(b"\x07" * 32, **fields, item="q9999", score=1, threshold=1)
+    for extra, reason in ((forged, "eval.id-mismatch"), (dict(rows[1]), "eval.duplicate-item")):
+        bad = room / f"{reason}.jsonl"
+        bad.write_text("".join(json.dumps(r) + "\n" for r in [*rows, extra]), encoding="utf-8")
+        result = verify_eval(bad)
+        assert not result["ok"] and result["failures"][0]["reason"] == reason
+        checks = _evalv.verify_eval(bad, None)
+        assert checks[-1]["outcome"] == "fail" and checks[0]["reason"] == reason
+        if shutil.which("node") and TS_CLI.is_file():
+            argv = ["node", TS_CLI.as_posix(), bad.as_posix()]
+            done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+            assert done.returncode != 0
+            assert json.loads(done.stdout)["failures"][0]["reason"] == reason

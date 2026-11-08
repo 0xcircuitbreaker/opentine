@@ -29,6 +29,7 @@ from opentine.kernel import canonical_json
 SCHEMA = "tine-eval/1"
 EVAL_DOMAIN = b"opentine.eval.v1:"
 SUMMARY, VERDICTS = "eval.json", "verdicts.jsonl"
+PINNED = ("dataset", "scorer", "scorer_version", "threshold", "created_at", "signer")
 
 
 def now() -> str:
@@ -124,6 +125,9 @@ def verify_eval(folder: Path, *, public_key: bytes | None = None) -> dict[str, A
         except verdicts.EvalVerdictError as exc:
             item = row.get("item") if isinstance(row, dict) else None
             failures.append({"line": number, "item": item, "reason": exc.code, "detail": str(exc)})
+            continue
+        if row["eval"] != eval_id({name: row[name] for name in PINNED}):
+            failures.append({"line": number, "item": row["item"], "reason": "eval.id-mismatch"})
             continue
         evals.add(row["eval"])
         good.append(json.dumps(row))

@@ -1789,7 +1789,13 @@ embedded key is not it); `eval-verdict.inconsistent` (`passed` is not
 without a `judge_run`, or another scorer with one). Without a trusted key a
 passing verdict rests on its embedded key (trust on first use). An eval folder
 holds `verdicts.jsonl` (one verdict per line) and an unsigned `eval.json`
-summary that a verifier re-derives from the verdicts. Vectors:
+summary that a verifier re-derives from the verdicts. Across a
+`verdicts.jsonl` a verifier MUST also refuse a verdict whose `eval` is not
+recomputed from its own pinned fields (`eval.id-mismatch`; this binds every
+verdict of one eval to one signer, so a verdict signed by another key cannot be
+spliced in even under trust on first use), a repeated `item`
+(`eval.duplicate-item`), and a file naming more than one `eval`
+(`eval.mixed-evals`). Vectors:
 `58-eval-verdict.json`.
 
 ---

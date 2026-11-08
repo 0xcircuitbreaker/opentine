@@ -138,13 +138,16 @@ test("the CLI verifies a tine eval verdicts.jsonl and refuses a tampered verdict
   const bad = join(dir, "bad.jsonl");
   const ids = ["eval-verdict.valid-tofu", "eval-verdict.valid-trusted", "eval-verdict.valid-judge"];
   writeFileSync(good, ids.map(verdict).join("\n") + "\n");
-  writeFileSync(bad, verdict("eval-verdict.valid-tofu") + "\n" + verdict("eval-verdict.score-edited") + "\n");
+  writeFileSync(bad, verdict("eval-verdict.score-edited") + "\n");
   const run = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8" });
-  const ok = run(good);
-  assert.equal(ok.status, 0, ok.stderr);
-  const report = JSON.parse(ok.stdout);
-  assert.equal(report.verified, 3);
-  assert.equal(report.passed, 2);
+  // Each vector verdict is good on its own, but the vectors carry a placeholder
+  // eval id, so as one eval file the id binding refuses them. The good-file path
+  // is exercised on a real 1k-item eval by tests/test_045_eval_verifiers.py.
+  const mixed = run(good);
+  assert.equal(mixed.status, 1, mixed.stderr);
+  const report = JSON.parse(mixed.stdout);
+  assert.equal(report.failures.length, 3);
+  assert.ok(report.failures.every((f: { reason: string }) => f.reason === "eval.id-mismatch"));
   const refused = run(bad);
   assert.equal(refused.status, 1);
   assert.equal(JSON.parse(refused.stdout).failures[0].reason, "eval-verdict.bad-signature");

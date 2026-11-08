@@ -1,5 +1,5 @@
 /**
- * SPEC 4.11 `tine-eval-verdict/1`: one signed score for one dataset item. A port
+ * SPEC 4.12 `tine-eval-verdict/1`: one signed score for one dataset item. A port
  * of `opentine._eval_verdict.verify`: the field rules, the embedded key must be
  * the named `signer` (and the trusted key when one is given), the Ed25519
  * `tine-sig/3` block is over `opentine.eval-verdict.v1:` + JCS of
@@ -32,6 +32,18 @@ const PATTERNS: Record<string, RegExp> = {
   created_at: /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/,
 };
 const encoder = new TextEncoder();
+const EVAL_DOMAIN = "opentine.eval.v1:";
+const PINNED = ["dataset", "scorer", "scorer_version", "threshold", "created_at", "signer"];
+
+/** `sha256:` over `opentine.eval.v1:` + JCS of the verdict's pinned fields. */
+function evalId(verdict: JObject): string {
+  const tail = canonicalJson(new Map<string, JValue>(PINNED.map((key) => [key, verdict.get(key) ?? null])));
+  const head = encoder.encode(EVAL_DOMAIN);
+  const message = new Uint8Array(head.length + tail.length);
+  message.set(head);
+  message.set(tail, head.length);
+  return `sha256:${sha256Hex(message)}`;
+}
 
 function fail(code: string, message: string): never {
   throw new TineError(message, `eval-verdict.${code}`);
@@ -125,13 +137,24 @@ export function verifyEvalFile(file: string, publicKey?: Uint8Array): EvalReport
   const lines = readFileSync(file, "utf8").split("\n").filter((line) => line.trim());
   const failures: EvalReport["failures"] = [];
   const evals = new Set<string>();
+  const items = new Set<string>();
   let verified = 0;
   let passed = 0;
   lines.forEach((line, index) => {
     try {
       const value = parseText(line, KERNEL);
       const found = verifyEvalVerdict(value, publicKey);
-      evals.add((value as JObject).get("eval") as string);
+      const row = value as JObject;
+      if (row.get("eval") !== evalId(row)) {
+        failures.push({ line: index + 1, reason: "eval.id-mismatch", detail: "eval id does not match the pinned fields" });
+        return;
+      }
+      if (items.has(found.item)) {
+        failures.push({ line: index + 1, reason: "eval.duplicate-item", detail: found.item });
+        return;
+      }
+      items.add(found.item);
+      evals.add(row.get("eval") as string);
       verified += 1;
       passed += found.passed ? 1 : 0;
     } catch (exc) {

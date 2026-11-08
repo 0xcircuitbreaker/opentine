@@ -24,6 +24,8 @@ from ._artifact import check
 
 SCHEME = "tine-eval-verdict/1"
 DOMAIN = b"opentine.eval-verdict.v1:"
+EVAL_DOMAIN = b"opentine.eval.v1:"
+PINNED = ("dataset", "scorer", "scorer_version", "threshold", "created_at", "signer")
 FIELDS = (
     "scheme", "eval", "dataset", "item", "item_digest", "run", "scorer", "scorer_version",
     "score", "threshold", "passed", "judge_run", "signer", "created_at",
@@ -101,6 +103,7 @@ def verify_eval(path: Path, public_key: bytes | None) -> list[dict[str, Any]]:
     source = path / "verdicts.jsonl" if path.is_dir() else path
     checks: list[dict[str, Any]] = []
     evals: set[str] = set()
+    items: set[str] = set()
     passed = total = 0
     try:
         lines = [line for line in source.read_text("utf-8").splitlines() if line.strip()]
@@ -116,6 +119,14 @@ def verify_eval(path: Path, public_key: bytes | None) -> list[dict[str, Any]]:
         except (ValueError, kernel.KernelError) as exc:
             checks.append(check(f"verdict:{number}", "fail", "eval-verdict.malformed", str(exc)))
             continue
+        pinned = kernel.canonical_json({name: row[name] for name in PINNED})
+        if row["eval"] != "sha256:" + hashlib.sha256(EVAL_DOMAIN + pinned).hexdigest():
+            checks.append(check(f"verdict:{number}", "fail", "eval.id-mismatch", "eval id"))
+            continue
+        if row["item"] in items:
+            checks.append(check(f"verdict:{number}", "fail", "eval.duplicate-item", row["item"]))
+            continue
+        items.add(row["item"])
         evals.add(row["eval"])
         total += 1
         passed += found["passed"]
