@@ -1810,7 +1810,9 @@ only by pinning its fingerprint.
 A run captured with `OPENTINE_DELEGATION=<chain file>` stores the chain at
 `metadata.delegation`; `tine verify --offline` adds a required `delegation`
 check against the run's signer, its agent ref, harness, fleet member or role,
-and its tool names. Vectors: `56-delegation.json`.
+and its tool names; it passes with `delegation.verified`, or fails with
+`delegation.unsigned` (the run's signature did not verify) or one of the codes
+above. Vectors: `56-delegation.json`.
 
 <a id="s-4.11"></a>
 ## 4.11 `opentine-fleet/1` — fleet member record (0.43.0+)
@@ -2122,6 +2124,7 @@ Reason codes are dotted `area.detail` strings matching
 | locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
 | provenance (§9.9) | `provenance.none` (no `upgraded_from`, or not v4), `provenance.recorded` (the record is shown as a claim, `unavailable-offline`), `provenance.source-match`, `provenance.source-mismatch` (with `--source PATH`) |
 | timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable` |
+| delegation (§4.10) | `delegation.verified`, `delegation.unsigned`, and the chain codes of §4.10 |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
 
 The minimal verifier adds codes for what only it reports:
@@ -2908,7 +2911,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. No byte format changed. |
+| 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |
 | 0.40.0 | Part 10: format v5 text blobs; 2.10 external blob pointers. |
 | 0.26.0 | Part 9: format v4, `tine-sig/3`, `tine-attest/2`. |
