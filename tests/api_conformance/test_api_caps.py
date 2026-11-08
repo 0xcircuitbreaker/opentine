@@ -82,37 +82,80 @@ def test_object_read_is_verifiable_and_a_uniform_404(api, work):
 def test_run_closure_is_a_pack_holding_the_run(api, work):
     api.require("run_closure")
     oid = api.push_run(work)
-    reply = api.call("GET", api.tenant_path(f"runs/{quote(oid, safe='')}/closure"), token="reader")
+    path = api.tenant_path(f"runs/{quote(oid, safe='')}/closure")
+    reply = api.call("POST", path, {}, token="reader")
     assert reply.status == 200
     assert oid in {object_id for object_id, _ in inspect_pack(reply.body)[1]}
-    absent = api.call("GET", api.tenant_path(f"runs/{quote(ABSENT, safe='')}/closure"))
+    absent = api.call("POST", api.tenant_path(f"runs/{quote(ABSENT, safe='')}/closure"), {})
     assert absent.status == 404
-    _assert_no_cross_tenant_oracle(api, "runs/{}/closure", oid)
+    _assert_no_cross_tenant_oracle(api, "runs/{}/closure", oid, method="POST")
 
 
-def _assert_no_cross_tenant_oracle(api, template, oid):
+def _assert_no_cross_tenant_oracle(api, template, oid, method="GET"):
     """Another tenant's caller gets the same refusal for an object that exists as for one that
     does not (a 403 at the tenant check, or a 404), byte for byte."""
 
     def get(target):
         path = api.tenant_path(template.format(quote(target, safe="")))
-        return api.call("GET", path, token="other")
+        return api.call(method, path, {} if method == "POST" else None, token="other")
 
     present, absent = get(oid), get(ABSENT)
     assert present.status in (403, 404)
     assert (present.status, present.body) == (absent.status, absent.body)
 
 
-def test_list_pages_runs(api, work):
+def test_list_pages_runs_and_refs(api, work):
     api.require("list")
-    oid = api.push_run(work, "heads/list-" + work.name[-12:])
-    reply = api.call("GET", api.tenant_path("runs?limit=50"), token="reader")
-    assert reply.status == 200 and api.schema_errors("RunPage", reply.json()) == []
-    assert oid in {run["oid"] for run in reply.json()["runs"]}
+    name = "heads/list-" + work.name[-12:]
+    oid = api.push_run(work, name)
+    reply = api.call("GET", api.tenant_path("list/runs?limit=500"), token="reader")
+    assert reply.status == 200 and api.schema_errors("ListPage", reply.json()) == []
+    assert oid in reply.json()["items"]
+    refs = api.call("GET", api.tenant_path("list/refs?limit=500"), token="reader")
+    assert refs.status == 200 and api.schema_errors("ListPage", refs.json()) == []
+    assert {"name": name, "oid": oid} in refs.json()["items"]
+    bad = api.call("GET", api.tenant_path("list/runs?limit=0"), token="reader")
+    assert bad.status == 400
 
 
-def test_admin_quota_is_admin_only(api):
+def test_admin_stats_are_admin_only(api):
     api.require("admin")
-    assert api.call("GET", api.tenant_path("admin/quota"), token="writer").status == 403
-    reply = api.call("GET", api.tenant_path("admin/quota"), token="admin")
-    assert reply.status == 200 and api.schema_errors("Quota", reply.json()) == []
+    writer = api.call("GET", api.tenant_path("admin/stats"), token="writer")
+    assert writer.status in (403, 404)
+    reply = api.call("GET", api.tenant_path("admin/stats"), token="admin")
+    assert reply.status == 200 and api.schema_errors("AdminStats", reply.json()) == []
+
+
+def test_a_share_reads_only_its_run_and_dies_when_revoked(api, work):
+    api.require("share")
+    oid = api.push_run(work)
+    made = api.call("POST", api.tenant_path("shares"), {"run": oid}, token="writer")
+    assert made.status == 201 and api.schema_errors("Share", made.json()) == []
+    share = made.json()
+    token, base = share["token"], "/v1/share/" + share["token"]
+    listed = api.call("GET", api.tenant_path("shares"), token="writer")
+    assert listed.status == 200 and api.schema_errors("ShareList", listed.json()) == []
+    assert all("token" not in row for row in listed.json()["shares"])
+    info = api.call("GET", base, token=None)
+    assert info.status == 200 and api.schema_errors("SharedRun", info.json()) == []
+    assert info.headers.get("Referrer-Policy") == "no-referrer"
+    run = api.call("GET", f"{base}/objects/{quote(oid, safe='')}", token=None)
+    assert run.status == 200 and ObjectEnvelope.decode(run.body).oid == oid
+    outside = api.call("GET", f"{base}/objects/{quote(ABSENT, safe='')}", token=None)
+    unknown = api.call("GET", "/v1/share/tine_share_" + "A" * 43, token=None)
+    assert (outside.status, outside.body) == (unknown.status, unknown.body)
+    assert outside.status == 404 and outside.json() == {"error": "not found"}
+    gone = api.call("DELETE", api.tenant_path("shares/" + share["id"]), token="writer")
+    assert gone.status == 200 and gone.json()["state"] == "revoked"
+    after = api.call("GET", base, token=None)
+    assert (after.status, after.body) == (unknown.status, unknown.body)
+    assert token not in after.body.decode()
+
+
+def test_tombstone_reads_are_a_uniform_404(api):
+    api.require("tombstones")
+    blob = "blob:sha256:" + "e" * 64
+    reply = api.call("GET", api.tenant_path("tombstones/" + quote(blob, safe="")), token="reader")
+    malformed = api.call("GET", api.tenant_path("tombstones/nonsense"), token="reader")
+    assert (reply.status, reply.body) == (malformed.status, malformed.body)
+    assert reply.status == 404

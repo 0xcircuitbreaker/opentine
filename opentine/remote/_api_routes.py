@@ -3,8 +3,8 @@
 Every route :class:`opentine.remote.app.RemoteApp` dispatches is listed here,
 with the capability key that advertises it in ``GET /v1/capabilities``
 (``None`` for the core protocol) and its status: ``stable`` routes are served
-by this build; ``planned`` routes are reserved for the 0.46 ``caps`` the
-hosted web app needs and are served only once their capability is advertised.
+by this build; ``planned`` routes are reserved shapes the hosted web app needs
+and are served only once their capability is advertised.
 ``tests/test_api_v1_openapi.py`` probes the live app with every entry, so the
 table, the spec and the dispatcher cannot drift apart.
 
@@ -39,6 +39,7 @@ class Route(NamedTuple):
 
 T = "/tenants/{tenant}"
 _ERR = (("401", "Error"), ("403", "Error"), ("404", "Error"), ("429", "Error"))
+_PUBLIC = (("404", "Error"), ("429", "Error"))  # no bearer: unknown, expired, revoked alike
 
 ROUTES: tuple[Route, ...] = (
     Route("GET", "/capabilities", "getCapabilities", "What this server speaks",
@@ -84,20 +85,39 @@ ROUTES: tuple[Route, ...] = (
           (("201", "Webhook"), ("400", "Error"), *_ERR)),
     Route("DELETE", T + "/webhooks/{webhook_id}", "removeWebhook", "Remove a webhook",
           "webhooks", "stable", "webhooks", None, (("200", "Removed"), *_ERR)),
-    # 0.46 caps for opentine-web M2/M3 (ROADMAP 0.46.0, §11). Reserved here so the
-    # hosted service and tine serve converge on one shape.
+    # 0.46 hosted-beta caps (SPEC 8.14) for opentine-web M2/M3. A refusal on these
+    # is the uniform 404, also for another tenant's caller.
     Route("GET", T + "/objects/{oid}", "readObject", "One stored object envelope",
-          "object_read_http", "planned", "fetch", None, (("200", OBJECT), *_ERR)),
-    Route("GET", T + "/runs", "listRuns", "Runs of the tenant, newest first, paged",
-          "list", "planned", "read_ref", None, (("200", "RunPage"), ("400", "Error"), *_ERR)),
-    Route("GET", T + "/runs/{oid}/closure", "runClosure", "A pack of one run's closure",
-          "run_closure", "planned", "fetch", None, (("200", PACK), *_ERR)),
-    Route("POST", T + "/shares", "createShare", "A capability link to one run",
-          "share", "planned", "share", "ShareRequest", (("201", "Share"), ("400", "Error"), *_ERR)),
+          "object_read_http", "stable", "fetch", None, (("200", OBJECT), ("304", OBJECT), *_ERR)),
+    Route("POST", T + "/runs/{oid}/closure", "runClosure", "A pack of one run's closure",
+          "run_closure", "stable", "fetch", "Closure", (("200", PACK), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/list/runs", "listRuns", "Run oids of the tenant in oid order, paged",
+          "list", "stable", "read_ref", None, (("200", "ListPage"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/list/refs", "listRefPage", "Refs of the tenant in name order, paged",
+          "list", "stable", "read_ref", None, (("200", "ListPage"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/log/entries", "logEntries", "The tenant's transparency-log entries",
+          "log_http", "stable", "read_ref", None, (("200", "ListPage"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/admin/stats", "adminStats", "Objects by type, refs and active shares",
+          "admin", "stable", "admin", None, (("200", "AdminStats"), *_ERR)),
+    Route("GET", T + "/shares", "listShares", "The tenant's share links (never a token)",
+          "share", "stable", "share", None, (("200", "ShareList"), *_ERR)),
+    Route("POST", T + "/shares", "createShare", "A read-only capability link to one run",
+          "share", "stable", "share", "ShareRequest", (("201", "Share"), ("400", "Error"), *_ERR)),
     Route("DELETE", T + "/shares/{share_id}", "revokeShare", "Revoke a share link",
-          "share", "planned", "share", None, (("200", "Removed"), *_ERR)),
-    Route("GET", T + "/admin/quota", "getQuota", "The tenant's quota and usage",
-          "admin", "planned", "admin", None, (("200", "Quota"), *_ERR)),
+          "share", "stable", "share", None, (("200", "Share"), *_ERR)),
+    Route("GET", "/share/{token}", "getSharedRun", "The run a share token reads",
+          "share", "stable", None, None, (("200", "SharedRun"), *_PUBLIC)),
+    Route("POST", "/share/{token}/closure", "sharedClosure", "A pack of the shared run's closure",
+          "share", "stable", None, "Closure", (("200", PACK), *_PUBLIC)),
+    Route("GET", "/share/{token}/objects/{oid}", "readSharedObject", "One object of the closure",
+          "share", "stable", None, None, (("200", OBJECT), ("304", OBJECT), *_PUBLIC)),
+    Route("GET", T + "/tombstones/{oid}", "getTombstone", "The signed tombstone of a purged blob",
+          "tombstones", "stable", "fetch", None, (("200", "TombstoneReply"), *_ERR)),
+    Route("PUT", T + "/tombstones/{oid}", "putTombstone",
+          "Store a client-signed tombstone; for a held blob, purge it (admin)",
+          "tombstones", "stable", "upload", "Tombstone",
+          (("201", "TombstoneStored"), ("400", "Error"), *_ERR)),
+    # Reserved for opentine-web projects (ROADMAP 0.46.0, §11); served once advertised.
     Route("GET", T + "/project", "getProject", "The opentine-project/1 manifest",
           "project", "planned", "read_ref", None, (("200", OBJECT), *_ERR)),
     Route("GET", T + "/project/history", "projectHistory", "Every logged manifest version",

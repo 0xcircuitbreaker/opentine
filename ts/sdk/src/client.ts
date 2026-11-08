@@ -6,19 +6,24 @@
 
 import { OPERATIONS, type OperationId } from "./operations.js";
 import type {
+  AdminStats,
   AuditStatus,
   Capabilities,
   Checkpoint,
+  ClosureRequest,
   FetchRequest,
   Installed,
   Oid,
-  Quota,
+  ListPage,
+  LogEntry,
+  RefEntry,
   RefList,
   RefTxnUpdate,
   RefUpdate,
-  RunPage,
   SearchResult,
   Share,
+  SharedRun,
+  TombstoneStored,
   Webhook,
   WebhookList,
 } from "./types.js";
@@ -58,6 +63,13 @@ export function retryAfter(value: string | null, now: number = Date.now()): numb
   return Number.isNaN(date) ? null : Math.max(0, Math.ceil((date - now) / 1000));
 }
 
+function page(cursor?: string, limit?: number): Params {
+  const query: Params = {};
+  if (cursor) query.cursor = cursor;
+  if (limit !== undefined) query.limit = String(limit);
+  return query;
+}
+
 export class TineClient {
   readonly baseUrl: string;
   readonly tenant: string;
@@ -88,10 +100,18 @@ export class TineClient {
   /** Send one operation; `ok` lists the statuses that are answers rather than errors. */
   async send(
     operation: OperationId,
-    init: { params?: Params; query?: Params; json?: unknown; body?: Uint8Array; headers?: Params; ok?: number[] } = {},
+    init: {
+      params?: Params;
+      query?: Params;
+      json?: unknown;
+      body?: Uint8Array;
+      headers?: Params;
+      ok?: number[];
+      anonymous?: boolean;
+    } = {},
   ): Promise<Response> {
     const headers: Params = { ...(init.headers ?? {}) };
-    if (this.token) headers.authorization = `Bearer ${this.token}`;
+    if (this.token && !init.anonymous) headers.authorization = `Bearer ${this.token}`;
     let body: BodyInit | undefined;
     if (init.json !== undefined) {
       headers["content-type"] = "application/json";
@@ -191,28 +211,63 @@ export class TineClient {
     return this.bytes("readObject", { params: { oid } });
   }
 
-  listRuns(cursor?: string, limit?: number): Promise<RunPage> {
-    const query: Params = {};
-    if (cursor) query.cursor = cursor;
-    if (limit !== undefined) query.limit = String(limit);
-    return this.json("listRuns", { query });
+  /** Run oids, paged (`caps.list`). */
+  listRuns(cursor?: string, limit?: number): Promise<ListPage<Oid>> {
+    return this.json("listRuns", { query: page(cursor, limit) });
+  }
+
+  /** Refs in name order, paged (`caps.list`). */
+  listRefPage(cursor?: string, limit?: number): Promise<ListPage<RefEntry>> {
+    return this.json("listRefPage", { query: page(cursor, limit) });
+  }
+
+  /** This tenant's transparency-log entries, paged (`caps.log_http`). */
+  logEntries(cursor?: string, limit?: number): Promise<ListPage<LogEntry>> {
+    return this.json("logEntries", { query: page(cursor, limit) });
   }
 
   /** A pack of one run's closure (`caps.run_closure`; unverified). */
-  runClosure(oid: Oid): Promise<Uint8Array> {
-    return this.bytes("runClosure", { params: { oid } });
+  runClosure(oid: Oid, request: ClosureRequest = {}): Promise<Uint8Array> {
+    return this.bytes("runClosure", { params: { oid }, json: request });
   }
 
-  createShare(run: Oid, expiresIn?: number): Promise<Share> {
-    return this.json("createShare", { json: expiresIn ? { run, expires_in: expiresIn } : { run } });
+  /** A read-only link to one run (`caps.share`); the answer carries the token once. */
+  createShare(run: Oid, ttl?: number): Promise<Share> {
+    return this.json("createShare", { json: ttl ? { run, ttl } : { run } });
   }
 
-  async revokeShare(id: string): Promise<void> {
-    await this.send("revokeShare", { params: { share_id: id } });
+  async listShares(run?: Oid): Promise<Share[]> {
+    return (await this.json<{ shares: Share[] }>("listShares", { query: run ? { run } : {} })).shares;
   }
 
-  getQuota(): Promise<Quota> {
-    return this.json("getQuota");
+  revokeShare(id: string): Promise<Share> {
+    return this.json("revokeShare", { params: { share_id: id } });
+  }
+
+  /** The run a share token reads (no bearer is sent, whatever the client holds). */
+  sharedRun(token: string): Promise<SharedRun> {
+    return this.json("getSharedRun", { params: { token }, anonymous: true });
+  }
+
+  sharedClosure(token: string, request: ClosureRequest = {}): Promise<Uint8Array> {
+    return this.bytes("sharedClosure", { params: { token }, json: request, anonymous: true });
+  }
+
+  readSharedObject(token: string, oid: Oid): Promise<Uint8Array> {
+    return this.bytes("readSharedObject", { params: { token, oid }, anonymous: true });
+  }
+
+  adminStats(): Promise<AdminStats> {
+    return this.json("adminStats");
+  }
+
+  /** The signed tombstone of a purged blob (`caps.tombstones`); verify it before trusting it. */
+  async getTombstone(oid: Oid): Promise<Record<string, unknown>> {
+    return (await this.json<{ tombstone: Record<string, unknown> }>("getTombstone", { params: { oid } })).tombstone;
+  }
+
+  putTombstone(oid: Oid, tombstone: Record<string, unknown>): Promise<TombstoneStored> {
+    return this.json("putTombstone", { params: { oid }, json: tombstone });
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */

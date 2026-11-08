@@ -26,9 +26,11 @@ BODIES = {
     "uploadPack": {"sha256": "0" * 64, "size": 10},
     "search": {"type": "run"},
     "addWebhook": {"url": "https://hooks.example/x"},
+    "createShare": {"run": "run:sha256:" + "a" * 64},
+    "putTombstone": {"kind": "opentine.tombstone"},
 }
 VALUES = {"tenant": "acme", "ref": "heads%2Fmain", "upload_id": "0" * 32, "webhook_id": "wh_x"}
-VALUES |= {"oid": OID, "share_id": "s1"}
+VALUES |= {"oid": OID, "share_id": "s1", "token": "tine_share_" + "x" * 43}
 
 
 @pytest.fixture
@@ -89,15 +91,22 @@ def test_routes_are_unique_and_operation_ids_are_unique():
 @pytest.mark.parametrize("route", ROUTES, ids=lambda r: r.operation)
 def test_the_server_dispatches_exactly_the_stable_routes(app, route):
     """A stable route reaches its tenant authorization (403 for another tenant's
-    admin); a planned one is the generic 404 until its cap is advertised."""
+    admin, or the uniform 404 on the hosted-beta caps); a public share route is
+    the uniform 404 for an unknown token; a planned one is the generic 404 until
+    its cap is advertised."""
     path = "/v1" + route.path.format(**VALUES)
-    status, _ = _call(app, route.method, path, BODIES.get(route.operation))
+    status, body = _call(app, route.method, path, BODIES.get(route.operation))
     caps = app.service.capabilities()
-    if route.permission is None:
+    if route.status == "stable":
+        assert route.cap is None or route.cap in caps, route
+    if route.path.startswith("/share/"):
+        assert (status, json.loads(body)) == ("404", {"error": "not found"})
+    elif route.permission is None:
         assert status == "200"
     elif route.status == "stable":
-        assert status == "403", (route, status)
-        assert route.cap is None or route.cap in caps
+        assert status in ("403", "404"), (route, status)
+        if status == "404":
+            assert json.loads(body) == {"error": "not found"}
     else:
         assert route.cap not in caps, f"{route.cap} is advertised: mark {route.operation} stable"
         assert status == "404"

@@ -93,19 +93,56 @@ export interface WebhookList {
   recent: unknown[];
 }
 
-export interface RunPage {
-  runs: { oid: Oid; [key: string]: unknown }[];
-  next_cursor?: string | null;
+/** A cursor page of `list/runs`, `list/refs` or `log/entries` (`tine-list-page/1`). */
+export interface ListPage<T> {
+  items: T[];
+  next_cursor: string | null;
+  size?: number;
 }
 
+export interface RefEntry {
+  name: string;
+  oid: Oid;
+}
+
+export interface LogEntry {
+  index: number;
+  entry: string;
+}
+
+export interface ClosureRequest {
+  haves?: Oid[];
+  depth?: number | null;
+  lazy_blobs?: boolean;
+  pack_formats?: string[];
+  pack_codecs?: string[];
+}
+
+/** A share link (`tine-share/1`); `token` only on the answer to createShare, once. */
 export interface Share {
   id: string;
   run: Oid;
-  url: string;
-  expires_at?: string;
+  scope: "read";
+  created_by: string;
+  created: number;
+  expires: number;
+  state: "active" | "expired" | "revoked";
+  token?: string;
 }
 
-export interface Quota {
-  limits: Record<string, unknown>;
-  usage: Record<string, unknown>;
+export interface SharedRun {
+  run: Oid;
+  scope: "read";
+  expires: number;
+}
+
+export interface AdminStats {
+  objects: Record<string, number>;
+  refs: number;
+  shares_active: number;
+}
+
+export interface TombstoneStored {
+  stored: boolean;
+  purged: boolean;
 }

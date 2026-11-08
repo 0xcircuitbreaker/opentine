@@ -53,6 +53,10 @@ SCHEMAS: dict[str, Any] = {
             "list": {"type": "object"},
             "share": {"type": "object"},
             "admin": {"type": "object"},
+            "search": {"type": "object"},
+            "log_http": {"type": "object"},
+            "tombstones": {"type": "boolean"},
+            "vsa": {"type": "object"},
             "project": {"type": "object"},
         },
     ),
@@ -99,7 +103,9 @@ SCHEMAS: dict[str, Any] = {
         extra=False,
     ),
     "Offset": _obj({"offset": _int}, extra=False),
-    "SearchQuery": _obj({}, {"type": _str}),
+    "SearchQuery": _obj(
+        {}, {"type": _str, "text": {"type": "string", "minLength": 1, "maxLength": 256}}
+    ),
     "SearchResult": _obj({"objects": _oids, "truncated": {"type": "boolean"}}, extra=False),
     "AuditStatus": _obj(
         {"ok": {"type": "boolean"}, "status": _str, "warnings": {"type": "array"}}, extra=False
@@ -123,15 +129,54 @@ SCHEMAS: dict[str, Any] = {
         extra=False,
     ),
     "Removed": _obj({"removed": _str}, extra=False),
-    "RunPage": _obj(
-        {"runs": {"type": "array", "items": _obj({"oid": _oid})}},
-        {"next_cursor": {"anyOf": [_str, {"type": "null"}]}},
+    "Closure": _obj(
+        {},
+        {
+            "haves": _oids,
+            "depth": {"anyOf": [_int, {"type": "null"}]},
+            "lazy_blobs": {"type": "boolean"},
+            "pack_formats": {"type": "array", "items": _str},
+            "pack_codecs": {"type": "array", "items": _str},
+        },
+        extra=False,
     ),
+    "ListPage": _obj(
+        {"items": {"type": "array"}, "next_cursor": {"anyOf": [_str, {"type": "null"}]}},
+        {"size": _int},
+    ),
+    "AdminStats": _obj(
+        {
+            "objects": {"type": "object", "additionalProperties": _int},
+            "refs": _int,
+            "shares_active": _int,
+        },
+    ),  # fmt: skip
     "ShareRequest": _obj(
-        {"run": _oid}, {"expires_in": {"type": "integer", "minimum": 1}}, extra=False
+        {"run": _oid},
+        {"ttl": {"type": "integer", "minimum": 1}, "scope": {"enum": ["read"]}},
+        extra=False,
     ),
-    "Share": _obj({"id": _str, "run": _oid, "url": _str}, {"expires_at": _str}),
-    "Quota": _obj({"limits": {"type": "object"}, "usage": {"type": "object"}}),
+    "Share": _obj(
+        {
+            "id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+            "run": _oid,
+            "scope": {"enum": ["read"]},
+            "created_by": _str,
+            "created": _int,
+            "expires": _int,
+            "state": {"enum": ["active", "expired", "revoked"]},
+        },
+        {"token": {"type": "string", "pattern": "^tine_share_[A-Za-z0-9_-]{43}$"}},
+    ),  # fmt: skip
+    "ShareList": _obj({"shares": {"type": "array", "items": _ref("Share")}}, extra=False),
+    "SharedRun": _obj({"run": _oid, "scope": {"enum": ["read"]}, "expires": _int}, extra=False),
+    "Tombstone": _obj(
+        {"kind": {"const": "opentine.tombstone"}, "oid": _oid, "signature": {"type": "object"}}
+    ),
+    "TombstoneReply": _obj({"tombstone": _ref("Tombstone")}, extra=False),
+    "TombstoneStored": _obj(
+        {"stored": {"type": "boolean"}, "purged": {"type": "boolean"}}, extra=False
+    ),
     "ProjectHistory": _obj({"versions": _oids}),
     "ProjectUpdate": _obj(
         {"manifest": _str, "expected_old": {"anyOf": [_oid, {"type": "null"}]}}, extra=False

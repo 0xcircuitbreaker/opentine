@@ -2639,8 +2639,10 @@ the OpenAPI 3.1 document [`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml),
 the document, the table and the dispatcher disagree. Every operation carries
 `x-opentine-cap` (the key in `GET /v1/capabilities` that advertises it, or
 `null` for the core protocol) and `x-opentine-status`: `stable` routes are
-served by this release; `planned` routes are reserved shapes for the 0.46
-capabilities and a client calls one only when its cap is advertised.
+served by this release, including every hosted-beta route of 8.14 and the
+`tombstones` routes of 4.14; `planned` routes (the `project` cap) are reserved
+shapes, and a client calls any capability-tagged route only when its cap is
+advertised.
 
 Rules every implementation keeps: tenant routes are private by default (no
 anonymous read; `401` without valid credentials); every read is authorized

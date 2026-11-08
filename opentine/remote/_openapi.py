@@ -19,7 +19,8 @@ from opentine.remote._openapi_schemas import SCHEMAS
 _PARAM = re.compile(r"\{([a-z_]+)\}")
 _PLAIN_KEY = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$-]*$")
 _REASONS = {
-    "200": "OK", "201": "Created", "400": "Bad request", "401": "Authentication failed",
+    "200": "OK", "201": "Created", "304": "Not modified (If-None-Match)",
+    "400": "Bad request", "401": "Authentication failed",
     "403": "Forbidden", "404": "Not found (uniform: also when not visible to the caller)",
     "409": "Conflict", "429": "Quota or throttle exceeded; honour Retry-After",
     "503": "Busy; retry later",
@@ -31,12 +32,17 @@ _PARAM_DOCS = {
     "webhook_id": "Webhook id (wh_...).",
     "oid": "Typed object id (TYPE:sha256:HEX), percent-encoded.",
     "share_id": "Share id from POST shares.",
+    "token": "A share token (tine_share_...); a bearer secret, never logged.",
 }
+_PAGE = [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size, 1-500.")]
 _QUERY = {
     "streamEvents": [("last_event_id", "Resume after this event id (or Last-Event-ID).")],
     "logConsistency": [("old", "Older tree size."), ("new", "Newer tree size.")],
     "logReceipt": [("name", "Ref name."), ("new", "The oid the ref moved to.")],
-    "listRuns": [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size.")],
+    "listRuns": _PAGE,
+    "listRefPage": _PAGE,
+    "logEntries": _PAGE,
+    "listShares": [("run", "Only links to this run.")],
 }
 
 

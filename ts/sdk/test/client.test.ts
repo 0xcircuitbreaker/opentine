@@ -56,10 +56,10 @@ test("errors carry the status, the body and Retry-After", async () => {
 });
 
 test("listRuns sends its query and capabilities need no token", async () => {
-  const { fetch, seen } = fake(() => json(200, { runs: [], next_cursor: null }));
+  const { fetch, seen } = fake(() => json(200, { items: [], next_cursor: null }));
   const client = new TineClient({ baseUrl: "https://t", tenant: "a", fetch });
   await client.listRuns("c1", 5);
-  assert.equal(seen[0].url, "https://t/v1/tenants/a/runs?cursor=c1&limit=5");
+  assert.equal(seen[0].url, "https://t/v1/tenants/a/list/runs?cursor=c1&limit=5");
   await client.capabilities();
   assert.equal((seen[1].init.headers as Record<string, string>).authorization, undefined);
 });
@@ -115,4 +115,22 @@ test("multi-line SSE data and CRLF framing", async () => {
   const events = [];
   for await (const event of new TineClient({ baseUrl: "https://t", tenant: "a", fetch }).events()) events.push(event);
   assert.deepEqual(events, [{ id: "2", kind: "x", data: { a: 1 } }]);
+});
+
+test("share-token routes never send the client's bearer token", async () => {
+  const { fetch, seen } = fake(() => json(200, { run: "run:sha256:" + "a".repeat(64), scope: "read", expires: 1 }));
+  const client = new TineClient({ baseUrl: "https://t", tenant: "a", token: "secret", fetch });
+  await client.sharedRun("tine_share_x");
+  assert.equal(seen[0].url, "https://t/v1/share/tine_share_x");
+  assert.equal((seen[0].init.headers as Record<string, string>).authorization, undefined);
+  await client.adminStats();
+  assert.equal((seen[1].init.headers as Record<string, string>).authorization, "Bearer secret");
+});
+
+test("runClosure POSTs its negotiation body", async () => {
+  const { fetch, seen } = fake(() => new Response(new Uint8Array([1])));
+  const client = new TineClient({ baseUrl: "https://t", tenant: "a", fetch });
+  await client.runClosure("run:sha256:" + "b".repeat(64), { lazy_blobs: true });
+  assert.equal(seen[0].init.method, "POST");
+  assert.equal(seen[0].init.body, JSON.stringify({ lazy_blobs: true }));
 });
