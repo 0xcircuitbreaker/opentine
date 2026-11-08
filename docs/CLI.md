@@ -907,6 +907,62 @@ a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
 attributed.
 
+## Blame, why and attach (0.45)
+
+```
+tine blame FILE --porcelain | --line-porcelain [--rev REV] [-L START,END]
+tine blame FILE --lines [--rev REV] [-L START,END] [--json]
+tine why FILE:LINE [--json]
+tine attach RUN COMMIT [--sign-key KEY] [--no-configure] [--json]
+tine git install-hook [--ai-share] [--push [--strict]] [--global]
+tine import SOURCE --format agent-trace --save OUT.tine
+```
+
+`tine blame FILE --porcelain` prints `git blame --porcelain` for `FILE` at
+`--rev` (default `HEAD`, textconv off) exactly as git wrote it. Before each
+content line that a commit's attribution note credits to a run it adds three
+header lines, `tine-run RUN`, `tine-step SEQ` and `tine-model MODEL`; a file
+with no attributed lines is byte for byte what git prints. `--lines` shows one
+row per line (commit, run, line number, text) and `--lines --json` emits a
+`tine-blame/1` record: `path`, `revision`, `total_lines`, `ai_lines` and per
+line `line`, `commit`, `orig_path`, `orig_line`, `author`, `author_mail`,
+`author_time`, `summary`, `text` and `ai` (`{run, seq, model}` or `null`).
+`tine blame PATH[:LINE]` without these flags is unchanged.
+
+`tine why FILE:LINE` follows the line to the commit that last changed it, the
+runs that commit links and its attribution note, and prints the causal slice
+of the run that wrote it: the writing step and every step it descends from
+(`seq`, `step_id`, `kind`, `tool`, `model`).
+
+`tine attach RUN COMMIT` links a run captured after the fact: it is
+`tine git attribute COMMIT RUN`, writing the run note and the line attribution
+note (signed with `--sign-key`) and setting `notes.rewriteRef`, so the link
+survives `commit --amend` and `rebase`.
+
+Commit trailers follow one grammar, read the same way by `tine git log` and
+the web:
+
+```
+Tine-Run: <run-oid>[ <project_id>]     (repeatable)
+Tine-Project: <project_id>             (at most once)
+```
+
+A `Tine-Run` without its own project takes the `Tine-Project` one. A strict
+parse rejects two `Tine-Project` lines, a malformed run id or project id
+(lower-case slug), and extra words; `tine git log` keeps reading leniently.
+Vectors: `tests/data/trailer_vectors.json`.
+
+`tine git install-hook` now also sets `notes.rewriteRef=refs/notes/tine` in the
+repository (not with `--global`) and reports `rewrite_ref_configured`.
+`--ai-share` (opt-in) adds a `post-commit` hook that prints one line per
+commit, `tine: A/N added line(s) by agents (P%) on SHA`, from the attribution
+note or the linked runs; it writes nothing and never fails a commit.
+
+`tine import --format agent-trace` reads Agent Trace records (one, an array,
+or JSONL): one `model` event per conversation and one `agent_trace.attribution`
+tool event per file with its path, ranges and contributor type. Agent Trace
+carries no content, so nothing is recorded as a write.
+
 ## Fleet coordination: tasks, leases and steering (0.43)
 
 | Command | What it does |
