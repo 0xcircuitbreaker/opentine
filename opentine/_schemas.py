@@ -1,7 +1,8 @@
 """The published JSON Schemas: lookup, detection and validation (0.45).
 
 Definitions live in :mod:`opentine._schema_defs` (object kinds) and
-:mod:`opentine._schema_defs_cli` (``--json`` outputs); ``docs/schemas`` is
+:mod:`opentine._schema_defs_cli` (``--json`` outputs) and
+:mod:`opentine._schema_defs_redact` (redaction and doctor); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -14,10 +15,15 @@ from typing import Any
 
 from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
-from opentine._schema_defs_cli import COMMAND_SCHEMAS
+from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
+from opentine._schema_defs_events import SCHEMAS as _EVENTS
+from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
+from opentine._schema_defs_redact import KIND_SCHEMAS
+from opentine._schema_defs_redact import SCHEMAS as _REDACT
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI}
+SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS, **_REDACT}
+COMMAND_SCHEMAS: dict[str, str] = {**_CLI_COMMANDS, **_REDACT_COMMANDS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format")
@@ -59,6 +65,9 @@ def detect(document: Any) -> str:
                 return stem(tag)
             tagged = tagged or isinstance(tag, str) and "/" in tag
         command = document.get("command")
+        kind = document.get("kind")
+        if command is None and isinstance(kind, str) and kind in KIND_SCHEMAS:
+            return KIND_SCHEMAS[kind]
         if tagged and isinstance(command, str):
             # It names a format of its own that is not published (yet): hold it
             # to the envelope, not to the schema of another shape of `command`.

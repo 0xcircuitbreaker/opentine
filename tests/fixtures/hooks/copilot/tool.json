@@ -1,0 +1,1 @@
+{"hook_event_name": "PostToolUse", "session_id": "cp-sess-1", "cwd": "/w/proj", "timestamp": "2026-11-01T10:00:02.000Z", "tool_name": "bash", "tool_input": {"command": "ls"}, "tool_result": {"result_type": "success", "text_result_for_llm": "a.py\nb.py"}}

@@ -1,0 +1,1 @@
+{"hook_event_name": "PostToolUse", "session_id": "droid-sess-1", "transcript_path": "/home/u/.factory/projects/w-proj/droid-sess-1.jsonl", "cwd": "/w/proj", "permission_mode": "default", "tool_name": "Execute", "tool_input": {"command": "ls"}, "tool_response": {"output": "a.py\nb.py", "exitCode": 0}}

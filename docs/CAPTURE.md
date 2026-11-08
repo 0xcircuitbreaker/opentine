@@ -131,8 +131,10 @@ exports the imported run back out.
 Claude Code (`~/.claude/projects/*/*.jsonl`), Codex
 (`~/.codex/sessions/**/rollout-*.jsonl`), Gemini CLI
 (`~/.gemini/tmp/*/chats/session-*.jsonl`, and the legacy `.json`) and Qwen Code
-(`~/.qwen/projects/*/chats/*.jsonl`) — with `--format claude-code-transcript`,
-`codex-session`, `gemini-session` or `qwen-session` (or `auto`):
+(`~/.qwen/projects/*/chats/*.jsonl`) and Pi
+(`~/.pi/agent/sessions/*/*.jsonl`, `PI_CODING_AGENT_DIR`) — with `--format
+claude-code-transcript`, `codex-session`, `gemini-session`, `qwen-session` or
+`pi-session` (or `auto`):
 
 ```bash
 tine import --from-default-location                         # the newest sessions on this machine
@@ -404,7 +406,11 @@ echo '{"protocol": "opentine-hook/1", "event": "tool", "session": "s1",
 (`name`, `input`, `output`), `message` and `cwd` are optional. Vendor payloads
 are accepted unchanged (`hook_event_name` plus `session_id`): Claude Code and
 Codex `UserPromptSubmit`/`PostToolUse`/`Stop`/`SessionEnd`, Gemini CLI
-`BeforeAgent`/`AfterTool`/`AfterAgent`/`SessionEnd`. With `--agent NAME` the
+`BeforeAgent`/`AfterTool`/`AfterAgent`/`SessionEnd`, GitHub Copilot CLI and
+Factory Droid `UserPromptSubmit`/`PostToolUse`/`Stop`/`SessionEnd` (Copilot's
+`tool_result` is read as the tool output). Google Antigravity's payload does not
+name its event, so its shim passes `--event PreInvocation|PostToolUse|Stop`
+and the session is its `conversationId`. With `--agent NAME` the
 command prints only inert control JSON (`{"suppressOutput": true}` for Claude
 Code, `{}` otherwise) so the CLI never acts on it.
 
@@ -422,8 +428,10 @@ Code, `{}` otherwise) so the CLI never acts on it.
   `opentine._hook_turns` run first and may return attributes stored on the
   turn's step (the point per-turn workspace snapshots attach to).
 
-`tine enable [--agent NAME] [--dry-run] --repo PATH` points Claude Code, Codex
-and Gemini CLI at this command (a thin shim per event) and sets
+`tine enable [--agent NAME] [--dry-run] --repo PATH` points Claude Code, Codex,
+Gemini CLI, Copilot CLI (its own `~/.copilot/hooks/opentine.json`), Factory
+Droid (`~/.factory/hooks.json`) and Antigravity (the `opentine-capture` hook in
+`~/.gemini/config/hooks.json`) at this command (a thin shim per event) and sets
 `hooks.capture`; `--dry-run` prints the exact edit as a unified diff and writes
 nothing. The original bytes of each config file are kept under
 `$XDG_CONFIG_HOME/opentine/enabled/`, and `tine disable` restores them **byte

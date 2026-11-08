@@ -108,10 +108,17 @@ def _hooks(start: Path) -> list[dict[str, str]]:
 
 
 def _harnesses() -> list[dict[str, str]]:
+    from opentine._agent_detect import present
     from opentine._cli_harnesses import harness_rows
 
     found = [row["name"] for row in harness_rows() if row["installed"]]
-    return [_row("harnesses", "ok" if found else "warn", ", ".join(found) or "none on PATH")]
+    agents = present()
+    return [
+        _row("harnesses", "ok" if found else "warn", ", ".join(found) or "none on PATH"),
+        _row(
+            "agent-capture", "ok" if agents else "warn", ", ".join(agents) or "no agent CLI found"
+        ),
+    ]
 
 
 def _repository(path: Path) -> list[dict[str, str]]:

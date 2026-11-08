@@ -10,6 +10,7 @@ from opentine._version import __version__
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
+from opentine.remote._events import capabilities as event_capabilities
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
 from opentine.remote._ref_txn import check_move
@@ -52,6 +53,8 @@ class RemoteService:
         self.authorization = authorization
         self.admission = admission or AllowAdmission()
         self.audit = audit or index
+        self.events: Any = None  # 0.45.1: an ``_events.EventHub`` (SSE, webhooks)
+        self.webhooks: Any = None
         if not callable(getattr(self.audit, "append", None)):
             raise TypeError("remote service requires an AuditSink")
 
@@ -72,6 +75,7 @@ class RemoteService:
             "resumable_upload": True,
             "roles": ["reader", "writer", "admin"],
             "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
+            **event_capabilities(self),  # 0.45.1: events_sse, webhooks
         }
 
     def authenticate(self, headers: dict[str, str]) -> Identity:
@@ -105,6 +109,8 @@ class RemoteService:
                 details,
             )  # fmt: skip
         )
+        if self.events is not None:
+            self.events.audited(tenant, self.audit)
 
     def list_refs(self, identity: Identity, tenant: str) -> dict[str, str]:
         self._authorize(identity, "read_ref", tenant)
@@ -188,6 +194,8 @@ class RemoteService:
         with admitted_associations(tenant, self.index, order) as targets:
             install_objects(self.objects, self.index, tenant, order, targets, list(shallow))
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
+        if self.events is not None:
+            self.events.runs_installed(tenant, [oid for oid, _ in packed])
         return pack_id, len(packed)
 
     def update_ref(
@@ -210,6 +218,8 @@ class RemoteService:
             ("forced" if rewrite else "ok") if changed else "conflict",
             {"expected_old": expected_old, "name": name, "new": new_oid},
         )
+        if changed and self.events is not None:
+            self.events.ref_moved(tenant, name, expected_old, new_oid, rewrite)
         return changed
 
     def search(

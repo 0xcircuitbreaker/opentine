@@ -346,6 +346,15 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.12: verify a tine-eval-verdict/1 verdict, under a trusted key if given",
     },
+    "redaction-report.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["run", "clean", "objects", "findings", "state"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.13: verify a signed opentine.redaction-report under the key given",
+    },
     "actions.chain": {
         "profile": VERIFIER,
         "input": ["value"],
@@ -381,5 +390,14 @@ OP_META: dict[str, dict[str, object]] = {
         "unordered": [],
         "requires": ["ed25519"],
         "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
+    },
+    "webhook.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok", "class"],
+        "unordered": [],
+        "requires": ["ed25519"],
+        "summary": "SPEC 8.13: a tine-webhook/1 delivery: replay window, pinned key id, Ed25519",
     },
 }

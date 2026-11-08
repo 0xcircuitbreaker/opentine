@@ -1,0 +1,3 @@
+GitHub Copilot CLI hook payloads (PascalCase event names -> snake_case payload).
+Built from the documented schema, fetched 2026-11-08; ids and values invented.
+https://docs.github.com/en/copilot/reference/hooks-configuration

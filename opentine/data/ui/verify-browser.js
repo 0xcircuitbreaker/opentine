@@ -1,29 +1,79 @@
 /**
  * verify-browser: the Web Worker entry point that turns a run's verification
  * record into the badge the viewer shows. It runs off the main thread so a
- * large run never blocks rendering, and it makes no network request.
+ * large run never blocks rendering, and it fetches only the run's own artifact
+ * bytes, from the page's origin.
  *
- * Honesty rule: the browser itself has not re-run the cryptographic checks yet
- * (the bundled TS verifier lands with the opentine-web M1 browser build), so a
- * state computed by local `tine` is passed through labelled as such, and the
- * browser's own column always reads "unchecked".
+ * Two columns, each named for who computed it: the states local `tine`
+ * computed (passed through, labelled "local tine"), and the states this
+ * browser computed itself by running the bundled TS verifier
+ * (`tine-verifier.js`) over the artifact bytes: integrity (every envelope id,
+ * the root and the annotation chain) and the `tine-sig/3` signatures. No key is
+ * pinned in a browser, so a signature that holds under the key the file embeds
+ * reads "unpinned", never "verified"; an HMAC signature reads "unchecked". When
+ * the bytes are withheld (the server's redaction scan found something) or the
+ * check cannot run, the browser column reads "unchecked" and says why.
  */
+import { verifyArtifact } from "./tine-verifier.js";
 const STATES = ["verified", "failed", "partial", "unchecked", "unpinned"];
+const HERE = "this browser (TS verifier)";
 export function asState(value) {
     return STATES.includes(value) ? value : "unchecked";
 }
-export function badge(v) {
+/** The browser column for a TS verifier report, or for a check that could not run. */
+export function browserStates(report, why = "") {
+    if (!report)
+        return { integrity: "unchecked", signature: "unchecked", detail: why || "not checked" };
+    const integrity = report.integrity.ok ? "verified" : "failed";
+    const sig = report.signature;
+    let signature = "unchecked";
+    let detail = report.integrity.reason;
+    if (sig && (sig.state === "mismatch" || sig.state === "error"))
+        signature = "failed";
+    else if (sig && sig.state === "verified")
+        signature = "verified";
+    else if (sig && sig.state === "verified-tofu")
+        signature = "unpinned";
+    if (sig)
+        detail = `${detail}; signature ${sig.state}: ${sig.reason}`;
+    return { integrity, signature, detail };
+}
+export function badge(v, check) {
     const by = v.computed_by || "local tine";
+    const mine = check ?? browserStates(null, "verifier not run");
     const rows = [
         ["Integrity digest", asState(v.integrity), by],
         ["Signature", asState(v.signature), by],
-        ["Browser re-check", "unchecked", "this browser (verifier bundle not loaded)"],
+        ["Integrity (re-checked)", mine.integrity, HERE],
+        ["Signature (re-checked)", mine.signature, HERE],
     ];
-    const state = asState(v.overall);
+    const failed = mine.integrity === "failed" || mine.signature === "failed";
+    const state = failed ? "failed" : asState(v.overall);
     const tier = v.assurance ? ` · assurance ${v.assurance.verified} (claimed ${v.assurance.claimed})` : "";
-    return { state, label: `${state} by ${by}${tier}`, rows };
+    const again = mine.integrity === "unchecked" ? "not re-checked in this browser" : `re-checked in this browser: integrity ${mine.integrity}, signature ${mine.signature}`;
+    return { state, label: `${state} by ${by}${tier}; ${again}`, rows, detail: mine.detail };
+}
+/** Fetch the artifact bytes and check them here; never throws. */
+export async function check(request) {
+    if (!request.artifact)
+        return browserStates(null, "no artifact to check");
+    try {
+        const res = await fetch(request.artifact, { credentials: "same-origin" });
+        if (!res.ok) {
+            const why = res.status === 403 ? "artifact withheld: the redaction scan found something" : `artifact unavailable (${res.status})`;
+            return browserStates(null, why);
+        }
+        return browserStates(await verifyArtifact(new Uint8Array(await res.arrayBuffer()), "artifact"));
+    }
+    catch (exc) {
+        return browserStates(null, `check could not run: ${exc.message}`);
+    }
 }
 const scope = globalThis;
 if (scope.document === undefined && typeof scope.postMessage === "function") {
-    scope.onmessage = (event) => scope.postMessage(badge(event.data || {}));
+    scope.onmessage = (event) => {
+        const data = (event.data || {});
+        const request = data.verification ? data : { verification: data };
+        void check(request).then((mine) => scope.postMessage(badge(request.verification, mine)));
+    };
 }

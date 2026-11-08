@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (120)
+## The codes (126)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -144,6 +144,12 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `pack.unresolved-link` | 2.8 | -- | a link that is neither packed, present locally, nor declared shallow | install anyway and hope the object arrives later |
 | `pack.version-unsupported` | 2.8 | -- | a version that is not the integer 1 (true is not 1) | read true as 1 |
 | `path.invalid-oid` | 2.3 | -- | deriving a loose-object path from a string that is not an oid | build a path out of whatever characters the string holds |
+| `redaction-report.bad-signature` | 4.13 | -- | a report whose tine-sig/3 block does not hold over its body | trust clean or the findings without checking the signature |
+| `redaction-report.inconsistent` | 4.13 | -- | a signed report whose clean is not 'no findings' | read clean without re-deriving it from the findings |
+| `redaction-report.malformed` | 4.13 | -- | a report with a missing, extra or ill-formed field | verify a signature over fields the report format does not define |
+| `redaction-report.no-key` | 4.13 | -- | an HMAC report checked with no key | report an HMAC-signed report as verified without its key |
+| `redaction-report.unsigned` | 4.13 | -- | a report with no signature block | treat an unsigned report as evidence that a run was scanned |
+| `redaction-report.wrong-key` | 4.13 | -- | an Ed25519 report signed by a key other than the trusted one | accept the embedded key when the caller supplied a trusted one |
 | `ref.annotation-name-mismatch` | 2.5 | -- | an annotations/<digest> ref whose annotation does not target run:sha256:<digest> | rename the ref to match the annotation |
 | `ref.component-reserved` | 2.4 | -- | a component that is empty, . or .., contains .., or ends in .lock, . or a space | normalize the component away |
 | `ref.component-too-long` | 2.4 | `_refs.MAX_REF_COMPONENT_BYTES` = 240 | a ref name component longer than 240 bytes | truncate the component |

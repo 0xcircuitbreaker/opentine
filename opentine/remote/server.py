@@ -11,6 +11,7 @@ from typing import Any
 from wsgiref.simple_server import make_server
 
 from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
+from opentine.remote._events_setup import attach_events
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from opentine.remote._serve_admission import add_admission_arguments, serve_admission
 from opentine.remote._serve_auth import add_auth_arguments, serve_identities
@@ -44,6 +45,7 @@ def reference_app(
     max_upload_bytes: int = 256 * 1024 * 1024,
     fast_forward_heads: bool = False,
     uncompressed_tenants: tuple[str, ...] = (),
+    webhooks_allow_private: bool = False,
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
@@ -70,6 +72,7 @@ def reference_app(
         admission=admission,
         fast_forward_heads=fast_forward_heads,
     )
+    attach_events(service, state, allow_private=webhooks_allow_private)
     return RemoteApp(
         service,
         state,
@@ -110,6 +113,11 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
         default=[],
         metavar="TENANT",
         help="Store this tenant's objects sealed but uncompressed (repeatable)",
+    )
+    parser.add_argument(
+        "--webhooks-allow-private",
+        action="store_true",
+        help="Let webhooks target private/loopback addresses and http:// (self-host only)",
     )
     parser.add_argument("--timeout", type=int, default=30, help="Per-connection socket timeout (s)")
     parser.add_argument(
@@ -183,6 +191,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         reanchor_audit_head=args.reanchor_audit_head,
         fast_forward_heads=args.fast_forward_heads,
         uncompressed_tenants=tuple(args.uncompressed_tenant),
+        webhooks_allow_private=args.webhooks_allow_private,
     )
     handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
     handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)

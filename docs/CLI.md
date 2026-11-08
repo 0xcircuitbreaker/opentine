@@ -215,6 +215,21 @@ verifier key is in `.tine/log/op/vkey`.
   not log, such as opentine 0.34 or a library caller (`gap`: the ref differs from
   the logged value, or its reflog has newer rows); `--force` undoes anyway.
 
+## Watching events (0.45.1)
+
+* `tine watch [REMOTE|REPO] [--tenant T] [--token-file F] [--json]` tails a
+  remote's event stream (`GET /v1/tenants/<t>/events`, Server-Sent Events) when
+  given a URL or a configured remote name, reconnecting with `Last-Event-ID`;
+  otherwise it polls the op log of the repository named (default `.`) every
+  `--interval` seconds (2) and prints each new op as an `op.logged` event
+  (`--from-start` prints the ops already logged too).
+* `--once` stops after one stream or one poll; `--max-events N` after N events.
+* `--json` is JSON Lines, not one object: each line is a `tine-watch/1` record
+  holding a `tine-event/1` `event`, or `"reset": true` when the server says
+  events were missed (re-list refs).
+
+Event kinds, the SSE endpoint and signed webhooks: [EVENTS.md](EVENTS.md).
+
 ## Offline verification (0.25)
 
 ```
@@ -664,8 +679,8 @@ use, and `basis` says so). The statement covers the cost the run *recorded*;
 
 | Command | What it does |
 | --- | --- |
-| `tine hook capture [--agent NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
-| `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex and Gemini CLI hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
+| `tine hook capture [--agent NAME] [--event NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
+| `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex, Gemini CLI, Copilot CLI, Factory Droid and Antigravity hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
 | `tine disable [--agent NAME] [--dry-run]` | Restores each hook file byte for byte (or removes only the shims if it was edited since) |
 
 Capture records nothing unless the repository's trusted config sets
@@ -831,15 +846,25 @@ attribution (the step and model that last wrote each file).
 - **Verification states** are `verified`, `failed`, `partial`, `unchecked` and
   `unpinned`, each labelled with who computed it. Integrity and assurance are
   checked by the local `tine`; a signature is `unpinned` because `tine ui` pins
-  no key (use `tine verify --pubkey`). The browser's own re-check reads
-  `unchecked` until the TS verifier's browser bundle ships.
-- **Assets** are built from `ts/run-viewer` (`npm ci && npm run build`) into
-  `opentine/data/ui` and committed; a test rebuilds them and compares bytes.
+  no key (use `tine verify --pubkey`). Since 0.45.1 the browser re-checks the
+  run itself: a Web Worker runs the TS verifier's browser bundle
+  (`tine-verifier.js`) over the artifact bytes and shows its own integrity and
+  signature states beside local `tine`'s. With no key pinned, a signature that
+  holds under the key the file embeds reads `unpinned`, an HMAC one `unchecked`,
+  and one that does not hold `failed` (which fails the badge). The bytes are
+  served only when the current redaction ruleset finds nothing in the decoded
+  artifact; otherwise the request gets 403 and the browser column reads
+  `unchecked`, saying why.
+- **Assets** are built from `ts/run-viewer` (`npm ci` in `ts/verifier` and
+  `ts/run-viewer`, then `npm run build`: `tsc` for the viewer, pinned esbuild
+  for `tine-verifier.js`) into `opentine/data/ui` and committed; tests rebuild
+  them and compare bytes.
 
 JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
 `/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
-`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
-interface yet.
+`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`, and (0.45.1)
+`/api/run/RUN/artifact`, the raw artifact bytes for the browser re-check (403
+when withheld). It is not a stable interface yet.
 
 ## Pre-push redaction gate, `tine redact check` and `tine doctor` (0.45)
 
@@ -848,6 +873,8 @@ tine push REMOTE [--allow-unredacted REASON] ...
 tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
 tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
                   [--out PATH] [--json] [--repo R]
+tine redact verify REPORT [--key-file K | --pubkey K.pub] [--json]   # 0.45.1
+tine redact rules [--json]                                           # 0.45.1
 tine doctor [--bundle PATH] [--json] [--repo R]
 ```
 
@@ -870,13 +897,32 @@ gated; it warns on stderr when the real push would be refused.
 report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
 key flag signs each report with a `tine-sig/3` header block over
 `opentine.redaction-report.v1:` + JCS of `{body, header}`; pinned HMAC and
-Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`. It exits
-1 when any report has findings.
+Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`, and the
+`60-redaction-report.json` conformance family (SPEC 4.13) pins how Python, the
+TS verifier and `tine-verify.pyz` check them. It exits 4 (verification failed)
+when any report has findings and 3 (not found) when a `--run` does not resolve
+(0.45.1; 0.45.0 exited 1 for both). `--json` prints `{command: "redact-check",
+clean, reports}` (`tine-cli-redact-check-1`; each report follows
+`opentine-redaction-report-1`).
+
+`tine redact verify REPORT` checks every report in REPORT (one report, the list
+`--out` writes, or `--json` output): the field rules, the `tine-sig/3` block
+under `--key-file` (HMAC) or `--pubkey` (Ed25519; without one, the embedded key,
+reported as `verified-tofu`), and that `clean` means no findings. It exits 4
+when any report fails, naming its `redaction-report.*` reason; `--json` follows
+`tine-cli-redact-verify-1`. `python tine-verify.pyz REPORT.json [--pubkey K |
+--key-file K]` performs the same check offline (mode `redaction-report`).
+
+`tine redact rules --json` prints the ruleset as data (`tine-redaction-rules/1`):
+the ruleset name a report records, one row per scan step in the order the
+redactor runs them (`order`, `id`, `family`, `description`), the vendor token
+prefixes, and a `digest` over the ruleset name and rows.
 
 `tine doctor` runs offline checks (opentine and Python versions, platform, git,
 the names of `OPENTINE_*`/`TINE_*` variables, agent keys by name, tine git
 hooks, installed harnesses, the repository and its configured remotes; remote
-capabilities are not probed). It exits 1 only on a `fail` row. `--bundle PATH`
+capabilities are not probed). It exits 1 only on a `fail` row. `--json` follows
+`tine-cli-doctor-1` (0.45.1 adds `command: "doctor"`). `--bundle PATH`
 writes the report as canonical JSON after `redact_value`, and refuses to write
 it if any credential shape survives.
 
@@ -955,7 +1001,41 @@ in `metadata["io.github.0xcircuitbreaker.opentine"]`.
 counts the lines whose originating commit's attribution note credits them to
 a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
-attributed.
+attributed. With `--json` the object carries `"schema": "tine-ai-share/1"`
+(`docs/schemas/tine-ai-share-1.schema.json`); `tine git share-line [COMMIT]
+--json`, the post-commit AI-share line as an object (`commit`, `lines_added`,
+`lines_attributed`, `ai_share`, `line`), follows the same schema.
+
+## Git AI Standard v3 notes (0.45.x)
+
+```
+tine import REPO[::RANGE] --format git-ai [--sign-key KEY] [--force] [--json]
+tine export REV|A..B --format git-ai [--output REPO] [--force]
+```
+
+[Git AI](https://github.com/git-ai-project/git-ai) keeps one
+`authorship/3.0.0` note per commit under `refs/notes/ai`: an attestation
+section (a file path, then `  KEY RANGES` lines with 1-indexed `N`/`N-M`
+ranges) and, after a `---` line, a JSON metadata object (`schema_version`,
+`base_commit_sha`, `prompts`, `sessions`, `humans`, `git_ai_version`). Keys are
+`s_<14hex>::t_<14hex>` (session and checkpoint), `h_<14hex>` (a human) or a
+legacy 16-hex prompt hash.
+
+`import` converts each Git AI note in REPO (every noted commit, or those in
+RANGE) into an `opentine-line-attribution/1` note under `refs/notes/tine`:
+agent lines are credited to the run `git-ai:<session or prompt>` with the
+checkpoint as the step and the agent's tool and model; human lines are kept
+under `git_ai.human_lines`, never credited; the note's metadata is kept under
+`git_ai`. `--sign-key` signs each record (verify with `tine git attribution
+COMMIT --pubkey KEY.pub`). OpenTine notes stay canonical: a commit that already
+has one is skipped unless `--force`. `--save`, `--repo`, `--ref`, `--fleet`,
+`--all` and `--price` are refused.
+
+`export` writes a v3 note for each commit with an OpenTine attribution note.
+Imported ranges keep their original keys and metadata, so import then export
+reproduces the Git AI note; native ranges get deterministic keys derived from
+the run and step and a session whose `agent_id` is `{tool, id: run, model}`. An
+existing Git AI note is kept unless `--force`.
 
 ## Blame, why and attach (0.45)
 
@@ -1106,7 +1186,7 @@ check the same verdicts without opentine installed.
 | --- | --- |
 | `tine schema list [--json]` | Names every published JSON Schema (`docs/schemas/NAME.schema.json`) |
 | `tine schema show NAME [--json]` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`). `--json` wraps it as `{"command": "schema-show", "name", "definition"}`; an unknown name exits 3 |
-| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist |
+| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist, 2 when it nests deeper than 512 levels |
 | `tine help [COMMAND] --json` | The command and flag tree as `tine-help/1`, for generated reference docs |
 
 `validate` picks the schema from the document's `schema`, `scheme` or `format`

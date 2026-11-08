@@ -67,6 +67,14 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("tine-eval-verdict/1", "eval-verdict.malformed"),
         ("must be", "eval-verdict.malformed"),
     ),
+    "redaction-report.verify": (
+        ("report is malformed", "redaction-report.malformed"),
+        ("report is unsigned", "redaction-report.unsigned"),
+        ("no key for", "redaction-report.no-key"),
+        ("report signature", "redaction-report.bad-signature"),
+        ("trusted key", "redaction-report.wrong-key"),
+        ("clean disagrees", "redaction-report.inconsistent"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.

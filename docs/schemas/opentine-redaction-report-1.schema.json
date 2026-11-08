@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-redaction-report-1.schema.json",
+  "title": "opentine.redaction-report (report_version 1)",
+  "description": "One run re-scanned with the current redaction ruleset (SPEC 4.13): what `tine redact check` prints per run. Findings name objects, never the matched bytes. `signature` is a tine-sig/3 block over `opentine.redaction-report.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "report_version",
+    "ruleset",
+    "run",
+    "objects",
+    "findings",
+    "clean"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.redaction-report"
+    },
+    "report_version": {
+      "const": 1
+    },
+    "ruleset": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "objects": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "oid",
+          "kind"
+        ],
+        "properties": {
+          "oid": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+          }
+        }
+      }
+    },
+    "clean": {
+      "type": "boolean"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

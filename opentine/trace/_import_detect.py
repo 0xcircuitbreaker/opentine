@@ -2,7 +2,7 @@
 
 Plug-and-play import means not making the user name a format they may not know:
 an OTLP export, an OpenTine JSONL trace, and the session logs of Claude Code,
-Codex, Gemini CLI and Qwen Code each have a shape no other one shares. Only the
+Codex, Gemini CLI, Qwen Code and Pi each have a shape no other one shares. Only the
 first records are looked at, and a source nothing matches is refused by name
 rather than imported as whatever came closest.
 """
@@ -22,6 +22,7 @@ from opentine.trace._transcript_cline import cline_task_events, roo_events
 from opentine.trace._transcript_codex import codex_session_events, looks_like_codex
 from opentine.trace._transcript_gemini import gemini_session_events, looks_like_gemini
 from opentine.trace._transcript_opencode import opencode_events
+from opentine.trace._transcript_pi import looks_like_pi, pi_session_events
 from opentine.trace._transcript_qwen import looks_like_qwen, qwen_session_events
 from opentine.trace.schema import TraceEvent
 
@@ -30,6 +31,7 @@ TRANSCRIPT_IMPORTERS: dict[str, Callable[[Any], list[TraceEvent]]] = {
     "codex-session": codex_session_events,
     "gemini-session": gemini_session_events,
     "qwen-session": qwen_session_events,
+    "pi-session": pi_session_events,
     "atif": atif_events,
     "opencode-session": opencode_events,  # a SQLite path only, never stdin text
     "hermes-trajectory": hermes_events,  # path or path::N; the last record by default
@@ -91,6 +93,7 @@ def detect_format(text: str) -> str:
         ("otel-logs", lambda item: "resourceLogs" in item or "resource_logs" in item),
         ("otel-json", lambda item: "resourceSpans" in item or "resource_spans" in item),
         ("hermes-trajectory", looks_like_hermes),
+        ("pi-session", looks_like_pi),
         ("codex-session", looks_like_codex),
         ("qwen-session", looks_like_qwen),
         ("claude-code-transcript", looks_like_claude),
@@ -104,7 +107,8 @@ def detect_format(text: str) -> str:
     raise ValueError(
         "could not recognize the import format; pass --format "
         "(otel-json, otel-logs, otel-spans, jsonl, claude-code-transcript, "
-        "codex-session, gemini-session, qwen-session, hermes-trajectory, or a framework name)"
+        "codex-session, gemini-session, qwen-session, pi-session, hermes-trajectory, "
+        "or a framework name)"
     )
 
 

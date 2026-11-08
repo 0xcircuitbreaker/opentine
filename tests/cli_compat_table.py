@@ -3505,6 +3505,36 @@ ROWS: tuple[tuple, ...] = (
         {"command": "stats", "ai_share": True, "rev": "HEAD~1", "json": True},
     ),
     (
+        "plain:import repo::HEAD~2..HEAD --format git-ai --sign-key k --force",
+        "plain",
+        ["import", "repo::HEAD~2..HEAD", "--format", "git-ai", "--sign-key", "k", "--force"],
+        "opentine._cli_import:cmd_import",
+        False,
+        {
+            "command": "import",
+            "source": "repo::HEAD~2..HEAD",
+            "format": "git-ai",
+            "sign_key": "k",
+            "force": True,
+        },
+    ),  # fmt: skip
+    (
+        "plain:export HEAD --format git-ai --output repo",
+        "plain",
+        ["export", "HEAD", "--format", "git-ai", "--output", "repo"],
+        "opentine._cli_export:cmd_export",
+        False,
+        {"command": "export", "run_id": "HEAD", "format": "git-ai", "output": "repo"},
+    ),
+    (
+        "plain:git share-line HEAD --json",
+        "plain",
+        ["git", "share-line", "HEAD", "--json"],
+        "opentine._cli_gitlink:cmd_git",
+        False,
+        {"command": "git", "git_command": "share-line", "commit": "HEAD", "json": True},
+    ),
+    (
         "plain:task claim t --holder a --ttl 30 --json",
         "plain",
         ["task", "claim", "t", "--holder", "a", "--ttl", "30", "--json"],
@@ -3783,9 +3813,31 @@ ROWS: tuple[tuple, ...] = (
         "plain:redact check --json",
         "plain",
         ["redact", "check", "--json"],
-        "opentine._cli_hygiene:cmd_redact",
+        "opentine._cli_redact:cmd_redact",
         False,
         {"command": "redact", "redact_command": "check", "json": True},
+    ),
+    (
+        "plain:redact verify r.json --pubkey k.pub --json",
+        "plain",
+        ["redact", "verify", "r.json", "--pubkey", "k.pub", "--json"],
+        "opentine._cli_redact:cmd_redact",
+        False,
+        {
+            "command": "redact",
+            "redact_command": "verify",
+            "report": "r.json",
+            "pubkey": "k.pub",
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:redact rules --json",
+        "plain",
+        ["redact", "rules", "--json"],
+        "opentine._cli_redact:cmd_redact",
+        False,
+        {"command": "redact", "redact_command": "rules", "json": True},
     ),
     (
         "plain:doctor --bundle b.json",
@@ -3794,5 +3846,13 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_hygiene:cmd_doctor",
         False,
         {"command": "doctor", "bundle": "b.json"},
+    ),
+    (
+        "plain:watch https://r.invalid/v1/tenants/acme --max-events 1 --json",
+        "plain",
+        ["watch", "https://r.invalid/v1/tenants/acme", "--max-events", "1", "--json"],
+        "opentine._cli_watch:cmd_watch",
+        False,
+        {"command": "watch", "target": "https://r.invalid/v1/tenants/acme", "max_events": 1},
     ),
 )

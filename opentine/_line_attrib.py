@@ -47,7 +47,7 @@ def added_lines(cwd: Path | str, sha: str) -> dict[str, dict[int, str]]:
     line = total = 0
     for raw in out.splitlines():
         if raw.startswith("+++ "):
-            target = raw[4:]
+            target = raw[4:].removesuffix("\t")  # git appends a tab to a name with a space
             current = None if target == "/dev/null" else files.setdefault(target[2:], {})
         elif match := _HUNK.match(raw):
             line = int(match.group(1))

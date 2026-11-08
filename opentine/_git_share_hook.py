@@ -87,24 +87,44 @@ def _record(cwd: Path, sha: str) -> dict[str, Any] | None:
     return attribute(top_level(cwd), added_lines(cwd, sha), writers(loaded))
 
 
-def share_line(cwd: Path, revision: str = "HEAD") -> str:
-    """The one-line AI share of *revision*, or ``""`` when it links no run."""
+def share_record(cwd: Path, revision: str = "HEAD") -> dict[str, Any] | None:
+    """The ``tine-ai-share/1`` share-line object of *revision*, or None when it links no run."""
     sha = resolve_commit(cwd, revision)
     record = _record(cwd, sha)
     added = int((record or {}).get("lines_added") or 0)
     if not added:
-        return ""
+        return None
     ai = int(record.get("lines_attributed") or 0)  # type: ignore[union-attr]
-    return f"tine: {ai}/{added} added line(s) by agents ({ai / added:.0%}) on {sha[:12]}"
+    line = f"tine: {ai}/{added} added line(s) by agents ({ai / added:.0%}) on {sha[:12]}"
+    return {"command": "share-line", "schema": "tine-ai-share/1", "commit": sha,
+            "lines_added": added, "lines_attributed": ai,
+            "ai_share": round(ai / added, 6), "line": line}  # fmt: skip
+
+
+def share_line(cwd: Path, revision: str = "HEAD") -> str:
+    """The one-line AI share of *revision*, or ``""`` when it links no run."""
+    found = share_record(cwd, revision)
+    return found["line"] if found else ""
 
 
 def cmd_share_line(args: argparse.Namespace) -> None:
     try:
-        line = share_line(Path.cwd(), getattr(args, "commit", None) or "HEAD")
+        found = share_record(Path.cwd(), getattr(args, "commit", None) or "HEAD")
     except (GitLinkError, OSError, ValueError):
-        return
-    if line:
-        print(line)
+        found = None
+    if getattr(args, "json", False):
+        from opentine._cli_json import emit
+
+        emit(found or {"command": "share-line", "commit": None, "linked": False})
+    elif found:
+        print(found["line"])
 
 
-__all__ = ["add_install_flags", "cmd_share_line", "extra_hooks", "script", "share_line"]
+__all__ = [
+    "add_install_flags",
+    "cmd_share_line",
+    "extra_hooks",
+    "script",
+    "share_line",
+    "share_record",
+]

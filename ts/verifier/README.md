@@ -8,7 +8,8 @@ artifacts, repository layout and refs, network packs (`TINEPACK3/4/5`),
 storage-v3 local packs with the 0.40 stored forms, `opentine-agent/1` refs,
 `opentine-delegation/1` chains, and RFC 9162 inclusion/consistency proofs with
 C2SP `cosignature/v1` witness quorums (`src/tlog.ts`, SPEC 8.10-8.11), and
-(0.45) `tine-eval-verdict/1` eval verdicts (`src/evalverdict.ts`, SPEC 4.12).
+(0.45) `tine-eval-verdict/1` eval verdicts (`src/evalverdict.ts`, SPEC 4.12), and
+(0.45.1) signed redaction reports (`src/redactreport.ts`, SPEC 4.13).
 
 ```
 npm ci && npm test      # builds, then runs docs/conformance in-process

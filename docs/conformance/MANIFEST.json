@@ -655,6 +655,32 @@
       "verdict": 0
     },
     {
+      "core": 10,
+      "count": 10,
+      "file": "vectors/59-webhook.json",
+      "name": "webhook",
+      "ops": [
+        "webhook.verify"
+      ],
+      "reject": 0,
+      "section": "8.13",
+      "stress": 0,
+      "verdict": 10
+    },
+    {
+      "core": 13,
+      "count": 13,
+      "file": "vectors/60-redaction-report.json",
+      "name": "redaction-report",
+      "ops": [
+        "redaction-report.verify"
+      ],
+      "reject": 10,
+      "section": "4.13",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -677,8 +703,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "3e51e264d646cada715d8147c5d480002139b48dd324e49057ea4cefead23724",
-    "REASON_CODES.md": "9ccd71b914fb35ab11586cdbc8253249cba8acbdf8f4e7f8c41aebcb0a7a5362",
+    "README.md": "768762161b35d1e70beb08cc55880f322210519ea3c84d2aa3ffcb18719dbe99",
+    "REASON_CODES.md": "903d5bdec2f1c3635f3cc6836b325d450e48ea820480230e96dcb2c208eeb344",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1774,9 +1800,11 @@
     "vectors/56-delegation.json": "98509dda24449c3f2e62cce5df1de8ba562099c6b8afe9a170e388aaa345e2d5",
     "vectors/57-tlog.json": "0cebba2f3059b0a9e90cba4f73528d620546f3151ad71c5192508d3872391652",
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
+    "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
+    "vectors/60-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.45.0",
+  "generated_by": "opentine 0.45.1",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2232,6 +2260,23 @@
       "summary": "SPEC 1.4 credential redaction over decoded JSON (optional)",
       "unordered": []
     },
+    "redaction-report.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "clean",
+        "objects",
+        "findings",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.13: verify a signed opentine.redaction-report under the key given",
+      "unordered": []
+    },
     "ref.file": {
       "args": [],
       "input": [
@@ -2438,6 +2483,22 @@
       ],
       "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
       "unordered": []
+    },
+    "webhook.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "class"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.13: a tine-webhook/1 delivery: replay window, pinned key id, Ed25519",
+      "unordered": []
     }
   },
   "profiles": [
@@ -2448,16 +2509,16 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.45.0",
+  "spec_version": "0.45.1",
   "suite_version": 1,
   "totals": {
-    "cases": 693,
-    "core": 683,
-    "families": 35,
-    "ops": 41,
-    "reason_codes": 120,
-    "reject": 232,
+    "cases": 716,
+    "core": 706,
+    "families": 37,
+    "ops": 43,
+    "reason_codes": 126,
+    "reject": 242,
     "stress": 10,
-    "verdict": 120
+    "verdict": 130
   }
 }

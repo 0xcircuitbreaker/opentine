@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.45.0 (draft until opentine 0.45.0 is tagged). **Previous
-version:** 0.9.0. Changes between versions are listed in
+**Spec version:** 0.45.1 (draft until opentine 0.45.1 is tagged). **Previous
+version:** 0.45.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.1.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.1/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -1868,6 +1868,36 @@ spliced in even under trust on first use), a repeated `item`
 (`eval.mixed-evals`). Vectors:
 `58-eval-verdict.json`.
 
+<a id="s-4.13"></a>
+## 4.13 `opentine.redaction-report` — signed redaction reports (0.45.1+)
+
+`tine redact check` re-scans every object reachable from a run with the current
+redaction ruleset and writes one report per run. A report is a JSON object with
+exactly these keys, plus an optional `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.redaction-report"` |
+| `report_version` | `1` |
+| `ruleset` | the ruleset name (`opentine-redaction/2`); `tine redact rules --json` describes it (`tine-redaction-rules/1`) |
+| `run` | the run oid (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `objects` | the number of objects re-scanned, a non-negative integer |
+| `findings` | a list of `{oid, kind}`, one per object the ruleset would still change, at most `objects` long; never the matched bytes |
+| `clean` | boolean, equal to "`findings` is empty" |
+| `signature` | a `tine-sig/3` block (§9.6 header; HMAC-SHA256, or Ed25519 with embedded `public_key`) over `b"opentine.redaction-report.v1:"` + JCS(`{"body": <the report without signature>, "header": <header>}`) |
+
+A verifier MUST refuse, with the first applicable code:
+`redaction-report.malformed` (a missing, extra or ill-formed key);
+`redaction-report.unsigned` (no `signature`); `redaction-report.no-key` (an
+HMAC report checked without a key); `redaction-report.wrong-key` (a trusted
+Ed25519 key was supplied and the embedded key is not it, or an HMAC key was
+supplied and the report is not HMAC: a supplied key never falls back to the
+embedded key);
+`redaction-report.bad-signature` (the block does not verify);
+`redaction-report.inconsistent` (`clean` is not "no findings"). Without a
+trusted key an Ed25519 report rests on its embedded key (trust on first use,
+state `verified-tofu`). Vectors: `60-redaction-report.json`.
+
 ---
 
 <a id="part-5"></a>
@@ -2411,6 +2441,34 @@ root the proof implies from leaf `SHA-256(0x00 || statement)` (the statement
 re-encoded without header 394). This leaf rule is opentine's reading of the
 drafts and is not verified against scitt-api-emulator.
 
+<a id="s-8.13"></a>
+## 8.13 Signed webhook payloads, `tine-webhook/1` (0.45.1)
+
+A remote that lists `webhooks` in `GET /v1/capabilities` signs each webhook
+delivery with an Ed25519 key it advertises there as `webhooks.keys`: entries
+`{"kid", "alg": "ed25519", "public_key"}` where `public_key` is the raw 32-byte
+key in unpadded base64url and `kid` is `ed25519:` followed by the first 16
+lowercase hex digits of `SHA-256(public key)`. A receiver refuses an entry whose
+`kid` does not match its key.
+
+The body is a `tine-webhook/1` object (`format`, `delivery`, `webhook`, and
+`event`, a `tine-event/1` object), serialized as canonical JSON: sorted keys,
+`,`/`:` separators, no whitespace, non-ASCII escaped as `\uXXXX`. The
+`OpenTine-Signature` header is exactly `t=<T>,kid=<kid>,sig=<S>`: `T` is 1-12
+decimal digits (Unix seconds), `S` the 86-character unpadded base64url Ed25519
+signature over
+
+    "opentine-webhook/1" || 0x0A || decimal(T) || 0x0A || body
+
+where `decimal(T)` has no leading zeros and `body` is the bytes received. A
+verifier answers, in this order: **malformed** (the header does not match that
+grammar, or the body exceeds 256 KiB), **stale** (`|now - T|` exceeds the replay
+window, 300 s by default; the bound is inclusive), **unknown-key** (`kid` is not
+pinned), **bad-signature**, then **malformed** again if the verified body is not
+a JSON object whose `format` is `tine-webhook/1`; otherwise **valid**. The
+sender re-signs `T` on every retry and keeps `delivery` unchanged, so a receiver
+de-duplicates by `delivery`. Vectors for 8.13: `59-webhook.json`.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -2897,8 +2955,10 @@ the command and flag tree.
 ## 12.4 Validating
 
 `tine schema validate FILE [--schema NAME]` picks the schema from the
-document's `schema`, `scheme` or `format` tag, else its `command`, and exits 4
-on an invalid document. The reference validator (`opentine._jsonschema`)
+document's `schema`, `scheme` or `format` tag, else its `command` (a document
+with neither, such as a redaction report, by its `kind`), and exits 4 on an
+invalid document. A document nested deeper than 512 levels is refused with
+exit 2 (usage) before it is validated. The reference validator (`opentine._jsonschema`)
 implements the keyword subset the published schemas use and refuses a schema
 that uses any other keyword; any conforming 2020-12 validator gives the same
 verdicts on these schemas.
@@ -2912,6 +2972,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |
 | 0.40.0 | Part 10: format v5 text blobs; 2.10 external blob pointers. |

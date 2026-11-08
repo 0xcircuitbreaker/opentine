@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-redact-check-1.schema.json",
+  "title": "tine redact check --json",
+  "description": "One redaction report per run; `clean` is true only when every report is clean. The command exits 4 when any report has findings.",
+  "type": "object",
+  "required": [
+    "command",
+    "clean",
+    "reports"
+  ],
+  "properties": {
+    "command": {
+      "const": "redact-check"
+    },
+    "clean": {
+      "type": "boolean"
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "$ref": "opentine-redaction-report-1.schema.json"
+      }
+    }
+  }
+}

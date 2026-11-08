@@ -4,6 +4,13 @@ It binds 127.0.0.1 only, answers GET and HEAD only, and never opens an outbound
 connection. The page's Content-Security-Policy allows scripts, styles, workers
 and fetches from its own origin and nothing else. Runs are loaded once, lazily,
 and cached by id; the JSON is redacted by :mod:`opentine._ui_model`.
+
+``/api/run/RUN/artifact`` (0.45.1) serves a run's artifact bytes so the
+browser can re-check them with the bundled TS verifier (``tine-verifier.js``).
+The bytes cannot be re-redacted without breaking the very digests being
+checked, so they are served only when the current redaction ruleset finds
+nothing in the decoded artifact; otherwise the answer is 403 and the browser
+column reads "unchecked".
 """
 
 from __future__ import annotations
@@ -28,6 +35,7 @@ ASSETS = {
     "/app.css": ("app.css", "text/css; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/verify-browser.js": ("verify-browser.js", "text/javascript; charset=utf-8"),
+    "/tine-verifier.js": ("tine-verifier.js", "text/javascript; charset=utf-8"),
 }
 
 
@@ -76,6 +84,30 @@ class Catalog:
         if run.id not in self._docs:
             self._docs[run.id] = run_doc(run)
         return self._docs[run.id]
+
+
+def artifact_bytes(catalog: Catalog, run_id: str) -> tuple[int, bytes]:
+    """``(200, raw bytes)`` of a run's artifact when its redaction scan is clean, else 403/404."""
+    from opentine._artifact_io import MAX_TINE_ARTIFACT_BYTES
+    from opentine._codec import unwrap
+    from opentine.redaction import redact_blob
+
+    found = catalog.get(run_id)
+    if found is None:
+        return 404, b"run not found"
+    try:
+        with found[0].open("rb") as handle:
+            raw = handle.read(MAX_TINE_ARTIFACT_BYTES + 1)
+        body = unwrap(raw, limit=MAX_TINE_ARTIFACT_BYTES)
+    except (OSError, ValueError):
+        return 404, b"artifact unreadable"
+    try:  # redact_blob passes non-UTF-8 bytes through unscanned: never serve those
+        body.decode("utf-8")
+    except UnicodeDecodeError:
+        return 403, b"artifact withheld: not UTF-8 text, so the redaction scan cannot vouch"
+    if len(raw) > MAX_TINE_ARTIFACT_BYTES or redact_blob(body) != body:
+        return 403, b"artifact withheld: the redaction scan found something"
+    return 200, raw
 
 
 def _int(query: dict[str, list[str]], key: str, default: int) -> int:
@@ -157,6 +189,15 @@ class Handler(BaseHTTPRequestHandler):
             name, ctype = ASSETS[url.path]
             self._send(200, asset(name), ctype)
             return
+        parts = url.path.strip("/").split("/")
+        if len(parts) == 4 and parts[:2] == ["api", "run"] and parts[3] == "artifact":
+            try:
+                status, raw = artifact_bytes(self.catalog, unquote(parts[2]))
+            except Exception:  # never a traceback (which may quote run data) on stderr
+                status, raw = 500, b"internal error"
+            ctype = "application/octet-stream" if status == 200 else "text/plain; charset=utf-8"
+            self._send(status, raw, ctype)
+            return
         if url.path.startswith("/api/"):
             try:
                 status, payload = api(self.catalog, url.path, parse_qs(url.query))
@@ -177,4 +218,4 @@ def make_server(catalog: Catalog, port: int = 0) -> ThreadingHTTPServer:
     return server
 
 
-__all__ = ["CSP", "HOST", "Catalog", "api", "asset", "make_server"]
+__all__ = ["CSP", "HOST", "Catalog", "api", "artifact_bytes", "asset", "make_server"]

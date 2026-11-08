@@ -118,6 +118,25 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "results": {"type": "array", "items": open_(["run_id", "status"], {
                 "run_id": STR, "status": STR, "score": opt(NUM), "cost": opt(NUM),
                 "latency": opt(NUM), "models": strs(), "matched_text": opt(STR)})}})),
+    "tine-ai-share-1": doc("tine-ai-share-1", "tine-ai-share/1", "The share of lines "
+        "attribution notes credit to agents. One of two shapes: `tine stats --ai-share "
+        "--json` (every line at a revision, by git blame) or `tine git share-line --json`, "
+        "the post-commit AI-share line (the lines one commit added).",
+        {"type": "object", "anyOf": [open_(
+            ["command", "schema", "revision", "total_lines", "ai_lines", "ai_share", "files"], {
+                "command": {"const": "stats"}, "schema": {"const": "tine-ai-share/1"},
+                "mode": {"const": "ai-share"}, "revision": STR, "total_lines": INT,
+                "ai_lines": INT, "ai_share": {"type": "number", "minimum": 0, "maximum": 1},
+                "by_model": {"type": "object", "additionalProperties": INT},
+                "commits_with_attribution": INT, "files_clipped": BOOL,
+                "files": {"type": "array", "items": open_(["path", "lines", "ai_lines"], {
+                    "path": STR, "lines": INT, "ai_lines": INT})}}),
+            open_(["command", "schema", "commit", "lines_added", "lines_attributed",
+                   "ai_share", "line"], {
+                "command": {"const": "share-line"}, "schema": {"const": "tine-ai-share/1"},
+                "commit": STR, "lines_added": INT, "lines_attributed": INT,
+                "ai_share": {"type": "number", "minimum": 0, "maximum": 1},
+                "line": STR})]}),
     "tine-repo-show-1": doc("tine-repo-show-1", "tine repo-show --json",
         "A v3 run by ref or oid; run and step objects without short_id.",
         open_(["command", "repo", "ref", "run_object_id", "run", "steps"], {
