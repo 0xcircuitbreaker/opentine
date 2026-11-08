@@ -3825,4 +3825,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "doctor", "bundle": "b.json"},
     ),
+    (
+        "plain:watch https://r.invalid/v1/tenants/acme --max-events 1 --json",
+        "plain",
+        ["watch", "https://r.invalid/v1/tenants/acme", "--max-events", "1", "--json"],
+        "opentine._cli_watch:cmd_watch",
+        False,
+        {"command": "watch", "target": "https://r.invalid/v1/tenants/acme", "max_events": 1},
+    ),
 )

@@ -2411,6 +2411,34 @@ root the proof implies from leaf `SHA-256(0x00 || statement)` (the statement
 re-encoded without header 394). This leaf rule is opentine's reading of the
 drafts and is not verified against scitt-api-emulator.
 
+<a id="s-8.13"></a>
+## 8.13 Signed webhook payloads, `tine-webhook/1` (0.45.1)
+
+A remote that lists `webhooks` in `GET /v1/capabilities` signs each webhook
+delivery with an Ed25519 key it advertises there as `webhooks.keys`: entries
+`{"kid", "alg": "ed25519", "public_key"}` where `public_key` is the raw 32-byte
+key in unpadded base64url and `kid` is `ed25519:` followed by the first 16
+lowercase hex digits of `SHA-256(public key)`. A receiver refuses an entry whose
+`kid` does not match its key.
+
+The body is a `tine-webhook/1` object (`format`, `delivery`, `webhook`, and
+`event`, a `tine-event/1` object), serialized as canonical JSON: sorted keys,
+`,`/`:` separators, no whitespace, non-ASCII escaped as `\uXXXX`. The
+`OpenTine-Signature` header is exactly `t=<T>,kid=<kid>,sig=<S>`: `T` is 1-12
+decimal digits (Unix seconds), `S` the 86-character unpadded base64url Ed25519
+signature over
+
+    "opentine-webhook/1" || 0x0A || decimal(T) || 0x0A || body
+
+where `decimal(T)` has no leading zeros and `body` is the bytes received. A
+verifier answers, in this order: **malformed** (the header does not match that
+grammar, or the body exceeds 256 KiB), **stale** (`|now - T|` exceeds the replay
+window, 300 s by default; the bound is inclusive), **unknown-key** (`kid` is not
+pinned), **bad-signature**, then **malformed** again if the verified body is not
+a JSON object whose `format` is `tine-webhook/1`; otherwise **valid**. The
+sender re-signs `T` on every retry and keeps `delivery` unchanged, so a receiver
+de-duplicates by `delivery`. Vectors for 8.13: `59-webhook.json`.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 

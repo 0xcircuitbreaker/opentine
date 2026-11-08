@@ -655,6 +655,19 @@
       "verdict": 0
     },
     {
+      "core": 10,
+      "count": 10,
+      "file": "vectors/59-webhook.json",
+      "name": "webhook",
+      "ops": [
+        "webhook.verify"
+      ],
+      "reject": 0,
+      "section": "8.13",
+      "stress": 0,
+      "verdict": 10
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -677,7 +690,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "3e51e264d646cada715d8147c5d480002139b48dd324e49057ea4cefead23724",
+    "README.md": "dc294ffe4f0143ed35cf57ff82a0eb514a921418a1eaf76037d395d29dd875b7",
     "REASON_CODES.md": "9ccd71b914fb35ab11586cdbc8253249cba8acbdf8f4e7f8c41aebcb0a7a5362",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -1774,6 +1787,7 @@
     "vectors/56-delegation.json": "98509dda24449c3f2e62cce5df1de8ba562099c6b8afe9a170e388aaa345e2d5",
     "vectors/57-tlog.json": "0cebba2f3059b0a9e90cba4f73528d620546f3151ad71c5192508d3872391652",
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
+    "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.45.0",
@@ -2438,6 +2452,22 @@
       ],
       "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
       "unordered": []
+    },
+    "webhook.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "class"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.13: a tine-webhook/1 delivery: replay window, pinned key id, Ed25519",
+      "unordered": []
     }
   },
   "profiles": [
@@ -2451,13 +2481,13 @@
   "spec_version": "0.45.0",
   "suite_version": 1,
   "totals": {
-    "cases": 693,
-    "core": 683,
-    "families": 35,
-    "ops": 41,
+    "cases": 703,
+    "core": 693,
+    "families": 36,
+    "ops": 42,
     "reason_codes": 120,
     "reject": 232,
     "stress": 10,
-    "verdict": 120
+    "verdict": 130
   }
 }

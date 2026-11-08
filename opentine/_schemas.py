@@ -16,8 +16,9 @@ from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
 from opentine._schema_defs_cli import COMMAND_SCHEMAS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
+from opentine._schema_defs_events import SCHEMAS as _EVENTS
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI}
+SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format")

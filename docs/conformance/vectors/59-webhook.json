@@ -1,0 +1,367 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.future",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762599699"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "301 s in the future is outside the window too",
+      "op": "webhook.verify",
+      "output": {
+        "class": "stale",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.malformed-header",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "a header without its signature field",
+      "op": "webhook.verify",
+      "output": {
+        "class": "malformed",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.moved-timestamp",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=Py2Aigvq3MYKHZ0z5G83mDAnXggrr4ztda3QbTnKjY7nvmFDIuWu8n1PpJFy2WHm3q9lf0EnwAShnwsWYWZZDw",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "a signature for t-60 presented with t",
+      "op": "webhook.verify",
+      "output": {
+        "class": "bad-signature",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.not-a-webhook",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS1ldmVudC8xIiwid2ViaG9vayI6IndoXzAwMTEyMjMzYWFiYmNjZGQifQ==",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=r95aELmKIuQwxABVc6nVX6uJryqZs_fE4xnX1g0mzfielvWLeMo0SUvPxbTvhz2M65jX2k-0Q7M2b7wv02WlDQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "a correctly signed body of another format",
+      "op": "webhook.verify",
+      "output": {
+        "class": "malformed",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.other-key",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=9YqBQVCRkCPSRDD4-idmmvOgbj0Y3LEL8Yq0uQndDpS89aXE2_m2Wawak-w1qFneFQL9CTYXfzlbjCLUArxaAg",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "signed by another key under the pinned key id",
+      "op": "webhook.verify",
+      "output": {
+        "class": "bad-signature",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.stale",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600301"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "301 s old is outside the replay window",
+      "op": "webhook.verify",
+      "output": {
+        "class": "stale",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.tampered-body",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haXIiLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "one byte of the body changed",
+      "op": "webhook.verify",
+      "output": {
+        "class": "bad-signature",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haXIiLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.unknown-key",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:0000000000000000": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "a key id the receiver never pinned",
+      "op": "webhook.verify",
+      "output": {
+        "class": "unknown-key",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.valid",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600000"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "a fresh delivery signed by the pinned key",
+      "op": "webhook.verify",
+      "output": {
+        "class": "valid",
+        "ok": true
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "webhook.valid.window-edge",
+      "input": {
+        "value": {
+          "body_b64": "eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOFQxMTowNjo0MFoifSwiZm9ybWF0IjoidGluZS13ZWJob29rLzEiLCJ3ZWJob29rIjoid2hfMDAxMTIyMzNhYWJiY2NkZCJ9",
+          "header": "t=1762600000,kid=ed25519:86b1aed0714d803b,sig=x8woLrOSFHTIOaYXrFrBEpDt9bgXCCNuNnyOLsq2L7VgjTq2JSM8YwXEZxWAo-I-Ls5d0HZSiHhDqohAMlLIAQ",
+          "keys": {
+            "ed25519:86b1aed0714d803b": "G68xvwEkGpyYMD29zP2txja65f9TUaC7vIYfw4TMEKs"
+          },
+          "now": {
+            "$i": "1762600300"
+          },
+          "window": {
+            "$i": "300"
+          }
+        }
+      },
+      "intent": "exactly 300 s old is still inside the window",
+      "op": "webhook.verify",
+      "output": {
+        "class": "valid",
+        "ok": true
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.13",
+      "tier": "core",
+      "x_display": "{\"body_b64\": \"eyJkZWxpdmVyeSI6IjZmMWMxYzVlLTBkMmEtNGE1OS05YzQxLTNmMWY0ZjBlMmIxMSIsImV2ZW50Ijp7ImRhdGEiOnsiZm9yY2VkIjpmYWxzZSwibmFtZSI6ImhlYWRzL21haW4iLCJuZXciOiJydW46YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsIm9sZCI6bnVsbH0sImZvcm1hdCI6InRpbmUtZXZlbnQvMSIsImlkIjoiMGExYjJjM2QtNyIsImtpbmQiOiJyZWYudXBkYXRlZCIsInRlbmFudCI6ImFjbWUiLCJ0aW1lIjoiMjAyNS0xMS0wOF...",
+      "x_reference": null
+    }
+  ],
+  "family": "webhook",
+  "section": "8.13",
+  "suite_version": 1
+}

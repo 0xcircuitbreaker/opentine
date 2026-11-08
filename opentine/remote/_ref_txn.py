@@ -92,6 +92,9 @@ def update_refs(
     # name/new of the first (head) row: the 0.44 transparency entry a push receipt names
     head = {"name": rows[0][0], "new": rows[0][1]}
     service._audit(identity, tenant, "update_ref", outcome, {"names": names, "txn": True, **head})
+    hub = getattr(service, "events", None)
+    for name, new, old in rows if changed and hub is not None else ():
+        hub.ref_moved(tenant, name, old, new, forced)
     return changed
 
 

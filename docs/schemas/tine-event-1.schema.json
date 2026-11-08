@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-event-1.schema.json",
+  "title": "tine-event/1",
+  "description": "One remote event (the `data:` of an SSE frame on `GET /v1/tenants/<t>/events`, and the `event` of a webhook payload) or, from `tine watch` on a local repository, one op-log entry (`op.logged`, tenant null). `data` by kind: `ref.updated` {name, old, new, forced}; `run.created` {runs (at most 100 oids), total}; `log.checkpoint` {origin, size, root}; `op.logged` an opentine-op/1 entry.",
+  "type": "object",
+  "required": [
+    "format",
+    "id",
+    "kind",
+    "tenant",
+    "time",
+    "data"
+  ],
+  "properties": {
+    "format": {
+      "const": "tine-event/1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "ref.updated",
+        "run.created",
+        "log.checkpoint",
+        "op.logged"
+      ]
+    },
+    "tenant": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "time": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

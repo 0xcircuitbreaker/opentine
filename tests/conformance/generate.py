@@ -39,6 +39,7 @@ from tests.conformance import (
     cases_sig_v4,
     cases_signing,
     cases_tlog,
+    cases_webhook,
 )
 from tests.conformance.cases import ACCEPT, REJECT, VERDICT, Case, Family
 from tests.conformance.engine import INLINE_BYTE_LIMIT, build_record, observe, op_input
@@ -89,6 +90,7 @@ FAMILY_MODULES = (
     cases_delegation,
     cases_tlog,
     cases_eval,
+    cases_webhook,
 )
 
 

@@ -382,4 +382,13 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": ["ed25519"],
         "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
     },
+    "webhook.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["ok", "class"],
+        "unordered": [],
+        "requires": ["ed25519"],
+        "summary": "SPEC 8.13: a tine-webhook/1 delivery: replay window, pinned key id, Ed25519",
+    },
 }

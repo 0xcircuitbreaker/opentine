@@ -215,6 +215,21 @@ verifier key is in `.tine/log/op/vkey`.
   not log, such as opentine 0.34 or a library caller (`gap`: the ref differs from
   the logged value, or its reflog has newer rows); `--force` undoes anyway.
 
+## Watching events (0.45.1)
+
+* `tine watch [REMOTE|REPO] [--tenant T] [--token-file F] [--json]` tails a
+  remote's event stream (`GET /v1/tenants/<t>/events`, Server-Sent Events) when
+  given a URL or a configured remote name, reconnecting with `Last-Event-ID`;
+  otherwise it polls the op log of the repository named (default `.`) every
+  `--interval` seconds (2) and prints each new op as an `op.logged` event
+  (`--from-start` prints the ops already logged too).
+* `--once` stops after one stream or one poll; `--max-events N` after N events.
+* `--json` is JSON Lines, not one object: each line is a `tine-watch/1` record
+  holding a `tine-event/1` `event`, or `"reset": true` when the server says
+  events were missed (re-list refs).
+
+Event kinds, the SSE endpoint and signed webhooks: [EVENTS.md](EVENTS.md).
+
 ## Offline verification (0.25)
 
 ```

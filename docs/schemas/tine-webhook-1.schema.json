@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-webhook-1.schema.json",
+  "title": "tine-webhook/1",
+  "description": "A webhook delivery body: canonical JSON signed with the server's Ed25519 webhook key in the `OpenTine-Signature` header (SPEC 8.13).",
+  "type": "object",
+  "required": [
+    "format",
+    "delivery",
+    "webhook",
+    "event"
+  ],
+  "properties": {
+    "format": {
+      "const": "tine-webhook/1"
+    },
+    "delivery": {
+      "type": "string"
+    },
+    "webhook": {
+      "type": "string"
+    },
+    "event": {
+      "$ref": "tine-event-1.schema.json"
+    }
+  }
+}
