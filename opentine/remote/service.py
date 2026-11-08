@@ -11,6 +11,8 @@ from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
 from opentine.remote._events import capabilities as event_capabilities
+from opentine.remote._hosted_http import capabilities as hosted_capabilities
+from opentine.remote._hosted_reads import match_text
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
 from opentine.remote._ref_txn import check_move
@@ -76,6 +78,7 @@ class RemoteService:
             "roles": ["reader", "writer", "admin"],
             "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
             **event_capabilities(self),  # 0.45.1: events_sse, webhooks
+            **hosted_capabilities(self),  # 0.46: object_read_http, run_closure, list, ...
         }
 
     def authenticate(self, headers: dict[str, str]) -> Identity:
@@ -227,7 +230,12 @@ class RemoteService:
     ) -> list[str]:
         """Newest first, at most ``MAX_CONTROL_RESULTS``; *truncated* gets ``True`` if cut."""
         self._authorize(identity, "search", tenant)
-        results = list(self.index.search(tenant, query))
+        text = query.get("text")  # 0.46 (caps.search): runs whose stored record holds it
+        if text is not None and (not isinstance(text, str) or not 0 < len(text) <= 256):
+            raise ValueError("search text must be 1-256 characters")
+        results = list(self.index.search(tenant, {**query, "type": "run"} if text else query))
+        if text:
+            results = [oid for oid in results if match_text(self.objects, tenant, oid, text)]
         cut = len(results) > MAX_CONTROL_RESULTS
         results = results[:MAX_CONTROL_RESULTS]
         if cut and truncated is not None:

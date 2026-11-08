@@ -23,7 +23,7 @@ from opentine._cli_git_sync import (
     push_hook,
     resolve_remote,
 )
-from opentine._cli_search_index import apply_index_flags
+from opentine._cli_search_index import apply_index_flags, remote_search
 from opentine._repo_cli_json import (
     emit_context,
     emit_repo_diff,
@@ -149,6 +149,8 @@ def cmd_repo_diff(args: argparse.Namespace, console) -> None:
 
 
 def cmd_repo_search(args: argparse.Namespace, console) -> None:
+    if getattr(args, "remote", None):  # 0.46: the remote's caps.search over HTTP
+        return remote_search(args, console)
     repo = Repo.open(args.repo)
     successful_only = not args.include_unsuccessful
     use_index = apply_index_flags(args, repo)

@@ -2469,6 +2469,49 @@ a JSON object whose `format` is `tine-webhook/1`; otherwise **valid**. The
 sender re-signs `T` on every retry and keeps `delivery` unchanged, so a receiver
 de-duplicates by `delivery`. Vectors for 8.13: `59-webhook.json`.
 
+<a id="s-8.14"></a>
+## 8.14 Hosted-beta remote capabilities (0.46, draft)
+
+A remote MAY list these entries in `GET /v1/capabilities`; a client MUST NOT
+use a route whose entry is absent, and every 0.45 key keeps its meaning, so a
+0.34–0.45 client is unaffected. All tenant routes sit under
+`/v1/tenants/<t>/` and authorize the bearer identity for that tenant on every
+request.
+
+- `object_read_http`: `GET objects/<oid>` returns the stored object envelope
+  (`application/vnd.opentine.object`) with `ETag: "<oid>"`,
+  `Cache-Control: private, max-age=31536000, immutable` and
+  `Vary: Authorization`; it MUST NOT be `public`. `If-None-Match` with the
+  same ETag answers 304 after authorization.
+- `run_closure`: `POST runs/<oid>/closure` with `{haves, depth, lazy_blobs,
+  pack_formats, pack_codecs}` returns the run's closure minus `haves` as one
+  pack, negotiated like `fetch`. With `lazy_blobs: true` blobs are left out and
+  become the pack's shallow boundary; `OpenTine-Lazy-Blobs` counts them, and
+  each is read, and authorized, by `GET objects/<oid>`.
+- `list`: `GET list/runs` and `GET list/refs` return `tine-list-page/1`
+  pages (`items`, `next_cursor`), `limit` 1–500. A cursor is opaque.
+- `search`: `POST search` also takes `text` (1–256 characters): run oids whose
+  stored record holds it, case-insensitively, newest first.
+- `log_http`: `GET log/entries` pages this tenant's transparency-log entries
+  (§8.10) with their log indexes.
+- `admin`: `GET admin/stats` (admin role) counts objects by type, refs and
+  active share links.
+- `share`: `POST shares` `{run, ttl, scope}` (writer or admin) returns a
+  `tine-share/1` record with a `token` (`tine_share_` + 43 base64url
+  characters) shown once; the server keeps only its SHA-256. `GET shares`
+  lists records without tokens, `DELETE shares/<id>` revokes. Without a
+  bearer, `GET /v1/share/<token>`, `POST /v1/share/<token>/closure` and
+  `GET /v1/share/<token>/objects/<oid>` read the bound run and only objects
+  in its closure.
+
+An object that is absent, in another tenant, outside a share, or not
+authorized, and a share token that is unknown, expired or revoked, all answer
+the same `404` with body `{"error":"not found"}`: no route is an oracle for
+whether an oid exists. Failed share lookups count against the client like
+failed logins (429 with `Retry-After`). The server never signs as a user: a
+share grants read access to bytes the viewer re-verifies against the run's own
+signatures.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 

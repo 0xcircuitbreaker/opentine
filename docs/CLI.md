@@ -230,6 +230,32 @@ verifier key is in `.tine/log/op/vkey`.
 
 Event kinds, the SSE endpoint and signed webhooks: [EVENTS.md](EVENTS.md).
 
+## Hosted remotes: share links, open, login (0.46)
+
+These verbs take a remote by name (`tine remote add`) or URL, plus `--tenant`,
+`--token-file` and `--allow-insecure` like `tine watch`. The token comes from
+`--token-file`, the remote's `token_file` or `TINE_REMOTE_TOKEN` and is never
+printed. The server side is `tine serve` (SPEC §8.14).
+
+* `tine share create RUN [--ttl 7d] [--remote R] [--json]` asks the remote for
+  a read-only link to one run that expires (`--ttl` seconds, or with an
+  `s`/`m`/`h`/`d` suffix; at most 90 days). The token is shown once.
+  `tine share list [--run RUN]` lists ids and states (`active`, `expired`,
+  `revoked`), never tokens; `tine share revoke ID` revokes one. The verb is
+  `tine share-link`; `--json` prints `tine-cli-share/1`.
+* `tine open RUN [--remote R] [--web-url URL] [--print] [--json]` prints the
+  run's page in the web app and opens it on a terminal. The base is
+  `--web-url`, else `TINE_WEB_URL`, else the trusted `web.url` setting, else the
+  remote's URL. `--json` prints `tine-cli-open/1`.
+* `tine repo-search QUERY --remote R [--json]` searches the remote's runs
+  (`caps.search`) instead of the local repository.
+* `tine remote login NAME --issuer URL --client-id ID` signs in with the OAuth
+  2.0 device-code flow (RFC 8628) against the issuer's OIDC discovery document:
+  it prints the code and URL to enter on stderr, polls until approved, stores
+  the `id_token` (or `--use-access-token`) owner-only under
+  `$XDG_CONFIG_HOME/opentine/credentials/` and records that path as the
+  remote's `token_file`.
+
 ## Offline verification (0.25)
 
 ```

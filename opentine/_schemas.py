@@ -18,12 +18,14 @@ from opentine._schema_defs import SCHEMAS as _OBJECTS
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
+from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
+from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS
 from opentine._schema_defs_redact import SCHEMAS as _REDACT
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS, **_REDACT}
-COMMAND_SCHEMAS: dict[str, str] = {**_CLI_COMMANDS, **_REDACT_COMMANDS}
+SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS, **_REDACT, **_HOSTED}
+COMMAND_SCHEMAS: dict[str, str] = {**_CLI_COMMANDS, **_REDACT_COMMANDS, **_HOSTED_COMMANDS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format")

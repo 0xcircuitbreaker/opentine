@@ -23,6 +23,7 @@ from opentine._cli_git_refs import (
 )
 from opentine._cli_git_rewrite import cmd_cherry_pick, cmd_rebase
 from opentine._cli_git_sync import cmd_pull
+from opentine._cli_remote_login import add_login_parser
 from opentine._repo_cli_keys import add_key_args
 
 COMMANDS = {
@@ -61,6 +62,7 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     rename.add_argument("name")
     rename.add_argument("new_name")
     actions.add_parser("ls", help="List remotes")
+    add_login_parser(actions)
     _common(remote)
 
     pull = sub.add_parser("pull", help="Fetch, then fast-forward the local ref (never merges)")

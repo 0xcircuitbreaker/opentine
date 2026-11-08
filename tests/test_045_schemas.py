@@ -89,6 +89,18 @@ DRIVEN = (
     (("redact", "check", "--repo", "repo", "--json"), "tine-cli-redact-check-1"),
     (("redact", "verify", "report.json", "--json"), "tine-cli-redact-verify-1"),
     (("redact", "rules", "--json"), "tine-redaction-rules-1"),
+    (
+        (
+            "open",
+            "run:sha256:" + "a" * 64,
+            "--web-url",
+            "https://w.invalid",
+            "--tenant",
+            "acme",
+            "--json",
+        ),
+        "tine-cli-open-1",
+    ),  # fmt: skip
     (("redact", "check", "--repo", "repo", "--run", "no-such", "--json"), "tine-cli-envelope-1"),
 )
 
