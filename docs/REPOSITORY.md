@@ -855,6 +855,13 @@ snapshot of the chosen refs, not a delta.
 
 ## Reference self-hosted remote
 
+Its HTTP API is specified by the OpenAPI 3.1 document
+[`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml) (SPEC §8.15), generated from
+the server's route table. `tests/api_conformance/` is the black-box suite any
+implementation runs against a base URL (see its README), and
+[`ts/sdk`](../ts/sdk) is a typed TypeScript client that verifies what it fetches
+with the TS verifier.
+
 Extension interfaces cover `ObjectStore`, `IndexBackend`, `IdentityProvider`,
 `AuthorizationPolicy`, `KeyProvider`, `AuditSink`, `RetentionHook`, and
 `AdmissionPolicy`. The reference deployment implements them with encrypted

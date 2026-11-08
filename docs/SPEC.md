@@ -2516,6 +2516,32 @@ access logs. The server never signs as a user: a
 share grants read access to bytes the viewer re-verifies against the run's own
 signatures.
 
+<a id="s-8.15"></a>
+## 8.15 Remote HTTP API v1 (0.46.0)
+
+The HTTP API of a remote (`tine serve`, and the hosted service) is specified by
+the OpenAPI 3.1 document [`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml),
+`info.version` `1.0.0`. It is generated from the server's route table
+(`opentine/remote/_api_routes.py`), and `tests/test_api_v1_openapi.py` fails if
+the document, the table and the dispatcher disagree. Every operation carries
+`x-opentine-cap` (the key in `GET /v1/capabilities` that advertises it, or
+`null` for the core protocol) and `x-opentine-status`: `stable` routes are
+served by this release; `planned` routes are reserved shapes for the 0.46
+capabilities and a client calls one only when its cap is advertised.
+
+Rules every implementation keeps: tenant routes are private by default (no
+anonymous read; `401` without valid credentials); every read is authorized
+per tenant; a request for an object the caller may not read answers exactly
+like one for an object that does not exist (a uniform `404`, or, for `fetch`,
+an empty pack), and a tenant-level refusal (`403`) never depends on the oid
+asked for, so no response is an oid-existence oracle; repeated failed
+authentication and exhausted quotas answer `429` with `Retry-After`; and the
+server never signs as a user: signed objects (runs, attestations, project
+manifests) arrive client-signed and are stored as received. A client verifies
+what it fetches by recomputing every oid (2.8, and the TS SDK's
+`@opentine/sdk/verified`). `tests/api_conformance/` is the black-box suite an
+implementation runs against its base URL. No byte format changed.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 

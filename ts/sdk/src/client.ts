@@ -1,0 +1,234 @@
+/**
+ * A typed client for the OpenTine remote API v1 (docs/api/openapi-v1.yaml).
+ * It needs nothing but `fetch`. Bytes it fetches are not trusted here: use
+ * `@opentine/sdk/verified`, which checks them with the TS verifier.
+ */
+
+import { OPERATIONS, type OperationId } from "./operations.js";
+import type {
+  AuditStatus,
+  Capabilities,
+  Checkpoint,
+  FetchRequest,
+  Installed,
+  Oid,
+  Quota,
+  RefList,
+  RefTxnUpdate,
+  RefUpdate,
+  RunPage,
+  SearchResult,
+  Share,
+  Webhook,
+  WebhookList,
+} from "./types.js";
+
+export const PACK_TYPE = "application/vnd.opentine.pack";
+
+export interface ClientOptions {
+  /** The remote's base URL, e.g. `https://tine.example`. */
+  baseUrl: string;
+  tenant: string;
+  /** Bearer token (static token or OIDC JWT). Tenant routes are private without one. */
+  token?: string;
+  fetch?: typeof fetch;
+}
+
+/** A non-2xx answer. A 404 is uniform: it does not say whether the thing exists. */
+export class TineApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+    readonly retryAfter: number | null,
+  ) {
+    const reason = typeof body === "object" && body !== null && "error" in body ? String(body.error) : "";
+    super(`HTTP ${status}${reason ? `: ${reason}` : ""}`);
+    this.name = "TineApiError";
+  }
+}
+
+type Params = Record<string, string>;
+
+export class TineClient {
+  readonly baseUrl: string;
+  readonly tenant: string;
+  private readonly token?: string;
+  private readonly fetchImpl: typeof fetch;
+
+  constructor(options: ClientOptions) {
+    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
+    this.tenant = options.tenant;
+    this.token = options.token;
+    this.fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
+  }
+
+  /** The URL of an operation, every path parameter percent-encoded. */
+  url(operation: OperationId, params: Params = {}, query: Params = {}): string {
+    const values: Params = { tenant: this.tenant, ...params };
+    const path = OPERATIONS[operation].path.replace(/\{([a-z_]+)\}/g, (_, name: string) => {
+      if (values[name] === undefined) throw new TypeError(`missing path parameter ${name}`);
+      return encodeURIComponent(values[name]);
+    });
+    const search = new URLSearchParams(query).toString();
+    return this.baseUrl + path + (search ? `?${search}` : "");
+  }
+
+  /** Send one operation; `ok` lists the statuses that are answers rather than errors. */
+  async send(
+    operation: OperationId,
+    init: { params?: Params; query?: Params; json?: unknown; body?: Uint8Array; headers?: Params; ok?: number[] } = {},
+  ): Promise<Response> {
+    const headers: Params = { ...(init.headers ?? {}) };
+    if (this.token) headers.authorization = `Bearer ${this.token}`;
+    let body: BodyInit | undefined;
+    if (init.json !== undefined) {
+      headers["content-type"] = "application/json";
+      body = JSON.stringify(init.json);
+    } else if (init.body !== undefined) {
+      body = init.body as unknown as BodyInit;
+    }
+    const response = await this.fetchImpl(this.url(operation, init.params, init.query), {
+      method: OPERATIONS[operation].method,
+      headers,
+      body,
+    });
+    const ok = init.ok ?? [];
+    if (response.ok || ok.includes(response.status)) return response;
+    let parsed: unknown = null;
+    try {
+      parsed = await response.json();
+    } catch {
+      parsed = null;
+    }
+    const retry = response.headers.get("retry-after");
+    throw new TineApiError(response.status, parsed, retry === null ? null : Number(retry));
+  }
+
+  private async json<T>(operation: OperationId, init: Parameters<TineClient["send"]>[1] = {}): Promise<T> {
+    return (await (await this.send(operation, init)).json()) as T;
+  }
+
+  private async bytes(operation: OperationId, init: Parameters<TineClient["send"]>[1] = {}): Promise<Uint8Array> {
+    return new Uint8Array(await (await this.send(operation, init)).arrayBuffer());
+  }
+
+  private async cas(operation: OperationId, init: Parameters<TineClient["send"]>[1]): Promise<boolean> {
+    const response = await this.send(operation, { ...init, ok: [409] });
+    return ((await response.json()) as { updated: boolean }).updated === true;
+  }
+
+  capabilities(): Promise<Capabilities> {
+    return this.json("getCapabilities");
+  }
+
+  async listRefs(): Promise<Record<string, Oid>> {
+    return (await this.json<RefList>("listRefs")).refs;
+  }
+
+  /** Compare-and-swap one ref; false when `expected_old` no longer holds (409). */
+  updateRef(name: string, update: RefUpdate): Promise<boolean> {
+    return this.cas("updateRef", { params: { ref: name }, json: update });
+  }
+
+  /** All-or-nothing (`caps.ref_txn`); false when any precondition fails (409). */
+  updateRefs(updates: RefTxnUpdate[], force = false): Promise<boolean> {
+    return this.cas("updateRefs", { json: force ? { updates, force } : { updates } });
+  }
+
+  async negotiate(wants: Oid[], haves: Oid[] = [], depth?: number): Promise<Oid[]> {
+    const json = depth === undefined ? { wants, haves } : { wants, haves, depth };
+    return (await this.json<{ missing: Oid[] }>("negotiate", { json })).missing;
+  }
+
+  /** The raw pack for `wants` (unverified; see `fetchVerified`). */
+  fetchPack(request: FetchRequest): Promise<Uint8Array> {
+    return this.bytes("fetchPack", { json: request });
+  }
+
+  uploadPack(pack: Uint8Array): Promise<Installed> {
+    return this.json("uploadPack", { body: pack, headers: { "content-type": PACK_TYPE } });
+  }
+
+  search(query: Record<string, unknown>): Promise<SearchResult> {
+    return this.json("search", { json: query });
+  }
+
+  verifyAudit(): Promise<AuditStatus> {
+    return this.json("verifyAudit");
+  }
+
+  logCheckpoint(): Promise<Checkpoint> {
+    return this.json("logCheckpoint");
+  }
+
+  listWebhooks(): Promise<WebhookList> {
+    return this.json("listWebhooks");
+  }
+
+  addWebhook(url: string, kinds?: string[]): Promise<Webhook> {
+    return this.json("addWebhook", { json: kinds ? { url, kinds } : { url } });
+  }
+
+  async removeWebhook(id: string): Promise<void> {
+    await this.send("removeWebhook", { params: { webhook_id: id } });
+  }
+
+  /** One stored envelope (`caps.object_read_http`; unverified, see `readObjectVerified`). */
+  readObject(oid: Oid): Promise<Uint8Array> {
+    return this.bytes("readObject", { params: { oid } });
+  }
+
+  listRuns(cursor?: string, limit?: number): Promise<RunPage> {
+    const query: Params = {};
+    if (cursor) query.cursor = cursor;
+    if (limit !== undefined) query.limit = String(limit);
+    return this.json("listRuns", { query });
+  }
+
+  /** A pack of one run's closure (`caps.run_closure`; unverified). */
+  runClosure(oid: Oid): Promise<Uint8Array> {
+    return this.bytes("runClosure", { params: { oid } });
+  }
+
+  createShare(run: Oid, expiresIn?: number): Promise<Share> {
+    return this.json("createShare", { json: expiresIn ? { run, expires_in: expiresIn } : { run } });
+  }
+
+  async revokeShare(id: string): Promise<void> {
+    await this.send("revokeShare", { params: { share_id: id } });
+  }
+
+  getQuota(): Promise<Quota> {
+    return this.json("getQuota");
+  }
+
+  /** `tine-event/1` events until the server closes the stream or `signal` aborts. */
+  async *events(lastEventId?: string, signal?: AbortSignal): AsyncGenerator<{ id: string; kind: string; data: unknown }> {
+    const headers: Params = lastEventId ? { "last-event-id": lastEventId } : {};
+    if (this.token) headers.authorization = `Bearer ${this.token}`;
+    const response = await this.fetchImpl(this.url("streamEvents"), { headers, signal });
+    if (!response.ok || response.body === null) throw new TineApiError(response.status, null, null);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffered = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      buffered += decoder.decode(value, { stream: true });
+      let end: number;
+      while ((end = buffered.indexOf("\n\n")) >= 0) {
+        const frame = buffered.slice(0, end);
+        buffered = buffered.slice(end + 2);
+        const fields: Params = {};
+        for (const line of frame.split("\n")) {
+          if (line.startsWith(":")) continue;
+          const colon = line.indexOf(":");
+          if (colon > 0) fields[line.slice(0, colon)] = line.slice(colon + 1).replace(/^ /, "");
+        }
+        if (fields.data !== undefined && fields.event !== undefined) {
+          yield { id: fields.id ?? "", kind: fields.event, data: JSON.parse(fields.data) };
+        }
+      }
+    }
+  }
+}

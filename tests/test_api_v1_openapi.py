@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import io
 import json
+import re
 from pathlib import Path
 
 import pytest
 
 from opentine import _jsonschema
 from opentine.remote import Identity, LocalKeyProvider, StaticTokenIdentityProvider, server
-from opentine.remote._api_routes import ROUTES
+from opentine.remote._api_routes import API_VERSION, ROUTES
 from opentine.remote._openapi import build, render
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +101,18 @@ def test_the_server_dispatches_exactly_the_stable_routes(app, route):
     else:
         assert route.cap not in caps, f"{route.cap} is advertised: mark {route.operation} stable"
         assert status == "404"
+
+
+def test_the_ts_sdk_operation_table_matches_the_spec():
+    source = (ROOT / "ts" / "sdk" / "src" / "operations.ts").read_text(encoding="utf-8")
+    pattern = (
+        r'^  (\w+): \{ method: "(\w+)", path: "([^"]+)", '
+        r'cap: (?:"(\w+)"|null), status: "(\w+)" \},$'
+    )
+    sdk = {m[0]: (m[1], m[2], m[3] or None, m[4]) for m in re.findall(pattern, source, re.M)}
+    spec = {r.operation: (r.method, "/v1" + r.path, r.cap, r.status) for r in ROUTES}
+    assert sdk == spec
+    assert f'API_VERSION = "{API_VERSION}"' in source
 
 
 def test_an_unlisted_route_is_a_uniform_404(app):
