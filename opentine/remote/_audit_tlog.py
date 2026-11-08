@@ -81,7 +81,8 @@ def publish(audit: Any, row: dict[str, str], row_hash: str) -> None:
             return
         except (OSError, ValueError) as exc:
             failure = exc
-            time.sleep(0.01 * (2**attempt))
+            if attempt + 1 < PUBLISH_ATTEMPTS:
+                time.sleep(0.01 * (2**attempt))
     message = f"audit transparency append failed after {PUBLISH_ATTEMPTS} attempts: {failure}"
     print(f"opentine-remote: {message}", file=sys.stderr)
     raise PublishError(message) from failure
