@@ -814,7 +814,9 @@ attribution (the step and model that last wrote each file).
   text the redactor cannot read is withheld.
 - **No network:** the server answers GET and HEAD only, and its
   Content-Security-Policy allows nothing but its own origin (`connect-src
-  'self'`). The page fetches no external resource.
+  'self'`). The page fetches no external resource. A request whose `Host` is
+  not `127.0.0.1:PORT` or `localhost:PORT` gets 403, so a DNS-rebinding page
+  cannot read runs; `--port` must be 0..65535.
 - **Verification states** are `verified`, `failed`, `partial`, `unchecked` and
   `unpinned`, each labelled with who computed it. Integrity and assurance are
   checked by the local `tine`; a signature is `unpinned` because `tine ui` pins

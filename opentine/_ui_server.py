@@ -142,14 +142,26 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def _host_ok(self) -> bool:
+        """Refuse a foreign Host: a DNS-rebinding page must not read the runs."""
+        port = self.server.server_address[1]
+        host = (self.headers.get("Host") or "").strip().lower()
+        return host in {f"127.0.0.1:{port}", f"localhost:{port}"}
+
     def do_GET(self) -> None:  # noqa: N802
+        if not self._host_ok():
+            self._send(403, b"forbidden host", "text/plain; charset=utf-8")
+            return
         url = urlsplit(self.path)
         if url.path in ASSETS:
             name, ctype = ASSETS[url.path]
             self._send(200, asset(name), ctype)
             return
         if url.path.startswith("/api/"):
-            status, payload = api(self.catalog, url.path, parse_qs(url.query))
+            try:
+                status, payload = api(self.catalog, url.path, parse_qs(url.query))
+            except Exception:  # never a traceback (which may quote run data) on stderr
+                status, payload = 500, {"error": "internal error"}
             body = json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("ascii")
             self._send(status, body, "application/json")
             return

@@ -37,6 +37,9 @@ def _paths(run_id: str | None) -> list[Path]:
 def cmd_ui(args: argparse.Namespace) -> None:
     from opentine._ui_server import Catalog, make_server
 
+    if not 0 <= args.port <= 65535:
+        console.print(f"[red]--port must be 0..65535, got {args.port}[/]")
+        raise SystemExit(2)
     catalog = Catalog(_paths(args.run_id))
     catalog.runs()  # read every artifact once, before the first page asks
     try:

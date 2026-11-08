@@ -155,6 +155,43 @@ def test_cli_refuses_unknown_run(tmp_path, monkeypatch):
         main(["ui", "no_such_run_zz"])
 
 
+def test_bad_port_is_a_clean_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        main(["ui", "--port", "70000"])
+    assert exc.value.code == 2
+
+
+def test_foreign_host_header_is_refused(tmp_path):
+    """DNS rebinding: a page on evil.example resolving to 127.0.0.1 gets 403."""
+    import http.client
+
+    path = _run(tmp_path)
+    server, _base = _serve([path])
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=10)
+        conn.request("GET", "/api/runs", headers={"Host": "evil.example"})
+        res = conn.getresponse()
+        assert res.status == 403 and b"model-a" not in res.read()
+        conn.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_render_time_redaction_covers_the_leak_corpus():
+    """An unsaved (never redacted) run: every corpus secret is scrubbed on render."""
+    from opentine._ui_model import run_doc, step_doc
+    from tests.test_security_0_10_redaction import LEAKS
+
+    for name, text, needle in LEAKS:
+        run = Run(user_prompt=text, model_info="m")
+        run.add_step(StepKind.tool, inputs={"name": "Bash", "arguments": {"command": text}})
+        rendered = json.dumps([run_doc(run), step_doc(0, run.steps[0])])
+        assert needle not in rendered, name
+
+
 def test_assets_are_inert_text_only():
     app = (UI / "app.js").read_text(encoding="utf-8")
     assert "innerHTML" not in app and "eval(" not in app

@@ -198,8 +198,8 @@ def attribution(run: Any) -> list[dict[str, Any]]:
     rows = []
     for key, events in sorted(_histories(run).items()):
         last = events[-1].seq
-        step = run.steps[last]
-        rows.append({"path": Path(key).as_posix(), "step": last, "model": step.model_info})
+        model = run.steps[last].model_info if 0 <= last < len(run.steps) else None
+        rows.append({"path": Path(key).as_posix(), "step": last, "model": model})
     return scrub(rows)
 
 
