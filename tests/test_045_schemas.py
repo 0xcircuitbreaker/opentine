@@ -241,3 +241,18 @@ def test_help_json_publishes_no_machine_specific_or_env_defaults(monkeypatch, ca
     _code, out = _tine(monkeypatch, capsys, "help", "--json")
     assert str(Path.home()) not in out and str(ROOT) not in out
     assert str(room) not in out and "secret-token" not in out
+
+
+def test_an_unpublished_tag_is_held_to_the_envelope_not_another_shape():
+    document = {"schema": "tine-verify-future/9", "command": "verify", "anything": 1}
+    assert _schemas.detect(document) == "tine-cli-envelope-1"
+    assert _schemas.validate_output(document) == []
+
+
+def test_offline_dataset_report_validates(monkeypatch, capsys, room):
+    (room / "runs").mkdir()
+    shutil.copy(room / "run.tine", room / "runs" / "a.tine")
+    _code, out = _tine(monkeypatch, capsys, "verify", "runs", "--offline", "--json")
+    document = json.loads(out)
+    assert _schemas.detect(document) == "tine-verify-dataset-1"
+    assert _schemas.validate_output(document) == []

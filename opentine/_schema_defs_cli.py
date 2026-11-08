@@ -78,6 +78,23 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                 "divergences": {"type": "array", "items": open_(["kind"], {
                     "kind": {"enum": ["changed", "missing", "unwitnessed"]}})}}),
         ]}),
+    "tine-verify-dataset-1": doc("tine-verify-dataset-1", "tine-verify-dataset/1",
+        "What `tine verify --offline DIR|REPO --json` writes: one verdict per run and a "
+        "Merkle root over (run_id, digest) (SPEC 8.3). A directory's runs embed their "
+        "tine-verify-report/2.",
+        open_(["schema", "command", "offline", "path", "kind", "strict", "verdict", "ok",
+               "count", "merkle", "checks", "runs"], {
+            "schema": {"const": "tine-verify-dataset/1"}, "command": {"const": "verify"},
+            "offline": {"const": True}, "path": STR, "kind": STR, "strict": BOOL,
+            "verdict": {"enum": ["pass", "fail"]}, "ok": BOOL, "count": INT,
+            "merkle": open_(["algorithm", "root"], {
+                "algorithm": STR, "root": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}),
+            "checks": {"type": "array", "items": open_(["name", "ok", "detail"], {
+                "name": STR, "ok": BOOL, "detail": STR})},
+            "runs": {"type": "array", "items": open_(["run_id", "digest", "ok"], {
+                "run_id": STR, "path": STR, "digest": STR, "ok": BOOL, "failed": strs(),
+                "reason": opt(STR),
+                "report": {"$ref": "tine-verify-report-2.schema.json"}})}})),
     "tine-cli-runs-1": doc("tine-cli-runs-1", "tine ls / search --json",
         "Legacy index rows; `query` on search only.",
         open_(["command", "count", "runs"], {

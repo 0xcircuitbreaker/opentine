@@ -52,11 +52,17 @@ def get(name: str) -> dict[str, Any]:
 def detect(document: Any) -> str:
     """The schema name *document* declares, by its tag or its ``command``."""
     if isinstance(document, dict):
+        tagged = False
         for key in TAG_KEYS:
             tag = document.get(key)
             if isinstance(tag, str) and stem(tag) in SCHEMAS:
                 return stem(tag)
+            tagged = tagged or isinstance(tag, str) and "/" in tag
         command = document.get("command")
+        if tagged and isinstance(command, str):
+            # It names a format of its own that is not published (yet): hold it
+            # to the envelope, not to the schema of another shape of `command`.
+            return ENVELOPE
         if isinstance(command, str):
             return COMMAND_SCHEMAS.get(command, ENVELOPE)
         if "error" in document:
