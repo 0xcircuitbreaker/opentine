@@ -33,7 +33,8 @@ NOTES_REF = "refs/notes/tine"
 RUN_ID = re.compile(r"^(?:run:sha256:[0-9a-f]{64}|[A-Za-z0-9][A-Za-z0-9._:-]{3,199})$")
 #: A revision a user names: never an option, never whitespace.
 REVISION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/@^~{}:-]{0,199}$")
-_TRAILER_LINE = re.compile(rf"^{TRAILER}:[ \t]*(\S+)[ \t]*$", re.MULTILINE)
+#: ``Tine-Run: <run>[ <project>]`` (0.45 grammar, :mod:`opentine._trailers`).
+_TRAILER_LINE = re.compile(rf"^{TRAILER}:[ \t]*(\S+)(?:[ \t]+\S+)?[ \t]*$", re.MULTILINE)
 MAX_OUTPUT = 16 * 1024 * 1024
 MAX_RUNS_PER_COMMIT = 50
 #: Variables git sets for a hook that point at *this* commit's index and repository.
@@ -62,6 +63,19 @@ def git(
     timeout: float = 60.0,
 ) -> str:
     """Run git in *cwd* and return its stdout; raise :class:`GitLinkError` on failure."""
+    raw = git_raw(cwd, *args, stdin=stdin, keep_env=keep_env, hardened=hardened, timeout=timeout)
+    return raw.decode("utf-8", "replace")
+
+
+def git_raw(
+    cwd: Path | str,
+    *args: str,
+    stdin: bytes | None = None,
+    keep_env: Iterable[str] = (),
+    hardened: bool = True,
+    timeout: float = 60.0,
+) -> bytes:
+    """:func:`git`, returning stdout as the bytes it wrote (``tine blame --porcelain``)."""
     env: Mapping[str, str] = git_env(os.environ)
     kept = {name: os.environ[name] for name in keep_env if name in os.environ}
     # No global attributes file either: attributes select clean/textconv programs.
@@ -84,7 +98,7 @@ def git(
     if result.returncode != 0:
         detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
         raise GitLinkError(detail[-1][:300] if detail else f"git exited {result.returncode}")
-    return result.stdout.decode("utf-8", "replace")
+    return result.stdout
 
 
 def checked_revision(revision: str) -> str:

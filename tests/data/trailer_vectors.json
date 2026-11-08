@@ -1,0 +1,54 @@
+{
+  "schema": "tine-trailer-vectors/1",
+  "grammar": "Tine-Run: <run-oid>[ <project_id>] (repeatable); Tine-Project: <project_id> (at most once)",
+  "cases": [
+    {
+      "name": "one-run",
+      "message": "Fix parser\n\nTine-Run: run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "links": [{"run": "run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "project": ""}]
+    },
+    {
+      "name": "run-and-project",
+      "message": "Fix parser\n\nTine-Run: run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nTine-Project: acme-api\n",
+      "links": [{"run": "run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "project": "acme-api"}]
+    },
+    {
+      "name": "run-with-own-project",
+      "message": "Fix\n\nTine-Run: run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa web\nTine-Run: run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\nTine-Project: acme-api\n",
+      "links": [
+        {"run": "run:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "project": "web"},
+        {"run": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "project": "acme-api"}
+      ]
+    },
+    {
+      "name": "duplicate-run-once",
+      "message": "Fix\n\nTine-Run: run_20261108_ab12\nTine-Run: run_20261108_ab12\n",
+      "links": [{"run": "run_20261108_ab12", "project": ""}]
+    },
+    {
+      "name": "two-projects-rejected",
+      "message": "Fix\n\nTine-Run: run_20261108_ab12\nTine-Project: acme-api\nTine-Project: other\n",
+      "error": "at most once"
+    },
+    {
+      "name": "malformed-oid-rejected",
+      "message": "Fix\n\nTine-Run: run:sha256:xyz\n",
+      "error": "malformed run id"
+    },
+    {
+      "name": "malformed-project-rejected",
+      "message": "Fix\n\nTine-Run: run_20261108_ab12 Acme_API!\n",
+      "error": "malformed project id"
+    },
+    {
+      "name": "extra-words-rejected",
+      "message": "Fix\n\nTine-Run: run_20261108_ab12 acme-api trailing\n",
+      "error": "optional project id"
+    },
+    {
+      "name": "no-trailers",
+      "message": "Plain human commit\n",
+      "links": []
+    }
+  ]
+}
