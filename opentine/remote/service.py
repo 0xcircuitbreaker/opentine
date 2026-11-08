@@ -68,10 +68,8 @@ class RemoteService:
             "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
             "negotiation": ["haves", "tips"],  # 0.37: fetch may send ref tips (_tips)
             "object_format": "opentine-v3",
-            # ``pack_format`` stays what 0.11 clients read; newer ones choose from
-            # ``pack_formats`` (``repository._pack_peer``).
             "pack_codecs": _pack4.local_codecs(),
-            "pack_format": "TINEPACK3",
+            "pack_format": "TINEPACK3",  # what 0.11 clients read; newer ones use pack_formats
             "pack_formats": _pack_peer.local_formats(),
             "protocol": "opentine-remote/1",
             "ref_txn": ref_txn_supported(self.index),  # 0.43: POST ref-txn (_ref_txn)
