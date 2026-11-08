@@ -979,7 +979,10 @@ verdict names as `judge_run`. The judge must end its reply with
 The eval folder holds `verdicts.jsonl` and an unsigned `eval.json` summary
 (`tine-eval/1`: eval id, dataset digest, scorer and version, counts, mean
 score). `eval verify` checks every verdict and that the summary matches them;
-without `--pubkey` each verdict rests on its embedded key. `eval compare`
+every verdict's eval id must be recomputed from its own dataset, scorer,
+threshold, time and signer (`eval.id-mismatch`), so one eval has one signer,
+and no item may repeat (`eval.duplicate-item`). Without `--pubkey` that signer
+is trusted on first use. `eval compare`
 verifies both evals, then lists `regressed` (pass to fail), `fixed`,
 `changed` scores, `only_a`/`only_b` items and the mean-score delta;
 `--exit-code` exits 1 on any regression. A failed verification exits 4.
