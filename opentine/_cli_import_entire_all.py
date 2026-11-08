@@ -76,6 +76,10 @@ def _import(args: argparse.Namespace) -> list[dict[str, Any]]:
 
 def import_entire_all(args: argparse.Namespace) -> bool:
     """Run ``--all`` when it was given; ``False`` leaves the import to cmd_import."""
+    if args.format == "git-ai":  # notes in a repository, not a checkpoint: _cli_git_ai
+        from opentine._cli_git_ai import import_git_ai
+
+        return import_git_ai(args)
     if not getattr(args, "all", False):
         return False
     _check(args)

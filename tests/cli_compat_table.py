@@ -3505,6 +3505,36 @@ ROWS: tuple[tuple, ...] = (
         {"command": "stats", "ai_share": True, "rev": "HEAD~1", "json": True},
     ),
     (
+        "plain:import repo::HEAD~2..HEAD --format git-ai --sign-key k --force",
+        "plain",
+        ["import", "repo::HEAD~2..HEAD", "--format", "git-ai", "--sign-key", "k", "--force"],
+        "opentine._cli_import:cmd_import",
+        False,
+        {
+            "command": "import",
+            "source": "repo::HEAD~2..HEAD",
+            "format": "git-ai",
+            "sign_key": "k",
+            "force": True,
+        },
+    ),  # fmt: skip
+    (
+        "plain:export HEAD --format git-ai --output repo",
+        "plain",
+        ["export", "HEAD", "--format", "git-ai", "--output", "repo"],
+        "opentine._cli_export:cmd_export",
+        False,
+        {"command": "export", "run_id": "HEAD", "format": "git-ai", "output": "repo"},
+    ),
+    (
+        "plain:git share-line HEAD --json",
+        "plain",
+        ["git", "share-line", "HEAD", "--json"],
+        "opentine._cli_gitlink:cmd_git",
+        False,
+        {"command": "git", "git_command": "share-line", "commit": "HEAD", "json": True},
+    ),
+    (
         "plain:task claim t --holder a --ttl 30 --json",
         "plain",
         ["task", "claim", "t", "--holder", "a", "--ttl", "30", "--json"],

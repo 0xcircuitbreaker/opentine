@@ -158,6 +158,7 @@ def add_git_extras(git_sub: Any) -> None:
     read.add_argument("--json", action="store_true")
     share = git_sub.add_parser("share-line", help=argparse.SUPPRESS)  # the post-commit hook
     share.add_argument("commit", nargs="?", default="HEAD")
+    share.add_argument("--json", action="store_true")
 
 
 def cmd_ai_share(args: argparse.Namespace) -> None:
@@ -167,7 +168,7 @@ def cmd_ai_share(args: argparse.Namespace) -> None:
         report = ai_share(Path.cwd(), args.rev or "HEAD")
     except GitLinkError as exc:
         fail(str(exc), 2)
-    payload = {"mode": "ai-share", **report}
+    payload = {"schema": "tine-ai-share/1", "mode": "ai-share", **report}
     emit_or_print(args, "stats", payload, lambda: console.print(
         f"{report['ai_lines']}/{report['total_lines']} line(s) at {report['revision'][:12]} "
         f"attributed to agents ({report['ai_share']:.1%})"

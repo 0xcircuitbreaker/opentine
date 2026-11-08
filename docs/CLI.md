@@ -955,7 +955,41 @@ in `metadata["io.github.0xcircuitbreaker.opentine"]`.
 counts the lines whose originating commit's attribution note credits them to
 a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
-attributed.
+attributed. With `--json` the object carries `"schema": "tine-ai-share/1"`
+(`docs/schemas/tine-ai-share-1.schema.json`); `tine git share-line [COMMIT]
+--json`, the post-commit AI-share line as an object (`commit`, `lines_added`,
+`lines_attributed`, `ai_share`, `line`), follows the same schema.
+
+## Git AI Standard v3 notes (0.45.x)
+
+```
+tine import REPO[::RANGE] --format git-ai [--sign-key KEY] [--force] [--json]
+tine export REV|A..B --format git-ai [--output REPO] [--force]
+```
+
+[Git AI](https://github.com/git-ai-project/git-ai) keeps one
+`authorship/3.0.0` note per commit under `refs/notes/ai`: an attestation
+section (a file path, then `  KEY RANGES` lines with 1-indexed `N`/`N-M`
+ranges) and, after a `---` line, a JSON metadata object (`schema_version`,
+`base_commit_sha`, `prompts`, `sessions`, `humans`, `git_ai_version`). Keys are
+`s_<14hex>::t_<14hex>` (session and checkpoint), `h_<14hex>` (a human) or a
+legacy 16-hex prompt hash.
+
+`import` converts each Git AI note in REPO (every noted commit, or those in
+RANGE) into an `opentine-line-attribution/1` note under `refs/notes/tine`:
+agent lines are credited to the run `git-ai:<session or prompt>` with the
+checkpoint as the step and the agent's tool and model; human lines are kept
+under `git_ai.human_lines`, never credited; the note's metadata is kept under
+`git_ai`. `--sign-key` signs each record (verify with `tine git attribution
+COMMIT --pubkey KEY.pub`). OpenTine notes stay canonical: a commit that already
+has one is skipped unless `--force`. `--save`, `--repo`, `--ref`, `--fleet`,
+`--all` and `--price` are refused.
+
+`export` writes a v3 note for each commit with an OpenTine attribution note.
+Imported ranges keep their original keys and metadata, so import then export
+reproduces the Git AI note; native ranges get deterministic keys derived from
+the run and step and a session whose `agent_id` is `{tool, id: run, model}`. An
+existing Git AI note is kept unless `--force`.
 
 ## Blame, why and attach (0.45)
 

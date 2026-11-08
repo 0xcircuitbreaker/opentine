@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-ai-share-1.schema.json",
+  "title": "tine-ai-share/1",
+  "description": "The share of lines attribution notes credit to agents. One of two shapes: `tine stats --ai-share --json` (every line at a revision, by git blame) or `tine git share-line --json`, the post-commit AI-share line (the lines one commit added).",
+  "type": "object",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "revision",
+        "total_lines",
+        "ai_lines",
+        "ai_share",
+        "files"
+      ],
+      "properties": {
+        "command": {
+          "const": "stats"
+        },
+        "schema": {
+          "const": "tine-ai-share/1"
+        },
+        "mode": {
+          "const": "ai-share"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "total_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ai_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ai_share": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "by_model": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "commits_with_attribution": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "files_clipped": {
+          "type": "boolean"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "lines",
+              "ai_lines"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "lines": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ai_lines": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "commit",
+        "lines_added",
+        "lines_attributed",
+        "ai_share",
+        "line"
+      ],
+      "properties": {
+        "command": {
+          "const": "share-line"
+        },
+        "schema": {
+          "const": "tine-ai-share/1"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "lines_added": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines_attributed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ai_share": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "line": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

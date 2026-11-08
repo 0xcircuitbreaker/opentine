@@ -17,12 +17,19 @@ from opentine._cli_common import BRAND, _find_run, _terminal, console
 from opentine._cli_flags import refuse_unhonoured
 from opentine._cli_json import emit
 
+#: Export formats whose --output is a git repository, not a document.
+REPO_FORMATS = ("entire", "git-ai")
+
 
 def export_entire(args: argparse.Namespace) -> None:
     from opentine._entire_export import write_checkpoint
     from opentine._graph_serde import run_from_dict, run_to_dict
     from opentine.core import Run
 
+    if args.format == "git-ai":  # notes, not a checkpoint: _cli_git_ai
+        from opentine._cli_git_ai import export_git_ai
+
+        return export_git_ai(args)
     refuse_unhonoured(
         args,
         ("force", "compress", "endpoint", "allow_insecure"),
@@ -53,4 +60,4 @@ def export_entire(args: argparse.Namespace) -> None:
     )
 
 
-__all__ = ["export_entire"]
+__all__ = ["REPO_FORMATS", "export_entire"]

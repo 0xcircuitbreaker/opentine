@@ -13,6 +13,7 @@ FLEET_HELP = "Claude Code: one child run per subagent, forked at its spawning st
 
 
 def add_extra_args(parser: argparse.ArgumentParser) -> None:
+    from opentine._cli_git_ai import add_sign_key
     from opentine._cli_import_entire_all import ALL_HELP
 
     parser.add_argument("--fleet", action="store_true", help=FLEET_HELP)
@@ -22,9 +23,15 @@ def add_extra_args(parser: argparse.ArgumentParser) -> None:
         metavar="NAME",
         help="Read SOURCE with this adapter (a built-in, or an allowlisted entry point)",
     )
+    add_sign_key(parser)
 
 
 def check_fleet(args: argparse.Namespace) -> None:
+    if getattr(args, "sign_key", None) and args.format != "git-ai":
+        console.print(
+            "[red]--sign-key signs imported Git AI notes: use it with --format git-ai.[/]"
+        )
+        raise SystemExit(1)
     if not getattr(args, "fleet", False):
         return
     if not args.repo or args.save:

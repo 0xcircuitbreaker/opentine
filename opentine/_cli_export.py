@@ -5,9 +5,8 @@ direction, and the same converter runs it. The document is built by
 :func:`opentine.trace.exporters.to_otel_genai_document`, the exact inverse of
 the ``otel-json`` importer, so a run exported here and imported back is the run
 that was exported — a round trip this command's tests assert rather than assume.
-Export is read-only over provenance; mapping limits live in the exporters.
-``atif``, ``agent-trace``, ``citation``, ``ro-crate`` and ``entire`` (a checkpoint
-ref in the ``--output`` git repo, :mod:`opentine._cli_export_entire`) have their own modules.
+Export is read-only. ``atif``, ``agent-trace``, ``citation``, ``ro-crate``, ``entire`` and
+``git-ai`` (both into a git repository: :mod:`opentine._cli_export_entire`) have own modules.
 
 Destinations
 ------------
@@ -42,8 +41,9 @@ from typing import Any
 import httpx
 
 from opentine._citation_export import CITATION_FORMATS
+from opentine._citation_export import CITATION_FORMATS as CITATIONS
 from opentine._cli_common import BRAND, _find_run, _terminal, console
-from opentine._cli_export_entire import export_entire
+from opentine._cli_export_entire import REPO_FORMATS, export_entire
 from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_intoto import add_intoto_export_args, export_intoto
 from opentine._cli_json import emit, serialize
@@ -59,7 +59,7 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", "entire", *CITATION_FORMATS)
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", *REPO_FORMATS, *CITATIONS)
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -200,7 +200,7 @@ def _push(document: dict[str, Any], endpoint: str, allow_insecure: bool) -> None
 def cmd_export(args: argparse.Namespace) -> None:
     if export_intoto(args):  # handled there, or its signing flags refused here
         return
-    if args.format == "entire":  # --output is a git repository: _cli_export_entire
+    if args.format in REPO_FORMATS:  # --output is a git repository: _cli_export_entire
         return export_entire(args)
     endpoint = _endpoint(args)
     _refuse_unusable_flags(args, endpoint)
