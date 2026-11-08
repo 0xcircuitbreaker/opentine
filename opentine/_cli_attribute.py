@@ -28,6 +28,7 @@ from opentine._git_link import (
 )
 from opentine._git_link import write_note as write_run_note
 from opentine._git_push_sync import add_push_runs_parser, cmd_push_runs
+from opentine._git_share_hook import cmd_share_line
 from opentine._line_attrib import (
     added_lines,
     attribute,
@@ -134,6 +135,7 @@ HANDLERS = {
     "push-runs": cmd_push_runs,
     "attribute": _guarded(_attribute),
     "attribution": _guarded(_attribution),
+    "share-line": cmd_share_line,
 }
 
 
@@ -154,6 +156,8 @@ def add_git_extras(git_sub: Any) -> None:
     read.add_argument("--pubkey", metavar="KEY", help="Verify against this Ed25519 public key")
     read.add_argument("--format", choices=("opentine", "agent-trace"), default="opentine")
     read.add_argument("--json", action="store_true")
+    share = git_sub.add_parser("share-line", help=argparse.SUPPRESS)  # the post-commit hook
+    share.add_argument("commit", nargs="?", default="HEAD")
 
 
 def cmd_ai_share(args: argparse.Namespace) -> None:
