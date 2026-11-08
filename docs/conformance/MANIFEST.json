@@ -2448,7 +2448,7 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.9.0",
+  "spec_version": "0.45.0",
   "suite_version": 1,
   "totals": {
     "cases": 693,

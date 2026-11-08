@@ -1,6 +1,11 @@
 # The OpenTine Format Specification
 
-**Status:** normative for opentine 0.9.0-dev. **Formats covered:** portable
+**Spec version:** 0.45.0 (draft until opentine 0.45.0 is tagged). **Previous
+version:** 0.9.0. Changes between versions are listed in
+[Spec changelog](#spec-changelog); section anchors are stable (see
+[Stable anchors](#stable-anchors)).
+
+**Status:** normative for the opentine release named by the spec version. **Formats covered:** portable
 `.tine` artifact `format_version` 1 and 2; the v3 `.tine/` repository object
 model, wire format and pack format; the three signature schemes `tine-sig/1`,
 `tine-sig/2` and `tine-attest/1`; since 0.26.0, format v4 (Part 9, the
@@ -19,8 +24,25 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.9.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/main/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.0/docs/SPEC.md
+
+Cite a version, not `main`: the tagged URL is immutable, and a citation of a
+section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
+spec version is the opentine release that last changed this document; a
+release that leaves it unchanged does not bump it. The JSON Schemas of the
+object kinds and `--json` outputs (Part 12) are published beside it in
+`docs/schemas/` under the same version.
+
+<a id="stable-anchors"></a>
+### Stable anchors
+
+Every part and every numbered section has an explicit HTML anchor on the line
+above its heading: `part-N` for "Part N" and `s-N.M` for section N.M (`s-2.8`,
+`s-9.3`). Anchors are only ever added. A section that is removed or renumbered
+keeps its old anchor on the nearest successor, so a link into a cited version
+of this document keeps resolving in later ones. `tests/test_045_spec.py` pins
+the anchor set.
 
 Companion documents: [TINE_FORMAT.md](TINE_FORMAT.md) (format *policy* and the
 v2 delta history), [REPOSITORY.md](REPOSITORY.md) (CLI/remote protocol),
@@ -40,8 +62,10 @@ be checked against source directly.
 
 ---
 
+<a id="part-0"></a>
 # Part 0 — Primitives shared by both formats
 
+<a id="s-0.1"></a>
 ## 0.1 Text validity
 
 Every string in either format is a sequence of **Unicode scalar values**
@@ -72,6 +96,7 @@ Reference: `opentine._unicode_text.assert_unicode_text`.
 **One exception:** raw `blob` bytes are opaque. A blob of CESU-8 bytes stores
 unchanged, because a blob is a byte string, not text.
 
+<a id="s-0.2"></a>
 ## 0.2 v3 canonical JSON (`kernel.canonical_json`)
 
 The v3 object model uses an RFC 8785 / JCS-compatible canonical form. Written
@@ -130,6 +155,7 @@ out completely, because an implementer cannot derive it from "JCS" alone:
 > (Conformance vector `env.schema.at-2-53`, which accepts the integer code and
 > both schema codes.)
 
+<a id="s-0.3"></a>
 ## 0.3 v2 canonical JSON (`_canon._canonical_bytes`)
 
 The v2 artifact integrity digest — and, see §4.4 and §5.4, **all three
@@ -164,6 +190,7 @@ value first coerced by `_canon._jsonable`. Written out:
    third-party implementer reading a `.tine` file has — this coercion is the
    identity, so a reader can recanonicalize the parsed document directly.
 
+<a id="s-0.4"></a>
 ## 0.4 Historical — the v2/v3 canonicalization divergence
 
 > **Historical (0.26.0+).** Format v4 (Part 9) is the default writer and uses
@@ -223,6 +250,7 @@ divergence produces no inconsistent verdict today.
 >
 > Same object. Two canonical forms. Both correct. Use §0.3 for the message.
 
+<a id="s-0.5"></a>
 ## 0.5 Structural bound scanner (`kernel.validate_json_shape`)
 
 Before any JSON body is parsed, its **bytes** are scanned for two bounds:
@@ -249,8 +277,10 @@ errors surface from the subsequent parse.
 
 ---
 
+<a id="part-1"></a>
 # Part 1 — The v3 object model and wire format
 
+<a id="s-1.1"></a>
 ## 1.1 Object types
 
 `kernel.OBJECT_TYPES` = exactly `{"blob", "event", "run", "attestation",
@@ -266,6 +296,7 @@ structured kinds therefore ride on a blob schema instead (the 0.38 tree,
 | `attestation` | `json` | a signed or unsigned claim about a run |
 | `annotation` | `json` | separately versioned mutable metadata for an object |
 
+<a id="s-1.2"></a>
 ## 1.2 Envelope framing
 
 An object is stored as:
@@ -306,6 +337,7 @@ Reference: `kernel.ObjectEnvelope.encode` / `.decode`.
 > envelope budget does **not** apply to them, and `compact_token_budget`
 > (§0.5) does instead. A blob is never parsed by the kernel.
 
+<a id="s-1.3"></a>
 ## 1.3 Object id derivation
 
 ```text
@@ -372,6 +404,7 @@ adapter route oids through that wrapper; the kernel itself keeps its single
 regex (and its line budget). Vectors: `oid.parse.reserved-hash-tag`,
 `oid.parse.unknown-hash-tag` in `vectors/55-sig-pq.json`.
 
+<a id="s-1.4"></a>
 ## 1.4 Redaction happens before hashing
 
 Client-side credential redaction runs **before** canonicalization and hashing,
@@ -389,6 +422,7 @@ already produced the exact canonical bytes), but the Unicode check of §0.1
 still runs. A conformant *reader* needs none of this; a conformant *writer*
 that omits it merely stores secrets, and still produces valid objects.
 
+<a id="s-1.5"></a>
 ## 1.5 Payload shapes
 
 **The kernel constrains only what the graph depends on.** Any other field may
@@ -601,6 +635,7 @@ Every link extracted above MUST resolve: the object exists locally **or** its
 oid is listed in the repository's shallow-boundary file (§2.7). An object MUST
 NOT link to itself.
 
+<a id="s-1.6"></a>
 ## 1.6 The complete rejection table
 
 Every constant that can refuse a v3 object or repository read:
@@ -639,8 +674,10 @@ nothing (no error); so does a damaged or over-limit `.tine/unadopted` record.
 
 ---
 
+<a id="part-2"></a>
 # Part 2 — Repository layout
 
+<a id="s-2.1"></a>
 ## 2.1 Directory tree
 
 A repository is the directory `.tine/` (or, bare, any directory holding
@@ -676,6 +713,7 @@ file) and MUST NOT treat them as authoritative; every candidate they name is
 still read and validated. (The *legacy* run index is a separate,
 non-repository sidecar: `.tine_runs/index.json`, §4.6.)
 
+<a id="s-2.2"></a>
 ## 2.2 `config.json`
 
 Written by `Repo.init` as canonical JSON (§0.2) followed by a single LF. Since
@@ -760,6 +798,7 @@ holds the short `config.lock` file lock (`_config.config_lock`), so a gc that
 read the descriptor first cannot write the old object format back. Conformance vectors (`layout.config.objects-v4`,
 `layout.config.min-reader-newer`, `layout.config.objects-and-format`).
 
+<a id="s-2.3"></a>
 ## 2.3 `objects/`
 
 For `oid = TYPE:sha256:HEX`, the loose object lives at:
@@ -817,6 +856,7 @@ Writers MUST NOT emit one in a `.tine` file, in local storage, or for a peer
 that does not advertise a version. Without that advertisement the body is
 stored raw (codec 0).
 
+<a id="s-2.4"></a>
 ## 2.4 `refs/`
 
 A ref is a file containing one oid. Writers emit exactly:
@@ -904,12 +944,14 @@ expected value (rejecting a mismatch) → write staging file and `fsync` →
 `rename` over the ref → `fsync` the directory → append the reflog row → release
 staging and guard.
 
+<a id="s-2.5"></a>
 ## 2.5 Ref target validation
 
 Before a ref moves, the target object is fetched, its oid re-verified, and the
 namespace type rule of §2.4 applied — on write, on read, on pack verification,
 on remote ref update, and by `fsck`.
 
+<a id="s-2.6"></a>
 ## 2.6 `logs/` — the reflog
 
 One file per ref, at `logs/<the normalized ref path>` (e.g. `logs/heads/main`).
@@ -939,6 +981,7 @@ Append-only, one **canonical JSON object (§0.2) followed by LF** per row:
 > reflog row; the session's start, `import_events` and `finalize` each log
 > one. A reader MUST NOT assume every past value of a ref has a row.
 
+<a id="s-2.7"></a>
 ## 2.7 `shallow`
 
 Optional file `.tine/shallow`, listing oids that a depth-limited fetch
@@ -960,6 +1003,7 @@ make a conformance suite lie about the format. (Conformance vectors
 A link to an oid in this set satisfies §1.5.6 without the object being present.
 Updates are serialized by `shallow.lock` (`O_CREAT|O_EXCL`).
 
+<a id="s-2.8"></a>
 ## 2.8 `packs/` and the TINEPACK3 format
 
 A pack is a single self-verifying frame. Files are stored at
@@ -1171,6 +1215,7 @@ Every rebuilt object — a delta's base included — MUST equal its
 signatures are therefore unchanged by the stored form; vectors:
 `29-localpack.json`.
 
+<a id="s-2.9"></a>
 ## 2.9 `fsck`
 
 A deep `fsck` (`repository.verify.fsck`) checks: every loose object re-hashes
@@ -1188,6 +1233,7 @@ event graph (`parent_ids` + `causal_ids`) is acyclic, reported per cycle root.
 Runs written under object format 3 and 4 coexist: both are v3 envelopes.
 `fsck` bounds itself at 1000 packs and 1 GiB of pack bytes.
 
+<a id="s-2.10"></a>
 ## 2.10 External blob pointers (0.40+)
 
 A blob may be held outside the repository (object storage, a shared disk, an
@@ -1222,6 +1268,7 @@ sees such a blob as absent (as after a shallow fetch).
 
 ---
 
+<a id="part-3"></a>
 # Part 3 — The portable `.tine` v2 artifact
 
 > **Deprecated for writing (0.26.0+).** `Run.save` writes format v4 (Part 9) by
@@ -1231,6 +1278,7 @@ sees such a blob as absent (as after a shallow fetch).
 > deprecation warning per process on stderr. Every v1/v2 file stays readable
 > and verifiable forever (§5.1); a read never rewrites it.
 
+<a id="s-3.1"></a>
 ## 3.1 File shape
 
 A `.tine` file is a single JSON **object**, UTF-8, serialized by
@@ -1246,6 +1294,7 @@ to v2 *in memory* on load and the file on disk is never rewritten. A missing,
 older-unsupported or future `format_version` is rejected — except for the
 legacy 0.1.0 "linear" shape, which is best-effort *imported* (not verified).
 
+<a id="s-3.2"></a>
 ## 3.2 Top-level fields
 
 `format_version`, `run_id`, `created_at`, `status`, `graph`, `refs`,
@@ -1255,6 +1304,7 @@ autosave checkpoint — `draft: true`.
 `graph` is `{"order": [step id, …], "steps": {step id: step record}}`.
 `status` is one of `running`, `paused`, `completed`, `failed`.
 
+<a id="s-3.3"></a>
 ## 3.3 Step record (`_step_serde.step_to_dict`)
 
 Always emitted: `cost`, `duration`, `error`, `id`, `inputs`, `kind`,
@@ -1274,6 +1324,7 @@ On read, `parent_ids` falls back to a single-element list built from a legacy
 failing the load; `v3_kind` is ignored unless it is one of the four values
 above.
 
+<a id="s-3.4"></a>
 ## 3.4 `metadata`
 
 `run_to_dict` always writes `model_info`, `system_prompt` and `user_prompt`
@@ -1285,6 +1336,7 @@ non-empty. `integrity` is added by the writer (§3.5). Other reserved keys:
 `next_harness`, `forked_from`, `fork_point`, and `agent_identity` (0.13.0, an
 `opentine-agent/1` record, §4.9).
 
+<a id="s-3.5"></a>
 ## 3.5 The integrity digest
 
 ```text
@@ -1330,6 +1382,7 @@ non-object `integrity`, an algorithm other than `sha256`, a digest that is not
 64 hex characters, an unsupported `format_version` (with a distinct message for
 one written by a *newer* opentine), or a mismatch.
 
+<a id="s-3.6"></a>
 ## 3.6 Step identity, and its known limitation
 
 A v2 step id is SHA-256 over a canonical immutable payload: step kind, parent
@@ -1346,6 +1399,7 @@ a `changed` pair in `diff`, never as add/delete).
 > hashing (§1.4); the v2→v3 migrator always recomputes ids and never carries
 > this identity claim forward.
 
+<a id="s-3.7"></a>
 ## 3.7 Write-side symmetry
 
 Every reader bound is enforced at **save**, not just at load
@@ -1359,6 +1413,7 @@ was written to preserve.
 The reader additionally refuses **parser differentials**: duplicate object keys,
 `NaN`/`Infinity` literals, and NUL bytes.
 
+<a id="s-3.8"></a>
 ## 3.8 The rebuildable sidecar
 
 `.tine_runs/index.json` is a cache for `tine search` / `tine ls` filters. It is
@@ -1369,6 +1424,7 @@ version-mismatched index is silently discarded and rebuilt. `index_version` is
 
 ---
 
+<a id="part-4"></a>
 # Part 4 — Signing
 
 Three schemes exist. All three share one algorithm set, one header shape, one
@@ -1376,6 +1432,7 @@ block shape, one verdict vocabulary, and one canonicalizer (§0.3). They differ
 **only in the domain prefix and in what the signed view covers** — which is the
 whole meaning of a scheme, and why it is versioned.
 
+<a id="s-4.1"></a>
 ## 4.1 The shared block
 
 A signature block is a JSON object:
@@ -1410,6 +1467,7 @@ spellings of one header would let one signature verify under two object ids. An
 `ed25519` block always carries its own lowercase-hex `public_key`, whatever key
 source the verifier uses.
 
+<a id="s-4.2"></a>
 ## 4.2 The message
 
 ```text
@@ -1430,6 +1488,7 @@ with §0.3 canonicalization in all three schemes.
 > in their canonical bytes. The *attestation* family has its own prefix, so no
 > signature can ever be lifted between the artifact and attestation families.
 
+<a id="s-4.3"></a>
 ## 4.3 `tine-sig/1` — legacy `.tine` artifact signature (0.3.0–0.7.0)
 
 **Verified, never written.** (Final status since 0.26.0: verified forever.) Signed view:
@@ -1452,6 +1511,7 @@ because 0.3.0 wrote it but did not sign it; `fork` was safe to add in 0.4.0
 precisely because 0.3.0 never wrote it.) **Not covered**: `metadata.tags`, so
 re-tagging never broke a v1 signature.
 
+<a id="s-4.4"></a>
 ## 4.4 `tine-sig/2` — `.tine` v2 artifact signature (0.7.1+, deprecated 0.26.0)
 
 > **Deprecated (0.26.0+).** A signed `Run.save` writes `tine-sig/3` over a v4
@@ -1480,6 +1540,7 @@ refuses to sign a **draft** checkpoint, a **non-terminal** run (status must be
 attested, not signed as an artifact. These are writer policy, not scheme rules:
 `signing.verify_artifact` will still verify such a block if one exists.
 
+<a id="s-4.5"></a>
 ## 4.5 `tine-attest/1` — v3 attestation signature (0.9.0+, deprecated 0.26.0)
 
 > **Deprecated (0.26.0+).** An Ed25519 attestation on a run is written as
@@ -1549,6 +1610,7 @@ message = b'opentine.attestation.v1:{"body":{"claim":{"result":"pass"},"evidence
 value   = 6b9ea7e75bff9987920f417ba0419c12f6aadfe3088ec8ee8ce7eda271177164
 ```
 
+<a id="s-4.6"></a>
 ## 4.6 Algorithms and keys
 
 | Algorithm | `value` | Key |
@@ -1607,6 +1669,7 @@ otherwise the stdlib implementation `opentine/_pyz/_mldsa.py`, which
 `tine-verify.pyz` also ships; it is checked against NIST ACVP ML-DSA-65
 sigVer vectors and takes a few milliseconds per signature on CPython.
 
+<a id="s-4.7"></a>
 ## 4.7 The verdict vocabulary
 
 `_signing_verify.SignatureResult` carries `(ok, state, algorithm, key_id,
@@ -1633,6 +1696,7 @@ and (for `ed25519`) the `cryptography` extra not being installed.
 A block is always verified **under the scheme it names**: a `tine-sig/1` block
 keeps its narrower v1 view forever, and only a v2 block gets v2's coverage.
 
+<a id="s-4.8"></a>
 ## 4.8 `tine-actions/1` — signed action manifest (0.13.0+)
 
 A manifest is a JSON object `{"body": ..., "signature": block}` stored beside
@@ -1682,6 +1746,7 @@ chain("run-alpha", [11..11, 22..22]) =
   b1204cc7b91bf888baf15a663731b611002f8f8300718d76f4c644e29a1c3de7
 ```
 
+<a id="s-4.9"></a>
 ## 4.9 `opentine-agent/1` — agent identity record (0.13.0+)
 
 Stored at run `metadata.agent_identity`. Exactly these eleven string fields:
@@ -1709,6 +1774,7 @@ and the parent's signed `spawns` list contains the child's `spawn_step`.
 **Worked vector:** the record in `49-agent.json` `agent.worked-vector` has the ref
 `agt_7151540cb1895e1d66ae5b90f9a5012d`.
 
+<a id="s-4.10"></a>
 ## 4.10 `opentine-delegation/1` — delegation certificates (0.43.0+)
 
 A principal key hands scoped authority to an agent key, so a fleet member's
@@ -1746,6 +1812,7 @@ A run captured with `OPENTINE_DELEGATION=<chain file>` stores the chain at
 check against the run's signer, its agent ref, harness, fleet member or role,
 and its tool names. Vectors: `56-delegation.json`.
 
+<a id="s-4.11"></a>
 ## 4.11 `opentine-fleet/1` — fleet member record (0.43.0+)
 
 Stored at run `metadata.fleet` from `OPENTINE_FLEET_ID`, `_MEMBER`, `_ROLE` and
@@ -1800,8 +1867,10 @@ spliced in even under trust on first use), a repeated `item`
 
 ---
 
+<a id="part-5"></a>
 # Part 5 — The compatibility contract
 
+<a id="s-5.1"></a>
 ## 5.1 The read guarantee
 
 **From v0.3.0 onward, a newer opentine reads everything an older opentine
@@ -1819,6 +1888,7 @@ release gate, backed by golden fixtures per released version under
 The reverse does not hold: a 0.1.x reader cannot read v2, and re-saving a v1
 file upgrades it to v2 one-way.
 
+<a id="s-5.2"></a>
 ## 5.2 What "additive" means for a field
 
 A new field is **additive** only if adding it leaves the bytes of every
@@ -1848,6 +1918,7 @@ already written as `null`, so filling it was additive *without* the
 emit-when-non-empty rule. A field with no such pre-existing slot does not have
 that option.
 
+<a id="s-5.3"></a>
 ## 5.3 What changes a v3 object id
 
 Everything in the framed bytes of §1.3: the object **type**, the **schema**
@@ -1866,6 +1937,7 @@ Two consequences worth stating plainly:
   distinct runs. Both are digests; neither lets an untrusted run id steer an
   output path.
 
+<a id="s-5.4"></a>
 ## 5.4 The v2 → v3 migration boundary
 
 > **Since 0.26.0** a migration writes into an object-format-4 repository
@@ -1887,6 +1959,7 @@ is **never** an attestation over the generated v3 objects.
 
 ---
 
+<a id="part-6"></a>
 # Part 6 — Conformance checklist
 
 A minimal third-party **reader** is conformant when it:
@@ -1917,6 +1990,7 @@ it. That is the mechanism by which the spec stays true — not review discipline
 
 ---
 
+<a id="part-7"></a>
 # Part 7 — Proving conformance
 
 Everything above is prose. Prose does not let anyone *prove* an implementation
@@ -1986,6 +2060,7 @@ anything.
 
 ---
 
+<a id="part-8"></a>
 # Part 8 — Verifying without opentine
 
 `tine verify RUN --offline` (0.25.0) runs every check it can from material on
@@ -1997,6 +2072,7 @@ standard-library implementation of this part (about 300 lines, imports no
 opentine) and `tests/test_minimal_verifier_0_25.py` holds its verdicts to the
 reference's.
 
+<a id="s-8.1"></a>
 ## 8.1 The `tine-verify-report/2` document (`/1` before 0.39)
 
 One JSON object (`_verify_report.JSON_SCHEMA`, JSON Schema 2020-12):
@@ -2029,6 +2105,7 @@ check failed and, under `--strict`, also when a required check is
 `trust_basis` (`internal consistency only`, `supplied key …`, `pinned key …`,
 `trusted_root.json sha256 …`).
 
+<a id="s-8.2"></a>
 ## 8.2 Reason codes
 
 Reason codes are dotted `area.detail` strings matching
@@ -2055,6 +2132,7 @@ is not importable — `unavailable-offline`, never a pass),
 `evidence.custody-manifest-mismatch`, `evidence.custody-unreadable`, and
 `dataset.run` (one per run of a dataset or evidence folder).
 
+<a id="s-8.3"></a>
 ## 8.3 Datasets and the Merkle root
 
 `tine verify --offline DIR` reports `tine-verify-dataset/1`:
@@ -2078,6 +2156,7 @@ Each level pairs nodes left to right; an odd last node is carried up unchanged;
 the root of zero leaves is SHA-256 of the empty string. The `0x00`/`0x01`
 prefixes keep a leaf from ever equalling a node.
 
+<a id="s-8.4"></a>
 ## 8.4 The evidence folder and `tine-custody/1`
 
 `tine evidence export RUN… --out DIR` writes `runs/` (the run files byte for
@@ -2109,6 +2188,7 @@ unlike the artifact signatures of Part 4, which use §0.3). It verifies under
 the record's own key, so on its own it shows consistency; compare
 `public_key` with `trust/custody-signer.pub` obtained out of band.
 
+<a id="s-8.5"></a>
 ## 8.5 Writing an independent verifier
 
 1. Read the file; strip a `TINEZ1\0` wrapper (§2.3: codec 0 raw, 1 zlib, 2
@@ -2135,6 +2215,7 @@ alone. It leaves the link-closure rule of §9.4 to a full reader.
 
 ---
 
+<a id="s-8.6"></a>
 ## 8.6 RFC 3161 timestamp tokens (0.31.0)
 
 A run file may carry RFC 3161 tokens in a sidecar beside it,
@@ -2182,6 +2263,7 @@ signing time**, an upper bound on when that signature was made. Key validity
 against that time is not checked before 0.41. Root-bound tokens keep their
 0.31 meaning (`binding: "root"`).
 
+<a id="s-8.7"></a>
 ## 8.7 Signed verify reports (0.39, X22)
 
 `tine verify RUN --offline --report PATH --sign-key KEY` writes the report as
@@ -2205,6 +2287,7 @@ token failed. A `/1` or unsigned `/2` report is read and summarised
 (`evidence: false`, `reason: report.unsigned`) and exits 4 unless
 `--allow-unsigned`.
 
+<a id="s-8.8"></a>
 ## 8.8 The in-toto `replay/v1` predicate (0.39)
 
 Predicate type URI: **`https://opentine.dev/attestation/replay/v1`**.
@@ -2227,6 +2310,7 @@ A drifting replay is attested too (`reproduced: false`); the command still
 exits 1. No prompt, completion or tool text appears in the predicate.
 `opentine._intoto_replay.validate_predicate` is the shape check.
 
+<a id="s-8.9"></a>
 ## 8.9 Custody records on `opentine-log/1` (0.39)
 
 `tine custody record ACTION SUBJECT --sign-key KEY [--actor A] [--note N]`
@@ -2246,6 +2330,7 @@ record's verified signing time. `tine custody verify [--pubkey P] [--vkey V]
 the tiles, the hash chain, every record signature and every token, and exits 4
 on the first failure. `tine custody log` lists records with their `sig_bound`.
 
+<a id="s-8.10"></a>
 ## 8.10 Transparency: proofs, receipts and the remote audit log (0.44, X33)
 
 **Proofs.** Every `opentine-log/1` log (§8.9, §2) is an RFC 6962 tree; 0.44
@@ -2282,6 +2367,7 @@ receipts, the newest op-log entry recording each bundled `ref -> oid`
 receipt for it. Each must verify and cover a bundled ref. The key is optional
 and written only on request, because readers before 0.44 refuse unknown keys.
 
+<a id="s-8.11"></a>
 ## 8.11 Witness cosignatures (0.44)
 
 A witness cosignature is C2SP tlog-cosignature `cosignature/v1` over Ed25519:
@@ -2295,6 +2381,7 @@ checkpoint. A witness cosigns only a checkpoint consistent with the last one it
 cosigned for that origin, so a split view cannot reach a quorum of honest
 witnesses. Vectors for 8.10 and 8.11: `57-tlog.json`.
 
+<a id="s-8.12"></a>
 ## 8.12 Rekor v2, SigningConfig and SCITT (0.44, X34)
 
 **Rekor v2.** A `TransparencyLogEntry` with `kindVersion.version` `0.0.2` is a
@@ -2320,6 +2407,7 @@ root the proof implies from leaf `SHA-256(0x00 || statement)` (the statement
 re-encoded without header 394). This leaf rule is opentine's reading of the
 drafts and is not verified against scitt-api-emulator.
 
+<a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
 **Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`
@@ -2338,6 +2426,7 @@ spelling: no deprecated block is written even where v4 cannot express it
 `tine-attest/2` (§9.7). A file or repository written by 0.26 needs opentine
 0.26 or newer to read; every older file stays readable forever (§5.1).
 
+<a id="s-9.1"></a>
 ## 9.1 Design rules
 
 1. **One canonical form.** v4 bytes are produced by the §0.2 function, which
@@ -2354,6 +2443,7 @@ spelling: no deprecated block is written even where v4 cannot express it
    v4 only when it is written again; no reader rewrites an original.
 5. **Packs are unchanged.** TINEPACK3, TINEPACK4 and TINELP3 are not affected.
 
+<a id="s-9.2"></a>
 ## 9.2 The canonical form
 
 v4 canonical JSON is §0.2: RFC 8785 member order (UTF-16 code units, so
@@ -2372,6 +2462,7 @@ test the same function.
 ⚠ Hazard: the v3 repository writer stores a wide integer as a string
 (`json_safe`); a v4 write refuses the run instead, naming the field.
 
+<a id="s-9.3"></a>
 ## 9.3 The artifact
 
 A v4 file is one JCS object, optionally inside the `TINEZ1\0` wrapper of §2.3:
@@ -2393,6 +2484,7 @@ object, whose stored body is the §0.2 encoding of `body`. Detection is by
 `format_version` **and** `kind` together. Any other top-level key is refused;
 provenance lives inside the root run's payload (§9.9).
 
+<a id="s-9.4"></a>
 ## 9.4 Reading
 
 A reader MUST, and this build does, refuse the artifact when: a top-level key
@@ -2420,6 +2512,7 @@ a save, and re-writing it re-derives byte-identical events. Otherwise (a run
 recorded straight into a repository) step ids are the event oids, as `load_run`
 reads a repository.
 
+<a id="s-9.5"></a>
 ## 9.5 Writing
 
 `Run.save` writes v4 unless the legacy writer is chosen (autosave drafts stay
@@ -2456,6 +2549,7 @@ step; saved as format 2`) and appends the same text to `metadata.warnings`.
 are not a structural misfit: an explicit save still refuses them, a recorder's
 save still stringifies them (§9.5).
 
+<a id="s-9.6"></a>
 ## 9.6 `tine-sig/3` — v4 artifact signature (0.26.0+)
 
 The message is the domain prefix `opentine.signature.v3:` followed by the §0.2
@@ -2478,6 +2572,7 @@ decides; otherwise the first block's verdict is returned, in the §4.7
 vocabulary. Since 0.26.0 `tine-sig/1` is never written and `tine-sig/2` and
 `tine-attest/1` only as §4.4–§4.5 describe; all three verify forever.
 
+<a id="s-9.7"></a>
 ## 9.7 `tine-attest/2` — attestation on a v4 root (0.26.0+)
 
 The message is `opentine.attestation.v2:` followed by the §0.2 bytes of
@@ -2489,6 +2584,7 @@ subject and, when signed with a file key, carries a `tine-attest/2` record on
 that root (signed by the envelope's key) at `predicate.attestation`; a verifier
 checks that record's target and signature before accepting the subject.
 
+<a id="s-9.8"></a>
 ## 9.8 Offline verification of v4
 
 `tine verify --offline` reports a v4 digest check as `root <oid>`; in a dataset
@@ -2496,6 +2592,7 @@ checks that record's target and signature before accepting the subject.
 object's `source_run_id`. `tine migrate` reports a v4 file as already migrated
 and never rewrites it as v2.
 
+<a id="s-9.9"></a>
 ## 9.9 `upgraded_from` — provenance inside the run (0.26.0+)
 
 `tine migrate --to v4` records where a run came from as the optional
@@ -2525,6 +2622,7 @@ re-verifies its signature (a source signature that was `verified` and now is
 Since §9.10, `tine migrate --to v4 --repo` no longer writes a `tine-repo/3`
 record (the root is the repository oid itself); readers still accept one.
 
+<a id="s-9.10"></a>
 ## 9.10 Repositories (0.26.0+)
 
 A v4 file and a v3 repository hold the same envelopes, so they share oids.
@@ -2567,6 +2665,7 @@ A v4 file and a v3 repository hold the same envelopes, so they share oids.
 - **Bundles and packs** carry v4 runs unchanged (§9.1 rule 5).
 
 
+<a id="part-10"></a>
 # Part 10 — Format v5: text blobs (0.40.0)
 
 **Status:** normative since 0.40.0 for **readers** and, since 0.42.0, the
@@ -2587,6 +2686,7 @@ unknown format, never misread it.
 Reference: `opentine/_tine_v5.py` (standard library only; `tine-verify.pyz`
 vendors it verbatim).
 
+<a id="s-10.1"></a>
 ## 10.1 The document
 
 A v5 file is one JCS object (§0.2), optionally inside the `TINEZ1\0` wrapper of
@@ -2605,6 +2705,7 @@ JSON string. JSON-encoded objects (`"encoding": "json"`), `annotations`,
 `root` and `signatures` are spelled exactly as in v4. Detection is by
 `format_version` **and** `kind` together (`_tine_v5.is_v5_artifact`).
 
+<a id="s-10.2"></a>
 ## 10.2 Which spelling: exactly one per blob
 
 A reader tells the spellings apart by the envelope's `encoding` member alone:
@@ -2631,6 +2732,7 @@ ignoreBOM: true})` accepts.)
 Because the choice is forced and the document is JCS, the v5 bytes of a run
 are a function of its v4 bytes: re-writing yields byte-identical output.
 
+<a id="s-10.3"></a>
 ## 10.3 Rebuilding canonical bytes
 
 A reader converts a v5 document to the v4 document it spells
@@ -2650,6 +2752,7 @@ over those bytes, so it is identical to the v4 oid. JSON escaping inside `S`
 nothing else is normalized — no newline conversion, no Unicode normalization,
 no BOM stripping.
 
+<a id="s-10.4"></a>
 ## 10.4 Signatures and attestations
 
 `tine-sig/3` (§9.6) signs `format_version: 4` and `kind: tine-artifact/4`
@@ -2658,6 +2761,7 @@ header. A signature made over a v4 file therefore verifies, unchanged, over
 the v5 spelling of the same file and back. `tine-attest/2` (§9.7) targets the
 root and is unaffected.
 
+<a id="s-10.5"></a>
 ## 10.5 Reading, verifying and installing
 
 `Run.load`, `tine verify` (and `--offline`), `tine-verify.pyz`, datasets
@@ -2669,6 +2773,7 @@ example `tine sign`, `tine migrate`) writes the current writer format, which
 is v5 unless `--for-legacy` (or `--format 4`) is given. TINEPACK, bundles and repositories store
 envelopes, not spellings, and are unaffected.
 
+<a id="s-10.6"></a>
 ## 10.6 Size
 
 On a transcript-shaped corpus (11 Claude Code sessions whose tool results are
@@ -2677,6 +2782,7 @@ smaller after zstd-3** and **27.6% smaller after zstd-19** than v4. Base64
 costs 4/3 in size and destroys the redundancy zstd would find in the text.
 Binary blobs (images, compressed payloads) are unchanged.
 
+<a id="s-10.7"></a>
 ## 10.7 Conformance
 
 `docs/conformance/vectors/54-artifact-v5.json` carries the v5 cases: the
@@ -2684,6 +2790,7 @@ golden run re-spelled as v5 under `tine-sig/3` (verified, tampered text,
 non-canonical base64 spelling, text on a non-blob, lone surrogate), and
 `oid.derive` cases showing a text blob's oid is its v4 oid.
 
+<a id="part-11"></a>
 # Part 11 — Remote at-rest sealing: `TINEAES6` (0.41.0)
 
 Roadmap item X28 is named "TINEAES5" in `docs/ROADMAP.md`; 0.35 had already
@@ -2691,6 +2798,7 @@ shipped `TINEAES5` as the KMS envelope (`_sealed_envelope`), so X28 is the
 magic **`TINEAES6`**. The mapping is: roadmap "TINEAES5 (X28)" = on-disk
 `TINEAES6`; on-disk `TINEAES5` = the 0.35 KMS envelope.
 
+<a id="s-11.1"></a>
 ## 11.1 Layout
 
 All integers big-endian:
@@ -2725,10 +2833,88 @@ The plaintext is the `_codec` wrapper (as in `TINEAES4`). When padded it is
 O(log log L) bits of length. Non-zero padding is rejected. Padding exists in
 `TINEAES6` only.
 
+<a id="s-11.2"></a>
 ## 11.2 Readers
 
 A `TINEAES6` reader holds a keyring of `(key_id, epoch) -> master`; an unknown
 pair fails with a clear error. `TINEAES1`–`TINEAES4` keep opening through the
 same master, `TINEAES5` through its KMS provider, and `tine serve reseal --to
 aes6` rewrites older objects.
+
+---
+
+<a id="part-12"></a>
+# Part 12 — Published JSON Schemas (0.45.0)
+
+<a id="s-12.1"></a>
+## 12.1 What is published
+
+`docs/schemas/NAME.schema.json` holds one JSON Schema (draft 2020-12) per
+object kind a third party reads and per `--json` output with a fixed shape.
+`NAME` is the document's tag with `/` written `-` (`tine-verify-report/2` is
+`tine-verify-report-2`); each schema's `$id` is
+`https://opentine.com/schemas/NAME.schema.json`, and cross-schema `$ref`s use
+the bare file name. The set, and the tag or `command` that selects each, is
+`opentine._schemas.SCHEMAS` and `opentine._schema_defs_cli.COMMAND_SCHEMAS`;
+`tine schema list` prints it.
+
+The files are rendered from the definitions in `opentine/_schema_defs.py` and
+`opentine/_schema_defs_cli.py` by `scripts/gen_schemas.py`; a test fails when
+the two differ.
+
+<a id="s-12.2"></a>
+## 12.2 Rules
+
+- A schema describes what the reference implementation writes. Within a
+  major version a document gains fields and never loses or renames one, so
+  object schemas are open (`additionalProperties` unset) unless the format is
+  closed by its own definition (`opentine-delegation/1`, `opentine-fleet/1`,
+  `tine-cost-statement/1`, `tine-verify-report/2`); a closed format changes
+  only with a new tag.
+- A schema is not a verifier. A document that validates may still fail its
+  digest or signature check; Parts 4 and 8 decide that.
+- `tine-eval-verdict-1` is a **draft** until the eval runner ships: its
+  required fields (`run`, `item`, `scorer`, `score`, `pass`) are fixed, other
+  fields may still be added.
+
+<a id="s-12.3"></a>
+## 12.3 The `--json` envelope
+
+Every `tine ... --json` writes one JSON object (`tine-cli-envelope-1`): an
+object with a non-empty `command` naming its shape, the fallback wrapper
+`{"command", "exit_code", "output"}` of a command with no JSON of its own, or
+`{"error": {"code", "exit_code", "message"}}`. The five v3 plumbing verbs
+(`fsck`, `object`, `migrate-v3`, `fetch`, `push`) print bare JSON and are
+outside the envelope. Where a schema is published for a `command`, the
+object also validates against it. `tine help --json` writes `tine-help/1`,
+the command and flag tree.
+
+<a id="s-12.4"></a>
+## 12.4 Validating
+
+`tine schema validate FILE [--schema NAME]` picks the schema from the
+document's `schema`, `scheme` or `format` tag, else its `command`, and exits 4
+on an invalid document. The reference validator (`opentine._jsonschema`)
+implements the keyword subset the published schemas use and refuses a schema
+that uses any other keyword; any conforming 2020-12 validator gives the same
+verdicts on these schemas.
+
+---
+
+<a id="spec-changelog"></a>
+# Spec changelog
+
+Versions are the opentine release that changed this document.
+
+| Spec version | Change |
+|---|---|
+| 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. No byte format changed. |
+| 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |
+| 0.40.0 | Part 10: format v5 text blobs; 2.10 external blob pointers. |
+| 0.26.0 | Part 9: format v4, `tine-sig/3`, `tine-attest/2`. |
+| 0.9.0 | First published version: `.tine` v1/v2, the v3 repository model and wire format, `tine-sig/1`, `tine-sig/2`, `tine-attest/1`. |
+
+Releases between these added sections without a spec version of their own;
+from 0.45.0 every change to this document bumps the spec version and adds a
+row here.
 
