@@ -690,7 +690,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.44.
 
 ## CLI Reference
 
-`tine` ships 97 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 99 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -815,6 +815,9 @@ tine fleet status|stop|cost <id>                      Members, a stop that kills
 tine fleet record run.tine --sign-key k --out rec.json  A run's fleet record, signed (--attest: in-toto fleet/v1)
 tine fleet resume|logs|send <id>                      Resume unfinished members, read output, steer one
 tine task add|claim|heartbeat|done|list               Leases with fencing tokens (opentine-coord/1)
+tine dataset add d.jsonl --from-run <run> --expected X  Build an eval dataset (import/export JSONL or HF)
+tine eval run d.jsonl --scorer exact --key k --out ev  Score every item; one signed verdict each
+tine eval verify ev / tine eval compare a b            Verify verdicts offline; diff two evals
 ```
 
 `.tineignore` in a workspace drops paths from the captured diff, or replaces

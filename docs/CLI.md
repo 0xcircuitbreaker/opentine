@@ -941,3 +941,47 @@ index transaction or none (`409 {"updated": false}`). The server lists
 `"ref_txn": true` in `/v1/capabilities`; `tine push` then moves the head and
 the run's annotation ref in one transaction, and keeps one `PUT` per ref
 against a server that does not list it.
+
+## Evals and datasets (0.45)
+
+```text
+tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT]
+tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
+                    [--id-field F] [--input-field F] [--expected-field F]
+tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
+tine dataset show DATASET.jsonl
+tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
+              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
+tine eval verify DIR [--pubkey PUB]
+tine eval compare A B [--pubkey PUB] [--exit-code]
+```
+
+A dataset is JSON Lines, one item per line: `id` and `input` are required,
+`expected`, `output`, `run` and `metadata` optional. `dataset add --from-run`
+appends the run's prompt as `input`, its last answer as `output` and the run
+itself as `run`. `--format hf` reads or writes a local Hugging Face folder of
+JSON Lines splits (`<split>.jsonl` or `data/<split>*.jsonl`, with
+`dataset_info.json` and a dataset card on export); nothing is downloaded and
+Parquet is not read.
+
+`eval run` scores each item's `output` (or the `--outputs` row with the same
+`id`) and signs one `tine-eval-verdict/1` per item (SPEC 4.12) with the
+Ed25519 `--key`. Scorers: `exact`; `regex:PATTERN`; `json-schema:FILE` (a
+subset: type, enum, const, required, properties, additionalProperties,
+items, minimum, maximum, minLength, maxLength); `python:MODULE:FUNC` or
+`python:FILE.py:FUNC`, called as `FUNC(output, item)` and returning a bool, a
+number in 0..1 or `{"score": n}`; and `llm-judge:PROVIDER[:MODEL]`, whose
+prompt and reply are saved as their own run (tagged `eval-judge`) that the
+verdict names as `judge_run`. The judge must end its reply with
+`SCORE: <0..1>`. An item passes when its score is at least `--threshold`
+(default 1). Every item must name the run it scores (`run`, or `--run`).
+
+The eval folder holds `verdicts.jsonl` and an unsigned `eval.json` summary
+(`tine-eval/1`: eval id, dataset digest, scorer and version, counts, mean
+score). `eval verify` checks every verdict and that the summary matches them;
+without `--pubkey` each verdict rests on its embedded key. `eval compare`
+verifies both evals, then lists `regressed` (pass to fail), `fixed`,
+`changed` scores, `only_a`/`only_b` items and the mean-score delta;
+`--exit-code` exits 1 on any regression. A failed verification exits 4.
+`tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
+check the same verdicts without opentine installed.

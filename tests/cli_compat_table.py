@@ -3588,4 +3588,94 @@ ROWS: tuple[tuple, ...] = (
         True,
         {"command": "bundle", "bundle_action": "create", "transparency": True},
     ),
+    (
+        "plain:eval run d.jsonl --scorer exact --key k --out ev",
+        "plain",
+        ["eval", "run", "d.jsonl", "--scorer", "exact", "--key", "k", "--out", "ev"],
+        "opentine._cli_eval:cmd_eval",
+        False,
+        {
+            "command": "eval",
+            "eval_command": "run",
+            "dataset": "d.jsonl",
+            "scorer": "exact",
+            "key": "k",
+            "out": "ev",
+            "threshold": 1.0,
+        },  # fmt: skip
+    ),
+    (
+        "plain:eval verify ev --pubkey k.pub --json",
+        "plain",
+        ["eval", "verify", "ev", "--pubkey", "k.pub", "--json"],
+        "opentine._cli_eval:cmd_eval",
+        False,
+        {"command": "eval", "eval_command": "verify", "eval_dir": "ev", "pubkey": "k.pub"},
+    ),
+    (
+        "plain:eval compare a b --exit-code",
+        "plain",
+        ["eval", "compare", "a", "b", "--exit-code"],
+        "opentine._cli_eval:cmd_eval",
+        False,
+        {
+            "command": "eval",
+            "eval_command": "compare",
+            "left": "a",
+            "right": "b",
+            "exit_code": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset add d.jsonl --from-run r1 --expected 4",
+        "plain",
+        ["dataset", "add", "d.jsonl", "--from-run", "r1", "--expected", "4"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "add",
+            "dataset": "d.jsonl",
+            "from_run": "r1",
+            "expected": "4",
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset import hf --format hf --out d.jsonl --split test",
+        "plain",
+        ["dataset", "import", "hf", "--format", "hf", "--out", "d.jsonl", "--split", "test"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "import",
+            "source": "hf",
+            "format": "hf",
+            "out": "d.jsonl",
+            "split": "test",
+            "input_field": "input",
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset export d.jsonl --format hf --out hf",
+        "plain",
+        ["dataset", "export", "d.jsonl", "--format", "hf", "--out", "hf"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "export",
+            "dataset": "d.jsonl",
+            "format": "hf",
+            "out": "hf",
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset show d.jsonl --json",
+        "plain",
+        ["dataset", "show", "d.jsonl", "--json"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {"command": "dataset", "dataset_command": "show", "dataset": "d.jsonl", "json": True},
+    ),
 )
