@@ -55,9 +55,12 @@ def _tool_check(kind: str, path: str) -> dict[str, Any]:
                 "detail": clean(type(exc).__name__)}  # fmt: skip
     if not isinstance(value, dict):
         return {"check": kind, "name": clean(path), "ok": False, "class": "malformed"}
-    ok = value.get("ok") is True and "error" not in value
+    ok = value.get("ok") is True and "error" not in value and "unpinned" not in value
     row = {"check": kind, "name": clean(value.get("path") or path), "ok": ok}
-    row["class"] = "passed" if ok else "error" if "error" in value else "failed"
+    row["class"] = (
+        "passed" if ok else "unpinned" if "unpinned" in value
+        else "error" if "error" in value else "failed"
+    )  # fmt: skip
     return row
 
 
@@ -85,7 +88,8 @@ def _vsa_check(args: argparse.Namespace) -> dict[str, Any]:
         key = public_key_bytes(args.vsa_key)
     except (OSError, ValueError, RecursionError) as exc:
         return {**row, "ok": False, "class": "unreadable", "detail": clean(type(exc).__name__)}
-    kind = classify(envelope, key, args.subject, levels=args.vsa_level, policy=args.vsa_policy)
+    kind = classify(envelope, key, args.subject, levels=args.vsa_level, policy=args.vsa_policy,
+                    resource=args.vsa_resource)  # fmt: skip
     return {**row, "ok": kind == "valid", "class": kind}
 
 
@@ -118,6 +122,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--vsa-key", metavar="PUBKEY")
     p.add_argument("--subject", default="", metavar="OID")
     p.add_argument("--vsa-policy", default="", metavar="URI")
+    p.add_argument("--vsa-resource", default="", metavar="tine://TENANT/REF")
     p.add_argument("--vsa-level", action="append", default=[], metavar="LEVEL")
     p.add_argument("--summary", metavar="FILE")
     p.add_argument("--comment", metavar="FILE")

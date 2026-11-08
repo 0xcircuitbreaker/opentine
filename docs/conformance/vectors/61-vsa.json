@@ -409,6 +409,7 @@
             "SIGNED"
           ],
           "policy": "opentine:trust-policy/prod",
+          "resource": "tine://acme/heads/main",
           "subject": "run:abababababababababababababababababababababababababababababababab"
         }
       },
@@ -457,6 +458,48 @@
       "op": "vsa.verify",
       "output": {
         "class": "wrong-policy",
+        "ok": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.14",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOltdLCJwb2xpY3kiOnsiZGlnZXN0Ijp7InNoYTI1NiI6ImNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2QifSwidXJpIjoib3BlbnRpbmU6dHJ1c3QtcG9saWN5L3Byb2QifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vYWNtZS9oZWFkcy9tYWluIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wOFQxMj...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "vsa.wrong-resource",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOltdLCJwb2xpY3kiOnsiZGlnZXN0Ijp7InNoYTI1NiI6ImNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2RjZGNkY2QifSwidXJpIjoib3BlbnRpbmU6dHJ1c3QtcG9saWN5L3Byb2QifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vYWNtZS9oZWFkcy9tYWluIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wOFQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9BRE1JVFRFRCIsIlNJR05FRCJdLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3NlcnZlL3RydXN0LXBvbGljeS1hZG1pc3Npb24ifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjphYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn1dfQ==",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MksZLhfdXLK67sB5Vt5YfzRuD8Rc92qu1eXyu2buZck1F2",
+                "sig": "L8IZ3jkTJg0aN5UHngDLaOHx3QlYwHU0u2pYHabgWEi73V28yT2DPz+oTs6dUW0gYy6EX0TtS1/YTP9KPB/UBQ=="
+              }
+            ]
+          },
+          "key": "wrauE-DQD70wRoJ70ElpY043Nq4I5ylXcsSU5kpCGBU",
+          "levels": [
+            "OPENTINE_ADMITTED"
+          ],
+          "policy": "",
+          "resource": "tine://evil/heads/main",
+          "subject": "run:abababababababababababababababababababababababababababababababab"
+        }
+      },
+      "intent": "a valid VSA another tenant's ref earned, replayed for this one",
+      "op": "vsa.verify",
+      "output": {
+        "class": "wrong-resource",
         "ok": false
       },
       "profile": "verifier",

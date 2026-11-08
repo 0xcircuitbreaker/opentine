@@ -10,7 +10,9 @@ server admit this object, under this policy, at these levels?
 DSSE envelope of ``application/vnd.in-toto+json``), **bad-signature** (no
 signature verifies under the pinned key over the DSSE PAE), **malformed**
 again (the signed payload is not a VSA statement with exactly one subject),
-**wrong-subject** (its sha256 is not the expected one), **failed**
+**wrong-subject** (its sha256 is not the expected one), **wrong-resource**
+(a ``tine://TENANT/REF`` was required and ``predicate.resourceUri`` differs, so
+a VSA one tenant earned cannot be replayed for another), **failed**
 (``verificationResult`` is not ``PASSED``), **wrong-policy** (a policy URI was
 required and ``predicate.policy.uri`` differs), **missing-level** (a required
 level is absent from ``verifiedLevels``); otherwise **valid**. It never raises.
@@ -67,12 +69,15 @@ def _statement(body: bytes) -> dict[str, Any] | None:
     if not isinstance(subject, list) or len(subject) != 1 or not isinstance(subject[0], dict):
         return None
     digest = subject[0].get("digest")
-    if not isinstance(digest, dict) or not _HEX64.fullmatch(str(digest.get("sha256", ""))):
+    sha = digest.get("sha256") if isinstance(digest, dict) else None
+    if not isinstance(sha, str) or not _HEX64.fullmatch(sha):
         return None
     levels, policy = predicate.get("verifiedLevels"), predicate.get("policy")
     if not isinstance(levels, list) or not all(isinstance(level, str) for level in levels):
         return None
     if not isinstance(policy, dict) or not isinstance(policy.get("uri"), str):
+        return None
+    if not isinstance(predicate.get("resourceUri", ""), str):
         return None
     return value
 
@@ -84,6 +89,7 @@ def classify(
     *,
     levels: list[str] | tuple[str, ...] = (),
     policy: str = "",
+    resource: str = "",
     verify: Any = _ed25519,
 ) -> str:
     """The class of *envelope* for *subject* under the pinned server *key*."""
@@ -110,6 +116,8 @@ def classify(
     predicate = statement["predicate"]
     if statement["subject"][0]["digest"]["sha256"] != subject.rsplit(":", 1)[-1]:
         return "wrong-subject"
+    if resource and predicate.get("resourceUri") != resource:
+        return "wrong-resource"
     if predicate.get("verificationResult") != "PASSED":
         return "failed"
     if policy and predicate["policy"]["uri"] != policy:
@@ -132,6 +140,7 @@ def verify_case(value: dict[str, Any], verify: Any = _ed25519) -> dict[str, Any]
             str(value["subject"]),
             levels=levels,
             policy=str(value["policy"]),
+            resource=str(value.get("resource", "")),
             verify=verify,
         )
     except (KeyError, TypeError, ValueError, AttributeError, binascii.Error):

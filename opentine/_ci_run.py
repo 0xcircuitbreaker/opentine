@@ -5,17 +5,21 @@ call. Inputs arrive as environment variables -- never as script text a CI
 template interpolated, so an input cannot inject a command:
 
 * ``RUNS``, ``EVAL_DIRS``: newline-separated paths;
-* ``PUBKEY``, ``EVAL_PUBKEY``, ``VSA``, ``VSA_KEY``, ``SUBJECT``, ``VSA_POLICY``;
+* ``PUBKEY``, ``EVAL_PUBKEY``, ``VSA``, ``VSA_KEY``, ``SUBJECT``, ``VSA_POLICY``, ``VSA_RESOURCE``;
 * ``VSA_LEVELS``: space-separated; ``OUT``: the output folder (``opentine-gate``).
 
 It runs ``tine verify RUN --json`` and ``tine eval verify DIR --json`` for each
-path (arguments as a list, no shell), keeps their JSON in ``OUT``, then
-decides with :mod:`opentine._ci_gate`. Exit codes are the gate's; on GitHub it
+path (arguments as a list, no shell) under ``PUBKEY``/``EVAL_PUBKEY``, keeps
+their JSON in ``OUT``, then
+decides with :mod:`opentine._ci_gate`. A path given without its pinned key
+fails as ``unpinned``: an artifact checked against its own embedded key proves
+nothing about who produced it. Exit codes are the gate's; on GitHub it
 also writes the ``ok`` and ``summary`` step outputs.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import subprocess
@@ -62,12 +66,16 @@ def gate_args(env: Mapping[str, str]) -> list[str]:
         for path in _lines(env.get(var, "")):
             index += 1
             target = out / f"{verb.split()[0]}-{index}.json"
-            pubkey = ["--pubkey", env[key]] if env.get(key) else []
-            _capture([*tine, *verb.split(), path, *pubkey, "--json"], target)
+            if env.get(key):
+                _capture([*tine, *verb.split(), path, "--pubkey", env[key], "--json"], target)
+            else:  # fail closed: without a pinned key a run's own embedded key is trusted
+                target.write_text(json.dumps({"ok": False, "unpinned": True, "path": path}))
             args += [flag, str(target)]
     if env.get("VSA"):
         args += ["--vsa", env["VSA"], "--vsa-key", env.get("VSA_KEY", ""),
                  "--subject", env.get("SUBJECT", "")]  # fmt: skip
+        if env.get("VSA_RESOURCE"):
+            args += ["--vsa-resource", env["VSA_RESOURCE"]]
         if env.get("VSA_POLICY"):
             args += ["--vsa-policy", env["VSA_POLICY"]]
         for level in env.get("VSA_LEVELS", "").split():

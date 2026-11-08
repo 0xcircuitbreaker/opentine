@@ -45,10 +45,11 @@ function statementOf(body: Uint8Array): Rec | null {
   if (!Array.isArray(levels) || !levels.every((x) => typeof x === "string")) return null;
   const policy = predicate.policy;
   if (!isRec(policy) || typeof policy.uri !== "string") return null;
+  if (predicate.resourceUri !== undefined && typeof predicate.resourceUri !== "string") return null;
   return value;
 }
 
-export function vsaClass(envelope: JValue | undefined, key: Uint8Array, subject: string, levels: string[], policy: string): string {
+export function vsaClass(envelope: JValue | undefined, key: Uint8Array, subject: string, levels: string[], policy: string, resource = ""): string {
   let body: Uint8Array;
   const sigs: Uint8Array[] = [];
   try {
@@ -73,6 +74,7 @@ export function vsaClass(envelope: JValue | undefined, key: Uint8Array, subject:
   const digest = ((statement.subject as Rec[])[0].digest as Rec).sha256;
   const parts = subject.split(":");
   if (digest !== parts[parts.length - 1]) return "wrong-subject";
+  if (resource !== "" && predicate.resourceUri !== resource) return "wrong-resource";
   if (predicate.verificationResult !== "PASSED") return "failed";
   if (policy !== "" && (predicate.policy as Rec).uri !== policy) return "wrong-policy";
   const have = new Set(predicate.verifiedLevels as string[]);
@@ -88,12 +90,13 @@ export function vsaVerify(value: JValue): Record<string, unknown> {
     const subject = value.get("subject");
     const levels = value.get("levels");
     const policy = value.get("policy");
-    if (typeof key !== "string" || typeof subject !== "string" || typeof policy !== "string") {
+    const resource = value.has("resource") ? value.get("resource") : "";
+    if (typeof key !== "string" || typeof subject !== "string" || typeof policy !== "string" || typeof resource !== "string") {
       throw new Error("bad vsa input");
     }
     if (!Array.isArray(levels) || !levels.every((x) => typeof x === "string")) throw new Error("bad levels");
     const raw = Uint8Array.from(Buffer.from(key, "base64url"));
-    kind = vsaClass(value.get("envelope"), raw, subject, levels as string[], policy);
+    kind = vsaClass(value.get("envelope"), raw, subject, levels as string[], policy, resource);
   } catch {
     kind = "malformed";
   }

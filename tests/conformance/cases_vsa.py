@@ -1,7 +1,7 @@
 """SPEC 8.14 (0.46): a remote's signed SLSA VSA for one pushed object.
 
 Every case is a verdict: ``ok`` and a ``class`` (valid, malformed,
-bad-signature, wrong-subject, failed, wrong-policy, missing-level), never a
+bad-signature, wrong-subject, wrong-resource, failed, wrong-policy, missing-level), never a
 raise. The server key is a fixed Ed25519 seed and the time is fixed, so
 regeneration is byte-identical.
 """
@@ -35,9 +35,10 @@ def _vsa(**predicate) -> dict:
 SIGNED = sign_statement(_vsa(), KEY)
 
 
-def _value(envelope=SIGNED, subject=OID, levels=("OPENTINE_ADMITTED",), policy="") -> dict:
+def _value(envelope=SIGNED, subject=OID, levels=("OPENTINE_ADMITTED",), policy="",
+           **extra) -> dict:  # fmt: skip
     return {"envelope": envelope, "key": RAW, "subject": subject, "levels": list(levels),
-            "policy": policy}  # fmt: skip
+            "policy": policy, **extra}  # fmt: skip
 
 
 def _case(cid: str, intent: str, value: dict) -> Case:
@@ -64,7 +65,11 @@ VSA = Family(
         _case(
             "vsa.valid.policy-and-levels",
             "the required policy URI and every required level are present",
-            _value(levels=("OPENTINE_ADMITTED", "SIGNED"), policy=POLICY["uri"]),
+            _value(
+                levels=("OPENTINE_ADMITTED", "SIGNED"),
+                policy=POLICY["uri"],
+                resource="tine://acme/heads/main",
+            ),
         ),  # fmt: skip
         _case(
             "vsa.other-key",
@@ -78,6 +83,11 @@ VSA = Family(
             "vsa.wrong-subject",
             "a valid VSA for another object",
             _value(subject="run:" + "ef" * 32),
+        ),  # fmt: skip
+        _case(
+            "vsa.wrong-resource",
+            "a valid VSA another tenant's ref earned, replayed for this one",
+            _value(resource="tine://evil/heads/main"),
         ),  # fmt: skip
         _case(
             "vsa.failed",

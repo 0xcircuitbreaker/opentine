@@ -176,7 +176,7 @@ writes an in-toto SLSA Verification Summary Attestation
 New in 0.46: `serve --trust-policy NAME=FILE` (repeatable) admits ref updates
 only under a named server-side policy (`opentine.admission-policy` version 1,
 schema `docs/schemas/opentine-admission-policy-1.schema.json`): `refs` globs
-(required) and optional `tenants`, `roles`, `subjects`, `object_types` and the
+(required; fnmatch, so `*` also matches `/`: `heads/*` covers `heads/a/b`) and optional `tenants`, `roles`, `subjects`, `object_types` and the
 `levels` the VSA records. Policies are tried in order and the first whose
 tenants and refs cover the update decides; an update no policy covers, or one
 the deciding policy refuses, gets 403, so naming any policy makes admission

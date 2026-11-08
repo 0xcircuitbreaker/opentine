@@ -15,6 +15,7 @@ from opentine import _ci_comment, _ci_gate, _ci_run, _schemas, cli
 from opentine.core import Run, RunStatus, StepKind
 from opentine.remote._vsa import TrustPolicyAdmission
 from opentine.remote.interfaces import Identity
+from opentine.signing import generate_ed25519
 
 ROOT = Path(__file__).resolve().parents[1]
 OID = "run:" + "ab" * 32
@@ -51,7 +52,13 @@ def _signed_run(room: Path) -> Path:
     run.add_step(StepKind.think, {"text": "thinking"})
     run.add_step(StepKind.done, {"text": "done"})
     run.status = RunStatus.completed
-    run.save(room / "good.tine")
+    seed, public = generate_ed25519()
+    (room / "ci.pub").write_text(public + "\n", encoding="utf-8")
+    run.save(room / "good.tine", sign_key=seed, sign_algorithm="ed25519")
+    unsigned = Run(id="forged", model_info="mock-model", user_prompt="p")
+    unsigned.add_step(StepKind.done, {"text": "done"})
+    unsigned.status = RunStatus.completed
+    unsigned.save(room / "forged.tine")
     return room / "good.tine"
 
 
@@ -60,7 +67,8 @@ def test_the_gate_runs_tine_verify_and_checks_the_vsa(room: Path):
     broken = room / "broken.tine"
     broken.write_text("{}", encoding="utf-8")
     envelope, pub = _vsa(room)
-    env = {"RUNS": f"{good.as_posix()}\n", "VSA": str(envelope), "VSA_KEY": str(pub),
+    env = {"RUNS": f"{good.as_posix()}\n", "PUBKEY": str(room / "ci.pub"),
+           "VSA": str(envelope), "VSA_KEY": str(pub), "VSA_RESOURCE": "tine://acme/tags/v1",
            "SUBJECT": OID, "VSA_LEVELS": "OPENTINE_ADMITTED", "OUT": str(room / "out"),
            "GITHUB_OUTPUT": str(room / "gh-out")}  # fmt: skip
     assert _ci_run.main(env) == 0
@@ -80,6 +88,27 @@ def test_the_gate_runs_tine_verify_and_checks_the_vsa(room: Path):
     assert "ok=false" in (room / "gh-out").read_text("utf-8")
 
 
+def test_the_gate_fails_closed_on_unpinned_forged_runs_and_replayed_vsas(room: Path):
+    _signed_run(room)
+    envelope, pub = _vsa(room)
+    out = str(room / "out")
+    # A forged, unsigned run passes `tine verify` on internal consistency alone; without a
+    # pinned key the gate refuses it, and under the key the forgery fails.
+    assert _ci_run.main({"RUNS": "forged.tine", "OUT": out}) == _ci_gate.FAILED
+    summary = json.loads((room / "out" / "summary.json").read_text("utf-8"))
+    assert summary["checks"][0]["class"] == "unpinned"
+    assert _schemas.validate(summary)[1] == []
+    env = {"RUNS": "forged.tine", "PUBKEY": "ci.pub", "OUT": out}
+    assert _ci_run.main(env) == _ci_gate.FAILED
+    # A VSA another tenant's ref earned for the same object is not this resource's.
+    env = {"VSA": str(envelope), "VSA_KEY": str(pub), "SUBJECT": OID, "OUT": out,
+           "VSA_RESOURCE": "tine://other/tags/v1"}  # fmt: skip
+    assert _ci_run.main(env) == _ci_gate.FAILED
+    summary = json.loads((room / "out" / "summary.json").read_text("utf-8"))
+    assert summary["checks"][0]["class"] == "wrong-resource"
+    assert _schemas.validate(summary)[1] == []
+
+
 def test_eval_outputs_and_a_custom_tine_command(room: Path, monkeypatch):
     fake = room / "fake_tine.py"
     fake.write_text(
@@ -88,7 +117,8 @@ def test_eval_outputs_and_a_custom_tine_command(room: Path, monkeypatch):
         encoding="utf-8",
     )
     tine = f'"{Path(sys.executable).as_posix()}" "{fake.as_posix()}"'
-    env = {"EVAL_DIRS": "good", "OPENTINE_TINE": tine, "OUT": str(room / "o")}
+    env = {"EVAL_DIRS": "good", "EVAL_PUBKEY": "k.pub", "OPENTINE_TINE": tine,
+           "OUT": str(room / "o")}  # fmt: skip
     assert _ci_run.main(env) == 0
     env["EVAL_DIRS"] = "good\nbad"
     assert _ci_run.main(env) == _ci_gate.FAILED
@@ -130,6 +160,8 @@ class _Api:
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.seen.append((request.method, request.url.path, dict(request.headers)))
+        if request.method == "GET" and request.url.path.endswith("/user"):
+            return httpx.Response(200, json={"id": 77, "username": "project_bot"})
         if request.method == "GET":
             return httpx.Response(self.status, json=self.existing)
         return httpx.Response(201 if request.method == "POST" else 200, json={})
@@ -146,11 +178,21 @@ def test_the_comment_is_created_then_updated_in_place():
     assert _ci_comment.upsert("github", "body", _env(), client) == "created"
     assert api.seen[-1][:2] == ("POST", "/repos/acme/app/issues/7/comments")
     assert api.seen[-1][2]["authorization"] == f"Bearer {SECRET}"
-    api.existing.append({"id": 42, "body": _ci_gate.MARKER + "\nold"})
+    # A PR author pasting the marker into their own comment cannot capture the update.
+    api.existing.append({"id": 41, "body": _ci_gate.MARKER + "\nfake passed",
+                         "user": {"login": "mallory"}})  # fmt: skip
+    assert _ci_comment.upsert("github", "body", _env(), client) == "created"
+    api.existing.append({"id": 42, "body": _ci_gate.MARKER + "\nold",
+                         "user": {"login": "github-actions[bot]"}})  # fmt: skip
     assert _ci_comment.upsert("github", "body", _env(), client) == "updated"
     assert api.seen[-1][:2] == ("PATCH", "/repos/acme/app/issues/comments/42")
 
-    gitlab = _Api([{"id": 9, "body": _ci_gate.MARKER}])
+    gitlab = _Api(
+        [
+            {"id": 8, "body": _ci_gate.MARKER, "author": {"id": 5}},
+            {"id": 9, "body": _ci_gate.MARKER, "author": {"id": 77}},
+        ]
+    )
     env = {"OPENTINE_GITLAB_TOKEN": SECRET, "CI_PROJECT_ID": "3", "CI_MERGE_REQUEST_IID": "5",
            "CI_API_V4_URL": "https://gitlab.test/api/v4"}  # fmt: skip
     client = httpx.Client(transport=httpx.MockTransport(gitlab))
@@ -164,7 +206,8 @@ def test_comment_failures_never_print_the_token(room: Path, monkeypatch, capsys)
     for name, value in _env().items():
         monkeypatch.setenv(name, value)
     client = httpx.Client(transport=httpx.MockTransport(_Api([], status=403)))
-    assert _ci_comment.main(["github", "--body", str(room / "c.md")], client=client) == 1
+    # A comment that cannot be written (a fork PR's read-only token) never fails the job.
+    assert _ci_comment.main(["github", "--body", str(room / "c.md")], client=client) == 0
     monkeypatch.delenv("OPENTINE_PR")
     assert _ci_comment.main(["github", "--body", str(room / "c.md")]) == 0  # skipped
     captured = capsys.readouterr()

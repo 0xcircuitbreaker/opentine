@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Conformance: family `61-vsa` (SPEC 8.14). The suite is now **728 conformance vectors**; 242 of the 728 refuse input, and the adapter contract still has one entry point: 44 ops.
+- Conformance: family `61-vsa` (SPEC 8.14). The suite is now **729 conformance vectors**; 242 of the 729 refuse input, and the adapter contract still has one entry point: 44 ops.
 
 ## 0.45.1 — Parity and plumbing (2026-11-08)
 

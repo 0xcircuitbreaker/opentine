@@ -14,6 +14,11 @@ branding:
 # The token is passed in `github-token`, reaches the comment step only, and is
 # never printed. Every input reaches the shell through `env:`, never through
 # `${{ }}` inside a script, so an input cannot inject shell code.
+# A run or eval given without `pubkey`/`eval-pubkey` fails as `unpinned`. Read
+# `pubkey` and `vsa-key` from a place the PR cannot change (the base branch, a
+# secret or a variable): a key from the PR's own checkout lets its author sign
+# their own artifacts. The PR comment is a courtesy: a token that cannot write
+# it (a fork PR) only logs a warning; the gate step decides the job.
 
 inputs:
   runs:
@@ -42,6 +47,10 @@ inputs:
     default: ""
   subject:
     description: The object id the VSA must admit (for example `run:<hex>`).
+    required: false
+    default: ""
+  vsa-resource:
+    description: Required `tine://TENANT/REF` the VSA must name (stops cross-tenant replay).
     required: false
     default: ""
   vsa-policy:
@@ -100,6 +109,7 @@ runs:
         VSA: ${{ inputs.vsa }}
         VSA_KEY: ${{ inputs.vsa-key }}
         SUBJECT: ${{ inputs.subject }}
+        VSA_RESOURCE: ${{ inputs.vsa-resource }}
         VSA_POLICY: ${{ inputs.vsa-policy }}
         VSA_LEVELS: ${{ inputs.vsa-levels }}
         OUT: ${{ runner.temp }}/opentine-gate

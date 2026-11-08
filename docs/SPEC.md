@@ -2661,14 +2661,17 @@ policy file's bytes>}}`; without a named policy it is
 `{"uri": "opentine:admission/default"}`.
 
 A verifier holding the server's 32-byte key pinned checks an envelope for an
-expected subject, optionally a required policy URI, and a set of required
+expected subject, optionally a required resource (`tine://TENANT/REF`) and a
+required policy URI, and a set of required
 levels, and answers in this order: **malformed** (not a DSSE envelope of that
 payload type, a non-base64 payload or signature, a signature entry with keys
 other than `keyid`/`sig`, or no signatures), **bad-signature** (no signature
 verifies under the pinned key), **malformed** (the signed payload is not a
 Statement v1 VSA with exactly one subject carrying a 64-hex sha256, a
-`verifiedLevels` string list and a `policy.uri` string), **wrong-subject**,
-**failed** (`verificationResult` is not `PASSED`), **wrong-policy**,
+`verifiedLevels` string list, a `policy.uri` string and, when present, a string
+`resourceUri`), **wrong-subject**, **wrong-resource** (a resource was required
+and `predicate.resourceUri` differs: objects are content-addressed, so without
+this a VSA one tenant's ref earned could be replayed for another's), **failed** (`verificationResult` is not `PASSED`), **wrong-policy**,
 **missing-level**; otherwise **valid**. Reference: `opentine/_vsa_verify.py`
 (standard library plus an injectable Ed25519, vendored into
 `tine-verify.pyz`). Vectors for 8.16: `61-vsa.json`.

@@ -64,7 +64,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                                     "malformed",
                                     "valid",
                                     "bad-signature",
+                                    "unpinned",
                                     "wrong-subject",
+                                    "wrong-resource",
                                     "wrong-policy",
                                     "missing-level",
                                 ]
