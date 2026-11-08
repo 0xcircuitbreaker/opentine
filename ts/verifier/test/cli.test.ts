@@ -122,3 +122,30 @@ test("the CLI exits 0 on a verified file, 1 on a tampered one and 2 on misuse", 
   assert.equal(run().status, 2);
   assert.equal(run(good, "--bogus").status, 2);
 });
+
+test("the CLI verifies a tine eval verdicts.jsonl and refuses a tampered verdict", () => {
+  const vectors = (JSON.parse(readFileSync(join(SUITE, "vectors", "58-eval-verdict.json"), "utf8")) as {
+    cases: { id: string; input: { value: unknown } }[];
+  }).cases;
+  const verdict = (id: string): string => {
+    const found = vectors.find((item) => item.id === id);
+    assert.ok(found, id);
+    const value = decodeTagged(found.input.value) as Map<string, unknown>;
+    return Buffer.from(canonicalJson(value.get("verdict") as never)).toString("utf8");
+  };
+  const dir = mkdtempSync(join(tmpdir(), "opentine-eval-"));
+  const good = join(dir, "good.jsonl");
+  const bad = join(dir, "bad.jsonl");
+  const ids = ["eval-verdict.valid-tofu", "eval-verdict.valid-trusted", "eval-verdict.valid-judge"];
+  writeFileSync(good, ids.map(verdict).join("\n") + "\n");
+  writeFileSync(bad, verdict("eval-verdict.valid-tofu") + "\n" + verdict("eval-verdict.score-edited") + "\n");
+  const run = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8" });
+  const ok = run(good);
+  assert.equal(ok.status, 0, ok.stderr);
+  const report = JSON.parse(ok.stdout);
+  assert.equal(report.verified, 3);
+  assert.equal(report.passed, 2);
+  const refused = run(bad);
+  assert.equal(refused.status, 1);
+  assert.equal(JSON.parse(refused.stdout).failures[0].reason, "eval-verdict.bad-signature");
+});
