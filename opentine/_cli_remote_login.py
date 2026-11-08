@@ -73,6 +73,11 @@ def discover(http, issuer: str, allow_insecure: bool) -> dict[str, str]:
     return endpoints
 
 
+def _printable(value: Any, limit: int = 512) -> str:
+    """Issuer text for the terminal: no control characters (escape sequences)."""
+    return "".join(ch for ch in str(value)[:limit] if ch.isprintable())
+
+
 def device_flow(args, http, endpoints: dict[str, str], *, sleep=time.sleep) -> dict[str, Any]:
     form = {"client_id": args.client_id, "scope": args.scope}
     if args.audience:
@@ -82,7 +87,8 @@ def device_flow(args, http, endpoints: dict[str, str], *, sleep=time.sleep) -> d
     if not isinstance(code, str) or not isinstance(user_code, str):
         raise ValueError("issuer did not return a device code")
     where = start.get("verification_uri_complete") or start.get("verification_uri")
-    print(f"To sign in, open {where} and enter code {user_code}", file=sys.stderr)
+    print(f"To sign in, open {_printable(where)} and enter code {_printable(user_code, 64)}",
+          file=sys.stderr)  # fmt: skip
     interval = max(1, int(start.get("interval") or 5))
     deadline = time.monotonic() + min(MAX_WAIT, int(start.get("expires_in") or MAX_WAIT))
     poll = {"grant_type": GRANT, "device_code": code, "client_id": args.client_id}
@@ -96,7 +102,7 @@ def device_flow(args, http, endpoints: dict[str, str], *, sleep=time.sleep) -> d
             interval += 5
             continue
         if error:  # access_denied, expired_token, ...: name it, never echo the body
-            raise PermissionError(f"sign-in failed: {str(error)[:64]}")
+            raise PermissionError(f"sign-in failed: {_printable(error, 64)}")
         return body
     raise TimeoutError("sign-in timed out: the device code expired")
 

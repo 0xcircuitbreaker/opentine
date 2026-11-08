@@ -30,6 +30,7 @@ NOT_FOUND = {"error": "not found"}
 PACK_TYPE = "application/vnd.opentine.pack"
 OBJECT_TYPE = "application/vnd.opentine.object"
 LAZY_HEADER = "OpenTine-Lazy-Blobs"
+_NO_REFERRER = [("Referrer-Policy", "no-referrer")]
 _CLOSURE_KEYS = ("depth", "haves", "lazy_blobs", "pack_codecs", "pack_formats")
 
 
@@ -74,8 +75,11 @@ def _send(sr, status: str, body: bytes, content_type: str, headers):
     return [body]
 
 
-def _pack(app, environ, sr, service, tenant: str, run: str):
+def _pack(app, environ, sr, service, tenant: str, run: str, within=None):
     request = app._json(environ, *_CLOSURE_KEYS, _pack_peer.PEER_VERSION)
+    if within is not None:  # a share's haves count only inside its run: no tenant oracle
+        haves = request.get("haves") or []
+        request["haves"] = [h for h in haves if isinstance(h, str) and h in within]
     with app._guarded(app._install_guard):
         data, lazy = reads.run_pack(service, tenant, run, request)
         fmt, codec = _pack_peer.choose(request.get("pack_formats"), request.get("pack_codecs"))
@@ -150,6 +154,12 @@ def _share_admin(app, identity, tenant: str, resource: str, method: str, environ
 def share_route(app: Any, rest: str, method: str, environ, sr):
     """``/v1/share/<token>[/closure|/objects/<oid>]``: no bearer, uniform 404, throttled."""
     service = app.service
+
+    def sr(status, headers, *rest, _sr=sr):  # every share answer: never leak the URL onward
+        if not any(name.lower() == "referrer-policy" for name, _ in headers):
+            headers = [*headers, *_NO_REFERRER]
+        return _sr(status, headers, *rest)
+
     throttle = app.__dict__.setdefault("share_throttle", AuthThrottle())
     cache = app.__dict__.setdefault("share_closures", reads.ClosureCache())
     client = environ.get("REMOTE_ADDR") or "unknown"
@@ -166,9 +176,10 @@ def share_route(app: Any, rest: str, method: str, environ, sr):
         tenant, run = record["tenant"], record["run"]
         if not tail and method == "GET":
             body = {"expires": record["expires"], "run": run, "scope": record["scope"]}
-            result = app._json_response(sr, "200 OK", body, [("Referrer-Policy", "no-referrer")])
+            result = app._json_response(sr, "200 OK", body)
         elif tail == "closure" and method == "POST":
-            result = _pack(app, environ, sr, service, tenant, run)
+            members = cache.members(service, tenant, run)
+            result = _pack(app, environ, sr, service, tenant, run, members)
         elif tail.startswith("objects/") and method in ("GET", "HEAD"):
             oid = unquote(tail[8:])
             if oid not in cache.members(service, tenant, run):
@@ -179,7 +190,8 @@ def share_route(app: Any, rest: str, method: str, environ, sr):
     except reads.Hidden:
         throttle.failed(client)
         return app._json_response(sr, "404 Not Found", NOT_FOUND)
-    throttle.succeeded(client)
+    # No ``succeeded()``: a holder of one live token must not be able to reset
+    # its failure count between guesses at other tokens or other oids.
     return result
 
 

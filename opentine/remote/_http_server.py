@@ -35,6 +35,7 @@ _BUSY = (
     b"Content-Length: %d\r\nRetry-After: 1\r\nConnection: close\r\n\r\n" % len(_BUSY_BODY)
 ) + _BUSY_BODY
 _UPLOAD_PATH = re.compile(r"/packs/[^/?]+")
+_SHARE_PATH = re.compile(r"/v1/share/[^/?]+")  # a share token is a bearer secret
 
 
 def _peer(address) -> str:
@@ -178,4 +179,5 @@ class TimeoutRequestHandler(WSGIRequestHandler):
 
     def log_request(self, code="-", size="-") -> None:
         path = _UPLOAD_PATH.sub("/packs/<upload>", str(getattr(self, "path", "")).split("?")[0])
+        path = _SHARE_PATH.sub("/v1/share/<token>", path)
         self.log_message('"%s %s" %s %s', getattr(self, "command", "-"), path, code, size)

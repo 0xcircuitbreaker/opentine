@@ -207,3 +207,32 @@ def test_search_over_http_matches_run_text(tmp_path):
     assert status == "200 OK" and json.loads(out)["objects"] == [alpha]
     bad = json.dumps({"text": "x" * 300}).encode()
     assert _call(app, "POST", "/v1/tenants/acme/search", bad)[0] == "400 Bad Request"
+
+
+def test_a_live_share_cannot_reset_the_guess_throttle_and_never_leaks(tmp_path):
+    app = _app(tmp_path)
+    run_id, _ = _push(app, tmp_path)
+    other, _ = _push(app, tmp_path, "two")
+    _, _, body = _call(app, "POST", "/v1/tenants/acme/shares", json.dumps({"run": run_id}).encode())
+    token = json.loads(body)["token"]
+    addr = "10.7.7.7"
+    for _ in range(6):  # guesses interleaved with valid reads still lock the client out
+        _call(app, "GET", f"/v1/share/{token}", token=None, addr=addr)
+        _call(app, "GET", f"/v1/share/{token}/objects/{other}", token=None, addr=addr)
+    status, headers, _ = _call(app, "GET", f"/v1/share/{token}", token=None, addr=addr)
+    assert status == "429 Too Many Requests"
+    for path in (f"/v1/share/{token}", f"/v1/share/{token}/objects/{run_id}"):
+        status, headers, _ = _call(app, "GET", path, token=None, addr="10.7.7.8")
+        assert status == "200 OK" and headers["Referrer-Policy"] == "no-referrer"
+    # A share's haves only count inside its run: a tenant oid outside it changes nothing.
+    plain = _call(app, "POST", f"/v1/share/{token}/closure", b"{}", token=None, addr="10.7.7.9")
+    probe = json.dumps({"haves": [other]}).encode()
+    probed = _call(app, "POST", f"/v1/share/{token}/closure", probe, token=None, addr="10.7.7.9")
+    assert plain[2] == probed[2]
+
+
+def test_the_access_log_redacts_share_tokens():
+    from opentine.remote._http_server import _SHARE_PATH
+
+    path = _SHARE_PATH.sub("/v1/share/<token>", "/v1/share/tine_share_abc/objects/x")
+    assert path == "/v1/share/<token>/objects/x"
