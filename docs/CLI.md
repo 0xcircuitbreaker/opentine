@@ -1066,8 +1066,8 @@ check the same verdicts without opentine installed.
 | Command | What it does |
 | --- | --- |
 | `tine schema list [--json]` | Names every published JSON Schema (`docs/schemas/NAME.schema.json`) |
-| `tine schema show NAME` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`) |
-| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid |
+| `tine schema show NAME [--json]` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`). `--json` wraps it as `{"command": "schema-show", "name", "definition"}`; an unknown name exits 3 |
+| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist |
 | `tine help [COMMAND] --json` | The command and flag tree as `tine-help/1`, for generated reference docs |
 
 `validate` picks the schema from the document's `schema`, `scheme` or `format`
