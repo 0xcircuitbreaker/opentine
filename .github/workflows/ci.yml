@@ -102,6 +102,13 @@ jobs:
       - name: Build and run the conformance vectors
         run: npm test
 
+      - name: Rebuild the run-viewer assets and require the committed copy
+        working-directory: ts/run-viewer
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          git diff --exit-code -- ../../opentine/data/ui
+
   fips:
     # 0.41 (X30): the real gate for --fips. cryptography is built against the
     # image's system OpenSSL 3 and runs with the FIPS provider forced on through
