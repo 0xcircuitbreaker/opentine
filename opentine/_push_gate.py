@@ -35,20 +35,24 @@ REPORT_VERSION = 1
 DOMAIN_PREFIX = b"opentine.redaction-report.v1:"
 
 
-def _body(repo: Any, oid: str) -> bytes:
-    """The stored payload bytes of *oid* (decoded, so a compressed store scans the same)."""
+def _body(repo: Any, oid: str) -> bytes | None:
+    """The decoded payload bytes of *oid*, or ``None`` when it cannot be read."""
     try:
         return repo.get(oid).body
-    except Exception:  # noqa: BLE001 - an unreadable object is scanned as stored
-        return repo.raw(oid)
+    except Exception:  # noqa: BLE001 - unreadable: scanning stored (maybe compressed) bytes
+        return None  # would miss what they hide, so the caller fails closed
 
 
 def scan(repo: Any, oids: list[str] | set[str]) -> list[dict[str, str]]:
-    """``{oid, kind}`` for every object the current ruleset would still redact."""
+    """``{oid, kind}`` for every object the current ruleset would still redact.
+
+    An object that cannot be decoded is a finding too (fail closed): its stored
+    bytes may be compressed, and a scan of them would see nothing.
+    """
     hits = []
     for oid in sorted(oids):
         body = _body(repo, oid)
-        if redact_blob(body) != body:
+        if body is None or redact_blob(body) != body:
             hits.append({"oid": oid, "kind": oid.split(":", 1)[0]})
     return hits
 
@@ -66,9 +70,36 @@ def outgoing_oids(repo: Any, tracking: str, refs: list[str]) -> set[str]:
     return sent
 
 
+class Gate:
+    """The gate of one ``tine push``: called with each set of objects about to be sent.
+
+    ``tine push`` calls it once, offline, on the objects its tracking refs say
+    are missing (so a refusal comes before any connection), and the transport
+    calls it again on the exact pack it negotiated with the server, which can
+    hold more (a remote that was reset, a different ``--remote-ref``). An
+    override is recorded once per newly found object set.
+    """
+
+    def __init__(self, repo: Any, allow_reason: str | None) -> None:
+        if allow_reason is not None and not allow_reason.strip():
+            raise ValueError("--allow-unredacted needs a non-empty REASON")
+        self.repo, self.allow_reason, self.seen = repo, allow_reason, set()
+
+    def __call__(self, oids: Any) -> list[dict]:
+        new = set(oids) - self.seen
+        hits = check(self.repo, new, self.allow_reason)
+        self.seen |= new
+        return hits
+
+
 def enforce(repo: Any, tracking: str, refs: list[str], allow_reason: str | None) -> list[dict]:
     """Refuse (``ValueError``) when outgoing objects fail the scan, unless overridden."""
-    hits = scan(repo, outgoing_oids(repo, tracking, refs))
+    return check(repo, outgoing_oids(repo, tracking, refs), allow_reason)
+
+
+def check(repo: Any, oids: Any, allow_reason: str | None) -> list[dict]:
+    """Scan *oids*; refuse on hits, or record the override in the op log first."""
+    hits = scan(repo, oids)
     if not hits:
         return hits
     if allow_reason is None:
@@ -82,7 +113,25 @@ def enforce(repo: Any, tracking: str, refs: list[str], allow_reason: str | None)
         raise ValueError("--allow-unredacted needs a non-empty REASON")
     from opentine.repository._oplog import note
 
-    note(f"allow-unredacted: {allow_reason.strip()} ({len(hits)} object(s))")
+    # The reason is free text typed on a command line: redact it like any stored
+    # string, so the override cannot itself put a secret in the op log. It is
+    # written now, before anything is sent, and a failed write refuses the push.
+    reason = redact_blob(allow_reason.strip().encode("utf-8")).decode("utf-8", "replace")
+    note(f"allow-unredacted: {reason} ({len(hits)} object(s))", base=repo.path)
+    return hits
+
+
+def warn_dry_run(repo: Any, tracking: str, refs: list[str]) -> list[dict]:
+    """``push --dry-run``: say on stderr that the real push would be refused."""
+    import sys
+
+    hits = scan(repo, outgoing_oids(repo, tracking, refs))
+    if hits:
+        print(
+            f"tine: warning: {len(hits)} outgoing object(s) fail the {REDACTION_RULESET} "
+            "scan; this push would be refused without --allow-unredacted",
+            file=sys.stderr,
+        )
     return hits
 
 
@@ -132,10 +181,13 @@ def verify(report: dict[str, Any], **keys: Any) -> SignatureResult:
 __all__ = [
     "DOMAIN_PREFIX",
     "REPORT_KIND",
+    "Gate",
+    "check",
     "enforce",
     "outgoing_oids",
     "run_report",
     "scan",
     "sign",
     "verify",
+    "warn_dry_run",
 ]

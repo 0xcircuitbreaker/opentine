@@ -72,10 +72,20 @@ def note_move(base: Path, ref: str, row: dict) -> None:
         op.actors.append(actor)
 
 
-def note(text: str) -> None:
-    """Attach *text* to the running op's log entry (0.45); outside an op it is dropped."""
-    if (op := _current.get()) is not None:
-        op.note = text
+def note(text: str, *, base: Path | None = None) -> None:
+    """Attach *text* to the running op's log entry (0.45).
+
+    With *base*, the note is also logged at once as an entry of its own (no ref
+    moves), and a failed write raises: a verb such as ``push`` moves no local
+    ref, so its end-of-op entry would never be written and the note would be lost.
+    """
+    op = _current.get()
+    if op is not None:
+        op.note = text if op.note is None else f"{op.note}; {text}"
+    if base is not None:
+        entry = _Op(op.command if op is not None else "tine", None)
+        entry.note = text
+        record(Path(base), entry, [])
 
 
 def set_undoes(op_id: str) -> None:
