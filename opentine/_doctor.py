@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import platform
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -55,20 +56,55 @@ def _keys() -> list[dict[str, str]]:
     return [_row("agent-keys", status, detail)]
 
 
-def _hooks(start: Path) -> list[dict[str, str]]:
-    for folder in (start, *start.parents):
-        hooks = folder / ".git" / "hooks"
-        if hooks.is_dir():
-            ours = sorted(
-                path.name
-                for path in hooks.iterdir()
-                if path.is_file()
-                and not path.name.endswith(".sample")
-                and "tine" in path.read_text("utf-8", "replace")
+def _hooks_dir(start: Path) -> Path | None:
+    """The hooks directory git uses here (``core.hooksPath``, linked worktrees), or ``None``."""
+    from opentine.tools._git_guard import git_env
+
+    exe = shutil.which("git")
+    if exe:
+        try:
+            done = subprocess.run(  # hardened: no fsmonitor, no transport, no GIT_* env
+                [exe, "-c", "core.fsmonitor=", "-c", "protocol.allow=never", "-C"]
+                + [start.as_posix(), "rev-parse", "--git-path", "hooks"],
+                capture_output=True,
+                env=git_env(os.environ),
+                stdin=subprocess.DEVNULL,
+                timeout=10,
+                check=False,
             )
-            status = "ok" if ours else "warn"
-            return [_row("git-hooks", status, ", ".join(ours) or "no tine hooks installed")]
-    return [_row("git-hooks", "warn", "not inside a git checkout")]
+        except (OSError, subprocess.SubprocessError):
+            done = None
+        out = done.stdout.decode("utf-8", "replace").strip() if done and not done.returncode else ""
+        if out:
+            return Path(out) if Path(out).is_absolute() else start / out
+        if done is not None and done.returncode:
+            return None  # git ran and says: not a checkout
+    for folder in (start, *start.parents):  # no usable git binary: the plain layout only
+        if (folder / ".git" / "hooks").is_dir():
+            return folder / ".git" / "hooks"
+    return None
+
+
+def _is_tine_hook(path: Path) -> bool:
+    try:
+        return path.is_file() and b"tine" in path.read_bytes()[: 1 << 20]
+    except OSError:
+        return False
+
+
+def _hooks(start: Path) -> list[dict[str, str]]:
+    hooks = _hooks_dir(start)
+    if hooks is None or not start.is_dir():
+        return [_row("git-hooks", "warn", "not inside a git checkout")]
+    if not hooks.is_dir():
+        return [_row("git-hooks", "warn", "no tine hooks installed")]
+    ours = sorted(
+        path.name
+        for path in hooks.iterdir()
+        if not path.name.endswith(".sample") and _is_tine_hook(path)
+    )
+    status = "ok" if ours else "warn"
+    return [_row("git-hooks", status, ", ".join(ours) or "no tine hooks installed")]
 
 
 def _harnesses() -> list[dict[str, str]]:
