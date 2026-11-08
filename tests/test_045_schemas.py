@@ -76,6 +76,9 @@ DRIVEN = (
     (("pricing", "list", "--json"), "tine-cli-envelope-1"),
     (("schema", "list", "--json"), "tine-cli-envelope-1"),
     (("help", "--json"), "tine-help-1"),
+    (("help", "no-such-command", "--json"), "tine-cli-envelope-1"),
+    (("schema", "show", "tine-run-1", "--json"), "tine-cli-envelope-1"),
+    (("schema", "show", "no-such", "--json"), "tine-cli-envelope-1"),
     (("show", "no-such-run", "--json"), "tine-cli-envelope-1"),
     (("bisect", "--help-not-a-flag", "--json"), None),
 )
@@ -127,7 +130,13 @@ def test_schema_show_prints_the_published_bytes(monkeypatch, capsys, room):
     code, out = _tine(monkeypatch, capsys, "schema", "show", "tine-verify-report/2")
     assert code == 0 and out == _schemas.render(_schemas.get("tine-verify-report-2"))
     code, _ = _tine(monkeypatch, capsys, "schema", "show", "no-such")
-    assert code == 1
+    assert code == 3  # not found
+    code, out = _tine(monkeypatch, capsys, "schema", "show", "tine-run-1", "--json")
+    payload = json.loads(out)
+    assert code == 0 and payload["definition"] == _schemas.get("tine-run-1")
+    assert _schemas.validate_output(payload) == []
+    code, _ = _tine(monkeypatch, capsys, "schema", "validate", "missing.json")
+    assert code == 3
 
 
 def test_schema_validate_detects_accepts_and_refuses(monkeypatch, capsys, room):

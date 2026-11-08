@@ -4,7 +4,9 @@
 ``docs/schemas/NAME.schema.json`` holds it; ``validate FILE [--schema NAME]``
 checks a JSON document (``-`` reads stdin), choosing the schema from the
 document's ``schema``/``scheme``/``format`` tag or its ``command`` when none is
-named. ``validate`` exits 4 (verify failed) on an invalid document.
+named. ``validate`` exits 4 (verify failed) on an invalid document; an unknown schema
+or a missing file exits 3 (not found). ``show --json`` wraps the schema in the
+CLI envelope (``definition``) because a bare schema names no ``command``.
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ import sys
 from pathlib import Path
 
 from opentine import _schemas
-from opentine._cli_errors import VERIFICATION_FAILED, fail
+from opentine._cli_errors import NOT_FOUND, VERIFICATION_FAILED, fail
 from opentine._cli_json import emit
 
 MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
@@ -44,6 +46,8 @@ def _read(path: str) -> object:
         if len(raw) > MAX_DOCUMENT_BYTES:
             fail(f"{path} is larger than {MAX_DOCUMENT_BYTES} bytes")
         return json.loads(raw.decode("utf-8"))
+    except FileNotFoundError:
+        fail(f"cannot read {path}: no such file", NOT_FOUND)
     except OSError as exc:
         fail(f"cannot read {path}: {exc.strerror or exc}")
     except (UnicodeDecodeError, ValueError) as exc:
@@ -62,7 +66,12 @@ def cmd_schema(args: argparse.Namespace) -> None:
             else:
                 print("\n".join(f"{r['name']:<30} {r['title']}" for r in rows))
         elif verb == "show":
-            sys.stdout.write(_schemas.render(_schemas.get(args.name)))
+            schema = _schemas.get(args.name)
+            if args.json:  # the envelope: the schema itself names no `command`
+                emit({"command": "schema-show", "name": _schemas.stem(args.name),
+                      "definition": schema})  # fmt: skip
+            else:
+                sys.stdout.write(_schemas.render(schema))
         else:
             name, errors = _schemas.validate(_read(args.file), args.schema)
             if args.json:
@@ -75,7 +84,7 @@ def cmd_schema(args: argparse.Namespace) -> None:
             if errors:
                 raise SystemExit(VERIFICATION_FAILED)
     except _schemas.SchemaError as exc:
-        fail(str(exc.args[0]))
+        fail(str(exc.args[0]), NOT_FOUND)
 
 
 COMMANDS = {"schema": cmd_schema}

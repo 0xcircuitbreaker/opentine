@@ -73,8 +73,10 @@ def cmd_help(args: argparse.Namespace) -> None:
         if args.topic:
             tree["commands"] = [c for c in tree["commands"] if c["name"] == args.topic]
             if not tree["commands"]:
-                print(f"tine help: no such command {args.topic!r}", file=sys.stderr)
-                raise SystemExit(2)
+                from opentine._cli_errors import NOT_FOUND, fail, set_json_mode
+
+                set_json_mode(True)  # `help` takes --json itself, not via the fallback
+                fail(f"tine help: no such command {args.topic!r}", NOT_FOUND)
         emit(tree)
     elif args.topic:
         target = sub.choices.get(args.topic)

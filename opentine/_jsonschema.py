@@ -1,7 +1,7 @@
 """A small JSON Schema 2020-12 validator for the schemas OpenTine publishes (0.45).
 
 OpenTine's core takes no ``jsonschema`` dependency, and its published schemas
-(``opentine/data/schemas``, mirrored in ``docs/schemas``) use only the subset
+(defined in ``opentine/_schema_defs*.py``, rendered to ``docs/schemas``) use only the subset
 below, so this module validates them exactly. A schema that uses a keyword
 outside the subset is refused by :func:`check_schema` rather than silently
 under-checked:
