@@ -207,3 +207,8 @@ def test_items_without_a_run_are_refused(room):
     assert _code("eval", "run", "d.jsonl", "--scorer", "exact", "--key", "k.key", "--out", "e") != 0
     assert _code("eval", "run", "d.jsonl", "--scorer", "exact", "--key", "k.key", "--out", "e",
                  "--run", "run:given") == 0  # fmt: skip
+
+
+def test_a_bad_regex_scorer_is_a_scorer_error():
+    with pytest.raises(ScorerError, match="regex scorer pattern"):
+        parse("regex:(unclosed")

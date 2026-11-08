@@ -156,7 +156,10 @@ def parse(spec: str, **judge: Any) -> Scorer:
     if kind == "exact" and not rest:
         return Scorer("exact", "1", _exact)
     if kind == "regex" and rest:
-        pattern = re.compile(rest)
+        try:
+            pattern = re.compile(rest)
+        except re.error as exc:
+            raise ScorerError(f"regex scorer pattern {rest!r}: {exc}") from exc
         return Scorer("regex", _pin(rest),
                       lambda _i, out: (1.0 if pattern.search(str(out)) else 0.0, ""))  # fmt: skip
     if kind == "json-schema" and rest:
