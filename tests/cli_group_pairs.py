@@ -314,4 +314,11 @@ PAIRS: tuple[tuple, ...] = (
         ["audit", "--policy", "p.toml", "--strict", "--require-signed", "--json"],
         ["agent", "audit", "--policy", "p.toml", "--strict", "--require-signed", "--json"],
     ),
+    (
+        "plain",
+        ["share-link", "create", "R", "--ttl", "1h"],
+        ["share", "create", "R", "--ttl", "1h"],
+    ),
+    ("plain", ["share-link", "revoke", "0123"], ["share", "revoke", "0123"]),
+    ("plain", ["share-link", "list", "--json"], ["share", "list", "--json"]),
 )
