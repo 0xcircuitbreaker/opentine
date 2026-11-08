@@ -770,7 +770,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "e4969aabad34c144743776d33c55ea270ab0f02e04ac3c6243b80a9aaac9f770",
+    "README.md": "6e2bdfc17d8fec225fb8280849daf131d1d35a1ef1e0a889e7d1103cc5674d1b",
     "REASON_CODES.md": "630562244df129e1027743a5cc14c8921fe34122706d6f4315b9b563141580ff",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -1876,7 +1876,7 @@
     "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.45.1",
+  "generated_by": "opentine 0.46.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"

@@ -292,6 +292,8 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.42.0 | Delivered |
 | 0.43.0 | Delivered |
 | 0.44.0 | Delivered |
+| 0.45.0 | Delivered (§10) |
+| 0.45.1 | Delivered (§10, 0.45.x) |
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
