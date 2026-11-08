@@ -185,3 +185,30 @@ def test_ai_share_outputs_follow_the_published_schema(repo, capsys) -> None:
     code, line = _json(capsys, "git", "share-line")
     assert code == 0 and line["lines_attributed"] == 5 and line["line"].startswith("tine: 5/7")
     assert _schemas.validate(line) == ("tine-ai-share-1", [])
+
+
+@pytest.mark.parametrize("path", ["../etc/passwd", "/abs", "a/../b", "a\\b", "C:/x", "a//b"])
+def test_unsafe_note_paths_are_refused(path):
+    with pytest.raises(GitAiFormatError):
+        parse(f"{path}\n  {H} 1\n---\n{json.dumps(META)}\n")
+
+
+def test_crlf_note_parses():
+    note = parse(f"src/app.py\r\n  {H} 1-2\r\n---\r\n{json.dumps(META)}\r\n")
+    assert note["files"] == {"src/app.py": {H: [1, 2]}}
+
+
+def test_export_cannot_inject_attestation_lines():
+    record = {
+        "files": [{"path": "a.py", "ranges": [
+            {"start_line": 1, "end_line": 1, "run": f"git-ai:{S}\n  {H}", "step": T},
+        ]}],
+        "git_ai": {"human_lines": [{"path": "a.py", "key": f"{H} 1\nx", "lines": "1"}]},
+    }  # fmt: skip
+    with pytest.raises(GitAiFormatError):
+        from_attribution("0" * 40, record)
+    record["git_ai"] = {}
+    note = parse(from_attribution("0" * 40, record))
+    assert all(len(keys) == 1 for keys in note["files"].values())
+    with pytest.raises(GitAiFormatError):
+        render({"../x": {H: [1]}}, META)

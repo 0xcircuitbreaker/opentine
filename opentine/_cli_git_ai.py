@@ -141,7 +141,7 @@ def export_git_ai(args: argparse.Namespace) -> None:
                 continue
             notes.write(cwd, sha, convert.from_attribution(sha, record))
             rows.append({"commit": sha, "lines_attributed": record.get("lines_attributed", 0)})
-    except (GitLinkError, OSError, ValueError) as exc:
+    except (GitLinkError, OSError, ValueError, KeyError, TypeError) as exc:
         raise _refuse(f"Export failed: {exc}") from exc
     _report(args, "export", cwd, rows)
 

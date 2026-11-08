@@ -106,7 +106,7 @@ def from_attribution(sha: str, record: dict[str, Any]) -> str:
         for item in entry.get("ranges") or []:
             run, step = str(item.get("run") or ""), str(item.get("step") or "")
             short = run[len(RUN_PREFIX) :] if run.startswith(RUN_PREFIX) else ""
-            if short.startswith("s_") and step.startswith("t_"):
+            if SESSION_KEY.match(f"{short}::{step}"):
                 key, session = f"{short}::{step}", short
             elif short and PROMPT_KEY.match(short):
                 key, session = short, ""

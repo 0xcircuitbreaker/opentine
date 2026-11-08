@@ -74,6 +74,7 @@ def format_ranges(lines: list[int]) -> str:
 
 def parse(text: str) -> dict[str, Any]:
     """``{"files": {path: {key: [line, ...]}}, "metadata": {...}}`` of a v3 note."""
+    text = text.replace("\r\n", "\n")
     head, sep, tail = text.partition("\n---\n")
     if not sep:
         if not text.startswith("---\n"):
@@ -93,18 +94,34 @@ def parse(text: str) -> dict[str, Any]:
         if not raw.strip():
             continue
         if not raw.startswith(" "):
-            path = json.loads(raw) if raw.startswith('"') else raw
-            if not isinstance(path, str) or not path:
-                raise GitAiFormatError("bad file path")
+            try:
+                path = json.loads(raw) if raw.startswith('"') else raw
+            except ValueError as exc:
+                raise GitAiFormatError("bad quoted file path") from exc
+            if not safe_path(path):
+                raise GitAiFormatError(f"bad file path: {str(path)[:40]!r}")
             files.setdefault(path, {})
             continue
         if path is None or not raw.startswith("  "):
             raise GitAiFormatError("attestation before any file path")
         key, _, ranges = raw[2:].partition(" ")
-        if not (SESSION_KEY.match(key) or HUMAN_KEY.match(key) or PROMPT_KEY.match(key)):
+        if not valid_key(key):
             raise GitAiFormatError(f"bad attestation key: {key[:40]!r}")
         files[path][key] = sorted(set(files[path].get(key, [])) | set(parse_ranges(ranges)))
     return {"files": files, "metadata": metadata}
+
+
+def safe_path(path: object) -> bool:
+    """A repository-relative POSIX path: no root, drive, ``..``, backslash or control."""
+    if not isinstance(path, str) or not path or path.startswith("/") or "\\" in path:
+        return False
+    if any(ord(c) < 32 or c == "\x7f" for c in path) or re.match(r"^[A-Za-z]:", path):
+        return False
+    return all(part not in ("", ".", "..") for part in path.split("/"))
+
+
+def valid_key(key: str) -> bool:
+    return bool(SESSION_KEY.match(key) or HUMAN_KEY.match(key) or PROMPT_KEY.match(key))
 
 
 def _quote(path: str) -> str:
@@ -116,6 +133,11 @@ def render(files: dict[str, dict[str, list[int]]], metadata: dict[str, Any]) -> 
     for path in sorted(files):
         if not any(files[path].values()):
             continue
+        if not safe_path(path):
+            raise GitAiFormatError(f"bad file path: {path[:40]!r}")
+        bad = [key for key in files[path] if not valid_key(key)]
+        if bad:
+            raise GitAiFormatError(f"bad attestation key: {bad[0][:40]!r}")
         lines.append(_quote(path))
         for key in sorted(files[path]):
             if files[path][key]:
