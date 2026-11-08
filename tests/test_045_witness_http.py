@@ -145,3 +145,41 @@ def test_an_in_process_server_round_trips(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"",
+        b"\xe2\x80\x94 w AAAA",  # no trailing newline
+        b"\n",
+        b"\xe2\x80\x94 w AAAA\n\nforged body\n",
+        b"- w AAAA\n",
+        b"\xe2\x80\x94 w not*base64\n",
+        b"\xe2\x80\x94 w AAAA\n" * 5,
+    ],
+)
+def test_submit_refuses_a_200_body_that_is_not_cosignature_lines(monkeypatch, body):
+    monkeypatch.setattr(_witness_http, "_post", lambda *_a: (200, body))
+    with pytest.raises(_witness_http.WitnessHTTPError) as caught:
+        _witness_http.submit("http://w", b"o\n1\nr\n\n", proof_for=lambda _old: [])
+    assert caught.value.status == 502
+
+
+def test_a_malformed_content_length_is_a_400_not_a_dropped_connection(tmp_path):
+    import http.client
+
+    key = Ed25519PrivateKey.generate()
+    server = _witness_http.make_server(("127.0.0.1", 0), {}, key, "w", tmp_path / "s")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=10)
+        conn.putrequest("POST", "/add-checkpoint")
+        conn.putheader("Content-Length", "abc")
+        conn.endheaders()
+        assert conn.getresponse().status == 400
+        conn.close()
+    finally:
+        server.shutdown()
+        server.server_close()

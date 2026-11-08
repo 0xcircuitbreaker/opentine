@@ -116,7 +116,8 @@ def make_server(
         def do_POST(self) -> None:  # noqa: N802 - http.server API
             if self.path != "/add-checkpoint":
                 return self._send(404, b"not found\n")
-            length = int(self.headers.get("Content-Length") or 0)
+            text = self.headers.get("Content-Length") or "0"
+            length = int(text) if text.isdigit() else 0
             if not 0 < length <= MAX_BODY:
                 return self._send(400, b"bad length\n")
             try:
@@ -125,8 +126,8 @@ def make_server(
                 kind = SIZE_TYPE if exc.status == 409 else "text/plain"
                 text = str(exc).split(": ", 1)[1]
                 return self._send(exc.status, (text + "\n").encode(), kind)
-            except (OSError, ValueError) as exc:
-                return self._send(500, f"{exc}\n".encode())
+            except (OSError, ValueError):  # no local paths or state details on the wire
+                return self._send(500, b"internal error\n")
             self._send(200, lines)
 
     return ThreadingHTTPServer(address, Handler)
@@ -139,6 +140,34 @@ def _post(url: str, body: bytes, timeout: float) -> tuple[int, bytes]:
             return response.status, response.read(MAX_BODY)
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read(MAX_BODY)
+
+
+MAX_COSIGNATURE_LINES = 4
+
+
+def _cosignature_lines(body: bytes) -> bytes:
+    """A witness's 200 body, only if it is a few well-formed signature lines.
+
+    The lines are appended to the caller's note verbatim, so a hostile or broken
+    witness must not be able to inject a blank line, a body or dozens of lines
+    that would make the whole cosigned checkpoint unparseable for every verifier.
+    """
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise WitnessHTTPError(502, "cosignature is not UTF-8") from exc
+    lines = text.split("\n")
+    if not text.endswith("\n") or not 0 < len(lines) - 1 <= MAX_COSIGNATURE_LINES:
+        raise WitnessHTTPError(502, "malformed cosignature response")
+    for line in lines[:-1]:
+        parts = line.split(" ")
+        if len(parts) != 3 or parts[0] != "\u2014" or not parts[1]:
+            raise WitnessHTTPError(502, "malformed cosignature line")
+        try:
+            base64.b64decode(parts[2], validate=True)
+        except ValueError as exc:
+            raise WitnessHTTPError(502, "cosignature is not base64") from exc
+    return body
 
 
 def submit(
@@ -154,7 +183,7 @@ def submit(
         proof = proof_for(old) if old else []
         status, body = _post(url, encode_request(old, proof, note), timeout)
         if status == 200:
-            return body
+            return _cosignature_lines(body)
         if status == 409 and attempt == 0:
             text = body.decode("ascii", "replace").strip()
             if text.isdigit():
