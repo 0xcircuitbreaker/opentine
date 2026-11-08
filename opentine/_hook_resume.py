@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -80,12 +81,29 @@ def run(agent: str | None, session: str | None, message: str | None, repo: str |
     if dry_run:
         sys.stdout.write(json.dumps({**plan, "dry_run": True}) + "\n")
         return 0
+    program = executable(command[0], command[1:])
     if repo:
         plan["recorded"] = record(repo, agent or "", session or "", message or "")
-    try:
-        return subprocess.run(command, check=False).returncode  # noqa: S603 - no shell
-    except FileNotFoundError as exc:
-        raise ValueError(f"{command[0]} is not on PATH: cannot resume the session") from exc
+    return subprocess.run([program, *command[1:]], check=False).returncode  # noqa: S603
 
 
-__all__ = ["RESUMERS", "argv", "record", "run"]
+#: What cmd.exe re-parses in a ``.cmd``/``.bat`` shim's arguments (BatBadBut).
+_CMD_META = re.compile(r'["%^&|<>!()\r\n]')
+
+
+def executable(name: str, args: list[str]) -> str:
+    """*name* resolved on PATH (Windows installs npm CLIs as ``.cmd`` shims).
+
+    A ``.cmd``/``.bat`` shim runs through cmd.exe, which re-parses its
+    arguments, so text cmd.exe would interpret is refused rather than run.
+    """
+    found = shutil.which(name)
+    if not found:
+        raise ValueError(f"{name} is not on PATH: cannot resume the session")
+    if found.lower().endswith((".cmd", ".bat")) and any(_CMD_META.search(a) for a in args):
+        raise ValueError(f"{name} is a cmd.exe script here: the message cannot carry "
+                         '" % ^ & | < > ! ( ) or line breaks')  # fmt: skip
+    return found
+
+
+__all__ = ["RESUMERS", "argv", "executable", "record", "run"]

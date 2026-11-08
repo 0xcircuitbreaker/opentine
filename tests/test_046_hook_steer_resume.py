@@ -128,6 +128,7 @@ def test_resume_records_the_message_on_the_session_run_then_runs_the_cli(
         return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr("opentine._hook_resume.subprocess.run", fake_run)
+    monkeypatch.setattr("opentine._hook_resume.shutil.which", lambda name: name)
     code, _ = _tine(capsys, "hook", "resume", "--agent", "codex", "--session", "x9",
                     "--message", "and the docs", "--repo", str(root))  # fmt: skip
     assert code == 0 and ran == [["codex", "exec", "resume", "x9", "and the docs"]]
@@ -191,3 +192,32 @@ def test_the_spec_document_names_its_vectors_and_every_vendor_event():
     for name in (*EVENTS, *EXTRA_EVENTS):
         assert f"`{name}`" in text
     assert '<a id="s-8.16"></a>' in (ROOT / "docs" / "SPEC.md").read_text("utf-8")
+
+
+def test_resume_resolves_the_cli_and_refuses_cmd_metacharacters_for_a_cmd_shim(monkeypatch):
+    from opentine._hook_resume import executable
+
+    monkeypatch.setattr("opentine._hook_resume.shutil.which", lambda name: None)
+    with pytest.raises(ValueError, match="not on PATH"):
+        executable("codex", ["exec"])
+    monkeypatch.setattr("opentine._hook_resume.shutil.which", lambda n: f"C:/npm/{n}.CMD")
+    assert executable("gemini", ["--prompt", "plain words"]) == "C:/npm/gemini.CMD"
+    for text in ('a" & calc', "100%PATH%", "x | y", "line\nbreak"):
+        with pytest.raises(ValueError, match="cmd.exe"):
+            executable("gemini", ["--prompt", text])
+    monkeypatch.setattr("opentine._hook_resume.shutil.which", lambda n: f"/usr/bin/{n}")
+    assert executable("claude", ["--print", 'a" & b']) == "/usr/bin/claude"
+
+
+def test_resume_does_not_record_when_the_cli_is_missing(tmp_path, monkeypatch, capsys):
+    from opentine.repo import Repo
+
+    root = _repo(tmp_path)
+    _capture(root, "codex", {"hook_event_name": "Stop", "session_id": "m1",
+                             "last_assistant_message": "done"})  # fmt: skip
+    monkeypatch.setattr("opentine._hook_resume.shutil.which", lambda name: None)
+    code, _ = _tine(capsys, "hook", "resume", "--agent", "codex", "--session", "m1",
+                    "--message", "go on", "--repo", str(root))  # fmt: skip
+    assert code != 0
+    steps = Repo.open(root).load_run(session_ref("codex", "m1")).steps
+    assert steps[-1].inputs != {"prompt": "go on"}

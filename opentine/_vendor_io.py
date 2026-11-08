@@ -52,7 +52,10 @@ def nanos(value: Any) -> int:
     if isinstance(value, bool) or value is None:
         return 0
     if isinstance(value, (int, float)):
-        return int(value) if value > 1e14 else round(value * 1e6) * 1000  # float s: to us
+        if value != value or not 0 < value < 1e19:  # NaN, infinite, negative, overflowing
+            return 0
+        scale = 1 if value >= 1e17 else 1e3 if value >= 1e14 else 1e6 if value >= 1e11 else 1e9
+        return round(value * scale / 1000) * 1000 if scale > 1 else int(value)  # ns, to the us
     if isinstance(value, str) and value:
         if value.isdigit():
             return nanos(int(value))
@@ -216,10 +219,13 @@ def parse_document(fmt: str, text: str) -> list[dict[str, Any]]:
 
 
 def import_events(fmt: str, text: str) -> list[Any]:
-    """``tine import --format <vendor>``: trace events through the OTLP importer."""
+    """``tine import --format <vendor>``: trace events; a malformed file is a ValueError."""
     from opentine.trace.importers import otel_genai_events
 
-    return otel_genai_events(to_otlp(parse_document(fmt, text)))
+    try:
+        return otel_genai_events(to_otlp(parse_document(fmt, text)))
+    except (TypeError, AttributeError, KeyError, IndexError, OverflowError, RecursionError) as exc:
+        raise ValueError(f"malformed {fmt} file: {type(exc).__name__}") from exc
 
 
 def records(document: Any, *keys: str) -> list[dict[str, Any]]:

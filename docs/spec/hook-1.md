@@ -138,7 +138,9 @@ the message is first recorded as a `steer` step (`opentine.steer.from:
 "resume"`) on the session's capture run when it exists. A session id must match
 `[A-Za-z0-9][A-Za-z0-9._:-]{0,255}` and a message must not start with `-`, so
 neither can be read as an option. `--dry-run` prints the plan
-(`tine-cli-hook-resume-1`).
+(`tine-cli-hook-resume-1`). The program is resolved on `PATH`; where it is a
+Windows `.cmd`/`.bat` shim (run by cmd.exe, which re-parses arguments) a
+message carrying `" % ^ & | < > ! ( )` or a line break is refused.
 
 ## Sources
 

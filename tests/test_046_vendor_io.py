@@ -178,3 +178,31 @@ def test_a_vendor_export_is_never_pushed(tmp_path, capsys):
     code, _ = _tine(capsys, "export", str(GOLDEN), "--format", "langsmith", "--endpoint",
                     "http://127.0.0.1:9/")  # fmt: skip
     assert code == 1
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(1.7e9, 1_700_000_000_000_000_000), (1_700_000_000_000, 1_700_000_000_000_000_000),
+     (1_700_000_000_000_000, 1_700_000_000_000_000_000), (1_700_000_000_123_456_789,
+     1_700_000_000_123_456_789), (float("inf"), 0), (float("nan"), 0), (-1, 0), (10**30, 0)],
+)  # fmt: skip
+def test_epoch_numbers_are_read_by_magnitude(value, expected):
+    from opentine._vendor_io import nanos
+
+    assert nanos(value) == expected
+
+
+@pytest.mark.parametrize("fmt", ["langfuse", "phoenix", "braintrust", "langsmith"])
+@pytest.mark.parametrize(
+    "document",
+    [{"batch": 3, "data": 1.5, "spans": True, "runs": 1, "context": 2, "scores": [[1]]},
+     [{"id": "a", "start_time": float("inf"), "startTime": 1e300, "metrics": {"start": 1e300}}],
+     [{"id": ["x"], "span_id": {"a": 1}, "trace_id": [], "events": 1, "attributes": 1}]],
+)  # fmt: skip
+def test_a_malformed_vendor_file_is_a_value_error_not_a_crash(fmt, document):
+    from opentine._vendor_io import import_events
+
+    try:
+        import_events(fmt, json.dumps(document))
+    except ValueError:
+        pass
