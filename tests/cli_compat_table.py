@@ -3587,6 +3587,27 @@ ROWS: tuple[tuple, ...] = (
         {"command": "witness", "witness_command": "vkey", "key": "k"},
     ),
     (
+        "plain:witness serve --key k --name w --log-vkey v",
+        "plain",
+        ["witness", "serve", "--key", "k", "--name", "w", "--log-vkey", "v"],
+        "opentine._cli_witness:cmd_witness",
+        False,
+        {
+            "command": "witness",
+            "witness_command": "serve",
+            "log_vkey": ["v"],
+            "listen": "127.0.0.1:0",
+        },
+    ),
+    (
+        "plain:witness submit cp --url u --tiles t",
+        "plain",
+        ["witness", "submit", "cp", "--url", "u", "--tiles", "t"],
+        "opentine._cli_witness:cmd_witness",
+        False,
+        {"command": "witness", "witness_command": "submit", "url": ["u"], "tiles": "t"},
+    ),
+    (
         "plain:scitt verify s.cose --key k.pem --experimental",
         "plain",
         ["scitt", "verify", "s.cose", "--key", "k.pem", "--experimental"],

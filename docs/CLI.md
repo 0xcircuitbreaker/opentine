@@ -329,6 +329,8 @@ on any break (SPEC §8.9).
 tine witness vkey --key KEY --name NAME
 tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
                     [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
+tine witness serve --key KEY --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
 tine bundle create FILE REF... --transparency
 ```
@@ -348,6 +350,15 @@ is used, trust on first use). `bundle create --transparency` embeds op-log and
 push receipts for the bundled refs so they verify from the bundle alone; such
 bundles need opentine 0.44+ to read. `tine push` and `tine fetch` check the
 remote's audit log automatically (SPEC §8.10).
+
+0.45. `witness serve` runs the same checks behind the C2SP tlog-witness HTTP
+endpoint `POST /add-checkpoint` (default `127.0.0.1`, a free port printed as
+`listening on URL`): 200 returns the cosignature line, 409 the size the witness
+holds, 404 an unknown log, 403 a bad log signature and 422 a fork or rollback.
+`witness submit` sends a checkpoint to each `--url`, answers a 409 with a
+consistency proof from `--tiles`, and prints the checkpoint with every
+cosignature gathered; it exits 4 when no witness cosigned. Log appends are
+O(log n) and the log format is unchanged (`docs/design/log-2.md`).
 
 ```
 tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --experimental
