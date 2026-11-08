@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import uuid
 from urllib.parse import quote
 
 from opentine.repository.pack import inspect_pack
@@ -31,6 +32,18 @@ def test_another_tenants_admin_cannot_read_or_write(api):
     assert b"heads/" not in read.body
     write = api.call("PUT", api.tenant_path("refs/heads%2Fx"), {"new": MISSING}, token="other")
     assert write.status in (403, 404)
+
+
+def test_refusals_do_not_reveal_whether_a_tenant_exists(api):
+    """Anonymous, foreign and unprovisioned callers get the same bytes for a real tenant as
+    for one that does not exist (ROADMAP 0.46: no tenant-existence oracle)."""
+    nowhere = "no-such-tenant-" + uuid.uuid4().hex[:12]
+    for resource in ("refs", "transparency/checkpoint"):
+        for token in (None, "other"):
+            real = api.call("GET", api.tenant_path(resource), token=token)
+            fake = api.call("GET", f"/v1/tenants/{nowhere}/{resource}", token=token)
+            assert real.status in (401, 403, 404)
+            assert (real.status, real.body) == (fake.status, fake.body), (resource, token)
 
 
 def test_an_unknown_route_is_a_uniform_404(api):

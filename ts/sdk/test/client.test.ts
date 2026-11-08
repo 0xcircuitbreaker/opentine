@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { OPERATIONS, TineApiError, TineClient } from "../src/index.js";
+import { OPERATIONS, retryAfter, TineApiError, TineClient } from "../src/index.js";
 
 type Seen = { url: string; init: RequestInit };
 
@@ -91,4 +91,28 @@ test("events parses Server-Sent Events frames, skipping comments and retry hints
     { id: "", kind: "reset", data: {} },
   ]);
   assert.equal((seen[0].init.headers as Record<string, string>)["last-event-id"], "0");
+});
+
+test("dot-segment parameters are refused and redirects are never followed", async () => {
+  const { fetch, seen } = fake(() => json(200, { updated: true }));
+  const client = new TineClient({ baseUrl: "https://t", tenant: "a", token: "x", fetch });
+  assert.throws(() => client.url("updateRef", { ref: ".." }), TypeError);
+  assert.throws(() => new TineClient({ baseUrl: "https://t", tenant: ".", fetch }).url("listRefs"), TypeError);
+  await client.updateRef("heads/main", { new: "run:sha256:" + "a".repeat(64) });
+  assert.equal(seen[0].init.redirect, "error");
+});
+
+test("Retry-After accepts delta-seconds and HTTP-dates", () => {
+  assert.equal(retryAfter("12"), 12);
+  assert.equal(retryAfter("Thu, 01 Jan 1970 00:00:30 GMT", 0), 30);
+  assert.equal(retryAfter("soon"), null);
+  assert.equal(retryAfter(null), null);
+});
+
+test("multi-line SSE data and CRLF framing", async () => {
+  const text = 'id: 2\r\nevent: x\r\ndata: {"a":\r\ndata: 1}\r\n\r\n';
+  const { fetch } = fake(() => new Response(text, { status: 200, headers: { "content-type": "text/event-stream" } }));
+  const events = [];
+  for await (const event of new TineClient({ baseUrl: "https://t", tenant: "a", fetch }).events()) events.push(event);
+  assert.deepEqual(events, [{ id: "2", kind: "x", data: { a: 1 } }]);
 });

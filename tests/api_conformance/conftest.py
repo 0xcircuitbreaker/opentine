@@ -22,6 +22,20 @@ from opentine.remote._openapi import build
 TOKENS = ("writer", "reader", "admin", "other")
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect is an answer, not a hop: following it would re-send the bearer token."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def opener(local: bool) -> urllib.request.OpenerDirector:
+    handlers: list[Any] = [_NoRedirect()]
+    if local:
+        handlers.append(urllib.request.ProxyHandler({}))
+    return urllib.request.build_opener(*handlers)
+
+
 @dataclass
 class Reply:
     status: int
@@ -49,9 +63,8 @@ class Target:
             request.add_header("Content-Type", "application/json")
         for key, value in (headers or {}).items():
             request.add_header(key, value)
-        handlers = [urllib.request.ProxyHandler({})] if self.local else []
         try:
-            with urllib.request.build_opener(*handlers).open(request, timeout=30) as response:
+            with opener(self.local).open(request, timeout=30) as response:
                 return Reply(response.status, dict(response.headers), response.read())
         except urllib.error.HTTPError as error:
             return Reply(error.code, dict(error.headers), error.read())

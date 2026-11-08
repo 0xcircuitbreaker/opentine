@@ -49,6 +49,15 @@ export class TineApiError extends Error {
 
 type Params = Record<string, string>;
 
+/** Retry-After in seconds: delta-seconds or an HTTP-date; null when absent or unparseable. */
+export function retryAfter(value: string | null, now: number = Date.now()): number | null {
+  if (value === null) return null;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const date = Date.parse(trimmed);
+  return Number.isNaN(date) ? null : Math.max(0, Math.ceil((date - now) / 1000));
+}
+
 export class TineClient {
   readonly baseUrl: string;
   readonly tenant: string;
@@ -66,8 +75,11 @@ export class TineClient {
   url(operation: OperationId, params: Params = {}, query: Params = {}): string {
     const values: Params = { tenant: this.tenant, ...params };
     const path = OPERATIONS[operation].path.replace(/\{([a-z_]+)\}/g, (_, name: string) => {
-      if (values[name] === undefined) throw new TypeError(`missing path parameter ${name}`);
-      return encodeURIComponent(values[name]);
+      const value = values[name];
+      if (value === undefined || value === "") throw new TypeError(`missing path parameter ${name}`);
+      // "." and ".." would be dot segments the URL parser collapses, retargeting the request.
+      if (value === "." || value === "..") throw new TypeError(`invalid path parameter ${name}`);
+      return encodeURIComponent(value);
     });
     const search = new URLSearchParams(query).toString();
     return this.baseUrl + path + (search ? `?${search}` : "");
@@ -91,6 +103,8 @@ export class TineClient {
       method: OPERATIONS[operation].method,
       headers,
       body,
+      // Never follow a redirect: it would carry the bearer token to wherever it points.
+      redirect: "error",
     });
     const ok = init.ok ?? [];
     if (response.ok || ok.includes(response.status)) return response;
@@ -100,8 +114,7 @@ export class TineClient {
     } catch {
       parsed = null;
     }
-    const retry = response.headers.get("retry-after");
-    throw new TineApiError(response.status, parsed, retry === null ? null : Number(retry));
+    throw new TineApiError(response.status, parsed, retryAfter(response.headers.get("retry-after")));
   }
 
   private async json<T>(operation: OperationId, init: Parameters<TineClient["send"]>[1] = {}): Promise<T> {
@@ -206,15 +219,23 @@ export class TineClient {
   async *events(lastEventId?: string, signal?: AbortSignal): AsyncGenerator<{ id: string; kind: string; data: unknown }> {
     const headers: Params = lastEventId ? { "last-event-id": lastEventId } : {};
     if (this.token) headers.authorization = `Bearer ${this.token}`;
-    const response = await this.fetchImpl(this.url("streamEvents"), { headers, signal });
-    if (!response.ok || response.body === null) throw new TineApiError(response.status, null, null);
+    const response = await this.fetchImpl(this.url("streamEvents"), { headers, signal, redirect: "error" });
+    if (!response.ok || response.body === null) {
+      let parsed: unknown = null;
+      try {
+        parsed = await response.json();
+      } catch {
+        parsed = null;
+      }
+      throw new TineApiError(response.status, parsed, retryAfter(response.headers.get("retry-after")));
+    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffered = "";
     for (;;) {
       const { done, value } = await reader.read();
       if (done) return;
-      buffered += decoder.decode(value, { stream: true });
+      buffered += decoder.decode(value, { stream: true }).replace(/\r\n?/g, "\n");
       let end: number;
       while ((end = buffered.indexOf("\n\n")) >= 0) {
         const frame = buffered.slice(0, end);
@@ -223,7 +244,11 @@ export class TineClient {
         for (const line of frame.split("\n")) {
           if (line.startsWith(":")) continue;
           const colon = line.indexOf(":");
-          if (colon > 0) fields[line.slice(0, colon)] = line.slice(colon + 1).replace(/^ /, "");
+          if (colon <= 0) continue;
+          const key = line.slice(0, colon);
+          const field = line.slice(colon + 1).replace(/^ /, "");
+          // Per the SSE spec, repeated data lines join with a newline.
+          fields[key] = key === "data" && fields.data !== undefined ? `${fields.data}\n${field}` : field;
         }
         if (fields.data !== undefined && fields.event !== undefined) {
           yield { id: fields.id ?? "", kind: fields.event, data: JSON.parse(fields.data) };

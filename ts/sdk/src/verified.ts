@@ -51,6 +51,13 @@ export async function runClosureVerified(client: TineClient, oid: Oid): Promise<
   return verifyPack(await client.runClosure(oid), [oid]);
 }
 
+/** Decode base64url without Node's Buffer, so this module also runs in browsers. */
+function base64url(text: string): Uint8Array {
+  const plain = text.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(plain + "=".repeat((4 - (plain.length % 4)) % 4));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
 /**
  * A `tine-webhook/1` delivery checked against the keys the remote advertises in
  * `GET /v1/capabilities` (`webhooks.keys`): `valid`, `stale`, `unknown-key`,
@@ -63,7 +70,7 @@ export function verifyWebhook(
   now: number = Math.floor(Date.now() / 1000),
 ): string {
   const listed = caps.webhooks?.keys ?? {};
-  const keys = new Map(Object.entries(listed).map(([kid, key]) => [kid, Uint8Array.from(Buffer.from(key, "base64url"))]));
+  const keys = new Map(Object.entries(listed).map(([kid, key]) => [kid, base64url(key)]));
   const window = BigInt(caps.webhooks?.replay_window ?? 300);
   return webhookClass(body, header, keys, BigInt(now), window);
 }

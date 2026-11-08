@@ -2533,8 +2533,9 @@ Rules every implementation keeps: tenant routes are private by default (no
 anonymous read; `401` without valid credentials); every read is authorized
 per tenant; a request for an object the caller may not read answers exactly
 like one for an object that does not exist (a uniform `404`, or, for `fetch`,
-an empty pack), and a tenant-level refusal (`403`) never depends on the oid
-asked for, so no response is an oid-existence oracle; repeated failed
+an empty pack), and a tenant-level refusal (`401`/`403`) never depends on the oid
+asked for or on whether the tenant exists, so no response is an oid- or
+tenant-existence oracle; repeated failed
 authentication and exhausted quotas answer `429` with `Retry-After`; and the
 server never signs as a user: signed objects (runs, attestations, project
 manifests) arrive client-signed and are stored as received. A client verifies

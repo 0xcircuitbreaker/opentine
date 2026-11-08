@@ -7,6 +7,7 @@ from urllib.parse import quote
 
 from opentine.kernel import ObjectEnvelope
 from opentine.repository.pack import inspect_pack
+from tests.api_conformance.conftest import opener
 
 ABSENT = "run:sha256:" + "f" * 64
 
@@ -28,8 +29,7 @@ def test_events_stream_is_server_sent_events_for_readers_only(api):
     assert api.call("GET", path, token="other").status in (403, 404)
     request = urllib.request.Request(api.base + path)
     request.add_header("Authorization", f"Bearer {api.tokens['reader']}")
-    handlers = [urllib.request.ProxyHandler({})] if api.local else []
-    with urllib.request.build_opener(*handlers).open(request, timeout=30) as response:
+    with opener(api.local).open(request, timeout=30) as response:
         assert response.status == 200
         assert response.headers["Content-Type"].startswith("text/event-stream")
         assert response.readline().startswith(b"retry:")
@@ -75,9 +75,8 @@ def test_object_read_is_verifiable_and_a_uniform_404(api, work):
     assert reply.status == 200
     assert ObjectEnvelope.decode(reply.body).oid == oid  # the client checks what it got
     absent = api.call("GET", api.tenant_path("objects/" + quote(ABSENT, safe="")), token="reader")
-    hidden = api.call("GET", api.tenant_path("objects/" + quote(oid, safe="")), token="other")
-    assert absent.status == hidden.status == 404
-    assert absent.body == hidden.body  # no oid-existence oracle across tenants
+    assert absent.status == 404
+    _assert_no_cross_tenant_oracle(api, "objects/{}", oid)
 
 
 def test_run_closure_is_a_pack_holding_the_run(api, work):
@@ -87,8 +86,21 @@ def test_run_closure_is_a_pack_holding_the_run(api, work):
     assert reply.status == 200
     assert oid in {object_id for object_id, _ in inspect_pack(reply.body)[1]}
     absent = api.call("GET", api.tenant_path(f"runs/{quote(ABSENT, safe='')}/closure"))
-    hidden = api.call("GET", api.tenant_path(f"runs/{quote(oid, safe='')}/closure"), token="other")
-    assert absent.status == hidden.status == 404 and absent.body == hidden.body
+    assert absent.status == 404
+    _assert_no_cross_tenant_oracle(api, "runs/{}/closure", oid)
+
+
+def _assert_no_cross_tenant_oracle(api, template, oid):
+    """Another tenant's caller gets the same refusal for an object that exists as for one that
+    does not (a 403 at the tenant check, or a 404), byte for byte."""
+
+    def get(target):
+        path = api.tenant_path(template.format(quote(target, safe="")))
+        return api.call("GET", path, token="other")
+
+    present, absent = get(oid), get(ABSENT)
+    assert present.status in (403, 404)
+    assert (present.status, present.body) == (absent.status, absent.body)
 
 
 def test_list_pages_runs(api, work):
