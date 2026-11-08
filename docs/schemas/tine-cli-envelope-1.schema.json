@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-envelope-1.schema.json",
+  "title": "tine --json envelope",
+  "description": "Every `tine ... --json` writes exactly one JSON object to stdout: a command's own object (it names `command`), the fallback wrapper of a command without its own JSON (`command`, `exit_code`, `output`), or an error object. The five v3 plumbing verbs (fsck, object, migrate-v3, fetch, push) print bare JSON and are exempt.",
+  "$defs": {
+    "error": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": [
+            "code",
+            "exit_code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "exit_code": {
+              "type": "integer"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "required": [
+        "command",
+        "exit_code",
+        "output"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "output": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ]
+}

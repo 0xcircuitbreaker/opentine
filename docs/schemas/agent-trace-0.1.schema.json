@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/agent-trace-0.1.schema.json",
+  "title": "Agent Trace record (OpenTine export)",
+  "description": "`tine export --format agent-trace`: the subset of agent-trace.dev trace-record v0.1 OpenTine writes. The upstream schema is authoritative.",
+  "type": "object",
+  "required": [
+    "version",
+    "id",
+    "timestamp",
+    "files"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "conversations"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "conversations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "contributor",
+                "ranges"
+              ],
+              "properties": {
+                "contributor": {
+                  "type": "object",
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "ai",
+                        "human",
+                        "mixed",
+                        "unknown"
+                      ]
+                    },
+                    "model_id": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "ranges": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "start_line",
+                      "end_line"
+                    ],
+                    "properties": {
+                      "start_line": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "end_line": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

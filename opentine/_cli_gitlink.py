@@ -9,6 +9,8 @@ from typing import Any, NoReturn
 from opentine._blame import blame, git_blame
 from opentine._cli_attribute import HANDLERS as GIT_EXTRAS
 from opentine._cli_attribute import add_git_extras
+from opentine._cli_blame import COMMANDS as BLAME_COMMANDS
+from opentine._cli_blame import add_blame_parser, cmd_blame_lines, wants_lines
 from opentine._cli_common import RUNS_DIR, _runs_dir, _terminal, console
 from opentine._cli_errors import fail
 from opentine._cli_evidence import add_evidence_parser
@@ -36,8 +38,8 @@ from opentine._git_link_hook import (
     staged_paths,
 )
 from opentine._git_link_runs import RunCatalog, open_catalog, run_summary
-from opentine._git_push_sync import HOOK as PRE_PUSH
-from opentine._git_push_sync import script
+from opentine._git_share_hook import add_install_flags, extra_hooks
+from opentine._trailers import commit_links
 
 
 def _fail(message: str) -> NoReturn:
@@ -75,13 +77,12 @@ def _install_hook(args: argparse.Namespace) -> None:
         # Chosen by the user running install here, not read later from a clone.
         repo = str(cwd / ".tine") if (cwd / ".tine").is_dir() else ""
         runs_dir = "" if repo else str(cwd / RUNS_DIR)
-    hooks = [install_hook(cwd, global_=args.global_)]
-    if args.push or args.strict:  # also carry the trailers' runs on every git push
-        text = script(strict=args.strict)
-        hooks.append(install_hook(cwd, global_=args.global_, hook=PRE_PUSH, text=text))
+    extra, rewrite_ref = extra_hooks(args, cwd)  # --push, --ai-share; notes.rewriteRef
+    hooks = [install_hook(cwd, global_=args.global_), *extra]
     record_source(cwd, repo=repo, runs_dir=runs_dir, global_=args.global_)
     payload = {"hook": str(hooks[0]), "global": bool(args.global_), "repo": repo}
     payload.update(runs_dir=runs_dir, hooks=[str(hook) for hook in hooks])
+    payload["rewrite_ref_configured"] = rewrite_ref
     emit_or_print(
         args,
         "git install-hook",
@@ -159,10 +160,13 @@ def _log(args: argparse.Namespace) -> None:
                 f"{row['commit'][:12]}  {_terminal(row['run'])}  ({row['source']})  {detail}"
             )
 
-    emit_or_print(args, "git log", {"commits": shas, "runs": rows}, human)
+    links = [commit_links(cwd, sha) for sha in shas]  # the strict 0.45 trailer link set
+    emit_or_print(args, "git log", {"commits": shas, "runs": rows, "links": links}, human)
 
 
 def cmd_blame(args: argparse.Namespace) -> None:
+    if wants_lines(args):  # git-compatible: --porcelain, --line-porcelain, --lines
+        return cmd_blame_lines(args)
     path, _, line_text = (
         args.target.rpartition(":") if ":" in args.target else (args.target, "", "")
     )
@@ -216,8 +220,7 @@ def add_gitlink_parsers(sub: Any) -> None:
     install.add_argument("--global", dest="global_", action="store_true", help="For every repo")
     install.add_argument("--repo", metavar="PATH", help="v3 repository the hook reads runs from")
     install.add_argument("--runs-dir", metavar="PATH", help="Runs directory the hook reads")
-    install.add_argument("--push", action="store_true", help="Also push trailer runs on git push")
-    install.add_argument("--strict", action="store_true", help="With --push: block on failure")
+    add_install_flags(install)  # --push, --strict, --ai-share
     install.add_argument("--json", action="store_true")
     add_git_extras(git_sub)  # push-runs, attribute, attribution
     note = git_sub.add_parser("note", help="Record runs on a commit under refs/notes/tine")
@@ -233,18 +236,12 @@ def add_gitlink_parsers(sub: Any) -> None:
     for parser in (note, log, trailers):
         parser.add_argument("--repo", metavar="PATH", help="Read a v3 repository instead")
         parser.add_argument("--json", action="store_true")
-    blame_parser = sub.add_parser("blame", help="Which run, step and model wrote a file or line")
-    blame_parser.add_argument("target", metavar="PATH[:LINE]")
-    blame_parser.add_argument(
-        "--git", action="store_true", help="Go through git blame and commit links"
-    )
-    blame_parser.add_argument("--repo", metavar="PATH", help="Read a v3 repository instead")
-    blame_parser.add_argument("--json", action="store_true")
+    add_blame_parser(sub)  # also `why` and `attach`
     add_rewind_parser(sub)  # blame's sibling: the same recorded writes, undone
     add_view_parser(sub)
     add_evidence_parser(sub)
 
 
-COMMANDS = {"git": cmd_git, "blame": cmd_blame}
+COMMANDS = {"git": cmd_git, "blame": cmd_blame, **BLAME_COMMANDS}
 
 __all__ = ["COMMANDS", "add_gitlink_parsers", "cmd_blame", "cmd_git"]

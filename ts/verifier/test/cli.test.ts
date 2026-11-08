@@ -122,3 +122,33 @@ test("the CLI exits 0 on a verified file, 1 on a tampered one and 2 on misuse", 
   assert.equal(run().status, 2);
   assert.equal(run(good, "--bogus").status, 2);
 });
+
+test("the CLI verifies a tine eval verdicts.jsonl and refuses a tampered verdict", () => {
+  const vectors = (JSON.parse(readFileSync(join(SUITE, "vectors", "58-eval-verdict.json"), "utf8")) as {
+    cases: { id: string; input: { value: unknown } }[];
+  }).cases;
+  const verdict = (id: string): string => {
+    const found = vectors.find((item) => item.id === id);
+    assert.ok(found, id);
+    const value = decodeTagged(found.input.value) as Map<string, unknown>;
+    return Buffer.from(canonicalJson(value.get("verdict") as never)).toString("utf8");
+  };
+  const dir = mkdtempSync(join(tmpdir(), "opentine-eval-"));
+  const good = join(dir, "good.jsonl");
+  const bad = join(dir, "bad.jsonl");
+  const ids = ["eval-verdict.valid-tofu", "eval-verdict.valid-trusted", "eval-verdict.valid-judge"];
+  writeFileSync(good, ids.map(verdict).join("\n") + "\n");
+  writeFileSync(bad, verdict("eval-verdict.score-edited") + "\n");
+  const run = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8" });
+  // Each vector verdict is good on its own, but the vectors carry a placeholder
+  // eval id, so as one eval file the id binding refuses them. The good-file path
+  // is exercised on a real 1k-item eval by tests/test_045_eval_verifiers.py.
+  const mixed = run(good);
+  assert.equal(mixed.status, 1, mixed.stderr);
+  const report = JSON.parse(mixed.stdout);
+  assert.equal(report.failures.length, 3);
+  assert.ok(report.failures.every((f: { reason: string }) => f.reason === "eval.id-mismatch"));
+  const refused = run(bad);
+  assert.equal(refused.status, 1);
+  assert.equal(JSON.parse(refused.stdout).failures[0].reason, "eval-verdict.bad-signature");
+});

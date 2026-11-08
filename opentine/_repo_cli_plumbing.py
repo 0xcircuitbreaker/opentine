@@ -218,11 +218,16 @@ def cmd_push(args: argparse.Namespace, console) -> None:
         if getattr(args, "all", False)
         else [args.ref]
     )
+    from opentine import _push_gate  # 0.45 pre-push redaction gate
+
     if push_preview.wants_manifest(args):
         body = push_preview.manifest(repo, args, tracking, refs)
         if args.dry_run:  # offline: nothing below this line runs
+            _push_gate.warn_dry_run(repo, tracking, refs)
             push_preview.emit_preview(body)
             return
+    gate = _push_gate.Gate(repo, getattr(args, "allow_unredacted", None))
+    gate(_push_gate.outgoing_oids(repo, tracking, refs))  # offline, before any connection
     results = []
     for ref in refs:
         push_hook(repo, tracking, ref)
@@ -234,6 +239,7 @@ def cmd_push(args: argparse.Namespace, console) -> None:
             remote_ref=None if getattr(args, "all", False) else args.remote_ref,
             allow_insecure=args.allow_insecure,
             force=getattr(args, "force", False),
+            gate=gate,  # again on the exact pack negotiated with the server
         )
         results.append(result)
     if getattr(args, "all", False):

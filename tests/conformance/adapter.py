@@ -49,6 +49,7 @@ from opentine.kernel import (
 from opentine.redaction import redact_blob, redact_value
 from tests.conformance import adapter_agent as agent_ops
 from tests.conformance import adapter_delegation as delegation_ops
+from tests.conformance import adapter_eval as eval_ops
 from tests.conformance import adapter_repo as repo_ops
 from tests.conformance import adapter_tlog as tlog_ops
 from tests.conformance import adapter_write as write_ops
@@ -278,5 +279,6 @@ OPS = {
     **write_ops.OPS,
     **agent_ops.OPS,
     **delegation_ops.OPS,
+    **eval_ops.OPS,
     **tlog_ops.OPS,
 }

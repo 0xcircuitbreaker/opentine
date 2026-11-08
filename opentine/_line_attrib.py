@@ -27,7 +27,7 @@ from typing import Any
 from opentine import _signed_doc
 from opentine._actions import extract_actions
 from opentine._blame import inserted_lines, same_file
-from opentine._git_link import NOTES_REF, GitLinkError, git, note_text
+from opentine._git_link import IDENTITY_ENV, NOTES_REF, GitLinkError, git, note_text
 
 SCHEMA = "opentine-line-attribution/1"
 DOMAIN = b"opentine.line-attribution.v1:"
@@ -150,7 +150,10 @@ def write_note(cwd: Path | str, sha: str, record: dict[str, Any]) -> None:
         kept.pop()
     line = PREFIX + json.dumps(record, sort_keys=True, separators=(",", ":"))
     body = "\n".join([*kept, "", line] if kept else [line]) + "\n"
-    git(cwd, "notes", f"--ref={NOTES_REF}", "add", "-f", "-F", "-", sha, stdin=body.encode())
+    git(
+        cwd, "notes", f"--ref={NOTES_REF}", "add", "-f", "-F", "-", sha,
+        stdin=body.encode(), keep_env=IDENTITY_ENV,
+    )  # fmt: skip
 
 
 def verify(cwd: Path | str, sha: str, record: dict[str, Any], public_key: Any = None) -> dict:

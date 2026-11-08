@@ -7,6 +7,11 @@ and prints the checkpoint with a C2SP ``cosignature/v1`` line added
 (``_witness``). ``witness vkey --key KEY --name N`` prints the witness's
 verifier key for others to pin with ``verify --witness-vkey``.
 
+0.45: ``witness serve --key KEY --name N --log-vkey V... [--listen HOST:PORT]``
+runs the same decisions behind the C2SP tlog-witness HTTP endpoint
+``POST /add-checkpoint`` (``_witness_http``), and ``witness submit CHECKPOINT
+--url U... [--tiles DIR]`` collects cosignatures from running witnesses.
+
 ``scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM]``
 checks a COSE_Sign1 signed statement and its receipts offline (``_scitt``); it
 refuses to run without ``--experimental``.
@@ -17,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -42,10 +48,21 @@ def add_witness_parsers(sub: Any) -> None:
     cosign.add_argument("--state", help="Witness state directory (default: XDG state dir)")
     cosign.add_argument("--out", metavar="FILE", help="Write the cosigned checkpoint here")
     vkey = actions.add_parser("vkey", help="Print this witness's verifier key")
-    for parser in (cosign, vkey):
+    serve = actions.add_parser("serve", help="Serve the C2SP tlog-witness HTTP protocol")
+    serve.add_argument("--log-vkey", action="append", required=True, help="A log to witness")
+    serve.add_argument("--listen", default="127.0.0.1:0", help="HOST:PORT (default: free port)")
+    serve.add_argument("--state", help="Witness state directory (default: XDG state dir)")
+    submit = actions.add_parser("submit", help="Collect cosignatures from witnesses over HTTP")
+    submit.add_argument("checkpoint", metavar="CHECKPOINT", help="Signed-note checkpoint file")
+    submit.add_argument("--url", action="append", required=True, help="Witness base URL")
+    submit.add_argument("--tiles", metavar="DIR", help="Local tile mirror for proofs")
+    submit.add_argument("--out", metavar="FILE", help="Write the cosigned checkpoint here")
+    submit.add_argument("--json", action="store_true", help="Emit a JSON object instead")
+    for parser in (cosign, vkey, serve):
         parser.add_argument("--key", required=True, metavar="KEY", help="Ed25519 key file")
         parser.add_argument("--name", required=True, help="Witness name (e.g. example.com/w1)")
-        parser.add_argument("--json", action="store_true", help="Emit a JSON object instead")
+        if parser is not serve:
+            parser.add_argument("--json", action="store_true", help="Emit a JSON object instead")
     scitt = sub.add_parser("scitt", help="Verify SCITT signed statements offline (experimental)")
     scitt_actions = scitt.add_subparsers(dest="scitt_command", required=True)
     check = scitt_actions.add_parser("verify", help="Check a COSE_Sign1 statement and receipts")
@@ -70,8 +87,12 @@ def cmd_witness(args: argparse.Namespace) -> None:
     from opentine._signing_keys import SignatureError, ed25519_private_from_file
     from opentine.repository._tlog_cosign import witness_vkey
 
+    if args.witness_command == "submit":
+        return _submit(args)
     try:
         key = ed25519_private_from_file(args.key)
+        if args.witness_command == "serve":
+            return _serve(args, key)
         if args.witness_command == "vkey":
             vkey = witness_vkey(args.name, key.public_key().public_bytes_raw())
             print(json.dumps({"vkey": vkey}) if args.json else vkey)
@@ -96,6 +117,48 @@ def cmd_witness(args: argparse.Namespace) -> None:
         console.print(f"[{BRAND}]# Cosigned[/] {result['origin']} at size {result['size']}")
     else:
         print(result["checkpoint"], end="")
+
+
+def _serve(args: argparse.Namespace, key: Any) -> None:
+    from opentine import _witness_http
+    from opentine.repository._tlog_note import parse_vkey
+
+    host, _, port = args.listen.rpartition(":")
+    logs = {parse_vkey(v)[0]: v for v in args.log_vkey}
+    state = Path(args.state or _state_default())
+    server = _witness_http.make_server(
+        (host or "127.0.0.1", int(port)), logs, key, args.name, state
+    )
+    bound_host, bound_port = server.server_address[:2]
+    print(f"listening on http://{bound_host}:{bound_port}", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
+def _submit(args: argparse.Namespace) -> None:
+    from opentine import _witness_http
+    from opentine.repository._tlog import LogError
+
+    try:
+        note = _read(args.checkpoint)
+        tiles = Path(args.tiles) if args.tiles else None
+        cosigned, errors = _witness_http.gather(args.url, note, tiles)
+    except (OSError, LogError) as exc:
+        fail(exc, prefix="tine witness submit: ", cause=exc)
+    if args.out:
+        Path(args.out).write_bytes(cosigned)
+    if args.json:
+        print(json.dumps({"checkpoint": cosigned.decode(), "errors": errors}, sort_keys=True))
+    elif not args.out:
+        print(cosigned.decode(), end="")
+    for url, error in sorted(errors.items()):
+        print(f"tine witness submit: {url} refused: {error}", file=sys.stderr)
+    if len(errors) == len(args.url):
+        fail("no witness cosigned", VERIFICATION_FAILED, prefix="tine witness submit: ")
 
 
 def cmd_scitt(args: argparse.Namespace) -> None:

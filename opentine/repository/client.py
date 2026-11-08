@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -169,8 +170,13 @@ def push(
     allow_insecure: bool = False,
     timeout: float = 120,
     force: bool = False,
+    gate: Callable[[list[str]], Any] | None = None,
 ) -> TransferResult:
-    """Send *ref*'s run; *force* asks a fast-forward-only server to move a head anyway."""
+    """Send *ref*'s run; *force* asks a fast-forward-only server to move a head anyway.
+
+    *gate* (the 0.45 pre-push redaction gate) sees the exact objects of the
+    negotiated pack before any byte is uploaded, and refuses by raising.
+    """
     local_oid = repo.read_ref(ref)
     if not local_oid:
         raise KeyError(f"local ref not found: {ref}")
@@ -183,6 +189,8 @@ def push(
         known = reachable(repo, [old], include_associated=False) if old and repo.has(old) else []
         short: list[str] = []
         pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
+        if gate is not None:
+            gate(missing)
         pack = _pack_peer.for_peer(pack, caps)  # v4/v5 only to a server listing it
         uploaded = _upload(
             client,

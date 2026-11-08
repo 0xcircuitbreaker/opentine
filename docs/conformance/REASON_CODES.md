@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (115)
+## The codes (120)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -84,6 +84,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `envelope.schema-not-integer` | 1.2 | -- | a schema that is a bool, a float, a string or null | coerce true to 1 or 1.0 to 1 |
 | `envelope.schema-out-of-range` | 1.2 | -- | a schema outside 1 <= schema < 2**53 | clamp the value into range |
 | `envelope.unknown-type` | 1.1 | `kernel.OBJECT_TYPES` | a type outside blob/event/run/attestation/annotation | store an unknown type as an opaque extension |
+| `eval-verdict.bad-signature` | 4.12 | -- | a verdict whose tine-sig/3 block fails or whose embedded key is not the signer | trust a verdict's score without checking its signature |
+| `eval-verdict.inconsistent` | 4.12 | -- | a signed verdict whose passed is not score >= threshold | read passed without re-deriving it from the score and threshold |
+| `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
+| `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
+| `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
 | `graph.causal-outside-graph` | 1.5.3 | -- | a locally present event whose causal link is not in the run's events | add the missing link to events |
 | `graph.legacy-refs-invalid` | 1.5.3 | -- | a legacy_refs value that is not a string->event-in-run mapping | drop the offending entry |
 | `graph.order-not-topological` | 1.5.3 | -- | an events list where a parent or causal link is not at a strictly earlier index | sort events topologically on read |

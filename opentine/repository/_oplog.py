@@ -40,6 +40,7 @@ class _Op:
         self.command, self.undoes = command, undoes
         self.moves: dict[Path, dict[str, list]] = {}  # base -> ref -> [old, new]
         self.actors: list[str] = []
+        self.note: str | None = None  # 0.45: e.g. a push's --allow-unredacted reason
 
 
 def log_root(base: Path) -> Path:
@@ -69,6 +70,22 @@ def note_move(base: Path, ref: str, row: dict) -> None:
     actor = row["actor"]
     if actor not in op.actors:
         op.actors.append(actor)
+
+
+def note(text: str, *, base: Path | None = None) -> None:
+    """Attach *text* to the running op's log entry (0.45).
+
+    With *base*, the note is also logged at once as an entry of its own (no ref
+    moves), and a failed write raises: a verb such as ``push`` moves no local
+    ref, so its end-of-op entry would never be written and the note would be lost.
+    """
+    op = _current.get()
+    if op is not None:
+        op.note = text if op.note is None else f"{op.note}; {text}"
+    if base is not None:
+        entry = _Op(op.command if op is not None else "tine", None)
+        entry.note = text
+        record(Path(base), entry, [])
 
 
 def set_undoes(op_id: str) -> None:
@@ -109,6 +126,8 @@ def record(base: Path, op: _Op, rows: list[dict]) -> None:
         "undoes": op.undoes,
         "writers": op.actors,
     }
+    if op.note is not None:  # absent otherwise, so pre-0.45 entries are unchanged
+        body["note"] = op.note
 
     def chained(entries: list[bytes]) -> bytes:
         prev = _tlog.leaf_hash(entries[-1]).hex() if entries else None

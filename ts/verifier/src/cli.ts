@@ -2,6 +2,9 @@
 /**
  * opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]
  *
+ * FILE is a `.tine` artifact or (0.45) a `verdicts.jsonl` of `tine-eval-verdict/1`
+ * objects, checked under --pubkey or, without it, each verdict's embedded key.
+ *
  * Prints one JSON report. Exit 0: intact, and no signature check failed (an
  * unsigned or unchecked file still passes integrity; read `signature.state`).
  * Exit 1: integrity or signature failure. Exit 2: usage error.
@@ -11,11 +14,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { TineError } from "./errors.js";
 import type { VerifyKeys } from "./signature.js";
 import { verifyFile } from "./verify.js";
+import { verifyEvalFile } from "./evalverdict.js";
 
 const USAGE =
   "usage: opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]\n" +
   "  Verifies a .tine format v4 artifact: every envelope id, the root, the\n" +
-  "  annotation chain and its tine-sig/3 signatures. Exactly one key option.\n";
+  "  annotation chain and its tine-sig/3 signatures. Exactly one key option.\n" +
+  "  A FILE ending in .jsonl is a tine eval verdicts.jsonl (Ed25519 verdicts).\n";
 
 function keyMaterial(text: string): Uint8Array {
   const raw = existsSync(text) ? readFileSync(text) : Buffer.from(text, "utf8");
@@ -51,6 +56,12 @@ function main(argv: string[]): number {
   if (file === undefined) {
     process.stderr.write(USAGE);
     return 2;
+  }
+  if (file.endsWith(".jsonl")) {
+    // 0.45: a verdicts.jsonl of tine-eval-verdict/1 objects (Ed25519 only).
+    const evalReport = verifyEvalFile(file, keys.publicKey ?? undefined);
+    process.stdout.write(JSON.stringify(evalReport, null, 2) + "\n");
+    return evalReport.ok ? 0 : 1;
   }
   const report = verifyFile(file, keys);
   process.stdout.write(JSON.stringify(report, null, 2) + "\n");

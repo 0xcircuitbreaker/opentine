@@ -122,16 +122,11 @@ def _origin_of(note: bytes) -> str:
 
 
 def append(root: Path, origin: str, make: Callable[[list[bytes]], bytes]) -> int:
-    """Append ``make(entries)`` to the verified log, under its lock; return its index."""
-    with _tlog.log_lock(root):
-        private = _signer(root, origin)
-        entries = verify_log(root, origin)
-        old_size = len(entries)
-        entry = make(entries)
-        if len(entry) > _tlog.MAX_ENTRY_BYTES:
-            raise _tlog.LogError("log entry exceeds 65535 bytes")
-        entries.append(entry)
-        _tlog.write_tiles(root, entries, old_size)
-        tree_root = _tlog.merkle_root([_tlog.leaf_hash(e) for e in entries])
-        atomic_bytes(root / "checkpoint", sign_checkpoint(private, origin, len(entries), tree_root))
-        return old_size
+    """Append ``make(tail)`` under the log's lock in O(log n); return its index.
+
+    ``tail`` is ``[last entry]`` (or ``[]`` for an empty log): callers chain on
+    ``tail[-1]``. See :mod:`._tlog_append` (0.45; 0.44 passed every entry).
+    """
+    from opentine.repository import _tlog_append
+
+    return _tlog_append.append(root, origin, make)

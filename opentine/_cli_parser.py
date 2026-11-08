@@ -6,6 +6,7 @@ import argparse
 
 from opentine._cli_bisect import add_bisect_parser
 from opentine._cli_cost_export import add_cost_export_arguments
+from opentine._cli_eval import add_eval_parsers
 from opentine._cli_export import add_export_parser
 from opentine._cli_fleet import add_fleet_parser
 from opentine._cli_gitlink import add_gitlink_parsers
@@ -210,10 +211,8 @@ def _build_parser() -> argparse.ArgumentParser:
     add_verify_args(verify)
 
     # --json is purely additive (not on `export`, whose output is the document itself).
-    # `replay` earns it only through --verify, whose verdict is a result a script
-    # reads; a plain replay's output is the artifact it writes. `import` writes an
-    # artifact too, but its result is the run id a caller must then address, and
-    # `tag` earns it on its listing mode alone (see cmd_tag).
+    # `replay` earns it only through --verify; a plain replay's output is its artifact.
+    # `import` returns the run id a caller must address; `tag` only lists (cmd_tag).
     readable = (show, verify, listing, search, stats, cost, price, replay, diff, importer, tag)
     for command in readable:
         command.add_argument(
@@ -227,6 +226,7 @@ def _build_parser() -> argparse.ArgumentParser:
     add_actions_parsers(sub)
     add_gitlink_parsers(sub)
     add_bisect_parser(sub)
+    add_eval_parsers(sub)  # 0.45: tine eval, tine dataset
     add_media_parser(sub)
     add_record_parser(sub)
     add_hook_parser(sub)

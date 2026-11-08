@@ -337,6 +337,15 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.10: verify an opentine-delegation/1 chain for a signer, time and scope",
     },
+    "eval-verdict.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["item", "passed", "signer"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.12: verify a tine-eval-verdict/1 verdict, under a trusted key if given",
+    },
     "actions.chain": {
         "profile": VERIFIER,
         "input": ["value"],

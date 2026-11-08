@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-verify-dataset-1.schema.json",
+  "title": "tine-verify-dataset/1",
+  "description": "What `tine verify --offline DIR|REPO --json` writes: one verdict per run and a Merkle root over (run_id, digest) (SPEC 8.3). A directory's runs embed their tine-verify-report/2.",
+  "type": "object",
+  "required": [
+    "schema",
+    "command",
+    "offline",
+    "path",
+    "kind",
+    "strict",
+    "verdict",
+    "ok",
+    "count",
+    "merkle",
+    "checks",
+    "runs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tine-verify-dataset/1"
+    },
+    "command": {
+      "const": "verify"
+    },
+    "offline": {
+      "const": true
+    },
+    "path": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "merkle": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "root"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "ok",
+          "detail"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "digest",
+          "ok"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "report": {
+            "$ref": "tine-verify-report-2.schema.json"
+          }
+        }
+      }
+    }
+  }
+}

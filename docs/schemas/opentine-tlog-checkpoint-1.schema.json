@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-tlog-checkpoint-1.schema.json",
+  "title": "opentine-log/1 checkpoint",
+  "description": "A C2SP signed-note checkpoint: origin, size and base64 root lines, a blank line, then one or more signature lines.",
+  "type": "string",
+  "pattern": "^[^\\n]+\\n[0-9]+\\n[A-Za-z0-9+/=]+\\n\\n(— [^\\n]+\\n)+$"
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-delegation-1.schema.json",
+  "title": "opentine-delegation/1",
+  "description": "A principal key delegating scoped authority to an agent key (_delegation).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scheme",
+    "issuer",
+    "subject",
+    "scope",
+    "not_before",
+    "not_after",
+    "parent",
+    "signature"
+  ],
+  "properties": {
+    "scheme": {
+      "const": "opentine-delegation/1"
+    },
+    "issuer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agents",
+        "actions",
+        "max_depth"
+      ],
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "not_before": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "not_after": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "parent": {
+      "anyOf": [
+        {
+          "const": ""
+        },
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

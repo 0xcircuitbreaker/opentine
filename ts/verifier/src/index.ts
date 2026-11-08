@@ -15,3 +15,4 @@ export {
 } from "./signature.js";
 export { verifyFile, type Report } from "./verify.js";
 export { isV5Artifact, v5ToV4, V5_KIND } from "./v5.js";
+export { parseTrailers, TrailerError, type Link as TrailerLink } from "./trailers.js";

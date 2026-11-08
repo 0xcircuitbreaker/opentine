@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-assurance-1.schema.json",
+  "title": "Assurance",
+  "description": "Claimed and verified assurance tier of a run (_assurance.assess): T0 self-reported .. T3 witnessed and timestamped. `verified` never exceeds what was checked.",
+  "type": "object",
+  "required": [
+    "claimed",
+    "verified"
+  ],
+  "properties": {
+    "claimed": {
+      "enum": [
+        "T0",
+        "T1",
+        "T2",
+        "T3"
+      ]
+    },
+    "verified": {
+      "enum": [
+        "T0",
+        "T1",
+        "T2",
+        "T3"
+      ]
+    },
+    "witness": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

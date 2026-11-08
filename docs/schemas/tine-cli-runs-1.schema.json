@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-runs-1.schema.json",
+  "title": "tine ls / search --json",
+  "description": "Legacy index rows; `query` on search only.",
+  "type": "object",
+  "required": [
+    "command",
+    "count",
+    "runs"
+  ],
+  "properties": {
+    "command": {
+      "enum": [
+        "ls",
+        "search"
+      ]
+    },
+    "query": {
+      "type": "string"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "short_id",
+          "status",
+          "model",
+          "steps",
+          "cost",
+          "created_at"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "short_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cost": {
+            "type": "number"
+          },
+          "created_at": true,
+          "mtime": true,
+          "format_version": true,
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "file": {
+            "type": "string"
+          },
+          "unreadable": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

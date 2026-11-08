@@ -62,6 +62,8 @@ def cmd_op(args: argparse.Namespace) -> None:
         console.print(f"[{BRAND}]{op['id']}[/] {_terminal(op['command'])}{undoes}")
         for row in op["refs"]:
             console.print(f"  {_terminal(row['ref'])}: {row['old'] or '-'} -> {row['new'] or '-'}")
+        if op.get("note"):
+            console.print(f"  note: {_terminal(op['note'])}")
 
 
 def cmd_undo(args: argparse.Namespace) -> None:

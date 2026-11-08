@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-sig-3.schema.json",
+  "title": "tine-sig/3 signed-document block",
+  "description": "The Ed25519 block _signed_doc writes into signed JSON documents (SPEC Part 4).",
+  "type": "object",
+  "required": [
+    "scheme",
+    "alg",
+    "value"
+  ],
+  "properties": {
+    "scheme": {
+      "const": "tine-sig/3"
+    },
+    "alg": {
+      "type": "string"
+    },
+    "signer": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string",
+      "pattern": "^[0-9a-f]+$"
+    },
+    "public_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]+$"
+    },
+    "key_id": {
+      "type": "string"
+    },
+    "signed_at": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    }
+  }
+}

@@ -19,6 +19,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from opentine import _bundle, _bundle_sigs
 from opentine._git_link import git_binary
@@ -115,9 +116,20 @@ def _read_remote(work: Path, url: str, timeout: float) -> tuple[str | None, byte
     return head, _git(work, "cat-file", "blob", spec, timeout=timeout, limit=size)
 
 
-def push(repo: Repo, remote: str, refs: list[str] | None, *, timeout: float = 120.0) -> dict:
+def _gate(repo: Repo, gate: Any, tips: Any) -> None:
+    """Run the 0.45 pre-push redaction gate over every object a bundle of *tips* carries."""
+    from opentine._push_gate import Gate
+    from opentine.repository._pack_fit import fitted_pack
+
+    (gate or Gate(repo, None))(fitted_pack(repo, sorted(set(tips)), [])[1])
+
+
+def push(
+    repo: Repo, remote: str, refs: list[str] | None, *, timeout: float = 120.0, gate: Any = None
+) -> dict:
     url = remote_spec(remote)
     data = _bundle.create(repo, refs)
+    _gate(repo, gate, _bundle.verify(data).refs.values())  # refuses before any remote call
     with tempfile.TemporaryDirectory(prefix="tine-git-") as tmp:
         work = Path(tmp)
         _git(work, "init", "-q", "--bare", ".", timeout=timeout)
@@ -128,13 +140,16 @@ def push(repo: Repo, remote: str, refs: list[str] | None, *, timeout: float = 12
     return {"remote": remote, "ref": REMOTE_REF, "commit": commit, "bytes": len(data)}
 
 
-def push_refs(repo: Repo, remote: str, refs: dict[str, str], *, timeout: float = 120.0) -> dict:
+def push_refs(
+    repo: Repo, remote: str, refs: dict[str, str], *, timeout: float = 120.0, gate: Any = None
+) -> dict:
     """Add *refs* to the remote bundle, keeping every ref it already holds.
 
     The remote bundle is verified and its objects imported (no local ref moves),
     so the new bundle is the union; nothing is pushed when it already has them.
     """
     url = remote_spec(remote)
+    _gate(repo, gate, refs.values())  # what the remote already holds is not re-scanned
     with tempfile.TemporaryDirectory(prefix="tine-git-") as tmp:
         work = Path(tmp)
         _git(work, "init", "-q", "--bare", ".", timeout=timeout)

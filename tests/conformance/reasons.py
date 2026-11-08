@@ -756,6 +756,37 @@ REASONS: dict[str, Reason] = {
         "a link the parent's max_depth does not allow",
         "ignore max_depth and accept a chain of any length",
     ),
+    # --- eval verdicts (4.12) ------------------------------------------------- #
+    "eval-verdict.malformed": R(
+        "4.12",
+        None,
+        "a verdict with a missing, extra or ill-formed key, or a non-canonical score",
+        "compare scores as floats, or accept a verdict whose fields differ from the schema",
+    ),
+    "eval-verdict.bad-signature": R(
+        "4.12",
+        None,
+        "a verdict whose tine-sig/3 block fails or whose embedded key is not the signer",
+        "trust a verdict's score without checking its signature",
+    ),
+    "eval-verdict.wrong-key": R(
+        "4.12",
+        None,
+        "a verdict signed by a key other than the trusted one",
+        "accept any embedded key when the caller supplied a trusted one",
+    ),
+    "eval-verdict.inconsistent": R(
+        "4.12",
+        None,
+        "a signed verdict whose passed is not score >= threshold",
+        "read passed without re-deriving it from the score and threshold",
+    ),
+    "eval-verdict.judge-mismatch": R(
+        "4.12",
+        None,
+        "an llm-judge verdict without a judge_run, or another scorer with one",
+        "accept a model's judgement that no recorded run backs",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

@@ -38,7 +38,7 @@ _STRING = {"type": "string"}
 #: JSON Schema (2020-12) of the document :meth:`Report.as_json` returns.
 JSON_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://opentine.dev/schemas/tine-verify-report-2.json",
+    "$id": "https://opentine.com/schemas/tine-verify-report-2.schema.json",
     "title": SCHEMA,
     "$comment": (
         "checks are ordered: digest, signature, provenance, attestation, rekor-receipt, "

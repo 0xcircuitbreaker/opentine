@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-show-1.schema.json",
+  "title": "tine show --json",
+  "description": "One run and its steps.",
+  "type": "object",
+  "required": [
+    "command",
+    "path",
+    "run",
+    "steps"
+  ],
+  "properties": {
+    "command": {
+      "const": "show"
+    },
+    "path": {
+      "type": "string"
+    },
+    "run": {
+      "$ref": "tine-run-1.schema.json"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "tine-step-1.schema.json"
+      }
+    },
+    "assurance": {
+      "$ref": "tine-assurance-1.schema.json"
+    }
+  }
+}

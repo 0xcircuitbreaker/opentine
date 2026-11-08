@@ -1,5 +1,124 @@
 # Changelog
 
+## 0.45.0 — See it, score it (2026-11-08)
+
+### Behaviour changes
+
+- `tine push` re-scans every outgoing object with the current redaction
+  ruleset (`opentine-redaction/2`): first offline, then on the exact pack
+  negotiated with the server. It refuses on findings, naming object ids only,
+  never the matched bytes. Objects that cannot be decoded count as findings.
+  `tine bundle push` and the git pre-push run sync are gated the same way, and
+  `tine push --dry-run` warns when the real push would be refused.
+- A failed audit transparency append on `tine serve` is retried three times
+  and then fails the write. 0.44 only printed a warning, so a server could
+  acknowledge a write its public log never showed.
+- `tine schema show NAME --json` wraps the schema in the CLI envelope
+  (`{"command": "schema-show", "name", "definition"}`), and `tine help
+  UNKNOWN --json` prints a JSON error. An unknown schema or a missing file
+  exits 3 (not found).
+- `tine help --json` publishes no machine-specific flag defaults: absolute
+  paths and values taken from the environment become `null`.
+- `tine verify --offline`: the delegation check passes with reason
+  `delegation.verified` (was `ok`, which broke the `tine-verify-report/2`
+  reason grammar).
+- `tine git install-hook` sets `notes.rewriteRef=refs/notes/tine`, so amend
+  and rebase keep attribution notes.
+- `tine git log --json` adds `links`: each commit's strict
+  `Tine-Run`/`Tine-Project` link set, or its grammar error.
+
+### Added
+
+- **`tine ui`**: a read-only local run viewer on 127.0.0.1. It serves only
+  redacted data, refuses requests whose Host is not `127.0.0.1:PORT` or
+  `localhost:PORT`, and answers API errors with a generic 500. The viewer is
+  the shared `ts/run-viewer` bundle, shipped prebuilt in the package.
+- **Evals.** `tine eval run|verify|compare` and `tine dataset
+  add|import|export|show`. Datasets are JSON Lines; local Hugging Face folders
+  of JSON Lines splits import and export offline. Scorers: `exact`, `regex:`,
+  a JSON Schema subset, Python callables and `llm-judge:`, whose prompt and
+  reply are recorded as their own run. Each item gets a signed
+  `tine-eval-verdict/1` (SPEC 4.12), checked by `tine eval verify`,
+  `tine-verify.pyz` and the TypeScript verifier. Every verifier recomputes the
+  eval id from each verdict (`eval.id-mismatch`) and refuses a repeated item
+  (`eval.duplicate-item`). `eval compare --exit-code` exits 1 on a regression.
+- **Blame and attach.** `tine blame --porcelain` prints `git blame
+  --porcelain` byte for byte with `tine-run`/`tine-step`/`tine-model` headers
+  on attributed lines; `--lines --json` emits `tine-blame/1`. `tine why
+  FILE:LINE` prints the causal run slice of the line's writer, and `tine
+  attach RUN COMMIT` writes the run and attribution notes after the fact.
+  `tine git install-hook --ai-share` adds a post-commit hook that prints the
+  commit's agent line share.
+- **Trailers.** The `Tine-Run: <run-oid>[ <project_id>]` (repeatable) and
+  `Tine-Project` (at most once) trailer grammar, with Python and TypeScript
+  parsers that agree on the trailer vectors.
+- **`tine import --format agent-trace`**: one model event per conversation and
+  one `agent_trace.attribution` tool event per file.
+- **Witness HTTP.** `tine witness serve` and `tine witness submit` speak the
+  C2SP tlog-witness protocol (`POST /add-checkpoint`); `submit` answers a 409
+  with a consistency proof from local tiles. `docs/design/log-2.md` records
+  keeping `opentine-log/1`.
+- **Tiled log appends** in O(log n) from the tile right edge. Bytes on disk
+  are unchanged.
+- **JSON Schemas.** Every object kind and `--json` output has a published
+  schema in `docs/schemas/`, including the new `tine-verify-dataset-1`.
+  `tine schema list|show|validate` and `tine help --json` (`tine-help/1`).
+  `docs/SPEC.md` is versioned (0.45.0) with stable section anchors, and Part
+  12 covers the schemas. The test suite checks every `--json` output it drives
+  against them.
+- **`--allow-unredacted REASON`** on `tine push` and `tine bundle push` writes
+  an op-log entry with a `note` before anything is sent. If the entry cannot
+  be written, the push is refused. `tine undo` skips note-only entries, and
+  `tine op log` shows notes.
+- **`tine redact check`** prints one redaction report per run, optionally
+  signed (`opentine.redaction-report.v1:` + JCS of `{body, header}`), with
+  pinned HMAC and Ed25519 test vectors.
+- **`tine doctor [--bundle PATH]`** runs offline checks of the environment,
+  keys, hooks, harnesses and remotes, and writes a redacted support bundle.
+  It finds hooks through git, so linked worktrees and `core.hooksPath` work.
+- The 58-eval-verdict conformance family.
+
+### Security
+
+- `tine ui` refuses foreign Host headers, so a DNS-rebinding page cannot read
+  the run API through 127.0.0.1.
+- The `--allow-unredacted` REASON is redacted before it reaches the op log.
+- Attribution notes are repository data anyone can push: `tine blame
+  --porcelain` type-checks ranges, caps credited lines at 200,000 and reduces
+  run and model values to one header word, so a note cannot forge porcelain
+  headers. `tine why` escapes the path it echoes.
+- Agent Trace import redacts the conversation URL, whose query string can
+  carry a session token.
+- `tine witness submit` accepts only well-formed cosignature lines (502
+  otherwise); `tine witness serve` answers a malformed `Content-Length` with
+  400, and its 500 replies carry no local paths or exception text.
+
+### Compatibility
+
+- Object ids are unchanged, and the tiled log's bytes are unchanged.
+- Reports from `tine verify --offline` that relied on the delegation reason
+  `ok` now read `delegation.verified`.
+- Scripts that read `tine schema show --json` get the schema under
+  `definition`.
+- The suite is now **693 conformance vectors**; 232 of the 693 refuse input, and the adapter contract still has one entry point: 41 ops.
+
+### Deferred
+
+- In-browser verification in `tine ui` reads `unchecked` until the TypeScript
+  verifier bundle ships in the viewer.
+- The redaction ruleset is not exported as data for the web; the redaction
+  report vectors are a Python test fixture, not a conformance family, and
+  there is no `tine redact verify`.
+- No JSON Schemas yet for `redact check --json`, `doctor --json` or the
+  redaction report; the Agent Trace export is not validated against
+  `agent-trace-0.1`. The schemas are not shipped as a separate package.
+- `tine redact check` exits 1 on findings and on a missing `--run`, not 3 or
+  4.
+- `tine schema validate` reports Python's recursion limit on a very deeply
+  nested document as a generic error (exit 1).
+- 0.45.x: the new harnesses, Git AI v3 notes, SSE and webhooks, and the
+  `tine-ai-share/1` schema.
+
 ## 0.44.0 — Transparency, search and TS verifier GA (2026-11-07)
 
 ### Added

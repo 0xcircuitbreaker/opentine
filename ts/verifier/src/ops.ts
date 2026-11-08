@@ -14,6 +14,7 @@ import { TineError } from "./errors.js";
 import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
+import { verifyEvalVerdict } from "./evalverdict.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
@@ -201,6 +202,13 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         agent: value.get("agent"),
         actions: Array.isArray(actions) ? (actions as string[]) : [],
       });
+    }
+    case "eval-verdict.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const trusted = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
+      const found = verifyEvalVerdict(value.get("verdict") as JValue, trusted);
+      return { item: found.item, passed: found.passed, signer: found.signer };
     }
     case "actions.chain": {
       const value = valueOf(input) as JObject;

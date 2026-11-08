@@ -31,8 +31,8 @@ class UndoRefused(ValueError):
 def find_op(ops: list[dict], selector: str | None) -> dict:
     if not ops:
         raise KeyError("the op log is empty: nothing to undo")
-    if selector is None:
-        return ops[-1]
+    if selector is None:  # the newest op that moved a ref (a note-only entry has none)
+        return next((op for op in reversed(ops) if op["refs"]), ops[-1])
     exact = [op for op in ops if selector in (op["id"], str(op["index"]))]
     matches = exact or [op for op in ops if op["id"].startswith(selector)]
     if len(matches) != 1:

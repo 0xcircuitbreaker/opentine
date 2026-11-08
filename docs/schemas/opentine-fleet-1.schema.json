@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-fleet-1.schema.json",
+  "title": "opentine-fleet/1",
+  "description": "metadata.fleet: which fleet member produced a run (a claim until signed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scheme",
+    "fleet_id",
+    "member",
+    "role",
+    "parent"
+  ],
+  "properties": {
+    "scheme": {
+      "const": "opentine-fleet/1"
+    },
+    "fleet_id": {
+      "type": "string"
+    },
+    "member": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "parent": {
+      "type": "string"
+    }
+  }
+}

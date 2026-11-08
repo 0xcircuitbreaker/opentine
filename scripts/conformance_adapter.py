@@ -58,6 +58,15 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("is not the previous", "delegation.broken-chain"),
         ("root issuer is not", "delegation.broken-chain"),
     ),
+    "eval-verdict.verify": (
+        ("signing key is not the signer", "eval-verdict.bad-signature"),
+        ("signature ", "eval-verdict.bad-signature"),
+        ("other than the trusted one", "eval-verdict.wrong-key"),
+        ("passed disagrees", "eval-verdict.inconsistent"),
+        ("names a judge_run", "eval-verdict.judge-mismatch"),
+        ("tine-eval-verdict/1", "eval-verdict.malformed"),
+        ("must be", "eval-verdict.malformed"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.

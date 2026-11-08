@@ -329,6 +329,8 @@ on any break (SPEC §8.9).
 tine witness vkey --key KEY --name NAME
 tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
                     [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
+tine witness serve --key KEY --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
 tine bundle create FILE REF... --transparency
 ```
@@ -348,6 +350,15 @@ is used, trust on first use). `bundle create --transparency` embeds op-log and
 push receipts for the bundled refs so they verify from the bundle alone; such
 bundles need opentine 0.44+ to read. `tine push` and `tine fetch` check the
 remote's audit log automatically (SPEC §8.10).
+
+0.45. `witness serve` runs the same checks behind the C2SP tlog-witness HTTP
+endpoint `POST /add-checkpoint` (default `127.0.0.1`, a free port printed as
+`listening on URL`): 200 returns the cosignature line, 409 the size the witness
+holds, 404 an unknown log, 403 a bad log signature and 422 a fork or rollback.
+`witness submit` sends a checkpoint to each `--url`, answers a 409 with a
+consistency proof from `--tiles`, and prints the checkpoint with every
+cosignature gathered; it exits 4 when no witness cosigned. Log appends are
+O(log n) and the log format is unchanged (`docs/design/log-2.md`).
 
 ```
 tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --experimental
@@ -799,6 +810,76 @@ the `tine git install-hook --push` pre-push hook send `refs/tine/bundle` --
 the runs named by `Tine-Run:` trailers -- to that remote instead of the code
 remote, keeping transcripts off the code host.
 
+## Local run viewer: `tine ui` (0.45)
+
+`tine ui [RUN] [--port N] [--open]` serves a read-only viewer on 127.0.0.1
+(never another interface; `--port 0`, the default, picks a free port). Without
+RUN it lists every run in the runs directory (up to the CLI scan limit). Tabs:
+timeline (prompt, model, tool, human and steer steps; each step's input parts,
+tool arguments and results load when expanded), workspace (files rebuilt from
+recorded writes at step N, and a unified diff between two steps), run DAG
+(`parents[]`, `forked_from`, children, merge steps), fleet groups, verify and
+attribution (the step and model that last wrote each file).
+
+- **Redaction:** every string, keys included, is re-redacted at serve time;
+  text the redactor cannot read is withheld.
+- **No network:** the server answers GET and HEAD only, and its
+  Content-Security-Policy allows nothing but its own origin (`connect-src
+  'self'`). The page fetches no external resource. A request whose `Host` is
+  not `127.0.0.1:PORT` or `localhost:PORT` gets 403, so a DNS-rebinding page
+  cannot read runs; `--port` must be 0..65535.
+- **Verification states** are `verified`, `failed`, `partial`, `unchecked` and
+  `unpinned`, each labelled with who computed it. Integrity and assurance are
+  checked by the local `tine`; a signature is `unpinned` because `tine ui` pins
+  no key (use `tine verify --pubkey`). The browser's own re-check reads
+  `unchecked` until the TS verifier's browser bundle ships.
+- **Assets** are built from `ts/run-viewer` (`npm ci && npm run build`) into
+  `opentine/data/ui` and committed; a test rebuilds them and compares bytes.
+
+JSON API (same origin, all redacted): `/api/runs`, `/api/run/RUN`,
+`/api/run/RUN/step/N`, `/api/run/RUN/verify`, `/api/run/RUN/attribution`,
+`/api/run/RUN/tree?step=N`, `/api/run/RUN/diff?a=N&b=M`. It is not a stable
+interface yet.
+
+## Pre-push redaction gate, `tine redact check` and `tine doctor` (0.45)
+
+```
+tine push REMOTE [--allow-unredacted REASON] ...
+tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
+tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
+                  [--out PATH] [--json] [--repo R]
+tine doctor [--bundle PATH] [--json] [--repo R]
+```
+
+Before a real push sends anything, every outgoing object is re-scanned with
+the current redaction ruleset (`opentine-redaction/2`): first, offline, the set
+`--dry-run` counts from the tracking refs, then again the exact pack negotiated
+with the server (it can hold more, e.g. after the remote was reset). `tine
+bundle push` and the git pre-push run sync are gated the same way over every
+object the bundle carries. An object the redactor would still change, or one
+that cannot be decoded, is a finding, and the push is refused (exit 1) naming
+the object ids -- never the matched bytes. `--allow-unredacted REASON` pushes
+anyway; before anything is sent it writes an op-log entry (`tine op log`,
+command `push`, no ref moves) whose `note` is `allow-unredacted: REASON (N
+object(s))`, with REASON itself redacted, and a failed write refuses the push.
+`tine undo` with no selector skips such note-only entries. `--dry-run` is not
+gated; it warns on stderr when the real push would be refused.
+
+`tine redact check` prints one redaction report per run reachable from
+`heads/*` (or each `--run`): `{kind: "opentine.redaction-report",
+report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
+key flag signs each report with a `tine-sig/3` header block over
+`opentine.redaction-report.v1:` + JCS of `{body, header}`; pinned HMAC and
+Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`. It exits
+1 when any report has findings.
+
+`tine doctor` runs offline checks (opentine and Python versions, platform, git,
+the names of `OPENTINE_*`/`TINE_*` variables, agent keys by name, tine git
+hooks, installed harnesses, the repository and its configured remotes; remote
+capabilities are not probed). It exits 1 only on a `fail` row. `--bundle PATH`
+writes the report as canonical JSON after `redact_value`, and refuses to write
+it if any credential shape survives.
+
 ## Run summaries: `tine explain` (0.42)
 
 ```
@@ -876,6 +957,67 @@ a run: `total_lines`, `ai_lines`, `ai_share`, `by_model`, per-file counts and
 `commits_with_attribution`. Lines in commits without a note count as not
 attributed.
 
+## Blame, why and attach (0.45)
+
+```
+tine blame FILE --porcelain | --line-porcelain [--rev REV] [-L START,END]
+tine blame FILE --lines [--rev REV] [-L START,END] [--json]
+tine why FILE:LINE [--json]
+tine attach RUN COMMIT [--sign-key KEY] [--no-configure] [--json]
+tine git install-hook [--ai-share] [--push [--strict]] [--global]
+tine import SOURCE --format agent-trace --save OUT.tine
+```
+
+`tine blame FILE --porcelain` prints `git blame --porcelain` for `FILE` at
+`--rev` (default `HEAD`, textconv off) exactly as git wrote it. Before each
+content line that a commit's attribution note credits to a run it adds three
+header lines, `tine-run RUN`, `tine-step SEQ` and `tine-model MODEL`; a file
+with no attributed lines is byte for byte what git prints. `--lines` shows one
+row per line (commit, run, line number, text) and `--lines --json` emits a
+`tine-blame/1` record: `command` (`blame`), `path`, `revision`, `total_lines`, `ai_lines` and per
+line `line`, `commit`, `orig_path`, `orig_line`, `author`, `author_mail`,
+`author_time`, `summary`, `text` and `ai` (`{run, seq, model}` or `null`).
+`tine blame PATH[:LINE]` without these flags is unchanged.
+
+`tine why FILE:LINE` follows the line to the commit that last changed it, the
+runs that commit links and its attribution note, and prints the causal slice
+of the run that wrote it: the writing step and every step it descends from
+(`seq`, `step_id`, `kind`, `tool`, `model`).
+
+`tine attach RUN COMMIT` links a run captured after the fact: it is
+`tine git attribute COMMIT RUN`, writing the run note and the line attribution
+note (signed with `--sign-key`) and setting `notes.rewriteRef`, so the link
+survives `commit --amend` and `rebase`.
+
+Commit trailers follow one grammar, read the same way by `tine git log` and
+the web:
+
+```
+Tine-Run: <run-oid>[ <project_id>]     (repeatable)
+Tine-Project: <project_id>             (at most once)
+```
+
+A `Tine-Run` without its own project takes the `Tine-Project` one. A strict
+parse rejects two `Tine-Project` lines, a malformed run id or project id
+(lower-case slug), and extra words. `tine git log --json` reports each
+commit's strict link set under `links` (`{commit, links, error}`); its `runs`
+rows and the commit-msg hook keep reading leniently. Lines end at `\n` only (a
+trailing `\r` is dropped), keys are ASCII and case-insensitive, and words split
+on spaces and tabs only. The TypeScript parser the web uses
+(`ts/verifier/src/trailers.ts`) passes the same vectors:
+`tests/data/trailer_vectors.json`.
+
+`tine git install-hook` now also sets `notes.rewriteRef=refs/notes/tine` in the
+repository (not with `--global`) and reports `rewrite_ref_configured`.
+`--ai-share` (opt-in) adds a `post-commit` hook that prints one line per
+commit, `tine: A/N added line(s) by agents (P%) on SHA`, from the attribution
+note or the linked runs; it writes nothing and never fails a commit.
+
+`tine import --format agent-trace` reads Agent Trace records (one, an array,
+or JSONL): one `model` event per conversation and one `agent_trace.attribution`
+tool event per file with its path, ranges and contributor type. Agent Trace
+carries no content, so nothing is recorded as a write.
+
 ## Fleet coordination: tasks, leases and steering (0.43)
 
 | Command | What it does |
@@ -910,3 +1052,66 @@ index transaction or none (`409 {"updated": false}`). The server lists
 `"ref_txn": true` in `/v1/capabilities`; `tine push` then moves the head and
 the run's annotation ref in one transaction, and keeps one `PUT` per ref
 against a server that does not list it.
+
+## Evals and datasets (0.45)
+
+```text
+tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT]
+tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
+                    [--id-field F] [--input-field F] [--expected-field F]
+tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
+tine dataset show DATASET.jsonl
+tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
+              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
+tine eval verify DIR [--pubkey PUB]
+tine eval compare A B [--pubkey PUB] [--exit-code]
+```
+
+A dataset is JSON Lines, one item per line: `id` and `input` are required,
+`expected`, `output`, `run` and `metadata` optional. `dataset add --from-run`
+appends the run's prompt as `input`, its last answer as `output` and the run
+itself as `run`. `--format hf` reads or writes a local Hugging Face folder of
+JSON Lines splits (`<split>.jsonl` or `data/<split>*.jsonl`, with
+`dataset_info.json` and a dataset card on export); nothing is downloaded and
+Parquet is not read.
+
+`eval run` scores each item's `output` (or the `--outputs` row with the same
+`id`) and signs one `tine-eval-verdict/1` per item (SPEC 4.12) with the
+Ed25519 `--key`. Scorers: `exact`; `regex:PATTERN`; `json-schema:FILE` (a
+subset: type, enum, const, required, properties, additionalProperties,
+items, minimum, maximum, minLength, maxLength); `python:MODULE:FUNC` or
+`python:FILE.py:FUNC`, called as `FUNC(output, item)` and returning a bool, a
+number in 0..1 or `{"score": n}`; and `llm-judge:PROVIDER[:MODEL]`, whose
+prompt and reply are saved as their own run (tagged `eval-judge`) that the
+verdict names as `judge_run`. The judge must end its reply with
+`SCORE: <0..1>`. An item passes when its score is at least `--threshold`
+(default 1). Every item must name the run it scores (`run`, or `--run`).
+
+The eval folder holds `verdicts.jsonl` and an unsigned `eval.json` summary
+(`tine-eval/1`: eval id, dataset digest, scorer and version, counts, mean
+score). `eval verify` checks every verdict and that the summary matches them;
+every verdict's eval id must be recomputed from its own dataset, scorer,
+threshold, time and signer (`eval.id-mismatch`), so one eval has one signer,
+and no item may repeat (`eval.duplicate-item`). Without `--pubkey` that signer
+is trusted on first use. `eval compare`
+verifies both evals, then lists `regressed` (pass to fail), `fixed`,
+`changed` scores, `only_a`/`only_b` items and the mean-score delta;
+`--exit-code` exits 1 on any regression. A failed verification exits 4.
+`tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
+check the same verdicts without opentine installed.
+
+## JSON Schemas and `tine help --json` (0.45)
+
+| Command | What it does |
+| --- | --- |
+| `tine schema list [--json]` | Names every published JSON Schema (`docs/schemas/NAME.schema.json`) |
+| `tine schema show NAME [--json]` | Prints one schema; `NAME` may be the file stem (`tine-verify-report-2`) or the tag (`tine-verify-report/2`). `--json` wraps it as `{"command": "schema-show", "name", "definition"}`; an unknown name exits 3 |
+| `tine schema validate FILE [--schema NAME] [--json]` | Validates a JSON document (`-` reads stdin); exit 4 when it is invalid, 3 when the file or schema does not exist |
+| `tine help [COMMAND] --json` | The command and flag tree as `tine-help/1`, for generated reference docs |
+
+`validate` picks the schema from the document's `schema`, `scheme` or `format`
+tag, else from its `command`, so `tine verify RUN --offline --json | tine schema
+validate -` needs no `--schema`. Every `--json` object meets the envelope
+`tine-cli-envelope-1`, and the commands with a fixed shape (`show`, `verify`,
+`ls`, `search`, `cost`, `blame`, `repo-show`, `repo-search`) also meet their own
+schema. The rules are in SPEC.md Part 12.

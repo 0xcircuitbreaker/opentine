@@ -25,6 +25,7 @@ from opentine._cli_common import (
     _step_label,
     console,
 )
+from opentine._cli_eval import COMMANDS as EVAL_COMMANDS
 from opentine._cli_evidence import COMMANDS as EVIDENCE_COMMANDS
 from opentine._cli_execute import cmd_cost, cmd_price, cmd_run, cmd_run_harness, cmd_show
 from opentine._cli_export import cmd_export
@@ -79,8 +80,7 @@ from opentine.remote.server import cmd_serve
 from opentine.repo_cli import REPO_COMMANDS, cmd_repo
 from opentine.repository._oplog import operation
 
-# The legacy (v2) command table. REPO_COMMANDS owns the v3 side; the two must stay
-# disjoint and together cover every parser choice — tests/test_repo_cli_routing.py.
+# The legacy command table; disjoint from REPO_COMMANDS (tests/test_repo_cli_routing.py).
 LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "cost": cmd_cost,
     "diff": cmd_diff,
@@ -113,6 +113,7 @@ LEGACY_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **REWIND_COMMANDS,
     **VIEW_COMMANDS,
     **EVIDENCE_COMMANDS,
+    **EVAL_COMMANDS,
     **HOOK_COMMANDS,
     **PLUGIN_COMMANDS,
     **FLEET_COMMANDS,
@@ -183,8 +184,7 @@ def _dispatch(parser, args) -> None:
         console.print(f"\n  [{BRAND}]opentine[/] — git for agent runs\n")
         parser.print_help()
     else:
-        # A parser choice nobody routes is a packaging bug, not a usage banner: the
-        # old fall-through printed help and exited 0, so CI never saw the hole.
+        # An unrouted parser choice is a packaging bug: fail loudly, not with help.
         print(f"tine: unrouted command {args.command!r}", file=sys.stderr)
         raise SystemExit(1)
 

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-help-1.schema.json",
+  "title": "tine help --json",
+  "description": "The machine-readable command and flag tree the web's generated CLI docs read.",
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": [
+        "name",
+        "summary",
+        "flags",
+        "subcommands"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "advanced": {
+          "type": "boolean"
+        },
+        "usage": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "flags",
+              "dest"
+            ],
+            "properties": {
+              "flags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dest": {
+                "type": "string"
+              },
+              "help": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "metavar": true,
+              "nargs": true,
+              "choices": {
+                "anyOf": [
+                  {
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "takes_value": {
+                "type": "boolean"
+              },
+              "default": true
+            }
+          }
+        },
+        "subcommands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/command"
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "version",
+    "prog",
+    "commands"
+  ],
+  "properties": {
+    "command": {
+      "const": "help"
+    },
+    "schema": {
+      "const": "tine-help/1"
+    },
+    "version": {
+      "type": "string"
+    },
+    "prog": {
+      "type": "string"
+    },
+    "global_flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "flags",
+          "dest"
+        ],
+        "properties": {
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dest": {
+            "type": "string"
+          },
+          "help": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metavar": true,
+          "nargs": true,
+          "choices": {
+            "anyOf": [
+              {
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "takes_value": {
+            "type": "boolean"
+          },
+          "default": true
+        }
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    }
+  }
+}

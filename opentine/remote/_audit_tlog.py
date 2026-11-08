@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import secrets
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -54,15 +55,37 @@ def entry(row: dict[str, str], row_hash: str) -> bytes:
     return canonical_json({**body, "format": ENTRY_FORMAT, "row_hash": row_hash})
 
 
+PUBLISH_ATTEMPTS = 3
+
+
+class PublishError(RuntimeError):
+    """The audit row committed but its transparency entry could not be appended."""
+
+
 def publish(audit: Any, row: dict[str, str], row_hash: str) -> None:
-    """Append a committed row; a failure is reported, never undoes the commit."""
+    """Append a committed row to the transparency log, retrying; raise if it cannot.
+
+    0.44 only warned, so a server could acknowledge a write its public log never
+    showed. From 0.45 a failed append is retried (``PUBLISH_ATTEMPTS``, short
+    backoff, which rides out a concurrent writer's lock) and then fails the
+    request with :class:`PublishError`. The row itself stays committed: the audit
+    chain is the record of truth, and the gap is visible to a monitor because
+    every entry carries its ``row_hash`` (``docs/design/log-2.md``).
+    """
     root = tlog_root(audit)
     if root is None:
         return
-    try:
-        _tlog_note.append(root, origin(root), lambda _entries: entry(row, row_hash))
-    except (OSError, ValueError) as exc:
-        print(f"opentine-remote: audit transparency append failed: {exc}", file=sys.stderr)
+    for attempt in range(PUBLISH_ATTEMPTS):
+        try:
+            _tlog_note.append(root, origin(root), lambda _entries: entry(row, row_hash))
+            return
+        except (OSError, ValueError) as exc:
+            failure = exc
+            if attempt + 1 < PUBLISH_ATTEMPTS:
+                time.sleep(0.01 * (2**attempt))
+    message = f"audit transparency append failed after {PUBLISH_ATTEMPTS} attempts: {failure}"
+    print(f"opentine-remote: {message}", file=sys.stderr)
+    raise PublishError(message) from failure
 
 
 def _hashes(root: Path, size: int) -> _tlog_proof.Hashes:
