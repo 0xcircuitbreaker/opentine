@@ -1,0 +1,479 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.foreign-key",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "1",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "an embedded key that is not the named signer is refused",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.bad-signature",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"run\": \"run:sha256:...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "the signing key is not the signer"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.inconsistent",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "0.5",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "956fc37db6d70bd4515654f96854a848e5615ea3fe5d81f45ef05a2ae644e57d751068e4882bfca9ad4688f72cad9c69059106f02530a1ad81d7c5da91b3bc04"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a signed verdict whose passed disagrees with score >= threshold is refused",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.inconsistent",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"run\": \"run:sha256:...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "passed disagrees with score"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.judge-missing",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "1",
+            "scorer": "llm-judge",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "d003f5b91b0f4885e1a59f4e242fc4d1092387851a4e2f0da780201298bd3c9dfdb1783fe746a13d1c64c06e61a0cf6ea30e6f644685ac34e4cd41bac00f5c03"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a signed llm-judge verdict without a judge_run is refused",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.judge-mismatch",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"run\": \"run:sha256:...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "an llm-judge verdict, and only one, names a judge_run"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.missing-field",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "scheme": "tine-eval-verdict/1",
+            "score": "1",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a verdict without its run is malformed",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.malformed",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"scheme\": \"tine-eva...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "a verdict has exactly the tine-eval-verdict/1 fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.score-edited",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": false,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "0",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a score edited after signing fails the signature",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.bad-signature",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": false, \"run\": \"run:sha256...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "signature mismatch: signature mismatch"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.score-not-canonical",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "0.50",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a score with a trailing zero is malformed",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.malformed",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"run\": \"run:sha256:...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "score must be a canonical decimal string in 0..1"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "eval-verdict.valid-judge",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "run:sha256:10e86c6514d40f2a3e861b31847340ee8c8ed181029a17b042f137121d28863e",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "0.75",
+            "scorer": "llm-judge",
+            "scorer_version": "1+sha256:0123456789abcdef",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "1339eeaa0114936d0bd7d4c0877567bc54f484a4539b9bd253dcf130130e3e972b2277d1ad19ed6abd28845c0166fcfe2f119da8f3ac2068ee581e09be3deb07"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "0.7"
+          }
+        }
+      },
+      "intent": "an llm-judge verdict names the run that recorded the judge",
+      "op": "eval-verdict.verify",
+      "output": {
+        "item": "q-0001",
+        "passed": true,
+        "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+      },
+      "profile": "verifier",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"run:sha256:10e86c6514d40f2a3e861b31847...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "eval-verdict.valid-tofu",
+      "input": {
+        "value": {
+          "public_key": null,
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "1",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a verdict verifies under its embedded key",
+      "op": "eval-verdict.verify",
+      "output": {
+        "item": "q-0001",
+        "passed": true,
+        "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+      },
+      "profile": "verifier",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3\", \"judge_run\": \"\", \"passed\": true, \"run\": \"run:sha256:...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "eval-verdict.valid-trusted",
+      "input": {
+        "value": {
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": false,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "0.25",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "ff02f8c97fca6fab7aa6fdba51a96b0d92e46034e9e77c724f0d919a2152a654f6dc5e7d989131f867a2341b843ab7c4dac54ede7cd6de5d6f2e32a2f2ab1f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "0.5"
+          }
+        }
+      },
+      "intent": "a verdict verifies under the supplied trusted key",
+      "op": "eval-verdict.verify",
+      "output": {
+        "item": "q-0001",
+        "passed": false,
+        "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+      },
+      "profile": "verifier",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "eval-verdict.wrong-key",
+      "input": {
+        "value": {
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "verdict": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "dataset": "sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576",
+            "eval": "sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1",
+            "item": "q-0001",
+            "item_digest": "sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe59361b3",
+            "judge_run": "",
+            "passed": true,
+            "run": "run:sha256:acba25512100f80b56fc3ccd14c65be55d94800cda77585c5f41a887e398f9be",
+            "scheme": "tine-eval-verdict/1",
+            "score": "1",
+            "scorer": "exact",
+            "scorer_version": "1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "value": "c172f2920d2eb9f88ddf3f97b3dab6d413c3cc66be7105a9b474a39b4d87fb4974651a215d877f6954e702a44d1ecb5219b95992e9c3e6a1c796409521822f0c"
+            },
+            "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+            "threshold": "1"
+          }
+        }
+      },
+      "intent": "a verdict signed by a key other than the trusted one is refused",
+      "op": "eval-verdict.verify",
+      "profile": "verifier",
+      "reason": "eval-verdict.wrong-key",
+      "section": "4.12",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"verdict\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"dataset\": \"sha256:b277fd623676a525c29b9eb155afc8c9010681814ceafb2d7627f47b9a232576\", \"eval\": \"sha256:1bbd174404efbce95f1af489ef93f4aa0f4d55718f24c3504682216afa7b7fb1\", \"item\": \"q-0001\", \"item_digest\": \"sha256:4a33eacd5fa65f2b2e2871cd131286b53c415b131666d71173bb6e3fe...",
+      "x_reference": {
+        "exception": "EvalVerdictError",
+        "message": "signed by a key other than the trusted one"
+      }
+    }
+  ],
+  "family": "eval-verdict",
+  "section": "4.12",
+  "suite_version": 1
+}

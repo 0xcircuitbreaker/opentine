@@ -1760,6 +1760,38 @@ be moved to another run. The in-toto predicate
 predicate `{producer, fleet, agent_ref, delegation}` (`delegation` is the
 chain's certificate digests, root first).
 
+## 4.12 `tine-eval-verdict/1` — signed eval verdicts (0.45.0+)
+
+`tine eval run` scores every item of a dataset and signs one verdict per item.
+A verdict is a JSON object with exactly these keys:
+
+| Key | Value |
+|---|---|
+| `scheme` | `"tine-eval-verdict/1"` |
+| `eval` | `sha256:` + 64 lower hex: SHA-256 of `b"opentine.eval.v1:"` + JCS(`{dataset, scorer, scorer_version, threshold, created_at, signer}`) |
+| `dataset` | `sha256:` + hex SHA-256 of `b"opentine.dataset.v1:"` + JCS of the list of item digests, in file order |
+| `item` / `item_digest` | the item's id (`[A-Za-z0-9_.:/@+-]{1,256}`) and `sha256:` + hex SHA-256 of JCS(the item) |
+| `run` | the run whose output was scored (same name grammar) |
+| `scorer` / `scorer_version` | `[a-z0-9][a-z0-9-]{0,63}` (`exact`, `regex`, `json-schema`, `python`, `llm-judge`, ...) and `[A-Za-z0-9_.:+/-]{1,160}`; the version pins the configuration (`1+sha256:<16 hex>` of the pattern, schema, callable source or judge prompt and model) |
+| `score` / `threshold` | decimal strings in 0..1, at most six places, no trailing zero: `0`, `1` or `0.` + digits ending in 1–9 |
+| `passed` | boolean, equal to `score >= threshold` |
+| `judge_run` | `""`, or for an `llm-judge` verdict the run that recorded the judge's prompt and reply |
+| `signer` | `sha256:` + 64 lower hex, the §4.6 Ed25519 fingerprint of the signing key |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block (§9.6 header, Ed25519, embedded `public_key`) over `b"opentine.eval-verdict.v1:"` + JCS(`{"body": <the verdict without signature>, "header": <header>}`) |
+
+A verifier MUST refuse, with the first applicable code:
+`eval-verdict.malformed` (a missing, extra or ill-formed key);
+`eval-verdict.bad-signature` (the embedded key is not `signer`, or the
+signature fails); `eval-verdict.wrong-key` (a trusted key was supplied and the
+embedded key is not it); `eval-verdict.inconsistent` (`passed` is not
+`score >= threshold`); `eval-verdict.judge-mismatch` (an `llm-judge` verdict
+without a `judge_run`, or another scorer with one). Without a trusted key a
+passing verdict rests on its embedded key (trust on first use). An eval folder
+holds `verdicts.jsonl` (one verdict per line) and an unsigned `eval.json`
+summary that a verifier re-derives from the verdicts. Vectors:
+`58-eval-verdict.json`.
+
 ---
 
 # Part 5 — The compatibility contract
