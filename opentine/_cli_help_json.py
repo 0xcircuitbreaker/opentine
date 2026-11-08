@@ -3,7 +3,9 @@
 The web generates its CLI reference from this instead of scraping ``--help``.
 It walks the same parser ``tine`` dispatches with, so a verb, a flag or a
 choice cannot be documented that does not parse. Commands are sorted by name
-and flags kept in declaration order, so the output is stable to diff. Group
+and flags kept in declaration order, so the output is stable to diff.
+A default that is an absolute path or an environment variable's value is
+published as ``null``: it is machine-specific and may be a secret. Group
 spellings (``tine share push``) are listed under their group with the verb
 they stand for in ``summary``; the registry is :mod:`opentine._cli_registry`.
 """
@@ -11,6 +13,8 @@ they stand for in ``summary``; the registry is :mod:`opentine._cli_registry`.
 from __future__ import annotations
 
 import argparse
+import os
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any
 
 from opentine._cli_registry import VISIBLE_COMMANDS
@@ -29,6 +33,19 @@ def _plain(value: Any) -> Any:
     return str(value)
 
 
+def _portable_default(value: Any) -> Any:
+    """*value*, unless it is machine-specific: an absolute path (the install
+    directory, ``$HOME``) or an environment variable's value, which may be a
+    secret. The tree is published, so neither may leak into it."""
+    if not isinstance(value, str) or not value:
+        return value
+    if PurePosixPath(value).is_absolute() or PureWindowsPath(value).is_absolute():
+        return None
+    if len(value) >= 8 and value in os.environ.values():
+        return None
+    return value
+
+
 def _flag(action: argparse.Action) -> dict[str, Any]:
     default = action.default
     if default is argparse.SUPPRESS:
@@ -45,7 +62,7 @@ def _flag(action: argparse.Action) -> dict[str, Any]:
         if action.option_strings
         else action.nargs not in ("?", "*", argparse.REMAINDER),
         "takes_value": action.nargs != 0,
-        "default": _plain(default),
+        "default": _portable_default(_plain(default)),
     }
 
 

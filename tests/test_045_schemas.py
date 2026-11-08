@@ -234,3 +234,10 @@ def test_validator_core_keywords():
     assert _jsonschema.validate(schema, {"a": 0, "c": 1})
     assert _jsonschema.validate(schema, {"a": 2, "b": "y"})
     assert _jsonschema.check_schema({"if": {}}) == ["#: unsupported keyword 'if'"]
+
+
+def test_help_json_publishes_no_machine_specific_or_env_defaults(monkeypatch, capsys, room):
+    monkeypatch.setenv("TINE_SIGNING_KEY", "heads/main-secret-token")
+    _code, out = _tine(monkeypatch, capsys, "help", "--json")
+    assert str(Path.home()) not in out and str(ROOT) not in out
+    assert str(room) not in out and "secret-token" not in out
