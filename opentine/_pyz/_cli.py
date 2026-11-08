@@ -1,6 +1,7 @@
 """``python tine-verify.pyz PATH [--pubkey KEY.pub | --key-file KEY] [--strict]``.
 
-PATH is a ``.tine`` file or an evidence folder (one holding ``MANIFEST.sha256``).
+PATH is a ``.tine`` file, an evidence folder (one holding ``MANIFEST.sha256``),
+or an eval folder / ``.jsonl`` of ``tine-eval-verdict/1`` verdicts (0.45).
 Prints one ``tine-pyz-verify/1`` JSON report and exits 0 on a pass, 1 on a
 fail and 2 on a usage error. Before anything is read, every socket connect and
 name lookup in this process is made to raise: offline verification never
@@ -16,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import _artifact, _evidence
+from . import _artifact, _evalv, _evidence
 
 SCHEMA = "tine-pyz-verify/1"
 MAX_KEY_BYTES = 1 << 20
@@ -90,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tine-verify.pyz", description="Verify .tine files and evidence folders offline."
     )
-    parser.add_argument("path", help="a .tine file or an evidence folder")
+    parser.add_argument("path", help="a .tine file, an evidence folder or eval verdicts")
     keys = parser.add_mutually_exclusive_group()
     keys.add_argument("--pubkey", metavar="FILE", help="trusted Ed25519 public key")
     keys.add_argument("--key-file", metavar="FILE", help="shared HMAC-SHA256 secret")
@@ -108,7 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     def one(item: Path) -> dict[str, Any]:
         return verify_file(item, hmac_key=secret, pubkey=pubkey, strict=args.strict)
 
-    if path.is_dir():
+    if _evalv.is_eval(path):
+        result = report("eval", path, _evalv.verify_eval(path, pubkey), args.strict)
+    elif path.is_dir():
         if not (path / "MANIFEST.sha256").is_file():
             parser.error(f"{path} is a directory but not an evidence folder (no MANIFEST.sha256)")
         found = _evidence.verify_evidence(path, one)
