@@ -1,0 +1,82 @@
+name: OpenTine preserve attribution notes
+description: >-
+  After a squash or rebase merge, re-attach the PR's refs/notes/tine
+  attribution notes to the commits that landed, and push the notes ref.
+author: OpenTine
+branding:
+  icon: git-merge
+  color: green
+
+# Use on `pull_request: types: [closed]` with `if: github.event.pull_request.merged`.
+# Least privilege: the job needs `permissions: contents: write` (to push
+# refs/notes/tine) and nothing else. actions/checkout must run first with
+# `fetch-depth: 0`. Notes are copied byte for byte (a signed note stays
+# signed); a commit that already carries a different note is left alone.
+# Inputs reach the shell through `env:` only.
+
+inputs:
+  base:
+    description: The PR's base commit.
+    required: false
+    default: ${{ github.event.pull_request.base.sha }}
+  head:
+    description: The PR's head commit.
+    required: false
+    default: ${{ github.event.pull_request.head.sha }}
+  merged:
+    description: The commit the merge produced.
+    required: false
+    default: ${{ github.event.pull_request.merge_commit_sha }}
+  pr-number:
+    description: PR number, used to fetch refs/pull/N/head when the head is gone.
+    required: false
+    default: ${{ github.event.pull_request.number }}
+  notes-ref:
+    description: The notes ref to carry.
+    required: false
+    default: refs/notes/tine
+  push:
+    description: Push the notes ref ("true"/"false").
+    required: false
+    default: "true"
+  opentine-version:
+    description: Exact opentine version to install from PyPI (pinned).
+    required: false
+    default: "0.46.0"
+
+outputs:
+  result:
+    description: JSON describing the merge mode and each note carried.
+    value: ${{ steps.carry.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install opentine (pinned)
+      shell: bash
+      env:
+        OPENTINE_VERSION: ${{ inputs.opentine-version }}
+      run: |
+        set -euo pipefail
+        case "$OPENTINE_VERSION" in
+          *[!0-9.]*|"") echo "opentine-version must be an exact X.Y.Z" >&2; exit 2 ;;
+        esac
+        python3 -m venv "$RUNNER_TEMP/opentine-venv"
+        "$RUNNER_TEMP/opentine-venv/bin/python" -m pip install --quiet --disable-pip-version-check "opentine==$OPENTINE_VERSION"
+        echo "$RUNNER_TEMP/opentine-venv/bin" >> "$GITHUB_PATH"
+
+    - name: Carry notes onto the merged commits
+      id: carry
+      shell: bash
+      env:
+        BASE: ${{ inputs.base }}
+        HEAD: ${{ inputs.head }}
+        MERGED: ${{ inputs.merged }}
+        PR: ${{ inputs.pr-number }}
+        NOTES_REF: ${{ inputs.notes-ref }}
+        PUSH: ${{ inputs.push }}
+        GIT_AUTHOR_NAME: github-actions[bot]
+        GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        GIT_COMMITTER_NAME: github-actions[bot]
+        GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      run: sh "$GITHUB_ACTION_PATH/../preserve-notes.sh"

@@ -1,0 +1,115 @@
+name: OpenTine gate
+description: >-
+  Run `tine verify` and `tine eval verify`, check a remote's signed admission
+  VSA, and post one PR comment with the verdicts.
+author: OpenTine
+branding:
+  icon: shield
+  color: green
+
+# Least privilege. The job that uses this action needs only:
+#   permissions:
+#     contents: read
+#     pull-requests: write   # only when `comment: "true"`
+# The token is passed in `github-token`, reaches the comment step only, and is
+# never printed. Every input reaches the shell through `env:`, never through
+# `${{ }}` inside a script, so an input cannot inject shell code.
+
+inputs:
+  runs:
+    description: Newline-separated .tine run artifacts to `tine verify`.
+    required: false
+    default: ""
+  pubkey:
+    description: Public key file the runs must be signed by (`tine verify --pubkey`).
+    required: false
+    default: ""
+  eval-dirs:
+    description: Newline-separated eval folders to `tine eval verify`.
+    required: false
+    default: ""
+  eval-pubkey:
+    description: Public key for `tine eval verify --pubkey`.
+    required: false
+    default: ""
+  vsa:
+    description: A remote's DSSE-signed admission VSA (SPEC 8.14) to gate on.
+    required: false
+    default: ""
+  vsa-key:
+    description: The remote's pinned Ed25519 VSA public key (PEM, raw or base64url).
+    required: false
+    default: ""
+  subject:
+    description: The object id the VSA must admit (for example `run:<hex>`).
+    required: false
+    default: ""
+  vsa-policy:
+    description: Required policy URI, for example `opentine:trust-policy/prod`.
+    required: false
+    default: ""
+  vsa-levels:
+    description: Space-separated levels the VSA must record.
+    required: false
+    default: ""
+  comment:
+    description: Post or update one PR comment with the verdicts ("true"/"false").
+    required: false
+    default: "true"
+  github-token:
+    description: "Token for the comment (needs pull-requests write)."
+    required: false
+    default: ${{ github.token }}
+  opentine-version:
+    description: Exact opentine version to install from PyPI (pinned).
+    required: false
+    default: "0.46.0"
+
+outputs:
+  ok:
+    description: '"true" when every check passed.'
+    value: ${{ steps.gate.outputs.ok }}
+  summary:
+    description: Path of the tine-ci-gate/1 summary JSON.
+    value: ${{ steps.gate.outputs.summary }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install opentine (pinned)
+      shell: bash
+      env:
+        OPENTINE_VERSION: ${{ inputs.opentine-version }}
+      run: |
+        set -euo pipefail
+        case "$OPENTINE_VERSION" in
+          *[!0-9.]*|"") echo "opentine-version must be an exact X.Y.Z" >&2; exit 2 ;;
+        esac
+        python3 -m venv "$RUNNER_TEMP/opentine-venv"
+        "$RUNNER_TEMP/opentine-venv/bin/python" -m pip install --quiet --disable-pip-version-check "opentine==$OPENTINE_VERSION"
+        echo "$RUNNER_TEMP/opentine-venv/bin" >> "$GITHUB_PATH"
+
+    - name: Verify, eval and gate
+      id: gate
+      shell: bash
+      env:
+        RUNS: ${{ inputs.runs }}
+        PUBKEY: ${{ inputs.pubkey }}
+        EVAL_DIRS: ${{ inputs.eval-dirs }}
+        EVAL_PUBKEY: ${{ inputs.eval-pubkey }}
+        VSA: ${{ inputs.vsa }}
+        VSA_KEY: ${{ inputs.vsa-key }}
+        SUBJECT: ${{ inputs.subject }}
+        VSA_POLICY: ${{ inputs.vsa-policy }}
+        VSA_LEVELS: ${{ inputs.vsa-levels }}
+        OUT: ${{ runner.temp }}/opentine-gate
+      run: python -m opentine._ci_run
+
+    - name: PR comment
+      if: ${{ always() && inputs.comment == 'true' && github.event.pull_request.number }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        OPENTINE_PR: ${{ github.event.pull_request.number }}
+        BODY: ${{ runner.temp }}/opentine-gate/comment.md
+      run: python -m opentine._ci_comment github --body "$BODY"
