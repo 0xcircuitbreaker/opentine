@@ -844,25 +844,33 @@ interface yet.
 
 ```
 tine push REMOTE [--allow-unredacted REASON] ...
+tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
 tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
                   [--out PATH] [--json] [--repo R]
 tine doctor [--bundle PATH] [--json] [--repo R]
 ```
 
-Before a real push sends anything, every outgoing object (the same set
-`--dry-run` counts) is re-scanned with the current redaction ruleset
-(`opentine-redaction/2`). An object the redactor would still change is a
-finding, and the push is refused (exit 1) naming the object ids -- never the
-matched bytes. `--allow-unredacted REASON` pushes anyway and records
-`allow-unredacted: REASON (N object(s))` as the `note` of that push's op-log
-entry (`tine op log`). `--dry-run` is not gated.
+Before a real push sends anything, every outgoing object is re-scanned with
+the current redaction ruleset (`opentine-redaction/2`): first, offline, the set
+`--dry-run` counts from the tracking refs, then again the exact pack negotiated
+with the server (it can hold more, e.g. after the remote was reset). `tine
+bundle push` and the git pre-push run sync are gated the same way over every
+object the bundle carries. An object the redactor would still change, or one
+that cannot be decoded, is a finding, and the push is refused (exit 1) naming
+the object ids -- never the matched bytes. `--allow-unredacted REASON` pushes
+anyway; before anything is sent it writes an op-log entry (`tine op log`,
+command `push`, no ref moves) whose `note` is `allow-unredacted: REASON (N
+object(s))`, with REASON itself redacted, and a failed write refuses the push.
+`tine undo` with no selector skips such note-only entries. `--dry-run` is not
+gated; it warns on stderr when the real push would be refused.
 
 `tine redact check` prints one redaction report per run reachable from
 `heads/*` (or each `--run`): `{kind: "opentine.redaction-report",
 report_version: 1, ruleset, run, objects, findings: [{oid, kind}], clean}`. A
 key flag signs each report with a `tine-sig/3` header block over
-`opentine.redaction-report.v1:` + JCS of `{body, header}`. It exits 1 when any
-report has findings.
+`opentine.redaction-report.v1:` + JCS of `{body, header}`; pinned HMAC and
+Ed25519 vectors are in `tests/fixtures/redaction_report/vectors.json`. It exits
+1 when any report has findings.
 
 `tine doctor` runs offline checks (opentine and Python versions, platform, git,
 the names of `OPENTINE_*`/`TINE_*` variables, agent keys by name, tine git

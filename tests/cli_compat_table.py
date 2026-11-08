@@ -3772,6 +3772,14 @@ ROWS: tuple[tuple, ...] = (
         {"command": "push", "allow_unredacted": "fixture"},
     ),
     (
+        "plain:bundle push r.git --allow-unredacted fixture",
+        "plain",
+        ["bundle", "push", "r.git", "--allow-unredacted", "fixture"],
+        "opentine._cli_bundle:cmd_bundle",
+        True,
+        {"command": "bundle", "bundle_action": "push", "allow_unredacted": "fixture"},
+    ),
+    (
         "plain:redact check --json",
         "plain",
         ["redact", "check", "--json"],
