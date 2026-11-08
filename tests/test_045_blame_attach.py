@@ -179,6 +179,20 @@ def test_git_log_reports_the_strict_link_set(tmp_path, monkeypatch, capsys) -> N
         assert (case.get("error") or "") in row["error"] and bool(row["error"]) == ("error" in case)
 
 
+def test_agent_trace_import_redacts_the_conversation_url() -> None:
+    from opentine.trace._import_agent_trace import agent_trace_events
+
+    secret = "ghp_" + "a1B2" * 9
+    conversation = {
+        "url": f"https://chat.example.invalid/c?token={secret}",
+        "contributor": {"type": "ai", "model_id": "anthropic/claude"},
+        "ranges": [{"start_line": 1, "end_line": 2}],
+    }
+    record = {"id": "t", "files": [{"path": "a.py", "conversations": [conversation]}]}
+    events = agent_trace_events(json.dumps(record))
+    assert secret not in json.dumps([event.to_dict() for event in events], default=str)
+
+
 def test_trailer_round_trip() -> None:
     links = [Link("run_20261108_ab12", "web"), Link("run_20261108_cd34", "acme-api")]
     message = "Fix\n\n" + "\n".join(format_links(links, project="acme-api")) + "\n"

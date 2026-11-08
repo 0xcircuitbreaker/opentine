@@ -90,7 +90,9 @@ def agent_trace_events(data: bytes | str) -> list[TraceEvent]:
                     provider, _, name = model.rpartition("/")
                     events.append(event(
                         "model", when, trace, span, model=name or model, provider=provider,
-                        inputs={}, attributes={**extra, "agent_trace.url": url[:2048]},
+                        inputs={}, attributes={
+                            **extra, "agent_trace.url": redact_value(url[:2048]),
+                        },
                     ))  # fmt: skip
                 events.append(event(
                     "tool", when, trace, f"file-{len(events)}", parent=by_conversation[key],
