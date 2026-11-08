@@ -51,6 +51,7 @@ from opentine._cli_text import endpoint_for_display
 from opentine._codec_io import standard_frame
 from opentine._export_write import unsafe_destination, write_private
 from opentine._graph_serde import run_from_dict, run_to_dict
+from opentine._vendor_io import VENDOR_FORMATS, export_document
 from opentine.core import Run
 from opentine.redaction import redact_value
 from opentine.repository._http import require_secure_remote
@@ -59,7 +60,8 @@ from opentine.trace.exporters import to_otel_genai_document
 
 __all__ = ["EXPORT_FORMATS", "TRACES_PATH", "add_export_parser", "cmd_export"]
 
-EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", *REPO_FORMATS, *CITATIONS)
+EXPORT_FORMATS = ("otel-json", "otlp", "atif", "intoto", "agent-trace", *REPO_FORMATS, *CITATIONS,
+                  *VENDOR_FORMATS)  # fmt: skip
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 DEFAULT_SERVICE_NAME = "opentine"
 
@@ -68,17 +70,10 @@ def add_export_parser(subparsers: argparse._SubParsersAction) -> argparse.Argume
     parser = subparsers.add_parser("export", help="Export a run as OpenTelemetry GenAI spans")
     parser.add_argument("run_id", help="Run to export: a .tine file, or an id under .tine_runs")
     parser.add_argument("--format", choices=EXPORT_FORMATS, default="otel-json")
-    parser.add_argument(
-        "--output", metavar="PATH", help="Write the OTLP/JSON document here instead of stdout"
-    )
-    parser.add_argument(
-        "--force", action="store_true", help="Replace an existing --output destination"
-    )
-    parser.add_argument(
-        "--compress",
-        choices=("gzip", "zstd"),
-        help="Write --output as a .gz or .zst file instead of plain JSON",
-    )
+    parser.add_argument("--output", metavar="PATH", help="Write the document here, not stdout")
+    parser.add_argument("--force", action="store_true", help="Replace an existing --output")
+    compress = "Write --output as a .gz or .zst file instead of plain JSON"
+    parser.add_argument("--compress", choices=("gzip", "zstd"), help=compress)
     parser.add_argument(
         "--endpoint",
         metavar="URL",
@@ -163,7 +158,8 @@ def _write(document: dict[str, Any], output: Path | None, compress: str | None =
     write_private(output, standard_frame(text, compress) if compress else text)
     shown = f"{len(document['steps'])} ATIF step(s)" if "steps" in document else None
     shown = shown or "files" in document and f"{len(document['files'])} Agent Trace file(s)"
-    shown = shown or f"{len(_spans(document))} span(s)"
+    spans = "resourceSpans" in document and f"{len(_spans(document))} span(s)"
+    shown = shown or spans or "1 vendor document"
     console.print(f"[{BRAND}]# Exported[/] {shown} [{BRAND}]to[/] {_terminal(output)}")
 
 
@@ -228,12 +224,15 @@ def cmd_export(args: argparse.Namespace) -> None:
             from opentine._agent_trace import cli_record
 
             document = redact_value(cli_record(raw, endpoint))
-        elif args.format == "atif":  # Harbor's trajectory format, written to a file only
+        elif args.format == "atif" or args.format in VENDOR_FORMATS:  # files, never pushed
             if endpoint is not None:
-                raise ValueError("--format atif writes a file; it cannot be pushed to --endpoint")
+                raise ValueError(
+                    f"--format {args.format} writes a file; it cannot be pushed to --endpoint"
+                )
             from opentine._atif_export import to_atif
 
-            document = redact_value(to_atif(run))
+            atif = args.format == "atif"  # Harbor's trajectory, else a vendor body: _vendor_io
+            document = redact_value(to_atif(run) if atif else export_document(args.format, run))
         else:
             document = redact_value(to_otel_genai_document(run, service_name=args.service_name))
         # Write and push share the conversion's guard: ``serialize`` refuses a

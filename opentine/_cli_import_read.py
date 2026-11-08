@@ -12,6 +12,7 @@ import json
 import sys
 from pathlib import Path
 
+from opentine._vendor_io import VENDOR_FORMATS, import_events
 from opentine.trace._cline_task_read import format_of, looks_like_task
 from opentine.trace._import_detect import TRANSCRIPT_IMPORTERS, detect_format
 from opentine.trace._import_guard import bounded_lines, bounded_read, shape_checked
@@ -155,6 +156,8 @@ def detect_and_read(
     if source_format in BINARY_FORMATS:
         return source_format, BINARY_FORMATS[source_format](_read_bytes(source))
     text = _read_text(source)
+    if source_format in VENDOR_FORMATS:  # Langfuse, Phoenix, Braintrust, LangSmith files
+        return source_format, import_events(source_format, text)
     if source_format == "auto":
         source_format = detect_format(text)
         if source_format in TRANSCRIPT_IMPORTERS and source != STDIN:

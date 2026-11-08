@@ -58,7 +58,7 @@ from opentine._cli_flags import _require_output_slot, refuse_unhonoured
 from opentine._cli_import_entire_all import import_entire_all
 from opentine._cli_import_fleet import add_extra_args, check_fleet, import_fleet
 from opentine._cli_import_read import STDIN as STDIN  # re-exported: one spelling of "-"
-from opentine._cli_import_read import detect_and_read
+from opentine._cli_import_read import VENDOR_FORMATS, detect_and_read
 from opentine._cli_import_read import read_events as read_events  # re-exported entry point
 from opentine._cli_import_sessions import print_sessions, resolve
 from opentine._cli_import_v4 import import_v4_file
@@ -78,7 +78,7 @@ IMPORT_FORMATS = (
     "otel-json",
     "otel-logs",
     "otel-spans",
-    *("jsonl", "otlp-proto", "har", "agent-trace", "git-ai"),
+    *("jsonl", "otlp-proto", "har", "agent-trace", "git-ai", *VENDOR_FORMATS),
     *TRANSCRIPT_FORMATS,
     *FRAMEWORK_FORMATS,
 )
