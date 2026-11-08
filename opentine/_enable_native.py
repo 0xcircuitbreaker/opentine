@@ -94,7 +94,8 @@ def without_shims(document: dict[str, Any], name: str) -> dict[str, Any]:
         hooks = updated.get("hooks")
         if isinstance(hooks, dict):
             updated["hooks"] = _strip(hooks)
-            if not updated["hooks"] and document.get("hooks"):
+            rest = set(updated) - {"version", "hooks"}
+            if not updated["hooks"] and document.get("hooks") and not rest:
                 return {}  # the file was ours alone
         return updated
     return _strip(updated)
@@ -103,6 +104,8 @@ def without_shims(document: dict[str, Any], name: str) -> dict[str, Any]:
 def with_shims(document: dict[str, Any], name: str, repo: Path) -> dict[str, Any]:
     updated = without_shims(document, name)
     if name == "antigravity":
+        if OWN_KEY in updated:
+            raise ValueError(f"it has a {OWN_KEY!r} hook opentine did not write; not touching it")
         entry = {"type": "command", "timeout": TIMEOUT}
         hook: dict[str, Any] = {"enabled": True}
         for event in EVENTS[name]:
@@ -122,7 +125,8 @@ def with_shims(document: dict[str, Any], name: str, repo: Path) -> dict[str, Any
             raise ValueError(f"its {event} setting is not a list; not touching it")
         text = command(name, repo)
         if name == "copilot":
-            items.append({"type": "command", "bash": text, "powershell": text,
+            # PowerShell reads a leading quoted string as a value: call it with ``&``.
+            items.append({"type": "command", "bash": text, "powershell": f"& {text}",
                           "timeoutSec": TIMEOUT})  # fmt: skip
         else:
             group: dict[str, Any] = {"hooks": [{"type": "command", "command": text,

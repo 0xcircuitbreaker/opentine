@@ -158,3 +158,27 @@ def test_doctor_lists_agent_capture(tmp_path, monkeypatch):
     (tmp_path / ".factory").mkdir()
     (tmp_path / ".pi" / "agent").mkdir(parents=True)
     assert _agent_detect.present() == ["droid (hooks)", "pi (import)"]
+
+
+def test_copilot_strip_keeps_user_settings_when_only_our_hooks_remain(tmp_path):
+    document = native.with_shims({"version": 1, "disableAll": False}, "copilot", tmp_path)
+    assert native.without_shims(document, "copilot") == {
+        "version": 1,
+        "disableAll": False,
+        "hooks": {},
+    }
+    ours_only = native.with_shims({}, "copilot", tmp_path)
+    assert native.without_shims(ours_only, "copilot") == {}
+
+
+def test_copilot_powershell_command_is_invoked_not_echoed(tmp_path):
+    document = native.with_shims({}, "copilot", tmp_path)
+    entry = document["hooks"]["Stop"][0]
+    assert entry["powershell"] == f"& {entry['bash']}"
+
+
+def test_antigravity_refuses_a_foreign_hook_under_our_key(tmp_path):
+    foreign = {native.OWN_KEY: {"enabled": True, "Stop": [{"command": "echo mine"}]}}
+    with pytest.raises(ValueError):
+        native.with_shims(foreign, "antigravity", tmp_path)
+    assert native.without_shims(foreign, "antigravity") == foreign
