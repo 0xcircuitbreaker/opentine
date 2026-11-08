@@ -24,7 +24,8 @@ def _plain(value: Any) -> Any:
     if value is None or isinstance(value, bool | int | float | str):
         return value
     if isinstance(value, list | tuple):
-        return [_plain(v) for v in value]
+        return [v if v is None or isinstance(v, bool | int | float | str) else str(v)
+                for v in value]  # fmt: skip
     return str(value)
 
 
@@ -57,10 +58,8 @@ def _node(name: str, parser: argparse.ArgumentParser, summary: str, top: bool) -
     children = []
     if sub is not None:
         helps = {a.dest: a.help or "" for a in sub._choices_actions}
-        children = [
-            _node(child, p, helps.get(child, p.description or ""), False)
-            for child, p in sorted(sub.choices.items())
-        ]
+        for child, p in sorted(sub.choices.items()):
+            children.append(_node(child, p, helps.get(child, p.description or ""), False))
     node: dict[str, Any] = {
         "name": name,
         "summary": summary or "",
