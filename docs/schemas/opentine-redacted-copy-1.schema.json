@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-redacted-copy-1.schema.json",
+  "title": "opentine.redacted-copy (copy_version 1)",
+  "description": "Links a redacted public copy to its private run (SPEC 4.15): the manifest key `redacted_public` of a `tine bundle create --redacted-public` bundle. `pack` is the bundled pack's digest; `signature` is a tine-sig/3 block over `opentine.redacted-copy.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "copy_version",
+    "source_run",
+    "public_run",
+    "ruleset",
+    "objects",
+    "redacted",
+    "pack",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.redacted-copy"
+    },
+    "copy_version": {
+      "const": 1
+    },
+    "source_run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "public_run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "ruleset": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "objects": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "redacted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pack": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

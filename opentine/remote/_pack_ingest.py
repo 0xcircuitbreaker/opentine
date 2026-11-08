@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from opentine.kernel import validate_links
 from opentine.remote._tenant_repo import PackedTenantRepo
+from opentine.remote._tombstone_store import tombstoned
 from opentine.remote.interfaces import ObjectStore
 from opentine.repository._pack_install import _dependency_order
 
@@ -35,7 +36,7 @@ def verified_write_order(
             if link in packed_ids:
                 continue
             external.add(link)
-            if not objects.has(tenant, link):
+            if not objects.has(tenant, link) and not tombstoned(objects, tenant, link):
                 raise ValueError(f"pack has unresolved link: {link}")
     if set(shallow) != external:
         raise ValueError("pack shallow boundaries do not match its external links")

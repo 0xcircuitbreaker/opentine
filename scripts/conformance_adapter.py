@@ -75,6 +75,28 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("trusted key", "redaction-report.wrong-key"),
         ("clean disagrees", "redaction-report.inconsistent"),
     ),
+    "tombstone.verify": (
+        ("tombstone is malformed", "tombstone.malformed"),
+        ("tombstone is unsigned", "tombstone.unsigned"),
+        ("no key for", "tombstone.no-key"),
+        ("tombstone signature", "tombstone.bad-signature"),
+        ("trusted key", "tombstone.wrong-key"),
+    ),
+    "tombstone.closure": (
+        ("tombstone is malformed", "tombstone.malformed"),
+        ("no tombstone names it", "tombstone.missing-content"),
+        ("exceeds its object cap", "tombstone.missing-content"),
+    ),
+    "redacted-copy.verify": (
+        ("copy is malformed", "redacted-copy.malformed"),
+        ("copy is unsigned", "redacted-copy.unsigned"),
+        ("no key for", "redacted-copy.no-key"),
+        ("copy signature", "redacted-copy.bad-signature"),
+        ("trusted key", "redacted-copy.wrong-key"),
+        ("names another pack", "redacted-copy.pack-mismatch"),
+        ("redacted exceeds objects", "redacted-copy.inconsistent"),
+        ("run oids must be equal", "redacted-copy.inconsistent"),
+    ),
 }
 
 #: message fragment -> code, longest fragment wins.

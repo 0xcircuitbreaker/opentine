@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.45.1 (draft until opentine 0.45.1 is tagged). **Previous
-version:** 0.45.0. Changes between versions are listed in
+**Spec version:** 0.46.0 (draft until opentine 0.46.0 is tagged). **Previous
+version:** 0.45.1. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.1.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.1/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -1898,6 +1898,91 @@ embedded key);
 trusted key an Ed25519 report rests on its embedded key (trust on first use,
 state `verified-tofu`). Vectors: `60-redaction-report.json`.
 
+<a id="s-4.14"></a>
+## 4.14 `opentine.tombstone` — signed purge records (0.46.0+)
+
+`tine purge OID --reason TEXT` removes one blob's bytes from a repository and
+keeps its oid: every event and run that links the blob still hashes the same.
+The purge leaves a tombstone, a JSON object with exactly these keys plus a
+`signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.tombstone"` |
+| `tombstone_version` | `1` |
+| `oid` | the purged blob's oid (`blob:sha256:<64 hex>`; only a blob can be purged) |
+| `reason` | why, as text: 1 to 1024 UTF-8 bytes, not only whitespace, no C0 control character or DEL; redacted before it is signed |
+| `actor` | who purged it (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `purged_at` | when, `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block (§9.6 header; HMAC-SHA256, or Ed25519 with embedded `public_key`) over `b"opentine.tombstone.v1:"` + JCS(`{"body": <the tombstone without signature>, "header": <header>}`) |
+
+A tombstone is signed where the operator's key is; a remote stores and serves
+the record exactly as signed and never signs one. A verifier MUST refuse, with
+the first applicable code: `tombstone.malformed` (a missing, extra or
+ill-formed key); `tombstone.unsigned` (no `signature`); `tombstone.no-key` (an
+HMAC tombstone checked without a key); `tombstone.wrong-key` (a supplied key
+is not the one that signed, with no fallback to the embedded key);
+`tombstone.bad-signature` (the block does not verify). Without a trusted key an
+Ed25519 tombstone rests on its embedded key (state `verified-tofu`).
+
+**Verifying a run with a purged blob.** A verifier walking a run's closure
+(its links, §1.5) through the objects it holds reports a linked object that is
+absent and named by a tombstone as **content-unavailable**, not as a failure:
+the run's oid still binds the blob's oid, only the bytes are gone. The walk
+needs the tombstones' shape (a malformed one is `tombstone.malformed`), not
+their signatures, which are checked as above. Its result is `{run, objects,
+content_unavailable, state}`, `state` being `content-unavailable` when any
+object is, else `verified`. An absent object no tombstone names is
+`tombstone.missing-content`; only a blob can be content-unavailable. Vectors:
+`61-tombstone.json` (ops `tombstone.verify` and `tombstone.closure`).
+
+**Where tombstones live.** A repository keeps one canonical-JSON tombstone per
+purged blob at `tombstones/<blob hex>.json` and lists the oid in `shallow`
+(§2), so links to it still resolve; `fsck` reports the oid under
+`content_unavailable`, never as an error. A pack that would have carried the
+blob carries it as a shallow boundary instead. The tombstones of a pack's
+boundaries travel beside it: a bundle manifest's optional `tombstones` list
+(each record naming a distinct shallow boundary of the bundled pack), and, on a
+remote whose capabilities list `tombstones: true`, `PUT
+/v1/tenants/<t>/tombstones/<oid>` before the pack is uploaded and `GET` of the
+same path after a fetch (`404` when the tenant holds none, whatever the reason).
+A received tombstone is stored only for a blob the receiver does not hold: it
+never deletes bytes the receiver has.
+
+<a id="s-4.15"></a>
+## 4.15 `opentine.redacted-copy` — redacted public copies (0.46.0+)
+
+`tine bundle create FILE REF --redacted-public` derives a public copy of the
+run REF names: every blob it reaches (graph only; annotations and attestations
+stay private) is redacted with the current ruleset until stable, every JSON
+payload is redacted again, and each oid an event or run names is rewritten to
+the oid of the object derived from it. A blob the repository does not hold
+keeps its oid and stays a boundary. The bundle holds only the derived objects,
+the one ref REF naming the derived run, the tombstones of its boundaries, and
+under the manifest key `redacted_public` a record with exactly these keys plus
+a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.redacted-copy"` |
+| `copy_version` | `1` |
+| `source_run` | the private run's oid |
+| `public_run` | the derived run's oid (a ref target of the bundle) |
+| `ruleset` | the redaction ruleset name |
+| `objects` | the number of objects in the pack |
+| `redacted` | how many of them differ from the object they derive from |
+| `pack` | `sha256:<64 hex>` of the bundled pack bytes |
+| `signature` | a `tine-sig/3` block over `b"opentine.redacted-copy.v1:"` + JCS(`{"body", "header"}`), as in §4.14 |
+
+Content addressing makes the two run oids equal exactly when nothing changed.
+A verifier MUST refuse, with the first applicable code:
+`redacted-copy.malformed`; `redacted-copy.unsigned`; `redacted-copy.no-key`;
+`redacted-copy.wrong-key`; `redacted-copy.bad-signature` (each as in §4.14);
+`redacted-copy.inconsistent` (`redacted` exceeds `objects`, or `redacted == 0`
+and `source_run == public_run` disagree); `redacted-copy.pack-mismatch` (the
+record names a pack other than the one it came with). Vectors:
+`62-redacted-copy.json`.
+
 ---
 
 <a id="part-5"></a>
@@ -3046,6 +3131,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.46.0 | 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; Part 12 adds their schemas. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

@@ -48,6 +48,7 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     vectors = json.loads(REPORT_VECTORS.read_text("utf-8"))["cases"]
     signed = next(case["report"] for case in vectors if case["id"].endswith("ed25519"))
     (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
+    (tmp_path / "purge.key").write_text("ab" * 32, encoding="utf-8")  # 0.46: tine purge
     return tmp_path
 
 
@@ -64,6 +65,8 @@ def _jsonschema_errors(document: object, name: str) -> list[str] | None:
     validator = jsonschema.Draft202012Validator(_schemas.get(name), registry=registry)
     return [e.message for e in validator.iter_errors(document)]
 
+
+PURGED = "blob:sha256:06447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446"
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 DRIVEN = (
@@ -102,6 +105,21 @@ DRIVEN = (
         "tine-cli-open-1",
     ),  # fmt: skip
     (("redact", "check", "--repo", "repo", "--run", "no-such", "--json"), "tine-cli-envelope-1"),
+    (
+        (
+            "purge",
+            PURGED,
+            "--reason",
+            "erasure",
+            "--key-file",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-purge-1",
+    ),
+    (("purge", "--list", "--repo", "repo", "--json"), "tine-cli-purge-list-1"),
 )
 
 

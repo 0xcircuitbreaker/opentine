@@ -2,7 +2,8 @@
 
 Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_cli` (``--json`` outputs) and
-:mod:`opentine._schema_defs_redact` (redaction and doctor); ``docs/schemas`` is
+:mod:`opentine._schema_defs_redact` (redaction and doctor) and
+:mod:`opentine._schema_defs_share` (tombstones, redacted copies); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -21,11 +22,27 @@ from opentine._schema_defs_events import SCHEMAS as _EVENTS
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
-from opentine._schema_defs_redact import KIND_SCHEMAS
+from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import SCHEMAS as _REDACT
+from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
+from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
+from opentine._schema_defs_share import SCHEMAS as _SHARE
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS, **_REDACT, **_HOSTED}
-COMMAND_SCHEMAS: dict[str, str] = {**_CLI_COMMANDS, **_REDACT_COMMANDS, **_HOSTED_COMMANDS}
+SCHEMAS: dict[str, dict[str, Any]] = {
+    **_OBJECTS,
+    **_CLI,
+    **_EVENTS,
+    **_REDACT,
+    **_HOSTED,
+    **_SHARE,
+}
+COMMAND_SCHEMAS: dict[str, str] = {
+    **_CLI_COMMANDS,
+    **_REDACT_COMMANDS,
+    **_HOSTED_COMMANDS,
+    **_SHARE_COMMANDS,
+}
+KIND_SCHEMAS: dict[str, str] = {**_REDACT_KINDS, **_SHARE_KINDS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format")

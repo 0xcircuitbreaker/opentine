@@ -5,6 +5,7 @@ from typing import Any
 from opentine.kernel import ObjectEnvelope, parse_oid, validate_links
 from opentine.remote._association_budget import recorded_targets
 from opentine.remote._ref_backend import MAX_TENANT_REFS
+from opentine.remote._tombstone_store import tombstoned
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import IndexBackend, ObjectStore
 from opentine.repository._annotations import validate_annotation_chain
@@ -26,6 +27,10 @@ class TenantRepo:
     def has(self, oid: str) -> bool:
         return self.objects.has(self.tenant, oid)
 
+    def _link_exists(self, oid: str) -> bool:
+        """Held, or purged with a tombstone (0.46): a link that still resolves."""
+        return self.has(oid) or tombstoned(self.objects, self.tenant, oid)
+
     def raw(self, oid: str) -> bytes:
         return self.objects.get(self.tenant, oid)
 
@@ -36,7 +41,7 @@ class TenantRepo:
 
     def get(self, oid: str) -> ObjectEnvelope:
         envelope = ObjectEnvelope.decode(self.raw(oid), oid)
-        validate_links(envelope, self.has)
+        validate_links(envelope, self._link_exists)
         validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
         validate_run_graph(self, envelope)

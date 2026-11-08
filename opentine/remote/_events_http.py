@@ -132,7 +132,7 @@ def webhook_routes(app: Any, identity, tenant: str, resource: str, method: str, 
 
 
 def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, environ, sr):
-    """Routes past the core protocol: audit and transparency, events, webhooks, hosted (0.46)."""
+    """Routes past the core protocol: audit and transparency, events, webhooks, tombstones, hosted."""
     hosted = tenant_routes(app, identity, tenant, resource, method, environ, sr)
     if hosted is not None:
         return hosted
@@ -142,6 +142,10 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         return events_route(app, identity, tenant, environ, sr)
     if resource == "webhooks" or resource.startswith("webhooks/"):
         return webhook_routes(app, identity, tenant, resource, method, environ, sr)
+    if resource.startswith("tombstones/"):  # 0.46: tine purge (``_tombstone_http``)
+        from opentine.remote._tombstone_http import tombstone_routes
+
+        return tombstone_routes(app, identity, tenant, resource, method, environ, sr)
     return app._json_response(sr, "404 Not Found", {"error": "not found"})
 
 

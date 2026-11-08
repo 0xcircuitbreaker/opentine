@@ -952,6 +952,64 @@ capabilities are not probed). It exits 1 only on a `fail` row. `--json` follows
 writes the report as canonical JSON after `redact_value`, and refuses to write
 it if any credential shape survives.
 
+## Purge, tombstones and redacted public copies (0.46)
+
+```
+tine purge OID --reason TEXT (--key-file K | --ed25519-key-file K) [--key-id ID]
+           [--actor NAME] [--json] [--repo R]
+tine purge --list [--key-file K | --pubkey K.pub] [--json] [--repo R]
+tine bundle create FILE REF --redacted-public (--key-file K | --ed25519-key-file K)
+                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5] [--repo R]
+tine bundle verify FILE [--key-file K | --pubkey K.pub]
+```
+
+`tine purge OID --reason TEXT` removes one blob's bytes and keeps its oid, so
+every event and run that links it still hashes the same. It writes a signed
+`opentine.tombstone` (SPEC 4.14): `{kind, tombstone_version: 1, oid, reason,
+actor, purged_at}` plus a `tine-sig/3` block over `opentine.tombstone.v1:` +
+JCS of `{body, header}`. The reason is redacted before it is signed; the actor
+is `--actor`, else `--key-id`, else `local`. A purge needs a signing key and is
+refused for a blob reachable from a hold (`tine hold`). The bytes leave through
+the prune quarantine under the gc lock: a loose file is moved out, a packed
+copy is dropped by rewriting its pack, every kept transfer pack carrying it is
+deleted, and the derived search index is deleted (rebuild it with `tine
+repo-search --rebuild-index`). The oid joins the shallow boundary list, so
+`tine fsck` stays ok and lists it under `content_unavailable`. `--json` follows
+`tine-cli-purge-1`; an unknown blob exits 3.
+
+`tine purge --list` prints every tombstone with `content: unavailable` (or
+`present`, for one imported beside a copy still held) and its trust:
+`verified` under `--key-file`/`--pubkey`, `verified-tofu` for an Ed25519
+record with neither, `unchecked` for an HMAC record without its key, or
+`failed` with its `tombstone.*` reason, which exits 4. `--json` follows
+`tine-cli-purge-list-1`.
+
+Tombstones travel with the packs that leave the purged blob out: a bundle
+manifest carries them under `tombstones`, and `tine push` sends them (`PUT
+tombstones/<oid>`) before the pack to a remote that lists `caps.tombstones`;
+`tine fetch` asks for the tombstone of each blob boundary it received. The
+remote stores the record exactly as signed and never signs one; a `PUT` for a
+blob the tenant still holds is a purge there and needs the admin-only `purge`
+permission, and `GET` answers the same `404` for an oid that was never purged,
+never existed or is another tenant's. A received tombstone is stored only for a
+blob the receiver does not hold: it never deletes local bytes.
+
+`tine bundle create FILE REF --redacted-public` bundles a redacted public copy
+of the one run REF names: each blob it reaches (never its annotations or
+attestations) is re-redacted with the current ruleset, every payload is
+redacted again, and each event and the run are rewritten to link the new oids,
+so the copy has its own run oid, under REF. The manifest key `redacted_public`
+holds a signed `opentine.redacted-copy` (SPEC 4.15): `{source_run, public_run,
+ruleset, objects, redacted, pack}`, where `pack` is the digest of the bundled
+pack, so the web can publish the copy and show which private run it came from
+without exposing that run. `tine bundle verify` reports a bundle's
+`content_unavailable` oids and, for a public copy, `redacted_public` with the
+record's state (as for `purge --list`); a `failed` record exits 4. `python
+tine-verify.pyz RECORD.json [--pubkey K | --key-file K]` checks a tombstone or
+redacted-copy record offline (modes `tombstone`, `redacted-copy`); the
+`61-tombstone.json` and `62-redacted-copy.json` conformance families pin
+Python, the TS verifier and the pyz.
+
 ## Run summaries: `tine explain` (0.42)
 
 ```

@@ -7,7 +7,8 @@ Layout (all integers big-endian)::
 
 The manifest is ``{"format", "pack", "pack_bytes", "refs"}``: the pack's sha256,
 its length and ``ref name -> object id``; since 0.26, plus ``signatures`` when a
-bundled run has ``tine-sig/3`` sidecar blocks (``_bundle_sigs``). The pack is
+bundled run has ``tine-sig/3`` sidecar blocks (``_bundle_sigs``); since 0.46,
+``tombstones`` and ``redacted_public`` (``_bundle_extra``). The pack is
 an ordinary transfer pack (``create_pack``), so it carries each run's
 associations -- annotations and attestations -- as a fetch would. A bundle is
 untrusted input: every size is capped, every ref name passes
@@ -20,12 +21,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import stat
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from opentine import _bundle_sigs
+from opentine import _bundle_extra, _bundle_sigs
+from opentine._bundle_extra import NAME as _NAME
+from opentine._bundle_extra import namespace, tracking_ref
 from opentine._cli_git_sync import is_ancestor
 from opentine.kernel import KernelError, _parse_int, canonical_json, parse_oid, validate_json_shape
 from opentine.repo import Repo
@@ -42,8 +44,7 @@ MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_REFS = 10_000
 MAX_BUNDLE_BYTES = len(MAGIC) + 32 + 4 + MAX_MANIFEST_BYTES + MAX_PACK_BYTES
 _KEYS = {"format", "pack", "pack_bytes", "refs"}  # + "signatures" (0.26), "transparency" (0.44)
-_OPTIONAL = {"signatures", "transparency"}
-_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
+_OPTIONAL = {"signatures", "transparency", "tombstones", "redacted_public"}  # + 0.46 two
 
 
 class BundleError(ValueError):
@@ -59,6 +60,8 @@ class Verified:
     objects: int
     signatures: dict = field(default_factory=dict)
     transparency: list = field(default_factory=list)  # 0.44: tlog receipts, unchecked here
+    tombstones: list = field(default_factory=list)  # 0.46: of purged shallow boundaries
+    redacted_public: dict | None = None  # 0.46: the opentine.redacted-copy record
 
 
 def create(
@@ -91,21 +94,28 @@ def create_refs(
     if pack_format not in (V3, V5):
         raise ValueError(f"bundles carry {V3} or {V5}, not {pack_format!r}")
     pack, carried = fitted_pack(repo, sorted(set(chosen.values())), [])
+    extra = {
+        "signatures": _bundle_sigs.collect(repo, carried),  # tine-sig/3 sidecars travel too
+        "tombstones": _bundle_extra.tombstones_for(repo, pack),  # 0.46: purged boundaries
+    }
+    if transparency:  # opt-in: readers before 0.44 refuse the extra manifest key
+        from opentine._transparency import receipts_for
+
+        extra["transparency"] = receipts_for(repo.path, chosen)
     if pack_format == V5:
         pack = _pack5.from_v3(pack, slim=True)  # written once, kept: smallest form
+    return assemble(pack, chosen, extra)
+
+
+def assemble(pack: bytes, chosen: dict[str, str], extra: dict) -> bytes:
+    """The bundle bytes of *pack*, its refs and the non-empty optional keys in *extra*."""
     fields = {
         "format": FORMAT,
         "pack": "sha256:" + hashlib.sha256(pack).hexdigest(),
         "pack_bytes": len(pack),
         "refs": dict(sorted(chosen.items())),
+        **{key: value for key, value in extra.items() if value or key == "transparency"},
     }
-    signatures = _bundle_sigs.collect(repo, carried)  # tine-sig/3 sidecars travel too
-    if signatures:
-        fields["signatures"] = signatures
-    if transparency:  # opt-in: readers before 0.44 refuse the extra manifest key
-        from opentine._transparency import receipts_for
-
-        fields["transparency"] = receipts_for(repo.path, chosen)
     manifest = canonical_json(fields)
     body = len(manifest).to_bytes(4, "big") + manifest + pack
     return MAGIC + hashlib.sha256(body).digest() + body
@@ -162,7 +172,7 @@ def verify(data: bytes) -> Verified:
     if manifest["pack"] != "sha256:" + hashlib.sha256(pack).hexdigest():
         raise BundleError("bundle pack digest mismatch")
     try:
-        pack_id, objects, _ = inspect_pack(pack)
+        pack_id, objects, shallow = inspect_pack(pack)
     except KernelError as exc:
         raise BundleError(f"bundle pack is invalid: {exc}") from None
     present = {oid for oid, _ in objects}
@@ -188,21 +198,8 @@ def verify(data: bytes) -> Verified:
     if not isinstance(receipts, list) or len(receipts) > MAX_REFS:
         raise BundleError("invalid bundle transparency receipts")
     digest = "sha256:" + hashlib.sha256(data).hexdigest()
-    return Verified(digest, refs, pack, pack_id, len(objects), signatures, receipts)
-
-
-def namespace(value: str) -> str:
-    """A tracking namespace from a user name, a file stem or a remote URL."""
-    stem = re.sub(r"\.(tine|bundle|git)$", "", value.rstrip("/\\").replace("\\", "/"))
-    stem = re.sub(r"[^a-z0-9._-]+", "-", stem.rsplit("/", 1)[-1].casefold()).strip("-.")
-    if not _NAME.fullmatch(stem or ""):
-        raise BundleError(f"cannot derive a ref namespace from {value[:80]!r}; pass --as NAME")
-    normalize_ref(f"remotes/{stem}/x")
-    return stem
-
-
-def tracking_ref(name: str, ref: str) -> str:
-    return normalize_ref(f"remotes/{name}/{ref.removeprefix('heads/')}")
+    tombs, copy = _bundle_extra.check(manifest, shallow, refs)
+    return Verified(digest, refs, pack, pack_id, len(objects), signatures, receipts, tombs, copy)
 
 
 def unbundle(repo: Repo, data: bytes, name: str, *, force: bool = False) -> dict:
@@ -226,6 +223,7 @@ def unbundle(repo: Repo, data: bytes, name: str, *, force: bool = False) -> dict
     if rows:
         repo.update_refs(rows, actor="bundle")
     _bundle_sigs.install(repo, checked.signatures)  # only once the refs landed
+    _bundle_extra.install(repo, checked.tombstones)
     return {
         "bundle": checked.digest,
         "pack": result.pack_id,
@@ -239,6 +237,7 @@ __all__ = [
     "MAX_BUNDLE_BYTES",
     "BundleError",
     "Verified",
+    "assemble",
     "create",
     "create_refs",
     "namespace",

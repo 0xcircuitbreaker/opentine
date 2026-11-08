@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-tombstone-1.schema.json",
+  "title": "opentine.tombstone (tombstone_version 1)",
+  "description": "The signed record that a blob was purged (SPEC 4.14): the oid is kept, the bytes are gone. `signature` is a tine-sig/3 block over `opentine.tombstone.v1:` + JCS({body, header}); a server stores it as signed and never signs one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "tombstone_version",
+    "oid",
+    "reason",
+    "actor",
+    "purged_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.tombstone"
+    },
+    "tombstone_version": {
+      "const": 1
+    },
+    "oid": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "actor": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "purged_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

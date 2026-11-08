@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-purge-list-1.schema.json",
+  "title": "tine purge --list --json",
+  "description": "Every tombstone in the repository with its content state and trust. `state` is `unchecked` for an HMAC record listed without its key; the command exits 4 when any row is `failed` (then `reason` holds its `tombstone.*` code).",
+  "type": "object",
+  "required": [
+    "command",
+    "ok",
+    "tombstones"
+  ],
+  "properties": {
+    "command": {
+      "const": "purge-list"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "tombstones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "oid",
+          "content",
+          "actor",
+          "purged_at",
+          "state",
+          "reason"
+        ],
+        "properties": {
+          "oid": {
+            "type": "string",
+            "pattern": "^blob:sha256:[0-9a-f]{64}$"
+          },
+          "content": {
+            "enum": [
+              "unavailable",
+              "present"
+            ]
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "purged_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "verified",
+              "verified-tofu",
+              "unchecked",
+              "failed"
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

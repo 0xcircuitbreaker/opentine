@@ -681,6 +681,33 @@
       "verdict": 0
     },
     {
+      "core": 23,
+      "count": 23,
+      "file": "vectors/61-tombstone.json",
+      "name": "tombstone",
+      "ops": [
+        "tombstone.closure",
+        "tombstone.verify"
+      ],
+      "reject": 17,
+      "section": "4.14",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 16,
+      "count": 16,
+      "file": "vectors/62-redacted-copy.json",
+      "name": "redacted-copy",
+      "ops": [
+        "redacted-copy.verify"
+      ],
+      "reject": 11,
+      "section": "4.15",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -703,8 +730,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "768762161b35d1e70beb08cc55880f322210519ea3c84d2aa3ffcb18719dbe99",
-    "REASON_CODES.md": "903d5bdec2f1c3635f3cc6836b325d450e48ea820480230e96dcb2c208eeb344",
+    "README.md": "2310b82f7652d9f52e4061c68be50dad498b67c7d386e87427bd30479b59462f",
+    "REASON_CODES.md": "630562244df129e1027743a5cc14c8921fe34122706d6f4315b9b563141580ff",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1802,6 +1829,8 @@
     "vectors/58-eval-verdict.json": "d74250d85b3a1c2d93eff95013b6f5b0a28f3f86e94d00a3e204e772f98260ed",
     "vectors/59-webhook.json": "4e15334faa78a4ef9c4d414918efcbf184e61794dd549139a0595a4f732bfb01",
     "vectors/60-redaction-report.json": "a6d96738a1c3bbb30c592eba44bab5cfec7ba9fa9c2371b4f7d84a281d8698b0",
+    "vectors/61-tombstone.json": "decd2cc717c5ac4fa70ad69125a7e5f4d65f885b60b04f81863a7e0db5ae8ad6",
+    "vectors/62-redacted-copy.json": "720af7e02bc2297b439a524dbcc32cb870e4eb9ba2ebdc4e9797ffa88dde5871",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.45.1",
@@ -2260,6 +2289,23 @@
       "summary": "SPEC 1.4 credential redaction over decoded JSON (optional)",
       "unordered": []
     },
+    "redacted-copy.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "source_run",
+        "public_run",
+        "objects",
+        "redacted",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.15: verify an opentine.redacted-copy record (and its pack digest)",
+      "unordered": []
+    },
     "redaction-report.verify": {
       "args": [],
       "input": [
@@ -2484,6 +2530,38 @@
       "summary": "SPEC 8.11: N of M pinned cosignature/v1 witnesses cosigned the checkpoint",
       "unordered": []
     },
+    "tombstone.closure": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "objects",
+        "content_unavailable",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.14: a run closure; a tombstoned missing blob is content-unavailable",
+      "unordered": []
+    },
+    "tombstone.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "oid",
+        "actor",
+        "purged_at",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.14: verify a signed opentine.tombstone under the key given",
+      "unordered": []
+    },
     "webhook.verify": {
       "args": [],
       "input": [
@@ -2509,15 +2587,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.45.1",
+  "spec_version": "0.46.0",
   "suite_version": 1,
   "totals": {
-    "cases": 716,
-    "core": 706,
-    "families": 37,
-    "ops": 43,
-    "reason_codes": 126,
-    "reject": 242,
+    "cases": 755,
+    "core": 745,
+    "families": 39,
+    "ops": 46,
+    "reason_codes": 139,
+    "reject": 270,
     "stress": 10,
     "verdict": 130
   }

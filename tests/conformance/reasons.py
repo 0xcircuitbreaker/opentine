@@ -824,6 +824,86 @@ REASONS: dict[str, Reason] = {
         "a signed report whose clean is not 'no findings'",
         "read clean without re-deriving it from the findings",
     ),
+    # --- tombstones (4.14) ---------------------------------------------------- #
+    "tombstone.malformed": R(
+        "4.14",
+        None,
+        "a tombstone with a missing, extra or ill-formed field (a non-blob oid, an empty reason)",
+        "verify a signature over fields the tombstone format does not define",
+    ),
+    "tombstone.unsigned": R(
+        "4.14",
+        None,
+        "a tombstone with no signature block",
+        "treat an unsigned record as proof that a purge was authorised",
+    ),
+    "tombstone.no-key": R(
+        "4.14",
+        None,
+        "an HMAC tombstone checked with no key",
+        "report an HMAC-signed tombstone as verified without its key",
+    ),
+    "tombstone.wrong-key": R(
+        "4.14",
+        None,
+        "a tombstone signed by a key other than the trusted one, or not HMAC under an HMAC key",
+        "accept the embedded key when the caller supplied a trusted one",
+    ),
+    "tombstone.bad-signature": R(
+        "4.14",
+        None,
+        "a tombstone whose tine-sig/3 block does not hold over its body",
+        "trust the reason, actor or oid of a tombstone without checking the signature",
+    ),
+    "tombstone.missing-content": R(
+        "4.14",
+        None,
+        "a run closure with a linked object that is absent and named by no tombstone",
+        "report a gap in a run as a purge, or a purge as a failure",
+    ),
+    # --- redacted public copies (4.15) --------------------------------------- #
+    "redacted-copy.malformed": R(
+        "4.15",
+        None,
+        "a redacted-copy record with a missing, extra or ill-formed field",
+        "verify a signature over fields the record format does not define",
+    ),
+    "redacted-copy.unsigned": R(
+        "4.15",
+        None,
+        "a redacted-copy record with no signature block",
+        "treat an unsigned link as proof a public copy derives from a run",
+    ),
+    "redacted-copy.no-key": R(
+        "4.15",
+        None,
+        "an HMAC record checked with no key",
+        "report an HMAC-signed record as verified without its key",
+    ),
+    "redacted-copy.wrong-key": R(
+        "4.15",
+        None,
+        "a record signed by a key other than the trusted one, or not HMAC under an HMAC key",
+        "accept the embedded key when the caller supplied a trusted one",
+    ),
+    "redacted-copy.bad-signature": R(
+        "4.15",
+        None,
+        "a record whose tine-sig/3 block does not hold over its body",
+        "link a public copy to a private run without checking the signature",
+    ),
+    "redacted-copy.inconsistent": R(
+        "4.15",
+        None,
+        "a signed record whose redacted count disagrees with its run oids or exceeds objects",
+        "read the counts without re-deriving them from the run oids",
+    ),
+    "redacted-copy.pack-mismatch": R(
+        "4.15",
+        None,
+        "a record that names a pack other than the one it came with",
+        "move a valid record onto another pack",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (126)
+## The codes (139)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -144,6 +144,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `pack.unresolved-link` | 2.8 | -- | a link that is neither packed, present locally, nor declared shallow | install anyway and hope the object arrives later |
 | `pack.version-unsupported` | 2.8 | -- | a version that is not the integer 1 (true is not 1) | read true as 1 |
 | `path.invalid-oid` | 2.3 | -- | deriving a loose-object path from a string that is not an oid | build a path out of whatever characters the string holds |
+| `redacted-copy.bad-signature` | 4.15 | -- | a record whose tine-sig/3 block does not hold over its body | link a public copy to a private run without checking the signature |
+| `redacted-copy.inconsistent` | 4.15 | -- | a signed record whose redacted count disagrees with its run oids or exceeds objects | read the counts without re-deriving them from the run oids |
+| `redacted-copy.malformed` | 4.15 | -- | a redacted-copy record with a missing, extra or ill-formed field | verify a signature over fields the record format does not define |
+| `redacted-copy.no-key` | 4.15 | -- | an HMAC record checked with no key | report an HMAC-signed record as verified without its key |
+| `redacted-copy.pack-mismatch` | 4.15 | -- | a record that names a pack other than the one it came with | move a valid record onto another pack |
+| `redacted-copy.unsigned` | 4.15 | -- | a redacted-copy record with no signature block | treat an unsigned link as proof a public copy derives from a run |
+| `redacted-copy.wrong-key` | 4.15 | -- | a record signed by a key other than the trusted one, or not HMAC under an HMAC key | accept the embedded key when the caller supplied a trusted one |
 | `redaction-report.bad-signature` | 4.13 | -- | a report whose tine-sig/3 block does not hold over its body | trust clean or the findings without checking the signature |
 | `redaction-report.inconsistent` | 4.13 | -- | a signed report whose clean is not 'no findings' | read clean without re-deriving it from the findings |
 | `redaction-report.malformed` | 4.13 | -- | a report with a missing, extra or ill-formed field | verify a signature over fields the report format does not define |
@@ -174,6 +181,12 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `shape.tokens-exceeded` | 0.5 | -- | a byte stream with more structural tokens than the caller's budget | raise the budget to whatever the input needs |
 | `sig.payload-not-object` | 4.2 | -- | building a message over a document that is not an object | sign the string form of whatever was supplied |
 | `text.lone-surrogate` | 0.1 | -- | a string holding an unpaired UTF-16 surrogate, in escape or raw CESU-8 spelling | substitute U+FFFD, drop the code unit, or pass the surrogate through |
+| `tombstone.bad-signature` | 4.14 | -- | a tombstone whose tine-sig/3 block does not hold over its body | trust the reason, actor or oid of a tombstone without checking the signature |
+| `tombstone.malformed` | 4.14 | -- | a tombstone with a missing, extra or ill-formed field (a non-blob oid, an empty reason) | verify a signature over fields the tombstone format does not define |
+| `tombstone.missing-content` | 4.14 | -- | a run closure with a linked object that is absent and named by no tombstone | report a gap in a run as a purge, or a purge as a failure |
+| `tombstone.no-key` | 4.14 | -- | an HMAC tombstone checked with no key | report an HMAC-signed tombstone as verified without its key |
+| `tombstone.unsigned` | 4.14 | -- | a tombstone with no signature block | treat an unsigned record as proof that a purge was authorised |
+| `tombstone.wrong-key` | 4.14 | -- | a tombstone signed by a key other than the trusted one, or not HMAC under an HMAC key | accept the embedded key when the caller supplied a trusted one |
 
 ## Not vectored, and why
 

@@ -19,6 +19,7 @@ from opentine.remote._ref_txn import check_move
 from opentine.remote._ref_txn import supported as ref_txn_supported
 from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
 from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
+from opentine.remote._tombstone_store import tombstoned
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import (
     AdmissionPolicy,
@@ -75,6 +76,7 @@ class RemoteService:
             "protocol": "opentine-remote/1",
             "ref_txn": ref_txn_supported(self.index),  # 0.43: POST ref-txn (_ref_txn)
             "resumable_upload": True,
+            "tombstones": callable(getattr(self.objects, "tombstoned", None)),  # 0.46
             "roles": ["reader", "writer", "admin"],
             "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
             **event_capabilities(self),  # 0.45.1: events_sse, webhooks
@@ -175,10 +177,14 @@ class RemoteService:
         self._audit(identity, tenant, "fetch", "ok", details)
         return data
 
+    def _resolves(self, tenant: str, oid: str) -> bool:
+        """A pushed shallow boundary the tenant holds, or purged (a tombstone, 0.46)."""
+        return self.objects.has(tenant, oid) or tombstoned(self.objects, tenant, oid)
+
     def install_pack(self, identity: Identity, tenant: str, data: bytes) -> tuple[str, int]:
         self._authorize(identity, "upload", tenant)
         pack_id, packed, shallow = inspect_pack(data)
-        unresolved = [oid for oid in shallow if not self.objects.has(tenant, oid)]
+        unresolved = [oid for oid in shallow if not self._resolves(tenant, oid)]
         if unresolved:
             raise ValueError("remote upload has unresolved shallow boundaries")
         self.admission.admit(
@@ -195,7 +201,8 @@ class RemoteService:
         # must stay link-closed so already-durable objects remain readable.
         order = verified_write_order(tenant, self.objects, packed, shallow)
         with admitted_associations(tenant, self.index, order) as targets:
-            install_objects(self.objects, self.index, tenant, order, targets, list(shallow))
+            held = [oid for oid in shallow if not tombstoned(self.objects, tenant, oid)]
+            install_objects(self.objects, self.index, tenant, order, targets, held)
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
         if self.events is not None:
             self.events.runs_installed(tenant, [oid for oid, _ in packed])
