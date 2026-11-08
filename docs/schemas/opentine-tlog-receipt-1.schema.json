@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-tlog-receipt-1.schema.json",
+  "title": "opentine-tlog-receipt/1",
+  "description": "One transparency-log entry with its signed checkpoint and RFC 9162 inclusion proof; verifiable offline.",
+  "type": "object",
+  "required": [
+    "format",
+    "checkpoint",
+    "entry",
+    "index",
+    "inclusion",
+    "vkey"
+  ],
+  "properties": {
+    "format": {
+      "const": "opentine-tlog-receipt/1"
+    },
+    "checkpoint": {
+      "$ref": "opentine-tlog-checkpoint-1.schema.json"
+    },
+    "entry": {
+      "type": "string",
+      "description": "base64 entry bytes"
+    },
+    "index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "inclusion": true,
+    "vkey": {
+      "type": "string"
+    }
+  }
+}

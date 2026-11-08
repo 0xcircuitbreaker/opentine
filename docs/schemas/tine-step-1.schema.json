@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-step-1.schema.json",
+  "title": "Step",
+  "description": "One recorded step as `tine show --json` renders it; `repo-show` omits short_id.",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "parent_ids",
+    "provider",
+    "model",
+    "cost",
+    "duration",
+    "timestamp",
+    "inputs",
+    "outputs",
+    "usage",
+    "billing",
+    "error",
+    "tool"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "short_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "parent_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider": {
+      "type": "string"
+    },
+    "model": {
+      "type": [
+        "object",
+        "string",
+        "null"
+      ]
+    },
+    "cost": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "duration": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "timestamp": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "inputs": true,
+    "outputs": true,
+    "usage": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "billing": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": true,
+    "tool": {
+      "type": [
+        "object",
+        "string",
+        "null"
+      ]
+    }
+  }
+}

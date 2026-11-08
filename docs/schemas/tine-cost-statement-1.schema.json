@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cost-statement-1.schema.json",
+  "title": "tine-cost-statement/1",
+  "description": "`tine cost RUN --statement`: the recorded cost aggregate, optionally signed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "aggregate"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tine-cost-statement/1"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "total_cost",
+        "total_tokens",
+        "input_tokens",
+        "output_tokens",
+        "by_model",
+        "by_kind",
+        "currency"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "total_cost": {
+          "type": "number"
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_model": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "by_kind": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "currency": {
+          "const": "USD"
+        }
+      }
+    }
+  }
+}

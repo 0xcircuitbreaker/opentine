@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-run-1.schema.json",
+  "title": "Run",
+  "description": "The run summary object of `tine show --json` (`run`); `repo-show` omits short_id.",
+  "type": "object",
+  "required": [
+    "id",
+    "status",
+    "model",
+    "created_at",
+    "total_cost",
+    "step_count",
+    "tags",
+    "user_prompt",
+    "system_prompt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "short_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "model": {
+      "type": [
+        "object",
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "total_cost": {
+      "type": "number"
+    },
+    "step_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "user_prompt": true,
+    "system_prompt": true
+  }
+}

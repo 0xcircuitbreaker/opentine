@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-line-attribution-1.schema.json",
+  "title": "opentine-line-attribution/1",
+  "description": "The record `tine git attribute` stores in a commit's refs/notes/tine note after `Tine-Attribution: `.",
+  "type": "object",
+  "required": [
+    "schema",
+    "files",
+    "lines_added",
+    "lines_attributed"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine-line-attribution/1"
+    },
+    "lines_added": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lines_attributed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "ranges"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "start_line",
+                "end_line",
+                "content_hash",
+                "run",
+                "step"
+              ],
+              "properties": {
+                "start_line": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end_line": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "content_hash": {
+                  "type": "string"
+                },
+                "run": {
+                  "type": "string"
+                },
+                "step": {
+                  "type": "string"
+                },
+                "seq": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tool": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

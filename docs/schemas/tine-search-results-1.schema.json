@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-search-results-1.schema.json",
+  "title": "tine repo-search --json",
+  "description": "Search results over a v3 repository with the filters that produced them.",
+  "type": "object",
+  "required": [
+    "command",
+    "repo",
+    "query",
+    "count",
+    "results"
+  ],
+  "properties": {
+    "command": {
+      "const": "repo-search"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "query": {
+      "type": "string"
+    },
+    "successful_only": {
+      "type": "boolean"
+    },
+    "signed_only": {
+      "type": "boolean"
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latency": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matched_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

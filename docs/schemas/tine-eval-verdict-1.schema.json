@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-eval-verdict-1.schema.json",
+  "title": "tine-eval-verdict/1 (draft)",
+  "description": "DRAFT for 0.45 `tine eval run`: one scorer's verdict on one dataset item for one run, signed with tine-sig/3. Field names are coordinated with the eval work and may gain fields before 0.45.0.",
+  "type": "object",
+  "required": [
+    "schema",
+    "run",
+    "item",
+    "scorer",
+    "score",
+    "pass"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tine-eval-verdict/1"
+    },
+    "run": {
+      "type": "string",
+      "description": "the run's oid"
+    },
+    "item": {
+      "type": "string"
+    },
+    "dataset": {
+      "type": "string"
+    },
+    "scorer": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "deterministic",
+            "regex",
+            "llm-judge",
+            "python"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "score": {
+      "type": [
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "pass": {
+      "type": "boolean"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "judge_run": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

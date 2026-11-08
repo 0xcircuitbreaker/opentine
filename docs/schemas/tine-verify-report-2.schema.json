@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-verify-report-2.schema.json",
+  "title": "tine-verify-report/2",
+  "$comment": "checks are ordered: digest, signature, provenance, attestation, rekor-receipt, certificate, sct, timestamp, action-manifest, action-policy, claims; provenance and timestamp are never required",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "command",
+    "offline",
+    "path",
+    "strict",
+    "verdict",
+    "ok",
+    "authorship",
+    "checks",
+    "unavailable_required"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tine-verify-report/2"
+    },
+    "command": {
+      "const": "verify"
+    },
+    "offline": {
+      "const": true
+    },
+    "path": {
+      "type": "string"
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "authorship": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unavailable_required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "location": {
+      "type": "object"
+    },
+    "timestamps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "required": [
+        "claimed",
+        "verified"
+      ]
+    },
+    "crypto": {
+      "type": "object",
+      "required": [
+        "mode",
+        "provider_fips",
+        "openssl"
+      ]
+    },
+    "signing_time": {
+      "type": "string"
+    },
+    "signature": {
+      "type": "object"
+    },
+    "signature_timestamps": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "outcome",
+          "reason",
+          "detail",
+          "trust_basis",
+          "required"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "pass",
+              "fail",
+              "unavailable-offline",
+              "not-applicable"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "trust_basis": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "description": "What `tine verify RUN --offline --json` writes (SPEC, offline verification). /1 is /2 without signing_time, signature and signature_timestamps."
+}

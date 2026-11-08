@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-verify-1.schema.json",
+  "title": "tine verify --json (online)",
+  "description": "Integrity and, when armed, signature verdict. `--offline` writes tine-verify-report/2 instead.",
+  "type": "object",
+  "required": [
+    "command",
+    "path",
+    "ok",
+    "integrity",
+    "signature"
+  ],
+  "properties": {
+    "command": {
+      "const": "verify"
+    },
+    "path": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "ok",
+        "algorithm",
+        "expected",
+        "actual",
+        "reason",
+        "draft"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "draft": {
+          "type": "boolean"
+        }
+      }
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "ok",
+            "state"
+          ],
+          "properties": {
+            "ok": {
+              "type": "boolean"
+            },
+            "state": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "assurance": {
+      "type": "object",
+      "required": [
+        "claimed",
+        "verified"
+      ],
+      "properties": {
+        "claimed": {
+          "enum": [
+            "T0",
+            "T1",
+            "T2",
+            "T3"
+          ]
+        },
+        "verified": {
+          "enum": [
+            "T0",
+            "T1",
+            "T2",
+            "T3"
+          ]
+        },
+        "witness": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-repo-show-1.schema.json",
+  "title": "tine repo-show --json",
+  "description": "A v3 run by ref or oid; run and step objects without short_id.",
+  "type": "object",
+  "required": [
+    "command",
+    "repo",
+    "ref",
+    "run_object_id",
+    "run",
+    "steps"
+  ],
+  "properties": {
+    "command": {
+      "const": "repo-show"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "ref": {
+      "type": "string"
+    },
+    "run_object_id": {
+      "type": "string"
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "status",
+        "model",
+        "created_at",
+        "total_cost",
+        "step_count",
+        "tags",
+        "user_prompt",
+        "system_prompt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "model": {
+          "type": [
+            "object",
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total_cost": {
+          "type": "number"
+        },
+        "step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "user_prompt": true,
+        "system_prompt": true
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "parent_ids",
+          "provider",
+          "model",
+          "cost",
+          "duration",
+          "timestamp",
+          "inputs",
+          "outputs",
+          "usage",
+          "billing",
+          "error",
+          "tool"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "short_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "parent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "object",
+              "string",
+              "null"
+            ]
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inputs": true,
+          "outputs": true,
+          "usage": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "billing": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": true,
+          "tool": {
+            "type": [
+              "object",
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

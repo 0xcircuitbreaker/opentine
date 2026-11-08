@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-cost-1.schema.json",
+  "title": "tine cost --json",
+  "description": "The run's recorded cost breakdown and budget state.",
+  "type": "object",
+  "required": [
+    "command",
+    "run_id",
+    "total_cost",
+    "total_tokens",
+    "by_model",
+    "by_kind",
+    "budget",
+    "budget_state",
+    "over_budget"
+  ],
+  "properties": {
+    "command": {
+      "const": "cost"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "short_id": {
+      "type": "string"
+    },
+    "total_cost": {
+      "type": "number"
+    },
+    "total_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "input_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "output_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "by_model": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "by_kind": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [],
+          "properties": {}
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "budget_state": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [],
+          "properties": {}
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "over_budget": {
+      "type": "boolean"
+    }
+  }
+}
