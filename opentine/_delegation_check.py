@@ -88,8 +88,12 @@ def delegation_check(
     links = " -> ".join([root, *result["links"]])
     detail = f"{len(result['links'])} link(s): {links}; leaf {fpr}"
     if root in pins:
-        return Check(NAME, "pass", "delegation.verified", detail, f"pinned root {root}", authenticates=True)
-    return Check(NAME, "pass", "delegation.verified", detail, f"unpinned root {root} (pin it with --pin)")
+        return Check(
+            NAME, "pass", "delegation.verified", detail, f"pinned root {root}", authenticates=True
+        )
+    return Check(
+        NAME, "pass", "delegation.verified", detail, f"unpinned root {root} (pin it with --pin)"
+    )
 
 
 __all__ = ["NAME", "agent_names", "delegation_check", "tool_names"]

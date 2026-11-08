@@ -2,6 +2,9 @@
 
 import os
 
+#: 0.45: every --json output a test drives must meet its published schema.
+pytest_plugins = ("tests._schema_guard",)
+
 
 def pytest_configure(config):
     """Neutralize ambient terminal colour for the whole test session.

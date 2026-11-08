@@ -27,6 +27,7 @@ ENTRY = open_(["run_id", "short_id", "status", "model", "steps", "cost", "create
 })  # fmt: skip
 _SIGNATURE = open_(["ok", "state"], {"ok": BOOL, "state": STR})
 _BUDGET = open_([], {})
+_CAPTURE = open_(["path", "assurance", "actions"], {"path": STR, "actions": INT})
 _FLAG = open_(["flags", "dest"], {
     "flags": strs(), "dest": STR, "help": opt(STR), "metavar": True, "nargs": True,
     "choices": opt({"type": "array"}), "required": BOOL, "takes_value": BOOL, "default": True,
@@ -55,13 +56,28 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "steps": {"type": "array", "items": {"$ref": "tine-step-1.schema.json"}},
             "assurance": {"$ref": "tine-assurance-1.schema.json"}})),
     "tine-cli-verify-1": doc("tine-cli-verify-1", "tine verify --json (online)",
-        "Integrity and, when armed, signature verdict. `--offline` writes "
-        "tine-verify-report/2 instead.",
-        open_(["command", "path", "ok", "integrity", "signature"], {
-            "command": {"const": "verify"}, "path": STR, "ok": BOOL,
-            "integrity": open_(["ok", "algorithm", "expected", "actual", "reason", "draft"], {
-                "ok": BOOL, "draft": BOOL}),
-            "signature": opt(_SIGNATURE), "assurance": ASSURANCE})),
+        "One of three shapes, all `command: verify`: the integrity and signature verdict "
+        "(the default), an in-toto attestation verdict (`--attestation`, it names "
+        "`attestation`) or a capture comparison (`mode: compare-capture`). `--offline` "
+        "writes tine-verify-report/2 instead.",
+        {"type": "object", "properties": {"command": {"const": "verify"}},
+         "required": ["command"], "anyOf": [
+            open_(["path", "ok", "integrity", "signature"], {
+                "path": STR, "ok": BOOL,
+                "integrity": open_(["ok", "algorithm", "expected", "actual", "reason",
+                                    "draft"], {"ok": BOOL, "draft": BOOL}),
+                "signature": opt(_SIGNATURE), "assurance": ASSURANCE}),
+            open_(["attestation", "path", "ok", "signature", "subject", "receipt"], {
+                "attestation": STR, "path": opt(STR), "ok": BOOL,
+                "signature": open_(["status", "reason"], {"status": STR}),
+                "subject": open_(["ok", "reason"], {"ok": BOOL, "reason": opt(STR)}),
+                "receipt": opt({"type": "object"}), "predicate_type": opt(STR)}),
+            open_(["mode", "witness", "other", "consistent", "divergences"], {
+                "mode": {"const": "compare-capture"}, "consistent": BOOL,
+                "witness": _CAPTURE, "other": _CAPTURE,
+                "divergences": {"type": "array", "items": open_(["kind"], {
+                    "kind": {"enum": ["changed", "missing", "unwitnessed"]}})}}),
+        ]}),
     "tine-cli-runs-1": doc("tine-cli-runs-1", "tine ls / search --json",
         "Legacy index rows; `query` on search only.",
         open_(["command", "count", "runs"], {

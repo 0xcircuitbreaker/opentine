@@ -2,90 +2,131 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-verify-1.schema.json",
   "title": "tine verify --json (online)",
-  "description": "Integrity and, when armed, signature verdict. `--offline` writes tine-verify-report/2 instead.",
+  "description": "One of three shapes, all `command: verify`: the integrity and signature verdict (the default), an in-toto attestation verdict (`--attestation`, it names `attestation`) or a capture comparison (`mode: compare-capture`). `--offline` writes tine-verify-report/2 instead.",
   "type": "object",
-  "required": [
-    "command",
-    "path",
-    "ok",
-    "integrity",
-    "signature"
-  ],
   "properties": {
     "command": {
       "const": "verify"
-    },
-    "path": {
-      "type": "string"
-    },
-    "ok": {
-      "type": "boolean"
-    },
-    "integrity": {
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "anyOf": [
+    {
       "type": "object",
       "required": [
+        "path",
         "ok",
-        "algorithm",
-        "expected",
-        "actual",
-        "reason",
-        "draft"
+        "integrity",
+        "signature"
       ],
       "properties": {
+        "path": {
+          "type": "string"
+        },
         "ok": {
           "type": "boolean"
         },
-        "draft": {
-          "type": "boolean"
-        }
-      }
-    },
-    "signature": {
-      "anyOf": [
-        {
+        "integrity": {
           "type": "object",
           "required": [
             "ok",
-            "state"
+            "algorithm",
+            "expected",
+            "actual",
+            "reason",
+            "draft"
           ],
           "properties": {
             "ok": {
               "type": "boolean"
             },
-            "state": {
-              "type": "string"
+            "draft": {
+              "type": "boolean"
             }
           }
         },
-        {
-          "type": "null"
+        "signature": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "ok",
+                "state"
+              ],
+              "properties": {
+                "ok": {
+                  "type": "boolean"
+                },
+                "state": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assurance": {
+          "type": "object",
+          "required": [
+            "claimed",
+            "verified"
+          ],
+          "properties": {
+            "claimed": {
+              "enum": [
+                "T0",
+                "T1",
+                "T2",
+                "T3"
+              ]
+            },
+            "verified": {
+              "enum": [
+                "T0",
+                "T1",
+                "T2",
+                "T3"
+              ]
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
-      ]
+      }
     },
-    "assurance": {
+    {
       "type": "object",
       "required": [
-        "claimed",
-        "verified"
+        "attestation",
+        "path",
+        "ok",
+        "signature",
+        "subject",
+        "receipt"
       ],
       "properties": {
-        "claimed": {
-          "enum": [
-            "T0",
-            "T1",
-            "T2",
-            "T3"
-          ]
+        "attestation": {
+          "type": "string"
         },
-        "verified": {
-          "enum": [
-            "T0",
-            "T1",
-            "T2",
-            "T3"
-          ]
-        },
-        "witness": {
+        "path": {
           "anyOf": [
             {
               "type": "string"
@@ -95,13 +136,134 @@
             }
           ]
         },
-        "reasons": {
+        "ok": {
+          "type": "boolean"
+        },
+        "signature": {
+          "type": "object",
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "type": "string"
+            }
+          }
+        },
+        "subject": {
+          "type": "object",
+          "required": [
+            "ok",
+            "reason"
+          ],
+          "properties": {
+            "ok": {
+              "type": "boolean"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "receipt": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "predicate_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "mode",
+        "witness",
+        "other",
+        "consistent",
+        "divergences"
+      ],
+      "properties": {
+        "mode": {
+          "const": "compare-capture"
+        },
+        "consistent": {
+          "type": "boolean"
+        },
+        "witness": {
+          "type": "object",
+          "required": [
+            "path",
+            "assurance",
+            "actions"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "other": {
+          "type": "object",
+          "required": [
+            "path",
+            "assurance",
+            "actions"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "divergences": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "changed",
+                  "missing",
+                  "unwitnessed"
+                ]
+              }
+            }
           }
         }
       }
     }
-  }
+  ]
 }
