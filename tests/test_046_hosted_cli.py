@@ -149,3 +149,9 @@ def test_remote_login_device_flow_stores_the_token_owner_only(remote, monkeypatc
     assert stored.read_text().strip() == "id.jwt.token"
     if sys.platform != "win32":
         assert stored.stat().st_mode & 0o077 == 0
+
+
+def test_login_strips_terminal_escapes_from_issuer_text():
+    from opentine._cli_remote_login import _printable
+
+    assert _printable("https://x/\x1b]52;c;evil\x07go") == "https://x/]52;c;evilgo"

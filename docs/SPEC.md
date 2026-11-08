@@ -2508,7 +2508,11 @@ An object that is absent, in another tenant, outside a share, or not
 authorized, and a share token that is unknown, expired or revoked, all answer
 the same `404` with body `{"error":"not found"}`: no route is an oracle for
 whether an oid exists. Failed share lookups count against the client like
-failed logins (429 with `Retry-After`). The server never signs as a user: a
+failed logins (429 with `Retry-After`); a successful share read MUST NOT
+clear that count, or one live token would let its holder keep guessing. On
+share routes `haves` count only inside the bound run's closure, every answer
+carries `Referrer-Policy: no-referrer`, and the token MUST NOT appear in
+access logs. The server never signs as a user: a
 share grants read access to bytes the viewer re-verifies against the run's own
 signatures.
 
