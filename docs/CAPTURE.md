@@ -534,6 +534,15 @@ tine mcp-proxy --http-upstream https://mcp.example.com/mcp --listen 127.0.0.1:88
 A recording failure is logged to stderr and the session carries on. The exit
 code is the stdio server's own.
 
+## 6c. Live capture: TypeScript agents (0.47)
+
+[`ts/capture`](../ts/capture) (`@opentine/capture`, no runtime dependencies)
+turns a Vercel AI SDK `generateText`/`streamText` result or an OpenAI Agents
+SDK `RunResult` into `opentine-hook/1` events (prompt, one `tool` step per
+call with its paired result, `turn_end` with the final text) and delivers them
+with `tine hook capture --agent=generic`, one process per event, no shell.
+Capture must be enabled in the repository (`tine enable`).
+
 ## 7. Getting it back out
 
 Capture is not a one-way door. `tine export` renders any run as GenAI spans in

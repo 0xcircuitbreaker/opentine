@@ -1,0 +1,32 @@
+{
+  "note": "Shape of an ai@5 generateText result (steps[].toolCalls/toolResults/content), trimmed to the fields the adapter reads plus some it must ignore.",
+  "text": "It is 18 degrees in Paris.",
+  "finishReason": "stop",
+  "usage": {"inputTokens": 120, "outputTokens": 30, "totalTokens": 150},
+  "steps": [
+    {
+      "content": [
+        {"type": "tool-call", "toolCallId": "call_1", "toolName": "weather", "input": {"city": "Paris"}},
+        {"type": "tool-result", "toolCallId": "call_1", "toolName": "weather", "input": {"city": "Paris"}, "output": {"celsius": 18}},
+        {"type": "tool-call", "toolCallId": "call_2", "toolName": "forecast", "input": {"city": "Paris", "days": 2}},
+        {"type": "tool-error", "toolCallId": "call_2", "toolName": "forecast", "input": {"city": "Paris", "days": 2}, "error": "rate limited"}
+      ],
+      "text": "",
+      "toolCalls": [
+        {"type": "tool-call", "toolCallId": "call_1", "toolName": "weather", "input": {"city": "Paris"}},
+        {"type": "tool-call", "toolCallId": "call_2", "toolName": "forecast", "input": {"city": "Paris", "days": 2}}
+      ],
+      "toolResults": [
+        {"type": "tool-result", "toolCallId": "call_1", "toolName": "weather", "input": {"city": "Paris"}, "output": {"celsius": 18}}
+      ],
+      "finishReason": "tool-calls"
+    },
+    {
+      "content": [{"type": "text", "text": "It is 18 degrees in Paris."}],
+      "text": "It is 18 degrees in Paris.",
+      "toolCalls": [],
+      "toolResults": [],
+      "finishReason": "stop"
+    }
+  ]
+}

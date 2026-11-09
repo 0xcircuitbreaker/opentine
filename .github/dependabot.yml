@@ -21,6 +21,13 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+  - package-ecosystem: npm
+    directory: /ts/capture
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
   - package-ecosystem: github-actions
     directory: /
     schedule:

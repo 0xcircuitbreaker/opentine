@@ -243,6 +243,8 @@ DRIVEN = (
 
 @pytest.mark.parametrize(("argv", "expected"), DRIVEN, ids=[" ".join(a) for a, _ in DRIVEN])
 def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, expected):
+    if argv[0] == "experts" and shutil.which("git") is None:
+        pytest.skip("tine experts blames with git")
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)
