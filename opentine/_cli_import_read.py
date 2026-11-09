@@ -84,12 +84,27 @@ def _agent_trace_events(data: bytes) -> list[TraceEvent]:
     return agent_trace_events(data)
 
 
-#: Formats read as raw bytes rather than text: protobuf, HAR, Agent Trace records.
+def _jules_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._import_jules import jules_events
+
+    return jules_events(data)
+
+
+def _a2a_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._import_a2a import a2a_events
+
+    return a2a_events(data)
+
+
+#: Formats read as raw bytes rather than text: protobuf, HAR, Agent Trace,
+#: Jules session exports and A2A traces (0.49).
 BINARY_FORMATS = {
     "otlp-proto": _otlp_proto_events,
     "otlp-proto-logs": _otlp_proto_log_events,
     "har": _har_events,
     "agent-trace": _agent_trace_events,
+    "jules": _jules_events,
+    "a2a": _a2a_events,
 }
 
 

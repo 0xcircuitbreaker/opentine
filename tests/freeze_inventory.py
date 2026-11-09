@@ -109,6 +109,7 @@ NOT_KINDS = (
     "tine-list-page-1", "tine-redaction-rules-1", "tine-repo-show-1", "tine-search-results-1",
     "tine-share-1", "tine-verify-dataset-1", "tine-watch-1", "tine-graph-1",
     "opentine-compliance-profile-1",
+    "opentine-witness-network-1",  # 0.49: a pinned config, like --witness-vkey flags
 )  # fmt: skip
 DEFERRED_SCHEMAS = {
     "tine-verify-report-2": "tine-verify-report/2",

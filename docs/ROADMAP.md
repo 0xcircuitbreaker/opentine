@@ -298,6 +298,7 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.46.1 | Delivered (§11, project formats) |
 | 0.47.0 | Delivered (§10, §11 projects second half) |
 | 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
+| 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
@@ -745,6 +746,7 @@ Rules for this stretch:
 - **FastCDC lazy fetch for payloads ≥8 MiB and the S3 store**, moved from the 1.0 track. *Justification: the hosted service needs object storage with lazy fetch, and chunking is a stored form, not a new canonical kind, so it does not cross the 0.48 cutoff.*
 - **Webhook and OTLP alerts [0.45+]. Jules importer [0.45+].** A2A importer, moved from the 1.0 track. *Justification: a thin importer that produces T0 runs; no format change.*
 - **Public witness** operated by the project, and independent witnesses recruited.
+  - *Status (branch `wip/049-witness-network`):* the operator kit is shipped: the runbook `docs/witness/OPERATING.md` (hardware, key ceremony, rotation, monitoring, incident response), a container definition in `deploy/witness/` (pinned base image, no secrets), the `opentine-witness-network/1` registry (`docs/witness/NETWORK.md`; a pinned config, not a kind) that `tine verify --offline --witnesses REGISTRY.json` checks against the majority-of-three policy, `tine witness doctor`, and `docs/witness/RECRUITING.md`. `tests/test_049_witness_network.py` requires 2-of-3 cosignatures from three local witness processes and fails closed on a split view. **Outstanding for humans:** operating the public witness, recruiting at least two independent operators, publishing the production registry and pinning the image by digest.
 
 **Acceptance:**
 

@@ -2065,7 +2065,7 @@
     "vectors/78-fleet.json": "3096854959ef2e815c7521763bb6124541c8f2dead801fbb8530a1409d4ce335",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.48.0",
+  "generated_by": "opentine 0.49.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -3211,7 +3211,7 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.48.0",
+  "spec_version": "0.49.0",
   "suite_version": 1,
   "totals": {
     "cases": 1112,

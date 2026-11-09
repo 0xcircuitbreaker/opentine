@@ -1,0 +1,25 @@
+A2A (Agent2Agent) trace fixture (task.jsonl). Hand-built from the protocol
+specification below; no agent was run to produce it and no user data is in it.
+
+A2A  https://a2a-protocol.org/latest/specification/ (spec 0.3, read 2026-11-09)
+     github.com/a2aproject/A2A specification/json/a2a.json
+  6.1 Task            {kind:"task", id, contextId, status, history[], artifacts[], metadata}
+  6.2 TaskStatus      {state, message?, timestamp?}; TaskState submitted | working |
+                      input-required | completed | canceled | failed | rejected |
+                      auth-required | unknown
+  6.4 Message         {kind:"message", role:"user"|"agent", parts[], messageId,
+                      taskId?, contextId?, metadata?}
+  6.5 Part            TextPart{kind:"text", text} | FilePart{kind:"file", file{name,
+                      mimeType, bytes|uri}} | DataPart{kind:"data", data}
+  6.7 Artifact        {artifactId, name?, parts[]}
+  7.1 message/send    JSON-RPC 2.0 request params.message; result Task | Message
+  7.2 message/stream  results TaskStatusUpdateEvent{kind:"status-update", taskId,
+                      contextId, status, final} and TaskArtifactUpdateEvent
+                      {kind:"artifact-update", taskId, contextId, artifact}
+
+task.jsonl is one client's log of a message/stream exchange: the request, the
+stream events, and a final tasks/get response repeating the history (the
+importer de-duplicates messages by messageId).
+
+Deferred: push-notification configs and agent cards carry no trace content
+and are ignored; FilePart inline bytes are never imported.

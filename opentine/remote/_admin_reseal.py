@@ -59,6 +59,8 @@ def reseal(
         raise ValueError("--to must be aes3, aes4 or aes6")
     if target == "aes6" and not hasattr(objects.keys, "keyring"):
         raise ValueError("--to aes6 needs TINE_KMS_KEY_ID (a TINEAES6 key provider)")
+    if not hasattr(objects, "_path"):
+        raise ValueError("reseal rewrites files in place: it needs the filesystem object store")
     if source not in (None, "aes2"):
         raise ValueError("--from must be aes2")
     codec = None if target == "aes3" else (objects.codec or _codec.default_codec())

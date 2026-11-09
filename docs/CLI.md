@@ -390,9 +390,27 @@ tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
 tine witness serve --key KEY... --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
                    [--rate-limit N]
 tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
+tine witness doctor --key KEY... --name NAME --log-vkey V... [--state DIR] [--registry FILE]
+                    [--url URL] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
+tine verify TARGET --offline --witnesses REGISTRY.json
 tine bundle create FILE REF... --transparency
 ```
+
+0.49, the witness network (SPEC 8.23; `docs/witness/`). `verify --offline
+--witnesses REGISTRY.json` takes the quorum, the witness keys and the log key
+from an `opentine-witness-network/1` registry (`docs/witness/NETWORK.md`) and
+refuses one that is not a strict majority of three or more witnesses with
+distinct operators, names and https URLs (e.g. 2-of-3); a cosignature by any
+key a witness lists counts once, and `--witness-vkey`/`--log-vkey` are refused
+alongside it. `--json` adds `"registry": {"log", "quorum"}`. `witness doctor`
+is an operator's pre-flight check: keys load, key files are private (POSIX),
+`--state` is writable, each log's stored checkpoint opens, the `--registry`
+lists this witness with its keys and log, and `--url` answers `/health` and
+serves exactly these keys at `/keys`. It prints each check (`--json`:
+`tine-cli-witness-doctor/1`) and exits 4 when any fails. The runbook, the
+container definition (`deploy/witness/`) and the recruitment notes are in
+`docs/witness/`.
 
 0.47, for witness operators (SPEC 8.23): `serve` takes `--key` more than once;
 every key cosigns, the first is current, so a key is rotated by adding the next
@@ -611,6 +629,94 @@ missing and why) or `out-of-scope` (organisational duties, qualified trust
 services). It exits 0 whatever the result; `--strict` exits 4 when anything in
 scope is missing. `--json` writes `tine-cli-compliance-check-1` and `list
 --json` `tine-cli-compliance-list-1`.
+
+## Air-gapped audit kit: `tine audit-kit` (0.49)
+
+```
+tine audit-kit build RUN... | BUNDLE --out DIR [--zip] [--pubkey FILE] [--pin FPR]
+    [--action-policy FILE] [--trusted-root FILE] [--sign KEY]
+    [--attest-key KEY | --replay-attestation FILE [--replay-pubkey FILE]]
+    [--witness VKEY]... [--witness-set FILE] [--log-key FILE]... [--quorum N-of-M]
+    [--operator NAME] [--allow-unredacted] [--json]
+tine audit-kit verify DIR|ZIP [--pyz] [--pubkey FILE] [--json]
+```
+
+`build` writes a self-contained directory (and with `--zip` a deterministic
+`DIR.zip`): `tine-verify.pyz`, `verify.html` (the TS verifier as one offline
+page with the runs embedded), the evidence folder (`tine evidence export
+--with-verifier`), each run's Provenance Run Crate, a `replay/v1` attestation
+(`--attest-key` replays the run now in cache mode and signs the verdict;
+`--replay-attestation` copies one), the pinned witness set and log keys,
+`REPORT.md`/`report.html` (the printed report; no PDF), the artifact-evaluation
+package `ae/` (an ACM-badge README, `verify_kit.py` needing only the standard
+library, `verify.sh`, `verify.ps1`, `reproduce.sh`) and `SHA256SUMS`. A bundle
+input is verified and its runs are written out; the bundle is kept in
+`source/`. `verify` re-checks everything with the network refused (SPEC
+§8.4.1); `--pyz` also runs the kit's own pyz in a separate process. Without
+opentine: `python3 -I ae/verify_kit.py`, then open `verify.html`. Both exit 1
+when a check fails; `--json` writes `tine-cli-audit-kit-build-1` (also the kit's
+`kit.json`) and `tine-cli-audit-kit-verify-1`.
+
+A kit is made to be handed out, so `build` refuses (exit 2, nothing written) a
+run that the redaction ruleset would still change; build from `tine bundle
+create --redacted-public` instead, or pass `--allow-unredacted`. Whoever alters
+a kit can also regenerate `SHA256SUMS` and its `pubkey.pub`, so without an
+outside key `verify` proves integrity only (its `anchor` check is `skip`);
+`verify --pubkey FILE` pins the run signatures to a key obtained separately and
+fails `anchor` when the kit carries another. `verify` refuses links and special
+files in a kit directory, and unsafe, linked, duplicate or oversized zip entries.
+
+## Alerts: `tine alert` (0.49)
+
+```
+tine alert add NAME --on verify.failed|policy.denied|cost.threshold|witness.disagreement
+    [--threshold USD] [--webhook URL] [--otlp ENDPOINT] [--allow-private] [--replace]
+tine alert list | remove NAME
+tine alert test [NAME] [--event FILE] [--always] [--dry-run]
+tine watch [REPO|REMOTE] --alerts
+```
+
+Rules live in `.tine/alerts/rules.json`. Alerts are evaluated on `tine-event/1`
+events: `op.logged` and `run.created` announce runs, which are loaded from the
+repository and checked (an attestation whose signature does not verify, a
+`policy` step with a deny decision, a total cost above `--threshold` USD);
+`log.checkpoint` events are compared with the last checkpoint of the same
+origin (a rollback or fork is a `witness.disagreement`). A webhook delivery is
+a `tine-webhook/1` body (SPEC 8.13) whose `event` is the triggering event, with
+an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`; `list`
+prints its `kid` and `public_key` for the receiver to pin. Targets must be
+`https://` global addresses unless `--allow-private`; 408/429/5xx are retried
+(3 attempts). An OTLP delivery POSTs one OTLP/JSON log record per alert to
+`ENDPOINT/v1/logs` (severity `ERROR` for verify and witness alerts, else
+`WARN`; `opentine.alert.*` attributes); it may be `http://` but, like a webhook,
+must not carry credentials or name (or resolve to) a private, loopback or
+reserved address unless `--allow-private`. Stored rules are re-checked when
+read, so a hand-edited `rules.json` cannot bypass these checks. `test` evaluates the newest op-log entry
+(or `--event FILE`: an event or a `tine watch --json` line) and delivers what
+trips; `--always` also sends a `test: true` alert for each other rule. `--json`
+writes `tine-cli-alert-1`; `test` exits 1 when a delivery failed. `tine watch
+--alerts` evaluates the rules on every event it reports.
+
+## Jules and A2A import (0.49)
+
+```
+tine import session.json --format jules --save run.tine
+tine import task.jsonl --format a2a --repo .
+```
+
+`jules` reads a Jules session as its REST API returns it (`{"session",
+"activities"}`, a list-activities response, a bare activity list, or JSONL
+pages): the prompt and user messages become human steps, agent messages, plans
+and progress model steps (`jules`/`google`, no token usage is reported),
+`planApproved` an approval and `sessionFailed` an error; `bashOutput`,
+`changeSet` (patch, base commit, suggested message) and `media` (MIME type and
+size only) artifacts become tool steps. `a2a` reads Agent2Agent tasks,
+messages and `status-update`/`artifact-update` stream events, bare or in
+JSON-RPC envelopes, one JSON document or JSONL; messages are de-duplicated by
+`messageId`, `failed`/`rejected` states become errors and
+`input-required`/`auth-required` approvals; file parts keep name, MIME type and
+URI, never inline bytes. Neither is auto-detected; pass `--format`. Sources:
+`tests/fixtures/jules/SOURCE.txt`, `tests/fixtures/a2a/SOURCE.txt`.
 
 ## Entire checkpoint import (0.19)
 
@@ -1223,6 +1329,41 @@ marker and was written by the poster itself is edited. `--dry-run` builds the
 record and the request plan without a token or the network. The command exits
 0 whatever the conclusion (the CI gate decides the job); `--json` follows
 `tine-cli-forge-1`. Token scopes and CI recipes: [FORGES.md](FORGES.md).
+
+## Publishing run bundles: `tine publish zenodo`, `tine publish hf` (0.49)
+
+```
+tine publish zenodo REF... --creator NAME [--creator NAME]... [--attach FILE]...
+                    [--title T] [--description D] [--access-right open|closed]
+                    [--license ID] [--publish] [--sandbox] [--allow-unredacted REASON]
+                    [--api-url URL] [--token-env NAME] [--repo R] [--dry-run] [--json]
+tine publish hf REF --dataset OWNER/NAME (--key-file K | --ed25519-key-file K)
+                [--key-id ID] [--revision BRANCH] [--create [--private]]
+                [--api-url URL] [--token-env NAME] [--repo R] [--dry-run] [--json]
+```
+
+`zenodo` bundles the named refs (`tine bundle create`) and deposits the bundle,
+plus each `--attach` file (for example a `tine export --format run-crate`
+crate), through the Zenodo REST API: create a deposition, upload into its
+bucket, set the metadata (`upload_type` dataset, the creators, the bundle
+digest). Without `--publish` the deposition stays a draft to review on Zenodo;
+`--publish` mints a DOI and cannot be undone. `--sandbox` targets
+`sandbox.zenodo.org`. The token is `ZENODO_TOKEN` (or `--token-env`).
+
+`hf` publishes one run's redacted public copy, the same signed bundle as
+`tine bundle create --redacted-public`, to a Hugging Face Hub dataset: the
+bundle goes up through the Hub's LFS batch API as `runs/<id>.tbundle`, and one
+commit adds it with a dataset card (`README.md`) tagged `agent-traces`. The
+token is `HF_TOKEN` (or `--token-env`); an LFS upload URL on another host gets
+only the headers the Hub names for it, never the token.
+
+Both run the pre-push redaction gate over every object they would upload before
+any request: a hit refuses. `zenodo` takes `--allow-unredacted REASON` (logged,
+like `tine push`); `hf` has no override, since a Hub dataset is public. Each
+successful upload is recorded as an op-log entry with where it went and the
+bundle digest. Tokens are never printed or logged; a failure names the HTTP
+status only. `--dry-run` gates and plans without a token or the network.
+`--json` follows `tine-cli-publish-1`.
 
 ## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
 

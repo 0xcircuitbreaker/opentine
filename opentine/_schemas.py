@@ -11,7 +11,10 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
 :mod:`opentine._schema_defs_extend` (plugins, experts) and
 :mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
-:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48); ``docs/schemas`` is
+:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48);
+:mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49);
+:mod:`opentine._schema_defs_alerts` (``tine alert``, 0.49);
+:mod:`opentine._schema_defs_witness` (the witness network, 0.49); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -24,6 +27,10 @@ from typing import Any
 
 from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
+from opentine._schema_defs_alerts import COMMAND_SCHEMAS as _ALERT_COMMANDS
+from opentine._schema_defs_alerts import SCHEMAS as _ALERTS
+from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
+from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
 from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
@@ -49,6 +56,8 @@ from opentine._schema_defs_merge import SCHEMAS as _MERGE
 from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
 from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
+from opentine._schema_defs_publish import COMMAND_SCHEMAS as _PUBLISH_COMMANDS
+from opentine._schema_defs_publish import SCHEMAS as _PUBLISH
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
@@ -62,6 +71,7 @@ from opentine._schema_defs_review import SCHEMAS as _REVIEW
 from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
 from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
 from opentine._schema_defs_share import SCHEMAS as _SHARE
+from opentine._schema_defs_witness import SCHEMAS as _WITNESS
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     **_OBJECTS,
@@ -80,6 +90,10 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_FORGE,
     **_INTEGRATE,
     **_COMPLIANCE,
+    **_AUDIT_KIT,
+    **_PUBLISH,
+    **_ALERTS,
+    **_WITNESS,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -95,6 +109,9 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_FORGE_COMMANDS,
     **_INTEGRATE_COMMANDS,
     **_COMPLIANCE_COMMANDS,
+    **_AUDIT_KIT_COMMANDS,
+    **_PUBLISH_COMMANDS,
+    **_ALERT_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

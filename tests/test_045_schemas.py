@@ -245,10 +245,18 @@ DRIVEN = (
     ),
     (("code-graph", "--repo", "repo", "--json"), "tine-graph-1"),  # 0.48
     (("compliance", "list", "--json"), "tine-cli-compliance-list-1"),  # 0.48
+    (("alert", "list", "--repo", "repo", "--json"), "tine-cli-alert-1"),  # 0.49
     (
         ("compliance", "check", "run.tine", "--profile", "eu-ai-act", "--json"),
         "tine-cli-compliance-check-1",
     ),  # fmt: skip
+    (("audit-kit", "build", "run.tine", "--out", "kit", "--json"), "tine-cli-audit-kit-build-1"),
+    (("audit-kit", "verify", "kit", "--json"), "tine-cli-audit-kit-verify-1"),  # 0.49
+    (
+        ("publish", "zenodo", "heads/main", "--creator", "Doe, Jane", "--repo", "repo")
+        + ("--dry-run", "--json"),
+        "tine-cli-publish-1",
+    ),  # 0.49
 )
 
 
@@ -256,6 +264,8 @@ DRIVEN = (
 def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, expected):
     if argv[0] in ("experts", "forge") and shutil.which("git") is None:
         pytest.skip("tine experts blames with git")
+    if argv[:2] == ("audit-kit", "verify"):  # 0.49: verify needs a kit to check
+        _tine(monkeypatch, capsys, "audit-kit", "build", "run.tine", "--out", "kit", "--json")
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)

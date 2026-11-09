@@ -39,6 +39,7 @@ def add_watch_parser(sub: argparse._SubParsersAction) -> None:
     watch.add_argument("--max-events", type=int, help="Exit after this many events")
     watch.add_argument("--timeout", type=float, default=60.0, help="Per-request seconds")
     watch.add_argument("--json", action="store_true", help="One tine-watch/1 object per line")
+    watch.add_argument("--alerts", action="store_true", help="Evaluate `tine alert` rules (0.49)")
 
 
 def parse_sse(lines: Iterator[str]) -> Iterator[dict[str, Any]]:
@@ -74,7 +75,25 @@ def _remote_frames(args, base: str, tenant: str, token, last: str | None):
             yield from parse_sse(response.iter_lines())
 
 
+def _alert(args, event: dict[str, Any]) -> None:
+    from opentine import _alerts, _alerts_deliver
+    from opentine._cli_du import _repo
+
+    if getattr(args, "alert_engine", None) is None:
+        repo = _repo(args.repo)
+        args.alert_engine = _alerts.Engine(_alerts.load_rules(repo.path), repo)
+    engine = args.alert_engine
+    results = _alerts_deliver.deliver(
+        engine.evaluate(event), event, _alerts.state_dir(engine.repo.path)
+    )
+    for item in results:
+        outcomes = ", ".join(f"{r['sink']} {r['outcome']}" for r in item["deliveries"])
+        print(f"tine watch: alert {item['rule']} ({item['on']}): {outcomes}", file=sys.stderr)
+
+
 def _emit(args, event: dict[str, Any] | None) -> None:
+    if event is not None and getattr(args, "alerts", False):
+        _alert(args, event)
     if args.json:
         from opentine._cli_json import serialize
 
@@ -174,7 +193,8 @@ def cmd_watch(args: argparse.Namespace) -> None:
             base, tenant = split_remote(target, args.tenant)
             _watch_remote(args, base, tenant, _token(args))
         else:
-            _watch_local(args, target or args.repo)
+            args.repo = target or args.repo  # --alerts reads its rules here
+            _watch_local(args, args.repo)
     except KeyboardInterrupt:
         return
     except (KeyError, OSError, ValueError, httpx.HTTPError) as exc:

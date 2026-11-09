@@ -1,0 +1,65 @@
+{
+  "session": {
+    "name": "sessions/1234567890123456789",
+    "id": "1234567890123456789",
+    "title": "Fix the flaky date parser test",
+    "prompt": "Make test_parse_dates pass on Windows",
+    "sourceContext": {"source": "sources/github/example/widgets", "githubRepoContext": {"startingBranch": "main"}},
+    "state": "COMPLETED",
+    "url": "https://jules.google.com/session/1234567890123456789",
+    "createTime": "2026-10-01T09:00:00Z"
+  },
+  "activities": [
+    {
+      "name": "sessions/1234567890123456789/activities/a1",
+      "id": "a1",
+      "originator": "agent",
+      "createTime": "2026-10-01T09:00:05Z",
+      "planGenerated": {"plan": {"id": "plan-1", "createTime": "2026-10-01T09:00:05Z", "steps": [
+        {"id": "s1", "index": 0, "title": "Reproduce", "description": "Run the test suite"},
+        {"id": "s2", "index": 1, "title": "Fix", "description": "Use os.path-independent parsing"}
+      ]}}
+    },
+    {
+      "name": "sessions/1234567890123456789/activities/a2",
+      "id": "a2",
+      "originator": "user",
+      "createTime": "2026-10-01T09:01:00Z",
+      "planApproved": {"planId": "plan-1"}
+    },
+    {
+      "name": "sessions/1234567890123456789/activities/a3",
+      "id": "a3",
+      "originator": "agent",
+      "createTime": "2026-10-01T09:02:00Z",
+      "progressUpdated": {"title": "Ran tests", "description": "1 failure reproduced"},
+      "artifacts": [{"bashOutput": {"command": "pytest -q tests/test_dates.py", "output": "1 failed", "exitCode": 1}}]
+    },
+    {
+      "name": "sessions/1234567890123456789/activities/a4",
+      "id": "a4",
+      "originator": "user",
+      "createTime": "2026-10-01T09:03:00Z",
+      "userMessaged": {"userMessage": "Keep the public API unchanged"}
+    },
+    {
+      "name": "sessions/1234567890123456789/activities/a5",
+      "id": "a5",
+      "originator": "agent",
+      "createTime": "2026-10-01T09:04:00Z",
+      "agentMessaged": {"agentMessage": "Understood; the fix is internal only."},
+      "artifacts": [{"changeSet": {"source": "sources/github/example/widgets", "gitPatch": {
+        "unidiffPatch": "--- a/widgets/dates.py\n+++ b/widgets/dates.py\n@@ -1 +1 @@\n-SEP = '/'\n+SEP = '-'\n",
+        "baseCommitId": "0123456789abcdef0123456789abcdef01234567",
+        "suggestedCommitMessage": "Fix date parsing on Windows"}}},
+        {"media": {"mimeType": "image/png", "data": "iVBORw0KGgo="}}]
+    },
+    {
+      "name": "sessions/1234567890123456789/activities/a6",
+      "id": "a6",
+      "originator": "system",
+      "createTime": "2026-10-01T09:05:00Z",
+      "sessionCompleted": {}
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.48.0"
+version = "0.49.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -76,6 +76,7 @@ dev = [
     "build>=1.2",
     "cryptography>=48.0.1",
     "hatchling==1.31.0",
+    "moto[s3]>=5.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.0",
     "pytest-rerunfailures>=15.0",
@@ -89,7 +90,7 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.48.0/README.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.49.0/README.md"
 Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
@@ -120,6 +121,7 @@ include = [
     "/README.md",
     "/SECURITY.md",
     "/SUPPORT.md",
+    "/deploy",
     "/docs",
     "/examples",
     "/opentine",
