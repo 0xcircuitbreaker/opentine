@@ -1,13 +1,13 @@
 """Build ``tine-verify.pyz`` reproducibly from the installed package's own sources.
 
 The zipapp holds ``__main__.py`` and a ``tine_verify`` package: the stdlib-only
-verifier in :mod:`opentine._pyz` plus four modules vendored verbatim from
-opentine (``kernel.py``, ``_ed25519_order.py``, ``_tine_v5.py`` and
-``_vsa_verify.py``). It is byte-identical across builds of the same sources:
-entries are written in sorted order, stored (not deflated, so no zlib version
-can change a byte), with one fixed timestamp (``SOURCE_DATE_EPOCH``, else
-1980-01-01), mode 0644, a Unix creator and no extra fields, and every text
-file has LF line endings whatever the checkout.
+verifier in :mod:`opentine._pyz` plus five modules vendored verbatim from
+opentine (``kernel.py``, ``_ed25519_order.py``, ``_tine_v5.py``,
+``_vsa_verify.py`` and, 0.48, ``_agent_identity.py``). It is byte-identical
+across builds of the same sources: entries are written in sorted order, stored
+(not deflated, so no zlib version can change a byte), with one fixed timestamp
+(``SOURCE_DATE_EPOCH``, else 1980-01-01), mode 0644, a Unix creator and no
+extra fields, and every text file has LF line endings whatever the checkout.
 Used by ``scripts/build_verifier.py`` and ``tine evidence export --with-verifier``.
 """
 
@@ -23,7 +23,13 @@ PACKAGE = Path(__file__).resolve().parent
 NAME = "tine-verify.pyz"
 SHEBANG = b"#!/usr/bin/env python3\n"
 #: Modules vendored verbatim from opentine: each imports the stdlib only.
-VENDORED = ("kernel.py", "_ed25519_order.py", "_tine_v5.py", "_vsa_verify.py")
+VENDORED = (
+    "kernel.py",
+    "_ed25519_order.py",
+    "_tine_v5.py",
+    "_vsa_verify.py",
+    "_agent_identity.py",
+)
 _MAIN = b"from tine_verify._pyz._cli import main\n\nraise SystemExit(main())\n"
 _INIT = b'"""tine-verify.pyz: opentine\'s offline verifier, standard library only."""\n'
 _EPOCH_FLOOR = 315532800  # 1980-01-01T00:00:00Z, the earliest time a zip can hold

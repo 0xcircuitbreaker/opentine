@@ -45,6 +45,7 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("is malformed", "agent.field-malformed"),
     ),
     "delegation.verify": (
+        ("revoked at", "delegation.revoked"),
         ("is outside", "delegation.expired"),
         ("is not delegated", "delegation.scope-violation"),
         ("not delegated:", "delegation.scope-violation"),
@@ -183,6 +184,21 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("model file is missing", "oms.missing-file"),
         ("does not match its signed digest", "oms.digest-mismatch"),
         ("not covered by the signature", "oms.extra-file"),
+    ),
+    "fleet.verify": (
+        ("not an opentine-fleet", "fleet.malformed"),
+        ("has exactly scheme", "fleet.malformed"),
+        ("must be a normalised", "fleet.malformed"),
+        ("fleet_id must be", "fleet.malformed"),
+        ("not the trusted key", "fleet.wrong-key"),
+        ("signature ", "fleet.bad-signature"),
+    ),
+    "keyless.signing-time": (
+        ("keyless input is malformed", "keyless.malformed"),
+        ("receipt is", "keyless.receipt-invalid"),
+        ("does not cover the signature", "keyless.tsa-imprint-mismatch"),
+        ("outside its TSA's validFor", "keyless.tsa-retired"),
+        ("was not valid at genTime", "keyless.cert-not-valid-at-signing"),
     ),
     "forge-claim.verify": (
         ("no forge claim", "forge-claim.missing"),

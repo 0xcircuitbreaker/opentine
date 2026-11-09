@@ -1,0 +1,469 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.bad-fleet-id",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet 7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "fleet_id is 1..128 of [A-Za-z0-9_.-]",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet 7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "fleet_id must be 1..128 of [A-Za-z0-9_.-]"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.edited-role",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "lead",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a role changed after signing fails its signature",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"lead\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"sc...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "signature mismatch: signature mismatch"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.extra-field",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "host": "x",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a record field the scheme does not define",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"host\": \"x\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc866...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "an opentine-fleet/1 record has exactly scheme and fleet_id, member, role, parent"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.hmac",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "hmac-sha256",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a fleet record is Ed25519 only",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"hmac-sha256\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"value\": \"e85a8fbe...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "signature error: Ed25519 only"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.moved-run",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0002",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a signed record copied onto another run fails its signature",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0002\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "signature mismatch: signature mismatch"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.not-normalised",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": " w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a name a normaliser would change is refused, not fixed",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \" w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", ...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "fleet field 'member' must be a normalised short string"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "fleet.pinned",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "a signed record verifies under the supplied key",
+      "op": "fleet.verify",
+      "output": {
+        "fleet_id": "fleet-7",
+        "member": "w1",
+        "parent": "lead",
+        "role": "worker",
+        "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "run_id": "run-fleet-0001",
+        "scheme": "opentine-fleet/1",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "fleet.tofu",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "a signed record verifies under its embedded key, as TOFU",
+      "op": "fleet.verify",
+      "output": {
+        "fleet_id": "fleet-7",
+        "member": "w1",
+        "parent": "lead",
+        "role": "worker",
+        "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+        "run_id": "run-fleet-0001",
+        "scheme": "opentine-fleet/1",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.wrong-key",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+        }
+      },
+      "intent": "a record signed by another key than the supplied one",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.wrong-key",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "signature mismatch: embedded public key is not the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "fleet.wrong-scheme",
+      "input": {
+        "value": {
+          "document": {
+            "record": {
+              "fleet_id": "fleet-7",
+              "member": "w1",
+              "parent": "lead",
+              "role": "worker",
+              "scheme": "opentine-fleet/1"
+            },
+            "run_digest": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "run_id": "run-fleet-0001",
+            "scheme": "opentine-fleet-record/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "value": "e85a8fbe562bd2063856f5b2ade11ba038747052bdca60905af8051146d55dc26b63307efe8a4d955bd91d697178c05578ecaa0a0ab9df6459d5ed3f92443001"
+            }
+          },
+          "public_key": null
+        }
+      },
+      "intent": "only opentine-fleet-record/1 documents",
+      "op": "fleet.verify",
+      "profile": "verifier",
+      "reason": "fleet.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "4.11",
+      "tier": "core",
+      "x_display": "{\"document\": {\"record\": {\"fleet_id\": \"fleet-7\", \"member\": \"w1\", \"parent\": \"lead\", \"role\": \"worker\", \"scheme\": \"opentine-fleet/1\"}, \"run_digest\": \"sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\", \"run_id\": \"run-fleet-0001\", \"scheme\": \"opentine-fleet-record/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "not an opentine-fleet-record/1 document"
+      }
+    }
+  ],
+  "family": "fleet",
+  "section": "4.11",
+  "suite_version": 1
+}

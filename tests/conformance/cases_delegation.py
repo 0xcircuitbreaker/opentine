@@ -28,6 +28,8 @@ def _public(name: str) -> bytes:
 ROOT, MID, LEAF = "ed25519_seed", "ed25519_seed_b", "ed25519_seed_c"
 LEAF_FPR = key_fingerprint(_public(LEAF))
 MID_FPR = key_fingerprint(_public(MID))
+ROOT_FPR = key_fingerprint(_public(ROOT))
+BEFORE, AFTER = "2026-03-01T00:00:00Z", "2026-09-01T00:00:00Z"
 
 
 def _cert(issuer: str, subject: str, parent=None, **scope) -> dict:
@@ -47,12 +49,14 @@ def _tampered() -> list:
     return chain
 
 
-def _case(name: str, expect: str, intent: str, chain, reason=None, **request) -> Case:
+def _case(
+    name: str, expect: str, intent: str, chain, reason=None, family="delegation", **request
+) -> Case:
     value = {"chain": chain, "signer": LEAF_FPR, "at": AT, "agent": "coder",
              "actions": ["Bash"], **request}  # fmt: skip
     return Case(
-        id=f"delegation.{name}",
-        section="4.10",
+        id=f"{family}.{name}",
+        section="4.10" if family == "delegation" else "4.10.1",
         checklist=(8,),
         op="delegation.verify",
         profile=VERIFIER,
@@ -117,4 +121,64 @@ DELEGATION = Family(
     ),
 )
 
-FAMILIES = (DELEGATION,)
+
+def _revoked(name: str, expect: str, intent: str, revoked: dict, **request) -> Case:
+    reason = "delegation.revoked" if expect == REJECT else None
+    return _case(name, expect, intent, CHAIN, reason, "delegation-revocation",
+                 revoked=revoked, **request)  # fmt: skip
+
+
+#: 0.48: delegation x revocation registry semantics (SPEC 4.10.1).
+REVOCATION = Family(
+    "76-delegation-revocation.json",
+    "4.10.1",
+    "delegation-revocation",
+    (
+        _revoked(
+            "leaf-revoked-before",
+            REJECT,
+            "the leaf key revoked before the verified signing time refuses the chain",
+            {LEAF_FPR: BEFORE},
+        ),  # fmt: skip
+        _revoked(
+            "leaf-revoked-after",
+            ACCEPT,
+            "the leaf key revoked after the verified signing time still verifies",
+            {LEAF_FPR: AFTER},
+        ),  # fmt: skip
+        _revoked(
+            "root-revoked-before",
+            REJECT,
+            "a revoked root issuer refuses the whole chain",
+            {ROOT_FPR: BEFORE},
+        ),  # fmt: skip
+        _revoked(
+            "mid-revoked-before",
+            REJECT,
+            "a revoked intermediate key refuses the chain",
+            {MID_FPR: BEFORE},
+        ),  # fmt: skip
+        _revoked(
+            "revoked-at-signing",
+            REJECT,
+            "revoked_at equal to the signing time refuses",
+            {LEAF_FPR: AT},
+        ),  # fmt: skip
+        _revoked(
+            "unverified-time",
+            REJECT,
+            "any revocation on the chain refuses when the signing time is only claimed",
+            {MID_FPR: AFTER},
+            time_verified=False,
+        ),  # fmt: skip
+        _revoked(
+            "unverified-unrelated",
+            ACCEPT,
+            "a revocation of a key off the chain does not matter, verified time or not",
+            {"sha256:" + "0" * 64: BEFORE},
+            time_verified=False,
+        ),  # fmt: skip
+    ),
+)
+
+FAMILIES = (DELEGATION, REVOCATION)

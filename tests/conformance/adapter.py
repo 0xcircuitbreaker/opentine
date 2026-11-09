@@ -51,6 +51,7 @@ from tests.conformance import adapter_agent as agent_ops
 from tests.conformance import adapter_delegation as delegation_ops
 from tests.conformance import adapter_eval as eval_ops
 from tests.conformance import adapter_hook as hook_ops
+from tests.conformance import adapter_keyless as keyless_ops
 from tests.conformance import adapter_merge as merge_ops
 from tests.conformance import adapter_oms as oms_ops
 from tests.conformance import adapter_project as project_ops
@@ -301,4 +302,5 @@ OPS = {
     **merge_ops.OPS,
     **review_ops.OPS,
     **registry_ops.OPS,
+    **keyless_ops.OPS,
 }

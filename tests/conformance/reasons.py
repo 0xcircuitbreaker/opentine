@@ -756,6 +756,63 @@ REASONS: dict[str, Reason] = {
         "a link the parent's max_depth does not allow",
         "ignore max_depth and accept a chain of any length",
     ),
+    "delegation.revoked": R(
+        "4.10.1",
+        None,
+        "a chain with a key revoked at or before the verified signing time, or revoked "
+        "at all when the signing time is only claimed",
+        "check revocation of the signing key alone, or trust the signer's claimed time",
+    ),
+    # --- keyless signing time (8.12.1, 0.48) ----------------------------------- #
+    "keyless.receipt-invalid": R(
+        "8.12.1",
+        None,
+        "a timestamp offered beside a Rekor v2 receipt that did not verify",
+        "accept a TSA time as proof of inclusion",
+    ),
+    "keyless.tsa-imprint-mismatch": R(
+        "8.12.1",
+        None,
+        "a token whose messageImprint is not the hash of the DSSE signature bytes",
+        "accept a token over the payload or the envelope as a signing time",
+    ),
+    "keyless.tsa-retired": R(
+        "8.12.1",
+        None,
+        "a genTime outside its timestamp authority's validFor window",
+        "trust a TSA for times after its retirement",
+    ),
+    "keyless.cert-not-valid-at-signing": R(
+        "8.12.1",
+        None,
+        "a genTime, with its accuracy, outside the leaf certificate's validity",
+        "accept a short-lived certificate used outside its window",
+    ),
+    "keyless.malformed": R(
+        "8.12.1",
+        None,
+        "a token without a SHA-2 imprint, an RFC 3339 genTime or a well-formed window",
+        "guess the hash or the time zone of a token",
+    ),
+    # --- fleet records (4.11, vectors 0.48) ----------------------------------- #
+    "fleet.malformed": R(
+        "4.11",
+        None,
+        "a fleet record or signed document with a missing, extra or unnormalised field",
+        "normalise a member name or drop an unknown field and verify the rest",
+    ),
+    "fleet.bad-signature": R(
+        "4.11",
+        None,
+        "a signed fleet record whose tine-sig/3 block fails, is not Ed25519, or was moved",
+        "trust a fleet claim copied from another run",
+    ),
+    "fleet.wrong-key": R(
+        "4.11",
+        None,
+        "a signed fleet record verified against a key other than its signer",
+        "accept the embedded key when a trusted key was supplied",
+    ),
     # --- eval verdicts (4.12) ------------------------------------------------- #
     "eval-verdict.malformed": R(
         "4.12",

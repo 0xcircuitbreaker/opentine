@@ -1,0 +1,551 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.accuracy-straddles",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "60000000"
+              },
+              "gen_time": "2026-06-01T10:09:30Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "genTime plus its accuracy must sit inside the window",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.cert-not-valid-at-signing",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"60000000\"}, \"gen_time\": \"2026-06-01T10:09:30Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\",...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: the certificate was not valid at genTime 2026-06-01T10:09:30Z"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.after-cert",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:15:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime after the leaf certificate expired is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.cert-not-valid-at-signing",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:15:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: the certificate was not valid at genTime 2026-06-01T10:15:00Z"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.bad-hash",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "md5",
+              "message_imprint": "d9b7312fe3138f260cd7a1b19a7c1ea6",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "an imprint hash outside SHA-256/384/512 is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.malformed",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"md5\", \"message_imprint\": \"d9b7312fe3138f260cd7a1b19a7c1ea6\", \"tsa_valid_for\": {\"start\": \"2025-01-01T00...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "keyless input is malformed: token 0: hash_algorithm is one of ('sha256', 'sha384', 'sha512')"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.before-cert",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T09:59:59Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime before the leaf certificate was issued is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.cert-not-valid-at-signing",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T09:59:59Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: the certificate was not valid at genTime 2026-06-01T09:59:59Z"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "keyless-tsa.bound",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a token over the signature bytes gives the verified signing time",
+      "op": "keyless.signing-time",
+      "output": {
+        "signing_time": "2026-06-01T10:05:00Z",
+        "status": "verified"
+      },
+      "profile": "verifier",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "keyless-tsa.earliest",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:07:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            },
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:03:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "with several tokens the earliest genTime is the signing time",
+      "op": "keyless.signing-time",
+      "output": {
+        "signing_time": "2026-06-01T10:03:00Z",
+        "status": "verified"
+      },
+      "profile": "verifier",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:07:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "keyless-tsa.no-token",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": []
+        }
+      },
+      "intent": "with no token the signing time stays unchecked, never a pass",
+      "op": "keyless.signing-time",
+      "output": {
+        "signing_time": null,
+        "status": "unchecked"
+      },
+      "profile": "verifier",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.one-unbound",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            },
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:06:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "efd35cf5b72b5b9eeee4ee292f5d6b079191324b19ee9231892fb391c82c1d51",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "every token carried must bind, not just one",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.tsa-imprint-mismatch",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 1 does not cover the signature"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.over-payload",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "efd35cf5b72b5b9eeee4ee292f5d6b079191324b19ee9231892fb391c82c1d51",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a token over the payload, not the signature, binds nothing",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.tsa-imprint-mismatch",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"efd35cf5b72b5b9eeee4ee292f5d6b079191324b19ee9231892fb391c82c1d51\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0 does not cover the signature"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.receipt-invalid",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "invalid",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a token never rescues a receipt that did not verify",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.receipt-invalid",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"invalid\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_va...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "the Rekor v2 receipt is invalid, not verified"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "keyless-tsa.sha384",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha384",
+              "message_imprint": "f689e1bf2a76002ba07261b9cc36c8649bc4b9a18bcf5eeb2eaee1d0dfab41b7138539ad71ae3a2e80860830b4ee7e63",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "the imprint may use SHA-384",
+      "op": "keyless.signing-time",
+      "output": {
+        "signing_time": "2026-06-01T10:05:00Z",
+        "status": "verified"
+      },
+      "profile": "verifier",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha384\", \"message_imprint\": \"f689e1bf2a76002ba07261b9cc36c8649bc4b9a18bcf5eeb2eaee1d0dfab41b7138539ad7...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.tsa-not-yet",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2026-07-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime before the TSA's validFor start is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.tsa-retired",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: genTime is outside its TSA's validFor"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.tsa-retired",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "end": "2026-01-01T00:00:00Z",
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime after the TSA's validFor end is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.tsa-retired",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: genTime is outside its TSA's validFor"
+      }
+    }
+  ],
+  "family": "keyless-tsa",
+  "section": "8.12.1",
+  "suite_version": 1
+}

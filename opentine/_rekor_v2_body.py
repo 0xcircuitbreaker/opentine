@@ -69,6 +69,7 @@ def check_v2_entry(logs: list, entry: dict, envelope: dict, signer_key: Any) -> 
     except (AttributeError, KeyError, TypeError, ValueError, UnicodeDecodeError) as exc:
         return ReceiptResult(False, "invalid", str(exc), index, None)
     # Proof, checkpoint and body hold; but keyless needs a verified signing time, which
-    # for a v2 log comes from an RFC 3161 token in the bundle -- not checked yet.
+    # for a v2 log comes from an RFC 3161 token in the bundle (0.48: _keyless_tsa,
+    # applied by _keyless_root.root_receipt). Alone, the receipt stays unchecked.
     reason = f"Rekor v2 receipt {index} verified; keyless signing time needs a TSA token"
     return ReceiptResult(False, "unchecked", reason, index, None)

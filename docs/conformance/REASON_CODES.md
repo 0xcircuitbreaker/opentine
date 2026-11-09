@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (214)
+## The codes (223)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -71,6 +71,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `delegation.bad-signature` | 4.10 | -- | a certificate whose tine-sig/3 block fails or is not by the named issuer | trust the certificate body without checking its signature |
 | `delegation.broken-chain` | 4.10 | -- | a link whose issuer or parent digest does not match the certificate above it | verify each certificate alone and accept a chain that does not connect |
 | `delegation.expired` | 4.10 | -- | a chain whose certificate window does not contain the signing time | accept an expired or not-yet-valid certificate because its signature verifies |
+| `delegation.revoked` | 4.10.1 | -- | a chain with a key revoked at or before the verified signing time, or revoked at all when the signing time is only claimed | check revocation of the signing key alone, or trust the signer's claimed time |
 | `delegation.scope-violation` | 4.10 | -- | an agent or tool outside the leaf scope, or a link wider than its parent | treat a delegation as unscoped, or let a child widen what it was given |
 | `delegation.too-deep` | 4.10 | -- | a link the parent's max_depth does not allow | ignore max_depth and accept a chain of any length |
 | `delegation.wrong-signer` | 4.10 | -- | work signed by a key other than the leaf certificate's subject | accept any key in the chain as the delegate |
@@ -89,6 +90,9 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `fleet.bad-signature` | 4.11 | -- | a signed fleet record whose tine-sig/3 block fails, is not Ed25519, or was moved | trust a fleet claim copied from another run |
+| `fleet.malformed` | 4.11 | -- | a fleet record or signed document with a missing, extra or unnormalised field | normalise a member name or drop an unknown field and verify the rest |
+| `fleet.wrong-key` | 4.11 | -- | a signed fleet record verified against a key other than its signer | accept the embedded key when a trusted key was supplied |
 | `forge-check.bundle-mismatch` | 4.24 | -- | bundle bytes that do not hash to the check's digest | trust the linked bundle without hashing what was downloaded |
 | `forge-check.conclusion-mismatch` | 4.24 | -- | a conclusion that does not follow the verify state | show an unverified or failed commit as a success |
 | `forge-check.malformed` | 4.24 | -- | a forge check with a missing, extra or ill-formed field, or a bundle URL without a digest | accept fields the check format does not define, or link a bundle nobody can check |
@@ -107,6 +111,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `graph.roots-mismatch` | 1.5.3 | -- | roots that are not exactly the parentless events, when every event is present | recompute roots from the graph and ignore the stored value |
 | `graph.status-invalid` | 1.5.3 | -- | a run status outside running/paused/completed/failed | default an unknown status to running |
 | `graph.tips-mismatch` | 1.5.3 | -- | tips that are not exactly the graph leaves, when every event is present | recompute tips from the graph and ignore the stored value |
+| `keyless.cert-not-valid-at-signing` | 8.12.1 | -- | a genTime, with its accuracy, outside the leaf certificate's validity | accept a short-lived certificate used outside its window |
+| `keyless.malformed` | 8.12.1 | -- | a token without a SHA-2 imprint, an RFC 3339 genTime or a well-formed window | guess the hash or the time zone of a token |
+| `keyless.receipt-invalid` | 8.12.1 | -- | a timestamp offered beside a Rekor v2 receipt that did not verify | accept a TSA time as proof of inclusion |
+| `keyless.tsa-imprint-mismatch` | 8.12.1 | -- | a token whose messageImprint is not the hash of the DSSE signature bytes | accept a token over the payload or the envelope as a signing time |
+| `keyless.tsa-retired` | 8.12.1 | -- | a genTime outside its timestamp authority's validFor window | trust a TSA for times after its retirement |
 | `link.annotation-previous-not-annotation` | 1.5.5 | -- | a truthy previous_id that is not an annotation oid | follow the link anyway and check the type later |
 | `link.attestation-target-not-run` | 1.5.4 | -- | an attestation with an absent target_id or one that is not a run oid | accept an attestation about an event or a blob |
 | `link.event-blob-not-blob` | 1.5.2 | -- | a truthy input_blob/output_blob/artifact_blob that is not a blob oid | ignore a link field whose value has the wrong type |

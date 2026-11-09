@@ -136,7 +136,7 @@ def _v2_digest(data: dict[str, Any]) -> tuple[bool, str, str]:
     if not well_formed:
         return False, "digest.malformed", "malformed digest"
     try:
-        actual = hashlib.sha256(_sig._canon_v2({k: v for k, v in data.items() if k != "metadata"}))
+        actual = hashlib.sha256(_sig.canon_v2({k: v for k, v in data.items() if k != "metadata"}))
     except (RecursionError, TypeError, ValueError):
         return False, "digest.mismatch", f"digest mismatch (expected {expected})"
     if actual.hexdigest() != expected:

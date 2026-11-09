@@ -171,7 +171,7 @@ def receipt_for(args: argparse.Namespace, envelope: dict, entries: list, signer,
     return next((r for r in results if r.ok), results[0])
 
 
-def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: list):
+def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: list, mat=None):
     """``(EnvelopeResult, ReceiptResult)`` for a Fulcio-certificate bundle."""
     import hashlib
     from datetime import UTC, datetime
@@ -200,7 +200,7 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
     if root_path:
         from opentine._keyless_root import load_root
 
-        trusted, receipt = load_root(root_path, envelope, entries, leaf.public_key())
+        trusted, receipt = load_root(root_path, envelope, entries, leaf, mat)
         if trusted is None:
             return EnvelopeResult(False, "no-key", receipt.reason), None
     else:

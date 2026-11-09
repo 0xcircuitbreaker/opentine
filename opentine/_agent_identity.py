@@ -28,7 +28,8 @@ import re
 import unicodedata
 from typing import Any
 
-from opentine.kernel import KernelError, canonical_json
+# Relative, so tine-verify.pyz vendors this module verbatim beside its kernel (0.48).
+from .kernel import KernelError, canonical_json
 
 SCHEME = "opentine-agent/1"
 DOMAIN = b"opentine.agent.v1:"

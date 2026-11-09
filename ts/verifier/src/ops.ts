@@ -14,6 +14,8 @@ import { TineError } from "./errors.js";
 import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
+import { keylessSigningTime } from "./keyless.js";
+import { verifyFleet } from "./fleet.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
@@ -223,7 +225,17 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         at: value.get("at") as JValue,
         agent: value.get("agent"),
         actions: Array.isArray(actions) ? (actions as string[]) : [],
+        revoked: isObject(value.get("revoked")) ? (value.get("revoked") as Map<string, string>) : null,
+        timeVerified: value.get("time_verified") !== false,
       });
+    }
+    case "fleet.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      return verifyFleet(value.get("document") as JValue, typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null);
+    }
+    case "keyless.signing-time": {
+      return keylessSigningTime(valueOf(input));
     }
     case "eval-verdict.verify": {
       const value = valueOf(input) as JObject;

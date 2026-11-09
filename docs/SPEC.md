@@ -1823,6 +1823,30 @@ and its tool names; it passes with `delegation.verified`, or fails with
 `delegation.unsigned` (the run's signature did not verify) or one of the codes
 above. Vectors: `56-delegation.json`.
 
+<a id="s-4.10.1"></a>
+### 4.10.1 Delegation × revocation (0.48.0+)
+
+A verifier holding a revocation registry (`revoked_at` per key fingerprint:
+`tine key revoke`'s `key-lifecycle.json`, a trusted `.tine/agents.toml`
+`lifecycle` table, a trust policy's `key_lifecycle`; the earliest `revoked_at`
+across them wins) applies it to **every key on the chain**: each
+certificate's `issuer` and the leaf's `subject`. After the checks above
+(signatures, links, scope narrowing, windows), the chain is refused with
+`delegation.revoked` when, for any of those keys:
+
+* the signing time is **verified** (the genTime of a signature-bound RFC 3161
+  token, §8.6, or a keyless signing time, §8.12.1) and `revoked_at <=` it; or
+* the signing time is only **claimed** (the signer's own `signed_at`) and the
+  key has any `revoked_at` at all: a signer's clock cannot move a signature
+  before a revocation.
+
+A revocation after the verified signing time does not affect the chain, and a
+revocation of a key that is not on the chain never does. The check runs before
+`delegation.wrong-signer` and the agent and tool checks. The vector op
+`delegation.verify` takes the registry as `revoked` (`{fingerprint:
+revoked_at}`) and the flag `time_verified` (default `true`). Vectors:
+`76-delegation-revocation.json`.
+
 <a id="s-4.11"></a>
 ## 4.11 `opentine-fleet/1` — fleet member record (0.43.0+)
 
@@ -1837,6 +1861,14 @@ be moved to another run. The in-toto predicate
 `https://opentine.dev/attestation/fleet/v1` has subject the run's digest and
 predicate `{producer, fleet, agent_ref, delegation}` (`delegation` is the
 chain's certificate digests, root first).
+
+A signed document is refused with `fleet.malformed` (a document or record
+with a wrong scheme, a missing or extra field, a name §4.9 normalisation would
+change, or a malformed `fleet_id`), `fleet.wrong-key` (a supplied key that is
+not the embedded one) or `fleet.bad-signature` (any other signature failure,
+including a non-Ed25519 block and a record moved to another run). Vectors:
+`78-fleet.json` (0.48.0; the kind dates from 0.43.0 and had none until the
+freeze audit of §5.5).
 
 <a id="s-4.12"></a>
 ## 4.12 `tine-eval-verdict/1` — signed eval verdicts (0.45.0+)
@@ -2717,6 +2749,31 @@ and writes a deterministic old→new step map. The run sets `signature_scope =
 "legacy_blob_only"`: a legacy signature is a claim about the archived bytes, and
 is **never** an attestation over the generated v3 objects.
 
+<a id="s-5.5"></a>
+## 5.5 The 0.48 freeze cutoff
+
+**0.48.0 is the last release that may add an object kind or a wire format
+before 1.0.** 0.49 and 0.50 fix, test and document; a kind or format that is
+not in this document at 0.48.0 waits for 1.x. The inventory of what exists is
+`tests/freeze_inventory.py`, and `tests/test_048_freeze_cutoff.py` enumerates
+kinds from this document's headings, `docs/schemas/` and the vector families
+and fails on any it does not list. For each listed kind it checks that the
+reference adapter answers every op, the TS verifier has every reader and
+verifier op, and `tine-verify.pyz` answers the family: case by case from the
+built archive (`_pyz/_conform`), or through a named test.
+
+What the audit found open at the cutoff is listed there, not hidden: the pyz
+checks `.tine` artifacts and signatures as whole files rather than per op
+(families 31, 35, 42, 47, 51); the repository's storage and transport formats
+(refs, reflog, shallow, layout, local and transfer packs, the v3 object graph)
+are not read by the pyz, which never opens a repository; and six kinds that
+predate the cutoff have no vector family yet: `tine-verify-report/2` signed
+reports, `tine-custody/1`, the `replay/v1` predicate, `TINEAES6`,
+`opentine-line-attribution/1` and the optionally signed
+`tine-cost-statement/1`. Those lists may only shrink. The audit added the
+missing `opentine-fleet/1` vectors (§4.11) and pyz answers for families 01-05,
+09, 12, 13, 48, 49, 56, 57, 58 and 72-75.
+
 ---
 
 <a id="part-6"></a>
@@ -3152,9 +3209,9 @@ signed-note id `SHA-256(origin || 0x0A || 0x01 || Ed25519 key)` (type `0x02`
 over the SPKI DER for ECDSA, best effort), where origin is the trusted root
 `baseUrl` host; the body is a `dsse` v0.0.2 entry whose payload hash and
 signatures must match the envelope. Proof, checkpoint and body are checked
-offline; keyless verification still reports such a receipt `unchecked`,
-because a v2 signing time comes from an RFC 3161 token, which 0.44 does not yet
-bind. **SigningConfig** (`signing_config.v0.2.json`, media type
+offline. A v2 receipt carries no signed time, so keyless verification needs
+one from an RFC 3161 token in the bundle (§8.12.1, 0.48.0); without one it
+reports the receipt `unchecked` and the keyless signature fails closed. **SigningConfig** (`signing_config.v0.2.json`, media type
 `application/vnd.dev.sigstore.signingconfig.v0.2+json`) is read from the
 Sigstore config directory to choose the Rekor URL: services valid now, of a
 supported major version, newest first, one per operator, then the
@@ -3167,6 +3224,40 @@ with protected `vds` (395) = 1 (RFC9162_SHA256), unprotected `vdp` (396) =
 root the proof implies from leaf `SHA-256(0x00 || statement)` (the statement
 re-encoded without header 394). This leaf rule is opentine's reading of the
 drafts and is not verified against scitt-api-emulator.
+
+<a id="s-8.12.1"></a>
+### 8.12.1 Binding an RFC 3161 token to a Rekor v2 keyless signature (0.48.0)
+
+A Sigstore bundle carries timestamps in
+`verificationMaterial.timestampVerificationData.rfc3161Timestamps[].signedTimestamp`
+(base64 DER `TimeStampToken`s). For a keyless (Fulcio) DSSE envelope whose
+receipt is a Rekor v2 entry that verified (inclusion proof, checkpoint, body),
+each token is checked as in §8.6 against the trusted root's
+`timestampAuthorities` (CMS signature, ESS binding, EKU, chain, and the TSA's
+`validFor` at genTime), with the **bound bytes being the raw DSSE signature
+bytes** (the base64-decoded `signatures[0].sig`), not the payload or the
+envelope. Then, in order:
+
+1. the receipt must have verified (`keyless.receipt-invalid` otherwise: a
+   timestamp never stands in for inclusion);
+2. no token: the signing time is `unchecked` (never a pass);
+3. **every** token carried must have a messageImprint equal to the SHA-256,
+   SHA-384 or SHA-512 of the signature bytes (`keyless.tsa-imprint-mismatch`;
+   another hash is `keyless.malformed`);
+4. its genTime must lie inside its authority's `validFor`
+   (`keyless.tsa-retired`);
+5. genTime ± accuracy must lie inside the leaf certificate's
+   `notBefore..notAfter` (`keyless.cert-not-valid-at-signing`).
+
+The **earliest** genTime is the verified signing time: the receipt reads
+`verified` with that time as its `integrated_time`, the Fulcio chain is
+checked at it, and it is the verified time for the key-lifecycle check and
+delegation × revocation (§4.10.1). The vector op `keyless.signing-time` takes
+the tokens decoded (`hash_algorithm`, `message_imprint` hex, `gen_time`,
+`accuracy_us`, `tsa_valid_for`) beside `signature` (base64), `leaf`
+(`{start, end}`) and `receipt`, and returns `{signing_time, status}`
+(`status` `verified` or `unchecked`); the CMS layer is §8.6's. Vectors:
+`77-keyless-tsa.json`.
 
 <a id="s-8.13"></a>
 ## 8.13 Signed webhook payloads, `tine-webhook/1` (0.45.1)
@@ -4065,7 +4156,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export; 4.26, OMS model signatures (OpenSSF Model Signing v1.0, key-based) as an assurance factor: the bundle, the pinned-key check, the eight `oms.*` reason codes and the `factors` list of `tine-assurance-1`. OTLP protobuf logs and OTLP/gRPC ingest are transports, not formats. This is the last object kind added before 1.0. No existing byte format changed. |
+| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export; 4.26, OMS model signatures (OpenSSF Model Signing v1.0, key-based) as an assurance factor: the bundle, the pinned-key check, the eight `oms.*` reason codes and the `factors` list of `tine-assurance-1`. OTLP protobuf logs and OTLP/gRPC ingest are transports, not formats; 4.10.1, delegation × revocation: a chain is refused (`delegation.revoked`) when any of its keys was revoked at or before the verified signing time, or at all without one; 4.11, `fleet.*` reason codes and the first fleet vectors; 5.5, the freeze cutoff and its audit; 8.12.1, an RFC 3161 token bound to a Rekor v2 keyless signature gives the verified signing time (`keyless.*` codes). This is the last object kind added before 1.0. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |

@@ -101,7 +101,7 @@ def verify_block(
     return True, "verified", "ok"
 
 
-def _canon_v2(value: Any) -> bytes:
+def canon_v2(value: Any) -> bytes:
     """``opentine._canon._canonical_bytes`` over parsed JSON (already plain values)."""
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
@@ -120,7 +120,7 @@ def v2_message(data: dict[str, Any]) -> Callable[[dict[str, Any]], bytes]:
             "header": header,
             "metadata": signed,
         }
-        return SIG_DOMAIN + _canon_v2(view)
+        return SIG_DOMAIN + canon_v2(view)
 
     return build
 

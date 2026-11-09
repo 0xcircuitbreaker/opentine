@@ -14,7 +14,11 @@
 * ``delegation.scope-violation`` -- a child scope or window wider than its
   parent's, or a requested agent or action outside the leaf's scope;
 * ``delegation.expired`` -- *at* outside a certificate's window;
-* ``delegation.wrong-signer`` -- a leaf subject that is not the signing key.
+* ``delegation.wrong-signer`` -- a leaf subject that is not the signing key;
+* ``delegation.revoked`` -- (0.48) a key on the chain (any certificate's issuer,
+  or the leaf subject) revoked at or before the signing time, or revoked at all
+  when the signing time is only claimed (``time_verified=False``): a signer's
+  own clock cannot move a signature before a revocation.
 """
 
 from __future__ import annotations
@@ -63,6 +67,21 @@ def _narrows(parent: dict[str, Any], child: dict[str, Any], index: int) -> None:
         raise _fail("scope-violation", index, "validity window wider than the parent's")
 
 
+def _revocation(
+    checked: list[dict[str, Any]], revoked: dict[str, str], when: Any, verified: bool
+) -> None:
+    for index, cert in enumerate(checked):
+        keys = [cert["issuer"]] + ([cert["subject"]] if index == len(checked) - 1 else [])
+        for key in keys:
+            at = revoked.get(key)
+            if at is None:
+                continue
+            if not verified:
+                raise _fail("revoked", index, f"key {key} revoked at {at}; no verified time")
+            if parse_time(at, "revoked_at") <= when:
+                raise _fail("revoked", index, f"key {key} revoked at {at}, before signing")
+
+
 def verify_chain(
     chain: Any,
     *,
@@ -71,12 +90,15 @@ def verify_chain(
     agent: str | list[str] | None = None,
     actions: list[str] | tuple[str, ...] = (),
     root: str | None = None,
+    revoked: dict[str, str] | None = None,
+    time_verified: bool = True,
 ) -> dict[str, Any]:
     """The verified chain as ``{root, signer, links: [digest...], scope}``; raises else.
 
     *signer* is the fingerprint of the key that signed the work; *at* is the
     time the work was signed; *agent* (a name, or several names the agent goes
-    by) must be delegated; *root*, when given, is the only trusted issuer.
+    by) must be delegated; *root*, when given, is the only trusted issuer;
+    *revoked* maps key fingerprints to their ``revoked_at`` (0.48).
     """
     if not isinstance(chain, list) or not chain or len(chain) > MAX_CHAIN:
         raise DelegationError("delegation.malformed", f"a chain holds 1..{MAX_CHAIN} certificates")
@@ -100,6 +122,7 @@ def verify_chain(
         if not parse_time(current["not_before"]) <= when < parse_time(current["not_after"]):
             raise _fail("expired", index, f"{at} is outside {current['not_before']}..")
         checked.append(current)
+    _revocation(checked, dict(revoked or {}), when, time_verified)
     leaf = checked[-1]
     if leaf["subject"] != signer:
         raise _fail("wrong-signer", len(chain) - 1, f"subject is not the signer {signer}")

@@ -335,7 +335,8 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["root", "links"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.10: verify an opentine-delegation/1 chain for a signer, time and scope",
+        "summary": "SPEC 4.10: verify an opentine-delegation/1 chain for a signer, time, scope "
+        "and revocations",
     },
     "eval-verdict.verify": {
         "profile": VERIFIER,
@@ -499,6 +500,33 @@ OP_META: dict[str, dict[str, object]] = {
         "unordered": [],
         "requires": [],
         "summary": "SPEC 4.26: an OMS model-signature bundle under a pinned P-256 key",
+    },
+    "fleet.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": [
+            "scheme",
+            "fleet_id",
+            "member",
+            "role",
+            "parent",
+            "run_id",
+            "run_digest",
+            "state",
+        ],
+        "unordered": [],
+        "requires": ["ed25519"],
+        "summary": "SPEC 4.11: a signed opentine-fleet-record/1 document",
+    },
+    "keyless.signing-time": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["signing_time", "status"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 8.12.1: an RFC 3161 token bound to a Rekor v2 keyless signature",
     },
     "forge-claim.verify": {
         "profile": VERIFIER,
