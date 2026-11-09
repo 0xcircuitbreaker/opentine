@@ -92,6 +92,8 @@ def export(
     from opentine.repository._http import client
     from opentine.repository.client import fetch
 
+    if out.exists() and (not out.is_dir() or any(out.iterdir())):
+        raise ValueError(f"{out.as_posix()} is not an empty folder; stale files would mix in")
     out.mkdir(parents=True, exist_ok=True)
     prefix = f"/v1/tenants/{quote(tenant, safe='')}"
     with client(base, token, allow_insecure=allow_insecure, timeout=timeout) as http:
@@ -160,7 +162,6 @@ def import_local(source: Path, repo: Any) -> dict[str, Any]:
     refs: dict[str, str] = {}
     if (source / BUNDLE).exists():
         checked = _bundle.verify(_bundle.read_file(source / BUNDLE))
-        repo.import_pack(checked.pack)
         local = repo.list_refs()
         rows = []
         for name, oid in sorted(checked.refs.items()):
@@ -169,6 +170,7 @@ def import_local(source: Path, repo: Any) -> dict[str, Any]:
                 raise ValueError(f"{name} already points elsewhere here ({old}); not overwritten")
             if old is None:
                 rows.append((name, oid, None))
+        repo.import_pack(checked.pack)  # only once no ref is refused
         if rows:
             repo.update_refs(rows, actor="tenant-import")
         _bundle_sigs.install(repo, checked.signatures)

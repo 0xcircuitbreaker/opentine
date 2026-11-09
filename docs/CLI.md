@@ -673,7 +673,7 @@ tine tenant export [--remote REMOTE] [--tenant T] [--token-file F] --out DIR [--
 tine tenant import DIR [--repo PATH | --remote REMOTE [--tenant T] [--token-file F]] [--json]
 ```
 
-`export` writes everything a `tine serve` tenant holds that leaves in a format
+`export` refuses a non-empty DIR, then writes everything a `tine serve` tenant holds that leaves in a format
 frozen at 0.48: `tenant.tbundle` (a bundle of every tenant ref whose closure the
 server holds, with tombstones and `tine-sig/3` sidecars), `reviews/ID.json`
 (each Review as its `opentine-review-bundle-1`), `log/checkpoint.json` and

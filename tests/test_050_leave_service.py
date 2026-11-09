@@ -237,3 +237,19 @@ def test_import_refuses_to_move_a_ref_or_read_a_missing_folder(
     assert Repo.open(tmp_path / "taken").read_ref("heads/beta") is None  # all or nothing
     code, _ = _tine(monkeypatch, capsys, "tenant", "import", str(tmp_path / "missing"), *where)
     assert code != 0
+    before = _files(tmp_path / "taken")
+    code, _ = _tine(monkeypatch, capsys, "tenant", "import", str(tmp_path / "out"), *where)
+    assert code != 0 and _files(tmp_path / "taken") == before  # refused: no objects written
+
+
+def _files(root):
+    return {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+
+
+def test_export_refuses_a_folder_that_is_not_empty(services, tmp_path, monkeypatch, capsys):
+    out = tmp_path / "used"
+    (out / "reviews").mkdir(parents=True)
+    (out / "reviews" / "stale.json").write_text("{}", "utf-8")
+    code, _ = _tine(monkeypatch, capsys, "tenant", "export", "--remote", services["old"],
+                    *services["flags"], "--out", str(out))  # fmt: skip
+    assert code != 0 and _files(out) == {"reviews/stale.json"}
