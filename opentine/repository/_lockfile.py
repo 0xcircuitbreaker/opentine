@@ -13,9 +13,11 @@ left alone so the caller can raise a clear error naming the file.
 from __future__ import annotations
 
 import errno
+import itertools
 import os
 import socket
 import sys
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -23,6 +25,7 @@ from pathlib import Path
 from opentine.repository import _winretry
 
 _MAX_STAMP = 512
+_SEQ = itertools.count()  # next() is atomic under the GIL and free-threaded builds
 
 
 def _host() -> str:
@@ -166,7 +169,10 @@ def _publish(path: Path, mode: int) -> int:
     then hard-link it into place (the link fails if ``path`` exists). A writer
     killed at any point leaves either no lock or a complete stamp, never an empty
     lock that no one could prove dead. Without hard links, fall back to O_EXCL."""
-    tmp = path.with_name(f"{path.name}.new-{os.getpid()}-{time.monotonic_ns()}..lock")
+    # Unique per call: a coarse clock (Windows ticks every ~16 ms) would give two
+    # threads the same name, and one would delete the other's stamp file.
+    owner = f"{os.getpid()}-{threading.get_ident()}-{next(_SEQ)}"
+    tmp = path.with_name(f"{path.name}.new-{owner}..lock")
     try:
         # A file object closes its own fd, so nothing here calls os.close.
         with open(tmp, "xb", opener=lambda name, flags: _winretry.open_fd(name, flags, mode)) as f:
