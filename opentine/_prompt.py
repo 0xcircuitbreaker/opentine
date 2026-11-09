@@ -137,9 +137,7 @@ def _signer(record: dict[str, Any], found: dict[str, Any], public_key: bytes | N
     return str(block["public_key"]), state  # type: ignore[index]
 
 
-def check(
-    record: Any, *, previous: Any = None, public_key: bytes | None = None
-) -> dict[str, Any]:
+def check(record: Any, *, previous: Any = None, public_key: bytes | None = None) -> dict[str, Any]:
     """``{name, version, digest, signer, variables, state}``; :class:`RecordError` else.
 
     With *previous* the version must follow it (``prev``, ``version`` and

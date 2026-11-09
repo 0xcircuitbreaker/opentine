@@ -25,6 +25,7 @@ import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
 import { hookNormalize, hookRespond } from "./hook.js";
 import { mergeCompute, mergePick, verifyMerge, verifyMergeApproval } from "./merge.js";
+import { verifyMemory, verifyPrompt } from "./registry.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -275,6 +276,18 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const value = valueOf(input) as JObject;
       const pin = value.get("reviewer_key");
       return verifyReviewBundle(value.get("bundle") as JValue, typeof pin === "string" ? pin : null);
+    }
+    case "prompt.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyPrompt(value.get("record") as JValue, (value.get("previous") ?? null) as JValue | null, pinned);
+    }
+    case "memory.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyMemory(value.get("record") as JValue, pinned, (value.get("team") ?? []) as JValue);
     }
     case "git-object.check": {
       const value = valueOf(input) as JObject;

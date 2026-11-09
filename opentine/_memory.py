@@ -47,6 +47,7 @@ MAX_TAGS = 32
 SCOPE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 TAG = re.compile(r"[a-z0-9][a-z0-9._:-]{0,63}")
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+_BLANK = re.compile(r"[ \t\n]*")
 
 
 def _malformed(message: str) -> RecordError:
@@ -69,11 +70,11 @@ def body(record: Any) -> dict[str, Any]:
     text = out["text"]
     if (
         not isinstance(text, str)
-        or not text.strip()
+        or _BLANK.fullmatch(text)
         or len(text.encode("utf-8", "surrogatepass")) > MAX_TEXT_BYTES
         or _CONTROL.search(text)
     ):
-        raise _malformed("text is 1 to 8192 bytes without control characters")
+        raise _malformed("text is 1 to 8192 bytes, not blank, without control characters")
     tags = out["tags"]
     if (
         not isinstance(tags, list)
@@ -88,7 +89,9 @@ def body(record: Any) -> dict[str, Any]:
     ):
         raise _malformed("subject is a run or blob oid or null")
     supersedes = out["supersedes"]
-    if supersedes is not None and not (isinstance(supersedes, str) and BLOB_OID.fullmatch(supersedes)):
+    if supersedes is not None and not (
+        isinstance(supersedes, str) and BLOB_OID.fullmatch(supersedes)
+    ):
         raise _malformed("supersedes is a blob oid or null")
     if not isinstance(out["author"], str) or not NAME.fullmatch(out["author"]):
         raise _malformed("author must be a name")
@@ -145,7 +148,9 @@ def check(record: Any, *, public_key: bytes | None = None, team: Any = ()) -> di
     members = set(team or ())
     if members:
         if signer not in members:
-            raise RecordError("memory.untrusted-signer", "the memory note's signer is not on the team")
+            raise RecordError(
+                "memory.untrusted-signer", "the memory note's signer is not on the team"
+            )
         state = "verified"
     return {
         "scope": found["scope"],

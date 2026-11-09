@@ -74,3 +74,4 @@ export async function verifyArtifact(raw: Uint8Array, name = "artifact"): Promis
   }
   return verifyBytes(body, name, { trustEmbedded: true });
 }
+export { verifyMemory, verifyPrompt } from "../registry.js";

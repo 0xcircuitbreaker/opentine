@@ -2409,7 +2409,7 @@ A memory note is a JSON object with exactly these keys plus a `signature`:
 | `kind` | `"opentine.memory"` |
 | `memory_version` | `1` |
 | `scope`, `topic` | `^[a-z0-9][a-z0-9._-]{0,63}$` |
-| `text` | 1 to 8192 UTF-8 bytes, not blank, without control characters other than tab and LF |
+| `text` | 1 to 8192 UTF-8 bytes, not only spaces, tabs and LFs, without control characters other than tab and LF |
 | `tags` | at most 32 sorted, distinct `^[a-z0-9][a-z0-9._:-]{0,63}$` |
 | `subject` | a `run` or `blob` oid, or `null` |
 | `supersedes` | the digest of the note it replaces, or `null` |

@@ -20,3 +20,4 @@ export { verifyRedactionReport, REPORT_KIND as REDACTION_REPORT_KIND, type Repor
 export { inspectPack, type InspectedPack } from "./pack.js";
 export { webhookClass } from "./webhook.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
+export { verifyMemory, verifyPrompt } from "./registry.js";

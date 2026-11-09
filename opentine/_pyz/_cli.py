@@ -4,7 +4,8 @@ PATH is a ``.tine`` file, an evidence folder (one holding ``MANIFEST.sha256``),
 or an eval folder / ``.jsonl`` of ``tine-eval-verdict/1`` verdicts (0.45), or a
 redaction report, tombstone or redacted-copy record (0.45.1, 0.46), or a project
 manifest, its history or a mirror state (0.46.1; a mirror state never passes), or
-a review bundle (0.47: every version and every gate decision).
+a review bundle (0.47: every version and every gate decision), a prompt
+version, its history or a memory note (0.47).
 Prints one ``tine-pyz-verify/1`` JSON report and exits 0 on a pass, 1 on a
 fail and 2 on a usage error. Before anything is read, every socket connect and
 name lookup in this process is made to raise: offline verification never
@@ -20,7 +21,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import _artifact, _evalv, _evidence, _mergerec, _projfile, _records, _redactr, _reviewfile
+from . import (
+    _artifact,
+    _evalv,
+    _evidence,
+    _mergerec,
+    _projfile,
+    _records,
+    _redactr,
+    _registry,
+    _reviewfile,
+)
 
 SCHEMA = "tine-pyz-verify/1"
 MAX_KEY_BYTES = 1 << 20
@@ -114,6 +125,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if _reviewfile.is_bundle(path):  # 0.47: a Review and every gate decision
         result = report("review", path, _reviewfile.verify(path, pubkey), args.strict)
+    elif _registry.kind(path):  # 0.47: a prompt version (or history) or a memory note
+        mode = _registry.kind(path) or "prompt"
+        result = report(mode, path, _registry.verify(path, pubkey), args.strict)
     elif _projfile.kind(path):  # 0.46.1: a project manifest (or history) or a mirror state
         checks, verdict = _projfile.verify(path, pubkey)
         result = report(_projfile.kind(path) or "project", path, checks, args.strict)

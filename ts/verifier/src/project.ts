@@ -118,7 +118,7 @@ function projectBody(record: JValue): JObject {
   return body;
 }
 
-function signedBy(record: JValue, body: JObject, domain: string, code: string, subject: string, key: Uint8Array | null): string {
+export function signedBy(record: JValue, body: JObject, domain: string, code: string, subject: string, key: Uint8Array | null): string {
   const block = (record as JObject).get("signature");
   if (block === undefined || block === null) refuse(`${code}.unsigned`, `the ${subject} is unsigned`);
   if (!isObject(block)) refuse(`${code}.bad-signature`, `the ${subject} signature is not a block`);

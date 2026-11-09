@@ -1,4 +1,4 @@
-"""``tine eval run|verify|compare``: signed tine-eval-verdict/1 evals (0.45)."""
+"""``tine eval run|verify|compare|ci``: signed tine-eval-verdict/1 evals (0.45, 0.47)."""
 
 from __future__ import annotations
 
@@ -33,9 +33,15 @@ def add_eval_parsers(sub: Any) -> None:
     compare.add_argument("left", metavar="A")
     compare.add_argument("right", metavar="B")
     compare.add_argument("--exit-code", action="store_true", help="Exit 1 on any regression")
+    ci = verbs.add_parser("ci", help="Run every eval .tine/evals.toml declares; gate on them")
+    ci.add_argument("--config", metavar="TOML", help="Eval config (default: .tine/evals.toml)")
+    ci.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key that signs")
+    ci.add_argument("--out", default=".tine/evals", metavar="DIR", help="Where eval folders go")
+    ci.add_argument("--repo", default=".", help="The directory holding .tine/")
+    ci.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     for verb in (verify, compare):
         verb.add_argument("--pubkey", metavar="PUB", help="Trusted Ed25519 public key")
-    for verb in (run, verify, compare):
+    for verb in (run, verify, compare, ci):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
     add_dataset_parser(sub)
 
@@ -69,8 +75,26 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                     default_run=args.default_run, created_at=args.created_at)  # fmt: skip
 
 
+def _ci(args: argparse.Namespace) -> dict[str, Any]:
+    from opentine._eval_ci import CONFIG, run_ci
+    from opentine._signing_keys import ed25519_private_from_file
+
+    base = Path(args.repo)
+    config = Path(args.config) if args.config else base / CONFIG
+    out = Path(args.out) if Path(args.out).is_absolute() else base / args.out
+    key = ed25519_private_from_file(args.key, signer=False)
+    return run_ci(config, key, out, repo_path=base, created_at=args.created_at)
+
+
 def _human(verb: str, row: dict[str, Any]) -> None:
     from opentine._cli_common import console
+
+    if verb == "ci":
+        for item in row["evals"]:
+            head = "PASS" if item["ok"] else "FAIL"
+            console.print(f"{head} {item['name']}: {item['passed']}/{item['items']} passed "
+                          f"(needs {item['min_pass_rate']})", highlight=False, markup=False)  # fmt: skip
+        return
 
     if verb == "compare":
         console.print(
@@ -107,6 +131,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
     try:
         if verb == "run":
             row = {"ok": True, **_run(args)}
+        elif verb == "ci":
+            row = _ci(args)
         elif verb == "verify":
             row = verify_eval(Path(args.eval_dir), public_key=_pubkey(args))
         else:
@@ -117,6 +143,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
         emit({"command": f"eval {verb}", **row})
     else:
         _human(verb, row)
+    if verb == "ci" and not row["ok"]:
+        raise SystemExit(1)
     failed = not row["ok"] or (verb == "compare" and args.exit_code and row["regressed"])
     if failed:
         raise SystemExit(VERIFICATION_FAILED if not row["ok"] else 1)
