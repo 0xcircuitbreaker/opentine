@@ -220,3 +220,11 @@ def test_graph_lists_tracked_files_only_in_a_git_work_tree(tmp_path, monkeypatch
     assert {f["path"] for f in found["files"]} == {"pkg/__init__.py", "pkg/core.py",
                                                    "pkg/util.py"}  # fmt: skip
     assert _code_graph.build(tmp_path, ["pkg/util.py"])["counts"]["files"] == 1
+
+
+def test_a_finding_message_is_redacted_but_digests_and_oids_survive():
+    oid = "run:sha256:" + "be" * 32
+    line = json.dumps({"severity": "high", "message": f"{oid} at {'3b' * 20} leaks ghp_{'a' * 36}"})
+    rows, skipped = _review_run.parse(line)
+    assert skipped == 0 and oid in rows[0]["message"] and "3b" * 20 in rows[0]["message"]
+    assert "ghp_" not in rows[0]["message"] and "[REDACTED]" in rows[0]["message"]

@@ -719,6 +719,7 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+| `code_graph` (0.48) | `tine graph [PATH] [--symbol NAME] --repo REPO --json` |
 
 New in 0.44, `recall(query, limit=10)` is a hand-written read tool over the
 derived search index (`tine repo-search --rebuild-index`, see
