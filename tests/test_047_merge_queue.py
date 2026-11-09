@@ -206,7 +206,7 @@ while True:
             print(path, path.read_bytes()[:200], file=sys.stderr)
         sys.exit(3)
     try:
-        token = q.claim(repo, "main", holder, 2.0)["fencing"]
+        token = q.claim(repo, "main", holder, 10.0)["fencing"]  # outlasts a Windows landing
     except LeaseError as exc:
         if exc.code == "empty":
             break
