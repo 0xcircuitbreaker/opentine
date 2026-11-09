@@ -305,3 +305,42 @@ jobs:
           name: fuzz-otlp-crashes
           path: fuzz-crashes
           if-no-files-found: ignore
+
+  peer-compat-034:
+    # ROADMAP §2 invariant 5 (1.0 criterion 3): the published 0.34 CLI reads what
+    # this tree writes (repository, pack, --for-legacy .tine, 0.45-0.49 registry,
+    # memory and tombstone records) and fetches from this tree's server over HTTP.
+    # Pinned gaps (scripts/peer_compat_034.py KNOWN_GAPS) may only shrink.
+    name: 0.34 peer compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Install the published 0.34.0 in its own venv
+        run: |
+          uv venv --python 3.13 "$RUNNER_TEMP/v034"
+          uv pip install --python "$RUNNER_TEMP/v034/bin/python" "opentine[zstd]==0.34.0"
+
+      - name: 0.34 reads and fetches what this tree writes and serves
+        run: uv run --locked python scripts/peer_compat_034.py --old-python "$RUNNER_TEMP/v034/bin/python" --out peer-compat-034.json
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: peer-compat-034
+          path: peer-compat-034.json
+          if-no-files-found: ignore
