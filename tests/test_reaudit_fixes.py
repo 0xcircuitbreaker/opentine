@@ -495,6 +495,7 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
         return BrokenFile(fd)
 
     monkeypatch.setattr(store_module.os, "fdopen", broken_fdopen)
+
     def close(fd: int) -> None:
         closes.append(fd)
         if fd not in transferred:
