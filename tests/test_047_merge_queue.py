@@ -188,6 +188,7 @@ def test_the_cli_drives_a_queue(monkeypatch, capsys, tmp_path):
 WORKER = """
 import sys
 import time
+from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from opentine.coord import _merge_queue as q
 from opentine.coord._tasks import LeaseError
@@ -195,12 +196,21 @@ from opentine.repository import Repo
 
 repo, holder = Repo.open(sys.argv[1]), sys.argv[2]
 key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(sys.argv[3]))
+deadline = time.monotonic() + float(sys.argv[4])
+last = None
 while True:
+    if time.monotonic() > deadline:  # fail fast, with what wedged the queue
+        print(f"{holder}: queue not drained in time; last refusal: {last!r}", file=sys.stderr)
+        print(q.get(repo, "main"), file=sys.stderr)
+        for path in sorted(Path(repo.path).rglob("*lock")):
+            print(path, path.read_bytes()[:200], file=sys.stderr)
+        sys.exit(3)
     try:
         token = q.claim(repo, "main", holder, 2.0)["fencing"]
     except LeaseError as exc:
         if exc.code == "empty":
             break
+        last = exc
         time.sleep(0.01)
         continue
     try:
@@ -208,12 +218,58 @@ while True:
     except LeaseError as exc:
         if exc.code not in ("stale", "contended"):
             raise
+        last = exc
 """
+WORKER_SECONDS = 120.0
 
 
 def _spawn(path: Path, holder: str) -> subprocess.Popen:
-    argv = [sys.executable, "-c", WORKER, path.as_posix(), holder, KEY.hex()]
-    return subprocess.Popen(argv, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    # stderr goes to a file, never a pipe nobody reads until the end: a worker
+    # printing a traceback larger than the pipe buffer (4 KiB on Windows) would
+    # block in exit forever and turn any failure into a hang.
+    log = open(path.parent / f"{holder}.stderr", "wb")  # noqa: SIM115 - closed by _stderr
+    argv = [sys.executable, "-c", WORKER, path.as_posix(), holder, KEY.hex(), str(WORKER_SECONDS)]
+    proc = subprocess.Popen(argv, cwd=ROOT, stdout=subprocess.DEVNULL, stderr=log)
+    proc.log = log  # type: ignore[attr-defined]
+    return proc
+
+
+def _stderr(proc: subprocess.Popen) -> str:
+    proc.log.close()  # type: ignore[attr-defined]
+    return Path(proc.log.name).read_text(errors="replace")  # type: ignore[attr-defined]
+
+
+def test_a_writer_killed_before_its_replace_never_wedges_the_queue(tmp_path):
+    """The crash window behind the Windows chaos hang: a writer killed after
+    creating a ref's ``<ref>..lock`` staging file and before replacing the ref
+    (its fsync is slow on Windows) left it behind, and ``O_EXCL`` on it then
+    failed every later write of that ref, wedging the queue for good."""
+    repo, runs = _repo(tmp_path / "r", 2)
+    queue.init(repo, "main", "heads/main")
+    for run in runs:
+        queue.enqueue(repo, "main", run, "ci")
+    refs = Path(repo.path) / "refs"
+    for ref in ("heads/main", "coord/merge-queue/main"):  # both refs a landing moves
+        (refs / f"{ref}..lock").write_bytes(b"0" * 10)  # torn: killed mid-write
+    first = queue.claim(repo, "main", "w1", 2.0)  # the killed holder's lease, never landed
+    for ref in ("heads/main", "coord/merge-queue/main"):
+        (refs / f"{ref}..lock").write_bytes(b"")
+    with pytest.raises(LeaseError) as held:
+        queue.claim(repo, "main", "w2", 30)
+    assert held.value.code == "held"
+    later = first["lease_expires_ms"] + 1
+    with pytest.MonkeyPatch.context() as patch:  # the dead holder's lease runs out
+        patch.setattr(queue, "now_ms", lambda: later)
+        second = queue.claim(repo, "main", "w2", 30)
+        assert second["fencing"] == first["fencing"] + 1
+        assert queue.land(repo, "main", "w2", second["fencing"], key=_key())["status"] == "landed"
+        (refs / "heads/main..lock").write_bytes(b"")  # and again, after a landing
+        token = queue.claim(repo, "main", "w3", 30)["fencing"]
+        assert queue.land(repo, "main", "w3", token, key=_key())["status"] == "landed"
+    value = queue.get(repo, "main")
+    assert value["entries"] == [] and repo.read_ref("heads/main") == value["head"]
+    assert not list(refs.rglob("*..lock"))
+    assert repo.fsck().ok
 
 
 def test_kill_9_workers_never_double_merge(tmp_path):
@@ -239,11 +295,21 @@ def test_kill_9_workers_never_double_merge(tmp_path):
             killed += 1
         if workers[name].poll() is not None:
             spawned += 1
+            _stderr(workers[name])  # closes its log
             workers[f"w{spawned}"] = _spawn(tmp_path / "r", f"w{spawned}")
             del workers[name]
+    # Bounded in total: each worker gives up on its own after WORKER_SECONDS
+    # (printing the queue and any lock files), so a wedge fails in minutes.
+    ends = time.monotonic() + WORKER_SECONDS + 60
     for proc in workers.values():
-        proc.wait(timeout=300)
-        assert proc.returncode == 0, proc.stderr.read().decode() if proc.stderr else ""
+        try:
+            proc.wait(timeout=max(1.0, ends - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            for other in workers.values():
+                other.kill()
+                other.wait()
+            pytest.fail("a worker did not exit:\n" + "\n".join(map(_stderr, workers.values())))
+        assert proc.returncode == 0, _stderr(proc)
     value = queue.get(repo, "main")
     assert value["entries"] == [] and value["rejected"] == [] and killed > 0
     landed = [row["run"] for row in value["landed"]]
