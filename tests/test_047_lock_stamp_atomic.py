@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import errno
 import os
+import threading
 from pathlib import Path
 
 import pytest
@@ -128,4 +129,35 @@ def test_another_link_error_is_raised_not_masked(tmp_path, monkeypatch):
     with pytest.raises(OSError) as info:
         _lockfile.acquire(tmp_path / "main.lock")
     assert info.value.errno == errno.EIO
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_threads_of_one_process_get_distinct_temporary_names(tmp_path, monkeypatch):
+    # A coarse clock gave two threads the same temp name on Windows; one thread
+    # then deleted the other's stamp file before it was linked.
+    monkeypatch.setattr(_lockfile.time, "monotonic_ns", lambda: 0)
+    lock = tmp_path / "main.lock"
+    errors, held = [], []
+    gate = threading.Barrier(8)
+
+    def contend():
+        gate.wait()
+        for _ in range(200):
+            try:
+                fd = _lockfile.acquire(lock)
+            except FileExistsError:
+                continue
+            except BaseException as exc:  # pragma: no cover - the bug
+                errors.append(exc)
+                return
+            held.append(1)
+            os.close(fd)
+            _lockfile._winretry.unlink(lock)
+
+    threads = [threading.Thread(target=contend) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == [] and held
     assert list(tmp_path.iterdir()) == []
