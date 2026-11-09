@@ -8,7 +8,8 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_hook` (``opentine-hook/1``) and
 :mod:`opentine._schema_defs_merge` (merges, 0.47) and
 :mod:`opentine._schema_defs_review` (Reviews, 0.47) and
-:mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``); ``docs/schemas`` is
+:mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
+:mod:`opentine._schema_defs_extend` (plugins, experts); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -26,6 +27,8 @@ from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
+from opentine._schema_defs_extend import COMMAND_SCHEMAS as _EXTEND_COMMANDS
+from opentine._schema_defs_extend import SCHEMAS as _EXTEND
 from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
@@ -40,12 +43,12 @@ from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
 from opentine._schema_defs_redact import SCHEMAS as _REDACT
-from opentine._schema_defs_review import COMMAND_SCHEMAS as _REVIEW_COMMANDS
-from opentine._schema_defs_review import KIND_SCHEMAS as _REVIEW_KINDS
-from opentine._schema_defs_review import SCHEMAS as _REVIEW
 from opentine._schema_defs_registry import COMMAND_SCHEMAS as _REGISTRY_COMMANDS
 from opentine._schema_defs_registry import KIND_SCHEMAS as _REGISTRY_KINDS
 from opentine._schema_defs_registry import SCHEMAS as _REGISTRY
+from opentine._schema_defs_review import COMMAND_SCHEMAS as _REVIEW_COMMANDS
+from opentine._schema_defs_review import KIND_SCHEMAS as _REVIEW_KINDS
+from opentine._schema_defs_review import SCHEMAS as _REVIEW
 from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
 from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
 from opentine._schema_defs_share import SCHEMAS as _SHARE
@@ -63,6 +66,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_MERGE,
     **_REVIEW,
     **_REGISTRY,
+    **_EXTEND,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -74,6 +78,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_MERGE_COMMANDS,
     **_REVIEW_COMMANDS,
     **_REGISTRY_COMMANDS,
+    **_EXTEND_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

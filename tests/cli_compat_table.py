@@ -4503,4 +4503,37 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "prompt", "prompt_action": "list", "json": True},
     ),
+    # 0.47: the plugin API and tine experts.
+    (
+        "plain:plugins list --kind scorer --json",
+        "plain",
+        ["plugins", "list", "--kind", "scorer", "--json"],
+        "opentine._cli_extend:cmd_plugins",
+        False,
+        {"command": "plugins", "plugins_action": "list", "kind": "scorer", "json": True},
+    ),
+    (
+        "plain:plugins check signer hsm",
+        "plain",
+        ["plugins", "check", "signer", "hsm"],
+        "opentine._cli_extend:cmd_plugins",
+        False,
+        {"command": "plugins", "plugins_action": "check", "kind": "signer", "name": "hsm"},
+    ),
+    (
+        "plain:plugins allow scorer demo --json",
+        "plain",
+        ["plugins", "allow", "scorer", "demo", "--json"],
+        "opentine._cli_extend:cmd_plugins",
+        False,
+        {"command": "plugins", "plugins_action": "allow", "kind": "scorer", "name": "demo"},
+    ),
+    (
+        "plain:experts src --rev HEAD~1 --pubkey K --limit 5 --json",
+        "plain",
+        ["experts", "src", "--rev", "HEAD~1", "--pubkey", "K", "--limit", "5", "--json"],
+        "opentine._cli_extend:cmd_experts",
+        False,
+        {"command": "experts", "path": "src", "rev": "HEAD~1", "pubkey": "K", "limit": 5},
+    ),
 )

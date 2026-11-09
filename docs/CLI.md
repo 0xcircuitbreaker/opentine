@@ -1253,6 +1253,27 @@ tine-verify.pyz FILE.json [--pubkey K]` checks a prompt version, a history
 (`{"versions": [...]}`) or a note offline; the `68-prompt.json` and
 `69-memory.json` conformance families pin Python, the TS verifier and the pyz.
 See [PROMPTS_AND_MEMORY.md](PROMPTS_AND_MEMORY.md).
+## Plugins and experts: `tine plugins`, `tine experts` (0.47)
+
+```
+tine plugins list [--kind importer|signer|scorer|snapshot] [--json]
+tine plugins allow KIND NAME [--json]
+tine plugins check KIND NAME [--json]
+tine experts PATH [--rev REV] [--pubkey KEY] [--limit N] [--json]
+```
+
+`plugins list` shows every installed entry point in the `opentine.importers`,
+`opentine.signers`, `opentine.scorers` and `opentine.snapshots` groups and
+whether the loading rules (SPEC 8.19) let it load; it imports nothing.
+`allow` pins the installed distribution and version that provide a plugin in
+`$XDG_CONFIG_HOME/opentine/plugins.json`, the only allow-list read. `check`
+loads one and checks its interface (exit 1 when it may not load). A scorer
+plugin is used as `tine eval run --scorer plugin:NAME`. `--json` follows
+`tine-cli-plugins-1`; an unsafe or malformed allow-list exits 2.
+
+`experts` ranks agents (by model, from line attribution notes) and humans (by
+commit author) by the committed lines they wrote under PATH, then by verified
+runs. `--json` follows `tine-experts-1`. See [PLUGINS.md](PLUGINS.md).
 
 ## Run summaries: `tine explain` (0.42)
 

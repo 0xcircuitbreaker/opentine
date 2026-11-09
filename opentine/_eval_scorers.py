@@ -10,10 +10,13 @@
 * ``python:MODULE:FUNC`` or ``python:FILE.py:FUNC`` -- ``FUNC(output, item)``
   returning a bool, a number in 0..1 or ``{"score": n}``; it must be deterministic;
 * ``llm-judge:PROVIDER[:MODEL]`` -- ``_eval_judge``; the judge call is recorded
-  as its own run, whose id the verdict carries as ``judge_run``.
+  as its own run, whose id the verdict carries as ``judge_run``;
+* ``plugin:NAME`` (0.47) -- an allow-listed ``opentine.scorers`` entry point
+  (:mod:`opentine.plugins`); ``score(output, item)`` returns what ``python`` does.
 
 ``version`` pins the configuration: ``1`` for exact, ``1+sha256:<16 hex>`` of
-the pattern, schema, callable source or judge prompt and model otherwise.
+the pattern, schema, callable source, judge prompt and model, or the plugin's
+distribution and version otherwise.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCORER_IDS = ("exact", "regex", "json-schema", "python", "llm-judge")
+SCORER_IDS = ("exact", "regex", "json-schema", "python", "llm-judge", "plugin")
 
 
 class ScorerError(ValueError):
@@ -139,6 +142,18 @@ def _callable(target: str) -> Callable[..., Any]:
     return func
 
 
+def _plugin(name: str) -> Scorer:
+    from opentine import plugins
+
+    try:
+        loaded = plugins.load("scorer", name)
+    except plugins.PluginError as exc:
+        raise ScorerError(str(exc)) from exc
+    found = next(c for c in plugins.discover(("scorer",)) if c.name == name)
+    return Scorer("plugin", _pin("plugin", name, found.distribution, found.version),
+                  lambda i, out: (coerce(loaded.score(out, i)), ""))  # fmt: skip
+
+
 def coerce(value: Any) -> float:
     """A scorer's return value as a score in 0..1."""
     if isinstance(value, dict):
@@ -181,6 +196,8 @@ def parse(spec: str, **judge: Any) -> Scorer:
         from opentine._eval_judge import judge_scorer
 
         return judge_scorer(rest, **judge)
+    if kind == "plugin" and rest:
+        return _plugin(rest)
     raise ScorerError(f"unknown scorer {spec!r}; one of: {', '.join(SCORER_IDS)}")
 
 

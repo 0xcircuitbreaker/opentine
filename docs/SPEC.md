@@ -3224,6 +3224,37 @@ type. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
 (default 5 min); at most 64 tasks are held and the oldest finished one is
 forgotten first. The tool runs under the same read-only/allow-writes rules as
 a direct call.
+## 8.19 Plugin loading and `tine-experts/1` (0.47.0)
+
+**Plugins.** An implementation that loads third-party code for importers,
+signers, scorers or snapshot providers does so from Python entry points in
+the groups `opentine.importers`, `opentine.signers`, `opentine.scorers` and
+`opentine.snapshots`. It MUST NOT load any plugin implicitly (on import, on
+opening a repository or on running a command that did not name it), and it
+MUST NOT read the allow-list from a repository, the current directory or a
+path an environment variable names. The allow-list is the user's
+`$XDG_CONFIG_HOME/opentine/plugins.json` (`opentine-plugin-allow/1`, Part 12):
+each entry pins `kind`, entry-point `name`, PEP 503-normalised
+`distribution` and exact `version`. A plugin loads only when (1) an entry
+matches all four, (2) its distribution is installed under one of the
+interpreter's site-packages directories, (3) the top-level module its entry
+point names resolves, before import, to a file that distribution's `RECORD`
+lists, and (4) on POSIX neither the allow-list file, its directory nor the
+module's directory is writable by group or others. `OPENTINE_NO_PLUGINS=1`
+disables loading. These rules select code; they do not confine it: a loaded
+plugin has the process's full rights. An eval verdict scored by a plugin
+names the scorer `plugin` and pins `scorer_version` to
+`1+sha256:` + the first 16 hex digits of SHA-256(`plugin` NUL name NUL
+distribution NUL version); no verdict field or format changed.
+
+**Experts.** `tine-experts/1` ranks who wrote the committed text files under a
+path at a revision. Each blamed line counts for the agent (by model) that the
+originating commit's line attribution note (`refs/notes/tine`) credits it
+to, else for the commit's author (by e-mail). A run is *verified* for an
+agent when the note crediting it has a valid signature (by the pinned key,
+when one is given) and every range's content hash matches the commit. Rows
+are ordered by lines descending, verified runs descending, kind, then id,
+and numbered from 1.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -3731,6 +3762,7 @@ Versions are the opentine release that changed this document.
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
 | 0.47.0 | 4.19, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
 | 0.47.0 | 4.19, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.20, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.19, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`. No existing byte format changed. |
+| 0.47.0 | 8.19, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

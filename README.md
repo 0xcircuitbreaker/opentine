@@ -1196,6 +1196,7 @@ Reference:
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [PLUGINS.md](docs/PLUGINS.md): the entry-point plugin API, its loading rules and allow-list, and `tine experts`.
 - [PROJECTS.md](docs/PROJECTS.md): project manifests, mirror-state host statements, the git object check and the `tine serve` project routes.
 - [PROMPTS_AND_MEMORY.md](docs/PROMPTS_AND_MEMORY.md): the signed prompt registry, team memory in MCP `recall`, `tine eval ci` and MCP tasks.
 - [EVENTS.md](docs/EVENTS.md): `tine watch`, the remote's SSE event stream, and signed webhooks with a 20-line verifier.

@@ -19,7 +19,7 @@ def add_eval_parsers(sub: Any) -> None:
     run.add_argument("dataset", metavar="DATASET.jsonl")
     run.add_argument("--scorer", required=True, metavar="SPEC",
                      help="exact | regex:PAT | json-schema:FILE | python:MOD:FUNC | "
-                          "llm-judge:PROVIDER[:MODEL]")  # fmt: skip
+                          "llm-judge:PROVIDER[:MODEL] | plugin:NAME")  # fmt: skip
     run.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key that signs")
     run.add_argument("--out", required=True, metavar="DIR", help="Eval folder to write")
     run.add_argument("--threshold", type=float, default=1.0, help="Pass mark in 0..1 (default 1)")
