@@ -245,6 +245,7 @@ DRIVEN = (
     ),
     (("code-graph", "--repo", "repo", "--json"), "tine-graph-1"),  # 0.48
     (("compliance", "list", "--json"), "tine-cli-compliance-list-1"),  # 0.48
+    (("alert", "list", "--repo", "repo", "--json"), "tine-cli-alert-1"),  # 0.49
     (
         ("compliance", "check", "run.tine", "--profile", "eu-ai-act", "--json"),
         "tine-cli-compliance-check-1",

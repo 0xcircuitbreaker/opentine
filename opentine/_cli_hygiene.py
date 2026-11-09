@@ -18,6 +18,7 @@ from typing import Any
 from rich.markup import escape
 
 from opentine._cli_audit_kit import add_audit_kit_parser, cmd_audit_kit
+from opentine._cli_alert import add_alert_parser, cmd_alert
 from opentine._cli_common import console
 from opentine._cli_compliance import add_compliance_parser, cmd_compliance
 from opentine._cli_extend import COMMANDS as EXTEND_COMMANDS
@@ -49,6 +50,7 @@ def add_hygiene_parsers(sub: Any) -> None:
     add_graph_parser(sub)  # 0.48: tine code-graph, the code map
     add_compliance_parser(sub)  # 0.48: tine compliance list|check
     add_audit_kit_parser(sub)  # 0.49: tine audit-kit build|verify
+    add_alert_parser(sub)  # 0.49: tine alert add|list|remove|test
     doctor = sub.add_parser("doctor", help="Check environment, keys, hooks, harnesses, remotes")
     doctor.add_argument("--repo", default=".")
     doctor.add_argument("--bundle", metavar="PATH", help="Write a redacted support bundle")
@@ -94,5 +96,6 @@ COMMANDS["publish"] = cmd_publish  # 0.49
 COMMANDS["code-graph"] = cmd_graph  # 0.48
 COMMANDS["compliance"] = cmd_compliance  # 0.48
 COMMANDS["audit-kit"] = cmd_audit_kit  # 0.49
+COMMANDS["alert"] = cmd_alert  # 0.49
 
 __all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_purge", "cmd_redact"]

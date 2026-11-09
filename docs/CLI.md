@@ -647,6 +647,54 @@ outside key `verify` proves integrity only (its `anchor` check is `skip`);
 `verify --pubkey FILE` pins the run signatures to a key obtained separately and
 fails `anchor` when the kit carries another. `verify` refuses links and special
 files in a kit directory, and unsafe, linked, duplicate or oversized zip entries.
+## Alerts: `tine alert` (0.49)
+
+```
+tine alert add NAME --on verify.failed|policy.denied|cost.threshold|witness.disagreement
+    [--threshold USD] [--webhook URL [--allow-private]] [--otlp ENDPOINT] [--replace]
+tine alert list | remove NAME
+tine alert test [NAME] [--event FILE] [--always] [--dry-run]
+tine watch [REPO|REMOTE] --alerts
+```
+
+Rules live in `.tine/alerts/rules.json`. Alerts are evaluated on `tine-event/1`
+events: `op.logged` and `run.created` announce runs, which are loaded from the
+repository and checked (an attestation whose signature does not verify, a
+`policy` step with a deny decision, a total cost above `--threshold` USD);
+`log.checkpoint` events are compared with the last checkpoint of the same
+origin (a rollback or fork is a `witness.disagreement`). A webhook delivery is
+a `tine-webhook/1` body (SPEC 8.13) whose `event` is the triggering event, with
+an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`; `list`
+prints its `kid` and `public_key` for the receiver to pin. Targets must be
+`https://` global addresses unless `--allow-private`; 408/429/5xx are retried
+(3 attempts). An OTLP delivery POSTs one OTLP/JSON log record per alert to
+`ENDPOINT/v1/logs` (severity `ERROR` for verify and witness alerts, else
+`WARN`; `opentine.alert.*` attributes). `test` evaluates the newest op-log entry
+(or `--event FILE`: an event or a `tine watch --json` line) and delivers what
+trips; `--always` also sends a `test: true` alert for each other rule. `--json`
+writes `tine-cli-alert-1`; `test` exits 1 when a delivery failed. `tine watch
+--alerts` evaluates the rules on every event it reports.
+
+## Jules and A2A import (0.49)
+
+```
+tine import session.json --format jules --save run.tine
+tine import task.jsonl --format a2a --repo .
+```
+
+`jules` reads a Jules session as its REST API returns it (`{"session",
+"activities"}`, a list-activities response, a bare activity list, or JSONL
+pages): the prompt and user messages become human steps, agent messages, plans
+and progress model steps (`jules`/`google`, no token usage is reported),
+`planApproved` an approval and `sessionFailed` an error; `bashOutput`,
+`changeSet` (patch, base commit, suggested message) and `media` (MIME type and
+size only) artifacts become tool steps. `a2a` reads Agent2Agent tasks,
+messages and `status-update`/`artifact-update` stream events, bare or in
+JSON-RPC envelopes, one JSON document or JSONL; messages are de-duplicated by
+`messageId`, `failed`/`rejected` states become errors and
+`input-required`/`auth-required` approvals; file parts keep name, MIME type and
+URI, never inline bytes. Neither is auto-detected; pass `--format`. Sources:
+`tests/fixtures/jules/SOURCE.txt`, `tests/fixtures/a2a/SOURCE.txt`.
 
 ## Entire checkpoint import (0.19)
 
