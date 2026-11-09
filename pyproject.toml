@@ -54,7 +54,7 @@ pkcs11 = ["python-pkcs11>=0.7"]
 kms-aws = ["boto3>=1.35"]
 kms-gcp = ["google-cloud-kms>=3.0"]
 keyring = ["keyring>=25"]
-# 0.48 `tine graph`: tree-sitter parses Python; without it the map is a regex outline.
+# 0.48 `tine code-graph`: tree-sitter parses Python; without it the map is a regex outline.
 graph = ["tree-sitter>=0.23", "tree-sitter-python>=0.23"]
 all = [
     "anthropic>=0.87",

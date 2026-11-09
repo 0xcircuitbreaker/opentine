@@ -1,9 +1,9 @@
-"""0.48: ``tine review run`` (reviewer fleets, signed findings) and ``tine graph``.
+"""0.48: ``tine review run`` (reviewer fleets, signed findings) and ``tine code-graph``.
 
 A fake reviewer harness (a Python script a trusted ``fleet.toml`` runs) reads the
 change it is handed and writes findings; every well-formed one becomes a signed
 ``opentine.review-finding`` and the Review's next version lists it, so a
-critical finding blocks the gate. ``tine graph`` maps a small mixed-language
+critical finding blocks the gate. ``tine code-graph`` maps a small mixed-language
 tree with tree-sitter (when the ``graph`` extra is installed) and with the
 regex fallback, and the MCP ``code_graph`` tool returns the same document.
 """
@@ -11,6 +11,7 @@ regex fallback, and the MCP ``code_graph`` tool returns the same document.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,7 @@ from opentine import _code_graph, _code_graph_ts, _review_finding, _review_run, 
 from opentine._signed_record import RecordError
 from opentine.repository import Repo
 
+pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git is required")
 SEED, STRANGER = "ab" * 32, "cd" * 32
 HARNESS = """\
 import json, os, sys
@@ -153,7 +155,7 @@ def test_a_tampered_finding_fails_and_a_bad_path_is_malformed():
     assert caught.value.code == "review-finding.malformed"
 
 
-# --- tine graph ---------------------------------------------------------------- #
+# --- tine code-graph ---------------------------------------------------------------- #
 
 
 def _tree(root: Path) -> None:
@@ -187,7 +189,7 @@ def test_graph_maps_symbols_imports_and_edges(tmp_path, capsys, monkeypatch, bac
     elif not _code_graph_ts.available():
         pytest.skip("the graph extra (tree-sitter) is not installed")
     _tree(tmp_path)  # no git work tree: a directory walk
-    code, out = _tine(capsys, "graph", "--repo", tmp_path.as_posix(), "--json")
+    code, out = _tine(capsys, "code-graph", "--repo", tmp_path.as_posix(), "--json")
     assert code == 0 and out["schema"] == "tine-graph/1"
     files = _by_path(out)
     assert "README.md" not in files and out["tree_sitter"] is (backend == "tree-sitter")
@@ -206,7 +208,7 @@ def test_graph_maps_symbols_imports_and_edges(tmp_path, capsys, monkeypatch, bac
             ("web/lib.ts", "x", "function"), ("cmd/main.go", "main", "function"),
             ("src/lib.rs", "Point", "type"), ("src/lib.rs", "area", "function"),
             ("ide/Plugin.kt", "paint", "method")} <= kinds  # fmt: skip
-    code, out = _tine(capsys, "graph", "--repo", tmp_path.as_posix(), "--symbol", "helper",
+    code, out = _tine(capsys, "code-graph", "--repo", tmp_path.as_posix(), "--symbol", "helper",
                       "--json")  # fmt: skip
     assert [f["path"] for f in out["files"]] == ["pkg/util.py"]
 

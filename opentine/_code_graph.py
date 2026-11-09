@@ -1,4 +1,4 @@
-"""``tine graph``: a code map of a repository (0.48), ``tine-graph/1``.
+"""``tine code-graph``: a code map of a repository (0.48), ``tine-graph/1``.
 
 For every tracked source file (``git ls-files``; a plain directory walk when the
 folder is no git work tree) the map lists its top-level and nested symbols

@@ -10,7 +10,7 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_review` (Reviews, 0.47) and
 :mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
 :mod:`opentine._schema_defs_extend` (plugins, experts) and
-:mod:`opentine._schema_defs_integrate` (review findings, ``tine graph``, 0.48);
+:mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
 ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries

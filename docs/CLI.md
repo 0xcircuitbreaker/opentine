@@ -719,7 +719,7 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
-| `code_graph` (0.48) | `tine graph [PATH] [--symbol NAME] --repo REPO --json` |
+| `code_graph` (0.48) | `tine code-graph [PATH] [--symbol NAME] --repo REPO --json` |
 
 New in 0.44, `recall(query, limit=10)` is a hand-written read tool over the
 derived search index (`tine repo-search --rebuild-index`, see
@@ -1276,8 +1276,7 @@ pins Python, the TS verifier and the pyz.
 ### Multi-agent review through the fleet: `tine review run` (0.48)
 
 ```
-tine review run ID --fleet reviewers.toml [--trust] [--base REV | --diff-file FILE]
-                --ed25519-key-file K [--key-id ID] [--json] [--repo R]
+tine review run ID --fleet TOML [--trust] [--base REV] [--diff-file FILE] --ed25519-key-file K [--key-id ID] [--json] [--repo R]
 tine review findings ID [--json] [--repo R]
 ```
 
@@ -1299,10 +1298,10 @@ same file offline, one row per finding. `--json` follows `tine-cli-review-1`;
 the `74-review-finding.json` conformance family pins Python, the TS verifier and
 the pyz.
 
-## Code map: `tine graph` (0.48)
+## Code map: `tine code-graph` (0.48)
 
 ```
-tine graph [PATH]... [--symbol NAME] [--repo DIR] [--json]
+tine code-graph [PATH]... [--symbol NAME] [--repo DIR] [--json]
 ```
 
 Maps the work tree: every tracked source file (Python, JavaScript, TypeScript,
@@ -1312,7 +1311,8 @@ repository. With the optional `graph` extra (`pip install 'opentine[graph]'`,
 tree-sitter) Python files are parsed by tree-sitter; everything else, and every
 file without the extra, gets a regex outline, and each file says which
 (`backend`). `--symbol` keeps only the files that define NAME. Read-only and
-offline. `--json` follows `tine-graph-1`; the MCP server exposes the same map as
+offline. It is `code-graph`, not `graph`, so a user's `alias.graph` (a `log --graph`
+shortcut) keeps working. `--json` follows `tine-graph-1`; the MCP server exposes the same map as
 the read-only `code_graph` tool.
 
 ## Prompts and team memory: `tine prompt`, `tine memory` (0.47)

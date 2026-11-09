@@ -1,4 +1,4 @@
-"""``tine graph [PATH...]``: a code map of the repository (0.48, ``tine-graph/1``).
+"""``tine code-graph [PATH...]``: a code map of the repository (0.48, ``tine-graph/1``).
 
 Lists every source file's symbols and imports and the import edges between
 files of this repository (:mod:`opentine._code_graph`): tree-sitter for Python
@@ -15,7 +15,7 @@ from typing import Any
 
 
 def add_graph_parser(sub: Any) -> None:
-    graph = sub.add_parser("graph", help="Code map: symbols, imports and import edges")
+    graph = sub.add_parser("code-graph", help="Code map: symbols, imports and import edges")
     graph.add_argument("paths", nargs="*", metavar="PATH", help="Only files under these paths")
     graph.add_argument("--repo", default=".", help="The work tree to map (default: .)")
     graph.add_argument("--symbol", metavar="NAME", help="Only files that define NAME")
@@ -43,10 +43,10 @@ def cmd_graph(args: argparse.Namespace) -> None:
     root = Path(args.repo)
     root = root.parent if root.name == ".tine" else root  # the MCP server passes its store
     if not root.is_dir():
-        fail(f"no such directory: {root.as_posix()}", prefix="tine graph: ")
+        fail(f"no such directory: {root.as_posix()}", prefix="tine code-graph: ")
     found = code_map(root, args.paths, args.symbol)
     if args.json:
-        emit({"command": "graph", **found})
+        emit({"command": "code-graph", **found})
         return
     for item in found["files"]:
         names = ", ".join(s["name"] for s in item["symbols"][:8])

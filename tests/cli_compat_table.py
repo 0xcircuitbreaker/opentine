@@ -4679,11 +4679,11 @@ ROWS: tuple[tuple, ...] = (
         {"command": "review", "review_action": "findings", "review_id": "auth", "json": True},
     ),
     (
-        "plain:graph src --symbol main --json",
+        "plain:code-graph src --symbol main --json",
         "plain",
-        ["graph", "src", "--symbol", "main", "--json"],
+        ["code-graph", "src", "--symbol", "main", "--json"],
         "opentine._cli_graph:cmd_graph",
         False,
-        {"command": "graph", "paths": ["src"], "symbol": "main", "json": True},
+        {"command": "code-graph", "paths": ["src"], "symbol": "main", "json": True},
     ),
 )

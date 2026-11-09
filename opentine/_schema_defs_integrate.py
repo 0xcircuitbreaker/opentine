@@ -1,7 +1,7 @@
 """JSON Schemas for 0.48 "integrate everywhere": review findings and the code map.
 
 ``opentine-review-finding-1`` is one signed ``opentine.review-finding``
-(SPEC 4.25); ``tine-graph-1`` is the ``--json`` output of ``tine graph``
+(SPEC 4.25); ``tine-graph-1`` is the ``--json`` output of ``tine code-graph``
 (``tine-graph/1``, also the MCP ``code_graph`` tool's answer). The schemas
 check shape; the signature is the verifier's (``opentine._review_finding``).
 """
@@ -43,13 +43,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "reviewer": {"type": "string", "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"},
             "run": opt({"type": "string", "pattern": "^run:sha256:[0-9a-f]{64}$"}),
             "created_at": _WHEN, "signature": SIG})),
-    "tine-graph-1": doc("tine-graph-1", "tine graph --json",
+    "tine-graph-1": doc("tine-graph-1", "tine code-graph --json",
         "The code map (`tine-graph/1`): every source file's symbols and imports, the import "
         "edges between files of the repository, and which parser produced each file "
         "(`tree-sitter` with the `graph` extra, else `regex`). The MCP `code_graph` tool "
         "returns the same document.",
         closed(["command", "schema", "backend", "tree_sitter", "files", "edges", "counts"], {
-            "command": {"const": "graph"}, "schema": {"const": "tine-graph/1"},
+            "command": {"const": "code-graph"}, "schema": {"const": "tine-graph/1"},
             "backend": {"enum": ["tree-sitter", "regex", "mixed"]}, "tree_sitter": BOOL,
             "files": {"type": "array", "items": _FILE},
             "edges": {"type": "array", "items": closed(["from", "to"], {
@@ -58,7 +58,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                 "files": INT, "symbols": INT, "edges": INT})})),
 }  # fmt: skip
 
-COMMAND_SCHEMAS: dict[str, str] = {"graph": "tine-graph-1"}
+COMMAND_SCHEMAS: dict[str, str] = {"code-graph": "tine-graph-1"}
 KIND_SCHEMAS: dict[str, str] = {"opentine.review-finding": "opentine-review-finding-1"}
 
 __all__ = ["COMMAND_SCHEMAS", "KIND_SCHEMAS", "SCHEMAS"]

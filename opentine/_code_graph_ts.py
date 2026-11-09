@@ -1,4 +1,4 @@
-"""The optional tree-sitter backend of ``tine graph`` (the ``graph`` extra, 0.48).
+"""The optional tree-sitter backend of ``tine code-graph`` (the ``graph`` extra, 0.48).
 
 :func:`parse` returns ``(symbols, imports)`` for a Python file when
 ``tree_sitter`` and ``tree_sitter_python`` import, and ``None`` otherwise (no

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-graph-1.schema.json",
-  "title": "tine graph --json",
+  "title": "tine code-graph --json",
   "description": "The code map (`tine-graph/1`): every source file's symbols and imports, the import edges between files of the repository, and which parser produced each file (`tree-sitter` with the `graph` extra, else `regex`). The MCP `code_graph` tool returns the same document.",
   "type": "object",
   "additionalProperties": false,
@@ -16,7 +16,7 @@
   ],
   "properties": {
     "command": {
-      "const": "graph"
+      "const": "code-graph"
     },
     "schema": {
       "const": "tine-graph/1"

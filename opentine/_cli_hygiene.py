@@ -2,7 +2,7 @@
 
 The ``redact`` verbs live in :mod:`opentine._cli_redact`, ``purge`` in
 :mod:`opentine._cli_purge`; ``tine merge``, ``pick`` and ``merge-queue`` (0.47)
-in :mod:`opentine._cli_merge`; ``tine graph`` (0.48) in :mod:`opentine._cli_graph`.
+in :mod:`opentine._cli_merge`; ``tine code-graph`` (0.48) in :mod:`opentine._cli_graph`.
 ``tine doctor`` prints offline environment checks
 (:mod:`opentine._doctor`); ``--bundle PATH`` also
 writes them as a redacted support bundle. ``--json`` output follows
@@ -42,7 +42,7 @@ def add_hygiene_parsers(sub: Any) -> None:
     add_memory_parser(sub)  # 0.47: tine memory, opentine.memory notes
     add_extend_parsers(sub)  # 0.47: tine plugins, tine experts
     add_forge_parser(sub)  # 0.48: tine forge publish, opentine.forge-check
-    add_graph_parser(sub)  # 0.48: tine graph, the code map
+    add_graph_parser(sub)  # 0.48: tine code-graph, the code map
     doctor = sub.add_parser("doctor", help="Check environment, keys, hooks, harnesses, remotes")
     doctor.add_argument("--repo", default=".")
     doctor.add_argument("--bundle", metavar="PATH", help="Write a redacted support bundle")
@@ -84,6 +84,6 @@ COMMANDS["prompt"] = cmd_prompt  # 0.47
 COMMANDS["memory"] = cmd_memory  # 0.47
 COMMANDS.update(EXTEND_COMMANDS)  # 0.47
 COMMANDS["forge"] = cmd_forge  # 0.48
-COMMANDS["graph"] = cmd_graph  # 0.48
+COMMANDS["code-graph"] = cmd_graph  # 0.48
 
 __all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_purge", "cmd_redact"]
