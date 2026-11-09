@@ -25,6 +25,7 @@ _WRITER = textwrap.dedent(
     import sys
     from opentine import Run, StepKind
     from opentine.repository import Repo
+    from opentine.kernel import KernelError
     from opentine.repository._gc import gc
 
     repo = Repo.open(sys.argv[1])
@@ -38,7 +39,11 @@ _WRITER = textwrap.dedent(
         repo.put_run(run, ref=f"heads/w{tag}")
         repo.update_ref("tags/latest", repo.put("blob", f"{tag}{n}".encode()))
         if n % 3 == 2:
-            gc(repo)
+            try:
+                gc(repo)
+            except KernelError as exc:  # the other live writer's gc holds the lock
+                if "another tine gc is running" not in str(exc):
+                    raise
         n += 1
     """
 )
