@@ -12,6 +12,7 @@ left alone so the caller can raise a clear error naming the file.
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import itertools
 import os
@@ -173,12 +174,14 @@ def _publish(path: Path, mode: int) -> int:
     # threads the same name, and one would delete the other's stamp file.
     owner = f"{os.getpid()}-{threading.get_ident()}-{next(_SEQ)}"
     tmp = path.with_name(f"{path.name}.new-{owner}..lock")
+    linked = False
     try:
         # A file object closes its own fd, so nothing here calls os.close.
         with open(tmp, "xb", opener=lambda name, flags: _winretry.open_fd(name, flags, mode)) as f:
             f.write(stamp())
         try:
             _winretry.retry(lambda: os.link(tmp, path))  # Windows: delete pending
+            linked = True
         except FileExistsError:
             raise
         except NotImplementedError:
@@ -188,6 +191,11 @@ def _publish(path: Path, mode: int) -> int:
                 raise
             return _exclusive(path, mode)  # no hard links on this filesystem
     finally:
+        if not linked:
+            _winretry.unlink(tmp)
+    # The lock is ours now. On Windows a contender reading it can block removing
+    # the second name (one file, one share mode): leave that name, never the lock.
+    with contextlib.suppress(OSError):
         _winretry.unlink(tmp)
     try:
         return _winretry.open_fd(path, os.O_WRONLY)
