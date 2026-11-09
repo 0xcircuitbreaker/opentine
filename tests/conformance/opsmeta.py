@@ -482,6 +482,23 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.23: an opentine.forge-claim as mirrored (never a pass)",
     },
+    "forge-check.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": [
+            "commit",
+            "forge",
+            "forge_repo_id",
+            "project_id",
+            "conclusion",
+            "share_ppm",
+            "bundle",
+        ],  # fmt: skip
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.24: an opentine.forge-check record and the bundle it links to",
+    },
     "actions.chain": {
         "profile": VERIFIER,
         "input": ["value"],

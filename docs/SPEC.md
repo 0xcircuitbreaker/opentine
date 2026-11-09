@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.47.0 (draft until opentine 0.47.0 is tagged). **Previous
-version:** 0.46.1. Changes between versions are listed in
+**Spec version:** 0.48.0 (draft until opentine 0.48.0 is tagged). **Previous
+version:** 0.47.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.47.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.48.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.48.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -2479,6 +2479,53 @@ the source's history, so a source that rewrote its history since the fork is
 refused (`project.chain-break`). A fork never inherits the source's forge
 claim: the fingerprint names the source's genesis.
 
+<a id="s-4.24"></a>
+## 4.24 `opentine.forge-check` — what a forge shows for a commit (0.48.0+)
+
+A **forge check** is the record `tine forge publish` shows on a forge for one
+commit: a GitHub check run, a GitLab or Forgejo commit status, an MR note or a
+PR comment, or, for Entire, a git note under `refs/notes/opentine-forge` on the
+commit. It is canonical JSON (§0.2), **unsigned**, with exactly these keys:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.forge-check"` |
+| `check_version` | `1` |
+| `forge` | `"github"`, `"gitlab"`, `"forgejo"` or `"entire"` |
+| `forge_repo_id` | the forge's repository id, `[A-Za-z0-9_.:/-]{1,128}` (the project slot's `forge_repo_id`, §4.16) |
+| `project_id` | the project the id resolved to, or `null` |
+| `commit` | the full commit id, 40 or 64 lowercase hex |
+| `verify` | `{state, runs}`: `state` is `"verified"`, `"failed"` or `"unverified"`; `runs` the number of verify outputs read |
+| `ai` | `{ai_lines, total_lines, share_ppm}`; `share_ppm` = `ai_lines * 1000000 // total_lines` (0 when `total_lines` is 0); no float |
+| `bundle` | `{url, digest}`: `digest` is `"sha256:" + hex(SHA-256(bundle file))` or `null`; `url` an `https://` URL in `[A-Za-z0-9._~:/?#@!$&*+,;=%-]`, or `null`. A `url` needs a `digest` |
+| `overlay` | at most 50 `{path, start_line, end_line, run}`: a relative POSIX path with no `..` segment, `1 <= start_line <= end_line`, `run` a run id or `null` (the blame overlay) |
+| `conclusion` | `"success"`, `"failure"` or `"neutral"` |
+
+Integers are non-negative and below 2^53; booleans are not integers.
+`conclusion` follows `verify.state` alone: verified → success, failed →
+failure, unverified → neutral. A forge without a neutral state shows it as
+GitLab `skipped` or Forgejo `warning`, never as a success.
+
+The record carries no authority: the forge only displays it. A reader who
+wants proof downloads the bundle, checks its SHA-256 against `digest` and
+verifies it offline (§8). Given the record and, optionally, the bundle bytes,
+`forge-check.verify` answers `{commit, forge, forge_repo_id, project_id,
+conclusion, share_ppm, bundle}` where `bundle` is `matched` (bytes given and
+they hash to `digest`), `unchecked` (a digest, no bytes) or `absent`. A verifier
+MUST refuse, with the first applicable code: `forge-check.malformed` (a
+missing, extra or ill-formed key, a `signature` included, or a `url` without a
+`digest`); `forge-check.share-mismatch` (`ai_lines > total_lines`, or a
+`share_ppm` other than the floor above); `forge-check.conclusion-mismatch`;
+`forge-check.bundle-mismatch` (bundle bytes that do not hash to `digest`).
+Vectors: `73-forge-check.json` (op `forge-check.verify`).
+
+A publisher resolves `project_id` by `forge_repo_id` against the verified
+project chain (§4.16) and MUST refuse to publish for a project whose head
+version has no slot with that `forge` and `forge_repo_id`; it MUST verify a
+bundle completely before linking it. The comment text is built from the
+record alone (counts, fixed words, validated paths, the URL and digest), so no
+run content, environment variable or token reaches a forge.
+
 ---
 
 <a id="part-5"></a>
@@ -3871,6 +3918,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |

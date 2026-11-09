@@ -1,0 +1,11 @@
+{
+  "_note": "Recorded GitHub REST answers (trimmed to the fields tine forge publish reads); api.github.com, 2026-11.",
+  "POST /app/installations/77/access_tokens": [201, {"token": "ghs_recordedInstallationToken", "expires_at": "2026-11-09T12:00:00Z", "permissions": {"checks": "write", "pull_requests": "write"}}],
+  "POST /repos/octo/app/check-runs": [201, {"id": 4242, "name": "opentine", "status": "completed", "conclusion": "success", "html_url": "https://github.com/octo/app/runs/4242"}],
+  "GET /repos/octo/app/issues/7/comments": [200, [
+    {"id": 11, "user": {"login": "mallory"}, "body": "<!-- opentine-forge-check -->\nforged by a PR author"},
+    {"id": 12, "user": {"login": "github-actions[bot]"}, "body": "<!-- opentine-forge-check -->\nan earlier run"}
+  ]],
+  "PATCH /repos/octo/app/issues/comments/12": [200, {"id": 12}],
+  "POST /repos/octo/app/issues/7/comments": [201, {"id": 13}]
+}

@@ -19,6 +19,7 @@ from rich.markup import escape
 from opentine._cli_common import console
 from opentine._cli_extend import COMMANDS as EXTEND_COMMANDS
 from opentine._cli_extend import add_extend_parsers
+from opentine._cli_forge import add_forge_parser, cmd_forge
 from opentine._cli_memory import add_memory_parser, cmd_memory
 from opentine._cli_merge import COMMANDS as MERGE_COMMANDS
 from opentine._cli_merge import add_merge_parsers
@@ -38,6 +39,7 @@ def add_hygiene_parsers(sub: Any) -> None:
     add_prompt_parser(sub)  # 0.47: tine prompt, opentine.prompt versions
     add_memory_parser(sub)  # 0.47: tine memory, opentine.memory notes
     add_extend_parsers(sub)  # 0.47: tine plugins, tine experts
+    add_forge_parser(sub)  # 0.48: tine forge publish, opentine.forge-check
     doctor = sub.add_parser("doctor", help="Check environment, keys, hooks, harnesses, remotes")
     doctor.add_argument("--repo", default=".")
     doctor.add_argument("--bundle", metavar="PATH", help="Write a redacted support bundle")
@@ -78,5 +80,6 @@ COMMANDS["review"] = cmd_review  # 0.47
 COMMANDS["prompt"] = cmd_prompt  # 0.47
 COMMANDS["memory"] = cmd_memory  # 0.47
 COMMANDS.update(EXTEND_COMMANDS)  # 0.47
+COMMANDS["forge"] = cmd_forge  # 0.48
 
 __all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_purge", "cmd_redact"]

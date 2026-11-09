@@ -274,6 +274,7 @@ def test_the_inspection_module_has_no_hookless_json_reader_left():
 BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_036_push_preview.py": "git",
+    "tests/test_048_forge.py": "git",
     "tests/test_038_tree_snapshots.py": "git",
     "tests/test_041_post_quantum.py": "git",
     "tests/test_045_prepush_gate_review.py": "git",

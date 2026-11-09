@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (197)
+## The codes (201)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -89,6 +89,10 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `forge-check.bundle-mismatch` | 4.24 | -- | bundle bytes that do not hash to the check's digest | trust the linked bundle without hashing what was downloaded |
+| `forge-check.conclusion-mismatch` | 4.24 | -- | a conclusion that does not follow the verify state | show an unverified or failed commit as a success |
+| `forge-check.malformed` | 4.24 | -- | a forge check with a missing, extra or ill-formed field, or a bundle URL without a digest | accept fields the check format does not define, or link a bundle nobody can check |
+| `forge-check.share-mismatch` | 4.24 | -- | a share_ppm other than floor(ai_lines * 1000000 / total_lines), or ai_lines > total_lines | recompute and show a share the record does not state |
 | `forge-claim.malformed` | 4.23 | -- | a claim with a missing, extra or ill-formed field (a signature included) | accept fields the claim format does not define |
 | `forge-claim.missing` | 4.23 | -- | no .opentine/project on the upstream's default branch | read a missing file as an unclaimed, therefore open, project |
 | `forge-claim.not-default-branch` | 4.23 | -- | a claim found only on a branch other than the slot's default branch | let anyone who can push a branch claim the repository |

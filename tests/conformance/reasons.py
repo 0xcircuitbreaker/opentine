@@ -1256,6 +1256,30 @@ REASONS: dict[str, Reason] = {
         "a claim whose fingerprint names another project's first version",
         "match a claim by project id alone, so a fork inherits it",
     ),
+    "forge-check.malformed": R(
+        "4.24",
+        None,
+        "a forge check with a missing, extra or ill-formed field, or a bundle URL without a digest",
+        "accept fields the check format does not define, or link a bundle nobody can check",
+    ),
+    "forge-check.share-mismatch": R(
+        "4.24",
+        None,
+        "a share_ppm other than floor(ai_lines * 1000000 / total_lines), or ai_lines > total_lines",
+        "recompute and show a share the record does not state",
+    ),
+    "forge-check.conclusion-mismatch": R(
+        "4.24",
+        None,
+        "a conclusion that does not follow the verify state",
+        "show an unverified or failed commit as a success",
+    ),
+    "forge-check.bundle-mismatch": R(
+        "4.24",
+        None,
+        "bundle bytes that do not hash to the check's digest",
+        "trust the linked bundle without hashing what was downloaded",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

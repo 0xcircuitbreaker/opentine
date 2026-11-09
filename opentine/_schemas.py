@@ -29,6 +29,9 @@ from opentine._schema_defs_cli import SCHEMAS as _CLI
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
 from opentine._schema_defs_extend import COMMAND_SCHEMAS as _EXTEND_COMMANDS
 from opentine._schema_defs_extend import SCHEMAS as _EXTEND
+from opentine._schema_defs_forge import COMMAND_SCHEMAS as _FORGE_COMMANDS
+from opentine._schema_defs_forge import KIND_SCHEMAS as _FORGE_KINDS
+from opentine._schema_defs_forge import SCHEMAS as _FORGE
 from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
@@ -67,6 +70,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_REVIEW,
     **_REGISTRY,
     **_EXTEND,
+    **_FORGE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -79,6 +83,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_REVIEW_COMMANDS,
     **_REGISTRY_COMMANDS,
     **_EXTEND_COMMANDS,
+    **_FORGE_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
@@ -88,6 +93,7 @@ KIND_SCHEMAS: dict[str, str] = {
     **_MERGE_KINDS,
     **_REVIEW_KINDS,
     **_REGISTRY_KINDS,
+    **_FORGE_KINDS,
 }
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.

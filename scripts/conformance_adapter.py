@@ -168,6 +168,12 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("names another project or tenant", "forge-claim.wrong-project"),
         ("fingerprint names another project", "forge-claim.wrong-fingerprint"),
     ),
+    "forge-check.verify": (
+        ("forge check is malformed", "forge-check.malformed"),
+        ("share does not match", "forge-check.share-mismatch"),
+        ("conclusion does not follow", "forge-check.conclusion-mismatch"),
+        ("bundle does not hash", "forge-check.bundle-mismatch"),
+    ),
 }
 _OP_CODES["project.chain"] = _OP_CODES["project.verify"]
 #: 0.47 Reviews: the gate fragments first, so a decision's refusal is never read as a version's.

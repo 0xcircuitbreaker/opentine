@@ -846,6 +846,19 @@
       "verdict": 0
     },
     {
+      "core": 19,
+      "count": 19,
+      "file": "vectors/73-forge-check.json",
+      "name": "forge-check",
+      "ops": [
+        "forge-check.verify"
+      ],
+      "reject": 14,
+      "section": "4.24",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -868,8 +881,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "8ba55635370dd3b743020298759f852b29635cb5b3dbd8f793c00df200fae4c0",
-    "REASON_CODES.md": "ef4f1098ecf12e3bc7cd3efbe6e7969f5dac1935242784148b964e9e2a3b9e1d",
+    "README.md": "d46189aa0df75918f15810b2857c3fb60aa2b4d56dcaf576245eecdd9eec560f",
+    "REASON_CODES.md": "e324276c3bc6de0b64682f194e3ae4c1f75569cc611a4d5ce8cc71509aad8ea2",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1979,6 +1992,7 @@
     "vectors/70-review.json": "b73d559ab97d120175fab70d800a428da58e7c1cd28bf6ef8b3e6e740174ed86",
     "vectors/71-prompt.json": "104ee0ba5346a664205ab0dbb3ce1337366fe448b24e3793b16560bc957935f1",
     "vectors/72-forge-claim.json": "bbf9c0a24008fac77295decb086f2106b7fc422cb0c28b42a83476d1abaa78a8",
+    "vectors/73-forge-check.json": "08c3d3843ae41d5a88e11207d8580633259402524a9dd837e9a642979b1c792b",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.47.0",
@@ -2197,6 +2211,25 @@
       "profile": "reader",
       "requires": [],
       "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
+      "unordered": []
+    },
+    "forge-check.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "commit",
+        "forge",
+        "forge_repo_id",
+        "project_id",
+        "conclusion",
+        "share_ppm",
+        "bundle"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.24: an opentine.forge-check record and the bundle it links to",
       "unordered": []
     },
     "forge-claim.verify": {
@@ -3034,15 +3067,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.47.0",
+  "spec_version": "0.48.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1015,
-    "core": 1005,
-    "families": 49,
-    "ops": 63,
-    "reason_codes": 197,
-    "reject": 417,
+    "cases": 1034,
+    "core": 1024,
+    "families": 50,
+    "ops": 64,
+    "reason_codes": 201,
+    "reject": 431,
     "stress": 10,
     "verdict": 178
   }

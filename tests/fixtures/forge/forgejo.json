@@ -1,0 +1,9 @@
+{
+  "_note": "Recorded Forgejo API v1 answers (trimmed); Forgejo 9, 2026-11.",
+  "POST /api/v1/repos/team/app/statuses/{commit}": [201, {"id": 31, "status": "warning", "context": "opentine"}],
+  "GET /api/v1/user": [200, {"id": 4, "login": "opentine-bot"}],
+  "GET /api/v1/repos/team/app/issues/5/comments": [200, [
+    {"id": 70, "user": {"login": "opentine-bot"}, "body": "<!-- opentine-forge-check -->\nold"}
+  ]],
+  "PATCH /api/v1/repos/team/app/issues/comments/70": [200, {"id": 70}]
+}

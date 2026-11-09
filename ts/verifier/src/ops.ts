@@ -21,6 +21,7 @@ import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.
 import { checkGitObject } from "./gitobject.js";
 import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 import { verifyForgeClaim } from "./forgeclaim.js";
+import { verifyForgeCheck } from "./forgecheck.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -293,6 +294,12 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
     case "forge-claim.verify": {
       const value = valueOf(input) as JObject;
       return { ...verifyForgeClaim(value.get("claim") as JValue, value.get("branch") as JValue, value.get("project") as JValue) };
+    }
+    case "forge-check.verify": {
+      const value = valueOf(input) as JObject;
+      const raw = value.get("bundle_b64");
+      const data = typeof raw === "string" ? Uint8Array.from(Buffer.from(raw, "base64")) : null;
+      return verifyForgeCheck(value.get("check") as JValue, data);
     }
     case "git-object.check": {
       const value = valueOf(input) as JObject;

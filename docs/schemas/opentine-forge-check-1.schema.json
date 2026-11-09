@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-forge-check-1.schema.json",
+  "title": "opentine.forge-check (check_version 1)",
+  "description": "What `tine forge publish` shows on a forge for one commit (SPEC 4.24): the verify state, the AI share in parts per million (`ai_lines * 1000000 // total_lines`), the commit's AI-attributed ranges (the blame overlay, at most 50) and the digest and URL of an offline-verifiable bundle. Unsigned: `conclusion` follows `verify.state` (verified -> success, failed -> failure, unverified -> neutral).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "check_version",
+    "forge",
+    "forge_repo_id",
+    "project_id",
+    "commit",
+    "verify",
+    "ai",
+    "bundle",
+    "overlay",
+    "conclusion"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.forge-check"
+    },
+    "check_version": {
+      "const": 1
+    },
+    "forge": {
+      "enum": [
+        "github",
+        "gitlab",
+        "forgejo",
+        "entire"
+      ]
+    },
+    "forge_repo_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/-]{1,128}$"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "runs"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "verified",
+            "failed",
+            "unverified"
+          ]
+        },
+        "runs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ai_lines",
+        "total_lines",
+        "share_ppm"
+      ],
+      "properties": {
+        "ai_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "share_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "digest"
+      ],
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^https://[A-Za-z0-9._~:/?#@!$&*+,;=%-]{1,2040}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "overlay": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "start_line",
+          "end_line",
+          "run"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "run": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "conclusion": {
+      "enum": [
+        "success",
+        "failure",
+        "neutral"
+      ]
+    }
+  }
+}

@@ -1132,6 +1132,51 @@ offline; a mirror state never passes (verdict `host-statement`). The
 object check among them) pin Python, the TS verifier and the pyz. See
 [PROJECTS.md](PROJECTS.md).
 
+## Forge integration: `tine forge publish` (0.48)
+
+```
+tine forge publish --forge github|gitlab|forgejo|entire [--forge-repo-id ID]
+                   [--repo-slug OWNER/NAME] [--api-url URL] [--rev REV] [--code DIR]
+                   [--repo R] [--require-project] [--verify FILE]... [--bundle FILE
+                   [--bundle-url URL]] [--pr N | --mr N] [--token-env NAME]
+                   [--app-id ID --app-key-file PEM --installation-id ID]
+                   [--comment-author LOGIN] [--run RUN]... [--out FILE] [--dry-run] [--json]
+```
+
+Builds one `opentine.forge-check` record (SPEC 4.24) for the commit `--rev` of
+the code checkout `--code` and shows it on the forge: the AI share at that
+commit (`tine stats --ai-share`), the verify status from the `tine verify
+--json` outputs given with `--verify` (none: `unverified`), the commit's own
+AI-attributed line ranges (the blame overlay) and the digest and URL of a
+bundle that verifies offline (`--bundle` is verified in full before it is
+linked; `--bundle-url` without `--bundle` is refused). The conclusion follows
+the verify status alone: verified is success, failed is failure, unverified is
+neutral, never success.
+
+* **GitHub**: a completed check run (Checks API) with the overlay as `notice`
+  annotations and `details_url` the bundle; with `--pr`, one PR comment, edited
+  on re-runs.
+* **GitLab**: a commit status (`skipped` when unverified); with `--mr`, one MR note.
+* **Forgejo / Gitea**: a commit status (`warning` when unverified); with `--pr`,
+  one PR comment.
+* **Entire**: nothing over HTTP. Checkpoint refs for the runs the commit names
+  (or each `--run`) and the record as a note under `refs/notes/opentine-forge`
+  are written into the code checkout, and the `git push` that publishes them is
+  printed.
+
+The project is resolved by `--forge-repo-id` (default `GITHUB_REPOSITORY_ID` or
+`CI_PROJECT_ID`) against the verified project chain in `--repo`: a project that
+links no repository with that id on that forge is refused, and
+`--require-project` refuses a run repository without a project. Tokens are
+read only from an environment variable (`--token-env`; defaults
+`GITHUB_TOKEN`, `OPENTINE_GITLAB_TOKEN`, `OPENTINE_FORGEJO_TOKEN`) or minted
+from a GitHub App key with only the permissions used, and never printed: a
+failure names the HTTP status only. Only a comment that starts with the
+marker and was written by the poster itself is edited. `--dry-run` builds the
+record and the request plan without a token or the network. The command exits
+0 whatever the conclusion (the CI gate decides the job); `--json` follows
+`tine-cli-forge-1`. Token scopes and CI recipes: [FORGES.md](FORGES.md).
+
 ## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
 
 ```

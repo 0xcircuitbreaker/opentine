@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Release notes are written when 0.48.0 is cut. Conformance census so far:
+the suite is now **1034 conformance vectors**; 431 of the 1034 refuse input,
+and the adapter contract still has one entry point: 64 ops.
+
 ## 0.47.0 — Merge it, review it (2026-11-09)
 
 ### Behaviour changes
