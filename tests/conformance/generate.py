@@ -37,6 +37,7 @@ from tests.conformance import (
     cases_objects,
     cases_project,
     cases_redaction_report,
+    cases_registry,
     cases_repair,
     cases_repo,
     cases_review,
@@ -105,6 +106,7 @@ FAMILY_MODULES = (
     cases_hook,
     cases_merge,
     cases_review,
+    cases_registry,
 )
 
 

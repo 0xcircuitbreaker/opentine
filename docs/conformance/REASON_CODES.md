@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (167)
+## The codes (192)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -119,6 +119,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `localpack.index-order` | 2.8 | -- | index entries not strictly sorted by object id | sort them, or keep the first of a duplicate |
 | `localpack.object-id-mismatch` | 2.8 | -- | an object rebuilt from its stored form whose bytes or size do not match its id | return the rebuilt bytes |
 | `localpack.slim-default` | 2.8 | -- | a slim event that stores a field holding its default value | accept the redundant field |
+| `memory.bad-signature` | 4.20 | -- | a memory note whose tine-sig/3 block does not hold | recall a note edited after it was signed |
+| `memory.malformed` | 4.20 | -- | a memory note with a missing, extra or ill-formed field | put ill-formed text into an agent's context |
+| `memory.unsigned` | 4.20 | -- | a memory note with no signature block | recall an unsigned note as team memory |
+| `memory.untrusted-signer` | 4.20 | -- | a memory note signed by a key outside the reader's team | recall a stranger's note as team memory |
+| `memory.wrong-key` | 4.20 | -- | a memory note not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
 | `merge-approval.bad-signature` | 4.19 | -- | a merge approval whose tine-sig/3 block does not hold over its body | trust the run or decision of an approval without checking the signature |
 | `merge-approval.malformed` | 4.19 | -- | a merge approval with a missing, extra or ill-formed field | count an approval whose decision or target cannot be read |
 | `merge-approval.unsigned` | 4.19 | -- | a merge approval with no signature block | count an unsigned approval towards a gate |
@@ -172,6 +177,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `project.private-upstream` | 4.16 | -- | a public project that references a private upstream | publish a private repository through a public project |
 | `project.unsigned` | 4.16 | -- | a manifest with no signature block | treat an unsigned manifest as the owner's |
 | `project.wrong-signer` | 4.16 | -- | a manifest not signed by an owner of its predecessor (first version: its own, or the pin) | accept any valid signature as the project owner's |
+| `prompt.bad-signature` | 4.19 | -- | a prompt version whose tine-sig/3 block does not hold | run a template edited after it was signed |
+| `prompt.chain-break` | 4.19 | -- | a version that does not follow its predecessor | reorder or rewrite a prompt's history |
+| `prompt.malformed` | 4.19 | -- | a prompt version with a missing, extra or ill-formed field | verify a signature over fields the format does not define |
+| `prompt.unsigned` | 4.19 | -- | a prompt version with no signature block | run an unsigned prompt as a registered one |
+| `prompt.variables-mismatch` | 4.19 | -- | variables that are not the template's sorted, distinct placeholders | render a template with variables it does not declare |
+| `prompt.wrong-key` | 4.19 | -- | a prompt version not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
+| `prompt.wrong-signer` | 4.19 | -- | a next version signed by a key other than its predecessor's | let a stranger extend a prompt's history |
 | `redacted-copy.bad-signature` | 4.15 | -- | a record whose tine-sig/3 block does not hold over its body | link a public copy to a private run without checking the signature |
 | `redacted-copy.inconsistent` | 4.15 | -- | a signed record whose redacted count disagrees with its run oids or exceeds objects | read the counts without re-deriving them from the run oids |
 | `redacted-copy.malformed` | 4.15 | -- | a redacted-copy record with a missing, extra or ill-formed field | verify a signature over fields the record format does not define |

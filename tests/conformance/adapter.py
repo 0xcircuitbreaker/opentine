@@ -54,6 +54,7 @@ from tests.conformance import adapter_hook as hook_ops
 from tests.conformance import adapter_merge as merge_ops
 from tests.conformance import adapter_project as project_ops
 from tests.conformance import adapter_redaction_report as report_ops
+from tests.conformance import adapter_registry as registry_ops
 from tests.conformance import adapter_repo as repo_ops
 from tests.conformance import adapter_review as review_ops
 from tests.conformance import adapter_share as share_ops
@@ -297,4 +298,5 @@ OPS = {
     **hook_ops.OPS,
     **merge_ops.OPS,
     **review_ops.OPS,
+    **registry_ops.OPS,
 }

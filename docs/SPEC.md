@@ -896,7 +896,7 @@ that would ignore the file refuses the repository instead of missing its refs.
 The stored name has any leading `refs/` removed. It MUST match:
 
 ```text
-^(?:annotations|coord|heads|tags|experiments|promotions|project|remotes)/[a-z0-9._/-]+$
+^(?:annotations|coord|heads|tags|experiments|promotions|project|prompts|memory|remotes)/[a-z0-9._/-]+$
 ```
 
 and additionally: be ≤ 512 bytes total; be equal to its own case-fold (i.e.
@@ -917,6 +917,8 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `annotations/` | `annotation` |
 | `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
 | `project/` | `blob` (0.46+: only `project/manifest`, an `opentine.project` manifest, §4.16) |
+| `prompts/` | `blob` (0.47+: `opentine.prompt` versions, §4.19) |
+| `memory/` | `blob` (0.47+: `opentine.memory` notes, §4.20) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
@@ -2362,6 +2364,69 @@ predecessor or the pinned key, else `verified-tofu`); one decision to
 `review.bundle`). `tine review export` writes a bundle and
 `tine-verify.pyz --offline FILE` checks it, every gate decision included,
 without a network.
+## 4.19 `opentine.prompt` — signed, hash-chained prompt versions (0.47+)
+
+The prompt registry stores each version of a named prompt template as a JSON
+object with exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.prompt"` |
+| `prompt_version` | `1` |
+| `name` | `^[a-z0-9][a-z0-9._-]{0,63}$` |
+| `version` | an integer counting from 1 (at most 2³¹−1) |
+| `prev` | `null` for version 1; otherwise the previous version's digest |
+| `template` | 1 to 65536 UTF-8 bytes of text without NUL |
+| `variables` | the template's `{{name}}` placeholders (`\{\{([A-Za-z_][A-Za-z0-9_]{0,63})\}\}`), sorted and distinct |
+| `model` | a name (as in §4.14's `actor`) or `null` |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` Ed25519 block over `b"opentine.prompt.v1:"` + JCS(`{"body", "header"}`) |
+
+A version's **digest** is the `blob` oid of its canonical JSON bytes (the
+`signature` included). A verifier refuses, in order: `prompt.malformed` (a
+missing, extra or ill-formed field, or `prev` that disagrees with `version`);
+`prompt.variables-mismatch`; `prompt.unsigned`; `prompt.wrong-key` (not
+Ed25519, or not the pinned key); `prompt.bad-signature`. Given the previous
+version it also refuses `prompt.chain-break` (`prev` is not its digest,
+`version` is not one more, or `name` differs) and `prompt.wrong-signer` (a
+key other than the previous version's). On success it returns `{name, version,
+digest, signer, variables, state}` with state `verified` under a pinned key
+and `verified-tofu` otherwise.
+
+In a repository a prompt's newest version is the blob `prompts/<name>/head`;
+a label is the ref `prompts/<name>/labels/<label>` naming one version. A label
+moves; a version never changes, so a run annotation or an eval that names a
+version's digest keeps naming the same bytes. Vectors: `71-prompt.json` (op
+`prompt.verify`).
+
+<a id="s-4.20"></a>
+## 4.20 `opentine.memory` — signed team-memory notes (0.47+)
+
+A memory note is a JSON object with exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.memory"` |
+| `memory_version` | `1` |
+| `scope`, `topic` | `^[a-z0-9][a-z0-9._-]{0,63}$` |
+| `text` | 1 to 8192 UTF-8 bytes, not blank, without control characters other than tab and LF |
+| `tags` | at most 32 sorted, distinct `^[a-z0-9][a-z0-9._:-]{0,63}$` |
+| `subject` | a `run` or `blob` oid, or `null` |
+| `supersedes` | the digest of the note it replaces, or `null` |
+| `author` | a name (as in §4.14's `actor`) |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` Ed25519 block over `b"opentine.memory.v1:"` + JCS(`{"body", "header"}`) |
+
+Its digest is the `blob` oid of its canonical JSON bytes. A verifier refuses,
+in order: `memory.malformed`; `memory.unsigned`; `memory.wrong-key` (not
+Ed25519, or not the pinned key); `memory.bad-signature`; and, given the
+reader's team (a set of Ed25519 public keys), `memory.untrusted-signer`. It
+returns `{scope, topic, digest, signer, subject, supersedes, tags, state}`,
+state `verified` under a pinned key or a team and `verified-tofu` otherwise.
+A note is stored as the blob `memory/<scope>/<64 hex of its digest>`, so it
+syncs like any ref; a reader shows only notes that verify under its team and
+are not superseded by another such note. Vectors: `69-memory.json` (op
+`memory.verify`).
 
 ---
 
@@ -3137,6 +3202,25 @@ write gets `403`); an unauthenticated request is the same `401` for every
 tenant. The server stores versions and decisions exactly as signed, never signs
 one, and keeps them outside the ref listing, so fetch, clone and push are
 unchanged for older clients.
+## 8.19 MCP: memory in `recall`, and tasks (0.47)
+
+`tine mcp` answers `recall(query, limit)` with the runs the search index
+finds (0.44) and, under `memories`, the memory notes (§4.20) whose topic,
+tags or text contain every word of the query, at most `limit`, each `{scope,
+topic, text, tags, subject, digest, signer, state}`. Only notes that verify
+under the repository's team file `.tine/memory-team.json` (`{"keys": [<hex
+Ed25519 public key>, ...]}`) are returned; with no team file, none are.
+
+The server supports MCP 2025-11-25 tasks for `tools/call`: a call carrying
+`params.task` (`{"ttl": <ms>}`) returns at once `{"task": {taskId, status:
+"working", createdAt, lastUpdatedAt, ttl, pollInterval}}` and runs the tool in
+the background; `tasks/get` returns the task, `tasks/result` the tool's result
+once the task is `completed` (or its error once `failed`), `tasks/list` the
+tasks of this session, and `tasks/cancel` moves a `working` task to
+`cancelled`. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
+(default 5 min); at most 64 tasks are held and the oldest finished one is
+forgotten first. The tool runs under the same read-only/allow-writes rules as
+a direct call.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -3643,6 +3727,7 @@ Versions are the opentine release that changed this document.
 |---|---|
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
 | 0.47.0 | 4.19, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
+| 0.47.0 | 4.19, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.20, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.19, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

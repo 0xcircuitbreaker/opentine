@@ -12,7 +12,7 @@ A version is signed (``tine-sig/3``, Ed25519 only) over ``opentine.prompt.v1:``
 key as its predecessor. Labels (``production``, ``staging``) are refs naming a
 version, not part of it: moving a label never changes what a run or an eval
 verdict that names the version's digest pointed at. :func:`check` is the
-reference for the ``prompt.verify`` conformance op (``vectors/68-prompt.json``).
+reference for the ``prompt.verify`` conformance op (``vectors/71-prompt.json``).
 """
 
 from __future__ import annotations

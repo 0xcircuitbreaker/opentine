@@ -792,6 +792,47 @@
       "verdict": 0
     },
     {
+      "core": 18,
+      "count": 18,
+      "file": "vectors/69-memory.json",
+      "name": "memory",
+      "ops": [
+        "memory.verify"
+      ],
+      "reject": 12,
+      "section": "4.20",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 40,
+      "count": 40,
+      "file": "vectors/70-review.json",
+      "name": "review",
+      "ops": [
+        "review-gate.verify",
+        "review.bundle",
+        "review.verify"
+      ],
+      "reject": 31,
+      "section": "4.19",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 24,
+      "count": 24,
+      "file": "vectors/71-prompt.json",
+      "name": "prompt",
+      "ops": [
+        "prompt.verify"
+      ],
+      "reject": 18,
+      "section": "4.19",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -814,8 +855,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "b7b11bcc81a3397eabf32dd657241ea72a521b8e3ad2653a43dc004715607381",
-    "REASON_CODES.md": "afa945ff4804e32a90742377caa07dc9415adf1366c1745c785301644916c3b9",
+    "README.md": "17680bf0f1c8cdb866d91caff643ccbb6339eb1475042bfdbf4e07042b566e23",
+    "REASON_CODES.md": "48c2f1b962cde7a04b39ac581ac27e1e39a2d279fe8cb66ccf4073de850512c0",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1921,6 +1962,9 @@
     "vectors/66-mirror-state.json": "6f4b05fe0d3c1e94027b77b5b06a8187c97c755c8c8fcd0ffd7e330f2e6f5218",
     "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
     "vectors/68-merge.json": "dad813a99455b47d0a6bf723d544921cf77ebb4669a5cee371896d0dfbb48786",
+    "vectors/69-memory.json": "97f4ec20ff2f07fec37d6effd22bde02e03ced79556337e704df2b7b4109b4f2",
+    "vectors/70-review.json": "66f384ce78dbfd2468c948b2500acb3334e64eac8b1ba31c58ef9149addbc2f9",
+    "vectors/71-prompt.json": "22a924366caab92b1cef8c2323af2b63ff86e88bc7f57456d0cec612ae2855b1",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.46.1",
@@ -2260,6 +2304,26 @@
         "objects"
       ]
     },
+    "memory.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "scope",
+        "topic",
+        "digest",
+        "signer",
+        "subject",
+        "supersedes",
+        "tags",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.20: an opentine.memory note under a pinned key or a team",
+      "unordered": []
+    },
     "merge-approval.verify": {
       "args": [],
       "input": [
@@ -2523,6 +2587,24 @@
       "profile": "verifier",
       "requires": [],
       "summary": "SPEC 4.16: verify an opentine.project manifest after its predecessor",
+      "unordered": []
+    },
+    "prompt.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "name",
+        "version",
+        "digest",
+        "signer",
+        "variables",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: an opentine.prompt version, after its predecessor when given",
       "unordered": []
     },
     "redact.blob": {
@@ -2923,12 +3005,12 @@
   "spec_version": "0.47.0",
   "suite_version": 1,
   "totals": {
-    "cases": 922,
-    "core": 912,
-    "families": 45,
-    "ops": 57,
-    "reason_codes": 167,
-    "reject": 347,
+    "cases": 1004,
+    "core": 994,
+    "families": 48,
+    "ops": 62,
+    "reason_codes": 192,
+    "reject": 408,
     "stress": 10,
     "verdict": 178
   }

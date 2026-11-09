@@ -1,0 +1,934 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.bad-scope",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "Platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "0804796401106ee5804329a034a828024017fb583ed170b4b481cb0bcc9dae3c6a910494624508e890f1ec49410f2fef3c0f355444d90e75023df352a8ab6f05"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a scope is lower-case",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"Platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"0804796401106ee...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: scope is 1 to 64 of a-z 0-9 . _ -"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.bad-subject",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "b7873e94f5dc16f2860414502e76b7dd8347e643f6003d2caa8516f987fbf26971bfbefd4331394239e99249deb075375fdfa1f6e4ddf404e43e1f837c59a807"
+            },
+            "subject": "https://example.com",
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a subject is a run or blob oid",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"b7873e94f5dc16f...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: subject is a run or blob oid or null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.blank-text",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "82601d7aa9e98dfd4ee7c45add21585dbbdc1f4842e5916f54bf88a1729fcc4c7863096e98cc5a2f68de2143f837606fff7de74449788b2f4d90712bbcfb3b04"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": " \n",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "text is not blank",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"82601d7aa9e98df...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.control-character",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "97830b084cdf63dad4ea693f9de8566b76eab665b7abbd3c74c0f31c109fbd144f7c084dd7781cedede8e227a2aa41950f09dea6d0aca8630660406acae31201"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "ring\u0007the bell",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "text holds no control character but tab and newline",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"97830b084cdf63d...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.extra-field",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "pinned": true,
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a field the format does not define",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"pinned\": true, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.hmac",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "553fc7a3f3f7366c3172998295dcf4a5104d2cdebc436df26b8e662b3bcc6cc5"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a memory note is Ed25519 only",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.wrong-key",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"553fc7a3f3f7366c3172998295dcf4a5104d2cdebc436df26b8e662b3bcc6cc5\"}, \"subject\": null, \"superse...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "a memory note is signed with an Ed25519 key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.oversized-text",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "a9b67ceb26fab676d1b5e35c633aedbf0743fb628f68b2d6db461c7344bc32912d35d43bd5234f3d542663847f7399d37a6ef41528c27fe0022ae2fef0d73e09"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "text is at most 8 KiB",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"a9b67ceb26fab67...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.tampered",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "text edited after signing fails",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.bad-signature",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"059e90c47f08b2a...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the memory note signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.unsigned",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a note without a signature is refused",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.unsigned",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"subject\": null, \"supersedes\": null, \"tags\": [\"ci\", \"python\"], \"text\": \"Run the suite with .venv/bin/python -m pytest; never the system python.\", \"topic\": \"testing\"}, \"team\": []}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the memory note is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.unsorted-tags",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "28c61d61db038563224688fe41f5e50dcaff77abb54e8e12653a29e15627049414fa3c64a489599af54f710cadd5fb853df5c1bd3fb0f8c9f836f253374d9602"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "python",
+              "ci"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "tags are sorted and distinct",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.malformed",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"28c61d61db03856...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "memory note is malformed: tags are at most 32 sorted, distinct tags"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.untrusted-signer",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": [
+            "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+          ]
+        }
+      },
+      "intent": "a note by a key outside the team",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.untrusted-signer",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"059e90c47f08b2a...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the memory note's signer is not on the team"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-multiline",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "41f15c6115bc284d9db8db07c8583c714999937ae8e5296e0fdb8c61e63e2354c81a4faf4e2b1e3b101a74a36e43920839c08206f3da21a6ec3f53d8be94a108"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [],
+            "text": "Steps:\n\t1. sync\n\t2. test",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "tab and newline are text",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:b94f85450a60c021ae31b126d3d5dc76d2177c73ee36e3fbcda695ce2b680704",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "subject": null,
+        "supersedes": null,
+        "tags": [],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"41f15c6115bc284...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-pinned",
+      "input": {
+        "value": {
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a note under the pinned key",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:47718201ab1fa97385ed68dffe74d5854c904de659d8895800d84d42c1cddd63",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified",
+        "subject": null,
+        "supersedes": null,
+        "tags": [
+          "ci",
+          "python"
+        ],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-subject-run",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc908b4985086dcf94dee411c6bf90e0b97603c6fedd157fb4f3b52f18fdcb070f8d3d1cbec25c35c40fcaae56df8fee46496f183389099c50909d4741378403"
+            },
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a note about one run",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:d1ae139d599bb5a12befea31daf956a4e8359b7d824e8d56781264239cce08d6",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+        "supersedes": null,
+        "tags": [
+          "ci",
+          "python"
+        ],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"bc908b4985086dc...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-supersedes",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "b2bde69908f2868455ec11383219fca757166afa961638d004279f159553c0e9ecf1e5c744c616293e0ffeae72f7adb5f6576f15288e85141111056b777d2a0d"
+            },
+            "subject": null,
+            "supersedes": "blob:sha256:47718201ab1fa97385ed68dffe74d5854c904de659d8895800d84d42c1cddd63",
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Use uv run pytest.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a note that replaces another",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:4ec04eb72e8c14a68e74447b36013fd11badfd015e926149a390859d49c4f2f6",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "subject": null,
+        "supersedes": "blob:sha256:47718201ab1fa97385ed68dffe74d5854c904de659d8895800d84d42c1cddd63",
+        "tags": [
+          "ci",
+          "python"
+        ],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"b2bde69908f2868...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-team",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": [
+            "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ]
+        }
+      },
+      "intent": "a note by a team member",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:47718201ab1fa97385ed68dffe74d5854c904de659d8895800d84d42c1cddd63",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified",
+        "subject": null,
+        "supersedes": null,
+        "tags": [
+          "ci",
+          "python"
+        ],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"059e90c47f08b2a...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "memory.valid-tofu",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "a note resting on its embedded key",
+      "op": "memory.verify",
+      "output": {
+        "digest": "blob:sha256:47718201ab1fa97385ed68dffe74d5854c904de659d8895800d84d42c1cddd63",
+        "scope": "platform",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "subject": null,
+        "supersedes": null,
+        "tags": [
+          "ci",
+          "python"
+        ],
+        "topic": "testing"
+      },
+      "profile": "verifier",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"059e90c47f08b2a...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "memory.wrong-pinned-key",
+      "input": {
+        "value": {
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "author": "alice@example.com",
+            "created_at": "2026-11-09T00:00:00Z",
+            "kind": "opentine.memory",
+            "memory_version": {
+              "$i": "1"
+            },
+            "scope": "platform",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "059e90c47f08b2ab6610ca0a00ccf95929b007a7259830d6022d3b534357176c8b4bd6d297a95fe1ae4bd16a3c2129d428a9c7f334f42315fce0f30bf74e7209"
+            },
+            "subject": null,
+            "supersedes": null,
+            "tags": [
+              "ci",
+              "python"
+            ],
+            "text": "Run the suite with .venv/bin/python -m pytest; never the system python.",
+            "topic": "testing"
+          },
+          "team": []
+        }
+      },
+      "intent": "signed by a key other than the pinned one",
+      "op": "memory.verify",
+      "profile": "verifier",
+      "reason": "memory.wrong-key",
+      "section": "4.20",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    }
+  ],
+  "family": "memory",
+  "section": "4.20",
+  "suite_version": 1
+}
