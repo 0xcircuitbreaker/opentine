@@ -5,7 +5,8 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_redact` (redaction and doctor) and
 :mod:`opentine._schema_defs_share` (tombstones, redacted copies) and
 :mod:`opentine._schema_defs_ci` (CI gate and server trust policies) and
-:mod:`opentine._schema_defs_hook` (``opentine-hook/1``); ``docs/schemas`` is
+:mod:`opentine._schema_defs_hook` (``opentine-hook/1``) and
+:mod:`opentine._schema_defs_merge` (merges, 0.47); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -27,6 +28,9 @@ from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
+from opentine._schema_defs_merge import COMMAND_SCHEMAS as _MERGE_COMMANDS
+from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
+from opentine._schema_defs_merge import SCHEMAS as _MERGE
 from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
 from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
@@ -48,6 +52,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_CI,
     **_HOOK,
     **_PROJECT,
+    **_MERGE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -56,8 +61,15 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_SHARE_COMMANDS,
     **_HOOK_COMMANDS,
     **_PROJECT_COMMANDS,
+    **_MERGE_COMMANDS,
 }
-KIND_SCHEMAS: dict[str, str] = {**_REDACT_KINDS, **_SHARE_KINDS, **_CI_KINDS, **_PROJECT_KINDS}
+KIND_SCHEMAS: dict[str, str] = {
+    **_REDACT_KINDS,
+    **_SHARE_KINDS,
+    **_CI_KINDS,
+    **_PROJECT_KINDS,
+    **_MERGE_KINDS,
+}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format", "protocol")

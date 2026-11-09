@@ -1001,6 +1001,79 @@ REASONS: dict[str, Reason] = {
         "bytes that do not hash to the git object id given",
         "trust a mirrored object without rehashing it",
     ),
+    # --- merges (4.19) -------------------------------------------------------- #
+    "merge.malformed": R(
+        "4.19",
+        None,
+        "a merge input or attestation with a missing, extra or ill-formed field",
+        "merge or verify around fields the format does not define",
+    ),
+    "merge.same-run": R(
+        "4.19",
+        None,
+        "a merge of a run with itself",
+        "write a merge run with one parent named twice",
+    ),
+    "merge.up-to-date": R(
+        "4.19",
+        None,
+        "a merge whose second run is already contained in the first",
+        "write an empty merge that adds no events",
+    ),
+    "merge.unsigned": R(
+        "4.19",
+        None,
+        "a merge attestation with no signature block",
+        "treat an unsigned record as proof of who landed a merge",
+    ),
+    "merge.no-key": R(
+        "4.19",
+        None,
+        "an HMAC merge attestation checked with no key",
+        "report an HMAC-signed attestation as verified without its key",
+    ),
+    "merge.wrong-key": R(
+        "4.19",
+        None,
+        "a merge attestation signed by a key other than the trusted one",
+        "accept the embedded key when the caller supplied a trusted one",
+    ),
+    "merge.bad-signature": R(
+        "4.19",
+        None,
+        "a merge attestation whose tine-sig/3 block does not hold over its body",
+        "trust the fencing token or gates of an attestation without checking the signature",
+    ),
+    "merge.run-mismatch": R(
+        "4.19",
+        None,
+        "a merged run that does not hash to the attested run, or has other parents",
+        "accept an attestation for a run it does not name",
+    ),
+    "merge-approval.malformed": R(
+        "4.19",
+        None,
+        "a merge approval with a missing, extra or ill-formed field",
+        "count an approval whose decision or target cannot be read",
+    ),
+    "merge-approval.unsigned": R(
+        "4.19",
+        None,
+        "a merge approval with no signature block",
+        "count an unsigned approval towards a gate",
+    ),
+    "merge-approval.wrong-key": R(
+        "4.19",
+        None,
+        "a merge approval signed by a key other than the approver's",
+        "count an approval by a key the gate does not list",
+    ),
+    "merge-approval.bad-signature": R(
+        "4.19",
+        None,
+        "a merge approval whose tine-sig/3 block does not hold over its body",
+        "trust the run or decision of an approval without checking the signature",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any

@@ -116,6 +116,7 @@ EXPECTED_COUNTS = {
     "vectors/65-project.json": (29, 22),
     "vectors/66-mirror-state.json": (26, 15),
     "vectors/67-hook.json": (35, 0),
+    "vectors/68-merge.json": (52, 31),
     "vectors/99-repair.json": (14, 14),
 }
 

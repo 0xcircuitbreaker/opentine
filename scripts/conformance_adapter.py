@@ -121,6 +121,28 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("git object is malformed", "git-object.malformed"),
         ("do not hash to", "git-object.mismatch"),
     ),
+    "merge.compute": (
+        ("cannot merge a run with itself", "merge.same-run"),
+        ("up to date", "merge.up-to-date"),
+        ("merge input is malformed", "merge.malformed"),
+    ),
+    "merge.pick": (("pick", "merge.malformed"),),
+    "merge.verify": (
+        ("merge record is malformed", "merge.malformed"),
+        ("merge record is unsigned", "merge.unsigned"),
+        ("no key for", "merge.no-key"),
+        ("merge record signature", "merge.bad-signature"),
+        ("trusted key", "merge.wrong-key"),
+        ("names another run", "merge.run-mismatch"),
+        ("other parents", "merge.run-mismatch"),
+    ),
+    "merge-approval.verify": (
+        ("merge-approval record is malformed", "merge-approval.malformed"),
+        ("merge-approval record is unsigned", "merge-approval.unsigned"),
+        ("merge-approval record signature", "merge-approval.bad-signature"),
+        ("no key for", "merge-approval.no-key"),
+        ("trusted key", "merge-approval.wrong-key"),
+    ),
 }
 _OP_CODES["project.chain"] = _OP_CODES["project.verify"]
 

@@ -51,6 +51,7 @@ from tests.conformance import adapter_agent as agent_ops
 from tests.conformance import adapter_delegation as delegation_ops
 from tests.conformance import adapter_eval as eval_ops
 from tests.conformance import adapter_hook as hook_ops
+from tests.conformance import adapter_merge as merge_ops
 from tests.conformance import adapter_project as project_ops
 from tests.conformance import adapter_redaction_report as report_ops
 from tests.conformance import adapter_repo as repo_ops
@@ -293,4 +294,5 @@ OPS = {
     **webhook_ops.OPS,
     **vsa_ops.OPS,
     **hook_ops.OPS,
+    **merge_ops.OPS,
 }

@@ -1,0 +1,3421 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.bad-decision",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "maybe",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99f4c13f07902917a187963e496f651a1b61f249ee35863c25db1802d9c9fa39d87c4cd85f995aaa853afe8054103470d9e074ede05e27b4aa42bf0276243e05"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "a decision is approve or reject",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"maybe\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge-approval record is malformed: decision must be approve or reject"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.decision-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "8bfcb91eea9c5a2d9220058b9bcff0414eaa5370eef7cf3a5e58b24df479d4af2f3ac1781ddaa59177dcb412ded747d7af8f661634ccb0a2bb0e0d06210be801"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "a rejection turned into an approval",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge-approval record signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.no-target",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99f4c13f07902917a187963e496f651a1b61f249ee35863c25db1802d9c9fa39d87c4cd85f995aaa853afe8054103470d9e074ede05e27b4aa42bf0276243e05"
+            },
+            "target": ""
+          }
+        }
+      },
+      "intent": "an approval names its target ref",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge-approval record is malformed: target must be a name"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.run-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99f4c13f07902917a187963e496f651a1b61f249ee35863c25db1802d9c9fa39d87c4cd85f995aaa853afe8054103470d9e074ede05e27b4aa42bf0276243e05"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "an approval moved to another run after signing",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge-approval record signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.unsigned",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "an approval without a signature",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.unsigned",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"target\": \"heads/main\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge-approval record is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge-approval.verify.valid",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99f4c13f07902917a187963e496f651a1b61f249ee35863c25db1802d9c9fa39d87c4cd85f995aaa853afe8054103470d9e074ede05e27b4aa42bf0276243e05"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "an approval under the approver's key",
+      "op": "merge-approval.verify",
+      "output": {
+        "approver": "alice@example",
+        "decision": "approve",
+        "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+        "state": "verified",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge-approval.verify.valid-reject",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "reject",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "8bfcb91eea9c5a2d9220058b9bcff0414eaa5370eef7cf3a5e58b24df479d4af2f3ac1781ddaa59177dcb412ded747d7af8f661634ccb0a2bb0e0d06210be801"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "a signed rejection verifies too (the gate then blocks)",
+      "op": "merge-approval.verify",
+      "output": {
+        "approver": "alice@example",
+        "decision": "reject",
+        "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+        "state": "verified",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"reject\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge-approval.verify.wrong-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "approval_version": {
+              "$i": "1"
+            },
+            "approved_at": "2026-11-09T00:00:00Z",
+            "approver": "alice@example",
+            "decision": "approve",
+            "kind": "opentine.merge-approval",
+            "run": "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99f4c13f07902917a187963e496f651a1b61f249ee35863c25db1802d9c9fa39d87c4cd85f995aaa853afe8054103470d9e074ede05e27b4aa42bf0276243e05"
+            },
+            "target": "heads/main"
+          }
+        }
+      },
+      "intent": "an approval by a key other than the approver's",
+      "op": "merge-approval.verify",
+      "profile": "verifier",
+      "reason": "merge-approval.wrong-key",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"approval_version\": {\"$i\": \"1\"}, \"approved_at\": \"2026-11-09T00:00:00Z\", \"approver\": \"alice@example\", \"decision\": \"approve\", \"kind\": \"opentine.merge-approval\", \"run\": \"run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.bad-mode",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": null,
+            "ours": {
+              "d": {
+                "mode": "40000",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {}
+          }
+        }
+      },
+      "intent": "a leaf is a file, an executable or a link",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "merge input is malformed: malformed tree leaf: d"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.bad-path",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": null,
+            "ours": {
+              "../x": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {}
+          }
+        }
+      },
+      "intent": "a tree path may not climb out",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "merge input is malformed: invalid tree path: '../x'"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.disjoint",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:6c60a976981931bc26befe761d8fcb794ddd3d8427509385745d44787c409ff7"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:6c60a976981931bc26befe761d8fcb794ddd3d8427509385745d44787c409ff7"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:6c60a976981931bc26befe761d8fcb794ddd3d8427509385745d44787c409ff7"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "7"
+            },
+            "events": [
+              "event:sha256:dbbc0c1005739750007fc10a8bb2f012e790c77d83094834d93c92431ca90c9f"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:dbbc0c1005739750007fc10a8bb2f012e790c77d83094834d93c92431ca90c9f"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:dbbc0c1005739750007fc10a8bb2f012e790c77d83094834d93c92431ca90c9f"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "two unrelated runs: both roots kept",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:4d478d946c665c6c6000e8b957d8dd9fa2195c52e54b2bcf0d94667dc3a958b7",
+        "run": "run:sha256:74311a89e392bfd5ea6eee658d269f5adc3d0f19fd2662cd871b01f8f77ab4ab",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:6c60a976981931bc26befe761d8fcb794ddd3d8427509385745d44787c409ff7\"], \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07\"}, \"roots\": [\"event:sha256:6c60a976981931bc26befe761d8fcb794ddd3d8427509385745d44787c409ff7\"], \"status\": \"completed\", \"tips\": [\"event:sha256:6c60a976981931bc26...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.diverged",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "two forks of one run: shared events once, one merge event",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7",
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.file-and-dir",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": null,
+            "ours": {
+              "d": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {
+              "d/e": {
+                "mode": "100644",
+                "oid": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636"
+              }
+            }
+          }
+        }
+      },
+      "intent": "a file on one side where the other has a directory",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "merge input is malformed: tree merge puts a file and a directory at d"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.no-events",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [],
+            "status": "completed",
+            "tips": []
+          },
+          "trees": null
+        }
+      },
+      "intent": "a run without events",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "merge input is malformed: theirs events"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.ours-a-merge",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "parents": [
+              "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+              "run:sha256:f3141b00395a747bedf8512bb4ebeecb2b8f967e8e5b89a648b16ba180170e1f"
+            ],
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "ours' own parents and forked_from are not copied",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:4c1cd9bce916e6feee9c4e0606ed5702b67e0bc8debb14a6d9c19c1eff414d63",
+        "run": "run:sha256:64ed326d2d6075ea1b958f7d6325e01aa0d1ee9e1e5bde8c2a9439fa8e7e0b27",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.policy-conflict",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:e9e66f6f1f0faa2d08f4ce6e75b233ac0d65dfb584ac1003769469af02957a7e"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "a differing policy manifest is a conflict",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [
+          {
+            "base": null,
+            "kind": "manifest",
+            "name": "policy",
+            "ours": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07",
+            "theirs": "blob:sha256:e9e66f6f1f0faa2d08f4ce6e75b233ac0d65dfb584ac1003769469af02957a7e"
+          }
+        ],
+        "event": "event:sha256:99b80f8e4a331d03e8af4e20b1cfe25769d89ac9900f669d05b6e212973fe1db",
+        "run": "run:sha256:3e199e11468f0764df45b35c7b1256dea71785b132d49bb639bbad996fa9fb5c",
+        "status": "paused",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.same-run",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "a run cannot be merged with itself",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.same-run",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "cannot merge a run with itself"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.swapped",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "the same runs the other way round give another merge (ours first)",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:b82cbc11262c0a13fc5076b67a73fcd40437c12680e41f2c1f6ab7bdd50c4cf2",
+        "run": "run:sha256:77c0e92bff8c08ad3e61fb4d3c9934a927ec634ab7736dffb5180d1ba53f4b45",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$f\": \"1794100000.25\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f\", \"event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"m...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.theirs-ahead",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "a tip the other side continues is no leaf of the union",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:c2087a31f93b35e01b1b80ef2933acfa244d7cd67f44de0f1eb9c8c24edd6f74",
+        "run": "run:sha256:68ffe20d50850ee6106b2bc21e00a961932ae6a50c4179e96d71e3fae38de040",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\"], \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07\"}, \"roots\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\"], \"status\": \"completed\", \"tips\": [\"event:sha256:4255f03a4a3518e091...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.tips-outside",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "tips must be events of the run",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "merge input is malformed: theirs tips"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-clean",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "ours": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/c/d.txt": {
+                "mode": "100755",
+                "oid": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+              }
+            }
+          }
+        }
+      },
+      "intent": "each side changed another path: a clean three-way tree",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:5f65eff5c7231508ab2c291b22e80e36f565828d235a9c71658dc8f0feeb1b37",
+        "run": "run:sha256:1a8ab468a3e693e3fafbb7e90d5212877b6b48bda614e23d0efee9459b833454",
+        "status": "completed",
+        "tree": "blob:sha256:615e35f87478c82debbd7e256abf7b809e0c14db672c708f3b304df88206891c"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-conflict",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "ours": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            }
+          }
+        }
+      },
+      "intent": "both sides changed a.txt: a recorded conflict, run paused",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [
+          {
+            "base": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6",
+            "kind": "tree",
+            "ours": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636",
+            "path": "a.txt",
+            "theirs": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+          }
+        ],
+        "event": "event:sha256:7868fd5d1ec13b0bd96a292503de3c464c999be9d831d2f93a100b70af7998f4",
+        "run": "run:sha256:9b23d56f8f5620f90a7ed223cf39c71bc6b38c9d298739d4bf870c4dfc4e146d",
+        "status": "paused",
+        "tree": "blob:sha256:01ccd0633c8835dc39fac51bb9c8c0a70eb90442e094c4b0f58af52f67b0d411"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-delete",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "ours": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            }
+          }
+        }
+      },
+      "intent": "a path deleted on one side and unchanged on the other goes",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:88beb47d40ee8f1c7ba16f4de8fb7d4ceee94b8e92ea26cb2126ce2a00784406",
+        "run": "run:sha256:07d6d6195326523be04fb399dd7d13c194e2e60c979d8778c7540259fe532974",
+        "status": "completed",
+        "tree": "blob:sha256:76114e538f551c6183a9414b0adb9fe7a957c53fb606b1a9ea46b73e9110f27f"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-no-base",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": null,
+            "ours": {
+              "n": {
+                "mode": "100644",
+                "oid": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636"
+              }
+            },
+            "theirs": {
+              "m": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "n": {
+                "mode": "100644",
+                "oid": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+              }
+            }
+          }
+        }
+      },
+      "intent": "with no base tree, a path both sides added differently conflicts",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [
+          {
+            "base": null,
+            "kind": "tree",
+            "ours": "blob:sha256:08c8d7559436ba66231eecd731eb3c048f6bb3e39f66dc9f0d628e437a1a4636",
+            "path": "n",
+            "theirs": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+          }
+        ],
+        "event": "event:sha256:1c1cc04489caa7d2f6da35311d1e4ea8610719ee7a6118214b3bf260c5a1eec6",
+        "run": "run:sha256:706603ed557d8db52a3b94f0b5f90deaa9846ecb86c1e8267015a3668ed07708",
+        "status": "paused",
+        "tree": "blob:sha256:5bf5d6d76573b918391dada0b548f976f2dd5ebf796b2f9f9dd18831c8ac8303"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-one-side",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": null,
+            "ours": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": null
+          }
+        }
+      },
+      "intent": "a tree on one side only: no merged tree",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7",
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "status": "completed",
+        "tree": null
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.compute.trees-same-change",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "trees": {
+            "base": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "ours": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            },
+            "theirs": {
+              "a.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:2b43934e6efe86bbdb8dcc957699b71b219b45d7202c2078bd00abd885ef4e4e"
+              },
+              "dir/b.txt": {
+                "mode": "100644",
+                "oid": "blob:sha256:3aea17bcc5df582b024ade86f47267a81565b58b96398b7df5e76e925cb97bb6"
+              }
+            }
+          }
+        }
+      },
+      "intent": "identical changes on both sides are no conflict",
+      "op": "merge.compute",
+      "output": {
+        "conflicts": [],
+        "event": "event:sha256:39bba4f9e015ed842d888bb1aab83f6eb9a7715dffa8591c2658142494d1f95e",
+        "run": "run:sha256:998558edabe26d86aef35e6bfbd1fef5f083e3a8510edf081d5602585730727f",
+        "status": "completed",
+        "tree": "blob:sha256:23d559d9bb29eb37fc57e815652e6447597e6e6fc179623c9fbc7f9c3bc8ca32"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.compute.up-to-date",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          },
+          "theirs": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ]
+          },
+          "trees": null
+        }
+      },
+      "intent": "theirs already inside ours: nothing to merge",
+      "op": "merge.compute",
+      "profile": "reader",
+      "reason": "merge.up-to-date",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$f\": \"1794100000.25\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f\", \"event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"m...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "theirs is already contained in ours: up to date"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.pick.chain",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": [
+            [
+              "event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b",
+              {
+                "causal_ids": [],
+                "kind": "tool",
+                "output_blob": "blob:sha256:dd4b264f260a45548f8866ea11f5b907f4e1f6a64b9e79768a03dbaf3a25a8bd",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ],
+            [
+              "event:sha256:b26979bb61ec1cb2b2e2e7d3a6c86a28dbb486a80924058771b03733c112d0bd",
+              {
+                "causal_ids": [
+                  "event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b"
+                ],
+                "kind": "tool",
+                "output_blob": "blob:sha256:b1b2189b0f545b92eb0e07137c258ccf34420089510c7615b5b73e475b58b52a",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "a causal link to an earlier pick follows its copy",
+      "op": "merge.pick",
+      "output": {
+        "events": [
+          "event:sha256:7343b28a8c1e2c63b20f8f69b6f1d57530413e60f3d02d0ffa5bf0adb17cea28",
+          "event:sha256:e6cfbd9ec25760664759c63b969c3851c81400003e2fc608855ef561651525d5"
+        ],
+        "run": "run:sha256:6ca65fb26445b94588e611b48f091158395a19b338d41a81ad70dc427e9ce612"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.pick.held",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": [
+            [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d",
+              {
+                "causal_ids": [],
+                "kind": "think",
+                "output_blob": "blob:sha256:138dc666ea54599daa615c4ee274511213b409413f13e77cfc751fb424c3e9dc",
+                "parent_ids": [
+                  "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+                ],
+                "time_unix": {
+                  "$i": "1"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "an event already in the run",
+      "op": "merge.pick",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "cannot pick event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d: already in the run"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.pick.none",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": []
+        }
+      },
+      "intent": "a pick of nothing",
+      "op": "merge.pick",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "pick needs at least one event"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.pick.not-its-oid",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": [
+            [
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              {
+                "causal_ids": [],
+                "kind": "tool",
+                "output_blob": "blob:sha256:dd4b264f260a45548f8866ea11f5b907f4e1f6a64b9e79768a03dbaf3a25a8bd",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "a payload that is not the event it claims to be",
+      "op": "merge.pick",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "cannot pick event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f: payload is another event"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.pick.one",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": [
+            [
+              "event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b",
+              {
+                "causal_ids": [],
+                "kind": "tool",
+                "output_blob": "blob:sha256:dd4b264f260a45548f8866ea11f5b907f4e1f6a64b9e79768a03dbaf3a25a8bd",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "one event of another run onto ours' tip",
+      "op": "merge.pick",
+      "output": {
+        "events": [
+          "event:sha256:7343b28a8c1e2c63b20f8f69b6f1d57530413e60f3d02d0ffa5bf0adb17cea28"
+        ],
+        "run": "run:sha256:86cb66d846ef9906380debdca56de8d7831e6a4bc27c6eebaa9306d76aa46cba"
+      },
+      "profile": "reader",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.pick.twice",
+      "input": {
+        "value": {
+          "ours": {
+            "created_at": {
+              "$i": "1794100000"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d"
+            ]
+          },
+          "picks": [
+            [
+              "event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b",
+              {
+                "causal_ids": [],
+                "kind": "tool",
+                "output_blob": "blob:sha256:dd4b264f260a45548f8866ea11f5b907f4e1f6a64b9e79768a03dbaf3a25a8bd",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ],
+            [
+              "event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b",
+              {
+                "causal_ids": [],
+                "kind": "tool",
+                "output_blob": "blob:sha256:dd4b264f260a45548f8866ea11f5b907f4e1f6a64b9e79768a03dbaf3a25a8bd",
+                "parent_ids": [
+                  "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f"
+                ],
+                "time_unix": {
+                  "$i": "2"
+                }
+              }
+            ]
+          ]
+        }
+      },
+      "intent": "the same event picked twice",
+      "op": "merge.pick",
+      "profile": "reader",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"ours\": {\"created_at\": {\"$i\": \"1794100000\"}, \"events\": [\"event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c\", \"event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d\"], \"forked_from\": \"run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126\", \"manifests\": {\"policy\": \"blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef1...",
+      "x_reference": {
+        "exception": "MergeError",
+        "message": "cannot pick event:sha256:7c3977afc9a14697ca2853eaae45286a50d10ebcdf7552120cb8f38a7df99c1b twice"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.bad-gate",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "gate": "vibes"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a gate is vsa, eval or approval",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"gate\": \"vibes\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}, \"merged_at\": \"2026-11-09T00:00:00Z\", \"pare...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: a gate names vsa, eval or approval and a sha256 digest"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.bad-time",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "merged_at is RFC 3339 UTC to the second",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: merged_at must be an RFC 3339 UTC time (YYYY-MM-DDTHH:MM:SSZ)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.extra-field",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "note": "x",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a field the format does not define",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.fencing-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "4"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a fencing token raised after signing",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"4\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge record signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.gate-dropped",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a gate removed after signing",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}, \"merged_at\": \"2026-11-09T00:00:00Z\", \"parents\": [\"run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd745...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge record signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.hmac-key-ed25519-record",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a supplied HMAC key never falls back to TOFU",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.wrong-key",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "not the trusted key's algorithm"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.no-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "an HMAC attestation with no key cannot verify",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.no-key",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"eval\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "no key for an hmac-sha256 merge record"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.one-parent",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a merge has two or more parents",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: run must be a run oid and parents two or more run oids"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.other-run",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ],
+            "forked_from": "run:sha256:d0a8f1dd64fa8c0a89e1a07aac1dea0fe1633b8caded6efc25d9a6125ec60126",
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747"
+            ]
+          }
+        }
+      },
+      "intent": "a merged run other than the one signed",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.run-mismatch",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"eval\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge record names another run"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.parents-swapped",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:0a1f0aed5b5a4b6955ad1e04dc8bc31cef1165642668f63207d2bab8529acf04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "914fd3d11fb7a7e6dcd151a6aee457d1401cac2acb1f3e0a625291fd30443765"
+            },
+            "target": "heads/main"
+          },
+          "run": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747",
+              "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "parents": [
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03",
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579"
+            ],
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7"
+            ]
+          }
+        }
+      },
+      "intent": "the run's parents differ from the record's",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.run-mismatch",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merged run has other parents"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.self-parent",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a merge cannot be its own parent",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: a merge cannot be its own parent"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.unsigned",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "an attestation without a signature",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.unsigned",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the merge record is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.verify.valid-ed25519-tofu",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "with no key, an attestation on its embedded key",
+      "op": "merge.verify",
+      "output": {
+        "fencing": 3,
+        "parents": [
+          "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+          "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+        ],
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "state": "verified-tofu",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"eval\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.verify.valid-ed25519-trusted",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "an Ed25519 attestation under the trusted key",
+      "op": "merge.verify",
+      "output": {
+        "fencing": 3,
+        "parents": [
+          "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+          "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+        ],
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "state": "verified",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.verify.valid-hmac",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "an HMAC merge attestation verifies under its key",
+      "op": "merge.verify",
+      "output": {
+        "fencing": 3,
+        "parents": [
+          "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+          "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+        ],
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "state": "verified",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.verify.valid-no-queue",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": null,
+            "gates": [],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "abfdbd405326ab26edba2db8b6bb124fbb3a35322e67f459116299ea7efe0b5e"
+            },
+            "target": null
+          },
+          "run": null
+        }
+      },
+      "intent": "a merge outside a queue: no target, fencing or gates",
+      "op": "merge.verify",
+      "output": {
+        "fencing": null,
+        "parents": [
+          "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+          "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+        ],
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "state": "verified",
+        "target": null
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": null, \"gates\": [], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}, \"merged_at\": \"2026-11-09T00:00:00Z\", \"parents\": [\"run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579\", \"run:sha256:d7d01035dcc...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "merge.verify.valid-with-run",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": {
+            "created_at": {
+              "$f": "1794100000.25"
+            },
+            "events": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c",
+              "event:sha256:4be7fbb0442834ffe9de98e7cbc95236785517df0f2dffb749c5cecd6657638d",
+              "event:sha256:8325be8c0dd384aa9d1983d62bb8b4d60a0b9fc269415158b1e82325cc6bbb2f",
+              "event:sha256:d8e032bf8a85590da136bf1e2efe992183949c3c590e4cd1b634bb18cdff7747",
+              "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7"
+            ],
+            "manifests": {
+              "policy": "blob:sha256:7bbd6f0678255462f5416cf67b6d7c154281c5385b1bf5ef132d20f5af0acd07"
+            },
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "roots": [
+              "event:sha256:4255f03a4a3518e0913a35c8804f571d7a68967b73ae630800a7f00a8410fe2c"
+            ],
+            "status": "completed",
+            "tips": [
+              "event:sha256:9c60969a978ef759af53c530fa8e6f0bc6991eb929f9d05d9c2c4f0b034f41f7"
+            ]
+          }
+        }
+      },
+      "intent": "the merged run hashes to the record's run, same parents",
+      "op": "merge.verify",
+      "output": {
+        "fencing": 3,
+        "parents": [
+          "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+          "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+        ],
+        "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+        "state": "verified-tofu",
+        "target": "heads/main"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"eval\"}], \"kind\": \"opentine.merge\", \"merge_version\": {\"$i\": \"1\"}...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.wrong-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "1"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3d3782af5f628e5b186020dffd00c094bdf41c0b09a08a25740a3d5841924257f7d169de3bb89940b8aea4b128997e3ae363a5cc31100671a51db5f048e5590f"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "an Ed25519 attestation by a key other than the trusted one",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.wrong-key",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "merge.verify.wrong-version",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "record": {
+            "actor": "worker-1",
+            "conflicts": {
+              "$i": "0"
+            },
+            "fencing": {
+              "$i": "3"
+            },
+            "gates": [
+              {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "gate": "approval"
+              },
+              {
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "gate": "eval"
+              }
+            ],
+            "kind": "opentine.merge",
+            "merge_version": {
+              "$i": "2"
+            },
+            "merged_at": "2026-11-09T00:00:00Z",
+            "parents": [
+              "run:sha256:3a6284cca1946720d35c5eb715fb1ddc469bd7455b8d6fad6e44af6489695579",
+              "run:sha256:d7d01035dcc68f51f78e169562a675fc6d5abcd3b404e2842c6884d2a0353c03"
+            ],
+            "run": "run:sha256:20720d306f90ab2bfcec40a41c7c7cf8811fc65da275f89e8e4058f3d65b6d04",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "60b09d7c128e16c3c16d8714e11dd220604fdc9d9dcde8c38477256b6f2967f8"
+            },
+            "target": "heads/main"
+          },
+          "run": null
+        }
+      },
+      "intent": "a merge_version other than 1",
+      "op": "merge.verify",
+      "profile": "verifier",
+      "reason": "merge.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"record\": {\"actor\": \"worker-1\", \"conflicts\": {\"$i\": \"0\"}, \"fencing\": {\"$i\": \"3\"}, \"gates\": [{\"digest\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"gate\": \"approval\"}, {\"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"gate\": \"e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "merge record is malformed: merge_version must be 1"
+      }
+    }
+  ],
+  "family": "merge",
+  "section": "4.19",
+  "suite_version": 1
+}

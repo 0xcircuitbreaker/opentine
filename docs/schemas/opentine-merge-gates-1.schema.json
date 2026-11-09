@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-merge-gates-1.schema.json",
+  "title": "opentine-merge-gates/1",
+  "description": "A merge queue's gate policy (SPEC 4.19): a pinned server VSA, a number of passing signed eval verdicts, and a number of signed approvals from listed keys.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format"
+  ],
+  "properties": {
+    "format": {
+      "const": "opentine-merge-gates/1"
+    },
+    "vsa": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "levels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "policy": {
+              "type": "string"
+            },
+            "resource": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evals": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "min"
+          ],
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "signers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approvals": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "required",
+            "keys"
+          ],
+          "properties": {
+            "required": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

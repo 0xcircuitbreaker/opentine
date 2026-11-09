@@ -23,6 +23,7 @@ import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
 import { hookNormalize, hookRespond } from "./hook.js";
+import { mergeCompute, mergePick, verifyMerge, verifyMergeApproval } from "./merge.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -264,6 +265,22 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const value = valueOf(input) as JObject;
       const data = Uint8Array.from(Buffer.from(value.get("data_b64") as string, "base64"));
       return { ...checkGitObject(value.get("type"), data, value.get("oid")) };
+    }
+    case "merge.compute":
+      return mergeCompute(valueOf(input) as JObject);
+    case "merge.pick":
+      return mergePick(valueOf(input) as JObject);
+    case "merge.verify":
+    case "merge-approval.verify": {
+      const value = valueOf(input) as JObject;
+      const hexKey = (name: string) => {
+        const key = value.get(name);
+        return typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
+      };
+      if (op === "merge-approval.verify") {
+        return verifyMergeApproval(value.get("record") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"));
+      }
+      return verifyMerge(value.get("record") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"), value.get("run"));
     }
     case "tombstone.verify":
     case "redacted-copy.verify": {

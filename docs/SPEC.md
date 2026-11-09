@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.46.1 (draft until opentine 0.46.1 is tagged). **Previous
-version:** 0.46.0. Changes between versions are listed in
+**Spec version:** 0.47.0 (draft until opentine 0.47.0 is tagged). **Previous
+version:** 0.46.1. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.1.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.47.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -1319,8 +1319,8 @@ Always emitted: `cost`, `duration`, `error`, `id`, `inputs`, `kind`,
 
 Emitted **only when non-empty** (§6.2): `causal_ids`, `provider`, `usage`,
 `billing`, and `v3_kind`. `v3_kind` (since 0.8.2) carries a step's v3 event kind
-when the v2 `kind` enum cannot spell it — exactly `human`, `policy`, `approval`
-or `subagent` — and is never written for any other step, whose `kind` already
+when the v2 `kind` enum cannot spell it — exactly `human`, `policy`, `approval`,
+`subagent` or (0.47) `merge` — and is never written for any other step, whose `kind` already
 says it. Without it a `subagent` roll-up saved to v2 read back as `model`, and a
 pricing pass billed it a second time; readers that price steps MUST prefer
 `v3_kind` over `kind` when it is present.
@@ -2160,6 +2160,121 @@ id). A match says only that the bytes are the object the id names, never that
 an upstream holds that id. SHA-1 here is plain SHA-1: SHA-1DC collision
 detection is not part of this check. Vectors: `66-mirror-state.json` (op
 `git-object.check`).
+
+<a id="s-4.19"></a>
+## 4.19 Run merge, pick, `opentine.merge` and the merge queue (0.47.0+)
+
+**Merge.** A merge combines run *ours* (`parents[0]`, the mainline) and run
+*theirs* into one new run. It is a pure function of the two run payloads and,
+when both sides carry workspace trees (1.5.7), the three flattened trees, so
+every implementation computes the same merge event oid and merge run oid
+(`opentine._merge.merge_payloads`):
+
+1. Refuse `merge.same-run` when the two payloads have one oid and
+   `merge.up-to-date` when every event of theirs is already in ours; refuse
+   `merge.malformed` for a payload without a non-empty, unique `events` list
+   or with `roots`/`tips` outside it.
+2. **Events:** the events both runs hold, in ours' order; then ours' own; then
+   theirs' own; then the merge event. Each side's order already puts parents
+   first and a shared event is identical by content addressing, so the union
+   satisfies the run ordering rule.
+3. **Merge event** (an `event` object): `{"billing": {}, "causal_ids": [],
+   "cost": 0, "duration": 0, "error": {}, "kind": "merge", "model": "",
+   "output_blob": O, "parent_ids": L, "time_unix": T, "tool": {}, "usage": {}}`
+   plus `tree` when trees merged. `L` is the leaves of the union: ours' tips
+   then theirs' tips, first occurrence kept, minus any event the other side
+   holds as a non-tip. `T` is the larger numeric `created_at` of the two runs
+   (0 when neither has one). `O` is the schema-1 blob of the canonical JSON
+   `{"conflicts": [...], "merged": [ours oid, theirs oid], "type":
+   "opentine.merge"}`.
+4. **Trees.** A flat tree maps a `/`-joined path to its leaf `{"mode", "oid"}`
+   (`100644`, `100755` or `120000`; `"redacted": true` kept). Per path, with
+   base `b`, ours `o`, theirs `t` (absent = null): `o == t` or `t == b` takes
+   `o`, `o == b` takes `t`, anything else is a conflict `{"kind": "tree",
+   "path", "base", "ours", "theirs"}` (blob oids or null) and keeps `o`.
+   Conflicts are listed in the UTF-8 byte order of the path. The merged flat
+   tree is written back as nested schema-2 tree blobs (directories are the
+   path prefixes, entries sorted by UTF-8 name); a path that is a file on one
+   side and a directory on the other, a path with an empty, `.` or `..`
+   component, or a directory leaf is `merge.malformed`. The base tree is that
+   of the last shared event carrying one; each side's is that of its last
+   event carrying one. With a tree on one side only, no tree is merged.
+5. **Manifests** are ours'; a `policy` manifest blob that differs is a
+   conflict `{"kind": "manifest", "name": "policy", "base": null, "ours",
+   "theirs"}`, listed after the tree conflicts.
+6. **Run:** ours' payload without `forked_from` and `parents`, with `events`
+   as above, `roots` = ours' roots then theirs' (first occurrence kept),
+   `tips` = `[merge event]`, `parents` = `[ours oid, theirs oid]`,
+   `created_at` = `T` and `status` = `paused` when there is any conflict,
+   else `completed`. A conflicted merge is resolved by a later run with it as
+   `parents[0]`.
+
+The merge event's `kind` is `merge`; a v2 step carries it in `v3_kind` (3.3).
+
+**Pick.** A pick copies events of other runs onto ours, in order: each copy is
+the source event's payload with `parent_ids` = the current tips, `causal_ids`
+kept only where the new run holds them (an earlier pick maps to its copy) and
+`picked_from` = the source event's oid; it becomes the only tip. The new run
+is ours' payload with `events`, `tips` and `forked_from` = ours' oid (no
+`parents`). A source that is already in the run, picked twice, or whose
+payload does not hash to its oid is `merge.malformed`.
+
+**`opentine.merge` (merge/v1).** A signed record of a landed merge, exactly
+these fields plus a `tine-sig/3` block over `opentine.merge.v1:` + JCS of
+`{body, header}` (the 4.14 record rules: an HMAC record needs its key, a
+supplied key never falls back to the embedded one, an Ed25519 record with no
+key verifies `verified-tofu`):
+
+| Field | Value |
+|---|---|
+| `kind` | `"opentine.merge"` |
+| `merge_version` | `1` |
+| `run` | the merged run oid |
+| `parents` | 2 to 64 unique run oids, not `run`; ours first |
+| `target` | the ref it landed on, or null |
+| `fencing` | the merge queue's fencing token, or null |
+| `gates` | up to 256 `{"gate": "vsa"\|"eval"\|"approval", "digest": "sha256:<64 hex>"}` |
+| `conflicts` | a count |
+| `actor` | a name (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `merged_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+
+Given the merged run's payload too, a verifier also refuses
+`merge.run-mismatch` when the payload does not hash to `run` or its `parents`
+differ. Reason codes: `merge.malformed`, `merge.unsigned`, `merge.no-key`,
+`merge.wrong-key`, `merge.bad-signature`, `merge.run-mismatch`.
+
+**`opentine.merge-approval`.** One person's signed decision on a candidate
+run: `kind`, `approval_version` (1), `run`, `target`, `decision` (`approve`
+or `reject`), `approver` (a name), `approved_at`, and a `tine-sig/3` block
+over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
+`merge-approval.malformed|unsigned|no-key|wrong-key|bad-signature`.
+
+**Merge queue.** A queue is the `opentine-coord/1` record
+`coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
+`queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),
+`head`, `entries`, `holder`, `fencing`, `lease_expires_ms`, `landed` (the last
+1,024 `{run, merge, fencing, attestation}`), `rejected` and `updated_ms`. A
+worker claims the lease (fencing one higher, as 0.43 tasks) and lands the first
+entry: it checks the gates, merges the entry onto `head` (or fast-forwards an
+empty or contained `head`), signs an `opentine.merge` naming `target` and its
+fencing token, and then commits with **one** compare-and-swap of the record
+that pops the entry, moves `head`, appends to `landed` and releases the lease;
+that version links the merged run and the attestation in `evidence_ids`. The
+CAS is the commit point: a holder whose token is not the record's current one,
+or whose lease expired, is refused (`stale`), so an entry lands at most once;
+a holder killed before the CAS leaves only unreferenced objects, which the
+next holder rewrites byte for byte. The target ref then follows `head`. A
+conflicted merge, a merge that adds nothing or a failed gate moves the entry to
+`rejected`. Gates (`opentine._merge_gates`): **vsa**, one DSSE envelope that
+classifies `valid` (8.17) for the candidate under the pinned server key;
+**evals**, every `tine-eval-verdict/1` about the candidate verifies and passed,
+at least `min` of them, by listed `signers` when given; **approvals**, at least
+`required` distinct listed keys signed `approve` for this run and target, and
+no listed key signed `reject`. Each piece that admitted the run is named in the
+attestation's `gates` by the SHA-256 of its JCS.
+
+Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
+`merge-approval.verify`).
 
 ---
 
@@ -3407,6 +3522,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; 3.3 adds `merge` to the `v3_kind` values; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import _artifact, _evalv, _evidence, _projfile, _records, _redactr
+from . import _artifact, _evalv, _evidence, _mergerec, _projfile, _records, _redactr
 
 SCHEMA = "tine-pyz-verify/1"
 MAX_KEY_BYTES = 1 << 20
@@ -118,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
     elif _records.is_record(path):  # 0.46: a tombstone or a redacted-copy record
         checks = _records.verify_record(path, secret, pubkey)
         result = report(_records.mode(path), path, checks, args.strict)
+    elif _mergerec.is_record(path):  # 0.47: a merge attestation or a merge approval
+        checks = _mergerec.verify_record(path, secret, pubkey)
+        result = report(_mergerec.mode(path), path, checks, args.strict)
     elif _redactr.is_report(path):
         checks = _redactr.verify_report(path, secret, pubkey)
         result = report("redaction-report", path, checks, args.strict)

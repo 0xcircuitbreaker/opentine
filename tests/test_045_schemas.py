@@ -67,6 +67,9 @@ def _jsonschema_errors(document: object, name: str) -> list[str] | None:
 
 
 PURGED = "blob:sha256:06447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446"
+# 0.47: the golden repository's main tip, absent from its heads/experiment fork.
+MAIN_TIP = "event:sha256:6dc1725e0e6fafee882214a92946453481af791810e4b8cc3cea6417d21cbe1f"
+RUN0 = "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36"
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 DRIVEN = (
@@ -142,6 +145,30 @@ DRIVEN = (
             "--json",
         ),
         "tine-cli-project-1",
+    ),  # fmt: skip
+    (("merge", "heads/experiment", "heads/main", "--repo", "repo", "--json"), "tine-cli-merge-1"),
+    (
+        ("pick", "heads/experiment", MAIN_TIP, "--repo", "repo", "--json"),
+        "tine-cli-pick-1",
+    ),
+    (
+        ("merge-queue", "init", "q", "--target", "heads/main", "--repo", "repo", "--json"),
+        "tine-cli-merge-queue-1",
+    ),
+    (
+        (
+            "merge-queue",
+            "approve",
+            RUN0,
+            "--target",
+            "heads/main",
+            "--approver",
+            "alice",
+            "--ed25519-key-file",
+            "purge.key",
+            "--json",
+        ),
+        "tine-cli-merge-queue-1",
     ),  # fmt: skip
 )
 

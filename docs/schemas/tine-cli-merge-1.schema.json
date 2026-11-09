@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-merge-1.schema.json",
+  "title": "tine merge OURS THEIRS --json",
+  "description": "The merge run written, its merge event and parents, how many events both sides shared, the merged workspace tree and any conflicts (then `ok` is false, exit 1).",
+  "type": "object",
+  "required": [
+    "command",
+    "ok",
+    "run",
+    "event",
+    "parents",
+    "conflicts",
+    "status"
+  ],
+  "properties": {
+    "command": {
+      "const": "merge"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "event": {
+      "type": "string",
+      "pattern": "^event:sha256:[0-9a-f]{64}$"
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^run:sha256:[0-9a-f]{64}$"
+      }
+    },
+    "base_events": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "base",
+          "ours",
+          "theirs"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "tree",
+              "manifest"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "theirs": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "paused"
+      ]
+    },
+    "tree": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

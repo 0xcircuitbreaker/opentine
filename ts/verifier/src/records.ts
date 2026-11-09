@@ -28,7 +28,7 @@ const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const CONTROL = /[\x00-\x1f\x7f]/;
 const encoder = new TextEncoder();
 
-interface Kind {
+export interface Kind {
   code: string;
   subject: string;
   domain: string;
@@ -69,7 +69,7 @@ function copyRule(body: JObject): string | null {
   return null;
 }
 
-function signed(kind: Kind, record: JValue, rule: (body: JObject) => string | null, hmacKey?: Uint8Array | null, publicKey?: Uint8Array | null): { body: JObject; state: string } {
+export function signed(kind: Kind, record: JValue, rule: (body: JObject) => string | null, hmacKey?: Uint8Array | null, publicKey?: Uint8Array | null): { body: JObject; state: string } {
   const fail = (code: string, message: string): never => {
     throw new TineError(message, `${kind.code}.${code}`);
   };

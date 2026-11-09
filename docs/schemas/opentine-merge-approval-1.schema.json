@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-merge-approval-1.schema.json",
+  "title": "opentine.merge-approval (approval_version 1)",
+  "description": "One person's signed decision on a candidate run for a target (SPEC 4.19), a merge queue's approval gate. `signature` is a tine-sig/3 block over `opentine.merge-approval.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "approval_version",
+    "run",
+    "target",
+    "decision",
+    "approver",
+    "approved_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.merge-approval"
+    },
+    "approval_version": {
+      "const": 1
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "reject"
+      ]
+    },
+    "approver": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "approved_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

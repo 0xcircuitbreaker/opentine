@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (155)
+## The codes (167)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -119,6 +119,18 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `localpack.index-order` | 2.8 | -- | index entries not strictly sorted by object id | sort them, or keep the first of a duplicate |
 | `localpack.object-id-mismatch` | 2.8 | -- | an object rebuilt from its stored form whose bytes or size do not match its id | return the rebuilt bytes |
 | `localpack.slim-default` | 2.8 | -- | a slim event that stores a field holding its default value | accept the redundant field |
+| `merge-approval.bad-signature` | 4.19 | -- | a merge approval whose tine-sig/3 block does not hold over its body | trust the run or decision of an approval without checking the signature |
+| `merge-approval.malformed` | 4.19 | -- | a merge approval with a missing, extra or ill-formed field | count an approval whose decision or target cannot be read |
+| `merge-approval.unsigned` | 4.19 | -- | a merge approval with no signature block | count an unsigned approval towards a gate |
+| `merge-approval.wrong-key` | 4.19 | -- | a merge approval signed by a key other than the approver's | count an approval by a key the gate does not list |
+| `merge.bad-signature` | 4.19 | -- | a merge attestation whose tine-sig/3 block does not hold over its body | trust the fencing token or gates of an attestation without checking the signature |
+| `merge.malformed` | 4.19 | -- | a merge input or attestation with a missing, extra or ill-formed field | merge or verify around fields the format does not define |
+| `merge.no-key` | 4.19 | -- | an HMAC merge attestation checked with no key | report an HMAC-signed attestation as verified without its key |
+| `merge.run-mismatch` | 4.19 | -- | a merged run that does not hash to the attested run, or has other parents | accept an attestation for a run it does not name |
+| `merge.same-run` | 4.19 | -- | a merge of a run with itself | write a merge run with one parent named twice |
+| `merge.unsigned` | 4.19 | -- | a merge attestation with no signature block | treat an unsigned record as proof of who landed a merge |
+| `merge.up-to-date` | 4.19 | -- | a merge whose second run is already contained in the first | write an empty merge that adds no events |
+| `merge.wrong-key` | 4.19 | -- | a merge attestation signed by a key other than the trusted one | accept the embedded key when the caller supplied a trusted one |
 | `metrics.meter-not-finite` | 1.5.2 | `_run_graph._meter` | a cost/duration/time_unix that is not finite and (except time_unix) non-negative | clamp a negative meter to zero, or accept a value float() cannot represent |
 | `metrics.meter-too-long` | 1.5.2 | -- | a numeric-meter string longer than 128 characters | truncate the string and parse the prefix |
 | `metrics.token-dimension-unsafe` | 1.5.2 | `_run_graph._MAX_SAFE_INTEGER` = 9007199254740991 | a known token dimension that is fractional or above 2**53-1 | round a fractional token count |

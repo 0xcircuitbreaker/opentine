@@ -776,6 +776,22 @@
       "verdict": 35
     },
     {
+      "core": 52,
+      "count": 52,
+      "file": "vectors/68-merge.json",
+      "name": "merge",
+      "ops": [
+        "merge-approval.verify",
+        "merge.compute",
+        "merge.pick",
+        "merge.verify"
+      ],
+      "reject": 31,
+      "section": "4.19",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -798,8 +814,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "3282fa62f0811bd0aa5df0298f58d93078c273e6846490874d502f22577ae1d7",
-    "REASON_CODES.md": "08f277fefc3909c211fad4fe15e19808fdefa02d96c5c30b6119853dd2a2b5ec",
+    "README.md": "b7b11bcc81a3397eabf32dd657241ea72a521b8e3ad2653a43dc004715607381",
+    "REASON_CODES.md": "afa945ff4804e32a90742377caa07dc9415adf1366c1745c785301644916c3b9",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1904,6 +1920,7 @@
     "vectors/65-project.json": "1933ddf22e0cba8c444d7702fdf2c2012dd5c3f269d6dc9baebbc992182253c8",
     "vectors/66-mirror-state.json": "6f4b05fe0d3c1e94027b77b5b06a8187c97c755c8c8fcd0ffd7e330f2e6f5218",
     "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
+    "vectors/68-merge.json": "dad813a99455b47d0a6bf723d544921cf77ebb4669a5cee371896d0dfbb48786",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.46.1",
@@ -2242,6 +2259,71 @@
       "unordered": [
         "objects"
       ]
+    },
+    "merge-approval.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "target",
+        "decision",
+        "approver",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify a signed opentine.merge-approval",
+      "unordered": []
+    },
+    "merge.compute": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "event",
+        "tree",
+        "status",
+        "conflicts"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 4.19: the deterministic merge of two run payloads -> its oids",
+      "unordered": []
+    },
+    "merge.pick": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "events"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 4.19: events copied onto a run's tips -> the new run and events",
+      "unordered": []
+    },
+    "merge.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "parents",
+        "target",
+        "fencing",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify a signed opentine.merge attestation (and its run)",
+      "unordered": []
     },
     "mirror-state.verify": {
       "args": [],
@@ -2783,15 +2865,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.46.1",
+  "spec_version": "0.47.0",
   "suite_version": 1,
   "totals": {
-    "cases": 870,
-    "core": 860,
-    "families": 44,
-    "ops": 53,
-    "reason_codes": 155,
-    "reject": 316,
+    "cases": 922,
+    "core": 912,
+    "families": 45,
+    "ops": 57,
+    "reason_codes": 167,
+    "reject": 347,
     "stress": 10,
     "verdict": 178
   }

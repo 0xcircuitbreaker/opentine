@@ -1111,6 +1111,55 @@ offline; a mirror state never passes (verdict `host-statement`). The
 object check among them) pin Python, the TS verifier and the pyz. See
 [PROJECTS.md](PROJECTS.md).
 
+## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
+
+```
+tine merge OURS THEIRS [--ref REF] [--json] [--repo R]
+tine pick ONTO EVENT... [--ref REF] [--json] [--repo R]
+tine merge-queue init QUEUE --target REF [--gates FILE] [--json] [--repo R]
+tine merge-queue add QUEUE RUN [--by NAME]
+tine merge-queue claim QUEUE --holder H [--ttl S]
+tine merge-queue heartbeat QUEUE --holder H --fencing N [--ttl S]
+tine merge-queue land QUEUE --holder H --fencing N --ed25519-key-file K [--evidence FILE]
+tine merge-queue work QUEUE --holder H --ed25519-key-file K [--evidence FILE] [--ttl S] [--max N]
+tine merge-queue show QUEUE
+tine merge-queue approve RUN --target REF --approver NAME --ed25519-key-file K [--reject]
+tine merge-queue verify FILE|BLOB_OID [--public-key HEX] [--run]
+```
+
+`tine merge` writes the deterministic merge of two runs (SPEC 4.19): the
+events both share, then each side's own, then one `merge` event whose parents
+are the union's leaves; the new run's `parents` are `[OURS, THEIRS]`. The same
+two runs give the same merge oid in every repository and in the TS verifier and
+the pyz (`68-merge.json`). When both sides carry workspace trees they merge
+three ways per path; a path both sides changed differently, or a differing
+`policy` manifest, is a conflict recorded in the merge event's output, the run
+is `paused`, and the command exits 1. `--ref` moves a ref to the result by
+compare-and-swap from the value it read. `tine pick` copies events of other
+runs onto ONTO's tip, in order, each copy naming its source in `picked_from`.
+
+A merge queue (`coord/merge-queue/QUEUE`) owns one target ref. `add` queues a
+run; a worker `claim`s the queue's lease, which prints its fencing token, and
+`land`s the first entry with that token: the gates are checked, the entry is
+merged onto the head, an `opentine.merge` attestation naming the target and
+the fencing token is signed with `--ed25519-key-file`, and one compare-and-swap
+of the queue record pops the entry, moves the head and releases the lease. A
+holder with a stale token (its lease expired or was taken over) is refused, so
+no entry lands twice, even when workers are killed mid-land. A conflicted
+merge, one that adds nothing, or a failed gate moves the entry to `rejected`.
+`work` claims and lands until the queue is empty.
+
+`--gates FILE` is an `opentine-merge-gates/1` policy: a pinned server VSA key
+(and required levels, policy, resource), a minimum number of passing signed
+eval verdicts (optionally from listed signers), and a number of approvals from
+listed Ed25519 keys. `--evidence FILE` holds `{"vsa": [...], "evals": [...],
+"approvals": [...]}`; `approve` signs an `opentine.merge-approval` (`--reject`
+signs a veto). `verify` checks an attestation (a file, or the blob oid a
+landing records; `--run` also checks the merged run here) or an approval and
+exits 4 when it fails; `python tine-verify.pyz FILE.json [--pubkey K]` checks
+either offline. `--json` follows `tine-cli-merge-1`, `tine-cli-pick-1` and
+`tine-cli-merge-queue-1`.
+
 ## Run summaries: `tine explain` (0.42)
 
 ```
