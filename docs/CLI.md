@@ -425,7 +425,12 @@ tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --exp
 0.44, **experimental**: a COSE_Sign1 SCITT signed statement and its
 RFC9162_SHA256 receipts, verified offline against pinned keys (SPEC §8.12).
 Without `--experimental` it exits 2. Interop with scitt-api-emulator is not
-claimed.
+claimed. 0.47 re-checked the roadmap's condition for dropping the flag and
+for emitting statements (interop with scitt-api-emulator shown offline from
+recorded fixtures) and it is not met: the repository holds no
+emulator-produced statement or receipt, and the emulator's receipts follow
+CCF and earlier draft layouts rather than the RFC9162_SHA256 leaf rule of
+SPEC §8.12. Verification stays behind `--experimental` and no emitter ships.
 
 ```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
