@@ -12,9 +12,13 @@ left alone so the caller can raise a clear error naming the file.
 
 from __future__ import annotations
 
+import contextlib
+import errno
+import itertools
 import os
 import socket
 import sys
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -22,6 +26,7 @@ from pathlib import Path
 from opentine.repository import _winretry
 
 _MAX_STAMP = 512
+_SEQ = itertools.count()  # next() is atomic under the GIL and free-threaded builds
 
 
 def _host() -> str:
@@ -153,25 +158,74 @@ def _break(path: Path, identity: tuple[int, int]) -> None:
     _winretry.unlink(aside)
 
 
+_NO_LINKS = {
+    getattr(errno, name)
+    for name in ("EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS", "EMLINK", "EXDEV")
+    if hasattr(errno, name)
+}
+
+
+def _publish(path: Path, mode: int) -> int:
+    """Make ``path`` appear already stamped: write the stamp to a private name,
+    then hard-link it into place (the link fails if ``path`` exists). A writer
+    killed at any point leaves either no lock or a complete stamp, never an empty
+    lock that no one could prove dead. Without hard links, fall back to O_EXCL."""
+    # Unique per call: a coarse clock (Windows ticks every ~16 ms) would give two
+    # threads the same name, and one would delete the other's stamp file.
+    owner = f"{os.getpid()}-{threading.get_ident()}-{next(_SEQ)}"
+    tmp = path.with_name(f"{path.name}.new-{owner}..lock")
+    linked = False
+    try:
+        # A file object closes its own fd, so nothing here calls os.close.
+        with open(tmp, "xb", opener=lambda name, flags: _winretry.open_fd(name, flags, mode)) as f:
+            f.write(stamp())
+        try:
+            _winretry.retry(lambda: os.link(tmp, path))  # Windows: delete pending
+            linked = True
+        except FileExistsError:
+            raise
+        except NotImplementedError:
+            return _exclusive(path, mode)
+        except OSError as exc:
+            if exc.errno not in _NO_LINKS:
+                raise
+            return _exclusive(path, mode)  # no hard links on this filesystem
+    finally:
+        if not linked:
+            _winretry.unlink(tmp)
+    # The lock is ours now. On Windows a contender reading it can block removing
+    # the second name (one file, one share mode): leave that name, never the lock.
+    with contextlib.suppress(OSError):
+        _winretry.unlink(tmp)
+    try:
+        return _winretry.open_fd(path, os.O_WRONLY)
+    except BaseException:
+        _winretry.unlink(path)  # ours: never leave a lock this process cannot use
+        raise
+
+
+def _exclusive(path: Path, mode: int) -> int:
+    # Windows: a lock being deleted is briefly unopenable (delete pending).
+    fd = _winretry.open_fd(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+    try:
+        os.write(fd, stamp())
+    except BaseException:
+        os.close(fd)
+        _winretry.unlink(path)
+        raise
+    return fd
+
+
 def acquire(path: Path, mode: int = 0o644) -> int:
     """Create ``path`` exclusively, stamped with this owner; break a provably dead
     lock once. Raises ``FileExistsError`` while a live (or unknown) owner holds it.
     """
     for attempt in range(2):
         try:
-            # Windows: a lock being deleted is briefly unopenable (delete pending).
-            fd = _winretry.open_fd(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+            return _publish(path, mode)
         except FileExistsError:
             identity = None if attempt else _dead_identity(path)
             if identity is None:
                 raise
             _break(path, identity)
-            continue
-        try:
-            os.write(fd, stamp())
-        except BaseException:
-            os.close(fd)
-            _winretry.unlink(path)
-            raise
-        return fd
     raise FileExistsError(str(path))  # pragma: no cover - loop always returns or raises
