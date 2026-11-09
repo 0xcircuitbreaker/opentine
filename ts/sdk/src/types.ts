@@ -25,6 +25,7 @@ export interface Capabilities {
   share?: Record<string, unknown>;
   admin?: Record<string, unknown>;
   project?: Record<string, unknown>;
+  social_export?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -145,4 +146,29 @@ export interface AdminStats {
 export interface TombstoneStored {
   stored: boolean;
   purged: boolean;
+}
+
+/** An `opentine.project` manifest version (SPEC 4.16), as its owner signed it. Verify before trusting. */
+export interface ProjectManifest {
+  kind: "opentine.project";
+  seq: number;
+  signature: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface Project {
+  manifest: ProjectManifest;
+  digest: Oid;
+  seq: number;
+}
+
+export interface ProjectHistory {
+  versions: ProjectManifest[];
+  next_cursor: number | null;
+  total: number;
+}
+
+export interface SocialCounts {
+  stars: number;
+  watches: number;
 }

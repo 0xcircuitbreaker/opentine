@@ -85,7 +85,7 @@ def test_every_component_schema_is_in_the_validated_subset():
 def test_routes_are_unique_and_operation_ids_are_unique():
     assert len({(r.method, r.path) for r in ROUTES}) == len(ROUTES)
     assert len({r.operation for r in ROUTES}) == len(ROUTES)
-    assert {r.status for r in ROUTES} == {"stable", "planned"}
+    assert "stable" in {r.status for r in ROUTES} <= {"stable", "planned"}  # 0.46.1: none planned
 
 
 @pytest.mark.parametrize("route", ROUTES, ids=lambda r: r.operation)

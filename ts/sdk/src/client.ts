@@ -15,6 +15,9 @@ import type {
   Installed,
   Oid,
   ListPage,
+  Project,
+  ProjectHistory,
+  ProjectManifest,
   LogEntry,
   RefEntry,
   RefList,
@@ -23,6 +26,7 @@ import type {
   SearchResult,
   Share,
   SharedRun,
+  SocialCounts,
   TombstoneStored,
   Webhook,
   WebhookList,
@@ -268,6 +272,26 @@ export class TineClient {
 
   putTombstone(oid: Oid, tombstone: Record<string, unknown>): Promise<TombstoneStored> {
     return this.json("putTombstone", { params: { oid }, json: tombstone });
+  }
+
+  /** The current project manifest (`caps.project`); verify it (SPEC 4.16) before trusting it. */
+  getProject(): Promise<Project> {
+    return this.json("getProject");
+  }
+
+  /** Manifest versions oldest first; pass `next_cursor` back for the next page. */
+  projectHistory(cursor = 0): Promise<ProjectHistory> {
+    return this.json("projectHistory", { query: cursor ? { cursor: String(cursor) } : {} });
+  }
+
+  /** CAS `project/manifest` to a version its owner signed; false when `expectedOld` is stale (409). */
+  updateProject(manifest: ProjectManifest, expectedOld: Oid | null): Promise<boolean> {
+    return this.cas("updateProject", { json: { manifest, expected_old: expectedOld } });
+  }
+
+  /** Count-only stars and watches (`caps.social_export`). */
+  socialCounts(): Promise<SocialCounts> {
+    return this.json("socialCounts");
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */

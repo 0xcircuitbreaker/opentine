@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-mirror-state-1.schema.json",
+  "title": "opentine.mirror-state (mirror_state_version 1)",
+  "description": "A code mirror's signed statement about one slot (SPEC 4.17): the commit each ref pointed at when it last synced. Signed by the host service key, never a user's; a verifier never reports it as a pass (`host statement, not verified by you`).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "mirror_state_version",
+    "tenant",
+    "project_id",
+    "manifest",
+    "slot",
+    "object_format",
+    "refs",
+    "synced_at",
+    "status",
+    "reasons",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.mirror-state"
+    },
+    "mirror_state_version": {
+      "const": 1
+    },
+    "tenant": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "project_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "manifest": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "slot": {
+      "enum": [
+        "primary",
+        "secondary"
+      ]
+    },
+    "object_format": {
+      "enum": [
+        "sha1",
+        "sha256"
+      ]
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+      }
+    },
+    "synced_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "status": {
+      "enum": [
+        "synced",
+        "stale",
+        "failed",
+        "paused"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^mirror\\."
+      }
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

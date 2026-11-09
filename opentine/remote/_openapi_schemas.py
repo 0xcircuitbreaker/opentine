@@ -12,6 +12,7 @@ from typing import Any
 OID = r"^(blob|event|run|attestation|annotation):sha256:[0-9a-f]{64}$"
 _oid = {"type": "string", "pattern": OID}
 _oids = {"type": "array", "items": _oid}
+_blob = {"type": "string", "pattern": r"^blob:sha256:[0-9a-f]{64}$"}
 _int = {"type": "integer", "minimum": 0}
 _str = {"type": "string"}
 
@@ -58,6 +59,7 @@ SCHEMAS: dict[str, Any] = {
             "tombstones": {"type": "boolean"},
             "vsa": {"type": "object"},
             "project": {"type": "object"},
+            "social_export": {"type": "object"},
         },
     ),
     "RefList": _obj({"refs": {"type": "object", "additionalProperties": _oid}}, extra=False),
@@ -177,10 +179,27 @@ SCHEMAS: dict[str, Any] = {
     "TombstoneStored": _obj(
         {"stored": {"type": "boolean"}, "purged": {"type": "boolean"}}, extra=False
     ),
-    "ProjectHistory": _obj({"versions": _oids}),
-    "ProjectUpdate": _obj(
-        {"manifest": _str, "expected_old": {"anyOf": [_oid, {"type": "null"}]}}, extra=False
+    # 0.46.1 (caps.project): opentine.project manifests, stored as their owner signed them.
+    "ProjectManifest": _obj(
+        {"kind": {"const": "opentine.project"}, "seq": _int, "signature": {"type": "object"}}
     ),
+    "Project": _obj(
+        {"manifest": _ref("ProjectManifest"), "digest": _blob, "seq": _int}, extra=False
+    ),
+    "ProjectHistory": _obj(
+        {
+            "versions": {"type": "array", "items": _ref("ProjectManifest")},
+            "next_cursor": {"anyOf": [_int, {"type": "null"}]},
+            "total": _int,
+        },
+        extra=False,
+    ),  # fmt: skip
+    "ProjectUpdate": _obj(
+        {"manifest": _ref("ProjectManifest"), "expected_old": {"anyOf": [_blob, {"type": "null"}]}},
+        extra=False,
+    ),
+    "ProjectUpdated": _obj({"updated": {"type": "boolean"}}, {"digest": _blob}, extra=False),
+    "SocialCounts": _obj({"stars": _int, "watches": _int}, extra=False),
 }
 
 __all__ = ["OID", "SCHEMAS"]

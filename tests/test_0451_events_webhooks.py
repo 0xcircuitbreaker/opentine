@@ -252,13 +252,14 @@ def test_a_real_delivery_reaches_a_local_receiver_only_when_private_is_allowed(t
         app.service.webhooks.add("acme", url)
         dispatcher = app.service.webhooks.dispatcher
         _push(app, tmp_path, "one", "heads/main")
+        keys = _webhook_sig.public_keys(app.service.capabilities()["webhooks"]["keys"])
+        wanted, kinds = {"ref.updated", "run.created"}, set()
         deadline = threading.Event()
-        for _ in range(100):
-            if any(row["outcome"] == "delivered" for row in dispatcher.log) and len(received) >= 3:
+        for _ in range(600):  # wait for the kinds themselves; slow runners deliver late
+            kinds = {_webhook_sig.verify(b, h, keys)["event"]["kind"] for b, h in list(received)}
+            if wanted <= kinds:
                 break
             deadline.wait(0.05)
-        keys = _webhook_sig.public_keys(app.service.capabilities()["webhooks"]["keys"])
-        kinds = {_webhook_sig.verify(b, h, keys)["event"]["kind"] for b, h in received}
-        assert {"ref.updated", "run.created"} <= kinds
+        assert wanted <= kinds, (kinds, list(dispatcher.log))
     finally:
         httpd.shutdown()

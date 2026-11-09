@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (139)
+## The codes (155)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -89,6 +89,8 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `git-object.malformed` | 4.18 | -- | an ill-formed id, type, tree entry or commit/tag header | guess the object format or skip an unparseable link |
+| `git-object.mismatch` | 4.18 | -- | bytes that do not hash to the git object id given | trust a mirrored object without rehashing it |
 | `graph.causal-outside-graph` | 1.5.3 | -- | a locally present event whose causal link is not in the run's events | add the missing link to events |
 | `graph.legacy-refs-invalid` | 1.5.3 | -- | a legacy_refs value that is not a string->event-in-run mapping | drop the offending entry |
 | `graph.order-not-topological` | 1.5.3 | -- | an events list where a parent or causal link is not at a strictly earlier index | sort events topologically on read |
@@ -122,6 +124,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `metrics.token-dimension-unsafe` | 1.5.2 | `_run_graph._MAX_SAFE_INTEGER` = 9007199254740991 | a known token dimension that is fractional or above 2**53-1 | round a fractional token count |
 | `metrics.usage-not-object` | 1.5.2 | -- | a truthy usage value that is not an object | coerce a scalar usage into an object |
 | `metrics.usage-value-not-numeric` | 1.5.2 | -- | a usage value that is not exactly an int or a float (a bool is not numeric) | read true as 1, or parse a numeric string |
+| `mirror-state.bad-signature` | 4.17 | -- | a mirror state whose tine-sig/3 block does not hold | show a host statement without checking who made it |
+| `mirror-state.inconsistent` | 4.17 | -- | a status its reasons do not explain | report synced while a reason says the upstream is unavailable |
+| `mirror-state.malformed` | 4.17 | -- | a mirror state with a missing, extra or ill-formed field | verify a signature over fields the format does not define |
+| `mirror-state.unknown-reason` | 4.17 | -- | a reason code outside the seven mirror.* codes | show an unknown code, or read 'pass' as a host claim |
+| `mirror-state.unsigned` | 4.17 | -- | a mirror state with no signature block | show an unsigned sync claim |
+| `mirror-state.user-signed` | 4.17 | -- | a mirror state signed by a project owner's key | let a user's key speak as the host |
+| `mirror-state.wrong-key` | 4.17 | -- | a mirror state not signed by the pinned host key, or not Ed25519 | accept the embedded key when the caller pinned the host key |
 | `oid.hash-unsupported` | 1.3.1 | `_hash_tag.SUPPORTED_HASH_ALGORITHMS` | a TYPE:TAG:HEX oid whose hash-algorithm TAG is not sha256 (sha3-256, sha512 and blake3 are reserved) | hash with sha256 anyway, or strip the tag |
 | `oid.malformed` | 1.3 | `kernel.OID_RE` | a string that is not TYPE:sha256:<64 lowercase hex> | lowercase an uppercase digest, or accept a bare digest |
 | `pack.arrays-invalid` | 2.8 | -- | an objects or shallow value that is not an array | wrap a single entry in an array |
@@ -144,6 +153,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `pack.unresolved-link` | 2.8 | -- | a link that is neither packed, present locally, nor declared shallow | install anyway and hope the object arrives later |
 | `pack.version-unsupported` | 2.8 | -- | a version that is not the integer 1 (true is not 1) | read true as 1 |
 | `path.invalid-oid` | 2.3 | -- | deriving a loose-object path from a string that is not an oid | build a path out of whatever characters the string holds |
+| `project.bad-signature` | 4.16 | -- | a manifest whose tine-sig/3 block does not hold over its body | trust an upstream a manifest names without checking the signature |
+| `project.chain-break` | 4.16 | -- | a version not following its predecessor, or a history not starting at seq 0 | skip a version or re-link a history after the fact |
+| `project.malformed` | 4.16 | -- | a manifest with a missing, extra or ill-formed field or slot | verify a signature over fields the manifest format does not define |
+| `project.plaintext-locator` | 4.16 | -- | a private project that names its upstream by plaintext URL | log a private repository's URL or name |
+| `project.private-upstream` | 4.16 | -- | a public project that references a private upstream | publish a private repository through a public project |
+| `project.unsigned` | 4.16 | -- | a manifest with no signature block | treat an unsigned manifest as the owner's |
+| `project.wrong-signer` | 4.16 | -- | a manifest not signed by an owner of its predecessor (first version: its own, or the pin) | accept any valid signature as the project owner's |
 | `redacted-copy.bad-signature` | 4.15 | -- | a record whose tine-sig/3 block does not hold over its body | link a public copy to a private run without checking the signature |
 | `redacted-copy.inconsistent` | 4.15 | -- | a signed record whose redacted count disagrees with its run oids or exceeds objects | read the counts without re-deriving them from the run oids |
 | `redacted-copy.malformed` | 4.15 | -- | a redacted-copy record with a missing, extra or ill-formed field | verify a signature over fields the record format does not define |

@@ -17,6 +17,8 @@ import { verifyDelegation } from "./delegation.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
+import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.js";
+import { checkGitObject } from "./gitobject.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -240,6 +242,28 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         objects.set(entry.get("id") as string, Uint8Array.from(Buffer.from(entry.get("data_b64") as string, "base64")));
       }
       return { ...tombstoneClosure(value.get("run") as string, objects, value.get("tombstones") as JValue) };
+    }
+    case "project.verify": {
+      const value = valueOf(input) as JObject;
+      const owner = value.get("owner_key");
+      const previous = value.get("previous");
+      return { ...verifyProject(value.get("manifest") as JValue, previous ?? null, typeof owner === "string" ? owner : null) };
+    }
+    case "project.chain": {
+      const value = valueOf(input) as JObject;
+      const owner = value.get("owner_key");
+      return verifyProjectChain(value.get("versions") as JValue, typeof owner === "string" ? owner : null);
+    }
+    case "mirror-state.verify": {
+      const value = valueOf(input) as JObject;
+      const host = value.get("host_key");
+      const key = typeof host === "string" ? Uint8Array.from(Buffer.from(host, "hex")) : null;
+      return verifyMirrorState(value.get("state") as JValue, key, value.get("owners") as JValue);
+    }
+    case "git-object.check": {
+      const value = valueOf(input) as JObject;
+      const data = Uint8Array.from(Buffer.from(value.get("data_b64") as string, "base64"));
+      return { ...checkGitObject(value.get("type"), data, value.get("oid")) };
     }
     case "tombstone.verify":
     case "redacted-copy.verify": {

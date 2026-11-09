@@ -14,6 +14,8 @@ import { isWrapped, MAGIC, MAX_TINE_ARTIFACT_BYTES, readUvarint } from "../codec
 import { verifyBytes, type Report } from "../verify.js";
 
 export { verifyRedactionReport } from "../redactreport.js";
+export { checkGitObject } from "../gitobject.js"; // SPEC 4.18 (0.46.1)
+export { projectDigest, verifyMirrorState, verifyProject, verifyProjectChain } from "../project.js";
 export type { Report };
 
 /** The Compression Streams API surface used here (the verifier compiles without DOM types). */

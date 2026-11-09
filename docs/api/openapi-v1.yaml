@@ -75,6 +75,8 @@ components:
           type: "object"
         share:
           type: "object"
+        social_export:
+          type: "object"
         tombstones:
           type: "boolean"
         version:
@@ -268,29 +270,80 @@ components:
       required:
         - "offset"
       type: "object"
-    ProjectHistory:
+    Project:
+      additionalProperties: false
       properties:
+        digest:
+          pattern: "^blob:sha256:[0-9a-f]{64}$"
+          type: "string"
+        manifest:
+          $ref: "#/components/schemas/ProjectManifest"
+        seq:
+          minimum: 0
+          type: "integer"
+      required:
+        - "digest"
+        - "manifest"
+        - "seq"
+      type: "object"
+    ProjectHistory:
+      additionalProperties: false
+      properties:
+        next_cursor:
+          anyOf:
+            - minimum: 0
+              type: "integer"
+            - type: "null"
+        total:
+          minimum: 0
+          type: "integer"
         versions:
           items:
-            pattern: "^(blob|event|run|attestation|annotation):sha256:[0-9a-f]{64}$"
-            type: "string"
+            $ref: "#/components/schemas/ProjectManifest"
           type: "array"
       required:
+        - "next_cursor"
+        - "total"
         - "versions"
+      type: "object"
+    ProjectManifest:
+      properties:
+        kind:
+          const: "opentine.project"
+        seq:
+          minimum: 0
+          type: "integer"
+        signature:
+          type: "object"
+      required:
+        - "kind"
+        - "seq"
+        - "signature"
       type: "object"
     ProjectUpdate:
       additionalProperties: false
       properties:
         expected_old:
           anyOf:
-            - pattern: "^(blob|event|run|attestation|annotation):sha256:[0-9a-f]{64}$"
+            - pattern: "^blob:sha256:[0-9a-f]{64}$"
               type: "string"
             - type: "null"
         manifest:
-          type: "string"
+          $ref: "#/components/schemas/ProjectManifest"
       required:
         - "expected_old"
         - "manifest"
+      type: "object"
+    ProjectUpdated:
+      additionalProperties: false
+      properties:
+        digest:
+          pattern: "^blob:sha256:[0-9a-f]{64}$"
+          type: "string"
+        updated:
+          type: "boolean"
+      required:
+        - "updated"
       type: "object"
     Receipt:
       type: "object"
@@ -443,6 +496,19 @@ components:
         - "expires"
         - "run"
         - "scope"
+      type: "object"
+    SocialCounts:
+      additionalProperties: false
+      properties:
+        stars:
+          minimum: 0
+          type: "integer"
+        watches:
+          minimum: 0
+          type: "integer"
+      required:
+        - "stars"
+        - "watches"
       type: "object"
     Tombstone:
       properties:
@@ -1410,10 +1476,9 @@ paths:
       responses:
         "200":
           content:
-            "application/vnd.opentine.object":
+            "application/json":
               schema:
-                format: "binary"
-                type: "string"
+                $ref: "#/components/schemas/Project"
           description: "OK"
         "401":
           content:
@@ -1439,11 +1504,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
-      summary: "The opentine-project/1 manifest"
+      summary: "The current opentine.project manifest"
       x-opentine-cap: "project"
       x-opentine-permission: "read_ref"
-      x-opentine-status: "planned"
-    post:
+      x-opentine-status: "stable"
+    put:
       operationId: "updateProject"
       parameters:
         - description: "Tenant name."
@@ -1463,7 +1528,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/Updated"
+                $ref: "#/components/schemas/ProjectUpdated"
           description: "OK"
         "400":
           content:
@@ -1493,7 +1558,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/Updated"
+                $ref: "#/components/schemas/ProjectUpdated"
           description: "Conflict"
         "429":
           content:
@@ -1501,10 +1566,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
-      summary: "CAS project/manifest to a client-signed one"
+      summary: "CAS project/manifest to a client-signed version"
       x-opentine-cap: "project"
       x-opentine-permission: "update_ref"
-      x-opentine-status: "planned"
+      x-opentine-status: "stable"
   "/v1/tenants/{tenant}/project/history":
     get:
       operationId: "projectHistory"
@@ -1522,6 +1587,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProjectHistory"
           description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
         "401":
           content:
             "application/json":
@@ -1546,10 +1617,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
-      summary: "Every logged manifest version"
+      summary: "Manifest versions, oldest first, paged"
       x-opentine-cap: "project"
       x-opentine-permission: "read_ref"
-      x-opentine-status: "planned"
+      x-opentine-status: "stable"
   "/v1/tenants/{tenant}/ref-txn":
     post:
       operationId: "updateRefs"
@@ -2005,6 +2076,51 @@ paths:
       summary: "Revoke a share link"
       x-opentine-cap: "share"
       x-opentine-permission: "share"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/social":
+    get:
+      operationId: "socialCounts"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SocialCounts"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Count-only stars and watches (self-host parity)"
+      x-opentine-cap: "social_export"
+      x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/tombstones/{oid}":
     get:

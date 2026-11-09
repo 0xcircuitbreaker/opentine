@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-project-1.schema.json",
+  "title": "tine project ACTION --json",
+  "description": "Every `tine project` action. `init`/`link`: the new version (`manifest`, `digest`, `project`); `show`: the current one; `history`: `versions` oldest first; `verify`: `result`, the chain check; `push`: `sent`, `head`, `versions`. A refusal is the error envelope, exit 4 for a verification failure.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "ok"
+  ],
+  "properties": {
+    "command": {
+      "const": "project"
+    },
+    "action": {
+      "enum": [
+        "init",
+        "link",
+        "show",
+        "history",
+        "verify",
+        "push"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "manifest": {
+      "$ref": "opentine-project-1.schema.json"
+    },
+    "digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "tenant",
+        "seq",
+        "visibility"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "tenant": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "private"
+          ]
+        }
+      }
+    },
+    "versions": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "opentine-project-1.schema.json"
+          }
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sent": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "head": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "project_id",
+        "head",
+        "seq",
+        "versions",
+        "state"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "versions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

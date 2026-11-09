@@ -734,6 +734,34 @@
       "verdict": 0
     },
     {
+      "core": 29,
+      "count": 29,
+      "file": "vectors/65-project.json",
+      "name": "project",
+      "ops": [
+        "project.chain",
+        "project.verify"
+      ],
+      "reject": 22,
+      "section": "4.16",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 26,
+      "count": 26,
+      "file": "vectors/66-mirror-state.json",
+      "name": "mirror-state",
+      "ops": [
+        "git-object.check",
+        "mirror-state.verify"
+      ],
+      "reject": 15,
+      "section": "4.17",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 35,
       "count": 35,
       "file": "vectors/67-hook.json",
@@ -770,8 +798,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "6e2bdfc17d8fec225fb8280849daf131d1d35a1ef1e0a889e7d1103cc5674d1b",
-    "REASON_CODES.md": "630562244df129e1027743a5cc14c8921fe34122706d6f4315b9b563141580ff",
+    "README.md": "3282fa62f0811bd0aa5df0298f58d93078c273e6846490874d502f22577ae1d7",
+    "REASON_CODES.md": "08f277fefc3909c211fad4fe15e19808fdefa02d96c5c30b6119853dd2a2b5ec",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1873,10 +1901,12 @@
     "vectors/62-redaction-report-v2.json": "0ca2225239676d57c6080a12fbfcd30f21af57c1478d24331fe0f5ca95d1e024",
     "vectors/63-tombstone.json": "decd2cc717c5ac4fa70ad69125a7e5f4d65f885b60b04f81863a7e0db5ae8ad6",
     "vectors/64-redacted-copy.json": "720af7e02bc2297b439a524dbcc32cb870e4eb9ba2ebdc4e9797ffa88dde5871",
+    "vectors/65-project.json": "1933ddf22e0cba8c444d7702fdf2c2012dd5c3f269d6dc9baebbc992182253c8",
+    "vectors/66-mirror-state.json": "6f4b05fe0d3c1e94027b77b5b06a8187c97c755c8c8fcd0ffd7e330f2e6f5218",
     "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.46.0",
+  "generated_by": "opentine 0.46.1",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2094,6 +2124,24 @@
       "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
       "unordered": []
     },
+    "git-object.check": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "oid",
+        "type",
+        "object_format",
+        "links",
+        "state",
+        "label"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.18: bytes hash to a git blob, tree, commit or tag id (SHA-1 or SHA-256)",
+      "unordered": []
+    },
     "hook.normalize": {
       "args": [],
       "input": [
@@ -2194,6 +2242,27 @@
       "unordered": [
         "objects"
       ]
+    },
+    "mirror-state.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "project_id",
+        "slot",
+        "manifest",
+        "status",
+        "refs",
+        "reasons",
+        "synced_at",
+        "state",
+        "label"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.17: an opentine.mirror-state host statement (never a pass)",
+      "unordered": []
     },
     "object.load": {
       "args": [
@@ -2334,6 +2403,44 @@
       "profile": "writer",
       "requires": [],
       "summary": "SPEC 2.8 writer side: the decompressed manifest and its id",
+      "unordered": []
+    },
+    "project.chain": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "project_id",
+        "tenant",
+        "head",
+        "seq",
+        "versions",
+        "visibility",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.16: verify a whole opentine.project history, oldest first",
+      "unordered": []
+    },
+    "project.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "project_id",
+        "tenant",
+        "seq",
+        "digest",
+        "signer",
+        "visibility",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.16: verify an opentine.project manifest after its predecessor",
       "unordered": []
     },
     "redact.blob": {
@@ -2676,15 +2783,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.46.0",
+  "spec_version": "0.46.1",
   "suite_version": 1,
   "totals": {
-    "cases": 815,
-    "core": 805,
-    "families": 42,
-    "ops": 49,
-    "reason_codes": 139,
-    "reject": 279,
+    "cases": 870,
+    "core": 860,
+    "families": 44,
+    "ops": 53,
+    "reason_codes": 155,
+    "reject": 316,
     "stress": 10,
     "verdict": 178
   }

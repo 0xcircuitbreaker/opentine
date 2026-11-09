@@ -113,6 +113,8 @@ EXPECTED_COUNTS = {
     "vectors/62-redaction-report-v2.json": (12, 9),
     "vectors/63-tombstone.json": (23, 17),
     "vectors/64-redacted-copy.json": (16, 11),
+    "vectors/65-project.json": (29, 22),
+    "vectors/66-mirror-state.json": (26, 15),
     "vectors/67-hook.json": (35, 0),
     "vectors/99-repair.json": (14, 14),
 }

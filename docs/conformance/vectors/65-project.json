@@ -1,0 +1,2311 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.bad-commitment",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "522d18f1447deb07bf214742161d95ebe9931682ae81dc1f5a0c91734020736d0d19fd0f3ffccabe6dd73b902c61296e76da8dad3f2a15fbde649bcb1f5b4b07"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "commitment": "sha256:abc"
+                },
+                "role": "primary",
+                "upstream_visibility": "private"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "private"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a commitment is sha256:<64 hex>",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: a commitment is sha256:<64 hex>"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.chain-break-prev",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "de16ac00af9221a7374a0ec2788afe1c16c01aa4a0343d4541ece5b27c71840359e93bff8fb145f35ce3e49ae92b1d20259e98dc1abdc092e62bb4e93dec670e"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "prev names something other than the predecessor",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.chain-break",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:9999999999999999999999999999999999999999999999999999999999999999\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"publi...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 1 breaks the project chain: it does not follow its predecessor"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.chain-break-project",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "other",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "981d73b2dde80538901223b679c52e74546d4011bb705be77c8a737117dc1f53e7fcc29631f77ababd7853458d14ee0388220daa65506282040911d461e6bf06"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "a version cannot move to another project",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.chain-break",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"other\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"pub...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 1 breaks the project chain: it does not follow its predecessor"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.chain-break-seq",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "2817a315cdc2f7c08a693d84894c5d230a0bd4045dd0cbfe16c7f0b927b80df1d689670c26857dfd12789591186a68b64242e841f77384687727fdadad428603"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "seq skips a version",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.chain-break",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"publi...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 2 breaks the project chain: it does not follow its predecessor"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.chain.reordered",
+      "input": {
+        "value": {
+          "owner_key": null,
+          "versions": [
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+              ],
+              "prev": null,
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "0"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            },
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+              ],
+              "prev": "blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "2"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "97c95252b96e97d89869cc9fc4f88c94c3ef2c9492bbe5bacee0f6d144fe2dd15ee60d18d94bef77439db8142202b6640cb00ddfff40dffc49bab53fa3ac3901"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            },
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+              ],
+              "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "1"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "c745657c3cd8210c6dd2fb74d0c19dba4f105a99c298e05ccdf48518d21b051466936ecbdc4d4b202167b11a266f62e4309694a2f77513058d33f8430aa66205"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            }
+          ]
+        }
+      },
+      "intent": "versions out of order break the chain",
+      "op": "project.chain",
+      "profile": "verifier",
+      "reason": "project.chain-break",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"owner_key\": null, \"versions\": [{\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 2 breaks the project chain: it does not follow its predecessor"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.chain.truncated",
+      "input": {
+        "value": {
+          "owner_key": null,
+          "versions": [
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+              ],
+              "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "1"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "c745657c3cd8210c6dd2fb74d0c19dba4f105a99c298e05ccdf48518d21b051466936ecbdc4d4b202167b11a266f62e4309694a2f77513058d33f8430aa66205"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            },
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+              ],
+              "prev": "blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "2"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "97c95252b96e97d89869cc9fc4f88c94c3ef2c9492bbe5bacee0f6d144fe2dd15ee60d18d94bef77439db8142202b6640cb00ddfff40dffc49bab53fa3ac3901"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            }
+          ]
+        }
+      },
+      "intent": "a history must start at its first version",
+      "op": "project.chain",
+      "profile": "verifier",
+      "reason": "project.chain-break",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"owner_key\": null, \"versions\": [{\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"project_version\": {\"$...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the history does not start at seq 0: it breaks the project chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.chain.valid",
+      "input": {
+        "value": {
+          "owner_key": null,
+          "versions": [
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+              ],
+              "prev": null,
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "0"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            },
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+              ],
+              "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "1"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "c745657c3cd8210c6dd2fb74d0c19dba4f105a99c298e05ccdf48518d21b051466936ecbdc4d4b202167b11a266f62e4309694a2f77513058d33f8430aa66205"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            },
+            {
+              "created_at": "2026-11-08T00:00:00Z",
+              "forked_from": null,
+              "kind": "opentine.project",
+              "owners": [
+                "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+              ],
+              "prev": "blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3",
+              "project_id": "app",
+              "project_version": {
+                "$i": "1"
+              },
+              "seq": {
+                "$i": "2"
+              },
+              "signature": {
+                "alg": "ed25519",
+                "key_id": "vector",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "97c95252b96e97d89869cc9fc4f88c94c3ef2c9492bbe5bacee0f6d144fe2dd15ee60d18d94bef77439db8142202b6640cb00ddfff40dffc49bab53fa3ac3901"
+              },
+              "slots": [
+                {
+                  "default_branch": "main",
+                  "forge": "github",
+                  "forge_repo_id": "R_kgDOExample",
+                  "locator": {
+                    "url": "https://github.com/example/app.git"
+                  },
+                  "role": "primary",
+                  "upstream_visibility": "public"
+                }
+              ],
+              "tenant": "acme",
+              "visibility": "public"
+            }
+          ]
+        }
+      },
+      "intent": "three versions, oldest first",
+      "op": "project.chain",
+      "output": {
+        "head": "blob:sha256:8a8efb21630e5aa5e81294e1864a22dcbe01051783098a8dac4dcbbcb2e0d4c6",
+        "project_id": "app",
+        "seq": 2,
+        "state": "verified-tofu",
+        "tenant": "acme",
+        "versions": 3,
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"owner_key\": null, \"versions\": [{\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.credentials-in-url",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "90e4a380a6480d10d28187788826995d7a3c675faca6388a8bb2c23b0bd31f94b1305d8a994e56e0c18da28590cddd381481f34969b8e9c5622b0e1b4c9f3b0f"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://u:p@github.com/a/b.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a clone URL never carries credentials",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: a url is an https://, ssh:// or git@ clone URL without credentials"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.extra-field",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "homepage": "https://example.com",
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a field the manifest format does not define",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"homepage\": \"https://example.com\", \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc0...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.genesis-with-prev",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ffa2b710283d20caa01f1a67f5f7785c1c29649b0c6f427976a8d23de59774f2a304aa1137b320e20f7dcf901cbbc2289844504b0f39a76ddd200e243999b0c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "seq 0 has no predecessor",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"publi...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: prev is null exactly for seq 0, else the previous version's blob oid"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.git-with-repo-id",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "016c4cbc149a49412295e71f969c6c1343d46a69387d886fa3987f918eca9d82bbb192ab370594a57d3559a01b38e75eb017ff5e071c01c6ebeb93953d4f5f0b"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "git",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a plain git forge has no forge_repo_id",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: forge_repo_id is null for a plain git forge, else a forge id"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.private-plaintext-url",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "92767f6f54bc0b8f5207c71310d1beabfed134e1bc57ff2c925aa52818909a8184f57b7ef78871c395922645470fc88acf7aa31bd327658d1e81d1a9cea7e900"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "private"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "private"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a private project must not hold a plaintext URL",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.plaintext-locator",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "a plaintext locator in a private project: name the upstream by commitment"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.public-commitment",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "2e4abba08242d2516fe29abda0cb490af342ce0ffec01c8203b361a8a0c3ad50b2d6f4ec3152d548f4fa27f58286ece9a6c17891619c1425c3df5316be763501"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "commitment": "sha256:29276f3bd793e9948b3c3f006cf0310d84bf593dafdd2ea407439cfbd9bf942b"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a public project names its upstream by url",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: a public project names its upstream by url"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.public-over-private",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "9ccb90ef2fe1b64e9385399044946b41e1703af7d8b87f9202802ff2fef657651f00906bb9d34b888f60a4d49758515ffee000ee2618ebf8d72403cb455f280a"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "private"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a public project may not reference a private upstream",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.private-upstream",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "a public project over a private upstream is refused"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.tampered",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a manifest edited after signing fails",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.bad-signature",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the project manifest signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.token-in-url",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "d5f10440dc8e494dca488c327e85aed2b4fa52f9e676aaf3ff0ebafb5cfd069a004e92e6f33dd659a9d3bd0e81eaacaeca0ac92d63e9c5f2e651a149922b0707"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://ghp_x@github.com/a/b.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "an https clone URL carries no user or token at all",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: a url is an https://, ssh:// or git@ clone URL without credentials"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.two-primaries",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "77e6f7d229e9a31d6fcc7e518323daf2a48a24c3951b3262d3bd7c7d098bb93d4e055111f075051233d4f956327858e2c18aec1625b721efd4f2bde065a2d602"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              },
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "one primary slot, at most one secondary",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: the first slot is the primary and roles are distinct"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.unknown-forge",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "bc6cea450502f49776c5e5f4ecf0be28b1c3a930f8f14600901e4a1535d49ae144ff6826e1be4fddaabf94ecd5d9d707d7178a7a3821c4f29067c4d0e3159c0f"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "svn",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "forge is one of the five known forges",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: forge is one of github, gitlab, forgejo, git, entire"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.unsigned",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a manifest without a signature is refused",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.unsigned",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"slots\": [{\"default_branch\": \"main\", \"forge\": \"github\", \"forge_repo_id\": \"R_kgDOExample\", \"locator\": {\"url\": \"https://github.com/exa...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the project manifest is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-added-owner",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "97c95252b96e97d89869cc9fc4f88c94c3ef2c9492bbe5bacee0f6d144fe2dd15ee60d18d94bef77439db8142202b6640cb00ddfff40dffc49bab53fa3ac3901"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c745657c3cd8210c6dd2fb74d0c19dba4f105a99c298e05ccdf48518d21b051466936ecbdc4d4b202167b11a266f62e4309694a2f77513058d33f8430aa66205"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "an owner the previous version added may sign the next",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:8a8efb21630e5aa5e81294e1864a22dcbe01051783098a8dac4dcbbcb2e0d4c6",
+        "project_id": "app",
+        "seq": 2,
+        "signer": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+        "state": "verified",
+        "tenant": "acme",
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"publi...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-genesis",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a first version signed by its own owner (trust on first use)",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "tenant": "acme",
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-genesis-pinned",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "previous": null
+        }
+      },
+      "intent": "a first version under the pinned owner key",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified",
+        "tenant": "acme",
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-next",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c745657c3cd8210c6dd2fb74d0c19dba4f105a99c298e05ccdf48518d21b051466936ecbdc4d4b202167b11a266f62e4309694a2f77513058d33f8430aa66205"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "a version that links its predecessor, signed by its owner",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:ebdaa3887ef50824ee3b89d3674c463dbe9877cb54b5d52bcc86d2a59e9cecb3",
+        "project_id": "app",
+        "seq": 1,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified",
+        "tenant": "acme",
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-private-commitment",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "166a1f804026804cfcc88b38c2f4e274754a1ef0db9ae077a3b53b9bcdc9691122894aa4f1c3faf80454b85ee95827454cfc9125798a4ae751f4ec42cfebb603"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "commitment": "sha256:29276f3bd793e9948b3c3f006cf0310d84bf593dafdd2ea407439cfbd9bf942b"
+                },
+                "role": "primary",
+                "upstream_visibility": "private"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "private"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a private project names its upstream by a salted commitment",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:aa67fb3dce3d4a6f02e4ccbc746f71dd859803eb2f983a3f6c61dfe4cb9ae85f",
+        "project_id": "app",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "tenant": "acme",
+        "visibility": "private"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "project.valid-secondary-slot",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "fbc249f14ce032c60dcbbf669cb182fa157723ae2cd68c2a967f4a2e067cd351daa441107301299da53ef28bdd05b0e617b14c58cab07d775b148d9c06c0d60b"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              },
+              {
+                "default_branch": "main",
+                "forge": "git",
+                "forge_repo_id": null,
+                "locator": {
+                  "url": "ssh://git.example.org/app.git"
+                },
+                "role": "secondary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a primary slot and a plain-git secondary slot",
+      "op": "project.verify",
+      "output": {
+        "digest": "blob:sha256:81794edfc97983163233a77e455236cce5a5a4155689bd36426c3572db2f7575",
+        "project_id": "app",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu",
+        "tenant": "acme",
+        "visibility": "public"
+      },
+      "profile": "verifier",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.wrong-pinned-owner",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "previous": null
+        }
+      },
+      "intent": "a first version under another pinned owner key",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.wrong-signer",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "not signed by the pinned owner key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.wrong-signer",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "3527cb12b8c3dc565be6c3ae0c22d11200b231403871a96a4065d3aed298cd6d57c7cb940b12eae08ad73b0f338da722c14ebc28480db7d942e8ab5bd438f507"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "signed by a key outside the previous version's owners",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.wrong-signer",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"publi...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the manifest is not signed by an owner"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.wrong-signer-genesis",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "1ae99efb972077bebe7438a499b437d812a02a2c1a59a43052bbf1422b6ef0b848a31019ac5880f5328d798e423082db32741b945cb72bd39c7fd11852014d0e"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "a first version signed by a key it does not list",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.wrong-signer",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the manifest is not signed by an owner"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "project.wrong-signer-self-added",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "prev": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "bad47758a7a761ead6751ed7af8f178c2ce643b100d3fe674f373b4831b716d8feba7744352b2c5a9db15d0d08d5bf2f11480aa61b650a94dcb3e9e4faa30307"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c2adc672c76f7b8b65e53f93c959af7fce1fb513842ba0e548cfbc801461d4680757628424f23b8a756f6c2c3425d25a99a73a988450d0c94d1c28857778840c"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://github.com/example/app.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          }
+        }
+      },
+      "intent": "a stranger cannot add itself and sign that same version",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.wrong-signer",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\"], \"prev\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the manifest is not signed by an owner"
+      }
+    }
+  ],
+  "family": "project",
+  "section": "4.16",
+  "suite_version": 1
+}

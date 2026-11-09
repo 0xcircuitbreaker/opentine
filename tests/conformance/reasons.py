@@ -904,6 +904,103 @@ REASONS: dict[str, Reason] = {
         "a record that names a pack other than the one it came with",
         "move a valid record onto another pack",
     ),
+    # --- project manifests, mirror states, git objects (4.16-4.18) ---------- #
+    "project.malformed": R(
+        "4.16",
+        None,
+        "a manifest with a missing, extra or ill-formed field or slot",
+        "verify a signature over fields the manifest format does not define",
+    ),
+    "project.unsigned": R(
+        "4.16",
+        None,
+        "a manifest with no signature block",
+        "treat an unsigned manifest as the owner's",
+    ),
+    "project.bad-signature": R(
+        "4.16",
+        None,
+        "a manifest whose tine-sig/3 block does not hold over its body",
+        "trust an upstream a manifest names without checking the signature",
+    ),
+    "project.wrong-signer": R(
+        "4.16",
+        None,
+        "a manifest not signed by an owner of its predecessor (first version: its own, or the pin)",
+        "accept any valid signature as the project owner's",
+    ),
+    "project.chain-break": R(
+        "4.16",
+        None,
+        "a version not following its predecessor, or a history not starting at seq 0",
+        "skip a version or re-link a history after the fact",
+    ),
+    "project.private-upstream": R(
+        "4.16",
+        None,
+        "a public project that references a private upstream",
+        "publish a private repository through a public project",
+    ),
+    "project.plaintext-locator": R(
+        "4.16",
+        None,
+        "a private project that names its upstream by plaintext URL",
+        "log a private repository's URL or name",
+    ),
+    "mirror-state.malformed": R(
+        "4.17",
+        None,
+        "a mirror state with a missing, extra or ill-formed field",
+        "verify a signature over fields the format does not define",
+    ),
+    "mirror-state.unsigned": R(
+        "4.17",
+        None,
+        "a mirror state with no signature block",
+        "show an unsigned sync claim",
+    ),
+    "mirror-state.bad-signature": R(
+        "4.17",
+        None,
+        "a mirror state whose tine-sig/3 block does not hold",
+        "show a host statement without checking who made it",
+    ),
+    "mirror-state.wrong-key": R(
+        "4.17",
+        None,
+        "a mirror state not signed by the pinned host key, or not Ed25519",
+        "accept the embedded key when the caller pinned the host key",
+    ),
+    "mirror-state.user-signed": R(
+        "4.17",
+        None,
+        "a mirror state signed by a project owner's key",
+        "let a user's key speak as the host",
+    ),
+    "mirror-state.unknown-reason": R(
+        "4.17",
+        None,
+        "a reason code outside the seven mirror.* codes",
+        "show an unknown code, or read 'pass' as a host claim",
+    ),
+    "mirror-state.inconsistent": R(
+        "4.17",
+        None,
+        "a status its reasons do not explain",
+        "report synced while a reason says the upstream is unavailable",
+    ),
+    "git-object.malformed": R(
+        "4.18",
+        None,
+        "an ill-formed id, type, tree entry or commit/tag header",
+        "guess the object format or skip an unparseable link",
+    ),
+    "git-object.mismatch": R(
+        "4.18",
+        None,
+        "bytes that do not hash to the git object id given",
+        "trust a mirrored object without rehashing it",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any
