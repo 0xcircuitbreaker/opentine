@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- The suite is now **922 conformance vectors**; 347 of the 922 refuse input, and the adapter contract still has one entry point: 57 ops.
+- The suite is now **1015 conformance vectors**; 417 of the 1015 refuse input, and the adapter contract still has one entry point: 63 ops.
 
 ## 0.46.1 — Project formats (2026-11-09)
 
