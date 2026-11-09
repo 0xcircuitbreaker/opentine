@@ -788,7 +788,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.40.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.50.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
@@ -831,7 +831,9 @@ with `TINEZ1\0` has this layout:
 TINEZ1\0 ‖ codec (1 byte) ‖ uvarint(canonical length) ‖ frame
 ```
 
-- **Codec byte:** 0 = raw, 1 = zlib (RFC 1950), 2 = zstd (RFC 8878, one frame).
+- **Codec byte:** 0 = raw, 1 = zlib (RFC 1950), 2 = zstd (RFC 8878, one frame),
+  3 = zstd with a trained dictionary (since 0.50, only in the blocks of a local
+  v3 pack: see "Pack v3", §2.8), 4 = xz.
 - **Length:** a minimal LEB128 varint of at most 10 bytes.
 - **Anything else:** a stored body that does not begin with `TINEZ1\0` is the
   canonical bytes themselves.
@@ -1170,6 +1172,21 @@ tells the formats apart by magic; a version-3 repository may hold both.
   16 MiB (`MAX_BLOCK_BYTES`); a single object may have a block of its own up to
   the object limit. Writers order blobs and events by recording order and run
   snapshots by session and length, and default to 16 MiB blocks.
+- **Dictionaries (0.50, P3).** A block may be a codec-3 body, whose frame is
+  `sha256(dictionary)[32] ‖ zstd frame` compressed with that zstd dictionary.
+  The dictionary is kept outside the pack, content-addressed, as
+  `dicts/<lowercase hex sha256>.zdict` (at most 1 MiB). A reader MUST refuse
+  the block when that file is missing, larger than 1 MiB or does not hash to
+  the named digest, and otherwise applies every rule of §2.3 to the body.
+  Writers train one dictionary per object kind on the stored forms they pack,
+  and write codec 3 only in a repository whose descriptor carries
+  `"pack_dicts": "zstd"` with a `min_reader` of at least `0.50.0` (`tine gc
+  --dictionaries`; `tine gc --no-dictionaries` rewrites every pack without
+  them before removing both), so an older reader refuses the repository at
+  open. `dicts/kinds.json` is a writer's hint (the latest dictionary per kind)
+  that readers ignore. gc deletes a dictionary no pack names. Dictionaries
+  are a stored form: every object is still rebuilt and checked against its id,
+  and transfer formats (wire packs, bundles, `.tine`) never carry codec 3.
 - **`.tidx`:** binary, big-endian:
 
   ```text

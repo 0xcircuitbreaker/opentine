@@ -1,7 +1,8 @@
 /**
  * The `TINEZ1\0` storage wrapper (SPEC 2.3): magic, codec byte, uvarint length,
  * frame. Codec 0 is stored, 1 is zlib, 2 is zstd (`./zstd.ts`). xz (4), the
- * opt-in archival codec, is refused with a clear message.
+ * opt-in archival codec, and 3, zstd with a local pack dictionary (0.50), are
+ * refused with a clear message.
  */
 
 import { inflateSync } from "node:zlib";
@@ -68,6 +69,11 @@ export function unwrap(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES): Uint8
     out = result.buffer;
   } else if (codec === 2) {
     out = zstdDecompress(frame, size);
+  } else if (codec === 3) {
+    throw new TineError(
+      "this local pack block uses a zstd dictionary (`tine gc --dictionaries`, 0.50), which @opentine/verify does not read yet; `tine gc --no-dictionaries` rewrites it",
+      "codec.unsupported",
+    );
   } else if (codec === 4) {
     throw new TineError("this file is xz-compressed, which @opentine/verify does not read yet", "codec.unsupported");
   } else {

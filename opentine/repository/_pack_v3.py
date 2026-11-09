@@ -1,11 +1,11 @@
 """Version-3 local packs: large kind-grouped blocks and smaller stored forms.
 
 A v3 ``.tpk`` is ``"TINELP3\\n"`` followed by independently compressed blocks
-(TINEZ1 frames). Unlike a v1 pack, blocks are large (``DEFAULT_BLOCK_BYTES``,
-at most ``MAX_BLOCK_BYTES``) and each holds a single object kind, ordered so
-similar objects sit together (run snapshots of one session in append order),
-which is where the codec finds its repetition. Objects may use the stored
-forms of ``_run_delta``; the ``.tidx`` is binary (``_pack_v3_index``).
+(TINEZ1 frames; codec 3, a per-kind dictionary, where opted in: ``_pack_dicts``).
+Blocks are large (at most ``MAX_BLOCK_BYTES``) and each holds one object kind,
+ordered so similar objects sit together (run snapshots of one session in append
+order), where the codec finds its repetition. Objects may use the stored forms
+of ``_run_delta``; the ``.tidx`` is binary (``_pack_v3_index``).
 
 Ids, digests and signatures are unchanged: they are over canonical bytes, which
 every read rebuilds and checks against the id (``resolve``).
@@ -131,8 +131,9 @@ def build_pack_v3(
     level: int | None,
     block_bytes: int = DEFAULT_BLOCK_BYTES,
     blob_deltas: bool = False,
+    train: Callable[[list], dict[str, bytes]] | None = None,
 ) -> tuple[str, bytes, bytes]:
-    """Pack *objects*: return (digest, ``.tpk`` bytes, ``.tidx`` bytes)."""
+    """Pack *objects*: (digest, ``.tpk``, ``.tidx``); *train* maps kinds to dictionaries."""
     block_bytes = max(1, min(block_bytes, MAX_BLOCK_BYTES))
     sizes = {oid: len(raw) for oid, raw in objects}
     body = bytearray(PACK3_MAGIC)
@@ -148,14 +149,15 @@ def build_pack_v3(
             entries.append((oid, len(blocks), offset, len(stored), sizes[oid], encoding))
             offset += len(stored)
         raw = b"".join(stored for _, stored, _ in pending)
-        frame = _codec.wrap(raw, codec, level=level, force=True)
         kind = KINDS.index(pending[0][0].split(":", 1)[0])
+        frame = _codec.wrap(raw, codec, level=level, force=True, dictionary=chosen.get(KINDS[kind]))
         blocks.append((len(frame), len(raw), kind))
         body.extend(frame)
         pending.clear()
 
-    size, kind = 0, ""
-    for oid, stored, encoding, raw in stored_forms(objects, blob_deltas=blob_deltas):
+    size, kind, found = 0, "", stored_forms(objects, blob_deltas=blob_deltas)
+    chosen = train(found) if train and codec == "zstd" else {}
+    for oid, stored, encoding, raw in found:
         this = oid.split(":", 1)[0]
         if pending and (this != kind or size + len(stored) > block_bytes):
             flush()

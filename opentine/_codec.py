@@ -17,7 +17,7 @@ zstd (``compression.zstd`` on Python 3.14, the ``backports.zstd`` package on
 missing; a reader that meets zstd without it says how to install it. 4 is xz
 (``lzma``, stdlib, 0.37): the archival codec, smaller than zlib and readable
 with nothing but Python. Readers before 0.37 refuse codec 4, so it is written
-only where a caller asks for it (``--archival``), never by default.
+only where a caller asks for it (``--archival``), never by default. 3: ``_codec_dict``.
 """
 
 from __future__ import annotations
@@ -26,10 +26,10 @@ import os
 import zlib
 from typing import Any
 
-from opentine import _codec_xz
+from opentine import _codec_dict, _codec_xz
 
 MAGIC = b"TINEZ1\0"
-RAW, ZLIB, ZSTD, XZ = 0, 1, 2, 4
+RAW, ZLIB, ZSTD, DICT, XZ = 0, 1, 2, 3, 4
 CODECS = {"raw": RAW, "zlib": ZLIB, "zstd": ZSTD, "xz": XZ}
 NAMES = {value: key for key, value in CODECS.items()}
 
@@ -148,7 +148,13 @@ def compress_frame(raw: bytes, codec: str, level: int | None = None) -> bytes:
 
 
 def wrap(
-    raw: bytes, codec: str, *, level: int | None = None, force: bool = False, v2: bool = False
+    raw: bytes,
+    codec: str,
+    *,
+    level: int | None = None,
+    force: bool = False,
+    v2: bool = False,
+    dictionary: bytes | None = None,
 ) -> bytes | None:
     """*raw* in the wrapper, or ``None`` when compressing would not pay.
 
@@ -161,19 +167,22 @@ def wrap(
     """
     if not force and len(raw) < MIN_COMPRESS_BYTES:
         return None
-    frame = compress_frame(raw, codec, level)
+    frame, code = compress_frame(raw, codec, level), CODECS[codec]
+    if dictionary is not None and codec == "zstd":  # codec 3 (local v3 packs) if smaller
+        framed = _codec_dict.compress(raw, dictionary, level, CodecError)
+        frame, code = (framed, DICT) if len(framed) < len(frame) else (frame, code)
     ratio = READ_RATIO if v2 and len(raw) <= READ_RATIO_BYTES else MAX_RATIO
     if len(raw) > max(len(frame), 1) * ratio:
         if not force:
             return None
-        frame, codec = raw, "raw"
-    wrapped = MAGIC + bytes([CODECS[codec]]) + _uvarint(len(raw)) + frame
+        frame, code = raw, RAW
+    wrapped = MAGIC + bytes([code]) + _uvarint(len(raw)) + frame
     if not force and len(wrapped) >= len(raw):
         return None
     return wrapped
 
 
-def _decompress(codec: int, frame: bytes, size: int) -> bytes:
+def _decompress(codec: int, frame: bytes, size: int, lookup=None) -> bytes:
     if codec == RAW:
         return frame
     if codec == ZLIB:
@@ -200,12 +209,14 @@ def _decompress(codec: int, frame: bytes, size: int) -> bytes:
         if not engine.eof or engine.unused_data:
             raise CodecError("compressed body has trailing or missing data")
         return out
+    if codec == DICT:
+        return _codec_dict.decompress(frame, size, lookup, CodecError)
     if codec == XZ:
         return _codec_xz.decompress(frame, size, CodecError)
     raise CodecError(f"unknown storage codec byte {codec}; a newer opentine wrote this")
 
 
-def unwrap(data: bytes, *, limit: int) -> bytes:
+def unwrap(data: bytes, *, limit: int, dictionaries: _codec_dict.Lookup | None = None) -> bytes:
     """The uncompressed bytes of a stored body, refusing anything over *limit*.
 
     Legacy (unwrapped) data comes back unchanged. A wrapped body must declare a
@@ -225,7 +236,7 @@ def unwrap(data: bytes, *, limit: int) -> bytes:
     ratio = READ_RATIO if size <= READ_RATIO_BYTES else MAX_RATIO
     if size > max(len(frame), 1) * ratio:
         raise CodecError("compressed body exceeds the decompression ratio limit")
-    out = _decompress(codec, frame, size)
+    out = _decompress(codec, frame, size, dictionaries)
     if len(out) != size:
         raise CodecError("compressed body does not match its declared length")
     if is_wrapped(out):
@@ -235,6 +246,4 @@ def unwrap(data: bytes, *, limit: int) -> bytes:
 
 def declared_size(data: bytes) -> int:
     """A stored body's uncompressed length without inflating it."""
-    if not is_wrapped(data):
-        return len(data)
-    return _read_uvarint(data, len(MAGIC) + 1)[0]
+    return _read_uvarint(data, len(MAGIC) + 1)[0] if is_wrapped(data) else len(data)
