@@ -121,6 +121,7 @@ include = [
     "/README.md",
     "/SECURITY.md",
     "/SUPPORT.md",
+    "/deploy",
     "/docs",
     "/examples",
     "/opentine",

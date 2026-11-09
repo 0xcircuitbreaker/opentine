@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-witness-network-1.schema.json",
+  "title": "Witness-network registry",
+  "description": "The witness set a hosted log requires: its log key, the cosignature quorum and every witness (distinct operators and names, https URLs, each vkey it cosigns with, current first). `tine verify --offline --witnesses FILE` refuses a registry whose quorum is not a strict majority of three or more witnesses (e.g. 2-of-3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "log",
+    "policy",
+    "witnesses"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine-witness-network/1"
+    },
+    "description": {
+      "type": "string"
+    },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "vkey"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "vkey": {
+          "type": "string"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quorum"
+      ],
+      "properties": {
+        "quorum": {
+          "type": "string",
+          "pattern": "^[0-9]+-of-[0-9]+$"
+        }
+      }
+    },
+    "witnesses": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "operator",
+          "url",
+          "vkeys"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "jurisdiction": {
+            "type": "string"
+          },
+          "vkeys": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

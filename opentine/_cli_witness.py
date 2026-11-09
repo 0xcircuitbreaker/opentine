@@ -18,6 +18,8 @@ adding the next key, then dropping the old one once verifiers pin both),
 ``--rate-limit N`` (requests per minute per client, default 60, 0 = off) and
 answers ``GET /health`` and ``GET /keys`` (the vkeys to pin, current first).
 
+0.49: ``witness doctor`` checks an operator's deployment (``_witness_doctor``).
+
 ``scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM]``
 checks a COSE_Sign1 signed statement and its receipts offline (``_scitt``); it
 refuses to run without ``--experimental``.
@@ -60,14 +62,19 @@ def add_witness_parsers(sub: Any) -> None:
     serve.add_argument("--state", help="Witness state directory (default: XDG state dir)")
     serve.add_argument("--rate-limit", type=int, default=60, metavar="N",
                        help="Requests per minute per client (0: no limit)")  # fmt: skip
+    doctor = actions.add_parser("doctor", help="Check a witness deployment (operators, 0.49)")
+    doctor.add_argument("--log-vkey", action="append", required=True, help="A log witnessed")
+    doctor.add_argument("--state", help="Witness state directory (default: XDG state dir)")
+    doctor.add_argument("--registry", metavar="FILE", help="Witness-network registry to match")
+    doctor.add_argument("--url", help="This witness's public base URL (GET /health, /keys)")
     submit = actions.add_parser("submit", help="Collect cosignatures from witnesses over HTTP")
     submit.add_argument("checkpoint", metavar="CHECKPOINT", help="Signed-note checkpoint file")
     submit.add_argument("--url", action="append", required=True, help="Witness base URL")
     submit.add_argument("--tiles", metavar="DIR", help="Local tile mirror for proofs")
     submit.add_argument("--out", metavar="FILE", help="Write the cosigned checkpoint here")
     submit.add_argument("--json", action="store_true", help="Emit a JSON object instead")
-    for parser in (cosign, vkey, serve):
-        many = {"action": "append"} if parser is serve else {}
+    for parser in (cosign, vkey, serve, doctor):
+        many = {"action": "append"} if parser in (serve, doctor) else {}
         parser.add_argument("--key", required=True, metavar="KEY", help="Ed25519 key file", **many)
         parser.add_argument("--name", required=True, help="Witness name (e.g. example.com/w1)")
         if parser is not serve:
@@ -98,6 +105,10 @@ def cmd_witness(args: argparse.Namespace) -> None:
 
     if args.witness_command == "submit":
         return _submit(args)
+    if args.witness_command == "doctor":
+        from opentine._witness_doctor import cmd_doctor
+
+        return cmd_doctor(args)
     try:
         if args.witness_command == "serve":
             return _serve(args, [ed25519_private_from_file(path) for path in args.key])

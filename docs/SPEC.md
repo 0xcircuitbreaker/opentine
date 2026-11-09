@@ -3636,6 +3636,14 @@ A witness of the hosted trust network serves the C2SP tlog-witness protocol
   "logs": {origin: size}, "uptime_seconds", "requests": {status: count}}`, or
   `503` with `"status": "degraded"` when its state cannot be written or read.
   It names no local path.
+- **Witness network (0.49).** A hosted log names the witnesses it requires in
+  an `opentine-witness-network/1` registry (Part 12,
+  `opentine-witness-network-1`): configuration a verifier pins, not a signed
+  kind. A verifier refuses a registry unless its quorum `N-of-M` covers all
+  `M >= 3` listed witnesses with `2N > M`, and their names, operators and URLs
+  are distinct; a checkpoint then needs cosignatures from `N` distinct listed
+  witnesses, any listed key of a witness counting once. No byte format
+  changes.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)

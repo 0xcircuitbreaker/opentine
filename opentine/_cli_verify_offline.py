@@ -128,7 +128,7 @@ def cmd_verify_offline(args: argparse.Namespace) -> None:
         args,
         ("witness_vkey", "log_vkey"),
         mode="without --witnesses",
-        hint="Add --witnesses N-of-M.",
+        hint="Add --witnesses N-of-M (or a witness-network registry).",
     )
     if getattr(args, "attestation", None):
         from opentine._keyless_root import refuse_root_conflicts

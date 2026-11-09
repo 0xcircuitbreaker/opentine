@@ -1,0 +1,40 @@
+{
+  "schema": "opentine-witness-network/1",
+  "description": "EXAMPLE ONLY: placeholder operators and keys derived from public labels. The seeds are public (sha256 of each name), so anyone can sign as them: never pin them.",
+  "log": {
+    "origin": "log.opentine.example/main",
+    "vkey": "log.opentine.example/main+83f0ec2d+AVTTpBNirYpKp/D9IPvdXHH/i8Mut0xPf6oU/WxqmlcN"
+  },
+  "policy": {
+    "quorum": "2-of-3"
+  },
+  "witnesses": [
+    {
+      "name": "witness.opentine.example",
+      "operator": "The OpenTine project",
+      "url": "https://witness.opentine.example",
+      "contact": "mailto:witness@opentine.example",
+      "vkeys": [
+        "witness.opentine.example+f2205287+BE90MX+u5McwSvM5ydFrsjMEQhfK+hMyr+vNznYWv2Zf"
+      ]
+    },
+    {
+      "name": "witness.operator-two.example",
+      "operator": "Operator Two (example)",
+      "url": "https://witness.operator-two.example",
+      "contact": "mailto:ops@operator-two.example",
+      "vkeys": [
+        "witness.operator-two.example+4f92627a+BO901jMGiYC8iW1ifYlLQET/Kc3uMzc8SqPwkjVkdVZw"
+      ]
+    },
+    {
+      "name": "witness.operator-three.example",
+      "operator": "Operator Three (example)",
+      "url": "https://witness.operator-three.example",
+      "contact": "mailto:ops@operator-three.example",
+      "vkeys": [
+        "witness.operator-three.example+0763d842+BOyCJCHLAT7i79bvHFmUOvgRd5Kod/HvI64fOTO8iOGw"
+      ]
+    }
+  ]
+}

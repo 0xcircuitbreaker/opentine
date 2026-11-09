@@ -390,9 +390,27 @@ tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
 tine witness serve --key KEY... --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
                    [--rate-limit N]
 tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
+tine witness doctor --key KEY... --name NAME --log-vkey V... [--state DIR] [--registry FILE]
+                    [--url URL] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
+tine verify TARGET --offline --witnesses REGISTRY.json
 tine bundle create FILE REF... --transparency
 ```
+
+0.49, the witness network (SPEC 8.23; `docs/witness/`). `verify --offline
+--witnesses REGISTRY.json` takes the quorum, the witness keys and the log key
+from an `opentine-witness-network/1` registry (`docs/witness/NETWORK.md`) and
+refuses one that is not a strict majority of three or more witnesses with
+distinct operators, names and https URLs (e.g. 2-of-3); a cosignature by any
+key a witness lists counts once, and `--witness-vkey`/`--log-vkey` are refused
+alongside it. `--json` adds `"registry": {"log", "quorum"}`. `witness doctor`
+is an operator's pre-flight check: keys load, key files are private (POSIX),
+`--state` is writable, each log's stored checkpoint opens, the `--registry`
+lists this witness with its keys and log, and `--url` answers `/health` and
+serves exactly these keys at `/keys`. It prints each check (`--json`:
+`tine-cli-witness-doctor/1`) and exits 4 when any fails. The runbook, the
+container definition (`deploy/witness/`) and the recruitment notes are in
+`docs/witness/`.
 
 0.47, for witness operators (SPEC 8.23): `serve` takes `--key` more than once;
 every key cosigns, the first is current, so a key is rotated by adding the next

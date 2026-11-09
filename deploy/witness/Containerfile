@@ -1,0 +1,31 @@
+# OpenTine public witness (0.49): `tine witness serve` behind a TLS proxy.
+#
+# Build:   docker build -f deploy/witness/Containerfile -t opentine-witness:0.48.0 deploy/witness
+# Run:     see docs/witness/OPERATING.md ("Deploy"). No secret is baked into this image:
+#          the witness key is mounted read-only at run time (/run/secrets/witness-*.key)
+#          and the state directory is a volume.
+#
+# The base image is pinned to an exact version. Release engineering additionally
+# pins it by digest (FROM ...@sha256:<digest>) when the image is published; the
+# digest is recorded in docs/witness/OPERATING.md, never guessed here.
+FROM docker.io/library/python:3.12.7-slim-bookworm
+
+ARG OPENTINE_VERSION=0.48.0
+
+RUN python -m pip install --no-cache-dir "opentine==${OPENTINE_VERSION}" \
+    && useradd --system --uid 10001 --home-dir /var/lib/witness --create-home witness
+
+COPY entrypoint.sh /usr/local/bin/witness-entrypoint
+RUN chmod 0555 /usr/local/bin/witness-entrypoint
+
+USER 10001:10001
+ENV XDG_STATE_HOME=/var/lib/witness \
+    WITNESS_LISTEN=0.0.0.0:8080 \
+    WITNESS_RATE_LIMIT=60
+VOLUME ["/var/lib/witness"]
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=4)"
+
+ENTRYPOINT ["/usr/local/bin/witness-entrypoint"]

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-witness-doctor-1.schema.json",
+  "title": "tine witness doctor --json",
+  "description": "Every operator check `tine witness doctor` ran, in order; `ok` is false (exit 4) when any failed. Checks without their input (`--registry`, `--url`) are absent.",
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "witness",
+    "vkeys",
+    "checks"
+  ],
+  "properties": {
+    "command": {
+      "const": "witness doctor"
+    },
+    "schema": {
+      "const": "tine-cli-witness-doctor/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "witness": {
+      "type": "string"
+    },
+    "vkeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "ok",
+          "detail"
+        ],
+        "properties": {
+          "check": {
+            "enum": [
+              "keys",
+              "key-files",
+              "state",
+              "logs",
+              "registry",
+              "health",
+              "keys-served",
+              "url"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
