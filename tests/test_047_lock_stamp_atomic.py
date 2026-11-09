@@ -161,3 +161,19 @@ def test_threads_of_one_process_get_distinct_temporary_names(tmp_path, monkeypat
         t.join()
     assert errors == [] and held
     assert list(tmp_path.iterdir()) == []
+
+
+def test_a_temp_name_that_cannot_be_removed_never_costs_the_lock(tmp_path, monkeypatch):
+    # Windows: once linked, a contender holding the lock open blocks deleting the
+    # temp name. acquire must still return the lock it took, not raise.
+    real_unlink = _lockfile._winretry.unlink
+
+    def unlink(path):
+        if ".new-" in str(path):
+            raise PermissionError(13, "sharing violation")
+        return real_unlink(path)
+
+    monkeypatch.setattr(_lockfile._winretry, "unlink", unlink)
+    lock = tmp_path / "main.lock"
+    os.close(_lockfile.acquire(lock))
+    assert len(_fields(lock)) == 5 and int(_fields(lock)[0]) == os.getpid()
