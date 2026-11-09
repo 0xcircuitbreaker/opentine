@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from typing import Any
 
 from opentine.remote._quota import QuotaAdmission
-from opentine.remote._vsa import TrustPolicyAdmission, directory_sink
+from opentine.remote._vsa import TrustPolicyAdmission, admitted_levels, directory_sink
 
 
 def add_admission_arguments(parser: argparse.ArgumentParser) -> None:
@@ -24,6 +25,21 @@ def add_admission_arguments(parser: argparse.ArgumentParser) -> None:
     group.add_argument(
         "--vsa-dir", metavar="DIR", help="Write a SLSA VSA for every admitted push to DIR"
     )
+    group.add_argument(
+        "--vsa-signing-key",
+        metavar="FILE",
+        help="Sign each VSA (DSSE, Ed25519) with the server's own key: a 32-byte seed or "
+        "64-char hex; its public half is advertised in capabilities.vsa.keys",
+    )
+    group.add_argument(
+        "--trust-policy",
+        dest="admission_policy",
+        action="append",
+        default=[],
+        metavar="NAME=FILE",
+        help="Admit ref updates only under this named opentine.admission-policy (repeatable, "
+        "first match decides); each VSA records the deciding policy",
+    )
 
 
 def serve_admission(args: argparse.Namespace) -> Any:
@@ -36,6 +52,25 @@ def serve_admission(args: argparse.Namespace) -> Any:
             )
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
-    if getattr(args, "vsa_dir", None):
-        policy = TrustPolicyAdmission(sink=directory_sink(args.vsa_dir), inner=policy)
+    specs = getattr(args, "admission_policy", None) or []
+    signing = getattr(args, "vsa_signing_key", None)
+    if getattr(args, "vsa_dir", None) or specs or signing:
+        check: Any = admitted_levels
+        if specs:
+            from opentine.remote._admission_policy import PolicyCheck, load_policies
+
+            try:
+                check = PolicyCheck(load_policies(specs))
+            except (OSError, ValueError) as exc:
+                raise SystemExit(f"tine serve: {exc}") from exc
+        sink = directory_sink(args.vsa_dir) if getattr(args, "vsa_dir", None) else None
+        key = None
+        if signing:
+            from opentine._signing_keys import SignatureError, load_ed25519_private
+
+            try:
+                key = load_ed25519_private(Path(signing).read_bytes())
+            except (OSError, SignatureError) as exc:
+                raise SystemExit(f"tine serve: --vsa-signing-key: {exc}") from exc
+        policy = TrustPolicyAdmission(check, sink=sink, inner=policy, private_key=key)
     return policy

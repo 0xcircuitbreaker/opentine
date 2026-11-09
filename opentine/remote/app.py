@@ -11,6 +11,7 @@ from opentine.kernel import OBJECT_TYPES, validate_json_shape
 from opentine.remote._app_uploads import UploadRoutes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._events_http import extra_routes
+from opentine.remote._hosted_http import share_route
 from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
@@ -72,8 +73,7 @@ class RemoteApp(UploadRoutes):
             max_bytes=self.max_upload_bytes,
         )
         self._install_guard = threading.BoundedSemaphore(2)
-        # Negotiation walks up to a pack's worth of objects, like a fetch, and was
-        # unguarded: enough concurrent negotiates could take every worker's CPU.
+        # Negotiation walks a pack's worth of objects, like a fetch: guard it too.
         self._walk_guard = threading.BoundedSemaphore(2)
         self._failures = FailureAudit(getattr(service, "audit", None))
         self.auth_throttle = AuthThrottle()
@@ -114,6 +114,8 @@ class RemoteApp(UploadRoutes):
         method = environ.get("REQUEST_METHOD", "GET").upper()
         try:
             path = environ.get("PATH_INFO", "/").rstrip("/") or "/"
+            if path.startswith("/v1/share/"):  # 0.46: public share links, no bearer
+                return share_route(self, path[10:], method, environ, start_response)
             if method == "GET" and path == "/v1/capabilities":
                 return self._json_response(start_response, "200 OK", self.service.capabilities())
             prefix = "/v1/tenants/"
@@ -218,8 +220,7 @@ class RemoteApp(UploadRoutes):
                 )
                 peer = request.get(_pack_peer.PEER_VERSION)
                 data = _pack_peer.convert(data, fmt, codec, peer_version=peer)
-            # Additive: older clients ignore it; newer ones report runs whose
-            # attestations (or annotations) did not fit in the pack.
+            # Additive: newer clients report runs whose associations did not fit.
             headers = [(OMITTED_HEADER, str(len(omitted)))] if omitted else []
             headers.append((_pack4.FORMAT_HEADER, fmt))
             pack_type = "application/vnd.opentine.pack"
@@ -241,7 +242,7 @@ class RemoteApp(UploadRoutes):
             return self._upload(identity, tenant, upload_id, method, environ, start_response)
         if resource == "search" and method == "POST":
             cut: list[bool] = []
-            query = self._json(environ, "type")
+            query = self._json(environ, "text", "type")
             results = self.service.search(identity, tenant, query, truncated=cut)
             body = {"objects": results, "truncated": bool(cut)}
             return self._json_response(start_response, "200 OK", body)

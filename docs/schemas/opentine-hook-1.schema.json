@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-hook-1.schema.json",
+  "title": "opentine-hook/1",
+  "description": "One event a hook sends on the stdin of `tine hook capture` (the generic form; vendor payloads are translated to it, see docs/spec/hook-1.md), or the JSON response it writes on stdout (`ok`, and `ref`, `run`, `steps`, `steer` or `reason`).",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "protocol",
+        "event",
+        "session"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "opentine-hook/1"
+        },
+        "event": {
+          "enum": [
+            "prompt",
+            "tool",
+            "turn_end",
+            "session_end"
+          ]
+        },
+        "session": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt": {},
+        "message": {},
+        "cwd": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "input": {},
+            "output": {}
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "protocol",
+        "ok"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "opentine-hook/1"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "event": {
+          "enum": [
+            "prompt",
+            "tool",
+            "turn_end",
+            "session_end"
+          ]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string"
+        },
+        "steer": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

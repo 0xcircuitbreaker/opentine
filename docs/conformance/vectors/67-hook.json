@@ -1,0 +1,1099 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.antigravity.no-hint",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "conversationId": "ag1",
+            "lastUserInput": "hi"
+          }
+        }
+      },
+      "intent": "an Antigravity payload without --event is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"conversationId\": \"ag1\", \"lastUserInput\": \"hi\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.antigravity.prompt",
+      "input": {
+        "value": {
+          "hint": "PreInvocation",
+          "payload": {
+            "conversationId": "ag1",
+            "lastUserInput": "hi",
+            "workspacePaths": [
+              "/ws"
+            ]
+          }
+        }
+      },
+      "intent": "Antigravity PreInvocation, keyed by conversationId",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "/ws",
+        "event": "prompt",
+        "ok": true,
+        "session": "ag1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": \"PreInvocation\", \"payload\": {\"conversationId\": \"ag1\", \"lastUserInput\": \"hi\", \"workspacePaths\": [\"/ws\"]}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.antigravity.tool",
+      "input": {
+        "value": {
+          "hint": "PostToolUse",
+          "payload": {
+            "conversationId": "ag1",
+            "toolCall": {
+              "args": {},
+              "name": "run"
+            }
+          }
+        }
+      },
+      "intent": "Antigravity PostToolUse, toolCall.name",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "tool",
+        "ok": true,
+        "session": "ag1",
+        "tool_name": "run"
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": \"PostToolUse\", \"payload\": {\"conversationId\": \"ag1\", \"toolCall\": {\"args\": {}, \"name\": \"run\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.claude.pre-tool",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "PreToolUse",
+            "session_id": "c1",
+            "tool_name": "Bash"
+          }
+        }
+      },
+      "intent": "PreToolUse is not a capture event",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"PreToolUse\", \"session_id\": \"c1\", \"tool_name\": \"Bash\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.claude.prompt",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "cwd": "/repo",
+            "hook_event_name": "UserPromptSubmit",
+            "prompt": "go",
+            "session_id": "c1"
+          }
+        }
+      },
+      "intent": "Claude Code / Codex UserPromptSubmit",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "/repo",
+        "event": "prompt",
+        "ok": true,
+        "session": "c1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"cwd\": \"/repo\", \"hook_event_name\": \"UserPromptSubmit\", \"prompt\": \"go\", \"session_id\": \"c1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.claude.session-end",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "SessionEnd",
+            "reason": "exit",
+            "session_id": "c1"
+          }
+        }
+      },
+      "intent": "Claude Code SessionEnd",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "session_end",
+        "ok": true,
+        "session": "c1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"SessionEnd\", \"reason\": \"exit\", \"session_id\": \"c1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.claude.tool",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "PostToolUse",
+            "session_id": "c1",
+            "tool_input": {
+              "file_path": "a"
+            },
+            "tool_name": "Edit",
+            "tool_response": {
+              "ok": true
+            }
+          }
+        }
+      },
+      "intent": "Claude Code / Codex PostToolUse",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "tool",
+        "ok": true,
+        "session": "c1",
+        "tool_name": "Edit"
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"PostToolUse\", \"session_id\": \"c1\", \"tool_input\": {\"file_path\": \"a\"}, \"tool_name\": \"Edit\", \"tool_response\": {\"ok\": true}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.codex.stop",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "Stop",
+            "last_assistant_message": "done",
+            "session_id": "x1",
+            "stop_hook_active": false,
+            "turn_id": "t1"
+          }
+        }
+      },
+      "intent": "Codex Stop, with last_assistant_message and turn_id",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "turn_end",
+        "ok": true,
+        "session": "x1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"Stop\", \"last_assistant_message\": \"done\", \"session_id\": \"x1\", \"stop_hook_active\": false, \"turn_id\": \"t1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.gemini.after-agent",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "AfterAgent",
+            "prompt": "fix it",
+            "prompt_response": "fixed",
+            "session_id": "g1",
+            "stop_hook_active": false
+          }
+        }
+      },
+      "intent": "Gemini CLI AfterAgent (prompt_response) is a turn end",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "turn_end",
+        "ok": true,
+        "session": "g1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"AfterAgent\", \"prompt\": \"fix it\", \"prompt_response\": \"fixed\", \"session_id\": \"g1\", \"stop_hook_active\": false}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.gemini.after-tool",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "AfterTool",
+            "session_id": "g1",
+            "tool_input": {
+              "path": "x"
+            },
+            "tool_name": "read_file",
+            "tool_response": {
+              "llmContent": "y"
+            }
+          }
+        }
+      },
+      "intent": "Gemini CLI AfterTool is a tool call",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "tool",
+        "ok": true,
+        "session": "g1",
+        "tool_name": "read_file"
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"AfterTool\", \"session_id\": \"g1\", \"tool_input\": {\"path\": \"x\"}, \"tool_name\": \"read_file\", \"tool_response\": {\"llmContent\": \"y\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.gemini.before-agent",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "hook_event_name": "BeforeAgent",
+            "prompt": "fix it",
+            "session_id": "g1"
+          }
+        }
+      },
+      "intent": "Gemini CLI BeforeAgent is a prompt",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "g1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"hook_event_name\": \"BeforeAgent\", \"prompt\": \"fix it\", \"session_id\": \"g1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.cwd-not-string",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "cwd": [
+              "/w"
+            ],
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "a non-string cwd reads as empty",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "s1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"cwd\": [\"/w\"], \"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.empty-array-session",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": [],
+            "session_id": "s3"
+          }
+        }
+      },
+      "intent": "an empty array is falsy: `session_id` is used",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "s3",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": [], \"session_id\": \"s3\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.empty-session",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": ""
+          }
+        }
+      },
+      "intent": "an empty session id is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": \"\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.long-session",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "intent": "a session id is cut to 512 code points",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.no-session",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "prompt": "hi",
+            "protocol": "opentine-hook/1"
+          }
+        }
+      },
+      "intent": "an event without a session is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"prompt\": \"hi\", \"protocol\": \"opentine-hook/1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.other-protocol",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/2",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "another protocol tag does not name the event",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/2\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.prompt",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "cwd": "/w",
+            "event": "prompt",
+            "prompt": "hi",
+            "protocol": "opentine-hook/1",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "the generic envelope, a prompt",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "/w",
+        "event": "prompt",
+        "ok": true,
+        "session": "s1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"cwd\": \"/w\", \"event\": \"prompt\", \"prompt\": \"hi\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.session-end",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "session_end",
+            "protocol": "opentine-hook/1",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "the generic envelope, a session end",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "session_end",
+        "ok": true,
+        "session": "s1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"session_end\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.session-fallback",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": "",
+            "session_id": "s2"
+          }
+        }
+      },
+      "intent": "an empty `session` falls back to `session_id`",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "s2",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": \"\", \"session_id\": \"s2\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.session-not-string",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "prompt",
+            "protocol": "opentine-hook/1",
+            "session": {
+              "$i": "7"
+            }
+          }
+        }
+      },
+      "intent": "a session id that is not a string is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"prompt\", \"protocol\": \"opentine-hook/1\", \"session\": {\"$i\": \"7\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.tool",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "tool",
+            "protocol": "opentine-hook/1",
+            "session": "s1",
+            "tool": {
+              "input": {
+                "command": "ls"
+              },
+              "name": "Bash",
+              "output": "a\n"
+            }
+          }
+        }
+      },
+      "intent": "the generic envelope, a tool call",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "tool",
+        "ok": true,
+        "session": "s1",
+        "tool_name": "Bash"
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"tool\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\", \"tool\": {\"input\": {\"command\": \"ls\"}, \"name\": \"Bash\", \"output\": \"a\\n\"}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.tool-name-not-string",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "tool",
+            "protocol": "opentine-hook/1",
+            "session": "s1",
+            "tool": {
+              "name": {
+                "$i": "5"
+              }
+            }
+          }
+        }
+      },
+      "intent": "a non-string tool name is no name",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "tool",
+        "ok": true,
+        "session": "s1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"tool\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\", \"tool\": {\"name\": {\"$i\": \"5\"}}}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.turn-end",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "turn_end",
+            "message": "done",
+            "protocol": "opentine-hook/1",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "the generic envelope, a turn end",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "turn_end",
+        "ok": true,
+        "session": "s1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"turn_end\", \"message\": \"done\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.generic.unknown-event",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": {
+            "event": "pre_tool",
+            "protocol": "opentine-hook/1",
+            "session": "s1"
+          }
+        }
+      },
+      "intent": "an event the protocol does not define is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": {\"event\": \"pre_tool\", \"protocol\": \"opentine-hook/1\", \"session\": \"s1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.hint.event",
+      "input": {
+        "value": {
+          "hint": "UserPromptSubmit",
+          "payload": {
+            "prompt": "hi",
+            "session_id": "d1"
+          }
+        }
+      },
+      "intent": "a payload without its event name takes the --event hint",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "prompt",
+        "ok": true,
+        "session": "d1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": \"UserPromptSubmit\", \"payload\": {\"prompt\": \"hi\", \"session_id\": \"d1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.hint.ignored",
+      "input": {
+        "value": {
+          "hint": "UserPromptSubmit",
+          "payload": {
+            "hook_event_name": "Stop",
+            "session_id": "d1"
+          }
+        }
+      },
+      "intent": "the hint never overrides a named event",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": "",
+        "event": "turn_end",
+        "ok": true,
+        "session": "d1",
+        "tool_name": ""
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": \"UserPromptSubmit\", \"payload\": {\"hook_event_name\": \"Stop\", \"session_id\": \"d1\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.not-an-object",
+      "input": {
+        "value": {
+          "hint": null,
+          "payload": [
+            "prompt"
+          ]
+        }
+      },
+      "intent": "a payload that is not an object is refused",
+      "op": "hook.normalize",
+      "output": {
+        "cwd": null,
+        "event": null,
+        "ok": false,
+        "session": null,
+        "tool_name": null
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"hint\": null, \"payload\": [\"prompt\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.claude-code",
+      "input": {
+        "value": {
+          "agent": "claude-code",
+          "steer": [
+            "more tests"
+          ]
+        }
+      },
+      "intent": "Claude Code's Stop continues on block",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {
+          "decision": "block",
+          "reason": "more tests"
+        }
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"claude-code\", \"steer\": [\"more tests\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.claude-code.none",
+      "input": {
+        "value": {
+          "agent": "claude-code",
+          "steer": []
+        }
+      },
+      "intent": "no steer: Claude Code is told to stay quiet",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {
+          "suppressOutput": true
+        }
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"claude-code\", \"steer\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.codex",
+      "input": {
+        "value": {
+          "agent": "codex",
+          "steer": [
+            "more tests"
+          ]
+        }
+      },
+      "intent": "Codex's Stop continues on block",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {
+          "decision": "block",
+          "reason": "more tests"
+        }
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"codex\", \"steer\": [\"more tests\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.codex.none",
+      "input": {
+        "value": {
+          "agent": "codex",
+          "steer": []
+        }
+      },
+      "intent": "no steer: Codex gets an empty object",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {}
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"codex\", \"steer\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.copilot",
+      "input": {
+        "value": {
+          "agent": "copilot",
+          "steer": [
+            "more tests"
+          ]
+        }
+      },
+      "intent": "Copilot CLI is not steered (recorded only)",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {}
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"copilot\", \"steer\": [\"more tests\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.gemini",
+      "input": {
+        "value": {
+          "agent": "gemini",
+          "steer": [
+            "more tests"
+          ]
+        }
+      },
+      "intent": "Gemini CLI's AfterAgent continues on deny",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {
+          "decision": "deny",
+          "reason": "more tests"
+        }
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"gemini\", \"steer\": [\"more tests\"]}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "verdict",
+      "id": "hook.respond.gemini.joined",
+      "input": {
+        "value": {
+          "agent": "gemini",
+          "steer": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "intent": "several messages are joined by a blank line",
+      "op": "hook.respond",
+      "output": {
+        "stdout": {
+          "decision": "deny",
+          "reason": "a\n\nb"
+        }
+      },
+      "profile": "reader",
+      "section": "8.16",
+      "tier": "core",
+      "x_display": "{\"agent\": \"gemini\", \"steer\": [\"a\", \"b\"]}",
+      "x_reference": null
+    }
+  ],
+  "family": "hook",
+  "section": "8.16",
+  "suite_version": 1
+}

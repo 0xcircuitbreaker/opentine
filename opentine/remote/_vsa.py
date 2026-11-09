@@ -8,6 +8,10 @@ SLSA Verification Summary Attestation (``verification_summary/v1``) naming the
 pushed object, the policy and the verifier. With ``private_key`` the statement
 is wrapped in a DSSE envelope (:func:`opentine.intoto.sign_statement`).
 
+A check may instead return ``(levels, policy)`` where *policy* is the deciding
+named policy's ``{"uri", "digest"}`` (:mod:`opentine.remote._admission_policy`);
+the VSA then records that policy.
+
 Statements go to ``sink(tenant, document)``; the most recent ``keep`` also stay on
 ``recent`` (a bounded deque) for inspection and tests.
 """
@@ -45,6 +49,7 @@ def build_vsa(
     verifier: str = DEFAULT_VERIFIER,
     policy_uri: str = "opentine:admission/default",
     time_verified: str | None = None,
+    policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     digest = oid.rsplit(":", 1)[-1]
     return {
@@ -55,7 +60,7 @@ def build_vsa(
             "verifier": {"id": verifier},
             "timeVerified": time_verified or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "resourceUri": f"tine://{tenant}/{ref}",
-            "policy": {"uri": policy_uri},
+            "policy": dict(policy) if policy else {"uri": policy_uri},
             "inputAttestations": [],
             "verificationResult": "PASSED",
             "verifiedLevels": sorted({str(level) for level in levels}),
@@ -92,10 +97,26 @@ class TrustPolicyAdmission:
         self.policy_uri, self.verifier, self.inner = policy_uri, verifier, inner
         self.recent: deque[dict[str, Any]] = deque(maxlen=max(1, keep))
 
+    def capabilities(self) -> dict[str, Any]:
+        """The ``vsa`` entry of ``GET /v1/capabilities``: the key a gate pins, policy names."""
+        caps: dict[str, Any] = {"predicate_type": VSA_TYPE, "verifier": self.verifier, "keys": []}
+        if self.private_key is not None:
+            from opentine._signing_keys import load_ed25519_private
+            from opentine._webhook_sig import b64url, key_id
+
+            raw = load_ed25519_private(self.private_key).public_key().public_bytes_raw()
+            caps["keys"] = [{"kid": key_id(raw), "alg": "ed25519", "public_key": b64url(raw)}]
+        policies = getattr(self.check, "policies", ())
+        caps["policies"] = [f"opentine:trust-policy/{policy.name}" for policy in policies]
+        return caps
+
     def admit(self, identity: Identity, operation: str, facts: dict[str, Any]) -> None:
         if self.inner is not None:
             self.inner.admit(identity, operation, facts)
-        levels = self.check(identity, operation, facts)
+        levels: Any = self.check(identity, operation, facts)
+        policy = None  # a named check returns (levels, {"uri", "digest"}) of the deciding policy
+        if isinstance(levels, tuple) and len(levels) == 2:
+            levels, policy = levels
         if not isinstance(levels, list):
             raise PermissionError("trust policy refused the push")
         if operation != "update_ref":
@@ -108,6 +129,7 @@ class TrustPolicyAdmission:
             levels,
             verifier=self.verifier,
             policy_uri=self.policy_uri,
+            policy=policy,
         )
         document: dict[str, Any] = statement
         if self.private_key is not None:

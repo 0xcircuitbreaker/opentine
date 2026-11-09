@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-share-1.schema.json",
+  "title": "tine serve share link",
+  "description": "One share link (`caps.share`): read-only access to one run until `expires` (Unix seconds) unless revoked. Listings never carry the token; only the 201 answer to `POST shares` adds `token`, once.",
+  "type": "object",
+  "required": [
+    "id",
+    "run",
+    "scope",
+    "created_by",
+    "created",
+    "expires",
+    "state"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^[a-z]+:sha256:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "enum": [
+        "read"
+      ]
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expires": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "state": {
+      "enum": [
+        "active",
+        "expired",
+        "revoked"
+      ]
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^tine_share_[A-Za-z0-9_-]{43}$"
+    }
+  }
+}

@@ -43,6 +43,8 @@ _ACTIONS = {
     ("packs/", "PATCH"): "upload",
     ("search", "POST"): "search",
     ("audit/verify", "GET"): "audit",
+    ("tombstones/", "GET"): "fetch",
+    ("tombstones/", "PUT"): "upload",
 }
 
 
@@ -63,6 +65,7 @@ def audit_tenant(*candidates: str | None) -> str:
 def request_action(resource: str, method: str) -> str:
     key = "refs/" if resource.startswith("refs/") else resource
     key = "packs/" if key.startswith("packs/") else key
+    key = "tombstones/" if key.startswith("tombstones/") else key
     return _ACTIONS.get((key, method), "request")
 
 

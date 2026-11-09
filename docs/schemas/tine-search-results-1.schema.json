@@ -55,6 +55,25 @@
       "type": "integer",
       "minimum": 0
     },
+    "remote": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "truncated": {
+      "type": "boolean"
+    },
+    "hybrid": {
+      "type": "boolean"
+    },
+    "embedder": {
+      "type": "string"
+    },
     "results": {
       "type": "array",
       "items": {

@@ -10,9 +10,17 @@ back under :data:`STEER_KEY`. The protocol then:
 * records each message as its own ``human`` step (actor ``steer``) right after
   the turn's step, so the run shows exactly when the agent was steered; and
 * returns them in the hook response: ``"steer": [TEXT, ...]`` in the generic
-  response, and for Claude Code the ``Stop`` hook's ``{"decision": "block",
-  "reason": TEXT}``, which makes the agent continue with the message as its
-  next instruction. Other vendor CLIs get the steer recorded but not injected.
+  response, and in each vendor's own "keep going" answer to its turn-end hook
+  (:data:`CONTINUE`), which makes the agent continue with the message as its
+  next instruction: Claude Code's and Codex's ``Stop`` take ``{"decision":
+  "block", "reason": TEXT}`` (learn.chatgpt.com/docs/hooks: the reason becomes
+  a new user prompt), Gemini CLI's ``AfterAgent`` takes ``{"decision": "deny",
+  "reason": TEXT}`` (geminicli.com/docs/hooks/reference: the reason is sent as
+  a new prompt). Messages are taken once, so a ``stop_hook_active`` re-entry
+  never loops. Copilot CLI, Droid and Antigravity get the steer recorded only.
+
+A session that already ended is continued with ``tine hook resume``
+(:mod:`opentine._hook_resume`).
 """
 
 from __future__ import annotations
@@ -65,14 +73,16 @@ def steer_steps(session: str, messages: list[dict[str, Any]] | None) -> list[Any
     return steps
 
 
+#: Agent -> the turn-end decision that continues the agent with ``reason`` as its prompt.
+CONTINUE = {"claude-code": "block", "codex": "block", "gemini": "deny"}
+
+
 def vendor_response(agent: str, response: dict[str, Any]) -> dict[str, Any]:
-    """What a vendor CLI reads on stdout: only Claude Code's block carries a steer."""
+    """What a vendor CLI reads on stdout: a steer only where :data:`CONTINUE` names one."""
     steer = response.get("steer") or []
-    if agent == "claude-code":
-        if steer:
-            return {"decision": "block", "reason": "\n\n".join(steer)}
-        return {"suppressOutput": True}
-    return {}
+    if steer and agent in CONTINUE:
+        return {"decision": CONTINUE[agent], "reason": "\n\n".join(steer)}
+    return {"suppressOutput": True} if agent == "claude-code" else {}
 
 
-__all__ = ["STEER_KEY", "deliver_mail", "steer_steps", "vendor_response"]
+__all__ = ["CONTINUE", "STEER_KEY", "deliver_mail", "steer_steps", "vendor_response"]

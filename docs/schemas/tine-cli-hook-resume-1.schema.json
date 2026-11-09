@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-hook-resume-1.schema.json",
+  "title": "tine hook resume --dry-run",
+  "description": "The plan `tine hook resume --dry-run` prints: the agent CLI's resume argv (run without a shell) and the capture ref the message would be recorded on.",
+  "type": "object",
+  "required": [
+    "command",
+    "agent",
+    "session",
+    "argv",
+    "recorded"
+  ],
+  "properties": {
+    "command": {
+      "const": "hook resume"
+    },
+    "agent": {
+      "enum": [
+        "claude-code",
+        "codex",
+        "gemini"
+      ]
+    },
+    "session": {
+      "type": "string"
+    },
+    "argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "recorded": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    }
+  }
+}

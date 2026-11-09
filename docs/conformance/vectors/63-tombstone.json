@@ -1,0 +1,1042 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.bad-time",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08 00:00",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "purged_at is RFC 3339 UTC to the second",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08 00:00\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tine-s...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: purged_at must be an RFC 3339 UTC time (YYYY-MM-DDTHH:MM:SSZ)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.closure.intact",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==",
+              "id": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": []
+        }
+      },
+      "intent": "every linked object present: verified",
+      "op": "tombstone.closure",
+      "output": {
+        "content_unavailable": [],
+        "objects": 4,
+        "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==\", \"id\": \"blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.closure.malformed-tombstone",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": [
+            {
+              "actor": "",
+              "kind": "opentine.tombstone",
+              "oid": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c",
+              "purged_at": "2026-11-08T00:00:00Z",
+              "reason": "erasure request 42",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "vector",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "2e721c5795a6edbf73cdd3c4a25b37ffbab577409a1503aee4a330ca9a5af99a"
+              },
+              "tombstone_version": {
+                "$i": "1"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "the walk still needs well-formed tombstones",
+      "op": "tombstone.closure",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: actor must be a name"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.closure.missing",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": []
+        }
+      },
+      "intent": "a missing blob without a tombstone fails",
+      "op": "tombstone.closure",
+      "profile": "verifier",
+      "reason": "tombstone.missing-content",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "linked object blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c is missing and no tombstone names it"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.closure.missing-event",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==",
+              "id": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": [
+            {
+              "actor": "alice@example",
+              "kind": "opentine.tombstone",
+              "oid": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c",
+              "purged_at": "2026-11-08T00:00:00Z",
+              "reason": "erasure request 42",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "vector",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "2e721c5795a6edbf73cdd3c4a25b37ffbab577409a1503aee4a330ca9a5af99a"
+              },
+              "tombstone_version": {
+                "$i": "1"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "only a blob can be content-unavailable",
+      "op": "tombstone.closure",
+      "profile": "verifier",
+      "reason": "tombstone.missing-content",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==\", \"id\": \"blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "linked object event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783 is missing and no tombstone names it"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.closure.other-tombstone",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": [
+            {
+              "actor": "alice@example",
+              "kind": "opentine.tombstone",
+              "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "purged_at": "2026-11-08T00:00:00Z",
+              "reason": "erasure request 42",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "vector",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+              },
+              "tombstone_version": {
+                "$i": "1"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a tombstone for another blob does not cover it",
+      "op": "tombstone.closure",
+      "profile": "verifier",
+      "reason": "tombstone.missing-content",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "linked object blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c is missing and no tombstone names it"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.closure.purged",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": [
+            {
+              "actor": "alice@example",
+              "kind": "opentine.tombstone",
+              "oid": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c",
+              "purged_at": "2026-11-08T00:00:00Z",
+              "reason": "erasure request 42",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "vector",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "2e721c5795a6edbf73cdd3c4a25b37ffbab577409a1503aee4a330ca9a5af99a"
+              },
+              "tombstone_version": {
+                "$i": "1"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a purged blob with its tombstone is content-unavailable",
+      "op": "tombstone.closure",
+      "output": {
+        "content_unavailable": [
+          "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c"
+        ],
+        "objects": 3,
+        "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+        "state": "content-unavailable"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.closure.unused-tombstone",
+      "input": {
+        "value": {
+          "objects": [
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==",
+              "id": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=",
+              "id": "blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiY2F1c2FsX2lkcyI6W10sImlucHV0X2Jsb2IiOiJibG9iOnNoYTI1NjpkZDZmODg4NjZkNTAyYzExOWU4NzY1YzU5ZDFjNTZiMWEzNjZiZTk0N2E0MTVhMjE4ZjM3NjUyYWFmZjdhZDA5Iiwib3V0cHV0X2Jsb2IiOiJibG9iOnNoYTI1Njo4NGM5YTE2MDcxZDMyNmQxOTcyOGM4Y2JlYTJjY2I2NjcyNDJkMWZkZDhjOGM0M2U3NDdlMDViYTZiYjg2MDBjIiwicGFyZW50X2lkcyI6W119",
+              "id": "event:sha256:3fd12c2ea9da18a88cf87634935bf1fdec53a46b4913608fac5e89236d733783"
+            },
+            {
+              "data_b64": "eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJydW4ifQp7ImV2ZW50cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJtYW5pZmVzdHMiOnt9LCJyb290cyI6WyJldmVudDpzaGEyNTY6M2ZkMTJjMmVhOWRhMThhODhjZjg3NjM0OTM1YmYxZmRlYzUzYTQ2YjQ5MTM2MDhmYWM1ZTg5MjM2ZDczMzc4MyJdLCJ0aXBzIjpbImV2ZW50OnNoYTI1NjozZmQxMmMyZWE5ZGExOGE4OGNmODc2MzQ5MzViZjFmZGVjNTNhNDZiNDkxMzYwOGZhYzVlODkyMzZkNzMzNzgzIl19",
+              "id": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d"
+            }
+          ],
+          "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+          "tombstones": [
+            {
+              "actor": "alice@example",
+              "kind": "opentine.tombstone",
+              "oid": "blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c",
+              "purged_at": "2026-11-08T00:00:00Z",
+              "reason": "erasure request 42",
+              "signature": {
+                "alg": "hmac-sha256",
+                "key_id": "vector",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-11-08T00:00:00Z",
+                "value": "2e721c5795a6edbf73cdd3c4a25b37ffbab577409a1503aee4a330ca9a5af99a"
+              },
+              "tombstone_version": {
+                "$i": "1"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a tombstone for a present blob changes nothing",
+      "op": "tombstone.closure",
+      "output": {
+        "content_unavailable": [],
+        "objects": 4,
+        "run": "run:sha256:e21a9b48e83e69f8a8dec48e86ea22e9472f9f9b61f7508a9202087666de161d",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"objects\": [{\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQp0aGUgcHVyZ2VkIG91dHB1dA==\", \"id\": \"blob:sha256:84c9a16071d326d19728c8cbea2ccb667242d1fdd8c8c43e747e05ba6bb8600c\"}, {\"data_b64\": \"eyJlbmNvZGluZyI6InJhdyIsInNjaGVtYSI6MSwidHlwZSI6ImJsb2IifQpwcm9tcHQ=\", \"id\": \"blob:sha256:dd6f88866d502c119e8765c59d1c56b1a366be947a415a218f37652aaff7ad09\"}, {\"data_b64\": \"eyJlbmNvZGluZ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.control-in-reason",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "a\nb",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a reason holding a control character",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"a\\nb\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tine-sig/3\", \"si...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: reason must be 1 to 1024 bytes of text without control characters"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.empty-reason",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": " ",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a tombstone must say why",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \" \", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tine-sig/3\", \"signe...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: reason must be 1 to 1024 bytes of text without control characters"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.extra-field",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "size": {
+              "$i": "3"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a field the tombstone format does not define",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"ti...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.hmac-key-ed25519-record",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "8859667f2d4295615c7aa78a35dc5c9d1d0e18464948cb74c5a06cfec642db9a6df92547e780c1ce3e3c818532af11b4d3943e1b57646f5fd86fb5bdf8259e05"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a supplied HMAC key never falls back to TOFU",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.wrong-key",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "not the trusted key's algorithm"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.no-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "an HMAC tombstone with no key cannot verify",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.no-key",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-08T00:00:00Z\", \"value\": \"7d35...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "no key for an hmac-sha256 tombstone"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.not-a-blob",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "only a blob can be purged",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"tin...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: oid must be a blob oid"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.oid-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:5555555555555555555555555555555555555555555555555555555555555555",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a tombstone moved to another blob after signing",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.bad-signature",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:5555555555555555555555555555555555555555555555555555555555555555\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"ti...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the tombstone signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.reason-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "routine cleanup",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "8859667f2d4295615c7aa78a35dc5c9d1d0e18464948cb74c5a06cfec642db9a6df92547e780c1ce3e3c818532af11b4d3943e1b57646f5fd86fb5bdf8259e05"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a reason edited after signing fails",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.bad-signature",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"routine cleanup\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the tombstone signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.unsigned",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "a tombstone without a signature is refused",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.unsigned",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"tombstone_version\": {\"$i\": \"1\"}}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the tombstone is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.valid-ed25519-tofu",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "8859667f2d4295615c7aa78a35dc5c9d1d0e18464948cb74c5a06cfec642db9a6df92547e780c1ce3e3c818532af11b4d3943e1b57646f5fd86fb5bdf8259e05"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "with no key, an Ed25519 tombstone on its embedded key",
+      "op": "tombstone.verify",
+      "output": {
+        "actor": "alice@example",
+        "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "purged_at": "2026-11-08T00:00:00Z",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.valid-ed25519-trusted",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "8859667f2d4295615c7aa78a35dc5c9d1d0e18464948cb74c5a06cfec642db9a6df92547e780c1ce3e3c818532af11b4d3943e1b57646f5fd86fb5bdf8259e05"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "an Ed25519 tombstone under the trusted key",
+      "op": "tombstone.verify",
+      "output": {
+        "actor": "alice@example",
+        "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "purged_at": "2026-11-08T00:00:00Z",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "tombstone.valid-hmac",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "an HMAC tombstone verifies under its key",
+      "op": "tombstone.verify",
+      "output": {
+        "actor": "alice@example",
+        "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "purged_at": "2026-11-08T00:00:00Z",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"ti...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.wrong-hmac-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": "6665646362613938373635343332313066656463626139383736353433323130",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "an HMAC tombstone under another key fails",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.bad-signature",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"6665646362613938373635343332313066656463626139383736353433323130\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"ti...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the tombstone signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.wrong-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "8859667f2d4295615c7aa78a35dc5c9d1d0e18464948cb74c5a06cfec642db9a6df92547e780c1ce3e3c818532af11b4d3943e1b57646f5fd86fb5bdf8259e05"
+            },
+            "tombstone_version": {
+              "$i": "1"
+            }
+          }
+        }
+      },
+      "intent": "an Ed25519 tombstone by a key other than the trusted one",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.wrong-key",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "tombstone.wrong-version",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "tombstone": {
+            "actor": "alice@example",
+            "kind": "opentine.tombstone",
+            "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "purged_at": "2026-11-08T00:00:00Z",
+            "reason": "erasure request 42",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7d3587ccff6fd9318c115d2b915f6221821956fdae85cf7b2213870c619720c6"
+            },
+            "tombstone_version": {
+              "$i": "2"
+            }
+          }
+        }
+      },
+      "intent": "a tombstone_version other than 1",
+      "op": "tombstone.verify",
+      "profile": "verifier",
+      "reason": "tombstone.malformed",
+      "section": "4.14",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"tombstone\": {\"actor\": \"alice@example\", \"kind\": \"opentine.tombstone\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\", \"purged_at\": \"2026-11-08T00:00:00Z\", \"reason\": \"erasure request 42\", \"signature\": {\"alg\": \"hmac-sha256\", \"key_id\": \"vector\", \"scheme\": \"ti...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "tombstone is malformed: tombstone_version must be 1"
+      }
+    }
+  ],
+  "family": "tombstone",
+  "section": "4.14",
+  "suite_version": 1
+}

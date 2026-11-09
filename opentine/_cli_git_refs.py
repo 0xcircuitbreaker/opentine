@@ -1,9 +1,7 @@
 """Git-style ref verbs over a v3 repository: remote, branch, tag, reflog, reset, config.
 
-Every verb here is porcelain over what the store already does: refs move only by
-compare-and-swap (``Repo.update_ref``), deletions take the ref's lock and leave a
-reflog row (``_ref_delete``), and signed tags are ``tine-attest/1`` attestations
-whose claim names the tag, verified by the same code as ``tine repo-verify``.
+Porcelain over the store: refs move by compare-and-swap, deletions lock and log
+(``_ref_delete``), signed tags are ``tine-attest/1`` checked like ``repo-verify``.
 """
 
 from __future__ import annotations
@@ -14,6 +12,7 @@ from typing import Any
 from opentine import _porcelain_config as porcelain
 from opentine._cli_common import _terminal
 from opentine._cli_json import emit
+from opentine._cli_remote_login import cmd_remote_login
 from opentine._ref_delete import delete_ref
 from opentine._repo_cli_keys import verification_keys, verification_pins
 from opentine._repo_cli_render import _short_oid
@@ -34,6 +33,8 @@ def _json(args: argparse.Namespace) -> bool:
 
 
 def cmd_remote(args: argparse.Namespace, console) -> None:
+    if args.remote_action == "login":  # 0.46: device-code OIDC (_cli_remote_login)
+        return cmd_remote_login(args, console)
     repo = Repo.open(args.repo)
     settings = porcelain.load(repo.path)
     remotes = settings["remotes"]

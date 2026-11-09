@@ -2,7 +2,10 @@
 
 Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_cli` (``--json`` outputs) and
-:mod:`opentine._schema_defs_redact` (redaction and doctor); ``docs/schemas`` is
+:mod:`opentine._schema_defs_redact` (redaction and doctor) and
+:mod:`opentine._schema_defs_share` (tombstones, redacted copies) and
+:mod:`opentine._schema_defs_ci` (CI gate and server trust policies) and
+:mod:`opentine._schema_defs_hook` (``opentine-hook/1``); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -15,18 +18,44 @@ from typing import Any
 
 from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
+from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
+from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
+from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
+from opentine._schema_defs_hook import SCHEMAS as _HOOK
+from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
+from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
-from opentine._schema_defs_redact import KIND_SCHEMAS
+from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
+from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
 from opentine._schema_defs_redact import SCHEMAS as _REDACT
+from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
+from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
+from opentine._schema_defs_share import SCHEMAS as _SHARE
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_OBJECTS, **_CLI, **_EVENTS, **_REDACT}
-COMMAND_SCHEMAS: dict[str, str] = {**_CLI_COMMANDS, **_REDACT_COMMANDS}
+SCHEMAS: dict[str, dict[str, Any]] = {
+    **_OBJECTS,
+    **_CLI,
+    **_EVENTS,
+    **_REDACT,
+    **_HOSTED,
+    **_SHARE,
+    **_CI,
+    **_HOOK,
+}
+COMMAND_SCHEMAS: dict[str, str] = {
+    **_CLI_COMMANDS,
+    **_REDACT_COMMANDS,
+    **_HOSTED_COMMANDS,
+    **_SHARE_COMMANDS,
+    **_HOOK_COMMANDS,
+}
+KIND_SCHEMAS: dict[str, str] = {**_REDACT_KINDS, **_SHARE_KINDS, **_CI_KINDS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
-TAG_KEYS = ("schema", "scheme", "format")
+TAG_KEYS = ("schema", "scheme", "format", "protocol")
 
 
 class SchemaError(LookupError):
@@ -67,7 +96,8 @@ def detect(document: Any) -> str:
         command = document.get("command")
         kind = document.get("kind")
         if command is None and isinstance(kind, str) and kind in KIND_SCHEMAS:
-            return KIND_SCHEMAS[kind]
+            versioned = (kind, document.get("report_version"))
+            return KIND_VERSION_SCHEMAS.get(versioned, KIND_SCHEMAS[kind])  # type: ignore[arg-type]
         if tagged and isinstance(command, str):
             # It names a format of its own that is not published (yet): hold it
             # to the envelope, not to the schema of another shape of `command`.

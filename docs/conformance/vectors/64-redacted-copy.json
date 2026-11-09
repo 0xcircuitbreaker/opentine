@@ -1,0 +1,788 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.bad-pack-digest",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:XYZ",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "pack must be sha256:<64 hex>",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.malformed",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:XYZ\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redacted\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/2\", \"signatu...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "redacted copy is malformed: pack must be sha256:<64 hex>"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.extra-field",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "note": "x",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a field the record format does not define",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.malformed",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"note\": \"x\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "redacted copy is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.hmac-key-ed25519-record",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e8cd6be370427e16c077a1fe2cc16ed9c1fac59be3a8903cfab564bd9d56320501f01967931ccae555304aa487d06a9018edb5bca9c087ffd4f3fe59e4a8420e"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a supplied HMAC key never falls back to TOFU",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.wrong-key",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "not the trusted key's algorithm"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.more-redacted-than-objects",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "10"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "70804136d4492a5cc3370f160fbcbc30d9ab79ae15a7b8fb5937c3a34a99b2e4"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "redacted exceeds objects",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.inconsistent",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "redacted exceeds objects"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.no-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "an HMAC record with no key cannot verify",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.no-key",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redacted\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/2\", \"signatur...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "no key for an hmac-sha256 redacted copy"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.pack-mismatch",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a record that names another pack than the bundled one",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.pack-mismatch",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": \"sha256:7777777777777777777777777777777777777777777777777777777777777777\", \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:33333...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the record names another pack"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.redacted-but-same-run",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "87fcf6e781aba74c2aa930d95f81a614f5231136f06457643cce7d91e48e06d1"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "objects changed yet the run oid did not",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.inconsistent",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the run oids must be equal exactly when no object was redacted"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.source-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:6666666666666666666666666666666666666666666666666666666666666666"
+          }
+        }
+      },
+      "intent": "a record re-pointed at another private run",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.bad-signature",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the redacted copy signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.unsigned",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a record without a signature is refused",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.unsigned",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the redacted copy is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redacted-copy.valid-ed25519-tofu",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e8cd6be370427e16c077a1fe2cc16ed9c1fac59be3a8903cfab564bd9d56320501f01967931ccae555304aa487d06a9018edb5bca9c087ffd4f3fe59e4a8420e"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "with no key, an Ed25519 record on its embedded key",
+      "op": "redacted-copy.verify",
+      "output": {
+        "objects": 9,
+        "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "redacted": 2,
+        "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redacted\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/2\", \"signatur...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redacted-copy.valid-ed25519-trusted",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "pack": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e8cd6be370427e16c077a1fe2cc16ed9c1fac59be3a8903cfab564bd9d56320501f01967931ccae555304aa487d06a9018edb5bca9c087ffd4f3fe59e4a8420e"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "an Ed25519 record under the trusted key",
+      "op": "redacted-copy.verify",
+      "output": {
+        "objects": 9,
+        "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "redacted": 2,
+        "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"pack\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redacted-copy.valid-hmac",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "an HMAC record verifies under its key",
+      "op": "redacted-copy.verify",
+      "output": {
+        "objects": 9,
+        "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "redacted": 2,
+        "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redacted-copy.valid-hmac-pack",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a record checked against the pack it came with",
+      "op": "redacted-copy.verify",
+      "output": {
+        "objects": 9,
+        "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "redacted": 2,
+        "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:33333...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redacted-copy.valid-nothing-redacted",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "redacted": {
+              "$i": "0"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "70a66413b0ce557fbdfc11f247031672315f80744ef7cc991025c19b455b788d"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "nothing redacted: the copy is the run itself",
+      "op": "redacted-copy.verify",
+      "output": {
+        "objects": 9,
+        "public_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "redacted": 0,
+        "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"redact...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.wrong-key",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "pack": null,
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "copy_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e8cd6be370427e16c077a1fe2cc16ed9c1fac59be3a8903cfab564bd9d56320501f01967931ccae555304aa487d06a9018edb5bca9c087ffd4f3fe59e4a8420e"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "an Ed25519 record by a key other than the trusted one",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.wrong-key",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"pack\": null, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"copy_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redacted-copy.wrong-version",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "pack": null,
+          "public_key": null,
+          "record": {
+            "copy_version": {
+              "$i": "2"
+            },
+            "kind": "opentine.redacted-copy",
+            "objects": {
+              "$i": "9"
+            },
+            "pack": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "public_run": "run:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "redacted": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "4ec8e923e1e6644c19467d2c5d6dae88ba0b49e4e7793f322686023d9deaacfd"
+            },
+            "source_run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "intent": "a copy_version other than 1",
+      "op": "redacted-copy.verify",
+      "profile": "verifier",
+      "reason": "redacted-copy.malformed",
+      "section": "4.15",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"pack\": null, \"public_key\": null, \"record\": {\"copy_version\": {\"$i\": \"2\"}, \"kind\": \"opentine.redacted-copy\", \"objects\": {\"$i\": \"9\"}, \"pack\": \"sha256:4444444444444444444444444444444444444444444444444444444444444444\", \"public_run\": \"run:sha256:3333333333333333333333333333333333333333333333333333333333333333\", \"redact...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "redacted copy is malformed: copy_version must be 1"
+      }
+    }
+  ],
+  "family": "redacted-copy",
+  "section": "4.15",
+  "suite_version": 1
+}

@@ -1,6 +1,7 @@
 """JSON Schemas for redaction and ``tine doctor`` (0.45.1).
 
-``opentine-redaction-report-1`` is the report object (SPEC 4.13);
+``opentine-redaction-report-1`` is the report object (SPEC 4.13) and
+``opentine-redaction-report-2`` its PII version (SPEC 4.13.1, 0.46);
 ``tine-redaction-rules-1`` the ruleset export. The ``tine-cli-*`` entries are
 the ``--json`` outputs of ``tine redact check|verify`` and ``tine doctor``.
 """
@@ -13,7 +14,12 @@ from opentine._schema_defs import BOOL, INT, SIG, STR, closed, doc, open_, opt
 
 _NAME: dict[str, Any] = {"type": "string", "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"}
 _HEX_DIGEST: dict[str, Any] = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
-_REPORT = {"$ref": "opentine-redaction-report-1.schema.json"}
+_REPORT = {
+    "anyOf": [
+        {"$ref": "opentine-redaction-report-1.schema.json"},
+        {"$ref": "opentine-redaction-report-2.schema.json"},
+    ]
+}
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "opentine-redaction-report-1": doc("opentine-redaction-report-1",
@@ -26,6 +32,20 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "ruleset": _NAME, "run": _NAME, "objects": INT,
             "findings": {"type": "array", "items": closed(["oid", "kind"], {
                 "oid": _NAME, "kind": _NAME})},
+            "clean": BOOL, "signature": SIG})),
+    "opentine-redaction-report-2": doc("opentine-redaction-report-2",
+        "opentine.redaction-report (report_version 2)",
+        "One run re-scanned with `opentine-redaction/3` (SPEC 4.13.1): `tine redact check "
+        "--pii`. Each finding names the detectors that fired (`secret`, the PII detectors, "
+        "`classifier:<kind>`), never the matched text. `signature` is a tine-sig/3 block over "
+        "`opentine.redaction-report.v2:` + JCS({body, header}).",
+        closed(["kind", "report_version", "ruleset", "classifier", "run", "objects", "findings",
+                "clean"], {
+            "kind": {"const": "opentine.redaction-report"}, "report_version": {"const": 2},
+            "ruleset": _NAME, "classifier": _NAME, "run": _NAME, "objects": INT,
+            "findings": {"type": "array", "items": closed(["oid", "kind", "detectors"], {
+                "oid": _NAME, "kind": _NAME,
+                "detectors": {"type": "array", "minItems": 1, "items": _NAME}})},
             "clean": BOOL, "signature": SIG})),
     "tine-redaction-rules-1": doc("tine-redaction-rules-1", "tine-redaction-rules/1",
         "`tine redact rules --json`: the redaction ruleset as data, one row per scan step in "
@@ -78,4 +98,9 @@ COMMAND_SCHEMAS: dict[str, str] = {
 #: ``kind`` value -> schema stem, for documents that carry neither a tag nor a ``command``.
 KIND_SCHEMAS: dict[str, str] = {"opentine.redaction-report": "opentine-redaction-report-1"}
 
-__all__ = ["COMMAND_SCHEMAS", "KIND_SCHEMAS", "SCHEMAS"]
+#: ``(kind, report_version)`` -> schema stem, where one kind has more than one version.
+KIND_VERSION_SCHEMAS: dict[tuple[str, int], str] = {
+    ("opentine.redaction-report", 2): "opentine-redaction-report-2",
+}
+
+__all__ = ["COMMAND_SCHEMAS", "KIND_SCHEMAS", "KIND_VERSION_SCHEMAS", "SCHEMAS"]

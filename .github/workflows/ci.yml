@@ -17,6 +17,7 @@ jobs:
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120  # a hung test fails the job instead of holding CI for 6 h
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     strategy:
@@ -79,6 +80,7 @@ jobs:
   ts-verifier:
     name: TS verifier (Node 20)
     runs-on: ubuntu-24.04
+    timeout-minutes: 20  # a hung test fails the job instead of holding CI for 6 h
     permissions:
       contents: read
     defaults:
@@ -102,6 +104,13 @@ jobs:
       - name: Build and run the conformance vectors
         run: npm test
 
+      - name: Build and test the TS SDK against the verifier just built
+        working-directory: ts/sdk
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm audit --audit-level=low
+
       - name: Rebuild the run-viewer assets and require the committed copy
         working-directory: ts/run-viewer
         run: |
@@ -115,6 +124,7 @@ jobs:
     # OPENSSL_CONF; tests that need the provider skip elsewhere.
     name: FIPS (UBI 9, OpenSSL 3 FIPS provider)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30  # a hung test fails the job instead of holding CI for 6 h
     permissions:
       contents: read
     container:

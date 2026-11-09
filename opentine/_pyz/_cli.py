@@ -1,7 +1,8 @@
 """``python tine-verify.pyz PATH [--pubkey KEY.pub | --key-file KEY] [--strict]``.
 
 PATH is a ``.tine`` file, an evidence folder (one holding ``MANIFEST.sha256``),
-or an eval folder / ``.jsonl`` of ``tine-eval-verdict/1`` verdicts (0.45).
+or an eval folder / ``.jsonl`` of ``tine-eval-verdict/1`` verdicts (0.45), or a
+redaction report, tombstone or redacted-copy record (0.45.1, 0.46).
 Prints one ``tine-pyz-verify/1`` JSON report and exits 0 on a pass, 1 on a
 fail and 2 on a usage error. Before anything is read, every socket connect and
 name lookup in this process is made to raise: offline verification never
@@ -17,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import _artifact, _evalv, _evidence, _redactr
+from . import _artifact, _evalv, _evidence, _records, _redactr
 
 SCHEMA = "tine-pyz-verify/1"
 MAX_KEY_BYTES = 1 << 20
@@ -109,7 +110,10 @@ def main(argv: list[str] | None = None) -> int:
     def one(item: Path) -> dict[str, Any]:
         return verify_file(item, hmac_key=secret, pubkey=pubkey, strict=args.strict)
 
-    if _redactr.is_report(path):
+    if _records.is_record(path):  # 0.46: a tombstone or a redacted-copy record
+        checks = _records.verify_record(path, secret, pubkey)
+        result = report(_records.mode(path), path, checks, args.strict)
+    elif _redactr.is_report(path):
         checks = _redactr.verify_report(path, secret, pubkey)
         result = report("redaction-report", path, checks, args.strict)
     elif _evalv.is_eval(path):

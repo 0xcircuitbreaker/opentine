@@ -139,6 +139,7 @@ class RoleAuthorizationPolicy:
             "search",
             "upload",
             "update_ref",
+            "share",  # 0.46: create, list and revoke share links (_hosted_http)
         },
         "admin": {"*"},
     }

@@ -4,7 +4,9 @@
  * block over `opentine.redaction-report.v1:` + JCS of `{"body", "header"}`
  * (HMAC-SHA256, or Ed25519 under the trusted key or, without one, the embedded
  * key: trust on first use), and `clean` must equal "no findings". Refusals
- * carry `redaction-report.*` codes.
+ * carry `redaction-report.*` codes. Version 2 (0.46, SPEC 4.13.1) adds
+ * `classifier` and a sorted, non-empty `detectors` list per finding, and signs
+ * under `opentine.redaction-report.v2:`.
  */
 
 import { canonicalJson } from "./canon.js";
@@ -14,8 +16,9 @@ import { SCHEME_V3 } from "./artifact.js";
 import { HEADER_KEYS, verifyBlock, type Header, type VerifyKeys } from "./signature.js";
 
 export const REPORT_KIND = "opentine.redaction-report";
-const DOMAIN = "opentine.redaction-report.v1:";
+const DOMAINS: Record<number, string> = { 1: "opentine.redaction-report.v1:", 2: "opentine.redaction-report.v2:" };
 const FIELDS = ["kind", "report_version", "ruleset", "run", "objects", "findings", "clean"];
+const FIELDS_V2 = [...FIELDS, "classifier"];
 const NAME = /^[A-Za-z0-9_.:/@+-]{1,256}$/;
 const encoder = new TextEncoder();
 
@@ -33,15 +36,31 @@ function count(value: JValue | undefined): number | null {
   return null;
 }
 
+function goodHit(hit: JValue, version: number): boolean {
+  const keys = version === 1 ? ["oid", "kind"] : ["oid", "kind", "detectors"];
+  if (!isObject(hit) || hit.size !== keys.length || keys.some((key) => !hit.has(key))) return false;
+  if (!["oid", "kind"].every((key) => typeof hit.get(key) === "string" && NAME.test(hit.get(key) as string))) {
+    return false;
+  }
+  if (version === 1) return true;
+  const names = hit.get("detectors");
+  if (!Array.isArray(names) || names.length === 0) return false;
+  if (!names.every((name) => typeof name === "string" && NAME.test(name))) return false;
+  const sorted = [...new Set(names as string[])].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+  return sorted.length === names.length && sorted.every((name, index) => name === names[index]);
+}
+
 function body(report: JValue): JObject {
   if (!isObject(report) || report.get("kind") !== REPORT_KIND) malformed(`kind is not ${REPORT_KIND}`);
+  const version = count(report.get("report_version"));
+  if (version !== 1 && version !== 2) malformed("report_version must be 1 or 2");
+  const fields = version === 1 ? FIELDS : FIELDS_V2;
   const keys = [...report.keys()];
-  if (keys.some((key) => key !== "signature" && !FIELDS.includes(key)) || FIELDS.some((key) => !report.has(key))) {
+  if (keys.some((key) => key !== "signature" && !fields.includes(key)) || fields.some((key) => !report.has(key))) {
     malformed("a report has exactly the redaction report fields");
   }
-  const out: JObject = new Map(FIELDS.map((name) => [name, report.get(name) as JValue]));
-  if (count(out.get("report_version")) !== 1) malformed("report_version must be 1");
-  for (const name of ["ruleset", "run"]) {
+  const out: JObject = new Map(fields.map((name) => [name, report.get(name) as JValue]));
+  for (const name of version === 1 ? ["ruleset", "run"] : ["ruleset", "run", "classifier"]) {
     const value = out.get(name);
     if (typeof value !== "string" || !NAME.test(value)) malformed(`${name} must be a name`);
   }
@@ -49,12 +68,8 @@ function body(report: JValue): JObject {
   if (objects === null) malformed("objects must be a count");
   const findings = out.get("findings");
   if (!Array.isArray(findings) || findings.length > objects) malformed("findings must be a list no longer than objects");
-  for (const hit of findings) {
-    const ok =
-      isObject(hit) &&
-      hit.size === 2 &&
-      ["oid", "kind"].every((key) => typeof hit.get(key) === "string" && NAME.test(hit.get(key) as string));
-    if (!ok) malformed("each finding is {oid, kind}");
+  if (!findings.every((hit) => goodHit(hit, version))) {
+    malformed(`each finding is ${version === 1 ? "{oid, kind}" : "{oid, kind, detectors}"}`);
   }
   if (typeof out.get("clean") !== "boolean") malformed("clean must be a boolean");
   return out;
@@ -97,7 +112,7 @@ export function verifyRedactionReport(
         ["header", new Map(HEADER_KEYS.map((key) => [key, header.get(key) ?? null]))],
       ]);
       const tail = canonicalJson(view);
-      const head = encoder.encode(DOMAIN);
+      const head = encoder.encode(DOMAINS[count(checked.get("report_version")) as number]);
       const message = new Uint8Array(head.length + tail.length);
       message.set(head);
       message.set(tail, head.length);

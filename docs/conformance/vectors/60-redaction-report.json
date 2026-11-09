@@ -632,7 +632,7 @@
       "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"clean\": false, \"findings\": [{\"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/2\", \"run\": \"run:sha256:111...",
       "x_reference": {
         "exception": "ReportError",
-        "message": "redaction report is malformed: report_version must be 1"
+        "message": "redaction report is malformed: a report has exactly the redaction report fields"
       }
     }
   ],

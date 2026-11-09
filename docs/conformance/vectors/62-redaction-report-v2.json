@@ -1,0 +1,645 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.classifier-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "none",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "email",
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e43f6f05ad102e9f04730339bdc5d43bd35945f4d30ffb7415fc88993c8f70ff"
+            }
+          }
+        }
+      },
+      "intent": "a classifier name edited after signing fails",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.bad-signature",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"none\", \"clean\": false, \"findings\": [{\"detectors\": [\"email\", \"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "the report signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.detectors-edited",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e43f6f05ad102e9f04730339bdc5d43bd35945f4d30ffb7415fc88993c8f70ff"
+            }
+          }
+        }
+      },
+      "intent": "a detector list edited after signing fails",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.bad-signature",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"rulese...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "the report signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.detectors-empty",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "624750787db917e4b17535279d4f6ade784e0b1f68401adf6f4c941c51d118f1"
+            }
+          }
+        }
+      },
+      "intent": "a finding names at least one detector",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.malformed",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"ope...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "redaction report is malformed: each finding is {oid, kind, detectors}"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.detectors-unsorted",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "secret",
+                  "email"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "f4ceed126bfa02dd7c19aa4d6cf66ddb70b83c4a59149fe4f37322ab2eef531c"
+            }
+          }
+        }
+      },
+      "intent": "detectors must be sorted and unique",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.malformed",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"secret\", \"email\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "redaction report is malformed: each finding is {oid, kind, detectors}"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.inconsistent",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": true,
+            "findings": [
+              {
+                "detectors": [
+                  "email",
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "70f6b66733e337f50d43cdbc4a0f7b47b518e561740e34135163c9e47dda3763"
+            }
+          }
+        }
+      },
+      "intent": "a signed version 2 report whose clean disagrees",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.inconsistent",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": true, \"findings\": [{\"detectors\": [\"email\", \"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"},...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "clean disagrees with the findings"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.missing-classifier",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "clean": false,
+            "findings": [
+              {
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/2",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "ddd2a0148ac9056b639de9fad61bb3a7222c0bbd6a915c4cc98fd2aa9cb58784"
+            }
+          }
+        }
+      },
+      "intent": "a version 2 report without classifier is malformed",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.malformed",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"clean\": false, \"findings\": [{\"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/2\", \"run\": \"run:sha256:111...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "redaction report is malformed: a report has exactly the redaction report fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.v1-finding-shape",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "7456dca5b586051c6e7fd5eb46f137a69dc7c5d8216c90d8ad3019c132db3a21"
+            }
+          }
+        }
+      },
+      "intent": "a version 2 finding without detectors is malformed",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.malformed",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/3...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "redaction report is malformed: each finding is {oid, kind, detectors}"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.v1-signature-replayed",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "email",
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "ddd2a0148ac9056b639de9fad61bb3a7222c0bbd6a915c4cc98fd2aa9cb58784"
+            }
+          }
+        }
+      },
+      "intent": "a version 1 signature cannot be replayed onto a version 2 body",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.bad-signature",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"email\", \"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "the report signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redaction-report.v2.valid-ed25519-clean",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "report": {
+            "classifier": "rules/1",
+            "clean": true,
+            "findings": [],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "cf69083ee70c00bd51d29b308bd39a4c686b1bd74056bde1876f132b238e912b8e87d79cbdf662028639a11bd766120f931e7eead30b02c8076ef150e61c8f0f"
+            }
+          }
+        }
+      },
+      "intent": "a clean version 2 Ed25519 report verifies",
+      "op": "redaction-report.verify",
+      "output": {
+        "clean": true,
+        "findings": 0,
+        "objects": 3,
+        "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"report\": {\"classifier\": \"rules/1\", \"clean\": true, \"findings\": [], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/3\", \"run\": \"run:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"signature\": {\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redaction-report.v2.valid-hmac",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "email",
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e43f6f05ad102e9f04730339bdc5d43bd35945f4d30ffb7415fc88993c8f70ff"
+            }
+          }
+        }
+      },
+      "intent": "a version 2 HMAC report verifies under its key",
+      "op": "redaction-report.verify",
+      "output": {
+        "clean": false,
+        "findings": 1,
+        "objects": 3,
+        "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"email\", \"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "redaction-report.v2.valid-tofu",
+      "input": {
+        "value": {
+          "hmac_key_hex": null,
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "card",
+                  "classifier:person",
+                  "gov-id:us-ssn"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "2"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "71251043dcb06791129d098493a5119022ad3438c5dd49eed385412d401024a5bb902d324698a21304a32837208fcbe95b83078f5538aa9a56d576f21ee61100"
+            }
+          }
+        }
+      },
+      "intent": "a version 2 Ed25519 report verifies under its embedded key",
+      "op": "redaction-report.verify",
+      "output": {
+        "clean": false,
+        "findings": 1,
+        "objects": 3,
+        "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": null, \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"card\", \"classifier:person\", \"gov-id:us-ssn\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"2\"}, \"ruleset\": \"opentine-redaction/3\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "redaction-report.v2.wrong-version",
+      "input": {
+        "value": {
+          "hmac_key_hex": "3031323334353637383961626364656630313233343536373839616263646566",
+          "public_key": null,
+          "report": {
+            "classifier": "rules/1",
+            "clean": false,
+            "findings": [
+              {
+                "detectors": [
+                  "email",
+                  "secret"
+                ],
+                "kind": "blob",
+                "oid": "blob:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+              }
+            ],
+            "kind": "opentine.redaction-report",
+            "objects": {
+              "$i": "3"
+            },
+            "report_version": {
+              "$i": "3"
+            },
+            "ruleset": "opentine-redaction/3",
+            "run": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "e43f6f05ad102e9f04730339bdc5d43bd35945f4d30ffb7415fc88993c8f70ff"
+            }
+          }
+        }
+      },
+      "intent": "a report_version other than 1 or 2 is malformed",
+      "op": "redaction-report.verify",
+      "profile": "verifier",
+      "reason": "redaction-report.malformed",
+      "section": "4.13.1",
+      "tier": "core",
+      "x_display": "{\"hmac_key_hex\": \"3031323334353637383961626364656630313233343536373839616263646566\", \"public_key\": null, \"report\": {\"classifier\": \"rules/1\", \"clean\": false, \"findings\": [{\"detectors\": [\"email\", \"secret\"], \"kind\": \"blob\", \"oid\": \"blob:sha256:2222222222222222222222222222222222222222222222222222222222222222\"}], \"kind\": \"opentine.redaction-report\", \"objects\": {\"$i\": \"3\"}, \"report_version\": {\"$i\": \"3\"}...",
+      "x_reference": {
+        "exception": "ReportError",
+        "message": "redaction report is malformed: report_version must be 1 or 2"
+      }
+    }
+  ],
+  "family": "redaction-report",
+  "section": "4.13.1",
+  "suite_version": 1
+}

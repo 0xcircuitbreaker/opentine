@@ -17,3 +17,5 @@ export { verifyFile, type Report } from "./verify.js";
 export { isV5Artifact, v5ToV4, V5_KIND } from "./v5.js";
 export { parseTrailers, TrailerError, type Link as TrailerLink } from "./trailers.js";
 export { verifyRedactionReport, REPORT_KIND as REDACTION_REPORT_KIND, type ReportResult } from "./redactreport.js";
+export { inspectPack, type InspectedPack } from "./pack.js";
+export { webhookClass } from "./webhook.js";

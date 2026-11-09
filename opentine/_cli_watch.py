@@ -19,11 +19,13 @@ from typing import Any
 from urllib.parse import quote
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_share import SHARE_COMMANDS, add_share_parsers
 
 MAX_LINE = 1 << 20
 
 
 def add_watch_parser(sub: argparse._SubParsersAction) -> None:
+    add_share_parsers(sub)  # 0.46: tine share create|revoke|list, tine open
     watch = sub.add_parser("watch", help="Tail a remote's events (SSE) or a repository's op log")
     watch.add_argument("target", nargs="?", help="Remote URL or name, or a repository path")
     watch.add_argument("--repo", default=".", help="Repository whose remotes name TARGET")
@@ -180,6 +182,6 @@ def cmd_watch(args: argparse.Namespace) -> None:
         fail(message, prefix="tine watch: ")
 
 
-WATCH_COMMANDS = {"watch": cmd_watch}
+WATCH_COMMANDS = {"watch": cmd_watch, **SHARE_COMMANDS}  # 0.46: share-link, open
 
 __all__ = ["WATCH_COMMANDS", "add_watch_parser", "cmd_watch", "parse_sse"]

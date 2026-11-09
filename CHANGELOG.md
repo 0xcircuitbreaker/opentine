@@ -1,5 +1,172 @@
 # Changelog
 
+## 0.46.0 — Share it, gate it (2026-11-08)
+
+### Behaviour changes
+
+- `tine serve` answers every not-found or not-allowed read on the hosted-beta
+  routes with the same `404` (`{"error":"not found"}`), so no route reveals
+  whether an oid exists. Anonymous and other-tenant refusals are byte-identical
+  for a real and a nonexistent tenant.
+- `tine serve` refuses to store a tombstoned blob again: a pushed pack that
+  carries one is installed without it.
+- A hook tool name that isn't a string now normalizes to `""`.
+- `tine repo-search --json` gains `remote`, `truncated`, `hybrid` and
+  `embedder`; `GET /v1/capabilities` gains `object_read_http`, `run_closure`,
+  `list`, `search`, `log_http`, `admin`, `share`, `tombstones` and (with a
+  server key or trust policy) `vsa`. Every 0.45 key keeps its meaning.
+
+### Added
+
+- **Hosted-beta caps on `tine serve`** (SPEC 8.14):
+  - `object_read_http` (`GET objects/<oid>`): `private` immutable cache
+    headers, `Vary: Authorization`, ETag and 304.
+  - `run_closure` (`POST runs/<oid>/closure`): one negotiated pack;
+    `lazy_blobs` leaves blobs out and each one is read and authorized on its own.
+  - `list` (`GET list/runs`, `GET list/refs`): cursor-paginated, `limit` 1–500.
+  - `search` now takes `text`, matched against stored run records only.
+  - `log_http` (`GET log/entries`): the tenant's own transparency-log entries.
+  - `admin` (`GET admin/stats`).
+  - `share`: read-only share tokens bound to one run, which expire and can be
+    revoked; the server stores only a SHA-256 of each. Public
+    `/v1/share/<token>` routes (info, closure, objects) return one 404 for an
+    unknown, expired or revoked token and for an oid outside the run.
+- **New CLI commands:** `tine share create|revoke|list` (also `tine
+  share-link`), `tine open RUN`, `tine repo-search --remote`, and `tine remote
+  login` (OAuth 2.0 device-code OIDC; the token is stored owner-only as the
+  remote's `token_file`).
+- **Stable public API v1:** an OpenAPI 3.1 document (`docs/api/openapi-v1.yaml`,
+  SPEC 8.15) generated from the server's route table, covering every hosted-beta,
+  share and tombstone route. Each operation is tagged with the capability that
+  advertises it and its status (`stable`, or `planned` for the `project` cap).
+  A test fails if the document, the route table, the TS SDK and the server
+  disagree.
+- **API conformance suite** (`tests/api_conformance/`) that any implementation
+  runs against a base URL: private tenant routes, refusals independent of the
+  oid and of whether the tenant exists, the uniform 404, 429 with Retry-After,
+  verified packs, share tokens that read only their run and die when revoked,
+  and uniform tombstone 404s. Its client never follows redirects.
+- **`@opentine/sdk`** (`ts/sdk`): a typed TypeScript client that needs only
+  `fetch`, with methods for every v1 route. It never follows redirects, never
+  sends its bearer token on share-token routes, refuses dot-segment path
+  parameters, and parses Retry-After in seconds or as a date.
+  `@opentine/sdk/verified` checks everything it fetches with the TS verifier
+  and runs in browsers. `@opentine/verify` now exports `inspectPack` and
+  `webhookClass`.
+- **Purge with tombstones.** `tine purge OID --reason TEXT
+  (--key-file|--ed25519-key-file)` removes a blob's bytes, keeps its oid and
+  leaves a signed `opentine.tombstone` (SPEC 4.14). `tine fsck` reports
+  `content_unavailable` instead of an error, and `tine purge --list` checks
+  every tombstone. Bundles carry tombstones, and `tine push` / `tine fetch`
+  exchange them with remotes that list `caps.tombstones` (`GET`/`PUT
+  tombstones/<oid>`).
+- **Redacted public copies.** `tine bundle create FILE REF --redacted-public`
+  bundles a re-redacted copy of one run with a signed `opentine.redacted-copy`
+  record (SPEC 4.15); `tine bundle verify --key-file/--pubkey` checks it. A
+  purged blob verifies as `content-unavailable` in Python, the TS verifier and
+  `tine-verify.pyz`.
+- **Gate it in CI.** `tine serve --trust-policy NAME=FILE` (repeatable) admits
+  ref updates only under named `opentine.admission-policy` documents (first
+  covering policy decides; an uncovered ref gets a uniform 403), and `tine
+  serve --vsa-signing-key FILE` signs admission VSAs (DSSE, Ed25519) with the
+  server's own key, recording the policy's URI and file sha256 and
+  `resourceUri` `tine://TENANT/REF` (SPEC 8.17). New GitHub Action
+  `actions/gate` and GitLab component
+  `actions/gitlab/templates/opentine-gate.yml` run `tine verify`, `tine eval
+  verify` and a VSA gate, and edit one PR/MR comment in place. New
+  `actions/preserve-notes` keeps `refs/notes/tine` attribution through squash
+  and rebase merges.
+- **PII detection (`opentine-redaction/3`):** emails, phone numbers, US street
+  addresses and UK postcodes, IBAN, payment cards, and US SSN / UK NINO /
+  Spanish DNI-NIE, each behind a validator; a local-only pluggable classifier
+  layer (`--classifier rules|none|MODULE:ATTR`, `OPENTINE_PII_CLASSIFIER`;
+  default `rules/1` for names and dates of birth). `tine redact check --pii`
+  writes signed redaction reports version 2 (SPEC 4.13.1), checked by Python,
+  the pyz and the TS verifier. Recall and precision are published in
+  docs/PII.md (0.912 / 0.912 on the fixture corpus).
+- **Hybrid search:** `tine repo-search --hybrid [--embedder hash|MODULE:ATTR]`
+  fuses BM25 with a derived local embedding index (`.tine/index/embed.sqlite`,
+  `opentine-embed/1`) by reciprocal rank fusion. Only redacted text is
+  embedded, and the index is rebuilt when the classifier changes. New
+  `opentine[embed]` extra (numpy).
+- **Vendor I/O:** `tine export --format langfuse|phoenix|braintrust|langsmith`
+  (file or stdout only, redacted) and `tine import --format …`. Evaluations
+  travel as `gen_ai.evaluation.result` and as native scores; per-vendor display
+  status is in `docs/VENDOR_IO.md`.
+- **Steer and resume:** steer for Codex (`Stop` → `block`) and Gemini CLI
+  (`AfterAgent` → `deny`) via `tine fleet send`; `tine hook resume --agent
+  codex|gemini|claude-code --session ID --message TEXT [--repo PATH]
+  [--dry-run]`. `opentine-hook/1` is published as `docs/spec/hook-1.md` (SPEC
+  8.16).
+- **Schemas:** `tine-share-1`, `tine-list-page-1`, `tine-cli-share-1`,
+  `tine-cli-open-1`, `opentine-tombstone-1`, `opentine-redacted-copy-1`,
+  `tine-cli-purge-1`, `tine-cli-purge-list-1`, `opentine-admission-policy-1`,
+  `tine-ci-gate-1`, `opentine-redaction-report-2`, `opentine-hook-1` and
+  `tine-cli-hook-resume-1`.
+- **Conformance:** new families `61-vsa` (13 cases), `62-redaction-report-v2`
+  (12), `63-tombstone` (23), `64-redacted-copy` (16) and `67-hook` (35),
+  answered by Python, the TS verifier and the pyz.
+- The suite is now **815 conformance vectors**; 279 of the 815 refuse input, and the adapter contract still has one entry point: 49 ops.
+
+### Security
+
+- Share tokens: failed lookups are rate-limited with 429 and a successful read
+  does not reset the count; every share response sends `Referrer-Policy:
+  no-referrer`; tokens are redacted from access logs; `haves` are honoured only
+  inside the shared run, so a share holder learns nothing about the rest of the
+  tenant.
+- `tine remote login` strips control characters from issuer-supplied text and
+  refuses `http://` issuers without `--allow-insecure`.
+- A remote purge (`PUT tombstones/<oid>` for held content) is admin-only,
+  refused for anything a legal hold reaches, deletes the index row with the
+  bytes, and cannot be undone by a later push.
+- The CI gate fails closed: no checks, a run or eval without a pinned key
+  (`unpinned`), or a VSA for another tenant or ref (`wrong-resource`) all fail.
+  Only the poster's own marker comment is ever edited, so a PR author cannot
+  plant a fake "passed" comment.
+- Vendor import turns malformed files into a clean error; `tine hook resume`
+  resolves the CLI on PATH before recording anything and refuses cmd.exe
+  metacharacters for a Windows `.cmd`/`.bat` shim.
+- A plug-in PII classifier's kinds are limited to `[a-z0-9_-]{1,32}`, and the
+  embedding index is rebuilt when the classifier changes, so stale vectors
+  cannot keep personal data matchable.
+- The server never signs as a user: shares, tombstones and redacted copies are
+  client-signed; admission VSAs carry the server's own key.
+
+### Compatibility
+
+- No existing byte format changed. New object kinds (`opentine.tombstone`,
+  `opentine.redacted-copy`, redaction report version 2, admission VSAs) and
+  every new route are negotiated by `caps`; a 0.34–0.45 client is unaffected.
+- SPEC 0.46.0 adds 4.13.1, 4.14, 4.15 and 8.14–8.17.
+- The TS SDK (`ts/sdk`) is `private: true` and not yet published to npm.
+
+### Deferred
+
+- Project formats and the code mirror (`opentine-project/1`, `caps.project`,
+  `caps.social_export`; ROADMAP §11): not built in this release. The `project`
+  routes stay `planned` in the OpenAPI document.
+- Write-side `log_http`; refresh-token renewal for `remote login`; event and
+  blob text in remote search; indexes for `list/runs`, `admin/stats` and
+  `search text` (they walk the tenant), and `log/entries` re-verifies the log
+  on every request.
+- The share throttle is per process and keyed by `REMOTE_ADDR`; any writer can
+  revoke any share in the tenant; objects fetched through a share stay in that
+  browser's cache after revocation.
+- Writers can pre-record tombstones for content the tenant doesn't hold; local
+  re-fetch doesn't skip tombstoned blobs; `load_run` and the run viewer raise on
+  a purged blob; no `tine serve admin` command for tombstones.
+- The API conformance suite has no CI job against the hosted service, and the
+  OpenAPI document isn't served at `/v1/openapi.json`.
+- CI: "Action used in two external repos" is outside this repository; no
+  endpoint for CI to fetch a VSA; no GitLab preserve-notes; `vsa.policies` is
+  visible to every reader.
+- PII: no redaction on write, the push gate doesn't check PII, address
+  detection is US/UK only, and no real local model adapter ships.
+- Vendor formats are untested against live Langfuse, Phoenix, Braintrust and
+  LangSmith instances, and the Codex/Gemini/Claude resume commands are
+  unconfirmed against the vendors' CLIs.
+
 ## 0.45.1 — Parity and plumbing (2026-11-08)
 
 ### Behaviour changes

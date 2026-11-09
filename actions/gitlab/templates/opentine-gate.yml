@@ -1,0 +1,107 @@
+# OpenTine gate as a GitLab CI/CD component: `tine verify`, `tine eval verify`,
+# a remote's signed admission VSA, and one merge-request note with the verdicts.
+#
+#   include:
+#     - project: <group>/opentine
+#       ref: <tag>
+#       file: actions/gitlab/templates/opentine-gate.yml
+#       inputs:
+#         runs: "runs/build.tine"
+#         vsa: "vsa.json"
+#         vsa-key: "server-vsa.pub"
+#         subject: "run:..."
+#
+# Least privilege: the job needs no token to gate. The MR note needs a project
+# access token with `api` scope in a masked, protected CI/CD variable named
+# OPENTINE_GITLAB_TOKEN; without it the note is skipped and the gate still
+# decides the job. The token is sent only in a request header and never printed.
+# Inputs reach the script through `variables:`, never as
+# interpolated script text; inputs that reach the comment use `expand: false`, so
+# `$VAR` in them is never expanded into a secret.
+# Pin `pubkey`, `eval-pubkey` and `vsa-key` to keys an MR cannot change (a file on
+# the protected branch or a CI/CD file variable): a key read from the MR's own
+# checkout lets the MR author sign their own artifacts.
+spec:
+  inputs:
+    stage:
+      default: test
+    job-name:
+      default: opentine-gate
+    image:
+      default: python:3.12-slim
+    opentine-version:
+      default: "0.46.0"
+      regex: ^[0-9]+\.[0-9]+\.[0-9]+$
+    runs:
+      default: ""
+    pubkey:
+      default: ""
+    eval-dirs:
+      default: ""
+    eval-pubkey:
+      default: ""
+    vsa:
+      default: ""
+    vsa-key:
+      default: ""
+    subject:
+      default: ""
+    vsa-resource:
+      default: ""
+    vsa-policy:
+      default: ""
+    vsa-levels:
+      default: ""
+    comment:
+      default: "true"
+      options: ["true", "false"]
+---
+"$[[ inputs.job-name ]]":
+  stage: $[[ inputs.stage ]]
+  image: $[[ inputs.image ]]
+  variables:
+    OPENTINE_VERSION:
+      value: "$[[ inputs.opentine-version ]]"
+      expand: false
+    RUNS:
+      value: "$[[ inputs.runs ]]"
+      expand: false
+    PUBKEY: "$[[ inputs.pubkey ]]"  # expands: may name a CI/CD file variable
+    EVAL_DIRS:
+      value: "$[[ inputs.eval-dirs ]]"
+      expand: false
+    EVAL_PUBKEY: "$[[ inputs.eval-pubkey ]]"  # expands: may name a CI/CD file variable
+    VSA:
+      value: "$[[ inputs.vsa ]]"
+      expand: false
+    VSA_KEY: "$[[ inputs.vsa-key ]]"  # expands: may name a CI/CD file variable
+    SUBJECT:
+      value: "$[[ inputs.subject ]]"
+      expand: false
+    VSA_RESOURCE:
+      value: "$[[ inputs.vsa-resource ]]"
+      expand: false
+    VSA_POLICY:
+      value: "$[[ inputs.vsa-policy ]]"
+      expand: false
+    VSA_LEVELS:
+      value: "$[[ inputs.vsa-levels ]]"
+      expand: false
+    OPENTINE_COMMENT:
+      value: "$[[ inputs.comment ]]"
+      expand: false
+    OUT: opentine-gate
+  script:
+    - python -m pip install --quiet --disable-pip-version-check "opentine==${OPENTINE_VERSION}"
+    - status=0
+    - python -m opentine._ci_run || status=$?
+    - |
+      if [ "$OPENTINE_COMMENT" = "true" ] && [ -n "${CI_MERGE_REQUEST_IID:-}" ]; then
+        python -m opentine._ci_comment gitlab --body "$OUT/comment.md" || true
+      fi
+    - exit "$status"
+  artifacts:
+    when: always
+    paths:
+      - opentine-gate/summary.json
+      - opentine-gate/comment.md

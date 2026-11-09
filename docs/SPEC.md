@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.45.1 (draft until opentine 0.45.1 is tagged). **Previous
-version:** 0.45.0. Changes between versions are listed in
+**Spec version:** 0.46.0 (draft until opentine 0.46.0 is tagged). **Previous
+version:** 0.45.1. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.45.1.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.45.1/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -1898,6 +1898,119 @@ embedded key);
 trusted key an Ed25519 report rests on its embedded key (trust on first use,
 state `verified-tofu`). Vectors: `60-redaction-report.json`.
 
+<a id="s-4.13.1"></a>
+### 4.13.1 Report version 2: `opentine-redaction/3` with PII (0.46.0+)
+
+`tine redact check --pii` writes version 2 reports. The ruleset
+`opentine-redaction/3` is `opentine-redaction/2` (credentials, detector
+`secret`) plus validated PII detectors (`email`, `phone`, `address`, `iban`
+with ISO 7064 mod 97, `card` with Luhn and an issuer prefix, and
+`gov-id:us-ssn`, `gov-id:uk-nino`, `gov-id:es-dni` with their issuing rules)
+and an optional local classifier layer whose spans are reported as
+`classifier:<kind>` (docs/PII.md). An object that cannot be decoded is reported
+with the detector `unreadable` (fail closed). A version 2 report differs from
+version 1 in exactly these ways:
+
+| Key | Value |
+|---|---|
+| `report_version` | `2` |
+| `ruleset` | `opentine-redaction/3` |
+| `classifier` | the classifier layer's name (`rules/1`, `none`, or a local plug-in's name), same grammar as `run` |
+| `findings` | a list of `{oid, kind, detectors}`; `detectors` is a non-empty, sorted list of distinct names (same grammar as `run`) — never the matched text |
+| `signature` | as in 4.13 but over `b"opentine.redaction-report.v2:"` + JCS(`{"body", "header"}`), so neither version's signature verifies the other's body |
+
+The refusal codes and their order are those of 4.13; a `report_version` other
+than 1 or 2 is `redaction-report.malformed`. Vectors:
+`62-redaction-report-v2.json`.
+
+<a id="s-4.14"></a>
+## 4.14 `opentine.tombstone` — signed purge records (0.46.0+)
+
+`tine purge OID --reason TEXT` removes one blob's bytes from a repository and
+keeps its oid: every event and run that links the blob still hashes the same.
+The purge leaves a tombstone, a JSON object with exactly these keys plus a
+`signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.tombstone"` |
+| `tombstone_version` | `1` |
+| `oid` | the purged blob's oid (`blob:sha256:<64 hex>`; only a blob can be purged) |
+| `reason` | why, as text: 1 to 1024 UTF-8 bytes, not only whitespace, no C0 control character or DEL; redacted before it is signed |
+| `actor` | who purged it (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `purged_at` | when, `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block (§9.6 header; HMAC-SHA256, or Ed25519 with embedded `public_key`) over `b"opentine.tombstone.v1:"` + JCS(`{"body": <the tombstone without signature>, "header": <header>}`) |
+
+A tombstone is signed where the operator's key is; a remote stores and serves
+the record exactly as signed and never signs one. A verifier MUST refuse, with
+the first applicable code: `tombstone.malformed` (a missing, extra or
+ill-formed key); `tombstone.unsigned` (no `signature`); `tombstone.no-key` (an
+HMAC tombstone checked without a key); `tombstone.wrong-key` (a supplied key
+is not the one that signed, with no fallback to the embedded key);
+`tombstone.bad-signature` (the block does not verify). Without a trusted key an
+Ed25519 tombstone rests on its embedded key (state `verified-tofu`).
+
+**Verifying a run with a purged blob.** A verifier walking a run's closure
+(its links, §1.5) through the objects it holds reports a linked object that is
+absent and named by a tombstone as **content-unavailable**, not as a failure:
+the run's oid still binds the blob's oid, only the bytes are gone. The walk
+needs the tombstones' shape (a malformed one is `tombstone.malformed`), not
+their signatures, which are checked as above. Its result is `{run, objects,
+content_unavailable, state}`, `state` being `content-unavailable` when any
+object is, else `verified`. An absent object no tombstone names is
+`tombstone.missing-content`; only a blob can be content-unavailable. Vectors:
+`63-tombstone.json` (ops `tombstone.verify` and `tombstone.closure`).
+
+**Where tombstones live.** A repository keeps one canonical-JSON tombstone per
+purged blob at `tombstones/<blob hex>.json` and lists the oid in `shallow`
+(§2), so links to it still resolve; `fsck` reports the oid under
+`content_unavailable`, never as an error. A pack that would have carried the
+blob carries it as a shallow boundary instead. The tombstones of a pack's
+boundaries travel beside it: a bundle manifest's optional `tombstones` list
+(each record naming a distinct shallow boundary of the bundled pack), and, on a
+remote whose capabilities list `tombstones: true`, `PUT
+/v1/tenants/<t>/tombstones/<oid>` before the pack is uploaded and `GET` of the
+same path after a fetch (`404` when the tenant holds none, whatever the reason).
+A received tombstone is stored only for a blob the receiver does not hold: it
+never deletes bytes the receiver has. A remote purge (a `PUT` for a blob the
+tenant holds) is refused for any object a hold reaches, and a remote never
+stores a tombstoned blob again: a pushed pack that carries one is installed
+without it.
+
+<a id="s-4.15"></a>
+## 4.15 `opentine.redacted-copy` — redacted public copies (0.46.0+)
+
+`tine bundle create FILE REF --redacted-public` derives a public copy of the
+run REF names: every blob it reaches (graph only; annotations and attestations
+stay private) is redacted with the current ruleset until stable, every JSON
+payload is redacted again, and each oid an event or run names is rewritten to
+the oid of the object derived from it. A blob the repository does not hold
+keeps its oid and stays a boundary. The bundle holds only the derived objects,
+the one ref REF naming the derived run, the tombstones of its boundaries, and
+under the manifest key `redacted_public` a record with exactly these keys plus
+a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.redacted-copy"` |
+| `copy_version` | `1` |
+| `source_run` | the private run's oid |
+| `public_run` | the derived run's oid (a ref target of the bundle) |
+| `ruleset` | the redaction ruleset name |
+| `objects` | the number of objects in the pack |
+| `redacted` | how many of them differ from the object they derive from |
+| `pack` | `sha256:<64 hex>` of the bundled pack bytes |
+| `signature` | a `tine-sig/3` block over `b"opentine.redacted-copy.v1:"` + JCS(`{"body", "header"}`), as in §4.14 |
+
+Content addressing makes the two run oids equal exactly when nothing changed.
+A verifier MUST refuse, with the first applicable code:
+`redacted-copy.malformed`; `redacted-copy.unsigned`; `redacted-copy.no-key`;
+`redacted-copy.wrong-key`; `redacted-copy.bad-signature` (each as in §4.14);
+`redacted-copy.inconsistent` (`redacted` exceeds `objects`, or `redacted == 0`
+and `source_run == public_run` disagree); `redacted-copy.pack-mismatch` (the
+record names a pack other than the one it came with). Vectors:
+`64-redacted-copy.json`.
+
 ---
 
 <a id="part-5"></a>
@@ -2469,6 +2582,143 @@ a JSON object whose `format` is `tine-webhook/1`; otherwise **valid**. The
 sender re-signs `T` on every retry and keeps `delivery` unchanged, so a receiver
 de-duplicates by `delivery`. Vectors for 8.13: `59-webhook.json`.
 
+<a id="s-8.14"></a>
+## 8.14 Hosted-beta remote capabilities (0.46, draft)
+
+A remote MAY list these entries in `GET /v1/capabilities`; a client MUST NOT
+use a route whose entry is absent, and every 0.45 key keeps its meaning, so a
+0.34–0.45 client is unaffected. All tenant routes sit under
+`/v1/tenants/<t>/` and authorize the bearer identity for that tenant on every
+request.
+
+- `object_read_http`: `GET objects/<oid>` returns the stored object envelope
+  (`application/vnd.opentine.object`) with `ETag: "<oid>"`,
+  `Cache-Control: private, max-age=31536000, immutable` and
+  `Vary: Authorization`; it MUST NOT be `public`. `If-None-Match` with the
+  same ETag answers 304 after authorization.
+- `run_closure`: `POST runs/<oid>/closure` with `{haves, depth, lazy_blobs,
+  pack_formats, pack_codecs}` returns the run's closure minus `haves` as one
+  pack, negotiated like `fetch`. With `lazy_blobs: true` blobs are left out and
+  become the pack's shallow boundary; `OpenTine-Lazy-Blobs` counts them, and
+  each is read, and authorized, by `GET objects/<oid>`.
+- `list`: `GET list/runs` and `GET list/refs` return `tine-list-page/1`
+  pages (`items`, `next_cursor`), `limit` 1–500. A cursor is opaque.
+- `search`: `POST search` also takes `text` (1–256 characters): run oids whose
+  stored record holds it, case-insensitively, newest first.
+- `log_http`: `GET log/entries` pages this tenant's transparency-log entries
+  (§8.10) with their log indexes.
+- `admin`: `GET admin/stats` (admin role) counts objects by type, refs and
+  active share links.
+- `share`: `POST shares` `{run, ttl, scope}` (writer or admin) returns a
+  `tine-share/1` record with a `token` (`tine_share_` + 43 base64url
+  characters) shown once; the server keeps only its SHA-256. `GET shares`
+  lists records without tokens, `DELETE shares/<id>` revokes. Without a
+  bearer, `GET /v1/share/<token>`, `POST /v1/share/<token>/closure` and
+  `GET /v1/share/<token>/objects/<oid>` read the bound run and only objects
+  in its closure.
+
+An object that is absent, in another tenant, outside a share, or not
+authorized, and a share token that is unknown, expired or revoked, all answer
+the same `404` with body `{"error":"not found"}`: no route is an oracle for
+whether an oid exists. Failed share lookups count against the client like
+failed logins (429 with `Retry-After`); a successful share read MUST NOT
+clear that count, or one live token would let its holder keep guessing. On
+share routes `haves` count only inside the bound run's closure, every answer
+carries `Referrer-Policy: no-referrer`, and the token MUST NOT appear in
+access logs. The server never signs as a user: a
+share grants read access to bytes the viewer re-verifies against the run's own
+signatures.
+
+<a id="s-8.15"></a>
+## 8.15 Remote HTTP API v1 (0.46.0)
+
+The HTTP API of a remote (`tine serve`, and the hosted service) is specified by
+the OpenAPI 3.1 document [`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml),
+`info.version` `1.0.0`. It is generated from the server's route table
+(`opentine/remote/_api_routes.py`), and `tests/test_api_v1_openapi.py` fails if
+the document, the table and the dispatcher disagree. Every operation carries
+`x-opentine-cap` (the key in `GET /v1/capabilities` that advertises it, or
+`null` for the core protocol) and `x-opentine-status`: `stable` routes are
+served by this release, including every hosted-beta route of 8.14 and the
+`tombstones` routes of 4.14; `planned` routes (the `project` cap) are reserved
+shapes, and a client calls any capability-tagged route only when its cap is
+advertised.
+
+Rules every implementation keeps: tenant routes are private by default (no
+anonymous read; `401` without valid credentials); every read is authorized
+per tenant; a request for an object the caller may not read answers exactly
+like one for an object that does not exist (a uniform `404`, or, for `fetch`,
+an empty pack), and a tenant-level refusal (`401`/`403`) never depends on the oid
+asked for or on whether the tenant exists, so no response is an oid- or
+tenant-existence oracle; repeated failed
+authentication and exhausted quotas answer `429` with `Retry-After`; and the
+server never signs as a user: signed objects (runs, attestations, project
+manifests) arrive client-signed and are stored as received. A client verifies
+what it fetches by recomputing every oid (2.8, and the TS SDK's
+`@opentine/sdk/verified`). `tests/api_conformance/` is the black-box suite an
+implementation runs against its base URL. No byte format changed.
+
+<a id="s-8.16"></a>
+## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
+
+`tine hook capture` reads one JSON event on stdin and answers one JSON object
+on stdout, always exiting 0. The protocol is published as its own versioned
+document, [`docs/spec/hook-1.md`](spec/hook-1.md), which is normative for: the
+generic envelope (`protocol`, `event` one of `prompt`/`tool`/`turn_end`/
+`session_end`, `session`, `prompt`, `tool`, `message`, `cwd`); the vendor event
+names and payload translations (Claude Code, Codex, Gemini CLI, Copilot CLI,
+Droid, Antigravity); the rules that refuse a payload (not an object, an
+undefined event, a session that is not a non-empty string); the session ref
+`heads/capture/<agent>/<digest>`; and each vendor's turn-end answer when steer
+messages are delivered (`decision: "block"` for Claude Code and Codex,
+`decision: "deny"` for Gemini CLI). Vectors for 8.16: `67-hook.json` (ops
+`hook.normalize`, `hook.respond`).
+
+<a id="s-8.17"></a>
+## 8.17 Admission VSAs and named server trust policies (0.46.0)
+
+A remote run as `tine serve --vsa-dir DIR` or `--trust-policy NAME=FILE`
+records every admitted ref update as an in-toto Statement v1 whose
+`predicateType` is `https://slsa.dev/verification_summary/v1` (a SLSA VSA):
+one `subject` `{"name": <oid>, "digest": {"sha256": <oid hex>}}`, and a
+`predicate` with `verifier.id`, `timeVerified`, `resourceUri`
+(`tine://<tenant>/<ref>`), `policy`, `inputAttestations` (empty),
+`verificationResult` (`PASSED`) and the sorted `verifiedLevels`. With a server
+key it is wrapped in a DSSE envelope (`payloadType`
+`application/vnd.in-toto+json`, Ed25519 over the DSSE v1 PAE, as 9.x
+`tine-attest` envelopes). The key is the server's own: a remote never signs as
+a user. `GET /v1/capabilities` advertises it as `vsa.keys` (entries
+`{"kid", "alg": "ed25519", "public_key"}` exactly as `webhooks.keys` in 8.13),
+with `vsa.predicate_type`, `vsa.verifier` and the configured `vsa.policies`
+URIs.
+
+A named policy is an `opentine.admission-policy` version 1 JSON document
+(`docs/schemas/opentine-admission-policy-1.schema.json`): required `refs`
+(fnmatch globs over the normalized ref name), optional `tenants`, `roles`
+(any one), `subjects`, `object_types` (of the ref's target) and `levels`
+(default `["OPENTINE_ADMITTED"]`). Policies are tried in the order given; the
+first whose `tenants` and `refs` cover the update decides it, and an update no
+policy covers is refused. The VSA's `predicate.policy` is then
+`{"uri": "opentine:trust-policy/<NAME>", "digest": {"sha256": <sha256 of the
+policy file's bytes>}}`; without a named policy it is
+`{"uri": "opentine:admission/default"}`.
+
+A verifier holding the server's 32-byte key pinned checks an envelope for an
+expected subject, optionally a required resource (`tine://TENANT/REF`) and a
+required policy URI, and a set of required
+levels, and answers in this order: **malformed** (not a DSSE envelope of that
+payload type, a non-base64 payload or signature, a signature entry with keys
+other than `keyid`/`sig`, or no signatures), **bad-signature** (no signature
+verifies under the pinned key), **malformed** (the signed payload is not a
+Statement v1 VSA with exactly one subject carrying a 64-hex sha256, a
+`verifiedLevels` string list, a `policy.uri` string and, when present, a string
+`resourceUri`), **wrong-subject**, **wrong-resource** (a resource was required
+and `predicate.resourceUri` differs: objects are content-addressed, so without
+this a VSA one tenant's ref earned could be replayed for another's), **failed** (`verificationResult` is not `PASSED`), **wrong-policy**,
+**missing-level**; otherwise **valid**. Reference: `opentine/_vsa_verify.py`
+(standard library plus an injectable Ed25519, vendored into
+`tine-verify.pyz`). Vectors for 8.17: `61-vsa.json`.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -2972,6 +3222,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

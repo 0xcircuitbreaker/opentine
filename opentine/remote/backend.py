@@ -136,6 +136,11 @@ class FilesystemObjectStore:
         """
         return held_oids(self.root / ".holds" / valid_tenant(tenant))
 
+    def tombstoned(self, tenant: str, oid: str) -> bool:  # 0.46, ``_tombstone_store``
+        from opentine.remote._tombstone_store import has
+
+        return has(self.root, tenant, oid)
+
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
         if oid in self.held(tenant):  # before the hook: a held object is never offered

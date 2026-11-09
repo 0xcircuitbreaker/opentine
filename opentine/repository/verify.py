@@ -37,6 +37,8 @@ class FsckResult:
     #: Objects verified; fewer than ``objects`` when a budget stopped the walk.
     checked: int = 0
     complete: bool = True
+    #: 0.46: purged blobs (a tombstone, no bytes) -- reported, never an error.
+    content_unavailable: tuple[str, ...] = ()
 
 
 def _cycle_errors(repo: Repo, oids: list[str]) -> list[str]:
@@ -218,4 +220,22 @@ def fsck(
     if deep:
         errors.extend(_pack_errors(repo))
         errors.extend(_cycle_errors(view, oids) if complete else ())
-    return FsckResult(not errors, len(oids), len(refs), tuple(errors), checked, complete)
+    unavailable = _unavailable(repo, errors)  # may add an error: before ``ok``
+    ok = not errors
+    return FsckResult(ok, len(oids), len(refs), tuple(errors), checked, complete, unavailable)
+
+
+def _unavailable(repo: Repo, errors: list[str]) -> tuple[str, ...]:
+    """Tombstoned blobs whose bytes are gone; a corrupt tombstone file is an error."""
+    from opentine.repository import _tombstones
+
+    found = []
+    for oid in _tombstones.listed(repo):
+        try:
+            _tombstones.read(repo, oid)
+        except (KernelError, OSError, ValueError) as exc:
+            errors.append(f"tombstone {oid}: {exc}")
+            continue
+        if not repo.has(oid):
+            found.append(oid)
+    return tuple(found)

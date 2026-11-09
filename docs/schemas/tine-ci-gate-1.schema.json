@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-ci-gate-1.schema.json",
+  "title": "tine-ci-gate/1",
+  "description": "The CI gate's summary: one row per `tine verify`, `tine eval verify` output and admission VSA checked; `ok` only when there was at least one check and all passed. Rows carry fixed classes and sanitized names, never tool output or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "ok",
+    "checks"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tine-ci-gate/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "name",
+          "ok",
+          "class"
+        ],
+        "properties": {
+          "check": {
+            "enum": [
+              "verify",
+              "eval",
+              "vsa"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "class": {
+            "enum": [
+              "passed",
+              "failed",
+              "error",
+              "unreadable",
+              "malformed",
+              "valid",
+              "bad-signature",
+              "unpinned",
+              "wrong-subject",
+              "wrong-resource",
+              "wrong-policy",
+              "missing-level"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,8 @@
 
 ``check`` re-scans every run reachable from ``heads/*`` (or each ``--run``) with
 the current ruleset and prints one redaction report per run
-(:mod:`opentine._push_gate`); a key flag signs each report. It exits 4
+(:mod:`opentine._push_gate`); a key flag signs each report. ``--pii`` (0.46)
+writes version 2 reports under ``opentine-redaction/3`` (:mod:`opentine._pii_report`). It exits 4
 (verification failed) when any run has findings and 3 (not found) for a
 ``--run`` that does not resolve.
 
@@ -37,6 +38,12 @@ def add_redact_parser(sub: Any) -> None:
     keys.add_argument("--ed25519-key-file", metavar="PATH", help="Sign each report (Ed25519)")
     check.add_argument("--key-id", help="Key id recorded in each report signature")
     check.add_argument("--out", metavar="PATH", help="Also write the reports as JSON to PATH")
+    check.add_argument(
+        "--pii", action="store_true", help="Also detect PII (opentine-redaction/3, report v2)"
+    )
+    check.add_argument(
+        "--classifier", metavar="SPEC", help="With --pii: rules (default), none or MODULE:ATTR"
+    )
     check.add_argument("--json", action="store_true")
     verify = actions.add_parser("verify", help="Verify signed redaction reports; exit 4 on failure")
     verify.add_argument("report", metavar="REPORT", help="A report file (check --out or --json)")
@@ -87,7 +94,15 @@ def _check(args: argparse.Namespace) -> None:
 
     repo = Repo.open(args.repo)
     sign = _signer(args)
-    reports = [sign(_push_gate.run_report(repo, oid)) for oid in _runs(repo, args.run)]
+    make = _push_gate.run_report
+    if args.pii:
+        from opentine import _pii_classify, _pii_report
+
+        classifier = _pii_classify.load(args.classifier)
+        make = lambda repo, oid: _pii_report.run_report(repo, oid, classifier)  # noqa: E731
+    elif args.classifier:
+        raise ValueError("--classifier needs --pii")
+    reports = [sign(make(repo, oid)) for oid in _runs(repo, args.run)]
     clean = all(report["clean"] for report in reports)
     if args.out:
         atomic_write_bytes(Path(args.out), canonical_json(reports))
@@ -98,7 +113,8 @@ def _check(args: argparse.Namespace) -> None:
             mark = "[green]clean[/]" if report["clean"] else "[red]findings[/]"
             console.print(f"{report['run']}  {mark}  {report['objects']} object(s)")
             for hit in report["findings"]:
-                console.print(f"  {hit['kind']}  {hit['oid']}")
+                names = ",".join(hit.get("detectors", []))
+                console.print(f"  {hit['kind']}  {hit['oid']}  {names}".rstrip())
     if not clean:
         raise SystemExit(VERIFICATION_FAILED)
 

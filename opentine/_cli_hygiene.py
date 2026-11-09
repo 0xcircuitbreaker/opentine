@@ -1,6 +1,7 @@
-"""``tine redact check|verify|rules`` and ``tine doctor [--bundle PATH]`` (0.45).
+"""``tine redact check|verify|rules``, ``tine purge`` and ``tine doctor`` (0.45, 0.46).
 
-The ``redact`` verbs live in :mod:`opentine._cli_redact`. ``tine doctor`` prints
+The ``redact`` verbs live in :mod:`opentine._cli_redact`, ``purge`` in
+:mod:`opentine._cli_purge`. ``tine doctor`` prints
 offline environment checks (:mod:`opentine._doctor`); ``--bundle PATH`` also
 writes them as a redacted support bundle. ``--json`` output follows
 ``tine-cli-doctor-1``; the command exits 1 only on a ``fail`` row.
@@ -15,11 +16,13 @@ from typing import Any
 from rich.markup import escape
 
 from opentine._cli_common import console
+from opentine._cli_purge import add_purge_parser, cmd_purge
 from opentine._cli_redact import add_redact_parser, cmd_redact
 
 
 def add_hygiene_parsers(sub: Any) -> None:
     add_redact_parser(sub)
+    add_purge_parser(sub)  # 0.46: tine purge, tombstones
     doctor = sub.add_parser("doctor", help="Check environment, keys, hooks, harnesses, remotes")
     doctor.add_argument("--repo", default=".")
     doctor.add_argument("--bundle", metavar="PATH", help="Write a redacted support bundle")
@@ -49,6 +52,6 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-COMMANDS = {"redact": cmd_redact, "doctor": cmd_doctor}
+COMMANDS = {"redact": cmd_redact, "purge": cmd_purge, "doctor": cmd_doctor}
 
-__all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_redact"]
+__all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_purge", "cmd_redact"]

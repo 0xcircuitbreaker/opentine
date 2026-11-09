@@ -173,6 +173,23 @@ writes an in-toto SLSA Verification Summary Attestation
 (`https://slsa.dev/verification_summary/v1`) for every admitted push to
 `DIR/<tenant>/<sha256>.json`.
 
+New in 0.46: `serve --trust-policy NAME=FILE` (repeatable) admits ref updates
+only under a named server-side policy (`opentine.admission-policy` version 1,
+schema `docs/schemas/opentine-admission-policy-1.schema.json`): `refs` globs
+(required; fnmatch, so `*` also matches `/`: `heads/*` covers `heads/a/b`) and optional `tenants`, `roles`, `subjects`, `object_types` and the
+`levels` the VSA records. Policies are tried in order and the first whose
+tenants and refs cover the update decides; an update no policy covers, or one
+the deciding policy refuses, gets 403, so naming any policy makes admission
+fail-closed. Each VSA's `predicate.policy` is
+`{"uri": "opentine:trust-policy/NAME", "digest": {"sha256": <file sha256>}}`.
+`serve --vsa-signing-key FILE` (a 32-byte seed or 64-char hex) wraps each VSA
+in a DSSE envelope signed by the server's own Ed25519 key, and
+`GET /v1/capabilities` then lists `vsa.keys` (`{"kid", "alg", "public_key"}`,
+as `webhooks.keys`) and the policy URIs under `vsa.policies` for a CI gate to
+pin. The policy is operator configuration: nothing in a pushed repository
+selects one, and the server signs VSAs only with its own key, never as a user. CI
+integrations that gate on these VSAs are in [CI.md](CI.md).
+
 ## Default output format
 
 ```
@@ -229,6 +246,32 @@ verifier key is in `.tine/log/op/vkey`.
   events were missed (re-list refs).
 
 Event kinds, the SSE endpoint and signed webhooks: [EVENTS.md](EVENTS.md).
+
+## Hosted remotes: share links, open, login (0.46)
+
+These verbs take a remote by name (`tine remote add`) or URL, plus `--tenant`,
+`--token-file` and `--allow-insecure` like `tine watch`. The token comes from
+`--token-file`, the remote's `token_file` or `TINE_REMOTE_TOKEN` and is never
+printed. The server side is `tine serve` (SPEC §8.14).
+
+* `tine share create RUN [--ttl 7d] [--remote R] [--json]` asks the remote for
+  a read-only link to one run that expires (`--ttl` seconds, or with an
+  `s`/`m`/`h`/`d` suffix; at most 90 days). The token is shown once.
+  `tine share list [--run RUN]` lists ids and states (`active`, `expired`,
+  `revoked`), never tokens; `tine share revoke ID` revokes one. The verb is
+  `tine share-link`; `--json` prints `tine-cli-share/1`.
+* `tine open RUN [--remote R] [--web-url URL] [--print] [--json]` prints the
+  run's page in the web app and opens it on a terminal. The base is
+  `--web-url`, else `TINE_WEB_URL`, else the trusted `web.url` setting, else the
+  remote's URL. `--json` prints `tine-cli-open/1`.
+* `tine repo-search QUERY --remote R [--json]` searches the remote's runs
+  (`caps.search`) instead of the local repository.
+* `tine remote login NAME --issuer URL --client-id ID` signs in with the OAuth
+  2.0 device-code flow (RFC 8628) against the issuer's OIDC discovery document:
+  it prints the code and URL to enter on stderr, polls until approved, stores
+  the `id_token` (or `--use-access-token`) owner-only under
+  `$XDG_CONFIG_HOME/opentine/credentials/` and records that path as the
+  remote's `token_file`.
 
 ## Offline verification (0.25)
 
@@ -493,6 +536,18 @@ paths are made relative to the enclosing repository (the nearest directory with
 id rides in `metadata["io.github.0xcircuitbreaker.opentine"]`. `version` is `"0.1"`, the spelling the
 published schema accepts. `--endpoint` is refused.
 
+### Vendor I/O (0.46)
+
+```sh
+tine export RUN --format langfuse --output langfuse.json      # POST /api/public/ingestion body
+tine export RUN --format phoenix|braintrust|langsmith --output FILE
+tine import FILE --format langfuse|phoenix|braintrust|langsmith --repo runs
+```
+
+Files only (an `--endpoint` is refused): the vendor's ingestion body, or its own
+export, through the OTLP importer. Scores travel as `gen_ai.evaluation.result`
+and each vendor's native score record. See [VENDOR_IO.md](VENDOR_IO.md).
+
 ## Citation export (0.25)
 
 ```
@@ -655,6 +710,13 @@ the query, best BM25 match first, at most 50 rows of run id, status, models and
 a snippet of at most 240 characters. It never scans the store or builds the
 index; without one it answers `{"indexed": false, ...}`.
 
+New in 0.46, `tine repo-search QUERY --hybrid [--embedder hash|MODULE:ATTR]`
+fuses the BM25 ranking with a local embedding index of redacted text
+(`.tine/index/embed.sqlite`) by reciprocal rank fusion; `--json` adds
+`hybrid` and `embedder`. `--hybrid` with `--no-index`, and `--embedder` without
+`--hybrid`, are usage errors. The `embed` extra (`opentine[embed]`) adds numpy
+for the similarity scan. See [PII.md](PII.md#hybrid-search).
+
 ## Cost export (0.44)
 
 ```text
@@ -682,9 +744,16 @@ use, and `basis` says so). The statement covers the cost the run *recorded*;
 | `tine hook capture [--agent NAME] [--event NAME] --repo PATH` | `opentine-hook/1`: one JSON event on stdin becomes one durable step of the session's run; prints a JSON response and always exits 0 |
 | `tine enable [--agent NAME] [--dry-run] --repo PATH` | Adds the capture shims to the Claude Code, Codex, Gemini CLI, Copilot CLI, Factory Droid and Antigravity hook files and sets `hooks.capture`; `--dry-run` prints the unified diff only |
 | `tine disable [--agent NAME] [--dry-run]` | Restores each hook file byte for byte (or removes only the shims if it was edited since) |
+| `tine hook resume --agent codex\|gemini\|claude-code --session ID --message TEXT [--repo PATH] [--dry-run]` | 0.46: continues an ended session with the CLI's own resume command (`codex exec resume`, `gemini --resume`, `claude --resume`), run without a shell (resolved on PATH; a Windows `.cmd` shim refuses messages with cmd.exe metacharacters); `--repo` first records the message as a `steer` step on the session's capture run; `--dry-run` prints the plan (`tine-cli-hook-resume-1`) |
 
 Capture records nothing unless the repository's trusted config sets
 `hooks.capture`. See [CAPTURE.md](CAPTURE.md#per-turn-capture-tine-hook-capture-opentine-hook1).
+
+Since 0.46 a `tine fleet send` message steers Codex (its `Stop` hook answers
+`{"decision": "block", "reason": ...}`) and Gemini CLI (`AfterAgent`,
+`{"decision": "deny", "reason": ...}`) as well as Claude Code. The protocol
+is published as [`docs/spec/hook-1.md`](spec/hook-1.md) (SPEC 8.16, vectors
+`67-hook.json`).
 
 ## MCP proxy capture (0.38)
 
@@ -873,6 +942,7 @@ tine push REMOTE [--allow-unredacted REASON] ...
 tine bundle push REMOTE [REF]... [--allow-unredacted REASON]
 tine redact check [--run RUN]... [--key-file K | --ed25519-key-file K] [--key-id ID]
                   [--out PATH] [--json] [--repo R]
+                  [--pii [--classifier rules|none|MODULE:ATTR]]     # 0.46
 tine redact verify REPORT [--key-file K | --pubkey K.pub] [--json]   # 0.45.1
 tine redact rules [--json]                                           # 0.45.1
 tine doctor [--bundle PATH] [--json] [--repo R]
@@ -905,6 +975,13 @@ when any report has findings and 3 (not found) when a `--run` does not resolve
 clean, reports}` (`tine-cli-redact-check-1`; each report follows
 `opentine-redaction-report-1`).
 
+`--pii` (0.46) re-scans under `opentine-redaction/3` (credentials plus the
+PII detectors and local classifier layer of [PII.md](PII.md)) and writes
+version 2 reports (SPEC 4.13.1, `opentine-redaction-report-2`): each finding is
+`{oid, kind, detectors}` and the report carries `classifier`; they are signed
+over `opentine.redaction-report.v2:` and checked by `62-redaction-report-v2.json`.
+`--classifier` without `--pii` is a usage error.
+
 `tine redact verify REPORT` checks every report in REPORT (one report, the list
 `--out` writes, or `--json` output): the field rules, the `tine-sig/3` block
 under `--key-file` (HMAC) or `--pubkey` (Ed25519; without one, the embedded key,
@@ -925,6 +1002,64 @@ capabilities are not probed). It exits 1 only on a `fail` row. `--json` follows
 `tine-cli-doctor-1` (0.45.1 adds `command: "doctor"`). `--bundle PATH`
 writes the report as canonical JSON after `redact_value`, and refuses to write
 it if any credential shape survives.
+
+## Purge, tombstones and redacted public copies (0.46)
+
+```
+tine purge OID --reason TEXT (--key-file K | --ed25519-key-file K) [--key-id ID]
+           [--actor NAME] [--json] [--repo R]
+tine purge --list [--key-file K | --pubkey K.pub] [--json] [--repo R]
+tine bundle create FILE REF --redacted-public (--key-file K | --ed25519-key-file K)
+                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5] [--repo R]
+tine bundle verify FILE [--key-file K | --pubkey K.pub]
+```
+
+`tine purge OID --reason TEXT` removes one blob's bytes and keeps its oid, so
+every event and run that links it still hashes the same. It writes a signed
+`opentine.tombstone` (SPEC 4.14): `{kind, tombstone_version: 1, oid, reason,
+actor, purged_at}` plus a `tine-sig/3` block over `opentine.tombstone.v1:` +
+JCS of `{body, header}`. The reason is redacted before it is signed; the actor
+is `--actor`, else `--key-id`, else `local`. A purge needs a signing key and is
+refused for a blob reachable from a hold (`tine hold`). The bytes leave through
+the prune quarantine under the gc lock: a loose file is moved out, a packed
+copy is dropped by rewriting its pack, every kept transfer pack carrying it is
+deleted, and the derived search index is deleted (rebuild it with `tine
+repo-search --rebuild-index`). The oid joins the shallow boundary list, so
+`tine fsck` stays ok and lists it under `content_unavailable`. `--json` follows
+`tine-cli-purge-1`; an unknown blob exits 3.
+
+`tine purge --list` prints every tombstone with `content: unavailable` (or
+`present`, for one imported beside a copy still held) and its trust:
+`verified` under `--key-file`/`--pubkey`, `verified-tofu` for an Ed25519
+record with neither, `unchecked` for an HMAC record without its key, or
+`failed` with its `tombstone.*` reason, which exits 4. `--json` follows
+`tine-cli-purge-list-1`.
+
+Tombstones travel with the packs that leave the purged blob out: a bundle
+manifest carries them under `tombstones`, and `tine push` sends them (`PUT
+tombstones/<oid>`) before the pack to a remote that lists `caps.tombstones`;
+`tine fetch` asks for the tombstone of each blob boundary it received. The
+remote stores the record exactly as signed and never signs one; a `PUT` for a
+blob the tenant still holds is a purge there and needs the admin-only `purge`
+permission, and `GET` answers the same `404` for an oid that was never purged,
+never existed or is another tenant's. A received tombstone is stored only for a
+blob the receiver does not hold: it never deletes local bytes.
+
+`tine bundle create FILE REF --redacted-public` bundles a redacted public copy
+of the one run REF names: each blob it reaches (never its annotations or
+attestations) is re-redacted with the current ruleset, every payload is
+redacted again, and each event and the run are rewritten to link the new oids,
+so the copy has its own run oid, under REF. The manifest key `redacted_public`
+holds a signed `opentine.redacted-copy` (SPEC 4.15): `{source_run, public_run,
+ruleset, objects, redacted, pack}`, where `pack` is the digest of the bundled
+pack, so the web can publish the copy and show which private run it came from
+without exposing that run. `tine bundle verify` reports a bundle's
+`content_unavailable` oids and, for a public copy, `redacted_public` with the
+record's state (as for `purge --list`); a `failed` record exits 4. `python
+tine-verify.pyz RECORD.json [--pubkey K | --key-file K]` checks a tombstone or
+redacted-copy record offline (modes `tombstone`, `redacted-copy`); the
+`63-tombstone.json` and `64-redacted-copy.json` conformance families pin
+Python, the TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)
 

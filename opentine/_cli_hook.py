@@ -13,7 +13,9 @@ only prints a ``config.yaml`` snippet (:mod:`opentine._cli_hook_hermes`).
 journals one payload read from stdin (:mod:`opentine._hook_journal`).
 ``tine hook capture --agent NAME --repo PATH`` is the generic per-turn protocol
 ``opentine-hook/1`` (:mod:`opentine._hook_protocol`); ``tine enable`` points the
-agent CLIs at it.
+agent CLIs at it. ``tine hook resume --agent A --session ID --message TEXT``
+continues an ended Codex, Gemini CLI or Claude Code session with its own resume
+command (:mod:`opentine._hook_resume`).
 """
 
 from __future__ import annotations
@@ -45,7 +47,9 @@ def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.Argument
     parser = subparsers.add_parser(
         "hook", help="Install agent-CLI hooks that import every finished session"
     )
-    parser.add_argument("action", choices=("install", "uninstall", "status", "event", "capture"))
+    parser.add_argument(
+        "action", choices=("install", "uninstall", "status", "event", "capture", "resume")
+    )
     parser.add_argument(
         "--global", dest="global_", action="store_true",
         help="Edit the user-level hook files (the only scope supported)",
@@ -60,6 +64,8 @@ def add_hook_parser(subparsers: argparse._SubParsersAction) -> argparse.Argument
         "--event", choices=HINTS,
         help="capture: the agent's event name, for CLIs whose payload omits it",
     )  # fmt: skip
+    parser.add_argument("--session", metavar="ID", help="resume: the agent's session id")
+    parser.add_argument("--message", metavar="TEXT", help="resume: the prompt to continue with")
     return parser
 
 
@@ -102,6 +108,14 @@ def cmd_hook(args: argparse.Namespace) -> None:
         from opentine._hook_protocol import run_capture
 
         raise SystemExit(run_capture(args.repo, (args.agent or ["generic"])[-1], hint=args.event))
+    if args.action == "resume":  # an ended session, by its CLI's own resume command
+        from opentine._hook_resume import run
+
+        try:
+            agent = (args.agent or [""])[-1]
+            raise SystemExit(run(agent, args.session, args.message, args.repo, args.dry_run))
+        except (OSError, ValueError) as exc:
+            raise _fail(str(exc)) from exc
     if set(args.agent or []) & {"generic", *NATIVE}:
         raise _fail("--agent generic/copilot/droid/antigravity only apply to `tine hook "
                     "capture` (`tine enable` installs their per-turn hooks)")  # fmt: skip

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-redaction-report-2.schema.json",
+  "title": "opentine.redaction-report (report_version 2)",
+  "description": "One run re-scanned with `opentine-redaction/3` (SPEC 4.13.1): `tine redact check --pii`. Each finding names the detectors that fired (`secret`, the PII detectors, `classifier:<kind>`), never the matched text. `signature` is a tine-sig/3 block over `opentine.redaction-report.v2:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "report_version",
+    "ruleset",
+    "classifier",
+    "run",
+    "objects",
+    "findings",
+    "clean"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.redaction-report"
+    },
+    "report_version": {
+      "const": 2
+    },
+    "ruleset": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "classifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "objects": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "oid",
+          "kind",
+          "detectors"
+        ],
+        "properties": {
+          "oid": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+          },
+          "detectors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+            }
+          }
+        }
+      }
+    },
+    "clean": {
+      "type": "boolean"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

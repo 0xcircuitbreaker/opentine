@@ -12,7 +12,7 @@ from urllib.parse import quote
 import httpx
 
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository import _pack4, _pack_peer, _remote_tlog
+from opentine.repository import _pack4, _pack_peer, _remote_tlog, _tombstone_sync
 from opentine.repository._http import client as _client
 from opentine.repository._http import read_pack as _read_pack  # noqa: F401
 from opentine.repository._http import request_json as _request_json
@@ -145,6 +145,9 @@ def fetch(
         )
     held_before = runs_held(repo, remote_refs)
     result = repo.import_pack(pack)
+    with _client(base, token, allow_insecure=allow_insecure, timeout=timeout) as client:
+        prefix = _prefix(namespace)
+        _tombstone_sync.receive(repo, client, _request_json, prefix, caps, pack, timeout)
     # A filtered or shallow fetch may intentionally omit the advertised root.
     # Only materialize a tracking ref when its target is actually present and
     # verified locally; otherwise the fetched objects remain inspectable
@@ -191,6 +194,8 @@ def push(
         pack, missing = fitted_pack(repo, [local_oid], known, omitted=short)
         if gate is not None:
             gate(missing)
+        prefix = _prefix(namespace)
+        _tombstone_sync.send(repo, client, _request_json, prefix, caps, pack, timeout)  # 0.46
         pack = _pack_peer.for_peer(pack, caps)  # v4/v5 only to a server listing it
         uploaded = _upload(
             client,
@@ -210,7 +215,6 @@ def push(
         local_annotation = repo.read_ref(annotation) if annotation else None
         if annotation and local_annotation:
             moves.append((annotation, local_annotation, _refs(refs).get(annotation)))
-        prefix = _prefix(namespace)
         move_refs(client, _request_json, prefix, caps, moves, timeout=timeout, force=force)
         state = _remote_tlog.state_root(getattr(repo, "path", None), base, namespace)
         logged = _remote_tlog.receipt(state, client, prefix, destination, local_oid, timeout)

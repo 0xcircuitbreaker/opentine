@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine.remote._events import EventHub
+from opentine.remote._shares import ShareStore
 from opentine.remote._webhook_delivery import attach
 from opentine.remote._webhooks import Webhooks
 
@@ -15,6 +16,7 @@ def attach_events(service: Any, state: str | Path, *, allow_private: bool = Fals
     hooks = Webhooks(state, allow_private=allow_private)
     attach(hub, hooks)
     service.events, service.webhooks = hub, hooks
+    service.shares = ShareStore(Path(state) / "shares.json")  # 0.46: caps.share
     return hub
 
 

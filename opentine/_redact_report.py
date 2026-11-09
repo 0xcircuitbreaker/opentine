@@ -1,4 +1,8 @@
-"""Verifying a signed redaction report: ``tine redact verify REPORT`` (0.45.1).
+"""Verifying a signed redaction report: ``tine redact verify REPORT`` (0.45.1, 0.46).
+
+Version 2 (0.46, SPEC 4.13.1; ``62-redaction-report-v2.json``) adds a
+``classifier`` name and a sorted, non-empty ``detectors`` list per finding, and
+is signed under the ``opentine.redaction-report.v2:`` domain.
 
 :func:`check` is the reference for the ``redaction-report.verify`` conformance
 op (``docs/conformance/vectors/60-redaction-report.json``) and is ported to the
@@ -17,12 +21,14 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from opentine._push_gate import DOMAIN_PREFIX, REPORT_KIND
+from opentine._push_gate import DOMAINS, REPORT_KIND
 from opentine._signing_v4 import SCHEME_V3
 from opentine._signing_verify import HEADER_KEYS, verify_block
 from opentine.kernel import canonical_json
 
 FIELDS = ("kind", "report_version", "ruleset", "run", "objects", "findings", "clean")
+#: Version 2 (0.46, SPEC 4.13.1) adds ``classifier`` and a finding's ``detectors``.
+FIELDS_V2 = (*FIELDS, "classifier")
 _NAME = re.compile(r"[A-Za-z0-9_.:/@+-]{1,256}")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
@@ -39,16 +45,40 @@ def _malformed(message: str) -> ReportError:
     return ReportError("redaction-report.malformed", f"redaction report is malformed: {message}")
 
 
+def _version(report: dict[str, Any]) -> int:
+    version = report.get("report_version")
+    if type(version) is not int or version not in DOMAINS:
+        raise _malformed("report_version must be 1 or 2")
+    return version
+
+
+def _finding(hit: Any, version: int) -> bool:
+    keys = {"oid", "kind"} if version == 1 else {"oid", "kind", "detectors"}
+    if not (isinstance(hit, dict) and set(hit) == keys):
+        return False
+    if not all(isinstance(hit[k], str) and _NAME.fullmatch(hit[k]) for k in ("oid", "kind")):
+        return False
+    if version == 1:
+        return True
+    names = hit["detectors"]
+    return (
+        isinstance(names, list)
+        and bool(names)
+        and all(isinstance(n, str) and _NAME.fullmatch(n) for n in names)
+        and names == sorted(set(names))
+    )
+
+
 def body(report: Any) -> dict[str, Any]:
     """The signed body of *report*, after the field rules."""
     if not isinstance(report, dict) or report.get("kind") != REPORT_KIND:
         raise _malformed(f"kind is not {REPORT_KIND}")
-    if set(report) - {*FIELDS, "signature"} or set(FIELDS) - set(report):
+    version = _version(report)
+    fields = FIELDS if version == 1 else FIELDS_V2
+    if set(report) - {*fields, "signature"} or set(fields) - set(report):
         raise _malformed("a report has exactly the redaction report fields")
-    out = {name: report[name] for name in FIELDS}
-    if out["report_version"] != 1 or isinstance(out["report_version"], bool):
-        raise _malformed("report_version must be 1")
-    for name in ("ruleset", "run"):
+    out = {name: report[name] for name in fields}
+    for name in ("ruleset", "run") if version == 1 else ("ruleset", "run", "classifier"):
         if not isinstance(out[name], str) or not _NAME.fullmatch(out[name]):
             raise _malformed(f"{name} must be a name")
     objects = out["objects"]
@@ -57,11 +87,9 @@ def body(report: Any) -> dict[str, Any]:
     findings = out["findings"]
     if not isinstance(findings, list) or len(findings) > objects:
         raise _malformed("findings must be a list no longer than objects")
-    for hit in findings:
-        if not (isinstance(hit, dict) and set(hit) == {"oid", "kind"}) or not all(
-            isinstance(hit[k], str) and _NAME.fullmatch(hit[k]) for k in ("oid", "kind")
-        ):
-            raise _malformed("each finding is {oid, kind}")
+    if not all(_finding(hit, version) for hit in findings):
+        shape = "{oid, kind}" if version == 1 else "{oid, kind, detectors}"
+        raise _malformed(f"each finding is {shape}")
     if not isinstance(out["clean"], bool):
         raise _malformed("clean must be a boolean")
     return out
@@ -99,7 +127,7 @@ def check(
 
     def message(header: dict[str, Any]) -> bytes:
         view = {"body": found, "header": {key: header.get(key) for key in HEADER_KEYS}}
-        return DOMAIN_PREFIX + canonical_json(view)
+        return DOMAINS[found["report_version"]] + canonical_json(view)
 
     result = verify_block(block, message, schemes=(SCHEME_V3,), subject="redaction report", **keys)
     if not result.ok:
@@ -118,4 +146,4 @@ def check(
     }
 
 
-__all__ = ["FIELDS", "ReportError", "body", "check"]
+__all__ = ["FIELDS", "FIELDS_V2", "ReportError", "body", "check"]

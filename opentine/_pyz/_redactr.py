@@ -1,4 +1,7 @@
-"""Signed redaction reports, checked with the standard library alone (0.45.1).
+"""Signed redaction reports, checked with the standard library alone (0.45.1, 0.46).
+
+Version 2 reports (SPEC 4.13.1) add ``classifier`` and per-finding
+``detectors`` and sign under ``opentine.redaction-report.v2:``.
 
 An independent port of ``opentine._redact_report.check`` for ``tine-verify.pyz``
 (SPEC 4.13): exactly the report fields, a ``tine-sig/3`` block over
@@ -21,7 +24,9 @@ from ._artifact import check as row
 
 KIND = "opentine.redaction-report"
 DOMAIN = b"opentine.redaction-report.v1:"
+DOMAINS = {1: DOMAIN, 2: b"opentine.redaction-report.v2:"}
 FIELDS = ("kind", "report_version", "ruleset", "run", "objects", "findings", "clean")
+FIELDS_V2 = (*FIELDS, "classifier")
 _NAME = re.compile(r"[A-Za-z0-9_.:/@+-]{1,256}")
 
 
@@ -39,15 +44,33 @@ def _count(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and 0 <= value < 2**53
 
 
+def _hit(hit: Any, version: int) -> bool:
+    keys = {"oid", "kind"} if version == 1 else {"oid", "kind", "detectors"}
+    if not isinstance(hit, dict) or set(hit) != keys:
+        return False
+    if not all(isinstance(hit[k], str) and _NAME.fullmatch(hit[k]) for k in ("oid", "kind")):
+        return False
+    if version == 1:
+        return True
+    names = hit["detectors"]
+    if not isinstance(names, list) or not names:
+        return False
+    if not all(isinstance(n, str) and _NAME.fullmatch(n) for n in names):
+        return False
+    return names == sorted(set(names))
+
+
 def _body(report: Any) -> dict[str, Any]:
     if not isinstance(report, dict) or report.get("kind") != KIND:
         raise _malformed(f"kind is not {KIND}")
-    if set(report) - {*FIELDS, "signature"} or set(FIELDS) - set(report):
+    version = report.get("report_version")
+    if not _count(version) or version not in DOMAINS:
+        raise _malformed("report_version must be 1 or 2")
+    fields = FIELDS if version == 1 else FIELDS_V2
+    if set(report) - {*fields, "signature"} or set(fields) - set(report):
         raise _malformed("a report has exactly the redaction report fields")
-    body = {name: report[name] for name in FIELDS}
-    if not _count(body["report_version"]) or body["report_version"] != 1:
-        raise _malformed("report_version must be 1")
-    for name in ("ruleset", "run"):
+    body = {name: report[name] for name in fields}
+    for name in ("ruleset", "run", "classifier")[: 2 if version == 1 else 3]:
         if not isinstance(body[name], str) or not _NAME.fullmatch(body[name]):
             raise _malformed(f"{name} must be a name")
     if not _count(body["objects"]):
@@ -55,11 +78,9 @@ def _body(report: Any) -> dict[str, Any]:
     findings = body["findings"]
     if not isinstance(findings, list) or len(findings) > body["objects"]:
         raise _malformed("findings must be a list no longer than objects")
-    for hit in findings:
-        if not (isinstance(hit, dict) and set(hit) == {"oid", "kind"}) or not all(
-            isinstance(hit[k], str) and _NAME.fullmatch(hit[k]) for k in ("oid", "kind")
-        ):
-            raise _malformed("each finding is {oid, kind}")
+    if not all(_hit(hit, version) for hit in findings):
+        shape = "{oid, kind}" if version == 1 else "{oid, kind, detectors}"
+        raise _malformed(f"each finding is {shape}")
     if not isinstance(body["clean"], bool):
         raise _malformed("clean must be a boolean")
     return body
@@ -92,7 +113,8 @@ def verify(
         state = "verified-tofu"
 
     def message(header: dict[str, Any]) -> bytes:
-        return DOMAIN + kernel.canonical_json({"body": body, "header": header})
+        view = {"body": body, "header": header}
+        return DOMAINS[body["report_version"]] + kernel.canonical_json(view)
 
     ok, found, reason = _sig.verify_block(
         block,

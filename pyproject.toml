@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.45.1"
+version = "0.46.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,6 +42,9 @@ langchain = ["langchain-core>=0.3"]
 crypto = ["cryptography>=48.0.1"]
 # zstd storage compression: stdlib compression.zstd on 3.14, the PEP 784 backport before.
 zstd = ["backports.zstd>=1.0; python_version < '3.14'"]
+# Hybrid search (`tine repo-search --hybrid`): numpy speeds the local embedding scan;
+# the default embedder and the scan also work without it.
+embed = ["numpy>=1.26"]
 # PDF evidence reports (`tine evidence report --format pdf`).
 pdf = ["pikepdf>=9"]
 # 0.41 signer backends (`--ed25519-key-file pkcs11:... | kms:aws:... | kms:gcp:...`)
@@ -82,7 +85,7 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.45.1/README.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/README.md"
 Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
@@ -97,6 +100,7 @@ build-backend = "hatchling.build"
 # gate below additionally requires the archive to match Git's tracked files.
 include = [
     "/.env.example",
+    "/actions",
     "/.gitattributes",
     "/.github/dependabot.yml",
     "/.github/workflows",

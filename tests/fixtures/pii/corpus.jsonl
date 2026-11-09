@@ -1,0 +1,39 @@
+{"text": "Please email the invoice to jane.doe@example.com before Friday.", "pii": [["email", "jane.doe@example.com"]]}
+{"text": "cc: ops+alerts@mail.example.org and r.smith@sub.example.co.uk", "pii": [["email", "ops+alerts@mail.example.org"], ["email", "r.smith@sub.example.co.uk"]]}
+{"text": "git log shows Author: Dev Bot <dev-bot@users.noreply.example.com>", "pii": [["email", "dev-bot@users.noreply.example.com"]]}
+{"text": "The decorator @dataclass(frozen=True) and the handle @jdoe are not addresses.", "pii": []}
+{"text": "pip install requests==2.32.3 then import a@b", "pii": []}
+{"text": "Call me on (415) 555-2671 tomorrow.", "pii": [["phone", "(415) 555-2671"]]}
+{"text": "Our London office: +44 20 7946 0958, Berlin +49 30 901820.", "pii": [["phone", "+44 20 7946 0958"], ["phone", "+49 30 901820"]]}
+{"text": "US support 1-800-555-0199 or 212.555.0147.", "pii": [["phone", "1-800-555-0199"], ["phone", "212.555.0147"]]}
+{"text": "Local number 020 7946 0958 (no country code).", "pii": [["phone", "020 7946 0958"]]}
+{"text": "Build finished at 2026-11-08 12:00:31 in 1234 ms, pid 40213.", "pii": []}
+{"text": "Version 10.4.12 of the package; port 8080; issue #4521.", "pii": []}
+{"text": "Timestamps 1731024000 and 1731024060 are seconds since the epoch.", "pii": []}
+{"text": "Charge card 4111 1111 1111 1111 exp 12/29.", "pii": [["card", "4111 1111 1111 1111"]]}
+{"text": "Mastercard 5555-5555-5555-4444 and Amex 378282246310005 on file.", "pii": [["card", "5555-5555-5555-4444"], ["card", "378282246310005"]]}
+{"text": "Order number 4111 1111 1111 1112 failed the checksum.", "pii": []}
+{"text": "sha prefix 1234567890123456 is not a card.", "pii": []}
+{"text": "Wire to IBAN GB82 WEST 1234 5698 7654 32 please.", "pii": [["iban", "GB82 WEST 1234 5698 7654 32"]]}
+{"text": "DE89370400440532013000 is the German account; FR1420041010050500013M02606 the French one.", "pii": [["iban", "DE89370400440532013000"], ["iban", "FR1420041010050500013M02606"]]}
+{"text": "GB00 WEST 1234 5698 7654 32 has a bad check digit.", "pii": []}
+{"text": "SSN 219-09-9999 belongs to the applicant.", "pii": [["gov-id:us-ssn", "219-09-9999"]]}
+{"text": "Invalid SSNs: 000-12-3456, 666-12-3456, 912-34-5678.", "pii": []}
+{"text": "NI number AB 12 34 56 C was supplied; QQ123456C is the HMRC specimen.", "pii": [["gov-id:uk-nino", "AB 12 34 56 C"]]}
+{"text": "Second NINO: JG 10 32 59 A.", "pii": [["gov-id:uk-nino", "JG 10 32 59 A"]]}
+{"text": "DNI 12345678Z, NIE X1234567L.", "pii": [["gov-id:es-dni", "12345678Z"], ["gov-id:es-dni", "X1234567L"]]}
+{"text": "Ticket 12345678A references a DNI-shaped id with the wrong letter.", "pii": []}
+{"text": "Ship to 1600 Pennsylvania Avenue, Washington, DC 20500.", "pii": [["address", "1600 Pennsylvania Avenue, Washington, DC 20500"]]}
+{"text": "Office at 221 Baker Street, London NW1 6XE.", "pii": [["address", "221 Baker Street"], ["address", "NW1 6XE"]]}
+{"text": "Deliver to 42 Wallaby Way, Apt 3 by noon.", "pii": [["address", "42 Wallaby Way, Apt 3"]]}
+{"text": "Flat 3, 12 Rue de Rivoli, 75001 Paris.", "pii": [["address", "12 Rue de Rivoli, 75001 Paris"]]}
+{"text": "Read 3 Main Points before the meeting.", "pii": []}
+{"text": "Run 2 Fast Way tests, then the 10 Long Road benchmark.", "pii": []}
+{"text": "My name is Jane Doe and I need a refund.", "pii": [["classifier:person", "Jane Doe"]]}
+{"text": "Dear Dr. Alan Turing, thank you.", "pii": [["classifier:person", "Alan Turing"]]}
+{"text": "Patient: Maria Garcia, DOB: 03/14/1985.", "pii": [["classifier:person", "Maria Garcia"], ["classifier:dob", "03/14/1985"]]}
+{"text": "Dear Team, the build is green.", "pii": []}
+{"text": "Contact Bob Smith in accounting.", "pii": [["classifier:person", "Bob Smith"]]}
+{"text": "Customer: Wei Chen (wei.chen@example.net, +1 415 555 0123).", "pii": [["classifier:person", "Wei Chen"], ["email", "wei.chen@example.net"], ["phone", "+1 415 555 0123"]]}
+{"text": "The model returned run:sha256:4f2a and blob:sha256:9c11 for 2 tool calls.", "pii": []}
+{"text": "def parse(x): return x.split('@')[0]  # local part", "pii": []}

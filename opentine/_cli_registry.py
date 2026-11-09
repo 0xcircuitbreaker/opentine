@@ -46,7 +46,12 @@ GROUPS: dict[str, tuple[str, dict[tuple[str, ...], tuple[str, ...]]]] = {
     ),
     "share": (
         "Push, fetch, clone and bundle runs to share them",
-        {(v,): (v,) for v in ("push", "fetch", "pull", "clone", "remote", "bundle", "archive")},
+        {
+            **{(v,): (v,) for v in ("push", "fetch", "pull", "clone", "remote", "bundle")},
+            ("archive",): ("archive",),
+            # 0.46: share links on a remote (caps.share), ``tine share-link ACTION``.
+            **{(v,): ("share-link", v) for v in ("create", "revoke", "list")},
+        },
     ),
     "trust": (
         "Sign, attest, evaluate and promote what was recorded",

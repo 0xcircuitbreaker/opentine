@@ -402,6 +402,9 @@ echo '{"protocol": "opentine-hook/1", "event": "tool", "session": "s1",
 # {"event": "tool", "ok": true, "protocol": "opentine-hook/1", "ref": "heads/capture/generic/...", "run": "...", "steps": 1}
 ```
 
+The protocol is published as a versioned spec, [`docs/spec/hook-1.md`](spec/hook-1.md)
+(SPEC 8.16), with conformance vectors in `docs/conformance/vectors/67-hook.json`.
+
 `event` is `prompt`, `tool`, `turn_end` or `session_end`; `prompt`, `tool`
 (`name`, `input`, `output`), `message` and `cwd` are optional. Vendor payloads
 are accepted unchanged (`hook_event_name` plus `session_id`): Claude Code and

@@ -6,7 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from opentine import _bundle, _bundle_git
+from opentine import _bundle, _bundle_git, _bundle_share
+from opentine._cli_errors import VERIFICATION_FAILED
 from opentine.repo import Repo
 from opentine.repository.store import _atomic_bytes
 
@@ -30,15 +31,21 @@ def cmd_bundle(args: argparse.Namespace, console) -> None:
             from opentine._transparency import check
 
             report["transparency"] = check(checked.transparency, checked.refs)
+        report.update(_bundle_share.verified(checked, args))  # 0.46: tombstones, public copy
         _print(report)
+        if report.get("redacted_public", {}).get("state") == "failed":
+            raise SystemExit(VERIFICATION_FAILED)
         return
     repo = Repo.open(args.repo)
     if action == "create":
         if bool(args.refs) == bool(args.all):
             raise ValueError("name refs to bundle, or pass --all (not both)")
-        data = _bundle.create(
-            repo, args.refs or None, pack_format=args.pack_format, transparency=args.transparency
-        )
+        if args.redacted_public:  # 0.46: one run's redacted copy and its signed record
+            data = _bundle_share.create_public(repo, args)
+        else:
+            _bundle_share.refuse_keys(args)
+            refs, fmt = args.refs or None, args.pack_format
+            data = _bundle.create(repo, refs, pack_format=fmt, transparency=args.transparency)
         _atomic_bytes(Path(args.file), data)
         checked = _bundle.verify(data)
         _print({"bundle": checked.digest, "bytes": len(data), "refs": checked.refs})
@@ -80,8 +87,10 @@ def add_bundle_parsers(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Embed op-log and push receipts for the refs (needs opentine 0.44+ to read)",
     )
+    _bundle_share.add_create_flags(create)
     verify = actions.add_parser("verify", help="Check a bundle's integrity without importing")
     verify.add_argument("file")
+    _bundle_share.add_verify_flags(verify)
     for verb in ("unbundle", "import"):
         imp = actions.add_parser(verb, help="Verify, then import into remotes/<name>/*")
         imp.add_argument("file")

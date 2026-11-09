@@ -16,8 +16,11 @@ import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
+import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
+import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
+import { hookNormalize, hookRespond } from "./hook.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -196,6 +199,12 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       return tlogQuorum(valueOf(input));
     case "webhook.verify":
       return webhookVerify(valueOf(input));
+    case "vsa.verify":
+      return vsaVerify(valueOf(input));
+    case "hook.normalize":
+      return hookNormalize(valueOf(input));
+    case "hook.respond":
+      return hookRespond(valueOf(input));
     case "delegation.verify": {
       const value = valueOf(input) as JObject;
       const actions = value.get("actions");
@@ -221,6 +230,34 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         return typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
       };
       const found = verifyRedactionReport(value.get("report") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"));
+      return { ...found };
+    }
+    case "tombstone.closure": {
+      const value = valueOf(input) as JObject;
+      const objects = new Map<string, Uint8Array>();
+      for (const row of value.get("objects") as JValue[]) {
+        const entry = row as JObject;
+        objects.set(entry.get("id") as string, Uint8Array.from(Buffer.from(entry.get("data_b64") as string, "base64")));
+      }
+      return { ...tombstoneClosure(value.get("run") as string, objects, value.get("tombstones") as JValue) };
+    }
+    case "tombstone.verify":
+    case "redacted-copy.verify": {
+      const value = valueOf(input) as JObject;
+      const hexKey = (name: string) => {
+        const key = value.get(name);
+        return typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
+      };
+      if (op === "tombstone.verify") {
+        return { ...verifyTombstone(value.get("tombstone") as JValue, hexKey("hmac_key_hex"), hexKey("public_key")) };
+      }
+      const pack = value.get("pack");
+      const found = verifyRedactedCopy(
+        value.get("record") as JValue,
+        hexKey("hmac_key_hex"),
+        hexKey("public_key"),
+        typeof pack === "string" ? pack : null,
+      );
       return { ...found };
     }
     case "actions.chain": {

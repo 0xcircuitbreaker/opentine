@@ -140,13 +140,16 @@ class EventHub:
 
 
 def capabilities(service: Any) -> dict[str, Any]:
-    """The ``events_sse`` and ``webhooks`` entries of ``GET /v1/capabilities``."""
+    """The ``events_sse``, ``webhooks`` and ``vsa`` entries of ``GET /v1/capabilities``."""
     caps: dict[str, Any] = {}
     if getattr(service, "events", None) is not None:
         caps["events_sse"] = {"format": FORMAT, "kinds": list(KINDS), "path": "events"}
     hooks = getattr(service, "webhooks", None)
     if hooks is not None:
         caps["webhooks"] = hooks.capabilities()
+    vsa = getattr(getattr(service, "admission", None), "capabilities", None)
+    if callable(vsa):  # 0.46: TrustPolicyAdmission (SPEC 8.17)
+        caps["vsa"] = vsa()
     return caps
 
 

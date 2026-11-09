@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-share-1.schema.json",
+  "title": "tine share --json",
+  "description": "`tine share create|revoke|list --json`: the link created (with its URL, shown once), the link revoked, or every link in the tenant.",
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "action"
+  ],
+  "properties": {
+    "command": {
+      "const": "share"
+    },
+    "schema": {
+      "const": "tine-cli-share/1"
+    },
+    "action": {
+      "enum": [
+        "create",
+        "revoke",
+        "list"
+      ]
+    },
+    "share": {
+      "$ref": "tine-share-1.schema.json"
+    },
+    "shares": {
+      "type": "array",
+      "items": {
+        "$ref": "tine-share-1.schema.json"
+      }
+    },
+    "url": {
+      "type": "string"
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "share"
+      ]
+    },
+    {
+      "required": [
+        "shares"
+      ]
+    }
+  ]
+}

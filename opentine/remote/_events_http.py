@@ -17,6 +17,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote
 
 from opentine.remote._audit_tlog_http import audit_routes
+from opentine.remote._hosted_http import tenant_routes
 
 HEARTBEAT = 10.0
 STREAM_SECONDS = 25.0
@@ -131,13 +132,20 @@ def webhook_routes(app: Any, identity, tenant: str, resource: str, method: str, 
 
 
 def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, environ, sr):
-    """Routes past the core protocol: audit and transparency, events, webhooks."""
+    """Routes past the core protocol: audit, transparency, events, webhooks, tombstones, hosted."""
+    hosted = tenant_routes(app, identity, tenant, resource, method, environ, sr)
+    if hosted is not None:
+        return hosted
     if method == "GET" and (resource == "audit/verify" or resource.startswith("transparency/")):
         return audit_routes(app, identity, tenant, resource, environ, sr)
     if resource == "events" and method == "GET":
         return events_route(app, identity, tenant, environ, sr)
     if resource == "webhooks" or resource.startswith("webhooks/"):
         return webhook_routes(app, identity, tenant, resource, method, environ, sr)
+    if resource.startswith("tombstones/"):  # 0.46: tine purge (``_tombstone_http``)
+        from opentine.remote._tombstone_http import tombstone_routes
+
+        return tombstone_routes(app, identity, tenant, resource, method, environ, sr)
     return app._json_response(sr, "404 Not Found", {"error": "not found"})
 
 

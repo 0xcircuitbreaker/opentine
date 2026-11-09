@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-list-page-1.schema.json",
+  "title": "tine serve list page",
+  "description": "One page of `GET list/runs`, `GET list/refs` or `GET log/entries`: `items` in key order and an opaque `next_cursor` (null on the last page).",
+  "type": "object",
+  "required": [
+    "items",
+    "next_cursor"
+  ],
+  "properties": {
+    "items": {
+      "type": "array"
+    },
+    "next_cursor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
