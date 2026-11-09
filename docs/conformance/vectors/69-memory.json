@@ -144,7 +144,7 @@
       "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"82601d7aa9e98df...",
       "x_reference": {
         "exception": "RecordError",
-        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+        "message": "memory note is malformed: text is 1 to 8192 bytes, not blank, without control characters"
       }
     },
     {
@@ -193,7 +193,7 @@
       "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"97830b084cdf63d...",
       "x_reference": {
         "exception": "RecordError",
-        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+        "message": "memory note is malformed: text is 1 to 8192 bytes, not blank, without control characters"
       }
     },
     {
@@ -340,7 +340,7 @@
       "x_display": "{\"public_key\": null, \"record\": {\"author\": \"alice@example.com\", \"created_at\": \"2026-11-09T00:00:00Z\", \"kind\": \"opentine.memory\", \"memory_version\": {\"$i\": \"1\"}, \"scope\": \"platform\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-11-09T00:00:00Z\", \"value\": \"a9b67ceb26fab67...",
       "x_reference": {
         "exception": "RecordError",
-        "message": "memory note is malformed: text is 1 to 8192 bytes without control characters"
+        "message": "memory note is malformed: text is 1 to 8192 bytes, not blank, without control characters"
       }
     },
     {

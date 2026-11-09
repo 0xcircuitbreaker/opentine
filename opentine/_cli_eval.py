@@ -36,7 +36,7 @@ def add_eval_parsers(sub: Any) -> None:
     ci = verbs.add_parser("ci", help="Run every eval .tine/evals.toml declares; gate on them")
     ci.add_argument("--config", metavar="TOML", help="Eval config (default: .tine/evals.toml)")
     ci.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key that signs")
-    ci.add_argument("--out", default=".tine/evals", metavar="DIR", help="Where eval folders go")
+    ci.add_argument("--out", metavar="DIR", help="Where eval folders go (default .tine/evals)")
     ci.add_argument("--repo", default=".", help="The directory holding .tine/")
     ci.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     for verb in (verify, compare):
@@ -81,7 +81,8 @@ def _ci(args: argparse.Namespace) -> dict[str, Any]:
 
     base = Path(args.repo)
     config = Path(args.config) if args.config else base / CONFIG
-    out = Path(args.out) if Path(args.out).is_absolute() else base / args.out
+    out = Path(args.out or ".tine/evals")
+    out = out if out.is_absolute() else base / out
     key = ed25519_private_from_file(args.key, signer=False)
     return run_ci(config, key, out, repo_path=base, created_at=args.created_at)
 

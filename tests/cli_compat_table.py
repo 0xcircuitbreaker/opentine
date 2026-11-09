@@ -4493,7 +4493,7 @@ ROWS: tuple[tuple, ...] = (
         ["eval", "ci", "--key", "k", "--json"],
         "opentine._cli_eval:cmd_eval",
         False,
-        {"command": "eval", "eval_command": "ci", "key": "k", "out": ".tine/evals"},
+        {"command": "eval", "eval_command": "ci", "key": "k", "out": None},
     ),
     (
         "plain:prompt list --json",
