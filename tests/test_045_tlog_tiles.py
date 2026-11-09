@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import statistics
 import time
 from pathlib import Path
 
@@ -58,14 +59,16 @@ def seed_log(root: Path, n: int) -> None:
     (root / "checkpoint").write_bytes(_tlog_note.sign_checkpoint(key, LOG, n, tree))
 
 
-def _append_p95(root, count: int) -> float:
-    times = []
+def _append_medians(small, large, count: int) -> tuple[float, float]:
+    """Median append time on each log, alternating so a slow spell on a shared
+    runner (one long fsync) lands on both sides instead of on one tail."""
+    times: dict = {small: [], large: []}
     for i in range(count):
-        start = time.perf_counter()
-        _tlog_note.append(root, LOG, lambda _t, i=i: f"n{i}".encode())
-        times.append(time.perf_counter() - start)
-    times.sort()
-    return times[int(len(times) * 0.95)]
+        for root in (small, large):
+            start = time.perf_counter()
+            _tlog_note.append(root, LOG, lambda _t, i=i: f"n{i}".encode())
+            times[root].append(time.perf_counter() - start)
+    return statistics.median(times[small]), statistics.median(times[large])
 
 
 def test_append_cost_does_not_grow_with_the_log(tmp_path):
@@ -78,9 +81,8 @@ def test_append_cost_does_not_grow_with_the_log(tmp_path):
     small, large = tmp_path / "small", tmp_path / "large"
     seed_log(small, 1_000)
     seed_log(large, 70_000)
-    small_p95 = _append_p95(small, 40)
-    large_p95 = _append_p95(large, 40)
-    assert large_p95 < 4 * small_p95 + 0.05, (small_p95, large_p95)
+    small_median, large_median = _append_medians(small, large, 40)
+    assert large_median < 4 * small_median + 0.05, (small_median, large_median)
     assert len(_tlog_note.verify_log(large, LOG)) == 70_040
 
 
