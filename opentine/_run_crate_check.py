@@ -31,12 +31,18 @@ def _ids(value: Any) -> list[str]:
 
 
 def _refs(node: Any) -> list[str]:
-    if isinstance(node, dict):
-        own = [node["@id"]] if set(node) == {"@id"} else []
-        return own + [r for v in node.values() for r in _refs(v)]
-    if isinstance(node, list):
-        return [r for v in node for r in _refs(v)]
-    return []
+    """Every ``{"@id": ...}`` reference, walked iteratively (no recursion depth limit)."""
+    found: list[str] = []
+    stack = [node]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            if set(item) == {"@id"}:
+                found.append(item["@id"])
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    return found
 
 
 def validate(crate: Any) -> list[str]:  # noqa: C901 - one rule per branch, read top to bottom
