@@ -52,6 +52,8 @@ These come from `docs/audit-roadmap:docs/ROADMAP.md`.
    - Hardware-pinned performance gates (GitHub `ubuntu-24.04` 4-vCPU runners, single-threaded unless stated). Gates are *relative*: a new path is compared against the old path on the same runner.
 6. **Deletion is hold-aware** from 0.35 onward.
 
+These invariants are published as the deprecation policy in [DEPRECATION.md](DEPRECATION.md) (0.50, criterion 7).
+
 ---
 
 ## 3. Competitor landscape (subset surveyed; cells left blank where the research shows nothing)

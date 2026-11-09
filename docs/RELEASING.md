@@ -146,6 +146,20 @@ PyPI distributions are immutable. If publication fails after either destination
 has accepted an artifact, diagnose the existing workflow run; never rebuild and
 upload different bytes under the same version.
 
+## 1.0 criteria evidence (0.50)
+
+- **Criterion 3, the 0.34 peer compatibility job.** `peer-compat-034` in
+  `.github/workflows/ci.yml` runs `scripts/peer_compat_034.py` against the
+  published `opentine[zstd]==0.34.0` on every build and keeps its JSON report.
+  Pinned gaps (`KNOWN_GAPS`) may only shrink; see [DEPRECATION.md](DEPRECATION.md).
+- **Criterion 5, 30 days of nightly stress.** `.github/workflows/nightly-stress.yml`
+  runs at 03:17 UTC and uploads `nightly-summary` (a JSON summary of every job).
+  Read the streak with
+  `GITHUB_TOKEN=... python scripts/stress_streak.py --repo OWNER/NAME --need 30`;
+  it exits 0 only when 30 consecutive UTC days ended green. A skipped night
+  breaks the streak, and a manual run never fills one.
+- **Criterion 7, the deprecation policy.** Published as [DEPRECATION.md](DEPRECATION.md).
+
 ## `tine-verify.pyz` (0.39)
 
 The release carries `tine-verify.pyz`, a zipapp that verifies `.tine` files and

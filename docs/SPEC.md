@@ -47,7 +47,8 @@ the anchor set.
 Companion documents: [TINE_FORMAT.md](TINE_FORMAT.md) (format *policy* and the
 v2 delta history), [REPOSITORY.md](REPOSITORY.md) (CLI/remote protocol),
 [SECURITY_MODEL.md](SECURITY_MODEL.md) (what a signature does and does not
-prove).
+prove), [DEPRECATION.md](DEPRECATION.md) (how a format, flag, exit code,
+`--json` shape or MUST in this document may be deprecated: readers never are).
 
 ## Conformance language
 
