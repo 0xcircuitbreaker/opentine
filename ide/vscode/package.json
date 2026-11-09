@@ -1,0 +1,66 @@
+{
+  "name": "opentine-vscode",
+  "displayName": "OpenTine: AI blame and provenance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AI-blame gutter and 'verify this line's provenance' for OpenTine repositories, built on `tine blame --lines --json` and `tine why`.",
+  "license": "Apache-2.0",
+  "publisher": "opentine",
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=20.19"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "main": "./dist/src/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "opentine.toggleBlame",
+        "title": "OpenTine: Toggle AI blame gutter"
+      },
+      {
+        "command": "opentine.verifyLine",
+        "title": "OpenTine: Verify this line's provenance"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "opentine.verifyLine",
+          "group": "opentine"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OpenTine",
+      "properties": {
+        "opentine.tinePath": {
+          "type": "string",
+          "default": "tine",
+          "description": "The `tine` executable (a name on PATH or an absolute path)."
+        },
+        "opentine.timeoutSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 1,
+          "description": "How long one `tine` call may take."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test dist/test/blame.test.js dist/test/provenance.test.js dist/test/tine.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/vscode": "1.85.0",
+    "typescript": "5.6.3"
+  }
+}

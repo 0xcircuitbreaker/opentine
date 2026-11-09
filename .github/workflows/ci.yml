@@ -118,6 +118,13 @@ jobs:
           npm test
           npm audit --audit-level=low
 
+      - name: Build and test the VS Code extension (ide/vscode)
+        working-directory: ide/vscode
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm audit --audit-level=low
+
       - name: Rebuild the run-viewer assets and require the committed copy
         working-directory: ts/run-viewer
         run: |

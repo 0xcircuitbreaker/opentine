@@ -17,8 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 #: Tracked trees that are deliberately not part of the Python sdist: the
 #: TypeScript verifier (ts/) is its own npm package with its own build and CI
-#: job. Keep in step with ``[tool.hatch.build.targets.sdist] exclude``.
-SDIST_EXCLUDED_PREFIXES = ("ts/",)
+#: job, and ide/ (0.48) holds the VS Code extension (npm) and the JetBrains
+#: plugin (Gradle). Keep in step with ``[tool.hatch.build.targets.sdist] exclude``.
+SDIST_EXCLUDED_PREFIXES = ("ts/", "ide/")
 
 
 def sdist_expected(tracked: set[str]) -> set[str]:
