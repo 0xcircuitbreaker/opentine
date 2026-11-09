@@ -14,7 +14,10 @@ import re
 from typing import Any
 
 from opentine.remote._api_routes import API_VERSION, ROUTES, Route
-from opentine.remote._openapi_schemas import SCHEMAS
+from opentine.remote._openapi_schemas import SCHEMAS as _SCHEMAS_BASE
+from opentine.remote._openapi_schemas_047 import SCHEMAS_047
+
+SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047}
 
 _PARAM = re.compile(r"\{([a-z_]+)\}")
 _PLAIN_KEY = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$-]*$")
