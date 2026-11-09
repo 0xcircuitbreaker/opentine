@@ -68,11 +68,12 @@ def credentials(args: Any, session: Any, base: str) -> str:
     if not (args.app_key_file and args.installation_id):
         raise ForgeError("a GitHub App needs --app-key-file and --installation-id")
     jwt = app_jwt(args.app_id, Path(args.app_key_file).read_bytes())
+    # Least privilege: only the permissions used, and only this one repository.
     wanted = dict(PERMISSIONS) if args.pr else {"checks": "write"}
     answer = session.post(
         f"{base}/app/installations/{int(args.installation_id)}/access_tokens",
         headers={"Authorization": f"Bearer {jwt}", "Accept": "application/vnd.github+json"},
-        json={"permissions": wanted},
+        json={"permissions": wanted, "repositories": [args.repo_slug.split("/")[1]]},
     )
     found = expect(answer, "requesting an installation token")
     if not isinstance(found, dict) or not isinstance(found.get("token"), str):

@@ -283,7 +283,10 @@ def test_github_app_requests_a_least_privilege_installation_token(world, capsys,
     )
     assert code == 0, err
     (grant,) = fake.sent("POST", "/access_tokens")
-    assert json.loads(grant.content) == {"permissions": {"checks": "write"}}
+    assert json.loads(grant.content) == {
+        "permissions": {"checks": "write"},
+        "repositories": ["app"],
+    }
     jwt = grant.headers["Authorization"].removeprefix("Bearer ")
     claims = json.loads(base64.urlsafe_b64decode(jwt.split(".")[1] + "=="))
     assert claims["iss"] == "9" and claims["exp"] - claims["iat"] == 600

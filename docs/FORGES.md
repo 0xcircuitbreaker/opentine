@@ -26,7 +26,7 @@ failed call reports the step and the HTTP status, nothing else.
 
 | Forge | Credential | Scopes / permissions it needs | Not needed |
 |---|---|---|---|
-| GitHub (App, preferred) | `--app-id`, `--app-key-file`, `--installation-id` | App permissions **Checks: write**; **Pull requests: write** only with `--pr`. The installation token is requested with exactly these permissions, whatever else the App holds. | contents, metadata write, actions, administration |
+| GitHub (App, preferred) | `--app-id`, `--app-key-file`, `--installation-id` | App permissions **Checks: write**; **Pull requests: write** only with `--pr`. The installation token is requested with exactly these permissions and scoped to the one repository in `--repo-slug`, whatever else the App holds. | contents, metadata write, actions, administration |
 | GitHub Actions | the job's `GITHUB_TOKEN` | `permissions: {checks: write, pull-requests: write}` (drop the second without `--pr`) | `contents: write` |
 | GitHub, personal token | not supported for check runs | GitHub lets only App tokens (including `GITHUB_TOKEN`) create check runs | |
 | GitLab | `OPENTINE_GITLAB_TOKEN`: a **project** access token, role Developer | `api` (GitLab has no narrower scope that writes a commit status or note). Store it masked and protected; expire it. | group or personal tokens, Maintainer role |
