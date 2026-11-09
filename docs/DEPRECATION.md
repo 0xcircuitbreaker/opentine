@@ -66,8 +66,8 @@ set may still change: by adding, never by taking away from readers.
    toward a peer that advertises support for it through `caps` (or the pack
    format list). A peer that does not advertise it keeps getting the old form.
 2. The **0.34 peer compatibility** job runs on every CI build: the published
-   0.34 release reads every file the current tree writes and a 0.34 HTTP client
-   fetches from the current server (`scripts/peer_compat_034.py`, job
+   0.34 release reads the repository, pack and `--for-legacy` `.tine` files the
+   current tree writes and a 0.34 HTTP client fetches from the current server (`scripts/peer_compat_034.py`, job
    `peer-compat-034` in `.github/workflows/ci.yml`). A gap the 0.34 reader
    cannot close by design is pinned in the script's `KNOWN_GAPS` with its
    reason. That list may only shrink.

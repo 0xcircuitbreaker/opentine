@@ -161,7 +161,8 @@ upload different bytes under the same version.
   a manual run never fills one, and a workflow that stopped running counts zero.
   Not met until 30 real scheduled nights on the default branch are green.
 - **Criterion 7, the deprecation policy.** Published as [DEPRECATION.md](DEPRECATION.md);
-  it still needs maintainer and counsel review before the criterion counts as met.
+  the criterion asks only that it be published, so it counts as met; maintainer
+  and counsel review of its wording is still advisable before 1.0.
 
 ## `tine-verify.pyz` (0.39)
 

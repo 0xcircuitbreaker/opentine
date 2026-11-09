@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """The 0.34 peer compatibility check (ROADMAP §2 invariant 5, 1.0 criterion 3).
 
-The current tree writes a repository, a pack and ``.tine`` artifacts that use
-the 0.45-0.49 features that leave bytes on disk (prompt registry, team memory,
-a signed tombstone and its purged blob, a trace-recorded run, the default pack
-and artifact writers), and serves main over HTTP with ``tine serve``'s
-reference app. A 0.34 interpreter then reads every file and fetches over HTTP.
+The current tree writes a repository, a pack and ``.tine`` artifacts with some
+of the 0.45-0.49 features that leave bytes on disk (the 0.46 project manifest,
+a signed tombstone and its purged blob, the 0.47 prompt registry and team
+memory, a trace-recorded run, the default pack and artifact writers), and
+serves main and a project over HTTP with ``tine serve``'s reference app. A 0.34
+interpreter then reads every file and fetches over HTTP. Merge, review,
+eval-verdict and forge objects are not exercised yet.
 
     python scripts/peer_compat_034.py --old-python /path/to/venv-0.34/bin/python
     python scripts/peer_compat_034.py --old-path /path/to/opentine-0.34-source
@@ -28,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -87,12 +90,14 @@ KNOWN_GAPS = {
     "by `tine --for-legacy` (artifact_legacy).",
 }
 REGISTRY_NOTE = (
-    "a 0.34 reader opening a current repository directory reports the 0.47 prompt and "
-    "memory refs (prompts/*, memory/*) as illegal ref names and skips them; every object "
-    "still reads. Renaming them would be a format change after the 0.48 cutoff"
+    "a 0.34 reader opening a current repository directory reports the 0.46 project ref "
+    "(project/manifest) and the 0.47 prompt and memory refs (prompts/*, memory/*) as "
+    "illegal ref names and skips them; every object still reads, and a 0.34 HTTP fetch "
+    "from a server holding a project succeeds. Renaming them would be a format change "
+    "after the 0.48 cutoff"
 )
-REGISTRY_REF = re.compile(r"^(refs/)?(prompts|memory)/")
-REGISTRY_FSCK = re.compile(r"ref file '(prompts|memory)/")
+REGISTRY_REF = re.compile(r"^(refs/)?(prompts|memory|project)/")
+REGISTRY_FSCK = re.compile(r"ref file '(prompts|memory|project)/")
 
 
 def judge(result: dict[str, Any]) -> dict[str, Any]:
@@ -138,11 +143,11 @@ def write(base: Path) -> dict[str, Any]:
     """Write the current tree's files under *base*; return the reader's manifest."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from opentine import _memory, _prompt, _tombstone
+    from opentine import _memory, _project, _prompt, _tombstone
     from opentine._format_v4 import FORMAT_ENV
     from opentine.graph import Run, StepKind
     from opentine.policies import PolicySet
-    from opentine.repository import Repo
+    from opentine.repository import Repo, _project_ref
     from opentine.repository import _registry_refs as registry
     from opentine.repository._purge import purge
     from opentine.trace import Recorder, TraceEvent
@@ -162,6 +167,13 @@ def write(base: Path) -> dict[str, Any]:
     registry.push_prompt(repo, _prompt.sign(prompt, key))
     note = _memory.build("team", "testing", "use the venv", author="alice", created_at=WHEN)
     registry.add_note(repo, _memory.sign(note, key))
+    owner = key.public_key().public_bytes_raw().hex()
+    slot = {"role": "primary", "forge": "github", "forge_repo_id": None,
+            "upstream_visibility": "public", "default_branch": "main",
+            "locator": {"url": "https://example.com/acme/app"}}  # fmt: skip
+    manifest = _project.build("app", "acme", owners=[owner], slots=[slot], created_at=WHEN)
+    project = _project.sign(manifest, key)
+    _project_ref.write(repo, project, owner_key=owner)  # the 0.46 project/ namespace
     erased = repo.put_run(new_run("gone", "erase this text"), ref="heads/erased").run_id
     purged = []
     for oid in list(repo.iter_oids()):
@@ -190,6 +202,7 @@ def write(base: Path) -> dict[str, Any]:
         "artifacts_default": default,
         "pack": (base / "main.pack").as_posix(),
         "scratch": base.as_posix(),
+        "project": project,
     }
 
 
@@ -216,6 +229,12 @@ def serve(manifest: dict[str, Any]) -> Any:
     httpd = make_server("127.0.0.1", 0, app, handler_class=Quiet)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     manifest.update(url=f"http://127.0.0.1:{httpd.server_port}", tenant="acme", token=TOKEN)
+    body = json.dumps({"expected_old": None, "manifest": manifest.pop("project")}).encode()
+    put = urllib.request.Request(f"{manifest['url']}/v1/tenants/acme/project", body, method="PUT",
+                                 headers={"Authorization": f"Bearer {TOKEN}",
+                                          "Content-Type": "application/json"})  # fmt: skip
+    with urllib.request.urlopen(put, timeout=60) as response:  # noqa: S310 - loopback
+        assert response.status in (200, 201), response.status  # 0.34 fetches past a project
     return httpd
 
 

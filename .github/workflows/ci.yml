@@ -337,7 +337,7 @@ jobs:
 
   peer-compat-034:
     # ROADMAP §2 invariant 5 (1.0 criterion 3): the published 0.34 CLI reads what
-    # this tree writes (repository, pack, --for-legacy .tine, 0.45-0.49 registry,
+    # this tree writes (repository, pack, --for-legacy .tine, 0.46 project, 0.47 registry,
     # memory and tombstone records) and fetches from this tree's server over HTTP.
     # Pinned gaps (scripts/peer_compat_034.py KNOWN_GAPS) may only shrink.
     name: 0.34 peer compatibility

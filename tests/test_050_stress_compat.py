@@ -144,6 +144,25 @@ def test_the_streak_script_reads_a_saved_page_and_exits_on_the_criterion(tmp_pat
     assert script.main(["--runs-file", str(tmp_path / "nope.json")]) == 2
 
 
+def test_the_streak_script_reports_api_errors_not_a_zero_streak(tmp_path, capsys, monkeypatch):
+    script = _script("stress_streak")
+    page = tmp_path / "error.json"
+    for body in ({"message": "API rate limit exceeded"}, [{"status": "completed"}], [1], "x"):
+        page.write_text(json.dumps(body))
+        assert script.main(["--runs-file", str(page), "--today", "2026-11-03"]) == 2
+        assert "error" in json.loads(capsys.readouterr().out)
+    page.write_text(json.dumps({"workflow_runs": []}))
+    assert script.main(["--runs-file", str(page), "--today", "not-a-date"]) == 2
+    capsys.readouterr()
+
+    def refused(*_a, **_kw):
+        raise script.urllib.error.HTTPError("u", 403, "rate limited", None, None)
+
+    monkeypatch.setattr(script.urllib.request, "urlopen", refused)
+    assert script.main(["--repo", "o/r", "--branch", "a b"]) == 2
+    assert "HTTPError" in json.loads(capsys.readouterr().out)["error"]
+
+
 # --- the 0.34 peer compatibility job ------------------------------------------ #
 
 
@@ -205,6 +224,9 @@ def test_034_reads_and_fetches_what_this_tree_writes_and_serves(tmp_path, monkey
     for name in ("get_every_object", "load_run", "artifact_legacy", "import_pack", "http_fetch"):
         assert checks[name]["ok"], (name, checks[name])
     assert set(report["known_gaps"]) <= {"artifact_default", "registry_refs"}
+    # The 0.46 project ref and the 0.47 registry refs were written and judged.
+    hidden = checks["list_refs"]["detail"]
+    assert "project/manifest" in hidden and any(r.startswith("prompts/") for r in hidden)
 
 
 # --- the deprecation policy --------------------------------------------------- #

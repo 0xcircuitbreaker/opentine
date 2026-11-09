@@ -58,8 +58,14 @@ still needs people.
   `nightly-summary.json`; `scripts/stress_streak.py` reports the green streak
   from the Actions API, counted back from today.
 - The 0.34 peer compatibility job (`scripts/peer_compat_034.py`, ROADMAP §2):
-  0.45–0.50 files written by this tree are served and read and fetched by the
-  published 0.34.0. Known gaps are pinned and may only shrink.
+  the published 0.34.0 reads a repository, a pack and `--for-legacy` `.tine`
+  files this tree writes (runs, a trace-recorded run, the 0.46 project
+  manifest, a tombstone and its purge, the 0.47 prompt registry and team
+  memory) and fetches main over HTTP from this tree's server holding a
+  project. Pinned and shrink-only: the default v5 `.tine` is unreadable by
+  0.34 by design, and 0.34 skips the `project/`, `prompts/` and `memory/` refs
+  of a repository directory as illegal names (every object still reads).
+  Merge, review, eval-verdict and forge objects are not yet exercised.
 - `docs/DEPRECATION.md` (1.0 criterion 7), `docs/LEAVING.md` and
   `docs/security/AUDIT-SCOPE.md` (the third-party audit is scoped, not
   engaged).
