@@ -156,9 +156,12 @@ upload different bytes under the same version.
   runs at 03:17 UTC and uploads `nightly-summary` (a JSON summary of every job).
   Read the streak with
   `GITHUB_TOKEN=... python scripts/stress_streak.py --repo OWNER/NAME --need 30`;
-  it exits 0 only when 30 consecutive UTC days ended green. A skipped night
-  breaks the streak, and a manual run never fills one.
-- **Criterion 7, the deprecation policy.** Published as [DEPRECATION.md](DEPRECATION.md).
+  it exits 0 only when the 30 consecutive green UTC days reach today (or
+  yesterday, while today's run is pending). A skipped night breaks the streak,
+  a manual run never fills one, and a workflow that stopped running counts zero.
+  Not met until 30 real scheduled nights on the default branch are green.
+- **Criterion 7, the deprecation policy.** Published as [DEPRECATION.md](DEPRECATION.md);
+  it still needs maintainer and counsel review before the criterion counts as met.
 
 ## `tine-verify.pyz` (0.39)
 

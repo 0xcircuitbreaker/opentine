@@ -21,7 +21,7 @@ import json
 import os
 import sys
 import urllib.request
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -54,8 +54,14 @@ def _day(run: dict[str, Any]) -> date:
     return datetime.fromisoformat(stamp.replace("Z", "+00:00")).date()
 
 
-def streak(runs: list[dict[str, Any]]) -> dict[str, Any]:
-    """Consecutive green days ending at the latest day with a finished scheduled run."""
+def streak(runs: list[dict[str, Any]], today: date | None = None) -> dict[str, Any]:
+    """Consecutive green days ending at *today* (or yesterday, while today's run is pending).
+
+    Without *today* the streak ends at the latest day with a finished scheduled
+    run. With it, a workflow that stopped running is not reported as a live
+    streak: the walk starts at *today* (or the day before, when today has no
+    finished run yet), so stale green history counts zero.
+    """
     latest: dict[date, dict[str, Any]] = {}
     for run in runs:
         if run.get("event", "schedule") != "schedule" or run.get("status") != "completed":
@@ -66,6 +72,8 @@ def streak(runs: list[dict[str, Any]]) -> dict[str, Any]:
     if not latest:
         return {"streak": 0, "since": None, "through": None, "broken_by": None}
     through = day = max(latest)
+    if today is not None:
+        through = day = today if today in latest else today - timedelta(days=1)
     count, broken_by = 0, None
     while True:
         run = latest.get(day)
@@ -96,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument("--runs-file", help="A saved workflow-runs API response (offline)")
     parser.add_argument("--branch", default="main")
     parser.add_argument("--need", type=int, default=30, help="Days the 1.0 criterion needs")
+    parser.add_argument("--today", help="UTC date the streak must reach (default: now, UTC)")
     args = parser.parse_args(argv)
     try:
         if args.runs_file:
@@ -106,7 +115,9 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(json.dumps({"error": f"{type(exc).__name__}: {exc}"}))
         return 2
-    result = {"workflow": WORKFLOW, "branch": args.branch, "need": args.need, **streak(runs)}
+    today = date.fromisoformat(args.today) if args.today else datetime.now(UTC).date()
+    result = {"workflow": WORKFLOW, "branch": args.branch, "need": args.need}
+    result.update(streak(runs, today))
     result["met"] = result["streak"] >= args.need
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["met"] else 1

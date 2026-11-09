@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import tarfile
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -117,20 +118,29 @@ def test_the_streak_counts_consecutive_green_scheduled_days():
     manual = [*gap, _run("2026-11-07", event="workflow_dispatch")]
     assert streak(manual)["streak"] == 2  # a manual run never fills a night
     assert streak([])["streak"] == 0
+    # Anchored to today: a pending run today counts from yesterday; a workflow that
+    # stopped running is not a live streak, however green its history.
+    assert streak(runs, date(2026, 11, 10))["streak"] == 9
+    stale = streak(runs, date(2026, 12, 1))
+    assert stale["streak"] == 0 and stale["broken_by"]["day"] == "2026-11-30"
 
 
 def test_the_streak_script_reads_a_saved_page_and_exits_on_the_criterion(tmp_path, capsys):
     script = _script("stress_streak")
     page = tmp_path / "runs.json"
     page.write_text(json.dumps({"workflow_runs": [_run(f"2026-11-{d:02d}") for d in range(1, 4)]}))
-    assert script.main(["--runs-file", str(page), "--need", "3"]) == 0
+    assert script.main(["--runs-file", str(page), "--need", "3", "--today", "2026-11-03"]) == 0
     assert json.loads(capsys.readouterr().out)["met"] is True
-    assert script.main(["--runs-file", str(page)]) == 1  # 30 days are needed
+    assert (
+        script.main(["--runs-file", str(page), "--today", "2026-11-04"]) == 1
+    )  # 30 days are needed
     assert json.loads(capsys.readouterr().out) == {
         "branch": "main", "broken_by": {"day": "2026-10-31",
         "reason": "before the first recorded run"}, "met": False, "need": 30,
         "since": "2026-11-01", "streak": 3, "through": "2026-11-03",
         "workflow": "nightly-stress.yml"}  # fmt: skip
+    assert script.main(["--runs-file", str(page), "--today", "2027-01-01"]) == 1
+    assert json.loads(capsys.readouterr().out)["streak"] == 0  # stale history
     assert script.main(["--runs-file", str(tmp_path / "nope.json")]) == 2
 
 
