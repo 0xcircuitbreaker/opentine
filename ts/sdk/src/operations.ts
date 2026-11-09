@@ -54,6 +54,12 @@ export const OPERATIONS = {
   getReview: { method: "GET", path: "/v1/tenants/{tenant}/reviews/{review_id}", cap: "reviews", status: "stable" },
   updateReview: { method: "PUT", path: "/v1/tenants/{tenant}/reviews/{review_id}", cap: "reviews", status: "stable" },
   decideReviewGate: { method: "POST", path: "/v1/tenants/{tenant}/reviews/{review_id}/decisions", cap: "reviews", status: "stable" },
+  listTasks: { method: "GET", path: "/v1/tenants/{tenant}/coord/tasks", cap: "coord", status: "stable" },
+  addTask: { method: "POST", path: "/v1/tenants/{tenant}/coord/tasks", cap: "coord", status: "stable" },
+  getTask: { method: "GET", path: "/v1/tenants/{tenant}/coord/tasks/{task}", cap: "coord", status: "stable" },
+  claimTask: { method: "POST", path: "/v1/tenants/{tenant}/coord/tasks/{task}/claim", cap: "coord", status: "stable" },
+  heartbeatTask: { method: "POST", path: "/v1/tenants/{tenant}/coord/tasks/{task}/heartbeat", cap: "coord", status: "stable" },
+  finishTask: { method: "POST", path: "/v1/tenants/{tenant}/coord/tasks/{task}/done", cap: "coord", status: "stable" },
 } as const satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof OPERATIONS;

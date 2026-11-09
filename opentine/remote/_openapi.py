@@ -34,6 +34,7 @@ _PARAM_DOCS = {
     "share_id": "Share id from POST shares.",
     "token": "A share token (tine_share_...); a bearer secret, never logged.",
     "review_id": "Review id ([a-z0-9][a-z0-9._-]{0,63}).",
+    "task": "Task id ([a-z0-9][a-z0-9._-]{0,63}).",
 }
 _PAGE = [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size, 1-500.")]
 _QUERY = {

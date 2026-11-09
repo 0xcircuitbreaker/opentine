@@ -244,6 +244,31 @@ SCHEMAS: dict[str, Any] = {
     "ReviewUpdated": _obj({"updated": {"type": "boolean"}}, {"digest": _blob}, extra=False),
     "ReviewDecision": _obj({"decision": _ref("ReviewGate")}, extra=False),
     "ReviewDecided": _obj({"stored": {"type": "boolean"}, "digest": _blob}, extra=False),
+    # 0.47 (caps.coord): opentine-coord/1 task values, as tine task prints them.
+    "Task": _obj(
+        {
+            "task": {"type": "string", "pattern": r"^[a-z0-9][a-z0-9._-]{0,63}$"},
+            "title": _str,
+            "status": {"enum": ["open", "claimed", "done"]},
+            "holder": {"anyOf": [_str, {"type": "null"}]},
+            "fencing": _int,
+            "lease_expires_ms": {"anyOf": [_int, {"type": "null"}]},
+            "updated_ms": _int,
+        },
+        extra=False,
+    ),  # fmt: skip
+    "TaskList": _obj({"tasks": {"type": "array", "items": _ref("Task")}}, extra=False),
+    "TaskReply": _obj({"task": _ref("Task")}, extra=False),
+    "TaskAdd": _obj({"task": _str}, {"title": _str}, extra=False),
+    "TaskLease": _obj(
+        {"holder": _str},
+        {"fencing": _int, "ttl": {"type": "number", "minimum": 0}},
+        extra=False,
+    ),
+    "LeaseRefusal": _obj(
+        {"error": _str, "code": {"enum": ["exists", "held", "done", "stale", "contended"]}},
+        extra=False,
+    ),
 }
 
 __all__ = ["OID", "SCHEMAS"]

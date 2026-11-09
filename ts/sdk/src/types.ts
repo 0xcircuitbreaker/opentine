@@ -214,3 +214,14 @@ export interface ReviewDecided {
   stored: boolean;
   digest: Oid;
 }
+
+/** An `opentine-coord/1` task (`caps.coord`, SPEC 8.19); leases run on the server's clock. */
+export interface Task {
+  task: string;
+  title: string;
+  status: "open" | "claimed" | "done";
+  holder: string | null;
+  fencing: number;
+  lease_expires_ms: number | null;
+  updated_ms: number;
+}

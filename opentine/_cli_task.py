@@ -6,6 +6,10 @@
 --holder NAME --fencing N`` closes it; ``list`` shows every task. A refused
 operation (held, stale, done, ...) exits 1 with ``{"error": {"code": ...}}``
 under ``--json``. See :mod:`opentine.coord._tasks`.
+
+0.47: ``--remote NAME|URL`` runs the action on a ``tine serve`` tenant's
+``caps.coord`` instead (:mod:`opentine._cli_task_remote`); leases then run on
+the server's clock.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ from collections.abc import Callable
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_remote_target import add_remote_args
 
 ACTIONS = ("add", "claim", "heartbeat", "done", "list")
 
@@ -31,12 +36,17 @@ def add_task_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--fencing", type=int, help="heartbeat/done: the token claim printed")
     parser.add_argument("--ttl", type=float, default=60.0, help="Lease seconds (default 60)")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
+    add_remote_args(parser)
 
 
 def _run(args: argparse.Namespace) -> dict | list:
     from opentine.coord import _tasks
     from opentine.repo import Repo
 
+    if args.remote:
+        from opentine._cli_task_remote import run
+
+        return run(args)
     repo = Repo.open(args.repo)
     if args.action == "list":
         return _tasks.list_tasks(repo)
@@ -72,7 +82,7 @@ def cmd_task(args: argparse.Namespace) -> None:
             sys.stdout.write(json.dumps(body) + "\n")
             raise SystemExit(1) from exc
         raise error(exc, prefix="task: ") from exc
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, KeyError) as exc:
         raise error(exc, prefix="task: ") from exc
     if args.json:
         key = "tasks" if args.action == "list" else "task"

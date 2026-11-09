@@ -216,6 +216,22 @@ components:
           type: "string"
       required: []
       type: "object"
+    LeaseRefusal:
+      additionalProperties: false
+      properties:
+        code:
+          enum:
+            - "exists"
+            - "held"
+            - "done"
+            - "stale"
+            - "contended"
+        error:
+          type: "string"
+      required:
+        - "code"
+        - "error"
+      type: "object"
     ListPage:
       properties:
         items:
@@ -644,6 +660,85 @@ components:
         - "stars"
         - "watches"
       type: "object"
+    Task:
+      additionalProperties: false
+      properties:
+        fencing:
+          minimum: 0
+          type: "integer"
+        holder:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        lease_expires_ms:
+          anyOf:
+            - minimum: 0
+              type: "integer"
+            - type: "null"
+        status:
+          enum:
+            - "open"
+            - "claimed"
+            - "done"
+        task:
+          pattern: "^[a-z0-9][a-z0-9._-]{0,63}$"
+          type: "string"
+        title:
+          type: "string"
+        updated_ms:
+          minimum: 0
+          type: "integer"
+      required:
+        - "fencing"
+        - "holder"
+        - "lease_expires_ms"
+        - "status"
+        - "task"
+        - "title"
+        - "updated_ms"
+      type: "object"
+    TaskAdd:
+      additionalProperties: false
+      properties:
+        task:
+          type: "string"
+        title:
+          type: "string"
+      required:
+        - "task"
+      type: "object"
+    TaskLease:
+      additionalProperties: false
+      properties:
+        fencing:
+          minimum: 0
+          type: "integer"
+        holder:
+          type: "string"
+        ttl:
+          minimum: 0
+          type: "number"
+      required:
+        - "holder"
+      type: "object"
+    TaskList:
+      additionalProperties: false
+      properties:
+        tasks:
+          items:
+            $ref: "#/components/schemas/Task"
+          type: "array"
+      required:
+        - "tasks"
+      type: "object"
+    TaskReply:
+      additionalProperties: false
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+      required:
+        - "task"
+      type: "object"
     Tombstone:
       properties:
         kind:
@@ -984,6 +1079,371 @@ paths:
       summary: "The server-keyed audit chain status"
       x-opentine-cap: null
       x-opentine-permission: "audit"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/coord/tasks":
+    get:
+      operationId: "listTasks"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskList"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Every coordination task of the tenant"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+    post:
+      operationId: "addTask"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TaskAdd"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskReply"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/LeaseRefusal"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Create an open task"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/coord/tasks/{task}":
+    get:
+      operationId: "getTask"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Task id ([a-z0-9][a-z0-9._-]{0,63})."
+          in: "path"
+          name: "task"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskReply"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "One task and its lease"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/coord/tasks/{task}/claim":
+    post:
+      operationId: "claimTask"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Task id ([a-z0-9][a-z0-9._-]{0,63})."
+          in: "path"
+          name: "task"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TaskLease"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskReply"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/LeaseRefusal"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Take the lease by compare-and-swap; returns the fencing token"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/coord/tasks/{task}/done":
+    post:
+      operationId: "finishTask"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Task id ([a-z0-9][a-z0-9._-]{0,63})."
+          in: "path"
+          name: "task"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TaskLease"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskReply"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/LeaseRefusal"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Close the task (holder and current fencing token)"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/coord/tasks/{task}/heartbeat":
+    post:
+      operationId: "heartbeatTask"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Task id ([a-z0-9][a-z0-9._-]{0,63})."
+          in: "path"
+          name: "task"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TaskLease"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TaskReply"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/LeaseRefusal"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Extend the lease (holder and current fencing token)"
+      x-opentine-cap: "coord"
+      x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/events":
     get:

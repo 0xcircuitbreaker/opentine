@@ -140,6 +140,21 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", T + "/reviews/{review_id}/decisions", "decideReviewGate",
           "Store a client-signed gate decision", "reviews", "stable", "update_ref",
           "ReviewDecision", (("201", "ReviewDecided"), ("400", "Error"), *_ERR)),
+    # 0.47 remote task backend (SPEC 8.19): opentine-coord/1 leases on the server's clock.
+    Route("GET", T + "/coord/tasks", "listTasks", "Every coordination task of the tenant",
+          "coord", "stable", "read_ref", None, (("200", "TaskList"), *_ERR)),
+    Route("POST", T + "/coord/tasks", "addTask", "Create an open task",
+          "coord", "stable", "update_ref", "TaskAdd",
+          (("201", "TaskReply"), ("409", "LeaseRefusal"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/coord/tasks/{task}", "getTask", "One task and its lease",
+          "coord", "stable", "read_ref", None, (("200", "TaskReply"), *_ERR)),
+    *(Route("POST", T + "/coord/tasks/{task}/" + action, op, text, "coord", "stable",
+            "update_ref", "TaskLease",
+            (("200", "TaskReply"), ("409", "LeaseRefusal"), ("400", "Error"), *_ERR))
+      for action, op, text in (
+          ("claim", "claimTask", "Take the lease by compare-and-swap; returns the fencing token"),
+          ("heartbeat", "heartbeatTask", "Extend the lease (holder and current fencing token)"),
+          ("done", "finishTask", "Close the task (holder and current fencing token)"))),
 )  # fmt: skip
 
 

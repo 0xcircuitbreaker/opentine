@@ -18,6 +18,7 @@ import type {
   Project,
   ProjectHistory,
   ProjectManifest,
+  Task,
   LogEntry,
   RefEntry,
   RefList,
@@ -317,6 +318,33 @@ export class TineClient {
   /** Store a reviewer-signed gate decision; the server checks it and never signs one. */
   decideReviewGate(reviewId: string, decision: ReviewGate): Promise<ReviewDecided> {
     return this.json("decideReviewGate", { params: { review_id: reviewId }, json: { decision } });
+  }
+
+  /** Every coordination task of the tenant (`caps.coord`). */
+  async listTasks(): Promise<Task[]> {
+    return (await this.json<{ tasks: Task[] }>("listTasks")).tasks;
+  }
+
+  async getTask(task: string): Promise<Task> {
+    return (await this.json<{ task: Task }>("getTask", { params: { task } })).task;
+  }
+
+  async addTask(task: string, title = ""): Promise<Task> {
+    return (await this.json<{ task: Task }>("addTask", { json: { task, title } })).task;
+  }
+
+  /** Take the lease; a 409 (`held`, `done`, `contended`) throws `TineApiError` with the code. */
+  async claimTask(task: string, holder: string, ttl = 60): Promise<Task> {
+    return (await this.json<{ task: Task }>("claimTask", { params: { task }, json: { holder, ttl } })).task;
+  }
+
+  async heartbeatTask(task: string, holder: string, fencing: number, ttl = 60): Promise<Task> {
+    const json = { holder, fencing, ttl };
+    return (await this.json<{ task: Task }>("heartbeatTask", { params: { task }, json })).task;
+  }
+
+  async finishTask(task: string, holder: string, fencing: number): Promise<Task> {
+    return (await this.json<{ task: Task }>("finishTask", { params: { task }, json: { holder, fencing } })).task;
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */
