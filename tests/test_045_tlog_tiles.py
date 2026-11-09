@@ -58,18 +58,30 @@ def seed_log(root: Path, n: int) -> None:
     (root / "checkpoint").write_bytes(_tlog_note.sign_checkpoint(key, LOG, n, tree))
 
 
-def test_append_cost_does_not_grow_with_the_log(tmp_path):
-    """Scaled-down benchmark; scripts/bench_tlog_append.py runs the 1M-entry gate."""
-    root = tmp_path / "log"
-    seed_log(root, 70_000)
+def _append_p95(root, count: int) -> float:
     times = []
-    for i in range(40):
+    for i in range(count):
         start = time.perf_counter()
         _tlog_note.append(root, LOG, lambda _t, i=i: f"n{i}".encode())
         times.append(time.perf_counter() - start)
     times.sort()
-    assert times[int(len(times) * 0.95)] < 0.25  # generous: CI disks and fsync vary
-    assert len(_tlog_note.verify_log(root, LOG)) == 70_040
+    return times[int(len(times) * 0.95)]
+
+
+def test_append_cost_does_not_grow_with_the_log(tmp_path):
+    """Scaled-down benchmark; scripts/bench_tlog_append.py runs the 1M-entry gate.
+
+    It compares appends on a small and a large log on the same machine, so slow
+    CI disks and fsync change both sides alike: an O(n) append would make the
+    large log about 70 times slower, an O(log n) one barely slower.
+    """
+    small, large = tmp_path / "small", tmp_path / "large"
+    seed_log(small, 1_000)
+    seed_log(large, 70_000)
+    small_p95 = _append_p95(small, 40)
+    large_p95 = _append_p95(large, 40)
+    assert large_p95 < 4 * small_p95 + 0.05, (small_p95, large_p95)
+    assert len(_tlog_note.verify_log(large, LOG)) == 70_040
 
 
 def test_a_failed_audit_append_is_retried_then_fails_the_write(tmp_path, monkeypatch):
