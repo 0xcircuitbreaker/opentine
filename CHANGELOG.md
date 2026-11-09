@@ -106,7 +106,7 @@
 - **Conformance:** new families `61-vsa` (13 cases), `62-redaction-report-v2`
   (12), `63-tombstone` (23), `64-redacted-copy` (16) and `67-hook` (35),
   answered by Python, the TS verifier and the pyz.
-- The suite is now **868 conformance vectors**; 314 of the 868 refuse input, and the adapter contract still has one entry point: 53 ops.
+- The suite is now **870 conformance vectors**; 316 of the 870 refuse input, and the adapter contract still has one entry point: 53 ops.
 
 ### Security
 

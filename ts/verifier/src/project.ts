@@ -38,7 +38,7 @@ const RE = {
   repo: /^[A-Za-z0-9_.:/-]{1,128}$/,
   branch: /^[A-Za-z0-9._/-]{1,255}$/,
   url: /^(https:\/\/|ssh:\/\/|git@)[\x21-\x7e]{1,2040}$/,
-  userinfo: /^[a-z]+:\/\/[^/@]*:[^/@]*@/,
+  userinfo: /^(https:\/\/[^/]*@|ssh:\/\/[^/@]*:[^/@]*@)/,
   digest: /^sha256:[0-9a-f]{64}$/,
   ref: /^refs\/(heads|tags)\/[A-Za-z0-9._/-]{1,240}$/,
   sha1: /^[0-9a-f]{40}$/,

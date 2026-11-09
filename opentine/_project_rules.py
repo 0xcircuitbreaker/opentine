@@ -43,7 +43,7 @@ BLOB_OID = re.compile(r"blob:sha256:[0-9a-f]{64}")
 REPO_ID = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")
 BRANCH = re.compile(r"[A-Za-z0-9._/-]{1,255}")
 URL = re.compile(r"(https://|ssh://|git@)[\x21-\x7e]{1,2040}")
-_USERINFO = re.compile(r"^[a-z]+://[^/@]*:[^/@]*@")
+_USERINFO = re.compile(r"^(https://[^/]*@|ssh://[^/@]*:[^/@]*@)")
 
 
 def malformed(message: str) -> RecordError:

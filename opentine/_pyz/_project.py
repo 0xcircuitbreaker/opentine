@@ -82,7 +82,7 @@ def _slot_problem(slot: Any, private: bool) -> tuple[str, str] | None:
         if (
             not _is(url, "url")
             or len(url.encode()) > 2048
-            or re.match(r"^[a-z]+://[^/@]*:[^/@]*@", url)
+            or re.match(r"^(https://[^/]*@|ssh://[^/@]*:[^/@]*@)", url)
         ):
             return bad, "a url is a clone URL without credentials"
     if not private and slot["upstream_visibility"] == "private":

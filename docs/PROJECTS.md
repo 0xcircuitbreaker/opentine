@@ -86,6 +86,9 @@ mirror capability.
 
 `tine project init|link|show|history|verify|push` and `tine remote add
 --project ID` (see [CLI.md](CLI.md#projects-tine-project-046)).
+`tine project verify --remote` also refuses (exit 4, `project.chain-break`) a
+remote history that forks from this repository's: one must be a prefix of the
+other.
 
 ## Conformance
 

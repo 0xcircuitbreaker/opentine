@@ -57,7 +57,12 @@ def _query_cursor(environ) -> int:
 
 def _put(app: Any, identity, tenant: str, root, environ, sr):
     service = app.service
-    service._authorize(identity, "update_ref", tenant)
+    try:
+        service._authorize(identity, "update_ref", tenant)
+    except PermissionError:
+        # A caller who may not even read the tenant gets the uniform 404.
+        reads.readable(service, identity, tenant, "read_ref")
+        raise
     request = app._json(environ, "expected_old", "manifest")
     record = request.get("manifest")
     current = store.head(root, tenant)
@@ -67,11 +72,13 @@ def _put(app: Any, identity, tenant: str, root, environ, sr):
         return app._json_response(sr, "409 Conflict", {"updated": False})
     try:
         found = _project.check(record, previous=current)
+        if current is None and found["seq"] != 0:
+            raise RecordError("project.chain-break", "the first version stored must be seq 0")
+        if found["tenant"] != tenant:
+            raise RecordError("project.malformed", "the manifest names another tenant")
     except RecordError as exc:
         service._audit(identity, tenant, "update_ref", "refused", {"project": exc.code})
         return app._json_response(sr, "400 Bad Request", {"error": str(exc), "code": exc.code})
-    if found["tenant"] != tenant:
-        raise ValueError("the manifest names another tenant")
     if not store.append(root, tenant, record):
         return app._json_response(sr, "409 Conflict", {"updated": False})
     details = {"name": "project/manifest", "new": found["digest"], "expected_old": current_digest}

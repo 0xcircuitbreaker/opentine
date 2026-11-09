@@ -73,3 +73,23 @@ def test_every_object_of_a_real_repository_matches_its_id(tmp_path, monkeypatch,
         with pytest.raises(ValueError) as caught:
             check(kind, data + b"x", oid)
         assert caught.value.code == "git-object.mismatch"  # type: ignore[attr-defined]
+
+
+def test_commit_headers_are_read_in_order():
+    import hashlib
+
+    from opentine._git_object import GitObjectError, check
+
+    tree = "a" * 40
+    parent = "b" * 40
+    for data, ok in (
+        (f"tree {tree}\nparent {parent}\nauthor x\n\nm\n".encode(), [tree, parent]),
+        (f"tree {tree}\nauthor x\nparent {parent}\n\nm\n".encode(), [tree]),
+        (f"junk\ntree {tree}\n\nm\n".encode(), None),
+    ):
+        oid = hashlib.sha1(b"commit %d\0" % len(data) + data).hexdigest()
+        if ok is None:
+            with pytest.raises(GitObjectError):
+                check("commit", data, oid)
+        else:
+            assert check("commit", data, oid)["links"] == ok

@@ -59,12 +59,16 @@ function headerLinks(kind: string, data: Uint8Array, width: number, fmt: string)
   }
   const headers = text
     .split("\n")
-    .filter((line) => line.includes(" "))
-    .map((line) => [line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)]);
+    .map((line) => (line.includes(" ") ? [line.slice(0, line.indexOf(" ")), line.slice(line.indexOf(" ") + 1)] : [line, ""]));
   const first = kind === "commit" ? "tree" : "object";
   if (headers.length === 0 || headers[0][0] !== first) malformed(`a ${kind} starts with a ${first} header`);
   const found = [headers[0][1]];
-  if (kind === "commit") for (const [name, value] of headers.slice(1)) if (name === "parent") found.push(value);
+  if (kind === "commit") {
+    for (const [name, value] of headers.slice(1)) {
+      if (name !== "parent") break;
+      found.push(value);
+    }
+  }
   if (!found.every((oid) => oid.length === width * 2 && HEX.test(oid))) malformed(`a ${kind} links ${fmt} ids`);
   return found;
 }

@@ -68,7 +68,9 @@ def _headers(data: bytes) -> list[tuple[str, str]]:
         lines = head.decode("utf-8").split("\n")
     except UnicodeDecodeError as exc:
         raise _malformed("headers are UTF-8") from exc
-    return [tuple(line.split(" ", 1)) for line in lines if " " in line]  # type: ignore[misc]
+    # Read in order: no line is skipped, and a commit's parents are the
+    # ``parent`` lines straight after its ``tree`` line.
+    return [tuple(line.split(" ", 1)) if " " in line else (line, "") for line in lines]  # type: ignore[misc]
 
 
 def links(kind: str, data: bytes, object_format: str) -> list[str]:
@@ -84,7 +86,10 @@ def links(kind: str, data: bytes, object_format: str) -> list[str]:
         raise _malformed(f"a {kind} starts with a {first} header")
     found = [headers[0][1]]
     if kind == "commit":
-        found += [value for name, value in headers[1:] if name == "parent"]
+        for name, value in headers[1:]:
+            if name != "parent":
+                break
+            found.append(value)
     if not all(len(oid) == width * 2 and _HEX.fullmatch(oid) for oid in found):
         raise _malformed(f"a {kind} links {object_format} ids")
     return found

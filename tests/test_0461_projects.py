@@ -75,8 +75,8 @@ def _answer(verifier: str, op: str, value: dict):
 
 
 @pytest.mark.parametrize("verifier", ["python", "pyz"])
-@pytest.mark.parametrize(("family", "count"), [("65-project.json", 28),
-                                                ("66-mirror-state.json", 25)])  # fmt: skip
+@pytest.mark.parametrize(("family", "count"), [("65-project.json", 29),
+                                                ("66-mirror-state.json", 26)])  # fmt: skip
 def test_the_65_and_66_families_agree_in_python_and_the_pyz(verifier, family, count):
     cases = _cases(family)
     assert len(cases) == count
@@ -330,6 +330,17 @@ def test_remote_reads_are_a_uniform_404_and_writes_need_a_writer(repo, tmp_path,
     wrong_tenant = http("w").put("/v1/tenants/acme/project",
                                  json={"expected_old": None, "manifest": elsewhere})  # fmt: skip
     assert wrong_tenant.status_code == 400
+    other_put = http("o").put("/v1/tenants/acme/project", json=body)
+    nowhere_put = http("o").put("/v1/tenants/nobody/project", json=body)
+    assert other_put.status_code == 404
+    assert (other_put.status_code, other_put.content) == (
+        nowhere_put.status_code,
+        nowhere_put.content,
+    )
+    later = _project.sign(_project.build("app", "acme", owners=record["owners"], slots=[slot],
+                                         previous=record), owner)  # fmt: skip
+    gap = http("w").put("/v1/tenants/acme/project", json={"expected_old": None, "manifest": later})
+    assert gap.status_code == 400 and gap.json()["code"] == "project.chain-break"
     done = http("w").put("/v1/tenants/acme/project", json=body)
     assert done.status_code == 200 and done.json()["digest"] == _project.digest(record)
     assert http("r").get("/v1/tenants/acme/project").json()["manifest"] == record
@@ -378,3 +389,37 @@ def test_check_refuses_a_record_error_with_its_code():
     with pytest.raises(RecordError) as caught:
         _project.check({"kind": "opentine.project"})
     assert caught.value.code == "project.malformed"
+
+
+def test_verify_refuses_a_remote_history_that_forks_from_the_local_one(
+    repo, tmp_path, monkeypatch, capsys
+):
+    _service, http = _remote(tmp_path, monkeypatch)
+    assert _init(capsys, repo)[0] == 0
+    owner = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(SEED))
+    local = _project_ref.read(repo)
+    fork = _project.sign(_project.build(local["project_id"], "acme", owners=local["owners"],
+                                        slots=local["slots"], visibility=local["visibility"],
+                                        created_at="2020-01-01T00:00:00Z"), owner)  # fmt: skip
+    assert _project.digest(fork) != _project.digest(local)
+    put = http("w").put("/v1/tenants/acme/project", json={"expected_old": None, "manifest": fork})
+    assert put.status_code == 200
+    where = repo.path.parent.as_posix()
+    remote = ("--remote", "https://remote", "--tenant", "acme", "--token", "w")
+    code, out = _tine(capsys, "project", "verify", *remote, "--repo", where)
+    assert code == VERIFICATION_FAILED, out
+
+
+def test_userinfo_in_an_https_url_is_refused_everywhere():
+    owner = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(SEED))
+    hex_owner = owner.public_key().public_bytes_raw().hex()
+    for url in ("https://ghp_token@github.com/a/b.git", "ssh://git:pw@host/a.git"):
+        slot = {"role": "primary", "forge": "git", "forge_repo_id": None,
+                "upstream_visibility": "public", "locator": {"url": url},
+                "default_branch": "main"}  # fmt: skip
+        with pytest.raises(RecordError):
+            _project.build("app", "acme", owners=[hex_owner], slots=[slot])
+    ok = {"role": "primary", "forge": "git", "forge_repo_id": None,
+          "upstream_visibility": "public", "locator": {"url": "ssh://git@host/a.git"},
+          "default_branch": "main"}  # fmt: skip
+    assert _project.build("app", "acme", owners=[hex_owner], slots=[ok])["slots"] == [ok]

@@ -176,6 +176,10 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     if action == "history":
         return {"versions": versions, "total": len(versions)}, _lines(versions)
     result = _project.chain(versions, owner_key=args.owner_key)
+    if args.remote:
+        from opentine._cli_project_remote import check_fork
+
+        check_fork(args, versions)
     return {"result": result}, f"verified {result['versions']} version(s) ({result['state']})"
 
 

@@ -2048,7 +2048,9 @@ always `null` for `git`), `upstream_visibility` (`public`/`private`),
 starting with `/` or `-`) and `locator`, an object with exactly one key:
 
 * `url`: an `https://`, `ssh://` or `git@` clone URL of printable ASCII, at
-  most 2048 bytes, with no `user:password@` credentials; or
+  most 2048 bytes, carrying no credentials: an `https://` URL has no userinfo
+  at all (neither `user:password@` nor a bare `token@`), and an `ssh://` URL
+  may name a user but no password; or
 * `commitment`: `"sha256:" + hex(SHA-256(b"opentine.project.locator.v1:" ||
   salt || 0x00 || UTF-8 url))`, with a salt of at least 16 bytes the owner
   keeps (`tine project` keeps it in `.tine/project-locators.json`, which is
@@ -2147,7 +2149,9 @@ or `tag`), the bytes and an id recomputes the id and, on a match, returns
 `{oid, type, object_format, links, state: "matches", label: "matches its id
 (checked by you)"}`, where `links` are the ids the object names, in order: a
 tree's entries (`<octal mode> SP <name> NUL <raw id>`, 20 or 32 bytes), a
-commit's `tree` header then its `parent` headers, a tag's `object` header. It
+commit's `tree` header then the `parent` headers that follow it directly (as
+git reads them), a tag's `object` header; the first header line must be `tree`
+(commit) or `object` (tag), with no line before it. It
 refuses `git-object.malformed` (an id that is not 40 or 64 lowercase hex, an
 unknown type, more than 64 MiB, a tree entry that does not parse, a name that
 is not one path component, a commit or tag without its first header, or a link
@@ -2882,15 +2886,16 @@ A remote that stores project manifests lists `project` (`{"path":
   manifest}`: a compare-and-swap of `project/manifest`. `expected_old` is the
   current version's digest, or `null` when there is none; otherwise the answer
   is `409 {"updated": false}`. The manifest must name this tenant, follow the
-  current version and be signed by one of its owners (§4.16), else `400`
-  carrying the refusal `code`. On success `200 {"updated": true, "digest"}`,
+  current version (with no current version it must be `seq` 0) and be signed
+  by one of its owners (§4.16), else `400` carrying the refusal `code`. On success `200 {"updated": true, "digest"}`,
   and the move is an `update_ref` row of the audit chain (name
   `project/manifest`, new = the digest), so it is in the transparency log
   (§8.10).
 - `GET social` (`read_ref`): `{"stars", "watches"}`, counts only.
 
 A tenant without a project, a caller without `read_ref`, and another tenant
-all answer the same `404 {"error":"not found"}`; an unauthenticated request is
+all answer the same `404 {"error":"not found"}`, for `PUT project` too (a
+reader who may not write gets `403`); an unauthenticated request is
 the same `401` for an existing private tenant and a tenant that does not exist.
 The server stores manifests exactly as signed and never signs one; it keeps
 them outside the ref listing, so `GET refs`, fetch, clone and push are what

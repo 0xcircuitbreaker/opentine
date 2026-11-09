@@ -54,13 +54,16 @@ def _links(kind: str, data: bytes, width: int, fmt: str) -> list[str]:
         lines = data.split(b"\n\n", 1)[0].decode("utf-8").split("\n")
     except UnicodeDecodeError as exc:
         raise _bad("headers are UTF-8") from exc
-    headers = [line.split(" ", 1) for line in lines if " " in line]
+    headers = [line.split(" ", 1) if " " in line else [line, ""] for line in lines]
     first = "tree" if kind == "commit" else "object"
     if not headers or headers[0][0] != first:
         raise _bad(f"a {kind} starts with a {first} header")
     found = [headers[0][1]]
     if kind == "commit":
-        found += [value for name, value in headers[1:] if name == "parent"]
+        for name, value in headers[1:]:
+            if name != "parent":
+                break
+            found.append(value)
     if not all(len(oid) == width * 2 and _HEX.fullmatch(oid) for oid in found):
         raise _bad(f"a {kind} links {fmt} ids")
     return found

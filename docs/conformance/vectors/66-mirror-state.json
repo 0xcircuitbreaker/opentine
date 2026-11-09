@@ -121,6 +121,31 @@
         8
       ],
       "expect": "reject",
+      "id": "git-object.junk-first-line",
+      "input": {
+        "value": {
+          "data_b64": "anVuawp0cmVlIDJlODExNzE0NDhlYjlmMmVlMzgyMWUzZDQ0N2FhNmIyZmUzZGRiYTEKYXV0aG9yIHQgPHRAZXhhbXBsZS5jb20+IDAgKzAwMDAKY29tbWl0dGVyIHQgPHRAZXhhbXBsZS5jb20+IDAgKzAwMDAKCmZpcnN0Cg==",
+          "oid": "c95f8960765121f13b7128dcbc79a428249a615d",
+          "type": "commit"
+        }
+      },
+      "intent": "a commit's first header line is its tree",
+      "op": "git-object.check",
+      "profile": "verifier",
+      "reason": "git-object.malformed",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"anVuawp0cmVlIDJlODExNzE0NDhlYjlmMmVlMzgyMWUzZDQ0N2FhNmIyZmUzZGRiYTEKYXV0aG9yIHQgPHRAZXhhbXBsZS5jb20+IDAgKzAwMDAKY29tbWl0dGVyIHQgPHRAZXhhbXBsZS5jb20+IDAgKzAwMDAKCmZpcnN0Cg==\", \"oid\": \"c95f8960765121f13b7128dcbc79a428249a615d\", \"type\": \"commit\"}",
+      "x_reference": {
+        "exception": "GitObjectError",
+        "message": "git object is malformed: a commit starts with a tree header"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
       "id": "git-object.one-byte",
       "input": {
         "value": {

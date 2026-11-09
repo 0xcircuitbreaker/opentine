@@ -1248,6 +1248,68 @@
         8
       ],
       "expect": "reject",
+      "id": "project.token-in-url",
+      "input": {
+        "value": {
+          "manifest": {
+            "created_at": "2026-11-08T00:00:00Z",
+            "forked_from": null,
+            "kind": "opentine.project",
+            "owners": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "prev": null,
+            "project_id": "app",
+            "project_version": {
+              "$i": "1"
+            },
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "d5f10440dc8e494dca488c327e85aed2b4fa52f9e676aaf3ff0ebafb5cfd069a004e92e6f33dd659a9d3bd0e81eaacaeca0ac92d63e9c5f2e651a149922b0707"
+            },
+            "slots": [
+              {
+                "default_branch": "main",
+                "forge": "github",
+                "forge_repo_id": "R_kgDOExample",
+                "locator": {
+                  "url": "https://ghp_x@github.com/a/b.git"
+                },
+                "role": "primary",
+                "upstream_visibility": "public"
+              }
+            ],
+            "tenant": "acme",
+            "visibility": "public"
+          },
+          "owner_key": null,
+          "previous": null
+        }
+      },
+      "intent": "an https clone URL carries no user or token at all",
+      "op": "project.verify",
+      "profile": "verifier",
+      "reason": "project.malformed",
+      "section": "4.16",
+      "tier": "core",
+      "x_display": "{\"manifest\": {\"created_at\": \"2026-11-08T00:00:00Z\", \"forked_from\": null, \"kind\": \"opentine.project\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"prev\": null, \"project_id\": \"app\", \"project_version\": {\"$i\": \"1\"}, \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "project manifest is malformed: a url is an https://, ssh:// or git@ clone URL without credentials"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
       "id": "project.two-primaries",
       "input": {
         "value": {

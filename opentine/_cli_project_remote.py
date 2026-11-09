@@ -68,6 +68,26 @@ def remote_history(args: argparse.Namespace) -> list[dict[str, Any]]:
     return versions
 
 
+def check_fork(args: argparse.Namespace, versions: list[dict[str, Any]]) -> None:
+    """Refuse a remote history that forks from this repository's (one must prefix the other)."""
+    from opentine import _project
+    from opentine._signed_record import RecordError
+    from opentine.repository import Repo, _project_ref
+
+    try:
+        local = _project_ref.history(Repo.open(args.repo))
+    except (OSError, ValueError, KeyError):
+        return
+    ours = [_project.digest(record) for record in local]
+    theirs = [_project.digest(record) for record in versions]
+    common = min(len(ours), len(theirs))
+    if ours and theirs and ours[:common] != theirs[:common]:
+        raise RecordError(
+            "project.chain-break",
+            "the remote's project history forks from this repository's: it breaks the chain",
+        )
+
+
 def push(args: argparse.Namespace) -> dict[str, Any]:
     from opentine import _project
     from opentine.repository import Repo, _project_ref
@@ -101,4 +121,4 @@ def push(args: argparse.Namespace) -> dict[str, Any]:
     return {"sent": sent, "head": head, "versions": len(local)}
 
 
-__all__ = ["push", "remote_history"]
+__all__ = ["check_fork", "push", "remote_history"]
