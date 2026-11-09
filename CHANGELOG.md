@@ -145,6 +145,11 @@
   `heartbeat` or `done` with a token it read is `409 stale`. A missing task,
   another tenant and a caller who cannot read all get the same 404; a reader
   who tries to write gets 403.
+- A lock file is published with its owner stamp already in it (written to a
+  private name, then hard-linked into place), so a writer killed between
+  creating a lock and stamping it can no longer leave an empty lock that wedges
+  a ref, gc or log for good. An empty lock left by an older version is still
+  treated as live.
 - The witness `/health` never shows local paths, and its rate limit keys on
   the client's socket address, not on `X-Forwarded-For`.
 
