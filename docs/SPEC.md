@@ -2772,7 +2772,13 @@ reports, `tine-custody/1`, the `replay/v1` predicate, `TINEAES6`,
 `opentine-line-attribution/1` and the optionally signed
 `tine-cost-statement/1`. Those lists may only shrink. The audit added the
 missing `opentine-fleet/1` vectors (§4.11) and pyz answers for families 01-05,
-09, 12, 13, 48, 49, 56, 57, 58 and 72-75.
+09, 12, 13, 48, 49, 56, 57, 58, 72 and 76-78. The kinds 0.48.0 adds are the
+last: `opentine.forge-check` (§4.24, family 73), `opentine.review-finding`
+(§4.25, family 74) and the OMS model-signature check (§4.26, family 75), each
+answered by the reference, the TS verifier and the pyz (through
+`tests/test_048_forge.py`, `tests/test_048_review_finding.py` and
+`tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0 and
+0.50.0 add no object kind and no wire format.
 
 ---
 

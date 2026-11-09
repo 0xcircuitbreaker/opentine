@@ -1,8 +1,151 @@
 # Changelog
 
-## Unreleased
+## 0.48.0 — Integrate everywhere (2026-11-09)
 
+### Behaviour changes
+
+- `tine verify` refuses `--model` or `--model-pubkey` without
+  `--model-signature`, and a failed model-signature check exits 4.
+- Rekor v2 keyless verification reports a verified signing time from an
+  RFC 3161 token bound to the DSSE signature bytes (SPEC 8.12.1) instead of
+  `unchecked`. Without a token the receipt stays `unchecked` and the signature
+  fails closed.
+- A delegation chain is refused with `delegation.revoked` when any key on it
+  (each issuer and the final delegate) was revoked at or before the verified
+  signing time, or at all when the time is only claimed (SPEC 4.10.1).
+- The MCP server lists one more read-only tool, `code_graph`.
+
+### Added
+
+- **`tine forge publish`** (SPEC 4.24): posts a commit's AI share, verify
+  status, AI-attributed line ranges and a link to an offline-verifiable bundle
+  to GitHub (a check run with line annotations and a PR comment), GitLab (a
+  commit status and MR note), Forgejo/Gitea (a commit status and PR comment)
+  and Entire (local checkpoint refs and a git note, with the `git push`
+  printed). The project is resolved by `forge_repo_id`. `--dry-run` needs
+  neither a token nor the network. See `docs/FORGES.md`.
+- **`opentine.forge-check`**, new kind (SPEC 4.24): the unsigned record a forge
+  shows. An unverified commit is never shown as a success: GitHub shows
+  neutral, GitLab `skipped`, Forgejo `warning`.
+- **`tine review run ID --fleet reviewers.toml [--trust] [--base REV |
+  --diff-file FILE] --ed25519-key-file KEY`**: multi-agent review through a
+  trusted fleet manifest. Each reviewer harness reads the redacted diff; the
+  key that runs the review signs each finding as an
+  **`opentine.review-finding`** (new kind, SPEC 4.25), and the Review gets one
+  new version listing them as open findings, so a critical finding blocks
+  approval. **`tine review findings ID`** lists the stored findings and checks
+  each one against the head version's reviewers.
+- **`tine code-graph [PATH]... [--symbol NAME]`** (`tine-graph/1`): a code map
+  of symbols, imports and import edges, with tree-sitter for Python under the
+  optional `graph` extra and a regex outline otherwise; exposed to MCP as
+  `code_graph`.
+- **IDE extensions:** the VS Code extension in `ide/vscode` adds an AI-blame
+  gutter and "Verify this line's provenance". A JetBrains plugin skeleton is
+  in `ide/jetbrains`. Neither ships in the sdist or the wheel.
+- **`tine compliance list|check RUN --profile fre-902|eu-ai-act|eidas`**
+  (SPEC 12.5): draft profiles, each marked "draft — not legal advice, pending
+  counsel review", that map cited rules and articles (FRE 902(13)/(14),
+  901(b)(9); EU AI Act Art. 12, 19, 26; eIDAS Art. 25, 26, 35, 36, 41, 45i,
+  45k) to evidence facts. No requirement is evidenced unless the offline verify
+  verdict passes; `--strict` exits 4 if any in-scope requirement is missing.
+  Profiles ship in the wheel under `opentine/data/compliance`.
+- **`tine export RUN --format run-crate`**: a Provenance Run Crate (RO-Crate
+  1.1, Workflow Run RO-Crate profiles 0.5) with a built-in structural
+  validator.
+- **OMS model-signature checks** (SPEC 4.26): `tine verify --model-signature
+  BUNDLE [--model PATH] --model-pubkey PEM` verifies an OpenSSF Model Signing
+  v1.0 bundle against a pinned P-256 key and records the result in
+  `assurance.factors`. The factor binds the signature to the files given, not
+  to the run, and never raises the tier.
+- **OTLP:** `/v1/logs` accepts `application/x-protobuf`; `tine import --format
+  otlp-proto-logs`; OTLP/gRPC ingest (`opentine[grpc]`) with `tine serve
+  --otlp --otlp-protocol grpc|both`, `--otlp-grpc-port` and
+  `--otlp-token-file`. Security review: `docs/security/otlp-grpc-review.md`.
+- **Fuzzing:** `scripts/fuzz_otlp.py` (`--iterations`, `--hours`, `--atheris`)
+  and a scaled `fuzz-otlp` CI job (1M inputs, `timeout-minutes: 30`).
+- **Freeze cutoff** (SPEC 5.5): 0.48.0 is the last release that may add an
+  object kind or wire format before 1.0, enforced by
+  `tests/test_048_freeze_cutoff.py` against `tests/freeze_inventory.py`.
+- `tine-verify.pyz` answers forge checks, review findings, OMS bundles, fleet
+  records and keyless signing times, plus the canonical-JSON, envelope, oid,
+  agent, actions, delegation, tlog, eval-verdict and forge-claim families case
+  by case.
+- **Schemas:** `opentine-forge-check-1`, `opentine-review-finding-1`,
+  `opentine-compliance-profile-1`, `tine-cli-forge-1`, `tine-graph-1`,
+  `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`;
+  `tine-assurance-1`, `tine-cli-verify-1` and `tine-cli-review-1` gain fields.
+  New `docs/FORGES.md`, `docs/compliance/` and `docs/security/`.
+- **CLI:** three new commands (`forge`, `code-graph`, `compliance`), 120 in
+  total.
+- **Conformance:** new families `73-forge-check` (19 cases),
+  `74-review-finding` (21), `75-oms` (22), `76-delegation-revocation` (7),
+  `77-keyless-tsa` (18) and `78-fleet` (10), answered by Python, the TS
+  verifier and the pyz.
 - The suite is now **1112 conformance vectors**; 489 of the 1112 refuse input, and the adapter contract still has one entry point: 68 ops.
+
+### Security
+
+- Forge tokens are read only from environment variables, never echoed, and
+  sent only to an `https` API URL with no credentials, query, fragment or `..`
+  segment; repo slugs cannot climb the API path; redirects are not followed.
+  The GitHub App installation token is limited to `checks: write` (plus
+  `pull_requests: write` with `--pr`) and to the one target repository.
+- `tine review run` refuses a `--base` that looks like an option, reads at
+  most 4 MiB from each member's findings file and skips symlinks; `review
+  findings` fails a finding filed under another Review
+  (`review-finding.wrong-review`). The code map never follows a symlink out of
+  the work tree.
+- The VS Code extension is disabled in untrusted workspaces and
+  `opentine.tinePath` is a machine-scope setting; the JetBrains plugin refuses
+  untrusted projects; both refuse file paths that start with `-`.
+- Compliance: `signature.authenticated` counts only the signature check under
+  a supplied, pinned or HMAC key; every timestamp token must pass;
+  `legal_hold` matches whole digests only; malformed profiles are refused.
+- OMS bundles with more than 16 signatures are refused as `oms.malformed`
+  before any signature check runs.
+- OTLP/gRPC: messages are size-limited before and after decompression; 16
+  concurrent calls, a 10 s handshake timeout and a 30-minute maximum
+  connection age; every `authorization` value must match the token, and the
+  token file must be printable ASCII; TLS and a token are required off
+  loopback.
+- Keyless TSA failures keep their SPEC 8.6 `timestamp.*` codes; Python, the TS
+  verifier and the pyz agree on the RFC 3339 time grammar, microsecond
+  precision and strict hex imprints.
+
+### Compatibility
+
+- No existing byte format changed. The new kinds (`opentine.forge-check`,
+  `opentine.review-finding`) and the OMS check are new objects and inputs;
+  fetch, clone and push are unchanged for 0.34–0.47.0 clients.
+- SPEC 0.48.0 adds 4.10.1, 4.24–4.26, 5.5, 8.12.1 and 12.5. The conformance
+  families are numbered 73–78.
+- This is the last release that adds an object kind or wire format before
+  1.0.
+
+### Deferred
+
+- Counsel sign-off on the compliance profiles is outstanding (every profile
+  says `counsel_review: outstanding`); the eIDAS Art. 3(48) and 3(52) point
+  numbers are not yet re-checked against the consolidated EUR-Lex text.
+- The 72 h fuzz run has not been run: use `scripts/fuzz_otlp.py --hours 72`
+  (`--atheris` where installed). No external security review of OTLP/gRPC
+  was done; there is no connection-count limit or mTLS.
+- Forges: live forges were never contacted (tests use recorded answers);
+  fine-grained GitHub personal tokens cannot create check runs and there is no
+  commit-status fallback; Entire refs and notes are written locally and the
+  push is only printed.
+- Reviews: findings are signed by the key running the review, not by the
+  reviewer harness; a verifier cannot recompute `finding_id` from the record
+  alone. The JetBrains plugin is uncompiled and not built in CI; the VS Code
+  extension's `extension.ts` is untested and no `.vsix` is packaged.
+- OMS: keyless bundles (Fulcio, Rekor) and `shards` serialization are refused
+  as `oms.unsupported`; the factor is not tied to the run's recorded model.
+- Keyless: the TS verifier checks binding rules only, not the token's CMS
+  signature and chain; no end-to-end keyless `verify-attestation` test.
+- Freeze audit: the pyz checks families 31, 35, 42, 47 and 51 only as whole
+  files and never reads repository storage; six pre-cutoff kinds have no
+  vector family yet. These lists may only shrink.
+- Run crates: the upstream `rocrate-validator` is not run.
 
 ## 0.47.0 — Merge it, review it (2026-11-09)
 
