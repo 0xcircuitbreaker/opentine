@@ -301,6 +301,9 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.47.0 | Delivered (§10, §11 projects second half) |
 | 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
 | 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
+| 0.50.0 | Delivered (freeze candidate; criterion 7 met; the audit engagement, 30 nightly green days, green CI runs of the parity, peer-compat, audit-kit and bench jobs, counsel sign-off and the 72 h fuzz outstanding) |
+
+**Status:** 0.50.0 is the end of this plan. The next plan, toward 1.0, is pending.
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
