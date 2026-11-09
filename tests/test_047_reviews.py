@@ -1,4 +1,4 @@
-"""0.47: Reviews, their signed gate decisions and ``caps.reviews`` (SPEC 4.19, 8.19).
+"""0.47: Reviews, their signed gate decisions and ``caps.reviews`` (SPEC 4.20, 8.19).
 
 The 70-review family agrees in Python and the pyz (the TS verifier runs it in
 ``ts/verifier``'s conformance test); ``tine review`` writes a chain only a

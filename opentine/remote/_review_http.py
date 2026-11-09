@@ -1,4 +1,4 @@
-"""``caps.reviews``: a tenant's Reviews over HTTP (0.47, SPEC 4.19 and 8.19).
+"""``caps.reviews``: a tenant's Reviews over HTTP (0.47, SPEC 4.20 and 8.19).
 
 * ``GET reviews`` (``read_ref``): ``{reviews: [{review_id, seq, head}]}``.
 * ``GET reviews/<id>`` (``read_ref``): ``{bundle, head, seq}``, the Review as an

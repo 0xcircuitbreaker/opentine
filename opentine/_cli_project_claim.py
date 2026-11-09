@@ -1,4 +1,4 @@
-"""``tine project claim|fork`` and ``verify --source`` (0.47, SPEC 4.19).
+"""``tine project claim|fork`` and ``verify --source`` (0.47, SPEC 4.23).
 
 ``claim [--code DIR]`` writes ``DIR/.opentine/project`` (an
 ``opentine.forge-claim``) for the owner to commit on the default branch;

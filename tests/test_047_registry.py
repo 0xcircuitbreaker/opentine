@@ -1,4 +1,4 @@
-"""0.47: the prompt registry and team memory (SPEC 4.19, 4.20).
+"""0.47: the prompt registry and team memory (SPEC 4.21, 4.22).
 
 The 68-prompt and 69-memory families agree in Python and the pyz (the TS
 verifier runs them in ``ts/verifier``'s conformance test); ``tine prompt``

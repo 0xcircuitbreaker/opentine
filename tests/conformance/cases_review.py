@@ -1,4 +1,4 @@
-"""SPEC 4.19 Reviews: versions, gate decisions and the review bundle (0.47).
+"""SPEC 4.20 Reviews: versions, gate decisions and the review bundle (0.47).
 
 Every record is signed with the published Ed25519 seeds in ``keys``
 (deterministic, and every record fixes ``signed_at``, ``updated_at`` and
@@ -102,27 +102,27 @@ _STALE = _gate(_V1)
 
 def _r(name, expect, intent, record, reason=None, *, previous=None, pin=None) -> Case:
     value = {"version": record, "previous": previous, "reviewer_key": pin}
-    return Case(id=f"review.{name}", section="4.19", checklist=(8,), op="review.verify",
+    return Case(id=f"review.{name}", section="4.20", checklist=(8,), op="review.verify",
                 profile=VERIFIER, expect=expect, intent=intent, input=V(value),
                 reason=reason)  # fmt: skip
 
 
 def _g(name, expect, intent, record, version, reason=None) -> Case:
-    return Case(id=f"review-gate.{name}", section="4.19", checklist=(8,),
+    return Case(id=f"review-gate.{name}", section="4.20", checklist=(8,),
                 op="review-gate.verify", profile=VERIFIER, expect=expect, intent=intent,
                 input=V({"decision": record, "version": version}), reason=reason)  # fmt: skip
 
 
 def _b(name, expect, intent, versions, decisions, reason=None, **extra) -> Case:
     bundle = {**_review.bundle(versions, decisions), **extra}
-    return Case(id=f"review.bundle.{name}", section="4.19", checklist=(8,), op="review.bundle",
+    return Case(id=f"review.bundle.{name}", section="4.20", checklist=(8,), op="review.bundle",
                 profile=VERIFIER, expect=expect, intent=intent,
                 input=V({"bundle": bundle, "reviewer_key": None}), reason=reason)  # fmt: skip
 
 
 REVIEW = Family(
     "70-review.json",
-    "4.19",
+    "4.20",
     "review",
     (
         _r("valid-first", ACCEPT, "a first version signed by its own reviewer (trust on first use)",

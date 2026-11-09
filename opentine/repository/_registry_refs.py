@@ -1,4 +1,4 @@
-"""Prompt versions and memory notes in a repository (0.47, SPEC 4.19-4.20).
+"""Prompt versions and memory notes in a repository (0.47, SPEC 4.21-4.20).
 
 Both kinds are stored as blobs of their canonical bytes (never redacted: they
 are signed, and redaction would break the signature; ``tine memory add``

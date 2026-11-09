@@ -1,5 +1,5 @@
 /**
- * SPEC 4.19 Reviews: `opentine.review` (a reviewer-signed, hash-chained unit of
+ * SPEC 4.20 Reviews: `opentine.review` (a reviewer-signed, hash-chained unit of
  * work across runs and commits in one or more repositories), `opentine.review-gate`
  * (a reviewer's signed decision on one gate of one version) and the
  * `opentine.review-bundle` that carries a Review whole. A port of

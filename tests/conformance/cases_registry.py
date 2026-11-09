@@ -1,4 +1,4 @@
-"""SPEC 4.19 prompt versions and 4.20 memory notes (0.47).
+"""SPEC 4.21 prompt versions and 4.22 memory notes (0.47).
 
 Records are signed with the published Ed25519 seeds in ``keys``
 (``ed25519_seed`` the author, ``ed25519_seed_b`` a stranger) and every record
@@ -49,7 +49,7 @@ def _hmac(record: dict, domain: bytes, subject: str) -> dict:
                     signed_at=WHEN)  # fmt: skip
 
 
-# --- 4.19 prompt versions ---------------------------------------------------- #
+# --- 4.21 prompt versions ---------------------------------------------------- #
 
 _TEMPLATE = "You are a careful reviewer. Review {{diff}} against {{policy}}."
 
@@ -74,14 +74,14 @@ _P3 = _ps(_version(_P2, template="Review this change:\n{{diff}}", model=None))
 
 def _p(name, expect, intent, record, reason=None, *, previous=None, key=None) -> Case:
     value = {"record": record, "previous": previous, "public_key": key}
-    return Case(id=f"prompt.{name}", section="4.19", checklist=(8,), op="prompt.verify",
+    return Case(id=f"prompt.{name}", section="4.21", checklist=(8,), op="prompt.verify",
                 profile=VERIFIER, expect=expect, intent=intent, input=V(value),
                 reason=reason)  # fmt: skip
 
 
 PROMPT = Family(
     "71-prompt.json",
-    "4.19",
+    "4.21",
     "prompt",
     (
         _p("valid-first", ACCEPT, "version 1, trust on first use", _P1),
@@ -136,7 +136,7 @@ PROMPT = Family(
 )  # fmt: skip
 
 
-# --- 4.20 memory notes ------------------------------------------------------- #
+# --- 4.22 memory notes ------------------------------------------------------- #
 
 _RUN = "run:sha256:" + "ab" * 32
 
@@ -157,14 +157,14 @@ _N1 = _ms(_note())
 
 def _m(name, expect, intent, record, reason=None, *, key=None, team=()) -> Case:
     value = {"record": record, "public_key": key, "team": list(team)}
-    return Case(id=f"memory.{name}", section="4.20", checklist=(8,), op="memory.verify",
+    return Case(id=f"memory.{name}", section="4.22", checklist=(8,), op="memory.verify",
                 profile=VERIFIER, expect=expect, intent=intent, input=V(value),
                 reason=reason)  # fmt: skip
 
 
 MEMORY = Family(
     "69-memory.json",
-    "4.20",
+    "4.22",
     "memory",
     (
         _m("valid-tofu", ACCEPT, "a note resting on its embedded key", _N1),

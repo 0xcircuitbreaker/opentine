@@ -1,4 +1,4 @@
-"""``opentine.memory``: a signed team-memory annotation (0.47, SPEC 4.20).
+"""``opentine.memory``: a signed team-memory annotation (0.47, SPEC 4.22).
 
 Team memory is what a team wants every agent to know: a convention, a pitfall,
 a decision. Each note is one record: its ``scope`` (the team or repository it

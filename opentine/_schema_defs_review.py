@@ -1,4 +1,4 @@
-"""JSON Schemas for Reviews (0.47, SPEC 4.19).
+"""JSON Schemas for Reviews (0.47, SPEC 4.20).
 
 ``opentine-review-1`` (one ``opentine.review`` version),
 ``opentine-review-gate-1`` (one signed gate decision) and
@@ -47,7 +47,7 @@ def _list(items: dict[str, Any], most: int, least: int = 0) -> dict[str, Any]:
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "opentine-review-1": doc("opentine-review-1", "opentine.review (review_version 1)",
-        "One version of a Review (SPEC 4.19): the repos it spans, the runs and commits it "
+        "One version of a Review (SPEC 4.20): the repos it spans, the runs and commits it "
         "covers, its findings, its monitors (eval scorers) and its gates. `prev` is the "
         "previous version's blob-oid digest (null for seq 0); `signature` is an Ed25519 "
         "tine-sig/3 block by a reviewer of the previous version, over `opentine.review.v1:` + "
@@ -64,7 +64,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "gates": _list(_ID, 32), "updated_at": _WHEN, "signature": SIG})),
     "opentine-review-gate-1": doc("opentine-review-gate-1",
         "opentine.review-gate (gate_version 1)",
-        "One reviewer's signed decision on one gate of one Review version (SPEC 4.19), named by "
+        "One reviewer's signed decision on one gate of one Review version (SPEC 4.20), named by "
         "its digest and seq; an approval is refused while a monitor of that version fails or "
         "a critical finding is open. Signed (Ed25519 tine-sig/3) over "
         "`opentine.review-gate.v1:` + JCS({body, header}).",
@@ -77,7 +77,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "signature": SIG})),
     "opentine-review-bundle-1": doc("opentine-review-bundle-1",
         "opentine.review-bundle (bundle_version 1)",
-        "A Review whole (SPEC 4.19): every version oldest first and every gate decision, as "
+        "A Review whole (SPEC 4.20): every version oldest first and every gate decision, as "
         "`tine review export` writes it and `tine-verify.pyz --offline` checks it. Unsigned "
         "itself; everything in it is signed.",
         closed(["kind", "bundle_version", "versions", "decisions"], {

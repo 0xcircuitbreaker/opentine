@@ -7,7 +7,7 @@ characters. It never scans the object store and never writes: with no index it
 says so (``indexed: false``) and names the command that builds one. The text it
 returns is recorded run content -- untrusted, like every other read tool's.
 
-0.47 (SPEC 8.19): ``memories`` holds the team-memory notes (SPEC 4.20) whose
+0.47 (SPEC 8.20): ``memories`` holds the team-memory notes (SPEC 4.22) whose
 topic, tags or text hold every word of the query -- only notes that verify
 under ``.tine/memory-team.json`` and are not superseded; with no team file,
 none. A note is signed by a teammate, not recorded run output, but it is still

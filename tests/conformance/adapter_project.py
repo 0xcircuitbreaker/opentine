@@ -1,4 +1,5 @@
-"""Reference ops for SPEC 4.16-4.19: project manifests, mirror states, git objects, forge claims."""
+"""Reference ops for SPEC 4.16-4.18 and 4.23: project manifests, mirror states, git objects,
+forge claims."""
 
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ def op_git_object_check(inp, args: dict[str, Any]) -> dict[str, Any]:
 
 
 def op_forge_claim_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
-    """SPEC 4.19: an upstream's claim, as mirrored (never a pass)."""
+    """SPEC 4.23: an upstream's claim, as mirrored (never a pass)."""
     value = inp.value
     return _forge_claim.check(value["claim"], branch=value["branch"], project=value["project"])
 

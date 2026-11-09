@@ -11,8 +11,8 @@ TYPED_REF_NAMESPACES = {
     "heads": "run",
     "project": "blob",  # 0.46: the one ref project/manifest (opentine.project, SPEC 4.16)
     "promotions": "run",
-    "prompts": "blob",  # 0.47: opentine.prompt versions (SPEC 4.19)
-    "memory": "blob",  # 0.47: opentine.memory notes (SPEC 4.20)
+    "prompts": "blob",  # 0.47: opentine.prompt versions (SPEC 4.21)
+    "memory": "blob",  # 0.47: opentine.memory notes (SPEC 4.22)
 }
 PROJECT_REF = "project/manifest"
 _REF = re.compile(

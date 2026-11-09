@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-review-gate-1.schema.json",
   "title": "opentine.review-gate (gate_version 1)",
-  "description": "One reviewer's signed decision on one gate of one Review version (SPEC 4.19), named by its digest and seq; an approval is refused while a monitor of that version fails or a critical finding is open. Signed (Ed25519 tine-sig/3) over `opentine.review-gate.v1:` + JCS({body, header}).",
+  "description": "One reviewer's signed decision on one gate of one Review version (SPEC 4.20), named by its digest and seq; an approval is refused while a monitor of that version fails or a critical finding is open. Signed (Ed25519 tine-sig/3) over `opentine.review-gate.v1:` + JCS({body, header}).",
   "type": "object",
   "additionalProperties": false,
   "required": [

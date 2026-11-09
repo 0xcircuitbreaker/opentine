@@ -18,7 +18,7 @@ runner. Each ``[[eval]]`` table names a dataset and a scorer and is run with
     judge_prompt = "judge@production"         # llm-judge only: a registered prompt
 
 Paths are relative to the directory holding ``.tine/``. ``judge_prompt``
-resolves through the prompt registry (SPEC 4.19) and must verify; its
+resolves through the prompt registry (SPEC 4.21) and must verify; its
 ``{{input}}``, ``{{expected}}`` and ``{{output}}`` placeholders become the
 judge's template, so every signed verdict's ``scorer_version`` pins the
 registered prompt's bytes, and the summary names its digest.

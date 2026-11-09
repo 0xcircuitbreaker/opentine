@@ -1,4 +1,4 @@
-"""Prompt versions and memory notes with the standard library (0.47, SPEC 4.19-4.20).
+"""Prompt versions and memory notes with the standard library (0.47, SPEC 4.21-4.20).
 
 An independent port, for ``tine-verify.pyz``, of ``opentine._prompt.check``
 (a signed, hash-chained ``opentine.prompt`` version) and
@@ -80,7 +80,7 @@ def _prompt_body(record: Any) -> dict:
 
 
 def prompt_verify(record: Any, previous: Any = None, public_key: bytes | None = None) -> dict:
-    """SPEC 4.19: ``{name, version, digest, signer, variables, state}``; :class:`Refused` else."""
+    """SPEC 4.21: ``{name, version, digest, signer, variables, state}``; :class:`Refused` else."""
     body = _prompt_body(record)
     signer = _signed(record, body, b"opentine.prompt.v1:", "prompt", "prompt version", public_key)
     if previous is not None:
@@ -111,7 +111,7 @@ def prompt_chain(versions: Any, public_key: bytes | None = None) -> dict:
 
 
 def memory_verify(record: Any, public_key: bytes | None = None, team: Any = ()) -> dict:
-    """SPEC 4.20: ``{scope, topic, digest, signer, subject, supersedes, tags, state}``."""
+    """SPEC 4.22: ``{scope, topic, digest, signer, subject, supersedes, tags, state}``."""
     body = _body(record, MEMORY, _MEMORY_FIELDS, "memory", "memory note")
     text, tags, subject = body["text"], body["tags"], body["subject"]
     checks = (

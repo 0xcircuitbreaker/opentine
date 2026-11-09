@@ -917,8 +917,8 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `annotations/` | `annotation` |
 | `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
 | `project/` | `blob` (0.46+: only `project/manifest`, an `opentine.project` manifest, §4.16) |
-| `prompts/` | `blob` (0.47+: `opentine.prompt` versions, §4.19) |
-| `memory/` | `blob` (0.47+: `opentine.memory` notes, §4.20) |
+| `prompts/` | `blob` (0.47+: `opentine.prompt` versions, §4.21) |
+| `memory/` | `blob` (0.47+: `opentine.memory` notes, §4.22) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
@@ -2277,7 +2277,9 @@ attestation's `gates` by the SHA-256 of its JCS.
 
 Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
 `merge-approval.verify`).
-## 4.19 Reviews: `opentine.review`, `opentine.review-gate` and the review bundle (0.47.0+)
+
+<a id="s-4.20"></a>
+## 4.20 Reviews: `opentine.review`, `opentine.review-gate` and the review bundle (0.47.0+)
 
 A Review is a unit of work across runs and commits, in one repository or
 several, with findings, monitors and gates. It is three kinds:
@@ -2364,7 +2366,9 @@ predecessor or the pinned key, else `verified-tofu`); one decision to
 `review.bundle`). `tine review export` writes a bundle and
 `tine-verify.pyz --offline FILE` checks it, every gate decision included,
 without a network.
-## 4.19 `opentine.prompt` — signed, hash-chained prompt versions (0.47+)
+
+<a id="s-4.21"></a>
+## 4.21 `opentine.prompt` — signed, hash-chained prompt versions (0.47+)
 
 The prompt registry stores each version of a named prompt template as a JSON
 object with exactly these keys plus a `signature`:
@@ -2399,8 +2403,8 @@ moves; a version never changes, so a run annotation or an eval that names a
 version's digest keeps naming the same bytes. Vectors: `71-prompt.json` (op
 `prompt.verify`).
 
-<a id="s-4.20"></a>
-## 4.20 `opentine.memory` — signed team-memory notes (0.47+)
+<a id="s-4.22"></a>
+## 4.22 `opentine.memory` — signed team-memory notes (0.47+)
 
 A memory note is a JSON object with exactly these keys plus a `signature`:
 
@@ -2427,7 +2431,9 @@ A note is stored as the blob `memory/<scope>/<64 hex of its digest>`, so it
 syncs like any ref; a reader shows only notes that verify under its team and
 are not superseded by another such note. Vectors: `69-memory.json` (op
 `memory.verify`).
-## 4.19 `opentine.forge-claim` and project forks (0.47.0+)
+
+<a id="s-4.23"></a>
+## 4.23 `opentine.forge-claim` and project forks (0.47.0+)
 
 A **forge claim** is an upstream's own statement that it belongs to a project:
 the file `.opentine/project` committed on the default branch of a code slot,
@@ -3225,12 +3231,12 @@ A remote that stores Reviews lists `reviews` (`{"path": "reviews", "kind":
 
 - `GET reviews` (`read_ref`): `{"reviews": [{review_id, seq, head}]}`.
 - `GET reviews/<id>` (`read_ref`): `{bundle, head, seq}`, the Review as an
-  `opentine.review-bundle` (§4.19) that verifies offline.
+  `opentine.review-bundle` (§4.20) that verifies offline.
 - `PUT reviews/<id>` (`update_ref`: writers and admins) with `{expected_old,
   version}`: a compare-and-swap on the head version's digest (`null` for a new
   Review), else `409 {"updated": false}`. The version must name this
   `review_id`, follow the head (with no head it must be `seq` 0) and be signed
-  by a reviewer of the head (§4.19), else `400` carrying the refusal `code`. On
+  by a reviewer of the head (§4.20), else `400` carrying the refusal `code`. On
   success `200 {"updated": true, "digest"}`.
 - `POST reviews/<id>/decisions` (`update_ref`) with `{decision}`: one
   `opentine.review-gate`, checked against the stored version whose digest it
@@ -3247,10 +3253,12 @@ write gets `403`); an unauthenticated request is the same `401` for every
 tenant. The server stores versions and decisions exactly as signed, never signs
 one, and keeps them outside the ref listing, so fetch, clone and push are
 unchanged for older clients.
-## 8.19 MCP: memory in `recall`, and tasks (0.47)
+
+<a id="s-8.20"></a>
+## 8.20 MCP: memory in `recall`, and tasks (0.47)
 
 `tine mcp` answers `recall(query, limit)` with the runs the search index
-finds (0.44) and, under `memories`, the memory notes (§4.20) whose topic,
+finds (0.44) and, under `memories`, the memory notes (§4.22) whose topic,
 tags or text contain every word of the query, at most `limit`, each `{scope,
 topic, text, tags, subject, digest, signer, state}`. Only notes that verify
 under the repository's team file `.tine/memory-team.json` (`{"keys": [<hex
@@ -3269,7 +3277,9 @@ type. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
 (default 5 min); at most 64 tasks are held and the oldest finished one is
 forgotten first. The tool runs under the same read-only/allow-writes rules as
 a direct call.
-## 8.19 Plugin loading and `tine-experts/1` (0.47.0)
+
+<a id="s-8.21"></a>
+## 8.21 Plugin loading and `tine-experts/1` (0.47.0)
 
 **Plugins.** An implementation that loads third-party code for importers,
 signers, scorers or snapshot providers does so from Python entry points in
@@ -3302,7 +3312,9 @@ agent when the note crediting it has a valid signature (by the pinned key,
 when one is given) and every range's content hash matches the commit. Rows
 are ordered by lines descending, verified runs descending, kind, then id,
 and numbered from 1.
-## 8.19 The remote task backend: `caps.coord` (0.47.0)
+
+<a id="s-8.22"></a>
+## 8.22 The remote task backend: `caps.coord` (0.47.0)
 
 A remote that runs `opentine-coord/1` tasks (the `tine task` records of
 `coord/tasks/<id>`, annotation chains moved by compare-and-swap) lists `coord`
@@ -3334,8 +3346,8 @@ routes too; a reader who may not write gets `403`. The acceptance load is
 with zero lost tasks, zero tasks finished twice, zero fencing tokens granted
 twice and zero stale `done` calls accepted (`scripts/coord_scale.py`).
 
-<a id="s-8.20"></a>
-## 8.20 Operating a witness: `tine witness serve` (0.47.0)
+<a id="s-8.23"></a>
+## 8.23 Operating a witness: `tine witness serve` (0.47.0)
 
 A witness of the hosted trust network serves the C2SP tlog-witness protocol
 (`POST /add-checkpoint`, §8.10) and, for operators:
@@ -3860,10 +3872,10 @@ Versions are the opentine release that changed this document.
 | Spec version | Change |
 |---|---|
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
-| 0.47.0 | 4.19, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
-| 0.47.0 | 4.19, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.20, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.19, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`. No existing byte format changed. |
-| 0.47.0 | 8.19, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`. No existing byte format changed. |
-| 0.47.0 | 4.19, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.19, `caps.coord`, the remote task backend; 8.20, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
+| 0.47.0 | 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
+| 0.47.0 | 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`. No existing byte format changed. |
+| 0.47.0 | 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`. No existing byte format changed. |
+| 0.47.0 | 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

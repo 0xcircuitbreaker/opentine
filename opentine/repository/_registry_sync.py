@@ -1,4 +1,4 @@
-"""Sync memory notes and prompt versions with a remote (0.47, SPEC 4.19-4.20).
+"""Sync memory notes and prompt versions with a remote (0.47, SPEC 4.21-4.20).
 
 ``tine push`` moves one ref; memory and prompts are many small refs, so
 :func:`sync` walks them: each local ``memory/*`` note the remote lacks is pushed

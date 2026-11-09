@@ -1,7 +1,7 @@
 """JSON Schemas for the prompt registry, team memory and push-triggered evals (0.47).
 
-``opentine-prompt-1`` (an ``opentine.prompt`` version, SPEC 4.19) and
-``opentine-memory-1`` (an ``opentine.memory`` note, SPEC 4.20) are the two
+``opentine-prompt-1`` (an ``opentine.prompt`` version, SPEC 4.21) and
+``opentine-memory-1`` (an ``opentine.memory`` note, SPEC 4.22) are the two
 records; ``tine-cli-prompt-1``, ``tine-cli-memory-1`` and ``tine-cli-eval-ci-1``
 are the ``--json`` outputs of ``tine prompt``, ``tine memory`` and ``tine eval
 ci``. The schemas check shape; the signature, the chain and the placeholder rule
@@ -40,7 +40,7 @@ _LINK = opt(closed(["name", "version", "digest"], {"name": _ID, "version": INT, 
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "opentine-prompt-1": doc("opentine-prompt-1", "opentine.prompt (prompt_version 1)",
-        "One version of a registered prompt template (SPEC 4.19). `prev` is the previous "
+        "One version of a registered prompt template (SPEC 4.21). `prev` is the previous "
         "version's blob-oid digest (null for version 1); `variables` are the template's "
         "sorted, distinct {{name}} placeholders; `signature` is an Ed25519 tine-sig/3 block, "
         "by the same key as the previous version, over `opentine.prompt.v1:` + JCS({body, "
@@ -53,7 +53,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "variables": {"type": "array", "items": _VAR}, "model": opt(_NAME),
             "created_at": _WHEN, "signature": SIG})),
     "opentine-memory-1": doc("opentine-memory-1", "opentine.memory (memory_version 1)",
-        "One signed team-memory note (SPEC 4.20): a scope, a topic, at most 8 KiB of text, "
+        "One signed team-memory note (SPEC 4.22): a scope, a topic, at most 8 KiB of text, "
         "sorted distinct tags, an optional subject (run or blob) and an optional note it "
         "supersedes. `signature` is an Ed25519 tine-sig/3 block over `opentine.memory.v1:` + "
         "JCS({body, header}); a reader keeps notes its team's keys signed.",

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-review-1.schema.json",
   "title": "opentine.review (review_version 1)",
-  "description": "One version of a Review (SPEC 4.19): the repos it spans, the runs and commits it covers, its findings, its monitors (eval scorers) and its gates. `prev` is the previous version's blob-oid digest (null for seq 0); `signature` is an Ed25519 tine-sig/3 block by a reviewer of the previous version, over `opentine.review.v1:` + JCS({body, header}).",
+  "description": "One version of a Review (SPEC 4.20): the repos it spans, the runs and commits it covers, its findings, its monitors (eval scorers) and its gates. `prev` is the previous version's blob-oid digest (null for seq 0); `signature` is an Ed25519 tine-sig/3 block by a reviewer of the previous version, over `opentine.review.v1:` + JCS({body, header}).",
   "type": "object",
   "additionalProperties": false,
   "required": [

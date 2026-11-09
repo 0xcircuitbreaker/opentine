@@ -1,5 +1,5 @@
 /**
- * SPEC 4.19 `opentine.forge-claim` (0.47): an upstream's own, unsigned
+ * SPEC 4.23 `opentine.forge-claim` (0.47): an upstream's own, unsigned
  * `.opentine/project` file, matched against a project's id, tenant, default
  * branch and genesis fingerprint. A port of `opentine._forge_claim.check`.
  * It never reports a pass: a match is `claimed-as-mirrored`. Refusals carry

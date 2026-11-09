@@ -1,4 +1,4 @@
-"""``tine review create|add|gate|show|export|verify|import|push`` (0.47, SPEC 4.19).
+"""``tine review create|add|gate|show|export|verify|import|push`` (0.47, SPEC 4.20).
 
 A Review is kept in ``.tine/reviews/<id>.json`` as its bundle
 (:mod:`opentine.repository._review_store`). ``create`` writes version 0 and

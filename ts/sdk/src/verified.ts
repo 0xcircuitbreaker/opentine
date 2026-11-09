@@ -53,7 +53,7 @@ export async function runClosureVerified(client: TineClient, oid: Oid): Promise<
 
 /**
  * `getReview`, verified: every version reviewer-signed and chained, every gate
- * decision signed by a reviewer of the version it names (SPEC 4.19). The
+ * decision signed by a reviewer of the version it names (SPEC 4.20). The
  * answer is the bundle check: `{review_id, head, seq, versions, state,
  * decisions, gates, status}`. `reviewerKey` pins the first reviewer.
  */

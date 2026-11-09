@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-prompt-1.schema.json",
   "title": "opentine.prompt (prompt_version 1)",
-  "description": "One version of a registered prompt template (SPEC 4.19). `prev` is the previous version's blob-oid digest (null for version 1); `variables` are the template's sorted, distinct {{name}} placeholders; `signature` is an Ed25519 tine-sig/3 block, by the same key as the previous version, over `opentine.prompt.v1:` + JCS({body, header}).",
+  "description": "One version of a registered prompt template (SPEC 4.21). `prev` is the previous version's blob-oid digest (null for version 1); `variables` are the template's sorted, distinct {{name}} placeholders; `signature` is an Ed25519 tine-sig/3 block, by the same key as the previous version, over `opentine.prompt.v1:` + JCS({body, header}).",
   "type": "object",
   "additionalProperties": false,
   "required": [

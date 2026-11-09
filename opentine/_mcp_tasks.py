@@ -1,4 +1,4 @@
-"""MCP 2025-11-25 tasks for ``tine mcp`` tool calls (0.47, SPEC 8.19).
+"""MCP 2025-11-25 tasks for ``tine mcp`` tool calls (0.47, SPEC 8.20).
 
 On a 2025-11-25 connection, a ``tools/call`` whose params carry ``task``
 (``{"ttl": <ms>}``) returns at once with ``{"task": {...}}`` (status

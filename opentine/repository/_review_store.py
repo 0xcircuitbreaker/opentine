@@ -1,4 +1,4 @@
-"""A repository's Reviews: ``.tine/reviews/<review_id>.json`` (0.47, SPEC 4.19).
+"""A repository's Reviews: ``.tine/reviews/<review_id>.json`` (0.47, SPEC 4.20).
 
 Each file is the Review's bundle (``opentine.review-bundle``): every version,
 oldest first, and every gate decision, exactly as their reviewers signed them.

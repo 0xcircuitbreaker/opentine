@@ -1,4 +1,4 @@
-"""SPEC 4.19 forge claims (0.47): an upstream's ``.opentine/project``, never a pass.
+"""SPEC 4.23 forge claims (0.47): an upstream's ``.opentine/project``, never a pass.
 
 The project is the 65-project family's first version (``_V0``): its digest is
 the genesis the fingerprint is taken over. Only ``adapter_project`` answers.
@@ -18,14 +18,14 @@ CLAIM = _forge_claim.build("app", "acme", GENESIS)
 
 def _f(name, expect, intent, claim, reason=None, *, branch="main", project=None) -> Case:
     value = {"claim": claim, "branch": branch, "project": project or PROJECT}
-    return Case(id=f"forge-claim.{name}", section="4.19", checklist=(8,),
+    return Case(id=f"forge-claim.{name}", section="4.23", checklist=(8,),
                 op="forge-claim.verify", profile=VERIFIER, expect=expect, intent=intent,
                 input=V(value), reason=reason)  # fmt: skip
 
 
 FORGE_CLAIM = Family(
     "72-forge-claim.json",
-    "4.19",
+    "4.23",
     "forge-claim",
     (
         _f("match", ACCEPT, "the default branch claims this project: as mirrored, never a pass",

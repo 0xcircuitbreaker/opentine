@@ -7,7 +7,7 @@ learned next to its runs.
 
 `tine prompt push NAME --template TEXT --key KEY` signs version 1 of a prompt;
 each later push signs the next version, chained to the previous one by its
-digest and signed by the same key (`opentine.prompt`, SPEC 4.19). Labels such
+digest and signed by the same key (`opentine.prompt`, SPEC 4.21). Labels such
 as `production` or `staging` point at a version and move; versions never
 change.
 
@@ -26,7 +26,7 @@ prompt's bytes in every signed verdict.
 
 ## Team memory
 
-A memory note (`opentine.memory`, SPEC 4.20) is a signed piece of team
+A memory note (`opentine.memory`, SPEC 4.22) is a signed piece of team
 knowledge: a scope, a topic, at most 8 KiB of text, tags, and optionally the
 run it is about or the note it replaces.
 
@@ -71,4 +71,4 @@ self-hosted runner or a laptop it is the same command.
 
 `tine mcp` supports MCP 2025-11-25 tasks: a `tools/call` with `task` returns a
 task id at once and runs the tool in the background; `tasks/get`,
-`tasks/result`, `tasks/list` and `tasks/cancel` follow it (SPEC 8.19).
+`tasks/result`, `tasks/list` and `tasks/cancel` follow it (SPEC 8.20).

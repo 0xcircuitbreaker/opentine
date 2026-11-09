@@ -1,4 +1,4 @@
-"""``tine prompt push|label|get|list|verify|link`` (0.47, SPEC 4.19).
+"""``tine prompt push|label|get|list|verify|link`` (0.47, SPEC 4.21).
 
 The prompt registry. ``push`` signs the next version of a named template
 (Ed25519, ``--key``) and moves ``prompts/<name>/head``; ``--label`` also points

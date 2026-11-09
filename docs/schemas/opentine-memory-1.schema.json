@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-memory-1.schema.json",
   "title": "opentine.memory (memory_version 1)",
-  "description": "One signed team-memory note (SPEC 4.20): a scope, a topic, at most 8 KiB of text, sorted distinct tags, an optional subject (run or blob) and an optional note it supersedes. `signature` is an Ed25519 tine-sig/3 block over `opentine.memory.v1:` + JCS({body, header}); a reader keeps notes its team's keys signed.",
+  "description": "One signed team-memory note (SPEC 4.22): a scope, a topic, at most 8 KiB of text, sorted distinct tags, an optional subject (run or blob) and an optional note it supersedes. `signature` is an Ed25519 tine-sig/3 block over `opentine.memory.v1:` + JCS({body, header}); a reader keeps notes its team's keys signed.",
   "type": "object",
   "additionalProperties": false,
   "required": [

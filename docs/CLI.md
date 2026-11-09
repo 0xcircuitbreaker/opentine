@@ -394,7 +394,7 @@ tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey 
 tine bundle create FILE REF... --transparency
 ```
 
-0.47, for witness operators (SPEC 8.20): `serve` takes `--key` more than once;
+0.47, for witness operators (SPEC 8.23): `serve` takes `--key` more than once;
 every key cosigns, the first is current, so a key is rotated by adding the next
 one, waiting until verifiers pin both vkeys, then dropping the old one. `GET
 /keys` lists the vkeys (current first) and `GET /health` answers `200
@@ -1198,7 +1198,7 @@ tine review push ID [--remote R [--tenant T] [--token-file P]] [--json] [--repo 
 ```
 
 A Review is a unit of work across runs and commits, in one repository or
-several (SPEC 4.19). `create` writes version 0, signed by the
+several (SPEC 4.20). `create` writes version 0, signed by the
 `--ed25519-key-file` key, which becomes its first reviewer (`--reviewer` adds
 more); `--code-repo` names each repository it spans (default one named
 `default`), optionally with the `opentine.project` id it belongs to. `add`
@@ -1245,7 +1245,7 @@ tine memory sync [--remote R [--tenant T] [--token-file P]]
 ```
 
 Every action takes `--repo PATH` and `--json`. `prompt push` signs the next
-version of a named template (`opentine.prompt`, SPEC 4.19: Ed25519,
+version of a named template (`opentine.prompt`, SPEC 4.21: Ed25519,
 hash-chained through `prev`, the next version signed by the same key) and moves
 `prompts/NAME/head`; `{{name}}` placeholders become its `variables`. A label
 (`prompts/NAME/labels/LABEL`) names one version and moves with `prompt label`;
@@ -1255,14 +1255,14 @@ verify` checks the whole history and exits 4 on a `prompt.*` failure; `prompt
 link` records `{name, version, digest}` as `metadata.prompt` in the run's
 annotation. `--json` follows `tine-cli-prompt-1`.
 
-`memory add` signs a team-memory note (`opentine.memory`, SPEC 4.20) and stores
+`memory add` signs a team-memory note (`opentine.memory`, SPEC 4.22) and stores
 it as `memory/SCOPE/<hex digest>`; it refuses text a secret detector fires on,
 because a signed note is never redacted afterwards (a hex digest or an oid is
 not a secret). `memory trust` adds a key to `.tine/memory-team.json`; `list`
 and `recall` show only notes that verify under those keys and that no other
 such note supersedes (with no team file, `list --any-signer` shows notes on
 their embedded keys). MCP `recall` returns the same notes under `memories`
-(SPEC 8.19). `--json` follows `tine-cli-memory-1`.
+(SPEC 8.20). `--json` follows `tine-cli-memory-1`.
 
 `memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
 and fetch the ones this repository lacks, one ref at a time over the ordinary
@@ -1285,7 +1285,7 @@ tine experts PATH [--rev REV] [--pubkey KEY] [--limit N] [--json]
 
 `plugins list` shows every installed entry point in the `opentine.importers`,
 `opentine.signers`, `opentine.scorers` and `opentine.snapshots` groups and
-whether the loading rules (SPEC 8.19) let it load; it imports nothing.
+whether the loading rules (SPEC 8.21) let it load; it imports nothing.
 `allow` pins the installed distribution and version that provide a plugin in
 `$XDG_CONFIG_HOME/opentine/plugins.json`, the only allow-list read. `check`
 loads one and checks its interface (exit 1 when it may not load). A scorer
@@ -1295,7 +1295,7 @@ plugin is used as `tine eval run --scorer plugin:NAME`. `--json` follows
 `experts` ranks agents (by model, from line attribution notes) and humans (by
 commit author) by the committed lines they wrote under PATH, then by verified
 runs. `--json` follows `tine-experts-1`. See [PLUGINS.md](PLUGINS.md).
-0.47 (SPEC 4.19). `claim` writes `.opentine/project`, an unsigned
+0.47 (SPEC 4.23). `claim` writes `.opentine/project`, an unsigned
 `opentine.forge-claim` naming this project and the fingerprint of its first
 version, into the code checkout `--code` (default `.`); commit it on the
 default branch. `claim --check FILE [--branch B]` checks one against this
@@ -1492,7 +1492,7 @@ carries no content, so nothing is recorded as a write.
 | `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
 | `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
 | `tine task list --repo PATH` | Every task, its status, holder, token and lease end |
-| `tine task ACTION ... --remote NAME\|URL [--tenant T] [--token-file P]` | 0.47: the same action on a `tine serve` tenant (`caps.coord`, SPEC 8.19), on the server's clock |
+| `tine task ACTION ... --remote NAME\|URL [--tenant T] [--token-file P]` | 0.47: the same action on a `tine serve` tenant (`caps.coord`, SPEC 8.22), on the server's clock |
 | `tine fleet resume fleet.toml --id ID [--trust]` | Runs the members of fleet `ID` that did not finish; the manifest digest must match the record |
 | `tine fleet logs ID [--member KEY]` | Prints each member's captured output |
 | `tine fleet send ID --member M --message TEXT --repo PATH` | Queues a steer message in `coord/mailbox/ID/M` |

@@ -1,4 +1,4 @@
-"""``tine project claim`` and ``tine project fork`` (0.47, SPEC 4.19).
+"""``tine project claim`` and ``tine project fork`` (0.47, SPEC 4.23).
 
 * :func:`write_claim` writes ``.opentine/project`` (an ``opentine.forge-claim``)
   into a code checkout for the owner to commit on the default branch;

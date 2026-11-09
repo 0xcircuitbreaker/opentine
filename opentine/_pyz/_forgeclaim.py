@@ -1,4 +1,4 @@
-"""Forge claims with the standard library (0.47, SPEC 4.19).
+"""Forge claims with the standard library (0.47, SPEC 4.23).
 
 An independent port, for ``tine-verify.pyz``, of ``opentine._forge_claim.check``:
 an upstream's unsigned ``.opentine/project`` file, matched against a project's

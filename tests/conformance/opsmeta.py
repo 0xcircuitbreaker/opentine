@@ -426,7 +426,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["review_id", "seq", "digest", "signer", "state"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.19: verify an opentine.review version after its predecessor",
+        "summary": "SPEC 4.20: verify an opentine.review version after its predecessor",
     },
     "review-gate.verify": {
         "profile": VERIFIER,
@@ -435,7 +435,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["review_id", "gate", "decision", "seq", "signer", "state"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.19: verify an opentine.review-gate decision on the version it names",
+        "summary": "SPEC 4.20: verify an opentine.review-gate decision on the version it names",
     },
     "review.bundle": {
         "profile": VERIFIER,
@@ -444,7 +444,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["review_id", "head", "seq", "versions", "state", "decisions", "gates", "status"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.19: verify a review bundle, every version and every gate decision",
+        "summary": "SPEC 4.20: verify a review bundle, every version and every gate decision",
     },
     "prompt.verify": {
         "profile": VERIFIER,
@@ -453,7 +453,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["name", "version", "digest", "signer", "variables", "state"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.19: an opentine.prompt version, after its predecessor when given",
+        "summary": "SPEC 4.21: an opentine.prompt version, after its predecessor when given",
     },
     "memory.verify": {
         "profile": VERIFIER,
@@ -462,7 +462,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["scope", "topic", "digest", "signer", "subject", "supersedes", "tags", "state"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.20: an opentine.memory note under a pinned key or a team",
+        "summary": "SPEC 4.22: an opentine.memory note under a pinned key or a team",
     },
     "git-object.check": {
         "profile": VERIFIER,
@@ -480,7 +480,7 @@ OP_META: dict[str, dict[str, object]] = {
         "output": ["project_id", "tenant", "fingerprint", "branch", "state", "label"],
         "unordered": [],
         "requires": [],
-        "summary": "SPEC 4.19: an opentine.forge-claim as mirrored (never a pass)",
+        "summary": "SPEC 4.23: an opentine.forge-claim as mirrored (never a pass)",
     },
     "actions.chain": {
         "profile": VERIFIER,

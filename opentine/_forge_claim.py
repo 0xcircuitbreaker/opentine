@@ -1,4 +1,4 @@
-"""``opentine.forge-claim``: an upstream's own claim of its project (0.47, SPEC 4.19).
+"""``opentine.forge-claim``: an upstream's own claim of its project (0.47, SPEC 4.23).
 
 A project's owners write the claim (``tine project claim``) into the code
 repository as the file ``.opentine/project`` and commit it on the default

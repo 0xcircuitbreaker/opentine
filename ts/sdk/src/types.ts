@@ -174,7 +174,7 @@ export interface SocialCounts {
   watches: number;
 }
 
-/** An `opentine.review` version (SPEC 4.19), as its reviewer signed it. Verify before trusting. */
+/** An `opentine.review` version (SPEC 4.20), as its reviewer signed it. Verify before trusting. */
 export interface ReviewVersion {
   kind: "opentine.review";
   seq: number;
@@ -182,7 +182,7 @@ export interface ReviewVersion {
   [key: string]: unknown;
 }
 
-/** An `opentine.review-gate` decision (SPEC 4.19), as its reviewer signed it. */
+/** An `opentine.review-gate` decision (SPEC 4.20), as its reviewer signed it. */
 export interface ReviewGate {
   kind: "opentine.review-gate";
   review: Oid;
@@ -215,7 +215,7 @@ export interface ReviewDecided {
   digest: Oid;
 }
 
-/** An `opentine-coord/1` task (`caps.coord`, SPEC 8.19); leases run on the server's clock. */
+/** An `opentine-coord/1` task (`caps.coord`, SPEC 8.22); leases run on the server's clock. */
 export interface Task {
   task: string;
   title: string;

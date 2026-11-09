@@ -1,4 +1,4 @@
-"""JSON Schemas for projects (0.46.1, SPEC 4.16-4.19).
+"""JSON Schemas for projects (0.46.1, SPEC 4.16-4.18, 4.23).
 
 ``opentine-project-1`` (an ``opentine.project`` manifest version),
 ``opentine-mirror-state-1`` (a host's ``opentine.mirror-state`` statement) and,
@@ -73,7 +73,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "signature": SIG})),
     "opentine-forge-claim-1": doc("opentine-forge-claim-1",
         "opentine.forge-claim (claim_version 1)",
-        "An upstream's claim of its project (SPEC 4.19): the unsigned file `.opentine/project` "
+        "An upstream's claim of its project (SPEC 4.23): the unsigned file `.opentine/project` "
         "on the default branch. `fingerprint` is sha256 of `opentine.forge-claim.v1:` + the "
         "digest of the project's first manifest version. A verifier reports a match as "
         "`claimed by upstream (as mirrored)`, never a pass.",

@@ -128,7 +128,7 @@ ROUTES: tuple[Route, ...] = (
           (("200", "ProjectUpdated"), ("409", "ProjectUpdated"), ("400", "Error"), *_ERR)),
     Route("GET", T + "/social", "socialCounts", "Count-only stars and watches (self-host parity)",
           "social_export", "stable", "read_ref", None, (("200", "SocialCounts"), *_ERR)),
-    # 0.47 Reviews (SPEC 4.19, 8.19): stored as their reviewers signed them.
+    # 0.47 Reviews (SPEC 4.20, 8.19): stored as their reviewers signed them.
     Route("GET", T + "/reviews", "listReviews", "Every Review of the tenant, with its head",
           "reviews", "stable", "read_ref", None, (("200", "ReviewList"), *_ERR)),
     Route("GET", T + "/reviews/{review_id}", "getReview", "A Review as a verifiable bundle",
@@ -140,7 +140,7 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", T + "/reviews/{review_id}/decisions", "decideReviewGate",
           "Store a client-signed gate decision", "reviews", "stable", "update_ref",
           "ReviewDecision", (("201", "ReviewDecided"), ("400", "Error"), *_ERR)),
-    # 0.47 remote task backend (SPEC 8.19): opentine-coord/1 leases on the server's clock.
+    # 0.47 remote task backend (SPEC 8.22): opentine-coord/1 leases on the server's clock.
     Route("GET", T + "/coord/tasks", "listTasks", "Every coordination task of the tenant",
           "coord", "stable", "read_ref", None, (("200", "TaskList"), *_ERR)),
     Route("POST", T + "/coord/tasks", "addTask", "Create an open task",

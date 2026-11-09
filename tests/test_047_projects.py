@@ -1,4 +1,4 @@
-"""0.47 projects, second half: ``opentine.forge-claim`` and ``tine project fork`` (SPEC 4.19).
+"""0.47 projects, second half: ``opentine.forge-claim`` and ``tine project fork`` (SPEC 4.23).
 
 The 72-forge-claim family agrees in Python and the pyz (the TS verifier runs it
 in ``ts/verifier``'s own suite); a match is never a pass. ``tine project claim``

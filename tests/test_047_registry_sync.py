@@ -1,4 +1,4 @@
-"""0.47: memory notes and prompt versions sync through a remote (SPEC 4.19-4.20).
+"""0.47: memory notes and prompt versions sync through a remote (SPEC 4.21-4.20).
 
 Two repositories share one ``tine serve``-shaped remote: a note one adds
 reaches the other only if it verifies under the reader's team, a prompt history

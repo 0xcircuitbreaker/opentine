@@ -1,4 +1,4 @@
-"""The field rules of ``opentine.review`` and ``opentine.review-gate`` (0.47, SPEC 4.19-4.20).
+"""The field rules of ``opentine.review`` and ``opentine.review-gate`` (0.47, SPEC 4.20).
 
 :func:`review_body` and :func:`gate_body` return a record's signed body after
 every rule here, or raise :class:`opentine._signed_record.RecordError` with a

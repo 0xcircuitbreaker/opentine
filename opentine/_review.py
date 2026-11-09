@@ -1,4 +1,4 @@
-"""Reviews: ``opentine.review``, its gate decisions and the review bundle (0.47, SPEC 4.19).
+"""Reviews: ``opentine.review``, its gate decisions and the review bundle (0.47, SPEC 4.20).
 
 A Review is a unit of work across runs and commits, in one repository or
 several: the repos it spans (``repos``, each optionally an ``opentine.project``),

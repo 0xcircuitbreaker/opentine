@@ -1,4 +1,4 @@
-"""Reviews with the standard library (0.47, SPEC 4.19).
+"""Reviews with the standard library (0.47, SPEC 4.20).
 
 An independent port, for ``tine-verify.pyz``, of ``opentine._review.check``,
 ``check_gate`` and ``verify_bundle``: a reviewer-signed, hash-chained

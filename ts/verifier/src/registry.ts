@@ -1,6 +1,6 @@
 /**
- * SPEC 4.19 `opentine.prompt` (a signed, hash-chained prompt version) and SPEC
- * 4.20 `opentine.memory` (a signed team-memory note), 0.47. A port of
+ * SPEC 4.21 `opentine.prompt` (a signed, hash-chained prompt version) and SPEC
+ * 4.22 `opentine.memory` (a signed team-memory note), 0.47. A port of
  * `opentine._prompt.check` and `opentine._memory.check`: exactly each kind's
  * fields, then a `tine-sig/3` Ed25519 block over the kind's domain prefix + JCS
  * of `{"body", "header"}` (under the pinned key or, without one, the embedded

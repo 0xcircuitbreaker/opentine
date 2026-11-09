@@ -1,4 +1,4 @@
-"""``opentine.prompt``: a signed, hash-chained prompt version (0.47, SPEC 4.19).
+"""``opentine.prompt``: a signed, hash-chained prompt version (0.47, SPEC 4.21).
 
 The prompt registry (``tine prompt push|label|get``) stores each version of a
 named prompt template as one record: its ``name``, a ``version`` counting from

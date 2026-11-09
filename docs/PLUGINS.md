@@ -1,7 +1,7 @@
 # Plugins and `tine experts`
 
 0.47 adds an entry-point plugin API for four extension points, and
-`tine experts PATH`. The normative rules are [SPEC §8.19](SPEC.md#s-8.19).
+`tine experts PATH`. The normative rules are [SPEC §8.21](SPEC.md#s-8.21).
 
 ## Writing a plugin
 

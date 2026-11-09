@@ -101,7 +101,7 @@ other.
 A project is claimed **from the upstream** by committing `.opentine/project`
 on the default branch (`tine project claim --code DIR` writes it): an unsigned
 `opentine.forge-claim` holding the `project_id`, the `tenant` and a
-`fingerprint` of the project's first manifest version (SPEC 4.19). Only
+`fingerprint` of the project's first manifest version (SPEC 4.23). Only
 someone who can write the upstream's default branch can put it there, which is
 its whole authority. It reaches opentine-web through the code mirror, so it
 reads `claimed by upstream (as mirrored)` and never reaches a pass on its own;

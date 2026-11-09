@@ -30,7 +30,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.malformed",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:ABC\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -68,7 +68,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.malformed",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"2\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -107,7 +107,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.malformed",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"owner\": \"someone\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\":...",
       "x_reference": {
@@ -152,7 +152,7 @@
         "tenant": "acme"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": null
@@ -194,7 +194,7 @@
         "tenant": "acme"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"trunk\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"trunk\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": null
@@ -221,7 +221,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.missing",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": null, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -259,7 +259,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.not-default-branch",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"feature/claim\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -300,7 +300,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.malformed",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"signature\": {\"alg\": \"ed25519\"}, \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"ap...",
       "x_reference": {
@@ -338,7 +338,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.wrong-fingerprint",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:1d2fad88f3a7b47d9fcdbc2dd0aaf9b9e1c3199fb679269b3f51e27d42beeac2\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -376,7 +376,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.wrong-project",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"other\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -414,7 +414,7 @@
       "op": "forge-claim.verify",
       "profile": "verifier",
       "reason": "forge-claim.wrong-project",
-      "section": "4.19",
+      "section": "4.23",
       "tier": "core",
       "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"evil\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
       "x_reference": {
@@ -424,6 +424,6 @@
     }
   ],
   "family": "forge-claim",
-  "section": "4.19",
+  "section": "4.23",
   "suite_version": 1
 }

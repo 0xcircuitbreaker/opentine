@@ -123,7 +123,7 @@
         "state": "verified"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"29acbae...",
       "x_reference": null
@@ -244,7 +244,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"maybe\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09...",
       "x_reference": {
@@ -345,7 +345,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.blocked",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:7f95fcc0d4ac4791cc3dc1402f7906c513a482aa0aa1520914bf847dc0149aad\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
       "x_reference": {
@@ -439,7 +439,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.blocked",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
       "x_reference": {
@@ -563,7 +563,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.wrong-review",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
       "x_reference": {
@@ -664,7 +664,7 @@
         "state": "verified"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"reject\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"intent drifted\", \"review\": \"blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be...",
       "x_reference": null
@@ -746,7 +746,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.wrong-signer",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"29acbae141bccaf0b22e1a94d34d0...",
       "x_reference": {
@@ -870,7 +870,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.bad-signature",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
       "x_reference": {
@@ -994,7 +994,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.unknown-gate",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"deploy\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74...",
       "x_reference": {
@@ -1110,7 +1110,7 @@
       "op": "review-gate.verify",
       "profile": "verifier",
       "reason": "review-gate.unsigned",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}}, \"version\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"stat...",
       "x_reference": {
@@ -1180,7 +1180,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -1460,7 +1460,7 @@
         "versions": 3
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", ...",
       "x_reference": null
@@ -1530,7 +1530,7 @@
       "op": "review.bundle",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [], \"kind\": \"opentine.review-bundle\", \"signatures\": [], \"versions\": [{\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e7...",
       "x_reference": {
@@ -1697,7 +1697,7 @@
       "op": "review.bundle",
       "profile": "verifier",
       "reason": "review-gate.wrong-review",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\"...",
       "x_reference": {
@@ -1943,7 +1943,7 @@
       "op": "review.bundle",
       "profile": "verifier",
       "reason": "review-gate.bad-signature",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"forged\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vec...",
       "x_reference": {
@@ -2200,7 +2200,7 @@
         "versions": 3
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", ...",
       "x_reference": null
@@ -2477,7 +2477,7 @@
         "versions": 3
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\"...",
       "x_reference": null
@@ -2617,7 +2617,7 @@
       "op": "review.bundle",
       "profile": "verifier",
       "reason": "review.chain-break",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [], \"kind\": \"opentine.review-bundle\", \"versions\": [{\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], ...",
       "x_reference": {
@@ -2720,7 +2720,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.chain-break",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
       "x_reference": {
@@ -2823,7 +2823,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.chain-break",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
       "x_reference": {
@@ -2926,7 +2926,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.chain-break",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
       "x_reference": {
@@ -2991,7 +2991,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"assignee\": \"bob\", \"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\"...",
       "x_reference": {
@@ -3065,7 +3065,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewe...",
       "x_reference": {
@@ -3129,7 +3129,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": \"blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e...",
       "x_reference": {
@@ -3192,7 +3192,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.wrong-signer",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -3265,7 +3265,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.inconsistent",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.5\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"revie...",
       "x_reference": {
@@ -3369,7 +3369,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.wrong-signer",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
       "x_reference": {
@@ -3433,7 +3433,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.bad-signature",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -3506,7 +3506,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.90\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"revi...",
       "x_reference": {
@@ -3579,7 +3579,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"vibes\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewer...",
       "x_reference": {
@@ -3649,7 +3649,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -3705,7 +3705,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.unsigned",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"subjects\":...",
       "x_reference": {
@@ -3770,7 +3770,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\", \"security\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"},...",
       "x_reference": {
@@ -3834,7 +3834,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.malformed",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"infra\", \"project\": null}, {\"name\": \"app\", \"project\": \"app\"}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -4013,7 +4013,7 @@
         "state": "verified"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": \"blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a\", \"repos...",
       "x_reference": null
@@ -4080,7 +4080,7 @@
         "state": "verified-tofu"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": null
@@ -4147,7 +4147,7 @@
         "state": "verified"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d...",
       "x_reference": null
@@ -4284,7 +4284,7 @@
         "state": "verified"
       },
       "profile": "verifier",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
       "x_reference": null
@@ -4345,7 +4345,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.wrong-signer",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d...",
       "x_reference": {
@@ -4409,7 +4409,7 @@
       "op": "review.verify",
       "profile": "verifier",
       "reason": "review.wrong-signer",
-      "section": "4.19",
+      "section": "4.20",
       "tier": "core",
       "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
       "x_reference": {
@@ -4419,6 +4419,6 @@
     }
   ],
   "family": "review",
-  "section": "4.19",
+  "section": "4.20",
   "suite_version": 1
 }

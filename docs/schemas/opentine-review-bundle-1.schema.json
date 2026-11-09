@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/opentine-review-bundle-1.schema.json",
   "title": "opentine.review-bundle (bundle_version 1)",
-  "description": "A Review whole (SPEC 4.19): every version oldest first and every gate decision, as `tine review export` writes it and `tine-verify.pyz --offline` checks it. Unsigned itself; everything in it is signed.",
+  "description": "A Review whole (SPEC 4.20): every version oldest first and every gate decision, as `tine review export` writes it and `tine-verify.pyz --offline` checks it. Unsigned itself; everything in it is signed.",
   "type": "object",
   "additionalProperties": false,
   "required": [

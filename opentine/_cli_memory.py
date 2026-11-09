@@ -1,4 +1,4 @@
-"""``tine memory add|list|recall|trust`` (0.47, SPEC 4.20).
+"""``tine memory add|list|recall|trust`` (0.47, SPEC 4.22).
 
 Team memory: signed notes that sync with the run repository and that MCP
 ``recall`` returns to an agent. ``add`` signs a note (Ed25519, ``--key``) and

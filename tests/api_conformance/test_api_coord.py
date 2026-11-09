@@ -1,4 +1,4 @@
-"""API v1 conformance for ``caps.coord`` (0.47, SPEC 8.19).
+"""API v1 conformance for ``caps.coord`` (0.47, SPEC 8.22).
 
 Skipped unless the server advertises it. Every task made here has a fresh id,
 so the checks run against a live tenant as well as the loopback reference.

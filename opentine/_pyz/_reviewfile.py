@@ -1,4 +1,4 @@
-"""``tine-verify.pyz FILE`` for a review bundle (0.47, SPEC 4.19).
+"""``tine-verify.pyz FILE`` for a review bundle (0.47, SPEC 4.20).
 
 A JSON file holding one ``opentine.review-bundle`` (``tine review export``
 writes it). It passes when every version is reviewer-signed and chained

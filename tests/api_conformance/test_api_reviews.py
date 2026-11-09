@@ -1,4 +1,4 @@
-"""API v1 conformance for ``caps.reviews`` (0.47, SPEC 4.19 and 8.19).
+"""API v1 conformance for ``caps.reviews`` (0.47, SPEC 4.20 and 8.19).
 
 Skipped unless the server advertises it. Every write uses a fresh review id, so
 the suite runs against a live tenant too: it writes a two-version Review and

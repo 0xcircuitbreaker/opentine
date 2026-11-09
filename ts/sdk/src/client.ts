@@ -305,7 +305,7 @@ export class TineClient {
     return (await this.json<{ reviews: ReviewSummary[] }>("listReviews")).reviews;
   }
 
-  /** A Review as a bundle; verify it (SPEC 4.19, `verifyReviewBundle`) before trusting it. */
+  /** A Review as a bundle; verify it (SPEC 4.20, `verifyReviewBundle`) before trusting it. */
   getReview(reviewId: string): Promise<Review> {
     return this.json("getReview", { params: { review_id: reviewId } });
   }
