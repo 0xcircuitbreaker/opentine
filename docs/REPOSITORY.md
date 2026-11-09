@@ -744,7 +744,11 @@ take the same flags.
   carry canonical objects. On the bench corpus no dictionary pays for itself
   against 16 MiB kind-grouped blocks, so gc keeps none there
   (`docs/bench/0.50-dictionaries.md`). `--no-dictionaries` rewrites every pack
-  without them, deletes the dictionaries and lowers `min_reader` again.
+  without them, deletes the dictionaries and lowers `min_reader` again. `tine
+  purge` rewrites every pack that names a dictionary and deletes the old
+  dictionaries (they were trained on stored bytes, so may hold the blob's text);
+  `tine prune` does not, so a pruned object's text can stay in a dictionary
+  until the next gc retrains it.
 - Pack indexes are read lazily (0.37+): the binary v3 `.tidx` is mapped into
   memory (read into memory on Windows, where a mapping would stop gc from
   replacing it) and searched through a fanout table, instead of every entry
