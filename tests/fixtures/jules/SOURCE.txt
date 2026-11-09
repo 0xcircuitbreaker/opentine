@@ -1,0 +1,27 @@
+Jules session-export fixture (session.json). Hand-built from the documented
+REST API below; no Jules session was run to produce it and no user data is in it.
+
+Jules API  https://developers.google.com/jules/api (v1alpha, read 2026-11-09)
+  reference/rest/v1alpha/sessions             Session {name, id, prompt, title,
+                                              sourceContext, state, url, createTime}
+  reference/rest/v1alpha/sessions.activities  Activity {name, id, description,
+                                              createTime, originator, artifacts[]}
+                                              union: agentMessaged.agentMessage,
+                                              userMessaged.userMessage,
+                                              planGenerated.plan{id, steps[]},
+                                              planApproved.planId,
+                                              progressUpdated{title, description},
+                                              sessionCompleted{}, sessionFailed.reason
+                                              Artifact union: changeSet{source,
+                                              gitPatch{unidiffPatch, baseCommitId,
+                                              suggestedCommitMessage}},
+                                              bashOutput{command, output, exitCode},
+                                              media{data, mimeType}
+
+The export shape read by `tine import --format jules` is
+{"session": GET sessions/{id}, "activities": GET sessions/{id}/activities
+.activities}; the bare list-activities response, a bare activity list, or
+JSONL pages are accepted too.
+
+Deferred: the Jules web UI has no documented export or local session store,
+so nothing beyond the API shapes is read.

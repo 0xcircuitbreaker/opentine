@@ -19,7 +19,7 @@ Formats
 ``entire``         a git repo with Entire checkpoints (REPO[::ID[/N]]); ``--all``: each one.
 ``cline-task`` ``roo-task`` a Cline / Roo Code globalStorage task directory.
 ``agent-trace``    Agent Trace records (agent-trace.dev v1): line attribution, no content.
-``auto``           (the default) recognize the source by its shape.
+``jules`` ``a2a``  a Jules session export; A2A tasks/messages. ``auto``: detect by shape.
 
 Persistence — at least one target is required
 ---------------------------------------------
@@ -31,9 +31,8 @@ Persistence — at least one target is required
 
 Both may be given. With ``--save`` alone the run is built in a throwaway
 repository that is deleted afterwards, so importing never leaves a repository
-behind that the user did not ask for. Environment and code capture is off: the
-provenance of an imported trace belongs to the machine that produced it, not to
-the one running ``tine import``.
+behind that the user did not ask for. Environment and code capture is off: an
+imported trace's provenance belongs to the machine that produced it.
 
 Pricing
 -------
@@ -78,7 +77,8 @@ IMPORT_FORMATS = (
     "otel-json",
     "otel-logs",
     "otel-spans",
-    *("jsonl", "otlp-proto", "otlp-proto-logs", "har", "agent-trace", "git-ai", *VENDOR_FORMATS),
+    *("jsonl", "otlp-proto", "otlp-proto-logs", "har", "agent-trace", "git-ai", "jules", "a2a"),
+    *VENDOR_FORMATS,
     *TRANSCRIPT_FORMATS,
     *FRAMEWORK_FORMATS,
 )
