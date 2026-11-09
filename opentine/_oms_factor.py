@@ -48,6 +48,9 @@ def model_signature(args: Any) -> dict[str, Any] | None:
     """The factor for ``--model-signature``, or ``None`` when it was not asked for."""
     bundle_path = getattr(args, "model_signature", None)
     if not bundle_path:
+        for flag, name in (("--model", "model_path"), ("--model-pubkey", "model_pubkey")):
+            if getattr(args, name, None):
+                raise ValueError(f"{flag} has no effect without --model-signature")
         return None
     from opentine import _oms
     from opentine._pyz import _p256

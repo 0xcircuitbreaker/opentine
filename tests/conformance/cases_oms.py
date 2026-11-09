@@ -56,7 +56,7 @@ def _statement(files=FILES, **change) -> dict:
     resources = [{"name": n, "algorithm": "sha256", "digest": d} for n, d in sorted(files.items())]
     root = hashlib.sha256(b"".join(bytes.fromhex(r["digest"]) for r in resources)).hexdigest()
     serialization = {"method": "files", "hash_type": "sha256", "allow_symlinks": False,
-                     "ignore_paths": [".git"]}  # fmt: skip
+                     "ignore_paths": [".cache"]}  # fmt: skip
     subject = [{"name": "tiny-model", "digest": {"sha256": root}}]
     statement = {"_type": STATEMENT, "subject": subject,
                  "predicateType": PREDICATE,
@@ -112,7 +112,7 @@ OMS = Family(
         _o("manifest-only", ACCEPT, "no files given: the signature and manifest alone",
            GOOD, files=None),
         _o("ignored-path", ACCEPT, "a file under a signed ignore_paths entry is not compared",
-           GOOD, files={**FILES, ".git/HEAD": "2" * 64}),
+           GOOD, files={**FILES, ".cache/lock": "2" * 64}),
         _o("second-signature", ACCEPT, "any one DSSE signature verifying with the key suffices",
            _bundle(sigs=[_OTHER_SIG, GOOD["dsseEnvelope"]["signatures"][0]])),
         _o("high-s", ACCEPT, "a high-S ECDSA signature verifies, as in OpenSSL",
