@@ -44,8 +44,10 @@ plugin:toxicity`) and every rule holds:
 3. **Not shadowed.** The module resolves, before import, to a file the
    distribution installed, so a same-named `acme_scorers/` in the current
    directory cannot be what runs.
-4. **Not writable by others** (POSIX): the allow-list, its directory and the
-   plugin's directory are not group- or world-writable.
+4. **Not writable by others** (POSIX): the allow-list, its directory, the
+   plugin's module file and its directory are not group- or world-writable (a
+   sticky bit does not exempt a directory), and the allow-list and its
+   directory are owned by you or root.
 
 `OPENTINE_NO_PLUGINS=1` turns loading off.
 

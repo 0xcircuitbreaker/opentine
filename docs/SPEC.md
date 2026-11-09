@@ -3239,8 +3239,10 @@ each entry pins `kind`, entry-point `name`, PEP 503-normalised
 matches all four, (2) its distribution is installed under one of the
 interpreter's site-packages directories, (3) the top-level module its entry
 point names resolves, before import, to a file that distribution's `RECORD`
-lists, and (4) on POSIX neither the allow-list file, its directory nor the
-module's directory is writable by group or others. `OPENTINE_NO_PLUGINS=1`
+lists, and (4) on POSIX neither the allow-list file, its directory, the
+module file nor the module's directory is writable by group or others (a
+sticky bit does not exempt a directory), and the allow-list file and its
+directory are owned by the user or root. `OPENTINE_NO_PLUGINS=1`
 disables loading. These rules select code; they do not confine it: a loaded
 plugin has the process's full rights. An eval verdict scored by a plugin
 names the scorer `plugin` and pins `scorer_version` to

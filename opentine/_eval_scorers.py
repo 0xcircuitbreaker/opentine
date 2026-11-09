@@ -147,10 +147,13 @@ def _plugin(name: str) -> Scorer:
 
     try:
         loaded = plugins.load("scorer", name)
-    except plugins.PluginError as exc:
+        found = [c for c in plugins.discover(("scorer",)) if c.name == name and c.allowed]
+    except (plugins.PluginError, ValueError) as exc:
         raise ScorerError(str(exc)) from exc
-    found = next(c for c in plugins.discover(("scorer",)) if c.name == name)
-    return Scorer("plugin", _pin("plugin", name, found.distribution, found.version),
+    if len(found) != 1:
+        raise ScorerError(f"scorer plugin {name!r} changed while loading")
+    pinned = found[0]
+    return Scorer("plugin", _pin("plugin", name, pinned.distribution, pinned.version),
                   lambda i, out: (coerce(loaded.score(out, i)), ""))  # fmt: skip
 
 

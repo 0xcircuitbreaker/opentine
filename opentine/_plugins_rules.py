@@ -12,8 +12,8 @@ A candidate entry point may load only when all of these hold:
    (``importlib.util.find_spec``, which reads the path but runs nothing) to a
    file inside that distribution's directory, so a same-named module earlier on
    ``sys.path`` cannot be what gets imported.
-4. **Not writable by others** (POSIX): the module's directory is not group- or
-   world-writable.
+4. **Not writable by others** (POSIX): neither the module file nor its
+   directory is group- or world-writable (a sticky bit does not exempt it).
 
 Each refusal is one short reason string; ``""`` means the candidate may load.
 """
@@ -62,14 +62,16 @@ def _recorded(dist: metadata.Distribution) -> set[Path]:
     return out
 
 
-def _others_can_write(directory: Path) -> bool:
+def _others_can_write(target: Path) -> bool:
+    # A sticky bit does not help here: in a sticky world-writable directory any
+    # user may still *add* a module next to the plugin's and shadow a submodule.
     if os.name != "posix":
         return False
     try:
-        mode = directory.stat().st_mode
+        mode = target.stat().st_mode
     except OSError:
         return True
-    return bool(mode & (stat.S_IWGRP | stat.S_IWOTH)) and not mode & stat.S_ISVTX
+    return bool(mode & (stat.S_IWGRP | stat.S_IWOTH))
 
 
 def refusal(
@@ -93,8 +95,9 @@ def refusal(
     origin = Path(spec.origin).resolve() if spec and spec.origin else None
     if origin is None or origin not in _recorded(dist):
         return f"module {module!r} does not resolve to a file its distribution installed"
-    if _others_can_write(origin.parent):
-        return f"{origin.parent.as_posix()} is writable by other users"
+    for item in (origin, origin.parent):
+        if _others_can_write(item):
+            return f"{item.as_posix()} is writable by other users"
     return ""
 
 

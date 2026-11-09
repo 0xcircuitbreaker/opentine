@@ -58,12 +58,18 @@ def _check_entry(entry: Any) -> dict[str, str]:
 
 
 def _writable_by_others(target: Path) -> bool:
+    """POSIX: group/world writable, or owned by someone other than us (or root).
+
+    A sticky world-writable directory still counts as unsafe: anyone may
+    create the file in it, so who owns the file matters, and ownership is
+    checked too (``ssh`` refuses a config owned by another user).
+    """
     if os.name != "posix":
         return False
-    mode = target.stat().st_mode
-    return bool(mode & (stat.S_IWGRP | stat.S_IWOTH)) and not (
-        target.is_dir() and mode & stat.S_ISVTX
-    )
+    info = target.stat()
+    if info.st_uid not in (os.getuid(), 0):
+        return True
+    return bool(info.st_mode & (stat.S_IWGRP | stat.S_IWOTH))
 
 
 def load() -> list[dict[str, str]]:

@@ -73,6 +73,10 @@ def cmd_plugins(args: argparse.Namespace) -> None:
         if not candidates:
             fail(f"no {args.kind} plugin named {args.name!r} is installed", NOT_FOUND)
         if args.plugins_action == "allow":
+            if len(candidates) > 1:  # never guess which distribution to trust
+                dists = ", ".join(sorted(f"{c.distribution} {c.version}" for c in candidates))
+                fail(f"{len(candidates)} distributions provide {args.kind} {args.name!r}: "
+                     f"{dists}; uninstall all but one", USAGE)  # fmt: skip
             found = candidates[0]
             add(found.kind, found.name, found.distribution, found.version)
             candidates = [c for c in plugins.discover((args.kind,)) if c.name == args.name]

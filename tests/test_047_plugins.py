@@ -153,3 +153,27 @@ def test_an_allow_list_others_can_write_is_refused(env, capsys):
 def test_scorer_plugin_refusal_is_a_scorer_error(env):
     with pytest.raises(ScorerError, match="no scorer plugin"):
         parse("plugin:missing")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_a_sticky_world_writable_module_directory_is_still_refused(env):
+    site, module = env
+    package = _install(site, module, SCORER)
+    package.chmod(0o1777)  # sticky: others cannot replace files, but can add submodules
+    from opentine._plugins_allow import add
+
+    add("scorer", "demo", "acme-plugins", "1.0")
+    try:
+        with pytest.raises(plugins.PluginError, match="writable by other users"):
+            plugins.load("scorer", "demo")
+    finally:
+        package.chmod(0o755)
+
+
+def test_allow_refuses_to_guess_between_two_distributions(env, capsys, tmp_path):
+    site, module = env
+    _install(site, module, SCORER)
+    _install(site, module + "b", SCORER, dist="other-plugins")
+    code, out = _tine(capsys, "plugins", "allow", "scorer", "demo", "--json")
+    assert code == 2 and "2 distributions provide" in out["error"]["message"]
+    assert not Path(os.environ["XDG_CONFIG_HOME"], "opentine", "plugins.json").exists()
