@@ -12,6 +12,7 @@ badge claims are the authors' to make; the README says so.
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -31,10 +32,14 @@ def sums_ok() -> bool:
         digest, _, name = line.partition("  ")
         listed.add(name)
         path = KIT / name
+        if name.startswith("/") or ".." in name.split("/") or ":" in name or path.is_symlink():
+            print(f"FAIL {name}: unsafe name")
+            ok = False
+            continue
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
             print(f"FAIL {name}")
             ok = False
-    found = {p.relative_to(KIT).as_posix() for p in KIT.rglob("*") if p.is_file()}
+    found = {p.relative_to(KIT).as_posix() for p in KIT.rglob("*") if not p.is_dir()}
     for extra in sorted(found - listed - {"SHA256SUMS"}):
         print(f"FAIL {extra}: not listed in SHA256SUMS")
         ok = False
@@ -45,7 +50,11 @@ def main() -> int:
     ok = sums_ok()
     print("SHA256SUMS", "pass" if ok else "fail")
     command = [sys.executable, "-I", "-S", str(KIT / "tine-verify.pyz"), str(KIT / "evidence")]
-    key = KIT / "evidence" / "trust" / "pubkey.pub"
+    # A key given on the command line comes from outside the kit: whoever alters
+    # the kit can regenerate SHA256SUMS and its own pubkey.pub, but not this.
+    key = Path(sys.argv[1]) if len(sys.argv) > 1 else KIT / "evidence" / "trust" / "pubkey.pub"
+    if len(sys.argv) <= 1:
+        print("anchor skip: no outside key given; this proves integrity only")
     if key.is_file():
         command += ["--pubkey", str(key)]
     done = subprocess.run(command, capture_output=True, text=True, check=False)
@@ -67,7 +76,8 @@ VERIFY_PS1 = "# Functional badge: verify the kit offline (Windows).\n$ErrorActio
 def reproduce_sh(summary: dict[str, Any]) -> str:
     lines = ["#!/bin/sh", "# Reproduced badge: needs opentine (pip install opentine).", "set -eu",
              'cd "$(dirname "$0")/.."', "tine audit-kit verify ."]  # fmt: skip
-    lines += [f"tine replay evidence/{r['file']} --verify" for r in summary["runs"]]
+    files = [shlex.quote("evidence/" + r["file"]) for r in summary["runs"]]
+    lines += [f"tine replay {name} --verify" for name in files]
     return "\n".join(lines) + "\n"
 
 
@@ -104,8 +114,10 @@ artifact-evaluation badges the authors may claim; the evaluators award them.
 
 ## Steps
 
-1. `python3 -I ae/verify_kit.py`: checks `SHA256SUMS`, then runs
+1. `python3 -I ae/verify_kit.py [PUBKEY]`: checks `SHA256SUMS`, then runs
    `tine-verify.pyz` over `evidence/` (it refuses every network call itself).
+   Pass the signer's public key obtained apart from this kit: without it the
+   check proves the kit is intact, not who made it.
 2. Open `verify.html` in any browser, offline: it re-checks each run with the
    TypeScript verifier it carries.
 3. `sh ae/reproduce.sh`: re-runs every kit check and re-derives the replay verdict.

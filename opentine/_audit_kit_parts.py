@@ -181,7 +181,9 @@ def bundle_runs(bundle: Path, room: Path) -> tuple[list[Path], dict[str, str]]:
             run = repo.load_run(oid)
         except (KeyError, ValueError, TypeError):
             continue  # a ref to something that is not a run
-        target = room / f"{run.id}.tine"
+        from opentine._audit_kit_guard import safe_stem
+
+        target = room / f"{safe_stem(run.id, oid)}.tine"
         if not target.exists():
             run.save(target)
             files.append(target)

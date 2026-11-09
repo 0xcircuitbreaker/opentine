@@ -619,8 +619,8 @@ tine audit-kit build RUN... | BUNDLE --out DIR [--zip] [--pubkey FILE] [--pin FP
     [--action-policy FILE] [--trusted-root FILE] [--sign KEY]
     [--attest-key KEY | --replay-attestation FILE [--replay-pubkey FILE]]
     [--witness VKEY]... [--witness-set FILE] [--log-key FILE]... [--quorum N-of-M]
-    [--operator NAME] [--json]
-tine audit-kit verify DIR|ZIP [--pyz] [--json]
+    [--operator NAME] [--allow-unredacted] [--json]
+tine audit-kit verify DIR|ZIP [--pyz] [--pubkey FILE] [--json]
 ```
 
 `build` writes a self-contained directory (and with `--zip` a deterministic
@@ -638,6 +638,15 @@ input is verified and its runs are written out; the bundle is kept in
 opentine: `python3 -I ae/verify_kit.py`, then open `verify.html`. Both exit 1
 when a check fails; `--json` writes `tine-cli-audit-kit-build-1` (also the kit's
 `kit.json`) and `tine-cli-audit-kit-verify-1`.
+
+A kit is made to be handed out, so `build` refuses (exit 2, nothing written) a
+run that the redaction ruleset would still change; build from `tine bundle
+create --redacted-public` instead, or pass `--allow-unredacted`. Whoever alters
+a kit can also regenerate `SHA256SUMS` and its `pubkey.pub`, so without an
+outside key `verify` proves integrity only (its `anchor` check is `skip`);
+`verify --pubkey FILE` pins the run signatures to a key obtained separately and
+fails `anchor` when the kit carries another. `verify` refuses links and special
+files in a kit directory, and unsafe, linked, duplicate or oversized zip entries.
 
 ## Entire checkpoint import (0.19)
 

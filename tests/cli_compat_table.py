@@ -4751,9 +4751,9 @@ ROWS: tuple[tuple, ...] = (
         },
     ),
     (
-        "plain:audit-kit verify kit --pyz --json",
+        "plain:audit-kit verify kit --pyz --pubkey k.pub --json",
         "plain",
-        ["audit-kit", "verify", "kit", "--pyz", "--json"],
+        ["audit-kit", "verify", "kit", "--pyz", "--pubkey", "k.pub", "--json"],
         "opentine._cli_audit_kit:cmd_audit_kit",
         False,
         {
@@ -4761,6 +4761,7 @@ ROWS: tuple[tuple, ...] = (
             "audit_kit_command": "verify",
             "kit": "kit",
             "pyz": True,
+            "pubkey": "k.pub",
             "json": True,
         },  # fmt: skip
     ),

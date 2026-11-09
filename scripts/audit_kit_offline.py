@@ -15,6 +15,7 @@ where no network interface but loopback exists.
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -48,11 +49,19 @@ def build(out: Path) -> int:
             "--pubkey", str(room / "k.pub"), "--attest-key", str(room / "k"),
             "--witness", vkeys[0], "--witness", vkeys[1], "--quorum", "2-of-2",
             "--operator", "ci"]  # fmt: skip
+    # The trust anchor travels apart from the kit, as an auditor's would.
+    _anchor(out).write_text(public + "\n", encoding="ascii")
     try:
         cli.main(argv)
     except SystemExit as exc:
         return int(exc.code or 0)
+    finally:
+        shutil.rmtree(room, ignore_errors=True)  # the private key goes with it
     return 0
+
+
+def _anchor(kit: Path) -> Path:
+    return kit.with_name(kit.name + "-signer.pub")
 
 
 def verify(kit: Path) -> int:
@@ -62,11 +71,12 @@ def verify(kit: Path) -> int:
         if not target.exists():
             continue
         try:
-            cli.main(["audit-kit", "verify", str(target), "--pyz"])
+            cli.main(["audit-kit", "verify", str(target), "--pyz", "--pubkey", str(_anchor(kit))])
         except SystemExit as exc:
             if exc.code:
                 return int(exc.code)
-    done = subprocess.run([sys.executable, "-I", str(kit / "ae" / "verify_kit.py")], check=False)
+    ae = [sys.executable, "-I", str(kit / "ae" / "verify_kit.py"), str(_anchor(kit))]
+    done = subprocess.run(ae, check=False)
     return done.returncode
 
 

@@ -3028,7 +3028,12 @@ document, §12.3) and `SHA256SUMS` over every other file, sorted by path, in
 `sha256sum` text form. A checker MUST refuse a kit with a changed, missing or
 unlisted file; MUST run every check without the network; and, given a zip,
 MUST refuse a member name that is absolute, holds `..`, a drive colon or a
-backslash, or does not share the zip's single top-level directory. The
+backslash, or a `.` or empty segment, is a symbolic link, repeats another name
+(ignoring case), or does not share the zip's single top-level directory, and
+MUST refuse a kit directory holding a link or a non-regular file. `SHA256SUMS`
+and the kit's own `pubkey.pub` prove integrity only, since whoever alters a kit
+can regenerate them; a checker SHOULD take the run-signature key from outside
+the kit and refuse a kit whose `pubkey.pub` differs from it. The
 browser page pins no key, so it reports an embedded-key signature as
 verified-tofu; the pinned-key verdict is the pyz's and `tine audit-kit
 verify`'s.

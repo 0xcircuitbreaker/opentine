@@ -145,7 +145,7 @@ def verify_html(runs: list[dict[str, Any]], title: str) -> str:
 
 
 def _cells(row: list[str]) -> str:
-    return "| " + " | ".join(c.replace("|", "\\|") for c in row) + " |"
+    return "| " + " | ".join(" ".join(c.split()).replace("|", "\\|") for c in row) + " |"
 
 
 def report_rows(summary: dict[str, Any]) -> list[list[str]]:
@@ -194,6 +194,8 @@ def report_html(summary: dict[str, Any]) -> str:
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+        "style-src 'unsafe-inline'\">"
         f"<title>Verification report</title><style>{_STYLE}</style></head><body>"
         f'<h1>Verification report</h1><p class="{verdict}">Verdict at build time: '
         f"{verdict.upper()}</p><p>tine {escape(summary['tine_version'])}; source "

@@ -42,10 +42,13 @@ def add_audit_kit_parser(sub: Any) -> None:
     build.add_argument("--log-key", action="append", metavar="FILE", help="Pinned log key file")
     build.add_argument("--quorum", metavar="N-of-M", help="Cosignatures the witness set needs")
     build.add_argument("--operator", help="Who is building (default: the login name)")
+    build.add_argument("--allow-unredacted", action="store_true",
+                       help="Build even when a run still holds what redaction removes")  # fmt: skip
     build.add_argument("--json", action="store_true")
     verify = actions.add_parser("verify", help="Re-check a kit offline")
     verify.add_argument("kit", metavar="DIR|ZIP", help="Kit directory or zip")
     verify.add_argument("--pyz", action="store_true", help="Also run the kit's tine-verify.pyz")
+    verify.add_argument("--pubkey", metavar="FILE", help="Trust anchor from outside the kit")
     verify.add_argument("--json", action="store_true")
 
 
@@ -113,6 +116,7 @@ def _build(args: argparse.Namespace) -> None:
         fail("--replay-attestation needs --replay-pubkey (or --pubkey) to be checked", USAGE)
     with tempfile.TemporaryDirectory(prefix="tine-kit-src-") as room:
         sources, extra = _sources(args, Path(room))
+        _refuse_unredacted(args, sources)
         try:
             key = ed25519_private_from_file(args.sign) if args.sign else None
             opts = {**extra, "verify_args": _verify_args(args), "version": __version__,
@@ -140,6 +144,15 @@ def _build(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def _refuse_unredacted(args: argparse.Namespace, sources: list[Path]) -> None:
+    from opentine._audit_kit_guard import unredacted
+
+    found = [] if args.allow_unredacted else unredacted(sources)
+    if found:
+        hint = "build from `tine bundle create --redacted-public`, or pass --allow-unredacted"
+        fail(f"run(s) hold what redaction removes: {', '.join(found)}; {hint}", USAGE)
+
+
 def _path(value: str | None) -> Path | None:
     return Path(value) if value else None
 
@@ -161,7 +174,8 @@ def _verify(args: argparse.Namespace) -> None:
     if not target.exists():
         fail(f"no such kit: {args.kit}", NOT_FOUND)
     try:
-        result = verify_kit(target, with_pyz=args.pyz)
+        anchor = Path(args.pubkey) if args.pubkey else None
+        result = verify_kit(target, with_pyz=args.pyz, anchor=anchor)
     except (OSError, ValueError) as exc:
         fail(f"cannot read the kit: {exc}")
     if args.json:

@@ -28,35 +28,23 @@ import re
 import subprocess
 import sys
 import tempfile
-import zipfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 from opentine._audit_kit import SUMMARY, SUMS, sums_text
+from opentine._audit_kit_guard import safe_run_file, tree_problems, unpack
 from opentine._audit_kit_parts import check, check_witnesses, verify_replay
 
 _EXTERNAL = re.compile(r"""\b(?:src|href)\s*=\s*["']?(?!#)""", re.I)
-
-
-def unpack(archive: Path, room: Path) -> Path:
-    """Extract a kit zip into *room*; the kit root is its single top directory."""
-    with zipfile.ZipFile(archive) as zf:
-        tops = set()
-        for name in zf.namelist():
-            parts = PurePosixPath(name).parts
-            if name.startswith(("/", "\\")) or ".." in parts or ":" in name or "\\" in name:
-                raise ValueError(f"unsafe name in kit zip: {name!r}")
-            tops.add(parts[0])
-        if len(tops) != 1:
-            raise ValueError("a kit zip holds exactly one top-level directory")
-        zf.extractall(room)
-    return room / tops.pop()
 
 
 def _sums(kit: Path) -> dict[str, str]:
     path = kit / SUMS
     if not path.is_file():
         return check("sums", False, f"{SUMS} is missing")
+    odd = tree_problems(kit)
+    if odd:
+        return check("sums", False, "links or special files: " + ", ".join(odd[:10]))
     stated, actual = path.read_bytes(), sums_text(kit)
     if stated == actual:
         return check("sums", True, f"{len(actual.splitlines())} file(s) match {SUMS}")
@@ -71,25 +59,35 @@ def _summary(kit: Path) -> tuple[dict[str, Any] | None, dict[str, str]]:
         doc = json.loads((kit / SUMMARY).read_text(encoding="utf-8"))
         if doc.get("command") != "audit-kit-build" or doc.get("kit_version") != 1:
             raise ValueError("not a tine-cli-audit-kit-build-1 document")
-        [(r["run_id"], r["file"], r["digest"]) for r in doc["runs"]]
+        for row in doc["runs"]:
+            if not safe_run_file(row["file"]) or not isinstance(row["digest"], str):
+                raise ValueError(f"unsafe run entry {row['file']!r}")
     except (OSError, KeyError, TypeError, ValueError) as exc:
         return None, check("summary", False, f"{SUMMARY}: {exc}")
     return doc, check("summary", True, f"built by tine {doc['tine_version']}")
 
 
-def _evidence(kit: Path) -> dict[str, str]:
+def _evidence(kit: Path, anchor: Path | None) -> list[dict[str, str]]:
     from opentine._pyz import _cli, _evidence
 
     root = kit / "evidence"
     if not (root / "MANIFEST.sha256").is_file():
-        return check("evidence", False, "evidence/MANIFEST.sha256 is missing")
+        return [check("evidence", False, "evidence/MANIFEST.sha256 is missing")]
     key = root / "trust" / "pubkey.pub"
     pubkey = _cli.public_key(str(key)) if key.is_file() else None
+    if anchor is None:
+        rows = [check("anchor", None, "no --pubkey: the kit vouches for itself (integrity only)")]
+    else:
+        outside = _cli.public_key(str(anchor))
+        same = pubkey is not None and outside == pubkey
+        rows = [check("anchor", same, "the kit's pubkey.pub is the --pubkey key" if same else
+                      "the kit's pubkey.pub is not the --pubkey key")]  # fmt: skip
+        pubkey = outside
     found = _evidence.verify_evidence(root, lambda p: _cli.verify_file(p, pubkey=pubkey))
     failed = [c["name"] for c in found["checks"] if c["outcome"] == "fail"]
     pinned = "pinned key" if pubkey else "embedded keys (no pubkey.pub)"
     detail = f"failed: {', '.join(failed)}" if failed else f"{len(found['runs'])} run(s), {pinned}"
-    return check("evidence", not failed, detail)
+    return [*rows, check("evidence", not failed, detail)]
 
 
 def _runs(kit: Path, doc: dict[str, Any]) -> list[dict[str, str]]:
@@ -155,7 +153,7 @@ def _page(kit: Path, doc: dict[str, Any]) -> dict[str, str]:
     return check("page", True, f"{len(doc['runs'])} run(s) embedded, nothing loaded")
 
 
-def offline_checks(kit: Path) -> list[dict[str, str]]:
+def offline_checks(kit: Path, anchor: Path | None = None) -> list[dict[str, str]]:
     from opentine._offline_guard import no_network
 
     with no_network():
@@ -164,7 +162,7 @@ def offline_checks(kit: Path) -> list[dict[str, str]]:
         checks.append(summary)
         if doc is None:
             return checks
-        checks.append(_evidence(kit))
+        checks += _evidence(kit, anchor)
         checks += _runs(kit, doc)
         if len(doc["runs"]) == 1:
             checks.append(verify_replay(kit, kit / "evidence" / doc["runs"][0]["file"]))
@@ -172,23 +170,26 @@ def offline_checks(kit: Path) -> list[dict[str, str]]:
     return checks
 
 
-def run_pyz(kit: Path) -> dict[str, str]:
+def run_pyz(kit: Path, anchor: Path | None = None) -> dict[str, str]:
     command = [sys.executable, "-I", "-S", str(kit / "tine-verify.pyz"), str(kit / "evidence")]
     key = kit / "evidence" / "trust" / "pubkey.pub"
+    key = anchor or key
     command += ["--pubkey", str(key)] if key.is_file() else []
     done = subprocess.run(command, capture_output=True, text=True, check=False, timeout=600)
     detail = "python -I -S tine-verify.pyz evidence: exit " + str(done.returncode)
     return check("pyz-run", done.returncode == 0, detail)
 
 
-def verify_kit(target: Path, *, with_pyz: bool = False) -> dict[str, Any]:
+def verify_kit(
+    target: Path, *, with_pyz: bool = False, anchor: Path | None = None
+) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="tine-kit-") as room:
         kit = unpack(target, Path(room)) if target.is_file() else target
-        checks = offline_checks(kit)
+        checks = offline_checks(kit, anchor)
         if with_pyz and (kit / "tine-verify.pyz").is_file():
-            checks.append(run_pyz(kit))
+            checks.append(run_pyz(kit, anchor))
     ok = all(c["outcome"] != "fail" for c in checks)
     return {"command": "audit-kit-verify", "kit": target.name, "ok": ok, "checks": checks}
 
 
-__all__ = ["offline_checks", "run_pyz", "unpack", "verify_kit"]
+__all__ = ["offline_checks", "run_pyz", "unpack", "verify_kit"]  # unpack: re-export
