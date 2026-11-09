@@ -1,5 +1,145 @@
 # Changelog
 
+## 0.49.0 — Audit kit and public proof (2026-11-09)
+
+### Behaviour changes
+
+- `tine verify --offline --witnesses REGISTRY.json` accepts an
+  `opentine-witness-network/1` registry and checks the log's cosignatures
+  against its majority-of-three policy; a split view fails closed.
+- `tine watch --alerts` evaluates the repository's alert rules on every event
+  it reports.
+
+### Added
+
+- **`tine audit-kit build RUN...|BUNDLE --out DIR [--zip] [--allow-unredacted]`**
+  (SPEC 8.4.1): a self-contained, air-gapped audit kit with `tine-verify.pyz`,
+  an offline single-page TS verifier (`verify.html`, runs embedded, no outside
+  loads under its Content-Security-Policy), the evidence folder, a Provenance
+  Run Crate per run, a `replay/v1` attestation (`--attest-key` replays the run
+  and signs the result), the pinned witness set and log keys, a Markdown and
+  HTML report and `SHA256SUMS`. It refuses runs the redaction rules would still
+  change; build from `tine bundle create --redacted-public` instead.
+- **`tine audit-kit verify DIR|ZIP [--pyz] [--pubkey FILE]`** re-checks a kit
+  with the network refused. `--pubkey` checks the run signatures against a key
+  from outside the kit (the `anchor` check); without it the result proves
+  integrity only.
+- An artifact-evaluation package (`ae/`) in every kit: an ACM-badge README
+  (Available, Functional, Reproduced), a standard-library-only
+  `verify_kit.py [PUBKEY]`, `verify.sh`, `verify.ps1` and `reproduce.sh`.
+- **`tine publish zenodo`** deposits the named refs (plus `--attach` files such
+  as a run crate) through the Zenodo REST API, as a draft unless `--publish`;
+  `--sandbox` targets sandbox.zenodo.org. **`tine publish hf`** uploads one
+  run's redacted, signed public copy to a Hugging Face Hub dataset with a
+  dataset card tagged `agent-traces`. `--dry-run` needs no token or network;
+  `--json` writes `tine-cli-publish-1`.
+- `tine serve` can store objects in S3 Object Lock or Azure immutable blobs
+  (`TINE_REMOTE_OBJECT_STORE`), with governance or compliance retention
+  (`TINE_REMOTE_RETENTION_MODE`, `TINE_REMOTE_RETENTION_DAYS`). Deletes inside
+  retention, under an OpenTine hold or under a cloud legal hold are refused,
+  and OpenTine never bypasses governance retention. OpenTine holds can be
+  copied to the cloud as legal holds (the store's `sync_holds` method; no
+  command yet). Tombstones and `--uncompressed-tenant` work as on the
+  filesystem store. `admin purge` defers objects in object storage, and `admin
+  reseal` refuses it. See docs/STORAGE.md.
+- Payloads of 8 MiB or more in the object store are stored as FastCDC chunks
+  with a chunk manifest. This is a stored form and oids are unchanged. Reads
+  fetch only the chunks they need, check each chunk's digest and re-hash the
+  oid. A reused chunk's retention is extended to match the newest object that
+  uses it. Bench: a 1% append to a 32 MiB transcript stores 2.3% new bytes, and
+  a 4 KiB range read fetches one chunk.
+- **`tine alert add|list|remove|test`**: alert rules for `verify.failed`,
+  `policy.denied`, `cost.threshold` and `witness.disagreement`, evaluated on
+  existing `tine-event/1` events and sent as signed `tine-webhook/1` POSTs (the
+  alert in an added `alert` field) and/or OTLP/JSON log records to
+  `ENDPOINT/v1/logs`. Output schema: `tine-cli-alert-1`.
+- `tine import --format jules`: Jules sessions in the documented v1alpha API
+  shapes (prompt, messages, plans, approvals, failures; bash, change-set and
+  media artifacts, with media bytes left out).
+- `tine import --format a2a`: Agent2Agent tasks, messages and
+  status/artifact stream events, bare or JSON-RPC wrapped, de-duplicated by
+  `messageId`.
+- The witness network operator kit: the runbook `docs/witness/OPERATING.md`
+  (hardware, key ceremony, rotation, monitoring, incident response), a
+  container definition in `deploy/witness/` (pinned base image, no secrets),
+  the `opentine-witness-network/1` registry (`docs/witness/NETWORK.md`; a
+  pinned configuration, not a kind), `docs/witness/RECRUITING.md` and **`tine
+  witness doctor`** (`tine-cli-witness-doctor-1`). Tests require 2-of-3
+  cosignatures from three local witness processes.
+- Integration tests run against moto (now in the `dev` extra), and against
+  MinIO (`TINE_TEST_MINIO_ENDPOINT`), AWS (`TINE_TEST_S3_BUCKET`) and Azurite or
+  Azure (`TINE_TEST_AZURE_CONNECTION`, `TINE_TEST_AZURE_CONTAINER`) when those
+  are available. Each skips with its reason otherwise.
+- CI: a new audit-kit job builds a kit and verifies it offline, against an
+  outside key, on Linux, macOS and Windows, with an extra Linux run inside a
+  network namespace (1.0 criterion 4).
+- The suite is now **1112 conformance vectors**; 489 of the 1112 refuse input, and the adapter contract still has one entry point: 68 ops.
+
+### Security
+
+- `tine audit-kit verify` refuses changed or unlisted files, symbolic links
+  and special files in a kit directory, `kit.json` run entries outside
+  `runs/`, and zip entries that are links, repeat a name ignoring case, carry
+  `.` or empty segments, or exceed the size and count caps. Run ids taken from
+  a bundle never become output paths; `ae/reproduce.sh` quotes file names.
+- Publishing runs the pre-push redaction gate over every object before any
+  request (`zenodo` honours a logged `--allow-unredacted REASON`; `hf` has no
+  override). Tokens are read only from `ZENODO_TOKEN` / `HF_TOKEN` (or
+  `--token-env`), never printed or logged, and never sent off the API host.
+  Duplicate deposit names and a bundle with no redacted-copy record are
+  refused.
+- Webhook and OTLP alert targets must not carry credentials or point at
+  private, loopback or reserved addresses unless `--allow-private` (webhooks
+  must also be https); OTLP delivery checks every resolved address. Stored
+  rules are re-checked when read and their number is capped.
+- Importers drop URI queries, fragments and credentials (presigned-URL
+  tokens) from A2A file parts and the Jules session URL, and redact the Jules
+  change-set `source`. Media and file bytes are never imported.
+- A chunk reused by a newer object is re-locked to the newer retention, never
+  shortened, and becomes compliance if either object is.
+- `tine witness doctor` refuses a non-http(s) `--url`.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` is unchanged). FastCDC chunk manifests are a
+  stored form; alerts reuse `tine-event/1` and `tine-webhook/1`; the witness
+  registry is pinned configuration. Fetch, clone and push are unchanged for
+  0.34–0.48.0 clients.
+- SPEC 0.49.0 adds 8.4.1 and the witness registry in 8.23; Part 12 adds
+  `opentine-witness-network-1`, `tine-cli-audit-kit-build-1`,
+  `tine-cli-audit-kit-verify-1`, `tine-cli-publish-1`, `tine-cli-alert-1` and
+  `tine-cli-witness-doctor-1`.
+- moto joins the `dev` extra.
+
+### Deferred
+
+- **For humans:** operating the project's public witness, recruiting at least
+  two independent operators so three are live with 2-of-3 cosignatures,
+  publishing the production registry and pinning the witness image by digest;
+  claiming the ACM badges.
+- Object Lock: the integration tests have not run against live MinIO, a real
+  AWS bucket with Object Lock, Azurite or Azure (the roadmap acceptance
+  criterion). A delete racing an upload that reuses a chunk can remove it when
+  no retention mode is set; no sweep removes expired leftover chunks;
+  `sync_holds` has no command; purge needs an age from last-modified; chunking
+  runs at about 10–14 MiB/s in pure Python; chunk names reveal sharing to
+  anyone who can list the bucket. The 0.40 `cdc-*` bake-off rows are invalid
+  (the gear table had 256 identical entries) and must be re-run.
+- Audit kit: the new CI job (including the `unshare --net` step) has not yet
+  run on GitHub; the browser page checks a signature only against the run's
+  own key; the replay attestation's signer key comes from the kit; a kit
+  checked by another tine version skips the pyz rebuild comparison.
+- Alerts: an OTLP send can be re-resolved to a private address between the
+  check and the request (webhooks pin the address); the remote's event hub does
+  not evaluate rules; no event exists for a failed `tine verify` or `tine
+  witness`; nothing was sent to a real collector or receiver; `alert list`
+  creates the signing key if missing.
+- Importers: Jules has no documented web export (API shapes only); A2A
+  push-notification configs and agent cards are ignored.
+- Publish: Zenodo and the Hugging Face Hub were never contacted (tests use
+  recorded answers).
+
 ## 0.48.0 — Integrate everywhere (2026-11-09)
 
 ### Behaviour changes

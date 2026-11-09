@@ -298,6 +298,7 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.46.1 | Delivered (§11, project formats) |
 | 0.47.0 | Delivered (§10, §11 projects second half) |
 | 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
+| 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
