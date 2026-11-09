@@ -256,3 +256,13 @@ def test_hf_rejects_a_dataset_id_that_climbs_the_path(store, monkeypatch, capsys
     argv[argv.index("o/d")] = "../x"
     code, _, err = _tine(capsys, *argv)
     assert code != 0 and "OWNER/NAME" in err and server.requests == []
+
+
+def test_zenodo_refuses_two_files_with_one_name(store, monkeypatch, capsys, tmp_path):
+    server = FakeServer().install(monkeypatch)
+    for sub in ("a", "b"):
+        (tmp_path / sub).mkdir()
+        (tmp_path / sub / "crate.json").write_text("{}", encoding="utf-8")
+    argv = _zenodo(store, "--attach", str(tmp_path / "a" / "crate.json"))
+    code, _, err = _tine(capsys, *argv, "--attach", str(tmp_path / "b" / "crate.json"))
+    assert code != 0 and "both be named" in err and server.requests == []

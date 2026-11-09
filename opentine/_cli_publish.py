@@ -79,6 +79,8 @@ def _zenodo(repo: Any, args: argparse.Namespace) -> dict[str, Any]:
     for path in map(Path, args.attach):
         raw = path.read_bytes()
         common.gated_file(repo, path.name, raw, args.allow_unredacted)
+        if any(name == path.name for name, _raw in files):
+            raise ValueError(f"two deposited files would both be named {path.name!r}")
         files.append((common.file_name(path.name), raw))
     meta = zenodo.metadata(args, checked.digest, checked.refs)
     base = common.api_base(args.api_url or (zenodo.SANDBOX if args.sandbox else zenodo.ZENODO))
@@ -133,7 +135,9 @@ def _hf(repo: Any, args: argparse.Namespace) -> dict[str, Any]:
     data = _bundle_share.create_public(repo, shim)
     checked = _bundle.verify(data)
     record = checked.redacted_public or {}
-    public = record.get("public_run", "")
+    public = record.get("public_run")
+    if not isinstance(public, str) or not public.startswith("run:"):
+        raise ValueError("publish refused: the bundle carries no signed redacted-copy record")
     entry = {
         "path": f"runs/{public.split(':', 1)[-1][:16]}.tbundle",
         "public_run": public,
