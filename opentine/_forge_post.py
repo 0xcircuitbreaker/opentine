@@ -11,6 +11,7 @@ header, a body or the token (:class:`ForgeError`).
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 from opentine._forge_check import percent
@@ -31,6 +32,40 @@ def token(env_name: str) -> str:
     if not value.strip():
         raise ForgeError(f"no token: set the {env_name} environment variable")
     return value.strip()
+
+
+def api_base(url: str) -> str:
+    """An https API root with a host and no credentials, query or fragment.
+
+    The token is sent to this host, so plain http, ``user@`` prefixes and
+    dot segments are refused before any request is built.
+    """
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(url.strip())
+    if (
+        parts.scheme != "https"
+        or not parts.hostname
+        or "@" in parts.netloc
+        or parts.query
+        or parts.fragment
+        or any(seg in (".", "..") for seg in parts.path.split("/"))
+        or any(ch.isspace() or ord(ch) < 32 for ch in url)
+    ):
+        raise ForgeError("--api-url must be an https URL with no credentials, query or '..'")
+    return url.strip().rstrip("/")
+
+
+def check_slug(slug: str, forge: str) -> str:
+    """``OWNER/NAME`` with no dot-only segment, so it cannot climb the API path."""
+    parts = slug.split("/")
+    if (
+        len(parts) != 2
+        or not all(re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", p) for p in parts)
+        or any(set(p) <= {"."} for p in parts)
+    ):
+        raise ForgeError(f"{forge} needs --repo-slug OWNER/NAME")
+    return slug
 
 
 def title(record: dict[str, Any]) -> str:
@@ -137,6 +172,8 @@ __all__ = [
     "MARKER",
     "NAME",
     "ForgeError",
+    "api_base",
+    "check_slug",
     "client",
     "expect",
     "summary",

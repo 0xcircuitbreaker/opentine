@@ -25,7 +25,17 @@ import re
 from typing import Any
 from urllib.parse import quote
 
-from opentine._forge_post import NAME, ForgeError, expect, summary, title, token, upsert
+from opentine._forge_post import (
+    NAME,
+    ForgeError,
+    api_base,
+    check_slug,
+    expect,
+    summary,
+    title,
+    token,
+    upsert,
+)
 
 GITLAB_STATE = {"success": "success", "failure": "failed", "neutral": "skipped"}
 FORGEJO_STATE = {"success": "success", "failure": "failure", "neutral": "warning"}
@@ -33,7 +43,7 @@ _SLUG = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 
 
 def _gitlab_base(args: Any) -> str:
-    return (args.api_url or "https://gitlab.com/api/v4").rstrip("/")
+    return api_base(args.api_url or "https://gitlab.com/api/v4")
 
 
 def _gitlab_project(record: dict[str, Any]) -> str:
@@ -129,7 +139,8 @@ def forgejo(args: Any, record: dict[str, Any], session: Any) -> list[dict[str, A
         raise ForgeError("Forgejo needs --repo-slug OWNER/NAME")
     if not args.api_url:
         raise ForgeError("Forgejo needs --api-url, e.g. https://codeberg.org/api/v1")
-    base = args.api_url.rstrip("/")
+    check_slug(slug, "Forgejo")
+    base = api_base(args.api_url)
     headers = {"Authorization": f"token {token(args.token_env or 'OPENTINE_FORGEJO_TOKEN')}"}
     status = {
         "state": FORGEJO_STATE[record["conclusion"]],

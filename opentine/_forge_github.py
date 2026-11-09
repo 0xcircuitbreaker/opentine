@@ -26,7 +26,17 @@ import time
 from pathlib import Path
 from typing import Any
 
-from opentine._forge_post import NAME, ForgeError, expect, summary, title, token, upsert
+from opentine._forge_post import (
+    NAME,
+    ForgeError,
+    api_base,
+    check_slug,
+    expect,
+    summary,
+    title,
+    token,
+    upsert,
+)
 
 PERMISSIONS = {"checks": "write", "pull_requests": "write"}
 _SLUG = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
@@ -101,7 +111,8 @@ def publish(args: Any, record: dict[str, Any], session: Any) -> list[dict[str, A
     slug = args.repo_slug or ""
     if not _SLUG.fullmatch(slug):
         raise ForgeError("GitHub needs --repo-slug OWNER/NAME (or GITHUB_REPOSITORY)")
-    base = (args.api_url or "https://api.github.com").rstrip("/")
+    check_slug(slug, "GitHub")
+    base = api_base(args.api_url or "https://api.github.com")
     secret = credentials(args, session, base)
     headers = {"Authorization": f"Bearer {secret}", "Accept": "application/vnd.github+json"}
     check = {

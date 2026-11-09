@@ -444,3 +444,28 @@ def test_the_comment_is_inert_markdown(world):
     )
     text = _forge_post.summary(record)
     assert text.startswith(_forge_post.MARKER) and "`a'b\\|c.py`" in text and "33.33%" in text
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://api.github.test",
+        "https://user:pw@api.github.test",
+        "https://api.github.test/../x",
+        "https://api.github.test/?q=1",
+        "ftp://api.github.test",
+    ],
+)
+def test_api_url_that_could_leak_the_token_is_refused(url):
+    from opentine._forge_post import ForgeError, api_base
+
+    with pytest.raises(ForgeError):
+        api_base(url)
+
+
+@pytest.mark.parametrize("slug", ["../x", "a/..", "a/b/c", "./b"])
+def test_repo_slug_cannot_climb_the_api_path(slug):
+    from opentine._forge_post import ForgeError, check_slug
+
+    with pytest.raises(ForgeError):
+        check_slug(slug, "GitHub")
