@@ -2561,7 +2561,10 @@ the head version), keeps them in `.tine/review-findings/<review_id>.json` (local
 state, not a ref), and signs the Review's next version listing each one as an
 open finding with the same `finding_id` (`rf-` + the first 12 hex digits of the
 digest of the finding as built with `finding_id` `"rf-pending"`), so a critical
-finding blocks an approval (§4.20). A finding's message is redacted before it
+finding blocks an approval (§4.20). `tine review findings REVIEW` checks each
+stored finding against the head version's reviewers and fails one whose
+`review_id` is not REVIEW (`review-finding.wrong-review`), so a finding copied
+from another Review's store is never listed as verified. A finding's message is redacted before it
 is signed. Vectors: `74-review-finding.json` (op `review-finding.verify`).
 
 ---
