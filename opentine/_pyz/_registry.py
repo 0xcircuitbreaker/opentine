@@ -171,8 +171,9 @@ def verify(path: Path, public_key: bytes | None) -> list[dict[str, Any]]:
             found = prompt_verify(value, None, public_key)
     except Refused as exc:
         return [row(str(mode), "fail", exc.code, str(exc))]
-    return [row(str(mode), "pass", f"{mode}.verified", PROMPT if mode == "prompt" else MEMORY,
-                **found)]  # fmt: skip
+    extra = {("prompt" if key == "name" else key): value for key, value in found.items()}
+    detail = PROMPT if mode == "prompt" else MEMORY
+    return [row(str(mode), "pass", f"{mode}.verified", detail, **extra)]
 
 
 __all__ = ["kind", "memory_verify", "prompt_chain", "prompt_verify", "verify"]
