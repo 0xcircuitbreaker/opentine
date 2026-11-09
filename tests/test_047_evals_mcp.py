@@ -114,8 +114,11 @@ def test_a_registered_judge_prompt_is_pinned_into_every_verdict(room, capsys, mo
 
     monkeypatch.setattr(_eval_judge, "_model", lambda spec: Fake())
     monkeypatch.setattr(cli, "RUNS_DIR", room / "runs")
-    _config(room, '[[eval]]\nname = "judged"\ndataset = "evals/d.jsonl"\n'
-                  'scorer = "llm-judge:ollama:tiny"\njudge_prompt = "judge@production"\n')  # fmt: skip
+    _config(
+        room,
+        '[[eval]]\nname = "judged"\ndataset = "evals/d.jsonl"\n'
+        'scorer = "llm-judge:ollama:tiny"\njudge_prompt = "judge@production"\n',
+    )
     code, row = _ci(capsys)
     assert code == 0, row
     link = row["evals"][0]["judge_prompt"]
