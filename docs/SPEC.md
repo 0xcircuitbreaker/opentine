@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.46.0 (draft until opentine 0.46.0 is tagged). **Previous
-version:** 0.45.1. Changes between versions are listed in
+**Spec version:** 0.46.1 (draft until opentine 0.46.1 is tagged). **Previous
+version:** 0.46.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.1.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -2019,7 +2019,7 @@ record names a pack other than the one it came with). Vectors:
 `64-redacted-copy.json`.
 
 <a id="s-4.16"></a>
-## 4.16 `opentine.project` — signed, hash-chained project manifests (0.46.0+)
+## 4.16 `opentine.project` — signed, hash-chained project manifests (0.46.1+)
 
 A project binds a tenant's run repository to the code repositories it is
 linked to. Its manifest is a JSON object with exactly these keys plus a
@@ -2088,7 +2088,7 @@ version's state. Vectors: `65-project.json` (ops `project.verify` and
 `project.chain`).
 
 <a id="s-4.17"></a>
-## 4.17 `opentine.mirror-state` — host statements about a code mirror (0.46.0+)
+## 4.17 `opentine.mirror-state` — host statements about a code mirror (0.46.1+)
 
 A code mirror (an opentine-web service; `tine serve` has none) states what it
 last fetched for one slot of one manifest version, as a JSON object with
@@ -2140,7 +2140,7 @@ as `outcome:detail`); a mirror state may carry the seven `mirror.*` ones:
 | `mirror.limit-exceeded` | unavailable | a published limit stopped the mirror advancing |
 
 <a id="s-4.18"></a>
-## 4.18 The git object check (0.46.0+)
+## 4.18 The git object check (0.46.1+)
 
 A git object id is the hash of `<type> SP <decimal byte length> NUL <bytes>`:
 SHA-1 for a 40-hex id (`sha1` repositories), SHA-256 for a 64-hex id
@@ -2870,7 +2870,7 @@ this a VSA one tenant's ref earned could be replayed for another's), **failed** 
 `tine-verify.pyz`). Vectors for 8.17: `61-vsa.json`.
 
 <a id="s-8.18"></a>
-## 8.18 Projects on a remote: `caps.project` and `caps.social_export` (0.46.0)
+## 8.18 Projects on a remote: `caps.project` and `caps.social_export` (0.46.1)
 
 A remote that stores project manifests lists `project` (`{"path":
 "project", "history": "project/history", "max_page": 100, "kind":
@@ -3407,7 +3407,8 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`; 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
+| 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
+| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

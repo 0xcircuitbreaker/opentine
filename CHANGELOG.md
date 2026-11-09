@@ -1,5 +1,74 @@
 # Changelog
 
+## 0.46.1 — Project formats (2026-11-09)
+
+### Added
+
+- **Project manifests** (`opentine.project`, SPEC 4.16): owner-signed
+  (Ed25519) and hash-chained through `prev`, with a primary and an optional
+  secondary code slot. A public project may not point at a private upstream; a
+  private one names its upstreams only by salted commitments. Clone URLs carry
+  no credentials (no userinfo on `https://`, no password on `ssh://`). Stored
+  under the new `project/manifest` ref.
+- **Mirror-state host statements** (`opentine.mirror-state`, SPEC 4.17):
+  signed with the host service key, refused if a project owner signed it, and
+  never reported as a pass ("host statement, not verified by you"). Ten project
+  reason codes are defined.
+- **Git object check** (SPEC 4.18) in Python, the TS verifier (browser-safe)
+  and `tine-verify.pyz`, for SHA-1 and SHA-256 object formats. Commit and tag
+  headers are read in order, as git reads them.
+- **`tine serve` project caps** (SPEC 8.18):
+  - `caps.project`: `GET project`, `GET project/history`, and `PUT project`, a
+    signed, chained compare-and-swap that starts at seq 0, writes to the
+    transparency log, and answers a uniform 404 even for writes.
+  - `caps.social_export`: count-only stars and watches.
+  - It stores no code and has no mirror capability. The project routes are
+    `stable` in OpenAPI v1 and the TS SDK.
+- **New CLI commands:** `tine project init|link|show|history|verify|push` and
+  `tine remote add --project ID`. `verify --remote` refuses a remote history
+  that forks from the local one.
+- **Schemas:** `opentine-project-1`, `opentine-mirror-state-1` and
+  `tine-cli-project-1`; new `docs/PROJECTS.md`.
+- **Conformance:** new families `65-project` (29 cases) and `66-mirror-state`
+  (26), answered by Python, the TS verifier and the pyz.
+- The suite is now **870 conformance vectors**; 316 of the 870 refuse input, and the adapter contract still has one entry point: 53 ops.
+
+### Security
+
+- `PUT project` refuses a first manifest whose `seq` is not 0, and a manifest
+  naming another tenant, with 400 `project.chain-break` and an audit row.
+- `PUT project` follows the uniform-404 rule: a caller who cannot read the
+  tenant gets the same 404 for another tenant and a nonexistent one; a reader
+  who is not a writer gets 403.
+- A clone URL may not carry a token: `https://` URLs take no userinfo at all
+  and `ssh://` URLs take a user but no password (Python, pyz and TS verifier).
+- The git object check requires `tree` (or `object` for a tag) as the first
+  header line and takes parents only from the `parent` lines straight after it.
+- `tine project verify --remote` exits 4 with `project.chain-break` when the
+  remote history forks from the local one.
+
+### Compatibility
+
+- No existing byte format changed. `opentine.project`, `opentine.mirror-state`
+  and the project routes are negotiated by `caps`; a 0.34–0.46.0 client is
+  unaffected.
+- SPEC 0.46.1 adds 4.16, 4.17, 4.18 and 8.18.
+
+### Deferred
+
+- SHA-1 collision detection (SHA-1DC) is not implemented.
+- `tine project unlink|set-upstream|link-check|mirror-diff` and `tine git
+  attribute --project` are not built; `tine verify` does not emit the ten
+  project reason codes yet.
+- Nothing produces or signs a mirror state; `opentine.mirror-state` refuses an
+  owner-signed statement only when the caller passes the owners, and without a
+  pinned host key reports `host-statement-tofu`.
+- `verify --remote` flags a fork but not a rollback to an earlier version of
+  the same chain; `show` and `history --remote` display what the server sends
+  without checking the chain.
+- Stars and watches have no endpoint that sets them; the forge-claim kind is
+  left for 0.47.
+
 ## 0.46.0 — Share it, gate it (2026-11-08)
 
 ### Behaviour changes
@@ -106,7 +175,7 @@
 - **Conformance:** new families `61-vsa` (13 cases), `62-redaction-report-v2`
   (12), `63-tombstone` (23), `64-redacted-copy` (16) and `67-hook` (35),
   answered by Python, the TS verifier and the pyz.
-- The suite is now **870 conformance vectors**; 316 of the 870 refuse input, and the adapter contract still has one entry point: 53 ops.
+- The suite is now **815 conformance vectors**; 279 of the 815 refuse input, and the adapter contract still has one entry point: 49 ops.
 
 ### Security
 
@@ -144,8 +213,8 @@
 ### Deferred
 
 - Project formats and the code mirror (`opentine-project/1`, `caps.project`,
-  `caps.social_export`; ROADMAP §11): not built in this release. The `project`
-  routes stay `planned` in the OpenAPI document.
+  `caps.social_export`; ROADMAP §11): not built in this release; they shipped
+  in 0.46.1, where the `project` routes became `stable` in the OpenAPI document.
 - Write-side `log_http`; refresh-token renewal for `remote login`; event and
   blob text in remote search; indexes for `list/runs`, `admin/stats` and
   `search text` (they walk the tenant), and `log/entries` re-verifies the log
