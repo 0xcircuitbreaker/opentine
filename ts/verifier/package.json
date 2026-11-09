@@ -25,7 +25,7 @@
     "typescript": "5.6.3"
   },
   "dependencies": {
-    "@noble/curves": "2.0.1",
+    "@noble/curves": "2.4.0",
     "@noble/hashes": "2.0.1",
     "@noble/post-quantum": "0.5.4",
     "fzstd": "0.1.1"
