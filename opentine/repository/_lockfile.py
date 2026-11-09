@@ -167,12 +167,10 @@ def _publish(path: Path, mode: int) -> int:
     killed at any point leaves either no lock or a complete stamp, never an empty
     lock that no one could prove dead. Without hard links, fall back to O_EXCL."""
     tmp = path.with_name(f"{path.name}.new-{os.getpid()}-{time.monotonic_ns()}..lock")
-    fd = _winretry.open_fd(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
     try:
-        try:
-            os.write(fd, stamp())
-        finally:
-            os.close(fd)
+        # A file object closes its own fd, so nothing here calls os.close.
+        with open(tmp, "xb", opener=lambda name, flags: _winretry.open_fd(name, flags, mode)) as f:
+            f.write(stamp())
         try:
             _winretry.retry(lambda: os.link(tmp, path))  # Windows: delete pending
         except FileExistsError:
