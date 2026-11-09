@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import sys
 import threading
-import time
 import zipfile
 from pathlib import Path
 from wsgiref.simple_server import make_server
@@ -174,10 +173,16 @@ def test_watch_tails_a_remote_event_stream(tmp_path, monkeypatch, capsys):
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     hub = app.service.events
 
+    stop = threading.Event()
+
     def publish() -> None:
-        time.sleep(0.5)
-        hub.ref_moved("other", "heads/x", None, "run:" + "1" * 64, False)
-        hub.ref_moved("acme", "heads/main", None, "run:" + "2" * 64, True)
+        # Publish until the watcher is done: a slow runner may subscribe after
+        # any single event, and a missed event would leave watch reconnecting.
+        for _ in range(100):
+            hub.ref_moved("other", "heads/x", None, "run:" + "1" * 64, False)
+            hub.ref_moved("acme", "heads/main", None, "run:" + "2" * 64, True)
+            if stop.wait(0.3):
+                return
 
     threading.Thread(target=publish, daemon=True).start()
     monkeypatch.setenv("TINE_REMOTE_TOKEN", "t")
@@ -191,11 +196,13 @@ def test_watch_tails_a_remote_event_stream(tmp_path, monkeypatch, capsys):
             "acme",
             "--max-events",
             "1",
+            "--once",  # one stream: a missed event fails the test instead of hanging it
             "--json",
             "--timeout",
             "20",
         )
     finally:
+        stop.set()
         httpd.shutdown()
     assert code == 0, out
     line = json.loads(out.splitlines()[0])
