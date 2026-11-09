@@ -49,6 +49,11 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     signed = next(case["report"] for case in vectors if case["id"].endswith("ed25519"))
     (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
     (tmp_path / "purge.key").write_text("ab" * 32, encoding="utf-8")  # 0.46: tine purge
+    item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
+    (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
+    (tmp_path / "evals.toml").write_text(
+        '[[eval]]\nname = "smoke"\ndataset = "d.jsonl"\nscorer = "exact"\n', encoding="utf-8"
+    )
     return tmp_path
 
 
@@ -187,7 +192,13 @@ DRIVEN = (
         ),
         "tine-cli-review-1",
     ),  # fmt: skip
-)
+    (("prompt", "push", "review", "--template", "Review {{diff}}", "--key", "purge.key",
+      "--repo", "repo", "--json"), "tine-cli-prompt-1"),
+    (("memory", "add", "testing", "Use the venv python", "--key", "purge.key", "--repo", "repo",
+      "--json"), "tine-cli-memory-1"),
+    (("eval", "ci", "--config", "evals.toml", "--key", "purge.key", "--repo", "repo",
+      "--json"), "tine-cli-eval-ci-1"),
+)  # fmt: skip
 
 
 @pytest.mark.parametrize(("argv", "expected"), DRIVEN, ids=[" ".join(a) for a, _ in DRIVEN])
