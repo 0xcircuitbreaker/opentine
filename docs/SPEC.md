@@ -3978,6 +3978,12 @@ The evidence facts are `integrity`, `signature`, `signature.authenticated`,
 `custody`. Each is read from the offline verifier's report (Part 8), the run
 itself, or the repository's `retention.toml` and custody log, and is either
 `evidenced` or `missing`; a fact that could not be checked is `missing`. A
+fact read from the verifier is `evidenced` only when every check of its name
+passes and the report's verdict is `pass` (any failing check, such as a
+digest mismatch or one bad timestamp token among several, leaves every
+verifier fact `missing`); `signature.authenticated` requires the `signature`
+check itself to pass under a supplied, pinned or HMAC key, and a `legal_hold`
+entry counts only when it equals the run's whole digest. A
 requirement is `out-of-scope` when its profile says so, `evidenced` when every
 listed fact is, and `missing` otherwise. `tine compliance check --json` writes
 `tine-cli-compliance-check-1`; the report is a CLI output, not an object kind,
