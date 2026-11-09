@@ -99,3 +99,24 @@ def test_a_pyz_crash_is_not_a_refusal(monkeypatch, capsys):
     monkeypatch.setattr(module, "_built_pyz", crashing)
     assert module.run() == 1
     assert "pyz disagrees: artifact.duplicate-key" in capsys.readouterr().err
+
+
+def test_a_ts_disagreement_gap_or_stray_skip_fails_the_check(monkeypatch, capsys):
+    """The TS column fails the check on a failed case, a missing row or a stray skip."""
+    module = _module()
+    ids = list(module._records())
+    writer_skips = ("redact.blob.assignment", "sig.attest.sign-covers-the-stored-claim")
+    changes = [
+        (lambda r: r["fleet.tofu"].update(status="fail", detail="x"), "ts disagrees: fleet.tofu"),
+        (lambda r: r.pop("fleet.tofu"), "ts gap: fleet.tofu"),
+        (lambda r: r["fleet.tofu"].update(status="skip"), "ts gap: fleet.tofu"),
+        (lambda r: r["fleet.tofu"].update(status="unsupported"), "ts disagrees: fleet.tofu"),
+    ]
+    for change, message in changes:
+        rows = {cid: {"id": cid, "status": "pass", "reason": None, "detail": ""} for cid in ids}
+        for cid in writer_skips:
+            rows[cid]["status"] = "skip"
+        change(rows)
+        monkeypatch.setattr(module, "_ts_rows", lambda rows=rows: rows)
+        assert module.run(require_ts=True) == 1
+        assert message in capsys.readouterr().err

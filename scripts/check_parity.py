@@ -14,8 +14,8 @@ the pinned output (or its ``output_sha256``), and a refusal that names a code
 names the pinned reason (or one of its alias group). The pyz answers every
 reader and verifier case except the repository storage families listed in
 ``tests/freeze_inventory.STORAGE`` (refs, reflogs, shallow, layout, packs: it
-never opens a repository); the TS verifier skips only the writer-side
-redaction ops. Anything else unanswered is a gap, and a gap fails like a
+never opens a repository); the TS verifier skips only writer-profile
+redaction and attest.sign cases. Anything else unanswered is a gap, and a gap fails like a
 disagreement.
 
     python scripts/check_parity.py            # python + pyz (+ ts when built)
@@ -166,7 +166,8 @@ def run(require_ts: bool = False) -> int:
                             problems.append(f"pyz disagrees: {case.id}")
                 if ts is not None:
                     row = ts.get(case.id)
-                    if row is None or (row["status"] == "skip" and case.op not in TS_SKIPS):
+                    skip_ok = case.op in TS_SKIPS and case.profile == "writer"
+                    if row is None or (row["status"] == "skip" and not skip_ok):
                         problems.append(f"ts gap: {case.id} ({case.op})")
                     elif row["status"] != "skip":
                         good = row["status"] == "pass"
