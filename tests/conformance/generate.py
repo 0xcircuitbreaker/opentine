@@ -37,6 +37,7 @@ from tests.conformance import (
     cases_localpack,
     cases_merge,
     cases_objects,
+    cases_oms,
     cases_project,
     cases_redaction_report,
     cases_registry,
@@ -113,6 +114,7 @@ FAMILY_MODULES = (
     cases_registry,
     cases_forge_claim,
     cases_forge_check,
+    cases_oms,
 )
 
 

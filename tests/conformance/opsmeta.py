@@ -491,6 +491,15 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.18: bytes hash to a git blob, tree, commit or tag id (SHA-1 or SHA-256)",
     },
+    "oms.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["model", "root_digest", "files", "key", "state", "label"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.26: an OMS model-signature bundle under a pinned P-256 key",
+    },
     "forge-claim.verify": {
         "profile": VERIFIER,
         "input": ["value"],

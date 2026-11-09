@@ -164,7 +164,11 @@ def assess(path: str | Path, args: Any = None) -> dict[str, Any]:
             verified = "T3" if stamped else "T2"
     else:
         reasons.append(f"claimed {claimed}: no proxy witnessed this capture")
-    return {"claimed": claimed, "verified": verified, "witness": witness, "reasons": reasons}
+    found = {"claimed": claimed, "verified": verified, "witness": witness, "reasons": reasons}
+    from opentine._oms_factor import factors
+
+    extra = factors(args)  # 0.48: factors beside the tier (an OMS model signature)
+    return {**found, "factors": extra} if extra else found
 
 
 def line(assurance: dict[str, Any]) -> str:
@@ -173,9 +177,13 @@ def line(assurance: dict[str, Any]) -> str:
 
     style = "green" if rank(assurance["verified"]) >= 2 else "yellow"
     why = "; ".join(assurance.get("reasons") or [])
-    return f"[{style}]assurance {assurance['verified']}[/] (claimed {assurance['claimed']})" + (
+    text = f"[{style}]assurance {assurance['verified']}[/] (claimed {assurance['claimed']})" + (
         f" [dim]{escape(why)}[/]" if why else ""
     )
+    for factor in assurance.get("factors") or []:
+        mark = "[green]ok[/]" if factor["ok"] else f"[red]FAILED {escape(factor['reason'])}[/]"
+        text += f"\n{escape(factor['factor'])} {mark} [dim]{escape(factor['detail'])}[/]"
+    return text
 
 
 __all__ = [

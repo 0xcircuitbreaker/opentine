@@ -2567,6 +2567,61 @@ stored finding against the head version's reviewers and fails one whose
 from another Review's store is never listed as verified. A finding's message is redacted before it
 is signed. Vectors: `74-review-finding.json` (op `review-finding.verify`).
 
+<a id="s-4.26"></a>
+## 4.26 OMS model signatures as an assurance factor (0.48.0+)
+
+OpenTine does not define this format; it verifies the **OpenSSF Model Signing**
+(OMS) format that `model_signing` 1.x (sigstore model-transparency) writes, and
+records the outcome as a factor of a run's `assurance` object. No OpenTine
+object kind or wire format is added.
+
+**The bundle.** A Sigstore bundle (JSON) whose `dsseEnvelope` holds `payload`
+(standard base64, RFC 4648 §4), `payloadType` and a non-empty `signatures`
+list of `{sig, keyid}` (`sig` standard base64, a DER `Ecdsa-Sig-Value`). The
+payload is an in-toto Statement v1 (`_type`
+`"https://in-toto.io/Statement/v1"`) with `predicateType`
+`"https://model_signing/signature/v1.0"`, exactly one subject
+`{name, digest: {sha256}}` and a predicate holding `serialization`
+(`method`, `hash_type`, optional `ignore_paths`) and `resources`, a list of
+`{name, algorithm: "sha256", digest}` with distinct POSIX-relative `name`s.
+The subject's `sha256` is `hex(SHA-256(d_1 || ... || d_n))` over the raw
+32-byte resource digests in ascending `name` order.
+
+**Verifying.** The signature is ECDSA P-256 with SHA-256 (FIPS 186-5 §6.4.2)
+over the DSSE v1 pre-authentication encoding
+`"DSSEv1 " || len(type) || " " || type || " " || len(payload) || " " || payload`
+(lengths in ASCII decimal), under a **pinned** public key (SEC 1 uncompressed
+point, or its RFC 5480 SubjectPublicKeyInfo); one verifying signature
+suffices and a high-S signature verifies, as in OpenSSL. Given the model's
+files as `{name: hex SHA-256}`, a file under an `ignore_paths` entry (equal to
+it, or below it) is not compared; every resource must be present with its
+digest and no other file may remain. A pass is `{model, root_digest:
+"sha256:<hex>", files, key: "sha256:" + hex(SHA-256(point)), state:
+"verified", label: "model signature verified (OMS v1.0, pinned key)"}`. A
+verifier MUST refuse, with the first applicable code, in this order:
+`oms.malformed` (no `dsseEnvelope` or no signatures);
+`oms.unsupported` (another `payloadType`); `oms.malformed` (the payload is not
+base64); `oms.unsupported` (a keyless bundle: `verificationMaterial` holds
+`certificate` or `x509CertificateChain`, whose Fulcio chain and Rekor entry
+this check does not verify, so it is never reported as verified);
+`oms.no-key`; `oms.malformed` (a `sig` is not base64); `oms.bad-signature`; `oms.malformed` (the payload is not JSON or not a
+Statement v1); `oms.unsupported` (another `predicateType`); `oms.malformed`
+(not exactly one subject, or no predicate, or a bad subject);
+`oms.unsupported` (`method` is not `"files"` or `hash_type` not `"sha256"`);
+`oms.malformed` (bad `ignore_paths` or resources, a duplicate name);
+`oms.root-mismatch`; then, with files given, `oms.missing-file`,
+`oms.digest-mismatch` (in resource name order) and `oms.extra-file`.
+Vectors: `75-oms.json` (op `oms.verify`).
+
+**The factor.** `tine verify RUN --model-signature BUNDLE [--model PATH]
+[--model-pubkey PEM]` adds `factors: [{factor: "oms-model-signature", ok,
+reason, detail, bundle, ...the pass fields...}]` to the run's assurance object
+(`tine-assurance-1`); without `--model` the files are not compared
+(`files_checked: false`). A factor never raises the assurance tier (§8): it
+names the model that ran, not how the run was captured. A failed factor fails
+`tine verify` with exit 4 and, under `--offline`, a `model-signature` check
+whose reason is the refusal code.
+
 ---
 
 <a id="part-5"></a>
@@ -4007,7 +4062,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export. This is the last object kind added before 1.0. No existing byte format changed. |
+| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export; 4.26, OMS model signatures (OpenSSF Model Signing v1.0, key-based) as an assurance factor: the bundle, the pinned-key check, the eight `oms.*` reason codes and the `factors` list of `tine-assurance-1`. OTLP protobuf logs and OTLP/gRPC ingest are transports, not formats. This is the last object kind added before 1.0. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |

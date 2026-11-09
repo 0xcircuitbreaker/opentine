@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (206)
+## The codes (214)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -159,6 +159,14 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `mirror-state.wrong-key` | 4.17 | -- | a mirror state not signed by the pinned host key, or not Ed25519 | accept the embedded key when the caller pinned the host key |
 | `oid.hash-unsupported` | 1.3.1 | `_hash_tag.SUPPORTED_HASH_ALGORITHMS` | a TYPE:TAG:HEX oid whose hash-algorithm TAG is not sha256 (sha3-256, sha512 and blake3 are reserved) | hash with sha256 anyway, or strip the tag |
 | `oid.malformed` | 1.3 | `kernel.OID_RE` | a string that is not TYPE:sha256:<64 lowercase hex> | lowercase an uppercase digest, or accept a bare digest |
+| `oms.bad-signature` | 4.26 | -- | no DSSE signature verifies over the payload with the pinned key | read the manifest before the signature verifies |
+| `oms.digest-mismatch` | 4.26 | -- | a model file whose SHA-256 is not its signed digest | compare file names only |
+| `oms.extra-file` | 4.26 | -- | a model file (outside ignore_paths) the signature does not cover | let an unsigned file ride along with a signed model |
+| `oms.malformed` | 4.26 | -- | an OMS bundle or signed payload missing a required field, or ill-formed | guess a payload or a digest from a broken bundle |
+| `oms.missing-file` | 4.26 | -- | a signed resource absent from the model | pass a model that lost a file |
+| `oms.no-key` | 4.26 | -- | no pinned P-256 public key was given | trust the key the bundle itself hints at |
+| `oms.root-mismatch` | 4.26 | -- | a subject digest that is not SHA-256 over the resource digests in name order | check the resources and ignore the subject |
+| `oms.unsupported` | 4.26 | -- | a keyless bundle, another payload type, predicate or serialization method | report a certificate bundle as verified without checking its Fulcio chain and Rekor entry |
 | `pack.arrays-invalid` | 2.8 | -- | an objects or shallow value that is not an array | wrap a single entry in an array |
 | `pack.bad-magic` | 2.8 | -- | a frame that does not begin with TINEPACK3\x00, or is shorter than 42 bytes | sniff the compression and continue |
 | `pack.checksum-mismatch` | 2.8 | -- | an inflated manifest whose SHA-256 is not the frame's bytes 10..42 | recompute the header digest from the body |
