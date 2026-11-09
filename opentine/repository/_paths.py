@@ -85,7 +85,12 @@ def internal_path(root: Path, *parts: str) -> Path:
         # inode, so a reader can observe nlink == 2 — and an unlinked-but-open target
         # reads as 0. Either tripped "!= 1" and made an ordinary concurrent update
         # look like a hard-link attack on a healthy repository.
-        if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
+        # A lock is published by hard-linking a private, already-stamped file into
+        # place (``_lockfile.acquire``), so it has two names until the temp name is
+        # removed, and keeps both if Windows refuses that removal. Nothing ever
+        # writes through an existing lock, so two links there are not an attack.
+        links = 2 if part.endswith(".lock") else 1
+        if stat.S_ISREG(info.st_mode) and info.st_nlink > links:
             raise KernelError(f"repository path contains a hard-linked file: {relative}")
         if index < len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
             raise KernelError(f"repository path has a non-directory parent: {relative}")
