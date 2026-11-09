@@ -40,6 +40,66 @@
       "items": {
         "type": "string"
       }
+    },
+    "factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "factor",
+          "ok",
+          "reason",
+          "detail"
+        ],
+        "properties": {
+          "factor": {
+            "enum": [
+              "oms-model-signature"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "bundle": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "root_digest": {
+            "type": "string"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "key": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "files_checked": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   }
 }

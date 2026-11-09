@@ -213,7 +213,7 @@ def _check(args, document):
     envelope, material, entries = split(document)
     leaf = leaf_from_material(material)
     if leaf is not None:
-        return verify_keyless_cli(args, envelope, leaf, entries)
+        return verify_keyless_cli(args, envelope, leaf, entries, material)
     refuse_unhonoured(
         args,
         KEYLESS_DESTS,

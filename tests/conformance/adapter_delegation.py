@@ -8,7 +8,7 @@ from opentine._delegation_verify import verify_chain
 
 
 def op_delegation_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
-    """SPEC 4.10: verify a chain for a signer, time, agent and tools; refuse otherwise."""
+    """SPEC 4.10: verify a chain for a signer, time, agent, tools and revocations."""
     value = inp.value
     result = verify_chain(
         value["chain"],
@@ -16,6 +16,8 @@ def op_delegation_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
         at=value["at"],
         agent=value.get("agent"),
         actions=list(value.get("actions") or ()),
+        revoked=value.get("revoked"),
+        time_verified=value.get("time_verified", True),
     )
     return {"root": result["root"], "links": result["links"]}
 

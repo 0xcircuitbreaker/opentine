@@ -1,12 +1,12 @@
 # The OpenTine conformance vector suite
 
-Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 1015 vectors that an
+Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 1112 vectors that an
 implementation in any language can run to demonstrate it reads, writes and
 verifies OpenTine data the way the specification says.
 
 **What you need:** SHA-256, HMAC-SHA256, base64 and a JSON parser. Four
 capabilities beyond that are optional: zlib *inflate* for the pack family,
-Ed25519 for a handful of verifier cases (the witness quorums of `57-tlog.json`, the verdicts of `58-eval-verdict.json`, the reports of `60-redaction-report.json` and the records of `63-tombstone.json`, `64-redacted-copy.json`, `65-project.json`, `66-mirror-state.json`, `68-merge.json`, `69-memory.json`, `70-review.json` and `71-prompt.json`
+Ed25519 for a handful of verifier cases (the witness quorums of `57-tlog.json`, the verdicts of `58-eval-verdict.json`, the reports of `60-redaction-report.json` and the records of `63-tombstone.json`, `64-redacted-copy.json`, `65-project.json`, `66-mirror-state.json`, `68-merge.json`, `69-memory.json`, `70-review.json`, `71-prompt.json` and `74-review-finding.json`
 among them), `ml-dsa-65` (FIPS 204 verification, for the post-quantum family
 `55-sig-pq.json`), and `wtf8` — a string type that can hold
 an unpaired UTF-16 surrogate — for five canonicalization cases. Every case that
@@ -41,9 +41,9 @@ No opentine, no Python, no build step.
 
 ## What is in it
 
-49 vector files, one per SPEC area. `MANIFEST.families` carries the current
+52 vector files, one per SPEC area. `MANIFEST.families` carries the current
 census — case counts, reject counts, and the ops each family uses — so no
-number is restated here where it could drift. **41% of the suite is negative:
+number is restated here where it could drift. **44% of the suite is negative:
 inputs the format requires be refused.** That ratio is deliberate, and a drift
 gate pins the figure against `MANIFEST.totals`.
 

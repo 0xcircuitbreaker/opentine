@@ -1,0 +1,1089 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.bad-subject",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIlhZWiJ9LCAibmFtZSI6ICJ0aW55LW1vZGVsIn1dfQ==",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCheSD7QfxcXtc8bt3c8GfbLzCLdNuZ1iJrMAfvv1WRJgIgRR/u+2faIAqBlzBjOP0LJ0LvLUVl9GEelJAnG86IrsI="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a subject digest that is not 64 lowercase hex",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS payload is malformed: bad subject"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.digest-mismatch",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "0000000000000000000000000000000000000000000000000000000000000000",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a model file whose bytes changed since signing",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.digest-mismatch",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "model file does not match its signed digest: model.safetensors"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.duplicate-resource",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI1OTJjZDlmODdlYmE5MjhiMjFjMWQxZWM1MGY0MGRlNTBlNWM4NmMyMTZiNDMyZDM5NTFiNDVhZDc1YTY5N2YxIiwgIm5hbWUiOiAiY29uZmlnLmpzb24ifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI5YTEyOTAzOGQ5YTAwYWVkMGNmNmE3ZWEwNTljYTUwYTgxMzQ0OTA2MWFiODc4NDhjZjFhMTNlYWZkZjMzYjJjIiwgIm5hbWUiOiAibW9kZWwuc2FmZXRlbnNvcnMifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI5MTExNjlkZGFhZjE0NmFmZjUzOWY1OGMyNmM0ODlhZjNiODkyZGZmMGZlMjgzYzFjMjY0YzY1YWU1YWE1OWEyIiwgIm5hbWUiOiAidG9rZW5pemVyL3ZvY2FiLnR4dCJ9XSwgInNlcmlhbGl6YXRpb24iOiB7ImFsbG93X3N5bWxpbmtzIjogZmFsc2UsICJoYXNoX3R5cGUiOiAic2hhMjU2IiwgImlnbm9yZV9wYXRocyI6IFsiLmNhY2hlIl0sICJtZXRob2QiOiAiZmlsZXMifX0sICJwcmVkaWNhdGVUeXBlIjogImh0dHBzOi8vbW9kZWxfc2lnbmluZy9zaWduYXR1cmUvdjEuMCIsICJzdWJqZWN0IjogW3siZGlnZXN0IjogeyJzaGEyNTYiOiAiNjhlZmFhMmU5OWFlNjE3M2ExOGUwYmE4MGZjMGZmNzI1MTU5ODRmY2E1ZTg5ZjczOThhZGFhZTNmYTkyOWQ5ZiJ9LCAibmFtZSI6ICJ0aW55LW1vZGVsIn1dfQ==",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIGZHNQp41JwEmy+AlSCxp4hxsvysTsN2VtZtv7ypy89rAiBZcMApKP5cCAbo/AlUvg6XbJF2HHtuog8Rj46+4y5ycA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a resource listed twice",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS payload is malformed: duplicate resource config.json"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.extra-file",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "adapter.bin": "3333333333333333333333333333333333333333333333333333333333333333",
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a model file the signature does not cover",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.extra-file",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "model file is not covered by the signature: adapter.bin"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "oms.high-s",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiEA7loTsiRtIsJIwIZonstg7sVe0pQISTOLy/1+NxMi3Qk="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a high-S ECDSA signature verifies, as in OpenSSL",
+      "op": "oms.verify",
+      "output": {
+        "files": 3,
+        "key": "sha256:27efe153338b848338e77815c1911e08bf4fc72f48a107ebcc3ab9fc864fe547",
+        "label": "model signature verified (OMS v1.0, pinned key)",
+        "model": "tiny-model",
+        "root_digest": "sha256:68efaa2e99ae6173a18e0ba80fc0ff72515984fca5e89f7398adaae3fa929d9f",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "oms.ignored-path",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            ".cache/lock": "2222222222222222222222222222222222222222222222222222222222222222",
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a file under a signed ignore_paths entry is not compared",
+      "op": "oms.verify",
+      "output": {
+        "files": 3,
+        "key": "sha256:27efe153338b848338e77815c1911e08bf4fc72f48a107ebcc3ab9fc864fe547",
+        "label": "model signature verified (OMS v1.0, pinned key)",
+        "model": "tiny-model",
+        "root_digest": "sha256:68efaa2e99ae6173a18e0ba80fc0ff72515984fca5e89f7398adaae3fa929d9f",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.keyless",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "certificate": {
+                "rawBytes": "AAAA"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a keyless (Fulcio certificate) bundle is never reported verified",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.unsupported",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "keyless OMS bundles (Fulcio certificate) are not verified here"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "oms.manifest-only",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": null,
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "no files given: the signature and manifest alone",
+      "op": "oms.verify",
+      "output": {
+        "files": 3,
+        "key": "sha256:27efe153338b848338e77815c1911e08bf4fc72f48a107ebcc3ab9fc864fe547",
+        "label": "model signature verified (OMS v1.0, pinned key)",
+        "model": "tiny-model",
+        "root_digest": "sha256:68efaa2e99ae6173a18e0ba80fc0ff72515984fca5e89f7398adaae3fa929d9f",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.missing-file",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a signed resource absent from the model",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.missing-file",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "model file is missing: config.json"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.no-envelope",
+      "input": {
+        "value": {
+          "bundle": {
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json"
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a bundle without a dsseEnvelope",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"mediaType\": \"application/vnd.dev.sigstore.bundle.v0.3+json\"}, \"files\": {\"config.json\": \"592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1\", \"model.safetensors\": \"9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c\", \"tokenizer/vocab.txt\": \"911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2\"}, \"public_key\": \"0498847f0e0b09dc06405e7e953d18e4e4fe...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle is malformed: no dsseEnvelope"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.no-key",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": null
+        }
+      },
+      "intent": "no pinned public key",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.no-key",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "no public key given for the OMS bundle (pass --model-pubkey)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.not-statement",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YwLjEiLCAicHJlZGljYXRlIjogeyJyZXNvdXJjZXMiOiBbeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI1OTJjZDlmODdlYmE5MjhiMjFjMWQxZWM1MGY0MGRlNTBlNWM4NmMyMTZiNDMyZDM5NTFiNDVhZDc1YTY5N2YxIiwgIm5hbWUiOiAiY29uZmlnLmpzb24ifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI5YTEyOTAzOGQ5YTAwYWVkMGNmNmE3ZWEwNTljYTUwYTgxMzQ0OTA2MWFiODc4NDhjZjFhMTNlYWZkZjMzYjJjIiwgIm5hbWUiOiAibW9kZWwuc2FmZXRlbnNvcnMifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI5MTExNjlkZGFhZjE0NmFmZjUzOWY1OGMyNmM0ODlhZjNiODkyZGZmMGZlMjgzYzFjMjY0YzY1YWU1YWE1OWEyIiwgIm5hbWUiOiAidG9rZW5pemVyL3ZvY2FiLnR4dCJ9XSwgInNlcmlhbGl6YXRpb24iOiB7ImFsbG93X3N5bWxpbmtzIjogZmFsc2UsICJoYXNoX3R5cGUiOiAic2hhMjU2IiwgImlnbm9yZV9wYXRocyI6IFsiLmNhY2hlIl0sICJtZXRob2QiOiAiZmlsZXMifX0sICJwcmVkaWNhdGVUeXBlIjogImh0dHBzOi8vbW9kZWxfc2lnbmluZy9zaWduYXR1cmUvdjEuMCIsICJzdWJqZWN0IjogW3siZGlnZXN0IjogeyJzaGEyNTYiOiAiNjhlZmFhMmU5OWFlNjE3M2ExOGUwYmE4MGZjMGZmNzI1MTU5ODRmY2E1ZTg5ZjczOThhZGFhZTNmYTkyOWQ5ZiJ9LCAibmFtZSI6ICJ0aW55LW1vZGVsIn1dfQ==",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQDAOF75Xswj4CSgwoUt73gf1in6oGyfVyrFzTyXAcesggIgckwA+C4xKrJ7F9HozHJAo3xd8zcD1QvcHdMdT4YZvyM="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a signed payload that is not an in-toto Statement v1",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YwLjEiLCAicHJlZGljYXRlIjogeyJyZXNvdXJjZXMiOiBbeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI1OTJjZDlmODdlYmE5MjhiMjFjMWQxZWM1MGY0MGRlNTBlNWM4NmMyMTZiNDMyZDM5NTFiNDVhZDc1YTY5N2YxIiwgIm5hbWUiOiAiY29uZmlnLmpzb24ifSwgeyJhbGdvcml0aG0iOiAic2hhMjU2IiwgImRpZ2VzdCI6ICI5YTEyOTAzOGQ5YTAwYWVkMGNmNmE3ZWEwNTljYTUwYTg...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS payload is malformed: not an in-toto Statement v1"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.payload-not-base64",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "%%%",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "the payload is not base64",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"%%%\", \"payloadType\": \"application/vnd.in-toto+json\", \"signatures\": [{\"keyid\": \"\", \"sig\": \"MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA==\"}]}, \"mediaType\": \"application/vnd.dev.sigstore.bundle.v0.3+json\", \"verificationMaterial\": {\"publicKey\": {\"hint\": \"test\"}}}, \"files\": {\"config.json\": \"592cd9f87eba928b21c1d...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle is malformed: payload is not base64"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.payload-swapped",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjJiMWRlNDY3NDhkNTk4MGRjYzIzYTA3MDE1N2YzMDEzMWIzZTFkYjc3ZGM0YzI1MTkzNTA5ODQ0M2I1YzE4OGQifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a payload replaced after signing",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.bad-signature",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle signature does not verify with the given key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.payload-type",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a DSSE payloadType other than in-toto JSON",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.unsupported",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle payloadType is not in-toto JSON"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.predicate-v0",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvRGlnZXN0cy92MC4xIiwgInN1YmplY3QiOiBbeyJkaWdlc3QiOiB7InNoYTI1NiI6ICI2OGVmYWEyZTk5YWU2MTczYTE4ZTBiYTgwZmMwZmY3MjUxNTk4NGZjYTVlODlmNzM5OGFkYWFlM2ZhOTI5ZDlmIn0sICJuYW1lIjogInRpbnktbW9kZWwifV19",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQDIfMybUwDF6ZJxFba6Nsey9ZTM1972gPEvtuBjWw/+8gIgSfdFxNbpLuwB5eyiLb3dHYOWgz3gNJSNWQScbSNMSaE="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a predicate type other than model_signing v1.0",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.unsupported",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS predicateType is not model_signing v1.0"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.root-mismatch",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQDdZpXZEfy5t4ua5JFfD4udQJ1nlEdLiPtF2yMr+FdEYgIgMSBMToqJC9+b4zd/p1JYlnnSQzgw/7uJLN7IHLPACTw="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a subject digest that is not the digest of the resources",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.root-mismatch",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS subject digest is not the digest of its resources"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "oms.second-signature",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "any one DSSE signature verifying with the key suffices",
+      "op": "oms.verify",
+      "output": {
+        "files": 3,
+        "key": "sha256:27efe153338b848338e77815c1911e08bf4fc72f48a107ebcc3ab9fc864fe547",
+        "label": "model signature verified (OMS v1.0, pinned key)",
+        "model": "tiny-model",
+        "root_digest": "sha256:68efaa2e99ae6173a18e0ba80fc0ff72515984fca5e89f7398adaae3fa929d9f",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.shards",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJoYXNoX3R5cGUiOiAic2hhMjU2IiwgIm1ldGhvZCI6ICJzaGFyZHMiLCAic2hhcmRfc2l6ZSI6IDEwMjR9fSwgInByZWRpY2F0ZVR5cGUiOiAiaHR0cHM6Ly9tb2RlbF9zaWduaW5nL3NpZ25hdHVyZS92MS4wIiwgInN1YmplY3QiOiBbeyJkaWdlc3QiOiB7InNoYTI1NiI6ICI2OGVmYWEyZTk5YWU2MTczYTE4ZTBiYTgwZmMwZmY3MjUxNTk4NGZjYTVlODlmNzM5OGFkYWFlM2ZhOTI5ZDlmIn0sICJuYW1lIjogInRpbnktbW9kZWwifV19",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQDM3QlJ8T6+gG9WsRKo6VPi9116zwPiHaii1D2oVKoQYgIgQ6eJM2CzN8RRN98ESeZVoM2TieIVFUDu+sU3FdKMceQ="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a serialization method other than 'files'",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.unsupported",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS serialization is not the 'files' method"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.too-many-signatures",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "more than 16 DSSE signatures (a verify-cost bound)",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle is malformed: more than 16 signatures"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "oms.verified",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "a key-signed OMS v1.0 bundle over exactly the model's files",
+      "op": "oms.verify",
+      "output": {
+        "files": 3,
+        "key": "sha256:27efe153338b848338e77815c1911e08bf4fc72f48a107ebcc3ab9fc864fe547",
+        "label": "model signature verified (OMS v1.0, pinned key)",
+        "model": "tiny-model",
+        "root_digest": "sha256:68efaa2e99ae6173a18e0ba80fc0ff72515984fca5e89f7398adaae3fa929d9f",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "oms.wrong-key",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "signed by another key",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.bad-signature",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle signature does not verify with the given key"
+      }
+    }
+  ],
+  "family": "oms",
+  "section": "4.26",
+  "suite_version": 1
+}

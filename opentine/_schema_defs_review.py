@@ -87,12 +87,14 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "Every `tine review` action. `create`/`add`: the new `version` and its `digest`; "
         "`gate`: the signed `decision`, its `digest` and the `gate` check; `show`, `export`, "
         "`verify`: `result`, the bundle check (`show` adds the head `version`); `import`: "
-        "`added`; `push`: `versions`, `decisions`, `head`. A refusal is the error envelope, "
-        "exit 4 for a verification failure.",
+        "`added`; `push`: `versions`, `decisions`, `head`; `run` (0.48): the reviewer fleet's "
+        "`fleet`, `fleet_id`, `exit_code`, `members`, the signed `findings` (each checked), "
+        "the lines `skipped` and the new `head`; `findings`: the stored `findings`, each "
+        "checked. A refusal is the error envelope, exit 4 for a verification failure.",
         open_(["command", "action", "ok"], {
             "command": {"const": "review"},
             "action": {"enum": ["create", "add", "gate", "show", "export", "verify", "import",
-                                "push"]},
+                                "push", "run", "findings"]},
             "ok": BOOL, "version": _VERSION, "decision": _DECISION, "digest": _BLOB,
             "gate": open_(["review_id", "gate", "decision", "seq", "state"], {
                 "review_id": _ID, "gate": _ID, "decision": STR, "seq": INT, "state": STR}),
@@ -102,7 +104,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                 "gates": _GATES, "status": {"enum": ["approved", "rejected", "pending"]},
                 "state": STR}),
             "added": closed(["versions", "decisions"], {"versions": INT, "decisions": INT}),
-            "versions": INT, "decisions": INT, "head": opt(_BLOB)})),
+            "versions": INT, "decisions": INT, "head": opt(_BLOB),
+            "review_id": _ID, "fleet": STR, "fleet_id": STR, "exit_code": INT, "skipped": INT,
+            "members": _list(open_(["key", "name", "status"], {
+                "key": STR, "name": STR, "status": STR}), 10_000),
+            "findings": _list(open_(["finding_id", "state"], {
+                "finding_id": opt(STR), "state": {"enum": ["verified", "verified-tofu",
+                                                           "failed"]}}), 100_000)})),
 }  # fmt: skip
 
 COMMAND_SCHEMAS: dict[str, str] = {"review": "tine-cli-review-1"}

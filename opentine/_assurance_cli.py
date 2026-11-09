@@ -79,6 +79,9 @@ def add_assurance_verify_args(parser: argparse.ArgumentParser) -> None:
         metavar="OTHER",
         help="Report step-by-step divergence between RUN and OTHER (proxy vs import)",
     )
+    from opentine._oms_factor import add_model_signature_args
+
+    add_model_signature_args(parser)
 
 
 def assurance_for(args: argparse.Namespace, path: Any, *, show: bool = False) -> dict[str, Any]:
@@ -102,13 +105,17 @@ def floor_failed(args: argparse.Namespace, assurance: dict[str, Any]) -> bool:
 
 
 def enforce_floor(args: argparse.Namespace, assurance: dict[str, Any]) -> None:
-    """Exit 4 when the verified tier is below ``--min-assurance``."""
-    if not floor_failed(args, assurance):
+    """Exit 4 when the verified tier is below ``--min-assurance`` or a factor failed."""
+    failed = [f for f in (assurance or {}).get("factors", []) if not f["ok"]]
+    if floor_failed(args, assurance):
+        message = (
+            f"assurance {assurance['verified']} is below --min-assurance {args.min_assurance} "
+            f"(claimed {assurance['claimed']})"
+        )
+    elif failed:
+        message = f"{failed[0]['factor']} failed ({failed[0]['reason']}): {failed[0]['detail']}"
+    else:
         return
-    message = (
-        f"assurance {assurance['verified']} is below --min-assurance {args.min_assurance} "
-        f"(claimed {assurance['claimed']})"
-    )
     if getattr(args, "json", False):  # the report already went to stdout
         from opentine._cli_errors import report, set_json_mode
 

@@ -297,6 +297,7 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.46.0 | Delivered (§10) |
 | 0.46.1 | Delivered (§11, project formats) |
 | 0.47.0 | Delivered (§10, §11 projects second half) |
+| 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
@@ -721,8 +722,10 @@ Rules for this stretch:
 - **`tine compliance check` profiles and the Provenance/Workflow Run Crate [0.45+]**, mapped against the primary texts (FRE 902(13)/(14), EU AI Act Art. 12/19/26, eIDAS) with a named legal reviewer.
 - **OMS model-signature checks** as an assurance factor. OTLP gRPC ingest after its security review. OTLP protobuf logs.
 - **TSA binding for Rekor v2 keyless verification**, so it no longer reports `unchecked`. Delegation × revocation registry semantics.
+  - *Status:* done on `wip/048-trust-semantics`. A bundle's `rfc3161Timestamps` token over the DSSE signature bytes gives a Rekor v2 keyless receipt a verified signing time (SPEC §8.12.1, vectors `77-keyless-tsa`). A delegation chain is refused when any key on it is revoked at or before the verified signing time, or at all without one (SPEC §4.10.1, vectors `76-delegation-revocation`). Both families are answered by Python, TS and the pyz.
 - **Projects:** PR checks and blame overlays resolve projects by `forge_repo_id`. Slack for the project kinds: any of the three that slipped from 0.47 lands here; one that misses 0.48 is dropped until after 1.0, with no cutoff exception.
 - **Freeze cutoff:** after this release no new object kind or wire format is added before 1.0.
+  - *Status (0.48 work, branch `wip/048-trust-semantics`):* the cutoff is documented in SPEC §5.5. `tests/test_048_freeze_cutoff.py` enumerates kinds from SPEC headings, `docs/schemas/` and the vector families against `tests/freeze_inventory.py`, and checks Python, the TS verifier and the built pyz answer each family. The audit added `78-fleet` vectors (the 0.43 fleet record had none) and pyz answers for the canonical-JSON, envelope, oid, agent, actions, delegation, tlog, eval-verdict and forge-claim families. The kinds 0.48.0 adds, `opentine.forge-check` (73), `opentine.review-finding` (74) and OMS model signatures (75), are inventoried and answered by Python, TS and the pyz. Still open, pinned and shrink-only: the pyz answers `.tine` artifacts and signatures as whole files rather than op by op (31, 35, 42, 47, 51); it never reads repository storage formats; and six pre-cutoff kinds have no vector family (`tine-verify-report/2`, `tine-custody/1`, `replay/v1`, `TINEAES6`, `opentine-line-attribution/1`, `tine-cost-statement/1`). 0.49 may add their vectors, because that adds tests, not kinds.
 
 **Rationale:** OpenTine is the evidence layer under any forge, not a forge. Compliance claims ship only after primary-text review.
 

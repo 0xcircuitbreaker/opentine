@@ -38,7 +38,8 @@ LEGACY_14 = {
     "attest_run",
     "promote_run",
 }
-NEW_READ = {"verify_run", "log", "fleet_status", "fanout_status", "cost", "agent_show", "stats"}
+NEW_READ = {"verify_run", "log", "fleet_status", "fanout_status", "cost", "agent_show", "stats",
+            "code_graph"}  # fmt: skip
 
 
 class _FakeServer:
@@ -111,6 +112,7 @@ ARGUMENTS = {
     "cost": {"run_id": "legacy_run"},
     "agent_show": {"target": None},
     "stats": {},
+    "code_graph": {"symbol": "main"},
 }
 
 

@@ -14,6 +14,8 @@ import { TineError } from "./errors.js";
 import { actionsChain, agentRef, validateAgent } from "./agent.js";
 import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
+import { keylessSigningTime } from "./keyless.js";
+import { verifyFleet } from "./fleet.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
@@ -21,6 +23,9 @@ import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.
 import { checkGitObject } from "./gitobject.js";
 import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 import { verifyForgeClaim } from "./forgeclaim.js";
+import { verifyForgeCheck } from "./forgecheck.js";
+import { verifyReviewFinding } from "./finding.js";
+import { verifyOms } from "./oms.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -220,7 +225,17 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         at: value.get("at") as JValue,
         agent: value.get("agent"),
         actions: Array.isArray(actions) ? (actions as string[]) : [],
+        revoked: isObject(value.get("revoked")) ? (value.get("revoked") as Map<string, string>) : null,
+        timeVerified: value.get("time_verified") !== false,
       });
+    }
+    case "fleet.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      return verifyFleet(value.get("document") as JValue, typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null);
+    }
+    case "keyless.signing-time": {
+      return keylessSigningTime(valueOf(input));
     }
     case "eval-verdict.verify": {
       const value = valueOf(input) as JObject;
@@ -290,9 +305,25 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
       return verifyMemory(value.get("record") as JValue, pinned, (value.get("team") ?? []) as JValue);
     }
+    case "review-finding.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyReviewFinding(value.get("record") as JValue, pinned, (value.get("reviewers") ?? []) as JValue);
+    }
+    case "oms.verify": {
+      const value = valueOf(input) as JObject;
+      return verifyOms(value.get("bundle") as JValue, (value.get("files") ?? null) as JValue | null, (value.get("public_key") ?? null) as JValue | null);
+    }
     case "forge-claim.verify": {
       const value = valueOf(input) as JObject;
       return { ...verifyForgeClaim(value.get("claim") as JValue, value.get("branch") as JValue, value.get("project") as JValue) };
+    }
+    case "forge-check.verify": {
+      const value = valueOf(input) as JObject;
+      const raw = value.get("bundle_b64");
+      const data = typeof raw === "string" ? Uint8Array.from(Buffer.from(raw, "base64")) : null;
+      return verifyForgeCheck(value.get("check") as JValue, data);
     }
     case "git-object.check": {
       const value = valueOf(input) as JObject;

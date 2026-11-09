@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-forge-1.schema.json",
+  "title": "tine forge publish --json",
+  "description": "`check` is the record posted; `posted` what was written (a check run, a status, a comment, Entire checkpoint refs or the git note); with `--dry-run`, `plan` lists the requests instead and nothing is sent. `push` (Entire) is the command that publishes the refs written. Tokens never appear.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "ok",
+    "forge",
+    "dry_run",
+    "check",
+    "posted"
+  ],
+  "properties": {
+    "command": {
+      "const": "forge"
+    },
+    "action": {
+      "const": "publish"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "forge": {
+      "enum": [
+        "github",
+        "gitlab",
+        "forgejo",
+        "entire"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "check": {
+      "$ref": "opentine-forge-check-1.schema.json"
+    },
+    "posted": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "state",
+          "id"
+        ],
+        "properties": {
+          "target": {
+            "enum": [
+              "check-run",
+              "status",
+              "comment",
+              "checkpoint",
+              "note"
+            ]
+          },
+          "state": {
+            "enum": [
+              "created",
+              "updated",
+              "written"
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "method",
+          "path"
+        ],
+        "properties": {
+          "target": {
+            "enum": [
+              "check-run",
+              "status",
+              "comment",
+              "checkpoint",
+              "note"
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "push": {
+      "type": "string"
+    }
+  }
+}

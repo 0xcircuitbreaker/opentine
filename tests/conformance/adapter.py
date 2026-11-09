@@ -51,7 +51,9 @@ from tests.conformance import adapter_agent as agent_ops
 from tests.conformance import adapter_delegation as delegation_ops
 from tests.conformance import adapter_eval as eval_ops
 from tests.conformance import adapter_hook as hook_ops
+from tests.conformance import adapter_keyless as keyless_ops
 from tests.conformance import adapter_merge as merge_ops
+from tests.conformance import adapter_oms as oms_ops
 from tests.conformance import adapter_project as project_ops
 from tests.conformance import adapter_redaction_report as report_ops
 from tests.conformance import adapter_registry as registry_ops
@@ -291,6 +293,7 @@ OPS = {
     **eval_ops.OPS,
     **report_ops.OPS,
     **project_ops.OPS,
+    **oms_ops.OPS,
     **share_ops.OPS,
     **tlog_ops.OPS,
     **webhook_ops.OPS,
@@ -299,4 +302,5 @@ OPS = {
     **merge_ops.OPS,
     **review_ops.OPS,
     **registry_ops.OPS,
+    **keyless_ops.OPS,
 }

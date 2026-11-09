@@ -125,6 +125,14 @@ CLI_TOOLS: tuple[ToolSpec, ...] = (
         argv=("stats",),
         params=(Param("group_by", "--group-by"), _LIMIT),
     ),
+    ToolSpec(
+        "code_graph",
+        False,
+        doc="Code map of the work tree: symbols, imports, edges (`tine code-graph --json`, 0.48).",
+        argv=("code-graph",),
+        params=(Param("path"), Param("symbol", "--symbol")),
+        repo=True,
+    ),
 )
 
 TOOLS: dict[str, ToolSpec] = {spec.name: spec for spec in (*HANDWRITTEN, *CLI_TOOLS)}

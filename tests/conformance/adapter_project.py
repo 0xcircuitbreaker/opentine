@@ -1,12 +1,12 @@
-"""Reference ops for SPEC 4.16-4.18 and 4.23: project manifests, mirror states, git objects,
-forge claims."""
+"""Reference ops for SPEC 4.16-4.18, 4.23 and 4.24: project manifests, mirror states, git
+objects, forge claims and forge checks."""
 
 from __future__ import annotations
 
 import base64
 from typing import Any
 
-from opentine import _forge_claim, _git_object, _mirror_state, _project
+from opentine import _forge_check, _forge_claim, _git_object, _mirror_state, _project
 
 
 def op_project_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
@@ -44,7 +44,15 @@ def op_forge_claim_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
     return _forge_claim.check(value["claim"], branch=value["branch"], project=value["project"])
 
 
+def op_forge_check_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
+    """SPEC 4.24: a forge check record, and the bundle it links to when given."""
+    value = inp.value
+    data = value.get("bundle_b64")
+    return _forge_check.check(value["check"], None if data is None else base64.b64decode(data))
+
+
 OPS = {
+    "forge-check.verify": op_forge_check_verify,
     "project.verify": op_project_verify,
     "project.chain": op_project_chain,
     "mirror-state.verify": op_mirror_state_verify,

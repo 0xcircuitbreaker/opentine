@@ -151,6 +151,9 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--otlp-idle", type=float, default=30.0, help="Save a trace after this many idle seconds"
     )
+    from opentine._otlp_serve import add_otlp_grpc_args
+
+    add_otlp_grpc_args(parser)
     add_auth_arguments(parser)
     add_admission_arguments(parser)
     add_admin_parsers(parser)
@@ -160,13 +163,9 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
     if getattr(args, "admin_action", None):
         return cmd_serve_admin(args, console)
     if args.otlp:
-        if not (_loopback(args.host) or args.insecure_dev_any_host):
-            raise SystemExit(
-                "--otlp is unauthenticated: loopback only unless --insecure-dev-any-host"
-            )
-        from opentine._otlp_http import serve_otlp
+        from opentine._otlp_serve import serve as serve_otlp
 
-        return serve_otlp(args, console)
+        return serve_otlp(args, console, _loopback)
     if not args.insecure_dev and not (args.cert and args.key):
         raise SystemExit("TLS --cert and --key are required unless --insecure-dev is explicit")
     if args.insecure_dev and not (_loopback(args.host) or args.insecure_dev_any_host):

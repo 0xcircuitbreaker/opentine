@@ -1,0 +1,54 @@
+{
+  "command": "blame",
+  "schema": "tine-blame/1",
+  "path": "src/app.py",
+  "revision": "HEAD",
+  "total_lines": 3,
+  "ai_lines": 2,
+  "lines": [
+    {
+      "line": 1,
+      "commit": "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+      "orig_path": "src/app.py",
+      "orig_line": 1,
+      "author": "Alice",
+      "author_mail": "<alice@example.invalid>",
+      "author_time": 1762646400,
+      "summary": "start the app",
+      "text": "def main():",
+      "ai": null
+    },
+    {
+      "line": 2,
+      "commit": "8f2c1d4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d",
+      "orig_path": "src/app.py",
+      "orig_line": 2,
+      "author": "Alice",
+      "author_mail": "<alice@example.invalid>",
+      "author_time": 1762650000,
+      "summary": "agent: add the greeting",
+      "text": "    print('hello')",
+      "ai": {
+        "run": "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36",
+        "seq": 4,
+        "model": "claude-sonnet-4-5"
+      }
+    },
+    {
+      "line": 3,
+      "commit": "8f2c1d4e5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d",
+      "orig_path": "src/app.py",
+      "orig_line": 3,
+      "author": "Alice",
+      "author_mail": "<alice@example.invalid>",
+      "author_time": 1762650000,
+      "summary": "agent: add the greeting",
+      "text": "    return 0",
+      "ai": {
+        "run": "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36",
+        "seq": null,
+        "model": "claude-sonnet-4-5"
+      }
+    }
+  ]
+}

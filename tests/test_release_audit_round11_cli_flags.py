@@ -459,6 +459,10 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["verify", "source.tine"], ["--min-assurance", "T2"], "honoured"),
     (["verify", "source.tine"], ["--proxy-pubkey", "missing.pub"], "honoured"),
     (["verify", "source.tine"], ["--compare-capture", "tampered.tine"], "honoured"),
+    # 0.48: the OMS model-signature factor; --model/--model-pubkey need the bundle
+    (["verify", "source.tine"], ["--model-signature", "missing.sig"], "honoured"),
+    (["verify", "source.tine"], ["--model", "model"], "refused"),
+    (["verify", "source.tine"], ["--model-pubkey", "model.pub"], "refused"),
     # 0.39: --sign-key/--timestamp sign the --report; both need --offline
     (["verify", "source.tine"], ["--sign-key", "k.hex"], "refused"),
     (["verify", "source.tine"], ["--timestamp"], "refused"),

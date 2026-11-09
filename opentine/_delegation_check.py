@@ -8,6 +8,11 @@ claimed one), for the run's agent (its ``agt_`` ref, harness, fleet member or
 role) and for every tool the run used. The detail names the chain, root first.
 The root is trusted only when it is one of ``--pin``; otherwise the check says
 so in its trust basis.
+
+0.48: the key-lifecycle registry (``tine key revoke``, a trusted agents.toml, a
+trust policy's ``key_lifecycle``) applies to every key on the chain: one
+revoked at or before the verified signing time refuses the chain with
+``delegation.revoked``, and without a verified time any revocation does.
 """
 
 from __future__ import annotations
@@ -51,6 +56,20 @@ def tool_names(run: Any) -> list[str]:
     return sorted(found)
 
 
+def revocations(args: argparse.Namespace) -> dict[str, str]:
+    """``{fingerprint: earliest revoked_at}`` across every lifecycle source."""
+    from opentine._key_lifecycle import parse_time
+    from opentine._key_lifecycle_verify import sources
+
+    out: dict[str, str] = {}
+    for table in sources(args):
+        for fpr, window in table.items():
+            at = window.get("revoked_at")
+            if at and (fpr not in out or parse_time(at) < parse_time(out[fpr])):
+                out[fpr] = at
+    return out
+
+
 def delegation_check(
     args: argparse.Namespace, path: Path, run: Any, signature: Check, verified: str | None
 ) -> Check | None:
@@ -74,7 +93,8 @@ def delegation_check(
         if fpr is None or at is None:
             raise DelegationError("delegation.wrong-signer", "no Ed25519 signer or signing time")
         result = verify_chain(chain, signer=fpr, at=at, agent=agent_names(run),
-                              actions=tool_names(run))  # fmt: skip
+                              actions=tool_names(run), revoked=revocations(args),
+                              time_verified=verified is not None)  # fmt: skip
     except (DelegationError, OSError, SignatureError, ValueError) as exc:
         code = getattr(exc, "code", "delegation.malformed")
         return Check(NAME, "fail", code, str(exc), "none", required=True)
@@ -96,4 +116,4 @@ def delegation_check(
     )
 
 
-__all__ = ["NAME", "agent_names", "delegation_check", "tool_names"]
+__all__ = ["NAME", "agent_names", "delegation_check", "revocations", "tool_names"]

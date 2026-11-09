@@ -238,12 +238,23 @@ DRIVEN = (
     ),
     (("plugins", "list", "--json"), "tine-cli-plugins-1"),
     (("experts", "code", "--json"), "tine-experts-1"),
+    (
+        ("forge", "publish", "--forge", "gitlab", "--forge-repo-id", "4321", "--code", "code")
+        + ("--repo", "repo", "--dry-run", "--json"),
+        "tine-cli-forge-1",
+    ),
+    (("code-graph", "--repo", "repo", "--json"), "tine-graph-1"),  # 0.48
+    (("compliance", "list", "--json"), "tine-cli-compliance-list-1"),  # 0.48
+    (
+        ("compliance", "check", "run.tine", "--profile", "eu-ai-act", "--json"),
+        "tine-cli-compliance-check-1",
+    ),  # fmt: skip
 )
 
 
 @pytest.mark.parametrize(("argv", "expected"), DRIVEN, ids=[" ".join(a) for a, _ in DRIVEN])
 def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, expected):
-    if argv[0] == "experts" and shutil.which("git") is None:
+    if argv[0] in ("experts", "forge") and shutil.which("git") is None:
         pytest.skip("tine experts blames with git")
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all

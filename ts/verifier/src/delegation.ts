@@ -166,6 +166,24 @@ export interface DelegationRequest {
   agent?: JValue;
   actions?: string[];
   root?: string | null;
+  /** 0.48 (SPEC 4.10.1): key fingerprint -> revoked_at. */
+  revoked?: Map<string, string> | null;
+  /** Whether `at` is a verified signing time; without one any revocation refuses. */
+  timeVerified?: boolean;
+}
+
+function checkRevocation(checked: Cert[], request: DelegationRequest, when: number): void {
+  const revoked = request.revoked;
+  if (!revoked) return;
+  checked.forEach((cert, index) => {
+    const keys = index === checked.length - 1 ? [cert.issuer, cert.subject] : [cert.issuer];
+    for (const key of keys) {
+      const at = revoked.get(key);
+      if (at === undefined) continue;
+      if (request.timeVerified === false) fail("revoked", `certificate ${index}: key ${key} revoked at ${at}; no verified time`);
+      if (parseTime(at, "revoked_at") <= when) fail("revoked", `certificate ${index}: key ${key} revoked at ${at}, before signing`);
+    }
+  });
 }
 
 /** `verify_chain`: the root issuer and each link's digest, or a `delegation.*` refusal. */
@@ -198,6 +216,7 @@ export function verifyDelegation(request: DelegationRequest): { root: string; li
     }
     checked.push(current);
   });
+  checkRevocation(checked, request, when);
   const leaf = checked[checked.length - 1];
   const last = certs.length - 1;
   if (leaf.subject !== request.signer) fail("wrong-signer", `certificate ${last}: subject is not the signer ${request.signer}`);

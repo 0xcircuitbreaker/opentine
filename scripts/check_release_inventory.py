@@ -17,8 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 #: Tracked trees that are deliberately not part of the Python sdist: the
 #: TypeScript verifier (ts/) is its own npm package with its own build and CI
-#: job. Keep in step with ``[tool.hatch.build.targets.sdist] exclude``.
-SDIST_EXCLUDED_PREFIXES = ("ts/",)
+#: job, and ide/ (0.48) holds the VS Code extension (npm) and the JetBrains
+#: plugin (Gradle). Keep in step with ``[tool.hatch.build.targets.sdist] exclude``.
+SDIST_EXCLUDED_PREFIXES = ("ts/", "ide/")
 
 
 def sdist_expected(tracked: set[str]) -> set[str]:
@@ -28,6 +29,22 @@ def sdist_expected(tracked: set[str]) -> set[str]:
 
 class InventoryError(ValueError):
     pass
+
+
+def wheel_force_included(tracked: set[str]) -> dict[str, str]:
+    """Wheel path -> tracked source for ``[tool.hatch.build.targets.wheel.force-include]``.
+
+    0.48: ``docs/compliance`` ships as ``opentine/data/compliance``.
+    """
+    with (ROOT / "pyproject.toml").open("rb") as handle:
+        build = tomllib.load(handle)["tool"]["hatch"]["build"]["targets"]["wheel"]
+    mapped: dict[str, str] = {}
+    for source, target in build.get("force-include", {}).items():
+        prefix = source.rstrip("/") + "/"
+        for name in tracked:
+            if name.startswith(prefix):
+                mapped[target.rstrip("/") + "/" + name[len(prefix) :]] = name
+    return mapped
 
 
 def _project() -> tuple[str, str]:
@@ -187,7 +204,8 @@ def check_wheel(
         f"{dist_info}/entry_points.txt",
         f"{dist_info}/licenses/LICENSE",
     }
-    expected = {name for name in tracked if name.startswith("opentine/")} | generated
+    forced = wheel_force_included(tracked)
+    expected = {name for name in tracked if name.startswith("opentine/")} | generated | set(forced)
     names: list[str] = []
     hashes: dict[str, bytes] = {}
     with zipfile.ZipFile(path) as archive:
@@ -206,7 +224,9 @@ def check_wheel(
     _difference(set(names), expected)
     if sdist_hashes is not None:
         package = sorted(name for name in expected if name.startswith("opentine/"))
-        mismatched = [name for name in package if hashes[name] != sdist_hashes[name]]
+        mismatched = [
+            name for name in package if hashes[name] != sdist_hashes[forced.get(name, name)]
+        ]
         if mismatched:
             raise InventoryError("wheel content differs from sdist: " + ", ".join(mismatched))
 

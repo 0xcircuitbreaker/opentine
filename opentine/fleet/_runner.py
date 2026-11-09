@@ -21,6 +21,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import IO
@@ -32,6 +33,7 @@ from opentine.parallel._matrix import member_env
 from opentine.parallel._state import State, new_id
 
 STATE_DIR = ".tine_fleet"
+Extra = Callable[[str], dict[str, str]]
 
 
 def state_dir(fleet_root: Path) -> Path:
@@ -66,7 +68,7 @@ def create(fleet: Fleet) -> State:
     )
 
 
-def _members(fleet: Fleet, state: State) -> list[Member]:
+def _members(fleet: Fleet, state: State, more: Extra | None = None) -> list[Member]:
     by_name = {agent.name: agent for agent in fleet.agents}
     supervisor = next((a for a in fleet.agents if a.role == "supervisor"), None)
     members = []
@@ -81,6 +83,7 @@ def _members(fleet: Fleet, state: State) -> list[Member]:
             "OPENTINE_FLEET_ROLE": agent.role,
             "OPENTINE_FANOUT_COST_FILE": str(cost_file),
         }
+        extra.update(more(entry["key"]) if more is not None else {})
         if supervisor is not None and agent.role == "worker":
             extra["OPENTINE_FLEET_PARENT"] = supervisor.name
             if supervisor.agent_ref:
@@ -96,11 +99,16 @@ def stop_file(directory: Path, fleet_id: str) -> Path:
     return directory / f"{fleet_id}.stop"
 
 
-def run(fleet: Fleet, state: State, out: IO[str] | None = None, poll: float = 0.2) -> int:
-    """Run every unfinished member; 0 when all of them finished ``ok``."""
+def run(fleet: Fleet, state: State, out: IO[str] | None = None, poll: float = 0.2,
+        extra: Extra | None = None) -> int:  # fmt: skip
+    """Run every unfinished member; 0 when all of them finished ``ok``.
+
+    *extra* maps a member key to more environment for it (``tine review run``
+    hands each reviewer its context and findings paths this way).
+    """
     out = out or sys.stdout
     ledger = SharedLedger(fleet.budget)
-    members = _members(fleet, state)
+    members = _members(fleet, state, extra)
     halt = stop_file(state.directory, state.id)
     halt.unlink(missing_ok=True)
 

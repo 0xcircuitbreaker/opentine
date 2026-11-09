@@ -1,4 +1,4 @@
-"""Reference ops for SPEC 4.8 (``tine-actions/1``) and 4.9 (``opentine-agent/1``)."""
+"""Reference ops for SPEC 4.8 (``tine-actions/1``), 4.9 (``opentine-agent/1``) and 4.11."""
 
 from __future__ import annotations
 
@@ -25,4 +25,23 @@ def op_actions_chain(inp, args: dict[str, Any]) -> dict[str, Any]:
     return {"chain": links}
 
 
-OPS = {"agent.ref": op_agent_ref, "actions.chain": op_actions_chain}
+def op_fleet_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
+    """SPEC 4.11 (0.48 vectors): a signed ``opentine-fleet-record/1`` document."""
+    from opentine import _fleet_record
+
+    value = inp.value
+    key = value.get("public_key")
+    ok, detail = _fleet_record.verify(value["document"], bytes.fromhex(key) if key else None)
+    if not ok:
+        raise ValueError(detail)
+    document = value["document"]
+    return {**document["record"], "run_id": document["run_id"],
+            "run_digest": document["run_digest"],
+            "state": "verified" if key else "verified-tofu"}  # fmt: skip
+
+
+OPS = {
+    "agent.ref": op_agent_ref,
+    "actions.chain": op_actions_chain,
+    "fleet.verify": op_fleet_verify,
+}

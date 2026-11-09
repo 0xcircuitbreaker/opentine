@@ -756,6 +756,63 @@ REASONS: dict[str, Reason] = {
         "a link the parent's max_depth does not allow",
         "ignore max_depth and accept a chain of any length",
     ),
+    "delegation.revoked": R(
+        "4.10.1",
+        None,
+        "a chain with a key revoked at or before the verified signing time, or revoked "
+        "at all when the signing time is only claimed",
+        "check revocation of the signing key alone, or trust the signer's claimed time",
+    ),
+    # --- keyless signing time (8.12.1, 0.48) ----------------------------------- #
+    "keyless.receipt-invalid": R(
+        "8.12.1",
+        None,
+        "a timestamp offered beside a Rekor v2 receipt that did not verify",
+        "accept a TSA time as proof of inclusion",
+    ),
+    "keyless.tsa-imprint-mismatch": R(
+        "8.12.1",
+        None,
+        "a token whose messageImprint is not the hash of the DSSE signature bytes",
+        "accept a token over the payload or the envelope as a signing time",
+    ),
+    "keyless.tsa-retired": R(
+        "8.12.1",
+        None,
+        "a genTime outside its timestamp authority's validFor window",
+        "trust a TSA for times after its retirement",
+    ),
+    "keyless.cert-not-valid-at-signing": R(
+        "8.12.1",
+        None,
+        "a genTime, with its accuracy, outside the leaf certificate's validity",
+        "accept a short-lived certificate used outside its window",
+    ),
+    "keyless.malformed": R(
+        "8.12.1",
+        None,
+        "a token without a SHA-2 imprint, an RFC 3339 genTime or a well-formed window",
+        "guess the hash or the time zone of a token",
+    ),
+    # --- fleet records (4.11, vectors 0.48) ----------------------------------- #
+    "fleet.malformed": R(
+        "4.11",
+        None,
+        "a fleet record or signed document with a missing, extra or unnormalised field",
+        "normalise a member name or drop an unknown field and verify the rest",
+    ),
+    "fleet.bad-signature": R(
+        "4.11",
+        None,
+        "a signed fleet record whose tine-sig/3 block fails, is not Ed25519, or was moved",
+        "trust a fleet claim copied from another run",
+    ),
+    "fleet.wrong-key": R(
+        "4.11",
+        None,
+        "a signed fleet record verified against a key other than its signer",
+        "accept the embedded key when a trusted key was supplied",
+    ),
     # --- eval verdicts (4.12) ------------------------------------------------- #
     "eval-verdict.malformed": R(
         "4.12",
@@ -1141,6 +1198,36 @@ REASONS: dict[str, Reason] = {
         "a memory note signed by a key outside the reader's team",
         "recall a stranger's note as team memory",
     ),
+    "review-finding.malformed": R(
+        "4.25",
+        None,
+        "a review finding with a missing, extra or ill-formed field",
+        "point a reviewer at a path outside the repository, or show ill-formed text",
+    ),
+    "review-finding.unsigned": R(
+        "4.25",
+        None,
+        "a review finding with no signature block",
+        "count an unsigned finding as a reviewer's",
+    ),
+    "review-finding.bad-signature": R(
+        "4.25",
+        None,
+        "a review finding whose tine-sig/3 block does not hold",
+        "accept a finding whose severity was lowered after signing",
+    ),
+    "review-finding.wrong-key": R(
+        "4.25",
+        None,
+        "a review finding not signed by the pinned key, or not Ed25519",
+        "accept the embedded key when the caller pinned one",
+    ),
+    "review-finding.untrusted-signer": R(
+        "4.25",
+        None,
+        "a review finding signed by a key that is not one of the Review's reviewers",
+        "count a stranger's finding against a Review",
+    ),
     "git-object.malformed": R(
         "4.18",
         None,
@@ -1226,6 +1313,54 @@ REASONS: dict[str, Reason] = {
         "a merge approval whose tine-sig/3 block does not hold over its body",
         "trust the run or decision of an approval without checking the signature",
     ),
+    "oms.malformed": R(
+        "4.26",
+        None,
+        "an OMS bundle or signed payload missing a required field, or ill-formed",
+        "guess a payload or a digest from a broken bundle",
+    ),
+    "oms.unsupported": R(
+        "4.26",
+        None,
+        "a keyless bundle, another payload type, predicate or serialization method",
+        "report a certificate bundle as verified without checking its Fulcio chain and Rekor entry",
+    ),
+    "oms.no-key": R(
+        "4.26",
+        None,
+        "no pinned P-256 public key was given",
+        "trust the key the bundle itself hints at",
+    ),
+    "oms.bad-signature": R(
+        "4.26",
+        None,
+        "no DSSE signature verifies over the payload with the pinned key",
+        "read the manifest before the signature verifies",
+    ),
+    "oms.root-mismatch": R(
+        "4.26",
+        None,
+        "a subject digest that is not SHA-256 over the resource digests in name order",
+        "check the resources and ignore the subject",
+    ),
+    "oms.missing-file": R(
+        "4.26",
+        None,
+        "a signed resource absent from the model",
+        "pass a model that lost a file",
+    ),
+    "oms.digest-mismatch": R(
+        "4.26",
+        None,
+        "a model file whose SHA-256 is not its signed digest",
+        "compare file names only",
+    ),
+    "oms.extra-file": R(
+        "4.26",
+        None,
+        "a model file (outside ignore_paths) the signature does not cover",
+        "let an unsigned file ride along with a signed model",
+    ),
     "forge-claim.missing": R(
         "4.23",
         None,
@@ -1255,6 +1390,30 @@ REASONS: dict[str, Reason] = {
         None,
         "a claim whose fingerprint names another project's first version",
         "match a claim by project id alone, so a fork inherits it",
+    ),
+    "forge-check.malformed": R(
+        "4.24",
+        None,
+        "a forge check with a missing, extra or ill-formed field, or a bundle URL without a digest",
+        "accept fields the check format does not define, or link a bundle nobody can check",
+    ),
+    "forge-check.share-mismatch": R(
+        "4.24",
+        None,
+        "a share_ppm other than floor(ai_lines * 1000000 / total_lines), or ai_lines > total_lines",
+        "recompute and show a share the record does not state",
+    ),
+    "forge-check.conclusion-mismatch": R(
+        "4.24",
+        None,
+        "a conclusion that does not follow the verify state",
+        "show an unverified or failed commit as a success",
+    ),
+    "forge-check.bundle-mismatch": R(
+        "4.24",
+        None,
+        "bundle bytes that do not hash to the check's digest",
+        "trust the linked bundle without hashing what was downloaded",
     ),
 }
 

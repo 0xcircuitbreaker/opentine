@@ -1,0 +1,39 @@
+<idea-plugin>
+    <id>dev.opentine.ide</id>
+    <name>OpenTine: AI blame and provenance</name>
+    <vendor>OpenTine</vendor>
+    <description><![CDATA[
+    An AI-blame gutter and <b>Verify this line's provenance</b> for OpenTine
+    repositories. Everything shown comes from the <code>tine</code> CLI:
+    <code>tine blame FILE --lines --json</code>, <code>tine why FILE:LINE --json</code>
+    and <code>tine verify RUN --offline --json</code>. The plugin never reads
+    <code>.tine/</code> itself and makes no network call of its own.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <actions>
+        <action id="OpenTine.ToggleBlame"
+                class="dev.opentine.ide.ToggleAiBlameAction"
+                text="OpenTine: Toggle AI Blame Gutter"
+                description="Show which lines an agent run wrote (tine blame --lines --json)">
+            <add-to-group group-id="EditorGutterPopupMenu" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="OpenTine.VerifyLine"
+                class="dev.opentine.ide.VerifyLineAction"
+                text="OpenTine: Verify This Line's Provenance"
+                description="tine why FILE:LINE, then tine verify RUN --offline">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="tools"
+                                 instance="dev.opentine.ide.TineSettingsConfigurable"
+                                 id="dev.opentine.ide.settings"
+                                 displayName="OpenTine"/>
+        <applicationService serviceImplementation="dev.opentine.ide.TineSettings"/>
+        <notificationGroup id="OpenTine" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>

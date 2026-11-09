@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-compliance-check-1.schema.json",
+  "title": "tine compliance check --json",
+  "description": "Each requirement of a profile as evidenced, missing or out-of-scope for one run, with the facts behind it. Draft: not legal advice, pending counsel review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "run",
+    "kind",
+    "report_version",
+    "notice",
+    "counsel_review",
+    "profile",
+    "profile_version",
+    "title",
+    "sources",
+    "summary",
+    "requirements",
+    "facts"
+  ],
+  "properties": {
+    "command": {
+      "const": "compliance-check"
+    },
+    "run": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "opentine.compliance-report"
+    },
+    "report_version": {
+      "const": 1
+    },
+    "notice": {
+      "const": "draft — not legal advice, pending counsel review"
+    },
+    "counsel_review": {
+      "enum": [
+        "outstanding",
+        "recorded"
+      ]
+    },
+    "profile": {
+      "type": "string"
+    },
+    "profile_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "title": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenced",
+        "missing",
+        "out-of-scope"
+      ],
+      "properties": {
+        "evidenced": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out-of-scope": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "cite",
+          "text",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cite": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "evidenced",
+              "missing",
+              "out-of-scope"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fact",
+                "status",
+                "detail"
+              ],
+              "properties": {
+                "fact": {
+                  "enum": [
+                    "integrity",
+                    "signature",
+                    "signature.authenticated",
+                    "timestamp",
+                    "transparency",
+                    "capture.independent",
+                    "log.events",
+                    "log.period",
+                    "retention.six-months",
+                    "custody"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "evidenced",
+                    "missing"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "signature.authenticated": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "timestamp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "transparency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "capture.independent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "log.events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "log.period": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "retention.six-months": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "custody": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "detail"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "evidenced",
+                "missing"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

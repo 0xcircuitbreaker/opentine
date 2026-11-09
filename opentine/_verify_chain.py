@@ -131,6 +131,18 @@ def _chain(args: argparse.Namespace, path: Path, report: Report) -> None:
         report.assurance = assess(path, args)
     except (OSError, SignatureError, ValueError) as exc:
         report.add(Check("assurance", "fail", "assurance.key-unreadable", str(exc), "none"))
+    for factor in (report.assurance or {}).get("factors", []):
+        outcome = "pass" if factor["ok"] else "fail"
+        basis = f"pinned model key {factor['key']}" if factor["ok"] else "none"
+        report.add(
+            Check(
+                "model-signature",
+                outcome,
+                factor["reason"] or "oms.verified",
+                factor["detail"],
+                basis,
+            )
+        )
     if getattr(args, "locate", False):
         from opentine._verify_locate import locate
 

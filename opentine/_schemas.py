@@ -9,7 +9,9 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_merge` (merges, 0.47) and
 :mod:`opentine._schema_defs_review` (Reviews, 0.47) and
 :mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
-:mod:`opentine._schema_defs_extend` (plugins, experts); ``docs/schemas`` is
+:mod:`opentine._schema_defs_extend` (plugins, experts) and
+:mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
+:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -26,13 +28,21 @@ from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
 from opentine._schema_defs_cli import SCHEMAS as _CLI
+from opentine._schema_defs_compliance import COMMAND_SCHEMAS as _COMPLIANCE_COMMANDS
+from opentine._schema_defs_compliance import SCHEMAS as _COMPLIANCE
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
 from opentine._schema_defs_extend import COMMAND_SCHEMAS as _EXTEND_COMMANDS
 from opentine._schema_defs_extend import SCHEMAS as _EXTEND
+from opentine._schema_defs_forge import COMMAND_SCHEMAS as _FORGE_COMMANDS
+from opentine._schema_defs_forge import KIND_SCHEMAS as _FORGE_KINDS
+from opentine._schema_defs_forge import SCHEMAS as _FORGE
 from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
+from opentine._schema_defs_integrate import COMMAND_SCHEMAS as _INTEGRATE_COMMANDS
+from opentine._schema_defs_integrate import KIND_SCHEMAS as _INTEGRATE_KINDS
+from opentine._schema_defs_integrate import SCHEMAS as _INTEGRATE
 from opentine._schema_defs_merge import COMMAND_SCHEMAS as _MERGE_COMMANDS
 from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
 from opentine._schema_defs_merge import SCHEMAS as _MERGE
@@ -67,6 +77,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_REVIEW,
     **_REGISTRY,
     **_EXTEND,
+    **_FORGE,
+    **_INTEGRATE,
+    **_COMPLIANCE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -79,6 +92,9 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_REVIEW_COMMANDS,
     **_REGISTRY_COMMANDS,
     **_EXTEND_COMMANDS,
+    **_FORGE_COMMANDS,
+    **_INTEGRATE_COMMANDS,
+    **_COMPLIANCE_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
@@ -88,6 +104,8 @@ KIND_SCHEMAS: dict[str, str] = {
     **_MERGE_KINDS,
     **_REVIEW_KINDS,
     **_REGISTRY_KINDS,
+    **_FORGE_KINDS,
+    **_INTEGRATE_KINDS,
 }
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.

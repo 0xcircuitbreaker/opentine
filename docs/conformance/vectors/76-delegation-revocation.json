@@ -1,0 +1,631 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "delegation-revocation.leaf-revoked-after",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464": "2026-09-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+        }
+      },
+      "intent": "the leaf key revoked after the verified signing time still verifies",
+      "op": "delegation.verify",
+      "output": {
+        "links": [
+          "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+          "sha256:2e8be7008009b8c4d80455567acc1209b1cbbc2d1654084334a9acf6bd374a2d"
+        ],
+        "root": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+      },
+      "profile": "verifier",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "delegation-revocation.leaf-revoked-before",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464": "2026-03-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+        }
+      },
+      "intent": "the leaf key revoked before the verified signing time refuses the chain",
+      "op": "delegation.verify",
+      "profile": "verifier",
+      "reason": "delegation.revoked",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": {
+        "exception": "DelegationError",
+        "message": "certificate 1: key sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464 revoked at 2026-03-01T00:00:00Z, before signing"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "delegation-revocation.mid-revoked-before",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28": "2026-03-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+        }
+      },
+      "intent": "a revoked intermediate key refuses the chain",
+      "op": "delegation.verify",
+      "profile": "verifier",
+      "reason": "delegation.revoked",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": {
+        "exception": "DelegationError",
+        "message": "certificate 1: key sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28 revoked at 2026-03-01T00:00:00Z, before signing"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "delegation-revocation.revoked-at-signing",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464": "2026-06-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+        }
+      },
+      "intent": "revoked_at equal to the signing time refuses",
+      "op": "delegation.verify",
+      "profile": "verifier",
+      "reason": "delegation.revoked",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": {
+        "exception": "DelegationError",
+        "message": "certificate 1: key sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464 revoked at 2026-06-01T00:00:00Z, before signing"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "delegation-revocation.root-revoked-before",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c": "2026-03-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+        }
+      },
+      "intent": "a revoked root issuer refuses the whole chain",
+      "op": "delegation.verify",
+      "profile": "verifier",
+      "reason": "delegation.revoked",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": {
+        "exception": "DelegationError",
+        "message": "certificate 0: key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c revoked at 2026-03-01T00:00:00Z, before signing"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "delegation-revocation.unverified-time",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28": "2026-09-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464",
+          "time_verified": false
+        }
+      },
+      "intent": "any revocation on the chain refuses when the signing time is only claimed",
+      "op": "delegation.verify",
+      "profile": "verifier",
+      "reason": "delegation.revoked",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": {
+        "exception": "DelegationError",
+        "message": "certificate 1: key sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28 revoked at 2026-09-01T00:00:00Z; no verified time"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "delegation-revocation.unverified-unrelated",
+      "input": {
+        "value": {
+          "actions": [
+            "Bash"
+          ],
+          "agent": "coder",
+          "at": "2026-06-01T00:00:00Z",
+          "chain": [
+            {
+              "issuer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "*"
+                ],
+                "agents": [
+                  "*"
+                ],
+                "max_depth": {
+                  "$i": "1"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+                "value": "0d3157a3e76364429d7f54e30c3ff0f2d5eb77538392e4993b327dd456f874021158c6c73dd998a98d2f0730a9ba38766f92da6011110ec5786599241b963b09"
+              },
+              "subject": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28"
+            },
+            {
+              "issuer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+              "not_after": "2027-01-01T00:00:00Z",
+              "not_before": "2026-01-01T00:00:00Z",
+              "parent": "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+              "scheme": "opentine-delegation/1",
+              "scope": {
+                "actions": [
+                  "Bash",
+                  "Read"
+                ],
+                "agents": [
+                  "coder"
+                ],
+                "max_depth": {
+                  "$i": "0"
+                }
+              },
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "sha256:24f6ed6acbfe1009c030d7ca567c33ca4830911498236b5561a6c82abec5de28",
+                "value": "a7716af3717697f51b04c3662bcb51d1a20eb80864ca954e01b22fd6cdc8d19a78fe277e1e14533096ef14a7222c93d373721d72260335e390673a75cd30cf0e"
+              },
+              "subject": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464"
+            }
+          ],
+          "revoked": {
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000": "2026-03-01T00:00:00Z"
+          },
+          "signer": "sha256:03396219237f75a64f12aeb7f39723abf400b160c364980a765dac24aeba2464",
+          "time_verified": false
+        }
+      },
+      "intent": "a revocation of a key off the chain does not matter, verified time or not",
+      "op": "delegation.verify",
+      "output": {
+        "links": [
+          "sha256:e506fa11711c4e56146f4e9924b8bb055db723ff8b316f679296a842b5bfe147",
+          "sha256:2e8be7008009b8c4d80455567acc1209b1cbbc2d1654084334a9acf6bd374a2d"
+        ],
+        "root": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+      },
+      "profile": "verifier",
+      "section": "4.10.1",
+      "tier": "core",
+      "x_display": "{\"actions\": [\"Bash\"], \"agent\": \"coder\", \"at\": \"2026-06-01T00:00:00Z\", \"chain\": [{\"issuer\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"not_after\": \"2027-01-01T00:00:00Z\", \"not_before\": \"2026-01-01T00:00:00Z\", \"parent\": \"\", \"scheme\": \"opentine-delegation/1\", \"scope\": {\"actions\": [\"*\"], \"agents\": [\"*\"], \"max_depth\": {\"$i\": \"1\"}}, \"signature\": {\"alg\": \"ed25519\", \"publi...",
+      "x_reference": null
+    }
+  ],
+  "family": "delegation-revocation",
+  "section": "4.10.1",
+  "suite_version": 1
+}

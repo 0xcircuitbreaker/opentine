@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (197)
+## The codes (223)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -71,6 +71,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `delegation.bad-signature` | 4.10 | -- | a certificate whose tine-sig/3 block fails or is not by the named issuer | trust the certificate body without checking its signature |
 | `delegation.broken-chain` | 4.10 | -- | a link whose issuer or parent digest does not match the certificate above it | verify each certificate alone and accept a chain that does not connect |
 | `delegation.expired` | 4.10 | -- | a chain whose certificate window does not contain the signing time | accept an expired or not-yet-valid certificate because its signature verifies |
+| `delegation.revoked` | 4.10.1 | -- | a chain with a key revoked at or before the verified signing time, or revoked at all when the signing time is only claimed | check revocation of the signing key alone, or trust the signer's claimed time |
 | `delegation.scope-violation` | 4.10 | -- | an agent or tool outside the leaf scope, or a link wider than its parent | treat a delegation as unscoped, or let a child widen what it was given |
 | `delegation.too-deep` | 4.10 | -- | a link the parent's max_depth does not allow | ignore max_depth and accept a chain of any length |
 | `delegation.wrong-signer` | 4.10 | -- | work signed by a key other than the leaf certificate's subject | accept any key in the chain as the delegate |
@@ -89,6 +90,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `fleet.bad-signature` | 4.11 | -- | a signed fleet record whose tine-sig/3 block fails, is not Ed25519, or was moved | trust a fleet claim copied from another run |
+| `fleet.malformed` | 4.11 | -- | a fleet record or signed document with a missing, extra or unnormalised field | normalise a member name or drop an unknown field and verify the rest |
+| `fleet.wrong-key` | 4.11 | -- | a signed fleet record verified against a key other than its signer | accept the embedded key when a trusted key was supplied |
+| `forge-check.bundle-mismatch` | 4.24 | -- | bundle bytes that do not hash to the check's digest | trust the linked bundle without hashing what was downloaded |
+| `forge-check.conclusion-mismatch` | 4.24 | -- | a conclusion that does not follow the verify state | show an unverified or failed commit as a success |
+| `forge-check.malformed` | 4.24 | -- | a forge check with a missing, extra or ill-formed field, or a bundle URL without a digest | accept fields the check format does not define, or link a bundle nobody can check |
+| `forge-check.share-mismatch` | 4.24 | -- | a share_ppm other than floor(ai_lines * 1000000 / total_lines), or ai_lines > total_lines | recompute and show a share the record does not state |
 | `forge-claim.malformed` | 4.23 | -- | a claim with a missing, extra or ill-formed field (a signature included) | accept fields the claim format does not define |
 | `forge-claim.missing` | 4.23 | -- | no .opentine/project on the upstream's default branch | read a missing file as an unclaimed, therefore open, project |
 | `forge-claim.not-default-branch` | 4.23 | -- | a claim found only on a branch other than the slot's default branch | let anyone who can push a branch claim the repository |
@@ -103,6 +111,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `graph.roots-mismatch` | 1.5.3 | -- | roots that are not exactly the parentless events, when every event is present | recompute roots from the graph and ignore the stored value |
 | `graph.status-invalid` | 1.5.3 | -- | a run status outside running/paused/completed/failed | default an unknown status to running |
 | `graph.tips-mismatch` | 1.5.3 | -- | tips that are not exactly the graph leaves, when every event is present | recompute tips from the graph and ignore the stored value |
+| `keyless.cert-not-valid-at-signing` | 8.12.1 | -- | a genTime, with its accuracy, outside the leaf certificate's validity | accept a short-lived certificate used outside its window |
+| `keyless.malformed` | 8.12.1 | -- | a token without a SHA-2 imprint, an RFC 3339 genTime or a well-formed window | guess the hash or the time zone of a token |
+| `keyless.receipt-invalid` | 8.12.1 | -- | a timestamp offered beside a Rekor v2 receipt that did not verify | accept a TSA time as proof of inclusion |
+| `keyless.tsa-imprint-mismatch` | 8.12.1 | -- | a token whose messageImprint is not the hash of the DSSE signature bytes | accept a token over the payload or the envelope as a signing time |
+| `keyless.tsa-retired` | 8.12.1 | -- | a genTime outside its timestamp authority's validFor window | trust a TSA for times after its retirement |
 | `link.annotation-previous-not-annotation` | 1.5.5 | -- | a truthy previous_id that is not an annotation oid | follow the link anyway and check the type later |
 | `link.attestation-target-not-run` | 1.5.4 | -- | an attestation with an absent target_id or one that is not a run oid | accept an attestation about an event or a blob |
 | `link.event-blob-not-blob` | 1.5.2 | -- | a truthy input_blob/output_blob/artifact_blob that is not a blob oid | ignore a link field whose value has the wrong type |
@@ -155,6 +168,14 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `mirror-state.wrong-key` | 4.17 | -- | a mirror state not signed by the pinned host key, or not Ed25519 | accept the embedded key when the caller pinned the host key |
 | `oid.hash-unsupported` | 1.3.1 | `_hash_tag.SUPPORTED_HASH_ALGORITHMS` | a TYPE:TAG:HEX oid whose hash-algorithm TAG is not sha256 (sha3-256, sha512 and blake3 are reserved) | hash with sha256 anyway, or strip the tag |
 | `oid.malformed` | 1.3 | `kernel.OID_RE` | a string that is not TYPE:sha256:<64 lowercase hex> | lowercase an uppercase digest, or accept a bare digest |
+| `oms.bad-signature` | 4.26 | -- | no DSSE signature verifies over the payload with the pinned key | read the manifest before the signature verifies |
+| `oms.digest-mismatch` | 4.26 | -- | a model file whose SHA-256 is not its signed digest | compare file names only |
+| `oms.extra-file` | 4.26 | -- | a model file (outside ignore_paths) the signature does not cover | let an unsigned file ride along with a signed model |
+| `oms.malformed` | 4.26 | -- | an OMS bundle or signed payload missing a required field, or ill-formed | guess a payload or a digest from a broken bundle |
+| `oms.missing-file` | 4.26 | -- | a signed resource absent from the model | pass a model that lost a file |
+| `oms.no-key` | 4.26 | -- | no pinned P-256 public key was given | trust the key the bundle itself hints at |
+| `oms.root-mismatch` | 4.26 | -- | a subject digest that is not SHA-256 over the resource digests in name order | check the resources and ignore the subject |
+| `oms.unsupported` | 4.26 | -- | a keyless bundle, another payload type, predicate or serialization method | report a certificate bundle as verified without checking its Fulcio chain and Rekor entry |
 | `pack.arrays-invalid` | 2.8 | -- | an objects or shallow value that is not an array | wrap a single entry in an array |
 | `pack.bad-magic` | 2.8 | -- | a frame that does not begin with TINEPACK3\x00, or is shorter than 42 bytes | sniff the compression and continue |
 | `pack.checksum-mismatch` | 2.8 | -- | an inflated manifest whose SHA-256 is not the frame's bytes 10..42 | recompute the header digest from the body |
@@ -216,6 +237,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `ref.target-type` | 2.5 | `_refs.TYPED_REF_NAMESPACES` | a typed-namespace ref pointing at the wrong object type | let heads/ point at an event because the oid parses |
 | `reflog.actor-too-long` | 2.6 | `_reflog.reflog_entry` | a reflog actor longer than 4096 characters | truncate the actor |
 | `reflog.time-not-string` | 2.6 | -- | a time_ns that is not decimal digits inside a JSON string | emit the nanosecond timestamp as a JSON number |
+| `review-finding.bad-signature` | 4.25 | -- | a review finding whose tine-sig/3 block does not hold | accept a finding whose severity was lowered after signing |
+| `review-finding.malformed` | 4.25 | -- | a review finding with a missing, extra or ill-formed field | point a reviewer at a path outside the repository, or show ill-formed text |
+| `review-finding.unsigned` | 4.25 | -- | a review finding with no signature block | count an unsigned finding as a reviewer's |
+| `review-finding.untrusted-signer` | 4.25 | -- | a review finding signed by a key that is not one of the Review's reviewers | count a stranger's finding against a Review |
+| `review-finding.wrong-key` | 4.25 | -- | a review finding not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
 | `review-gate.bad-signature` | 4.20 | -- | a gate decision whose tine-sig/3 block does not hold | count a decision edited after signing |
 | `review-gate.blocked` | 4.20 | -- | an approval while a monitor of that version fails or a critical finding is open | approve past a failing monitor |
 | `review-gate.malformed` | 4.20 | -- | a gate decision with a missing, extra or ill-formed field | read an unknown decision as an approval |

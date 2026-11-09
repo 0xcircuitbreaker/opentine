@@ -34,13 +34,34 @@ def _claimed(entry: dict) -> tuple[bytes, datetime]:
     return key_id, datetime.fromtimestamp(int(str(raw)), tz=UTC)
 
 
-def root_receipt(root: TrustedRoot, envelope: dict, entries: list, signer: Any) -> ReceiptResult:
+def _v2_timed(result: ReceiptResult, root, envelope: dict, material, leaf) -> ReceiptResult:
+    """0.48: a verified v2 receipt plus a bound RFC 3161 token is a verified signing time."""
+    from opentine._keyless_tsa import TsaBindError, stamp, token_time
+
+    if result.status != "unchecked" or leaf is None:
+        return result
+    try:
+        when = token_time(material, envelope, root, leaf)
+    except (TsaBindError, ValueError) as exc:
+        code = getattr(exc, "code", "keyless.malformed")
+        return ReceiptResult(False, "invalid", f"{code}: {exc}", result.log_index, None)
+    if when is None:
+        return result
+    reason = (f"Rekor v2 receipt {result.log_index} verified; signing time {stamp(when)} "
+              "from an RFC 3161 token bound to the signature")  # fmt: skip
+    return ReceiptResult(True, "verified", reason, result.log_index, int(when.timestamp()))
+
+
+def root_receipt(
+    root: TrustedRoot, envelope: dict, entries: list, signer: Any, material=None, leaf=None
+) -> ReceiptResult:
     if not entries:
         return ReceiptResult(False, "absent", "attestation carries no transparency-log receipt")
     results = []
     for entry in entries:
         if is_v2(entry):  # 0.44 X34: a tile-log receipt has no SET or integratedTime
-            results.append(check_v2_entry(root.tile_logs, entry, envelope, signer))
+            checked = check_v2_entry(root.tile_logs, entry, envelope, signer)
+            results.append(_v2_timed(checked, root, envelope, material, leaf))
             continue
         try:
             key_id, when = _claimed(entry)
@@ -92,15 +113,20 @@ def trusted_root_path(args) -> str | None:
     return str(path)
 
 
-def load_root(path: str, envelope: dict, entries: list, signer: Any):
-    """``(TrustedRoot, receipt)``, or ``(None, ReceiptResult)`` naming why it is unreadable."""
+def load_root(path: str, envelope: dict, entries: list, signer: Any, material=None):
+    """``(TrustedRoot, receipt)``, or ``(None, ReceiptResult)`` naming why it is unreadable.
+
+    *signer* is a public key or (0.48) the Fulcio leaf, whose window bounds a TSA time.
+    """
+    leaf = signer if hasattr(signer, "not_valid_before_utc") else None
+    signer = leaf.public_key() if leaf is not None else signer
     from opentine._trusted_root import load_trusted_root
 
     try:
         root = load_trusted_root(path)
     except (OSError, ValueError) as exc:
         return None, ReceiptResult(False, "no-key", f"cannot read --trusted-root: {exc}")
-    return root, root_receipt(root, envelope, entries, signer)
+    return root, root_receipt(root, envelope, entries, signer, material, leaf)
 
 
 def refuse_root_conflicts(args) -> None:

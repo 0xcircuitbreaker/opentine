@@ -1,4 +1,4 @@
-"""``tine review create|add|gate|show|export|verify|import|push`` (0.47, SPEC 4.20).
+"""``tine review create|add|gate|show|export|verify|import|push|run|findings`` (SPEC 4.20).
 
 A Review is kept in ``.tine/reviews/<id>.json`` as its bundle
 (:mod:`opentine.repository._review_store`). ``create`` writes version 0 and
@@ -9,6 +9,8 @@ repositories added); both sign with a reviewer's Ed25519 key
 bundle that ``tine-verify.pyz --offline`` checks air-gapped; ``verify`` checks
 such a file and exits 4 when it fails; ``import`` adopts one; ``push`` sends
 what a remote's ``caps.reviews`` lacks (:mod:`opentine._cli_review_remote`).
+``run`` and ``findings`` (0.48: reviewer fleets, signed findings) live in
+:mod:`opentine._cli_review_run`.
 """
 
 from __future__ import annotations
@@ -23,7 +25,8 @@ from opentine._cli_json import emit
 from opentine._cli_remote_target import add_remote_args
 from opentine._review_rules import SEVERITIES
 
-ACTIONS = ("create", "add", "gate", "show", "export", "verify", "import", "push")
+ACTIONS = ("create", "add", "gate", "show", "export", "verify", "import", "push", "run",
+           "findings")  # fmt: skip
 
 
 def _key_args(parser: argparse.ArgumentParser) -> None:
@@ -83,9 +86,12 @@ def add_review_parser(sub: Any) -> None:
     push = actions.add_parser("push", help="Send what a remote lacks (caps.reviews)")
     push.add_argument("review_id")
     add_remote_args(push)
+    from opentine._cli_review_run import add_run_parsers
+
+    fleet = add_run_parsers(actions)
     for parser in (show, export, verify):
         parser.add_argument("--reviewer-key", metavar="HEX", help="Pin the first reviewer")
-    for parser in (create, add, gate, show, export, verify, imported, push):
+    for parser in (create, add, gate, show, export, verify, imported, push, *fleet):
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true")
 
@@ -196,6 +202,10 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     if action in ("create", "add", "gate"):
         body = _write(args, repo)
         return body, f"review {args.review_id}: {body['digest']}"
+    if action in ("run", "findings"):
+        from opentine._cli_review_run import act
+
+        return act(args, repo)
     if action == "push":
         from opentine._cli_review_remote import push
 

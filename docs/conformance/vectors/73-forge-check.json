@@ -1,0 +1,1295 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.bad-version",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "2"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "check_version is 1",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"2\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: check_version is not 1"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.bool-count",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": true,
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a count is an integer, not a boolean",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: bad verify state or run count"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-check.bundle-matched",
+      "input": {
+        "value": {
+          "bundle_b64": "VElORUJOREwAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/",
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "the linked bundle's bytes hash to the digest",
+      "op": "forge-check.verify",
+      "output": {
+        "bundle": "matched",
+        "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "conclusion": "success",
+        "forge": "github",
+        "forge_repo_id": "123456",
+        "project_id": "app",
+        "share_ppm": 308333
+      },
+      "profile": "verifier",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": \"VElORUJOREwAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/\", \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"c...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.bundle-mismatch",
+      "input": {
+        "value": {
+          "bundle_b64": "VElORUJOREwAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/IQ==",
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "bytes that are not the linked bundle",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.bundle-mismatch",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": \"VElORUJOREwAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/IQ==\", \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check bundle does not hash to its digest"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-check.failed-failure",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "failure",
+            "forge": "gitlab",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": null,
+            "verify": {
+              "runs": {
+                "$i": "1"
+              },
+              "state": "failed"
+            }
+          }
+        }
+      },
+      "intent": "a failed verify: failure",
+      "op": "forge-check.verify",
+      "output": {
+        "bundle": "unchecked",
+        "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "conclusion": "failure",
+        "forge": "gitlab",
+        "forge_repo_id": "123456",
+        "project_id": null,
+        "share_ppm": 308333
+      },
+      "profile": "verifier",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"failure\", \"forge\": \"gitlab\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.failed-neutral",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "neutral",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "1"
+              },
+              "state": "failed"
+            }
+          }
+        }
+      },
+      "intent": "a failed verify softened to neutral",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.conclusion-mismatch",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"neutral\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check conclusion does not follow its verify state"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.http-url",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "http://example.com/b"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a bundle link is https",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"http://example.com/b\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\", \"forge_repo_id\": \"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: bundle url is not an https URL"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-check.no-lines",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "0"
+              },
+              "share_ppm": {
+                "$i": "0"
+              },
+              "total_lines": {
+                "$i": "0"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "abababababababababababababababababababababababababababababababab",
+            "conclusion": "success",
+            "forge": "entire",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "no lines at the commit: share 0, no division",
+      "op": "forge-check.verify",
+      "output": {
+        "bundle": "unchecked",
+        "commit": "abababababababababababababababababababababababababababababababab",
+        "conclusion": "success",
+        "forge": "entire",
+        "forge_repo_id": "123456",
+        "project_id": "app",
+        "share_ppm": 0
+      },
+      "profile": "verifier",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"0\"}, \"share_ppm\": {\"$i\": \"0\"}, \"total_lines\": {\"$i\": \"0\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"abababababababababababababababababababababababababababababababab\", \"conclusion\": \"success\", \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.overlay-escape",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "1"
+                },
+                "path": "../etc/passwd",
+                "run": null,
+                "start_line": {
+                  "$i": "1"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "an overlay path that leaves the repository",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: overlay path is not a relative posix path"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.overlay-reversed",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "3"
+                },
+                "path": "a.py",
+                "run": null,
+                "start_line": {
+                  "$i": "9"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "an overlay range whose end precedes its start",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: overlay lines are not 1 <= start_line <= end_line"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.share-over-total",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "5"
+              },
+              "share_ppm": {
+                "$i": "1250000"
+              },
+              "total_lines": {
+                "$i": "4"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "more AI lines than lines",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.share-mismatch",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"5\"}, \"share_ppm\": {\"$i\": \"1250000\"}, \"total_lines\": {\"$i\": \"4\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\", ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check share does not match: more AI lines than lines"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.share-rounded-up",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308334"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "share_ppm is the floor, not a rounding",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.share-mismatch",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308334\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check share does not match its line counts"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.short-commit",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a commit is a full 40 or 64 hex id",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3\", \"conclusion\": \"success\", \"forge\": \"github\", \"forge_repo_id\": \"123456\", \"kin...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: bad commit"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.signed",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "signature": {
+              "alg": "ed25519"
+            },
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a forge check is unsigned: extra fields are refused",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: wrong kind or set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.unknown-forge",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "bitbucket",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a forge outside the four",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"bitbuck...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: unknown forge"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-check.unverified-neutral",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": null,
+              "url": null
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "neutral",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "0"
+              },
+              "state": "unverified"
+            }
+          }
+        }
+      },
+      "intent": "no verify output: neutral, never success",
+      "op": "forge-check.verify",
+      "output": {
+        "bundle": "absent",
+        "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "conclusion": "neutral",
+        "forge": "github",
+        "forge_repo_id": "123456",
+        "project_id": "app",
+        "share_ppm": 308333
+      },
+      "profile": "verifier",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": null, \"url\": null}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"neutral\", \"forge\": \"github\", \"forge_repo_id\": \"123456\", \"kind\": \"opentine.forge-check\", \"overlay\": [{\"end_line\": {\"$i\": \"9\"}, \"path\": ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.unverified-success",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "0"
+              },
+              "state": "unverified"
+            }
+          }
+        }
+      },
+      "intent": "an unverified commit shown as a success",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.conclusion-mismatch",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check conclusion does not follow its verify state"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-check.url-without-digest",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": null,
+              "url": "https://example.com/b"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a link that cannot be checked offline",
+      "op": "forge-check.verify",
+      "profile": "verifier",
+      "reason": "forge-check.malformed",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": null, \"url\": \"https://example.com/b\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\", \"forge_repo_id\": \"123456\", \"kind\": \"opentine.forge-check\", \"overlay\": [{\"end_line\": {\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge check is malformed: a bundle url without a digest cannot be checked offline"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-check.verified",
+      "input": {
+        "value": {
+          "bundle_b64": null,
+          "check": {
+            "ai": {
+              "ai_lines": {
+                "$i": "37"
+              },
+              "share_ppm": {
+                "$i": "308333"
+              },
+              "total_lines": {
+                "$i": "120"
+              }
+            },
+            "bundle": {
+              "digest": "sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6",
+              "url": "https://example.com/evidence/app.tbundle"
+            },
+            "check_version": {
+              "$i": "1"
+            },
+            "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+            "conclusion": "success",
+            "forge": "github",
+            "forge_repo_id": "123456",
+            "kind": "opentine.forge-check",
+            "overlay": [
+              {
+                "end_line": {
+                  "$i": "9"
+                },
+                "path": "src/app.py",
+                "run": "run-1",
+                "start_line": {
+                  "$i": "3"
+                }
+              }
+            ],
+            "project_id": "app",
+            "verify": {
+              "runs": {
+                "$i": "2"
+              },
+              "state": "verified"
+            }
+          }
+        }
+      },
+      "intent": "a verified commit with its bundle digest (bytes not given)",
+      "op": "forge-check.verify",
+      "output": {
+        "bundle": "unchecked",
+        "commit": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "conclusion": "success",
+        "forge": "github",
+        "forge_repo_id": "123456",
+        "project_id": "app",
+        "share_ppm": 308333
+      },
+      "profile": "verifier",
+      "section": "4.24",
+      "tier": "core",
+      "x_display": "{\"bundle_b64\": null, \"check\": {\"ai\": {\"ai_lines\": {\"$i\": \"37\"}, \"share_ppm\": {\"$i\": \"308333\"}, \"total_lines\": {\"$i\": \"120\"}}, \"bundle\": {\"digest\": \"sha256:ca5700a60ada81bdb88e81a07a8a179b3db3faddd7c9d15cb4372ed9e48b93c6\", \"url\": \"https://example.com/evidence/app.tbundle\"}, \"check_version\": {\"$i\": \"1\"}, \"commit\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"conclusion\": \"success\", \"forge\": \"github\"...",
+      "x_reference": null
+    }
+  ],
+  "family": "forge-check",
+  "section": "4.24",
+  "suite_version": 1
+}

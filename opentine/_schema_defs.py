@@ -83,6 +83,11 @@ RUN = open_(RUN_KEYS, {
 TIERS = {"enum": ["T0", "T1", "T2", "T3"]}
 ASSURANCE = open_(["claimed", "verified"], {
     "claimed": TIERS, "verified": TIERS, "witness": opt(STR), "reasons": strs(),
+    "factors": {"type": "array", "items": open_(["factor", "ok", "reason", "detail"], {
+        "factor": {"enum": ["oms-model-signature"]}, "ok": {"type": "boolean"},
+        "reason": opt(STR), "detail": STR, "bundle": STR, "model": STR, "root_digest": STR,
+        "files": INT, "key": STR, "state": STR, "label": STR,
+        "files_checked": {"type": "boolean"}})},
 })  # fmt: skip
 RANGE = closed(["start_line", "end_line"], {"start_line": INT, "end_line": INT})
 _EVAL_SCORE = {"type": ["number", "boolean", "null"]}

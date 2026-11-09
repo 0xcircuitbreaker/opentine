@@ -583,6 +583,35 @@ clock, host or path), so the same run and version always give the same bytes.
 A run whose digest does not verify is refused, and `--endpoint` is refused.
 Without `--output` the document goes to stdout.
 
+`--format run-crate` (0.48) writes a Provenance Run Crate: RO-Crate 1.1 plus
+the Workflow Run RO-Crate profiles 0.5 (process, workflow, provenance). Each
+step is a `HowToStep` run by a `CreateAction` (the model or tool is its
+`instrument`), linked by a `ControlAction` and orchestrated by opentine's
+`OrganizeAction`; see SPEC §12.5. It is deterministic like `ro-crate`.
+
+## Compliance profiles: `tine compliance` (0.48)
+
+**Draft — not legal advice, pending counsel review.** No external counsel
+sign-off is recorded yet.
+
+```
+tine compliance list [--json]
+tine compliance check RUN --profile NAME|FILE [--repo DIR] [--pubkey FILE] [--pin FPR]
+    [--tsa-roots FILE.pem] [--attestation FILE --rekor-key FILE] [--trusted-root FILE]
+    [--proxy-pubkey FILE] [--strict] [--json]
+```
+
+Profiles are data in [`docs/compliance/`](compliance/): `fre-902` (US FRE
+902(13)/(14)), `eu-ai-act` (EU AI Act Art. 12, 19, 26) and `eidas` (eIDAS as
+amended by 2024/1183). Each requirement cites its article or rule and lists the
+OpenTine evidence that shows it. `check` runs the offline verifier with the
+given keys and roots, reads `--repo`'s `retention.toml` and custody log, and
+reports every requirement as `evidenced`, `missing` (with the fact that is
+missing and why) or `out-of-scope` (organisational duties, qualified trust
+services). It exits 0 whatever the result; `--strict` exits 4 when anything in
+scope is missing. `--json` writes `tine-cli-compliance-check-1` and `list
+--json` `tine-cli-compliance-list-1`.
+
 ## Entire checkpoint import (0.19)
 
 ```
@@ -719,6 +748,7 @@ payload as their command's `--json`:
 | `cost` | `tine cost RUN --json` |
 | `agent_show` | `tine agent show TARGET --repo REPO --json` |
 | `stats` | `tine stats [--group-by KEY] --limit N --json` |
+| `code_graph` (0.48) | `tine code-graph [PATH] [--symbol NAME] --repo REPO --json` |
 
 New in 0.44, `recall(query, limit=10)` is a hand-written read tool over the
 derived search index (`tine repo-search --rebuild-index`, see
@@ -786,6 +816,22 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 `127.0.0.1:0` (the chosen port is printed on stderr). See
 [CAPTURE.md](CAPTURE.md#6b-live-capture-an-mcp-session-038).
 
+## OTLP ingest: protobuf logs and gRPC (0.48)
+
+| Command | What it does |
+| --- | --- |
+| `tine serve --otlp [--otlp-port 4318]` | OTLP/HTTP: `/v1/traces` and `/v1/logs` take OTLP/JSON or `application/x-protobuf` (logs protobuf is new in 0.48); loopback only unless `--insecure-dev-any-host` |
+| `tine serve --otlp --otlp-protocol grpc\|both [--otlp-grpc-port 4317]` | OTLP/gRPC (`TraceService/Export`, `LogsService/Export`) into the same collector; needs `opentine[grpc]` |
+| `... --otlp-token-file FILE` | Every gRPC call must send `authorization: Bearer <token>` (16..4096 bytes, compared in constant time) |
+| `... --cert PEM --key PEM` | Serves gRPC over TLS; off loopback both TLS and a token are required, with no override |
+| `tine import FILE --format otlp-proto-logs` | Imports an OTLP protobuf `ExportLogsServiceRequest` |
+
+`--max-body-mb` bounds a gRPC message both on the wire and after
+decompression. The controls and what is left open are in
+[security/otlp-grpc-review.md](security/otlp-grpc-review.md);
+`scripts/fuzz_otlp.py` is the fuzzer (CI runs it scaled; the 72-hour run is
+`--hours 72`).
+
 ## Assurance tiers (0.39)
 
 | Command | What it does |
@@ -794,6 +840,7 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 | `tine verify RUN --min-assurance T0..T3` | Exits 4 (`verification_failed`) when the *verified* tier is below the floor |
 | `tine verify RUN --proxy-pubkey FILE` | Also trusts this proxy public key as a T2 witness (repeatable) |
 | `tine verify RUN --min-assurance T3 --tsa-roots FILE.pem` | Lets an attached RFC 3161 token count toward T3 (outside `--offline`, `--tsa-roots` needs a floor) |
+| `tine verify RUN --model-signature BUNDLE [--model PATH] [--model-pubkey PEM]` | 0.48: checks an OpenSSF Model Signing (OMS v1.0) bundle under a pinned P-256 key, and the model's files when `--model` is given, as the `oms-model-signature` factor in `assurance.factors`; a failed factor exits 4. Keyless bundles are refused as `oms.unsupported` (SPEC 4.24) |
 | `tine verify RUN --compare-capture OTHER [--json]` | Divergence report: the better-witnessed run against the other, step by step (MCP `tools/call` and prompts); exits 4 when they diverge |
 
 Tiers: **T0** self-reported import, **T1** hook-captured, **T2** witnessed by
@@ -1132,6 +1179,51 @@ offline; a mirror state never passes (verdict `host-statement`). The
 object check among them) pin Python, the TS verifier and the pyz. See
 [PROJECTS.md](PROJECTS.md).
 
+## Forge integration: `tine forge publish` (0.48)
+
+```
+tine forge publish --forge github|gitlab|forgejo|entire [--forge-repo-id ID]
+                   [--repo-slug OWNER/NAME] [--api-url URL] [--rev REV] [--code DIR]
+                   [--repo R] [--require-project] [--verify FILE]... [--bundle FILE
+                   [--bundle-url URL]] [--pr N | --mr N] [--token-env NAME]
+                   [--app-id ID --app-key-file PEM --installation-id ID]
+                   [--comment-author LOGIN] [--run RUN]... [--out FILE] [--dry-run] [--json]
+```
+
+Builds one `opentine.forge-check` record (SPEC 4.24) for the commit `--rev` of
+the code checkout `--code` and shows it on the forge: the AI share at that
+commit (`tine stats --ai-share`), the verify status from the `tine verify
+--json` outputs given with `--verify` (none: `unverified`), the commit's own
+AI-attributed line ranges (the blame overlay) and the digest and URL of a
+bundle that verifies offline (`--bundle` is verified in full before it is
+linked; `--bundle-url` without `--bundle` is refused). The conclusion follows
+the verify status alone: verified is success, failed is failure, unverified is
+neutral, never success.
+
+* **GitHub**: a completed check run (Checks API) with the overlay as `notice`
+  annotations and `details_url` the bundle; with `--pr`, one PR comment, edited
+  on re-runs.
+* **GitLab**: a commit status (`skipped` when unverified); with `--mr`, one MR note.
+* **Forgejo / Gitea**: a commit status (`warning` when unverified); with `--pr`,
+  one PR comment.
+* **Entire**: nothing over HTTP. Checkpoint refs for the runs the commit names
+  (or each `--run`) and the record as a note under `refs/notes/opentine-forge`
+  are written into the code checkout, and the `git push` that publishes them is
+  printed.
+
+The project is resolved by `--forge-repo-id` (default `GITHUB_REPOSITORY_ID` or
+`CI_PROJECT_ID`) against the verified project chain in `--repo`: a project that
+links no repository with that id on that forge is refused, and
+`--require-project` refuses a run repository without a project. Tokens are
+read only from an environment variable (`--token-env`; defaults
+`GITHUB_TOKEN`, `OPENTINE_GITLAB_TOKEN`, `OPENTINE_FORGEJO_TOKEN`) or minted
+from a GitHub App key with only the permissions used, and never printed: a
+failure names the HTTP status only. Only a comment that starts with the
+marker and was written by the poster itself is edited. `--dry-run` builds the
+record and the request plan without a token or the network. The command exits
+0 whatever the conclusion (the CI gate decides the job); `--json` follows
+`tine-cli-forge-1`. Token scopes and CI recipes: [FORGES.md](FORGES.md).
+
 ## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
 
 ```
@@ -1226,6 +1318,49 @@ adopts a bundle that extends the local copy, and `push` sends what a remote's
 exactly as signed, logs it in its transparency log and never signs one.
 `--json` follows `tine-cli-review-1`. The `70-review.json` conformance family
 pins Python, the TS verifier and the pyz.
+
+### Multi-agent review through the fleet: `tine review run` (0.48)
+
+```
+tine review run ID --fleet TOML [--trust] [--base REV] [--diff-file FILE] --ed25519-key-file K [--key-id ID] [--json] [--repo R]
+tine review findings ID [--json] [--repo R]
+```
+
+`run` runs a reviewer fleet (a `fleet.toml`, inert until its exact bytes are
+trusted with `--trust`, like `tine fleet up`) on the change: `git diff REV`
+(default `HEAD`, the uncommitted change) or the diff in `--diff-file`, redacted
+before any reviewer sees it. Each member gets `OPENTINE_REVIEW_ID`,
+`OPENTINE_REVIEW_CONTEXT` (the file holding the change) and
+`OPENTINE_REVIEW_FINDINGS` (the file it writes), and writes one JSON object
+per line: `{"severity", "message", "path"?, "line"?}`. Every well-formed line
+becomes one signed `opentine.review-finding` (SPEC 4.25), its message redacted
+first, signed by `--ed25519-key-file` (which must be a reviewer of the head
+version) and kept in `.tine/review-findings/ID.json`; a malformed line is
+skipped and counted, never guessed at. The Review then gets one new version
+listing every new finding as open, so a `critical` one blocks approval.
+`findings` lists the stored findings, each checked against the head version's
+reviewers; `python tine-verify.pyz .tine/review-findings/ID.json` checks the
+same file offline, one row per finding. `--json` follows `tine-cli-review-1`;
+the `74-review-finding.json` conformance family pins Python, the TS verifier and
+the pyz.
+
+## Code map: `tine code-graph` (0.48)
+
+```
+tine code-graph [PATH]... [--symbol NAME] [--repo DIR] [--json]
+```
+
+Maps the work tree: every tracked source file (Python, JavaScript, TypeScript,
+Go, Rust, Java, Kotlin), its classes, functions, methods and types with their
+1-based lines, its imports, and the import edges between files of the
+repository. With the optional `graph` extra (`pip install 'opentine[graph]'`,
+tree-sitter) Python files are parsed by tree-sitter; everything else, and every
+file without the extra, gets a regex outline, and each file says which
+(`backend`). `--symbol` keeps only the files that define NAME. Read-only and
+offline. It is `code-graph`, not `graph`, so a user's `alias.graph` (a `log --graph`
+shortcut) keeps working. `--json` follows `tine-graph-1`; the MCP server exposes the same map as
+the read-only `code_graph` tool.
+
 ## Prompts and team memory: `tine prompt`, `tine memory` (0.47)
 
 ```text
