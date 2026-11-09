@@ -17,9 +17,10 @@ from typing import Any
 
 from opentine._cli_errors import VERIFICATION_FAILED, fail
 from opentine._cli_json import emit
+from opentine._cli_remote_target import add_remote_args
 
 TEAM_FILE = "memory-team.json"
-ACTIONS = ("add", "list", "recall", "trust")
+ACTIONS = ("add", "list", "recall", "trust", "sync")
 MAX_RECALL = 50
 
 
@@ -45,6 +46,7 @@ def add_memory_parser(sub: Any) -> None:
     recall.add_argument("--limit", type=int, default=10)
     trust = actions.add_parser("trust", help="Add an Ed25519 public key to the team file")
     trust.add_argument("pubkey", metavar="PUB", help="A public key file or 64 hex")
+    add_remote_args(actions.add_parser("sync", help="Send and fetch notes (team-signed only)"))
     for parser in actions.choices.values():
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true")
@@ -124,6 +126,19 @@ def _trust(args: argparse.Namespace, repo: Any) -> dict[str, Any]:
     return {"team": keys}
 
 
+def remote_sync(args: Any, prefix: str) -> dict[str, Any]:
+    """``tine memory|prompt sync``: one round each way with a remote."""
+    from opentine._cli_memory import team
+    from opentine._cli_remote_target import resolve
+    from opentine.repository import Repo
+    from opentine.repository._registry_sync import sync
+
+    repo = Repo.open(args.repo)
+    base, tenant, token = resolve(args, args.remote)
+    return sync(repo, base, tenant=tenant, token=token, team=team(repo), prefixes=(prefix,),
+                allow_insecure=args.allow_insecure, timeout=args.timeout)  # fmt: skip
+
+
 def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     from opentine.repository import Repo
     from opentine.repository import _registry_refs as refs
@@ -136,6 +151,9 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             body,
             f"memory {body['note']['scope']}/{body['note']['topic']}: {body['note']['digest']}",
         )
+    if action == "sync":
+        body = remote_sync(args, "memory/")
+        return body, f"sent {len(body['sent'])}, received {len(body['received'])} note(s)"
     if action == "trust":
         body = _trust(args, repo)
         return body, f"team: {len(body['team'])} key(s)"
@@ -167,4 +185,5 @@ def cmd_memory(args: argparse.Namespace) -> None:
         print(text)
 
 
-__all__ = ["ACTIONS", "TEAM_FILE", "add_memory_parser", "cmd_memory", "recall_notes", "team"]
+__all__ = ["ACTIONS", "TEAM_FILE", "add_memory_parser", "cmd_memory", "recall_notes",
+           "remote_sync", "team"]  # fmt: skip

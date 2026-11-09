@@ -19,8 +19,9 @@ from typing import Any
 
 from opentine._cli_errors import VERIFICATION_FAILED, fail
 from opentine._cli_json import emit
+from opentine._cli_remote_target import add_remote_args
 
-ACTIONS = ("push", "label", "get", "list", "verify", "link")
+ACTIONS = ("push", "label", "get", "list", "verify", "link", "sync")
 
 
 def add_prompt_parser(sub: Any) -> None:
@@ -49,6 +50,8 @@ def add_prompt_parser(sub: Any) -> None:
     link = actions.add_parser("link", help="Record the prompt version a run used")
     link.add_argument("spec", metavar="NAME[@LABEL|@vN]")
     link.add_argument("run", metavar="RUN_ID")
+    sync = actions.add_parser("sync", help="Send and fetch prompt histories and labels")
+    add_remote_args(sync)
     for parser in actions.choices.values():
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true")
@@ -95,8 +98,8 @@ def _get(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
 
     record = refs.resolve(repo, args.spec)
     _prompt.check(record)
-    body: dict[str, Any] = {"prompt": _summary(record),
-                            "labels": refs.labels(repo, record["name"]), "record": record}  # fmt: skip
+    labels = refs.labels(repo, record["name"])
+    body: dict[str, Any] = {"prompt": _summary(record), "labels": labels, "record": record}
     if args.var:
         values = dict(item.partition("=")[::2] for item in args.var)
         body["rendered"] = _prompt.render(record, values)
@@ -136,6 +139,13 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         return _get(args, repo)
     if action == "link":
         return _link(args, repo)
+    if action == "sync":
+        from opentine._cli_memory import remote_sync
+
+        body = remote_sync(args, "prompts/")
+        return body, f"sent {len(body['sent'])}, received {len(body['received'])}, " + (
+            f"{len(body['conflicts'])} diverged"
+        )
     if action == "label":
         name, version = _version_of(args.spec)
         record = refs.set_label(repo, name, args.label, version)

@@ -92,8 +92,8 @@ def _human(verb: str, row: dict[str, Any]) -> None:
     if verb == "ci":
         for item in row["evals"]:
             head = "PASS" if item["ok"] else "FAIL"
-            console.print(f"{head} {item['name']}: {item['passed']}/{item['items']} passed "
-                          f"(needs {item['min_pass_rate']})", highlight=False, markup=False)  # fmt: skip
+            text = f"{head} {item['name']}: {item['passed']}/{item['items']} passed"
+            console.print(f"{text} (needs {item['min_pass_rate']})", highlight=False, markup=False)
         return
 
     if verb == "compare":

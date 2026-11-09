@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-prompt-1.schema.json",
+  "title": "opentine.prompt (prompt_version 1)",
+  "description": "One version of a registered prompt template (SPEC 4.19). `prev` is the previous version's blob-oid digest (null for version 1); `variables` are the template's sorted, distinct {{name}} placeholders; `signature` is an Ed25519 tine-sig/3 block, by the same key as the previous version, over `opentine.prompt.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "prompt_version",
+    "name",
+    "version",
+    "prev",
+    "template",
+    "variables",
+    "model",
+    "created_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.prompt"
+    },
+    "prompt_version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "prev": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "template": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+      }
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}
