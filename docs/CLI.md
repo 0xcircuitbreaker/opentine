@@ -612,6 +612,33 @@ services). It exits 0 whatever the result; `--strict` exits 4 when anything in
 scope is missing. `--json` writes `tine-cli-compliance-check-1` and `list
 --json` `tine-cli-compliance-list-1`.
 
+## Air-gapped audit kit: `tine audit-kit` (0.49)
+
+```
+tine audit-kit build RUN... | BUNDLE --out DIR [--zip] [--pubkey FILE] [--pin FPR]
+    [--action-policy FILE] [--trusted-root FILE] [--sign KEY]
+    [--attest-key KEY | --replay-attestation FILE [--replay-pubkey FILE]]
+    [--witness VKEY]... [--witness-set FILE] [--log-key FILE]... [--quorum N-of-M]
+    [--operator NAME] [--json]
+tine audit-kit verify DIR|ZIP [--pyz] [--json]
+```
+
+`build` writes a self-contained directory (and with `--zip` a deterministic
+`DIR.zip`): `tine-verify.pyz`, `verify.html` (the TS verifier as one offline
+page with the runs embedded), the evidence folder (`tine evidence export
+--with-verifier`), each run's Provenance Run Crate, a `replay/v1` attestation
+(`--attest-key` replays the run now in cache mode and signs the verdict;
+`--replay-attestation` copies one), the pinned witness set and log keys,
+`REPORT.md`/`report.html` (the printed report; no PDF), the artifact-evaluation
+package `ae/` (an ACM-badge README, `verify_kit.py` needing only the standard
+library, `verify.sh`, `verify.ps1`, `reproduce.sh`) and `SHA256SUMS`. A bundle
+input is verified and its runs are written out; the bundle is kept in
+`source/`. `verify` re-checks everything with the network refused (SPEC
+§8.4.1); `--pyz` also runs the kit's own pyz in a separate process. Without
+opentine: `python3 -I ae/verify_kit.py`, then open `verify.html`. Both exit 1
+when a check fails; `--json` writes `tine-cli-audit-kit-build-1` (also the kit's
+`kit.json`) and `tine-cli-audit-kit-verify-1`.
+
 ## Entire checkpoint import (0.19)
 
 ```

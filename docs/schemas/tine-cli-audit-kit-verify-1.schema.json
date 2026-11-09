@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-audit-kit-verify-1.schema.json",
+  "title": "tine audit-kit verify --json",
+  "description": "Each check of a kit, run with the network refused; ok is false when any check fails.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "kit",
+    "ok",
+    "checks"
+  ],
+  "properties": {
+    "command": {
+      "const": "audit-kit-verify"
+    },
+    "kit": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "outcome",
+          "detail"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "pass",
+              "fail",
+              "skip"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

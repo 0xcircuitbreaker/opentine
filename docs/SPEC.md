@@ -3012,6 +3012,27 @@ unlike the artifact signatures of Part 4, which use §0.3). It verifies under
 the record's own key, so on its own it shows consistency; compare
 `public_key` with `trust/custody-signer.pub` obtained out of band.
 
+### 8.4.1 The audit kit (0.49.0)
+
+`tine audit-kit build` places existing formats in one directory and adds no
+object kind or wire format: an §8.4 evidence folder exported with the verifier
+(`evidence/`), `tine-verify.pyz` (§8.6), the §12.5 Provenance Run Crate of each
+run beside a copy of it (`crate/STEM/`), an in-toto `replay/v1` envelope and its
+signer key (`attestations/`), the pinned witness set as `cosignature/v1` vkeys
+with the pinned log keys (`trust/witnesses.json`, `trust/log-keys/`), a `.tine`
+bundle input byte for byte (`source/`), `verify.html` (the browser build of the
+TS verifier inlined as a module, every run embedded as base64 of its
+uncompressed bytes, loading nothing), a Markdown and HTML report, an
+artifact-evaluation folder (`ae/`), `kit.json` (the `tine-cli-audit-kit-build-1`
+document, §12.3) and `SHA256SUMS` over every other file, sorted by path, in
+`sha256sum` text form. A checker MUST refuse a kit with a changed, missing or
+unlisted file; MUST run every check without the network; and, given a zip,
+MUST refuse a member name that is absolute, holds `..`, a drive colon or a
+backslash, or does not share the zip's single top-level directory. The
+browser page pins no key, so it reports an embedded-key signature as
+verified-tofu; the pinned-key verdict is the pyz's and `tine audit-kit
+verify`'s.
+
 <a id="s-8.5"></a>
 ## 8.5 Writing an independent verifier
 

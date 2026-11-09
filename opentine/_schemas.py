@@ -11,7 +11,8 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
 :mod:`opentine._schema_defs_extend` (plugins, experts) and
 :mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
-:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48); ``docs/schemas`` is
+:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48);
+:mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49); ``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -24,6 +25,8 @@ from typing import Any
 
 from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
+from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
+from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
 from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
@@ -80,6 +83,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_FORGE,
     **_INTEGRATE,
     **_COMPLIANCE,
+    **_AUDIT_KIT,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -95,6 +99,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_FORGE_COMMANDS,
     **_INTEGRATE_COMMANDS,
     **_COMPLIANCE_COMMANDS,
+    **_AUDIT_KIT_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

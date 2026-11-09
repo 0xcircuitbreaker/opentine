@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-audit-kit-build-1.schema.json",
+  "title": "tine audit-kit build --json",
+  "description": "The kit just written: its source, its runs by digest, and every build-time check. The same document, without files and zip, is the kit's kit.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "kit_version",
+    "tine_version",
+    "source",
+    "runs",
+    "checks",
+    "ok"
+  ],
+  "properties": {
+    "command": {
+      "const": "audit-kit-build"
+    },
+    "kit_version": {
+      "const": 1
+    },
+    "tine_version": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "run",
+            "bundle"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "file",
+          "digest"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "outcome",
+          "detail"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "pass",
+              "fail",
+              "skip"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "zip": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

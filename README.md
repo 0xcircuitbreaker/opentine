@@ -691,7 +691,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.48.
 
 ## CLI Reference
 
-`tine` ships 120 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 121 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -954,6 +954,8 @@ python3 -I docs/conformance/minimal_verifier.py artifact run.tine   # no opentin
 tine export run.tine --format citation --output CITATION.cff        # or --format ro-crate
 tine export run.tine --format run-crate                             # Provenance Run Crate
 tine compliance check run.tine --profile eu-ai-act --repo . --pubkey release.pub  # draft
+tine audit-kit build run.tine --out kit --zip --pubkey release.pub  # air-gapped audit kit
+tine audit-kit verify kit.zip                                       # offline re-check
 ```
 
 `docs/conformance/minimal_verifier.py` re-checks digests, signatures, evidence
