@@ -96,6 +96,11 @@ Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
 requires = ["hatchling==1.31.0"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel.force-include]
+# 0.48: `tine compliance` reads its profiles from opentine/data/compliance in a
+# wheel; docs/compliance stays the one source (opentine._compliance).
+"docs/compliance" = "opentine/data/compliance"
+
 [tool.hatch.build.targets.sdist]
 # Keep local agent/editor state out even when it is ignored by a global Git
 # configuration rather than this repository's .gitignore. The release inventory

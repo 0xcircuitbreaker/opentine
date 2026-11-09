@@ -1,0 +1,97 @@
+# OpenTine compliance profile: eIDAS electronic signatures, seals, time stamps, ledgers, archiving.
+# Draft, not legal advice, pending counsel review. Written in YAML's
+# JSON-compatible flow style so the standard library reads it (SPEC 12.5).
+{
+  "profile": "eidas",
+  "profile_version": 1,
+  "title": "eIDAS (Reg. 910/2014 as amended by 2024/1183): signatures, seals, time stamps, ledgers",
+  "jurisdiction": "European Union",
+  "notice": "draft — not legal advice, pending counsel review",
+  "counsel_review": "outstanding",
+  "sources": [
+    {
+      "id": "eidas",
+      "title": "Regulation (EU) No 910/2014 (eIDAS), consolidated text as amended by Regulation (EU) 2024/1183",
+      "url": "https://eur-lex.europa.eu/eli/reg/2014/910"
+    },
+    {
+      "id": "eidas2",
+      "title": "Regulation (EU) 2024/1183 (European Digital Identity Framework), OJ L, 30.4.2024",
+      "url": "https://eur-lex.europa.eu/eli/reg/2024/1183/oj"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "art25.1.electronic-signature",
+      "cite": "Reg. 910/2014 Art. 3(10), Art. 25(1)",
+      "text": "An electronic signature shall not be denied legal effect and admissibility as evidence solely because it is electronic.",
+      "scope": "in",
+      "evidence": ["signature"],
+      "note": "Any verifying tine-sig/3 signature over the run is an electronic signature in the Art. 3(10) sense."
+    },
+    {
+      "id": "art26.a-b.advanced-identifies",
+      "cite": "Reg. 910/2014 Art. 3(11), Art. 26(1)(a)-(b)",
+      "text": "An advanced electronic signature is uniquely linked to, and capable of identifying, the signatory.",
+      "scope": "in",
+      "evidence": ["signature.authenticated"],
+      "note": "Evidenced when the signature verifies under a supplied or pinned key (--pubkey, --pin), not a key the file embeds."
+    },
+    {
+      "id": "art26.d.advanced-change-detectable",
+      "cite": "Reg. 910/2014 Art. 26(1)(d)",
+      "text": "The signature is linked to the data signed so that any subsequent change in the data is detectable.",
+      "scope": "in",
+      "evidence": ["signature", "integrity"],
+      "note": "The signature covers the run's integrity digest."
+    },
+    {
+      "id": "art26.c.sole-control",
+      "cite": "Reg. 910/2014 Art. 26(1)(c)",
+      "text": "The signature is created using signature-creation data the signatory can, with a high level of confidence, use under their sole control.",
+      "scope": "out",
+      "evidence": [],
+      "note": "Key custody (HSM, KMS, ssh-agent signer URIs) is an organisational fact the run file cannot show."
+    },
+    {
+      "id": "art35.1-36.advanced-seal",
+      "cite": "Reg. 910/2014 Art. 3(25)-(26), Art. 35(1), Art. 36(1)",
+      "text": "An electronic seal of a legal person is admissible as evidence; an advanced seal is uniquely linked to and identifies its creator and detects subsequent change.",
+      "scope": "in",
+      "evidence": ["signature.authenticated", "integrity"],
+      "note": "A run signed with an organisation's key is a seal when the key belongs to a legal person."
+    },
+    {
+      "id": "art41.1.time-stamp",
+      "cite": "Reg. 910/2014 Art. 3(33), Art. 41(1)",
+      "text": "An electronic time stamp shall not be denied legal effect and admissibility as evidence solely because it is electronic.",
+      "scope": "in",
+      "evidence": ["timestamp"],
+      "note": "An RFC 3161 token over the run, verified against --tsa-roots."
+    },
+    {
+      "id": "art45k.1.electronic-ledger",
+      "cite": "Reg. 910/2014 Art. 3(52), Art. 45k(1), inserted by 2024/1183",
+      "text": "An electronic ledger shall not be denied legal effect and admissibility as evidence solely because it is electronic or not qualified.",
+      "scope": "in",
+      "evidence": ["transparency"],
+      "note": "A transparency-log receipt for the run's attestation (--attestation with --rekor-key)."
+    },
+    {
+      "id": "art45i.archiving",
+      "cite": "Reg. 910/2014 Art. 3(48), Art. 45i, inserted by 2024/1183",
+      "text": "Electronic data preserved using an electronic archiving service shall not be denied legal effect and admissibility solely because it is electronic.",
+      "scope": "in",
+      "evidence": ["custody", "integrity"],
+      "note": "OpenTine is not an archiving trust service; the custody log and the digest show this copy was preserved."
+    },
+    {
+      "id": "qualified.services",
+      "cite": "Reg. 910/2014 Art. 25(2), 35(2), 41(2), 42, 45j, 45k(2), 45l",
+      "text": "Qualified signatures, seals, time stamps, archiving and ledgers, and their presumptions of integrity, accuracy and origin.",
+      "scope": "out",
+      "evidence": [],
+      "note": "Require a qualified trust service provider on an EU trusted list; OpenTine checks no trusted list and issues no qualified certificate."
+    }
+  ]
+}

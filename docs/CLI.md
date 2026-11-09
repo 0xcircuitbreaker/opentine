@@ -583,6 +583,35 @@ clock, host or path), so the same run and version always give the same bytes.
 A run whose digest does not verify is refused, and `--endpoint` is refused.
 Without `--output` the document goes to stdout.
 
+`--format run-crate` (0.48) writes a Provenance Run Crate: RO-Crate 1.1 plus
+the Workflow Run RO-Crate profiles 0.5 (process, workflow, provenance). Each
+step is a `HowToStep` run by a `CreateAction` (the model or tool is its
+`instrument`), linked by a `ControlAction` and orchestrated by opentine's
+`OrganizeAction`; see SPEC §12.5. It is deterministic like `ro-crate`.
+
+## Compliance profiles: `tine compliance` (0.48)
+
+**Draft — not legal advice, pending counsel review.** No external counsel
+sign-off is recorded yet.
+
+```
+tine compliance list [--json]
+tine compliance check RUN --profile NAME|FILE [--repo DIR] [--pubkey FILE] [--pin FPR]
+    [--tsa-roots FILE.pem] [--attestation FILE --rekor-key FILE] [--trusted-root FILE]
+    [--proxy-pubkey FILE] [--strict] [--json]
+```
+
+Profiles are data in [`docs/compliance/`](compliance/): `fre-902` (US FRE
+902(13)/(14)), `eu-ai-act` (EU AI Act Art. 12, 19, 26) and `eidas` (eIDAS as
+amended by 2024/1183). Each requirement cites its article or rule and lists the
+OpenTine evidence that shows it. `check` runs the offline verifier with the
+given keys and roots, reads `--repo`'s `retention.toml` and custody log, and
+reports every requirement as `evidenced`, `missing` (with the fact that is
+missing and why) or `out-of-scope` (organisational duties, qualified trust
+services). It exits 0 whatever the result; `--strict` exits 4 when anything in
+scope is missing. `--json` writes `tine-cli-compliance-check-1` and `list
+--json` `tine-cli-compliance-list-1`.
+
 ## Entire checkpoint import (0.19)
 
 ```

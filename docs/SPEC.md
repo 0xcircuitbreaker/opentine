@@ -3950,6 +3950,48 @@ implements the keyword subset the published schemas use and refuses a schema
 that uses any other keyword; any conforming 2020-12 validator gives the same
 verdicts on these schemas.
 
+<a id="s-12.5"></a>
+## 12.5 Compliance profiles and the Provenance Run Crate (0.48.0)
+
+**Draft — not legal advice, pending counsel review.** No external counsel
+sign-off is recorded yet; every profile carries `"counsel_review":
+"outstanding"` until one is.
+
+A compliance profile (`opentine-compliance-profile-1`) is a
+`docs/compliance/NAME.yaml` file in YAML's JSON-compatible flow style: leading
+`#` comment lines, then one JSON object, so a reader needs no YAML library.
+Its keys are exactly `profile`, `profile_version`, `title`, `jurisdiction`,
+`notice` (always `draft — not legal advice, pending counsel review`),
+`counsel_review` (`outstanding` or `recorded`), `sources` (the primary texts)
+and `requirements`. Each requirement has an `id`, a `cite` naming the article,
+paragraph or rule number, a paraphrase `text`, a `scope` (`in` or `out`), an
+`evidence` list and an optional `note`. An in-scope requirement lists at least
+one evidence fact; an out-of-scope one (an organisational duty, or a qualified
+trust service) lists none. The shipped profiles are `fre-902` (FRE 902(13),
+902(14), 901(b)(9), 902(11), 803(6)), `eu-ai-act` (Regulation (EU) 2024/1689
+Art. 12, 19 and 26) and `eidas` (Regulation (EU) 910/2014 as amended by
+2024/1183: Art. 3, 25, 26, 35, 36, 41, 42, 45i-45l).
+
+The evidence facts are `integrity`, `signature`, `signature.authenticated`,
+`timestamp`, `transparency`, `capture.independent`, `log.events`,
+`log.period`, `retention.six-months` (183 days or a `legal_hold`) and
+`custody`. Each is read from the offline verifier's report (Part 8), the run
+itself, or the repository's `retention.toml` and custody log, and is either
+`evidenced` or `missing`; a fact that could not be checked is `missing`. A
+requirement is `out-of-scope` when its profile says so, `evidenced` when every
+listed fact is, and `missing` otherwise. `tine compliance check --json` writes
+`tine-cli-compliance-check-1`; the report is a CLI output, not an object kind,
+and is never stored or signed.
+
+`tine export RUN --format run-crate` writes an RO-Crate 1.1
+`ro-crate-metadata.json` that declares the Workflow Run RO-Crate profiles 0.5
+(`https://w3id.org/ro/wfrun/process/0.5`, `.../workflow/0.5`,
+`.../provenance/0.5`) and Workflow RO-Crate 1.0: the agent loop is the
+`ComputationalWorkflow` main entity, the run its `CreateAction`, each step a
+`HowToStep` executed by a `CreateAction` and tied to it by a `ControlAction`,
+all orchestrated by opentine's `OrganizeAction`. Like `ro-crate` it is a pure
+function of the verified run file and the opentine version.
+
 ---
 
 <a id="spec-changelog"></a>
@@ -3959,7 +4001,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`.; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`). This is the last object kind added before 1.0. No existing byte format changed. |
+| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export. This is the last object kind added before 1.0. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |

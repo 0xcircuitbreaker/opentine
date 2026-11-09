@@ -244,6 +244,11 @@ DRIVEN = (
         "tine-cli-forge-1",
     ),
     (("code-graph", "--repo", "repo", "--json"), "tine-graph-1"),  # 0.48
+    (("compliance", "list", "--json"), "tine-cli-compliance-list-1"),  # 0.48
+    (
+        ("compliance", "check", "run.tine", "--profile", "eu-ai-act", "--json"),
+        "tine-cli-compliance-check-1",
+    ),  # fmt: skip
 )
 
 

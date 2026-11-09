@@ -22,7 +22,7 @@ CFF_VERSION = "1.2.0"
 RO_CRATE_CONTEXT = "https://w3id.org/ro/crate/1.1/context"
 RO_CRATE_SPEC = "https://w3id.org/ro/crate/1.1"
 OPENTINE_URL = "https://github.com/0xcircuitbreaker/opentine"
-CITATION_FORMATS = ("citation", "ro-crate")
+CITATION_FORMATS = ("citation", "ro-crate", "run-crate")  # run-crate: _run_crate (0.48)
 
 
 def facts(path: Path, run: Any) -> dict[str, Any]:
@@ -133,6 +133,10 @@ def render(fmt: str, path: Path, run: Any) -> bytes:
         return to_cff(f).encode("utf-8")
     from opentine._cli_json import serialize
 
+    if fmt == "run-crate":
+        from opentine._run_crate import to_run_crate
+
+        return (serialize(to_run_crate(f, run)) + "\n").encode("utf-8")
     return (serialize(to_ro_crate(f)) + "\n").encode("utf-8")
 
 

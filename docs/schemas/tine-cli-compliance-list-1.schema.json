@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-compliance-list-1.schema.json",
+  "title": "tine compliance list --json",
+  "description": "The compliance profiles this opentine ships.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "notice",
+    "profiles"
+  ],
+  "properties": {
+    "command": {
+      "const": "compliance-list"
+    },
+    "notice": {
+      "const": "draft — not legal advice, pending counsel review"
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "title",
+          "profile_version",
+          "requirements",
+          "counsel_review"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "profile_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requirements": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "counsel_review": {
+            "enum": [
+              "outstanding",
+              "recorded"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

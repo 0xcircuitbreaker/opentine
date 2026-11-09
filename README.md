@@ -691,7 +691,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.
 
 ## CLI Reference
 
-`tine` ships 119 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 120 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -949,11 +949,16 @@ tine evidence export run1.tine run2.tine --out case-42 --pubkey release.pub --si
 tine evidence report run.tine --format html -o report.html         # deterministic page
 python3 -I docs/conformance/minimal_verifier.py artifact run.tine   # no opentine needed
 tine export run.tine --format citation --output CITATION.cff        # or --format ro-crate
+tine export run.tine --format run-crate                             # Provenance Run Crate
+tine compliance check run.tine --profile eu-ai-act --repo . --pubkey release.pub  # draft
 ```
 
 `docs/conformance/minimal_verifier.py` re-checks digests, signatures, evidence
 folders and dataset roots with the standard library alone (SPEC Part 8), and
-`--format citation`/`ro-crate` make a run citable by its digest.
+`--format citation`/`ro-crate` make a run citable by its digest. `tine compliance
+check` maps a run's evidence onto FRE 902(13)/(14), EU AI Act Art. 12/19/26 and
+eIDAS profiles (draft — not legal advice, pending counsel review; see
+[docs/compliance](docs/compliance/)).
 
 Media models:
 
