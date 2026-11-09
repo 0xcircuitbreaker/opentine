@@ -145,6 +145,9 @@ def land(
         if value is None:
             raise LeaseError("missing", f"no such merge queue: {queue}")
         _holds(value, holder, fencing, now_ms(), queue)
+        if value["head"] is not None and repo.read_ref(value["target"]) != value["head"]:
+            raise LeaseError("diverged", f"merge queue {queue}: {value['target']} moved outside "
+                             "the queue; it is not overwritten")  # fmt: skip
         if not value["entries"]:
             raise LeaseError("empty", f"merge queue {queue} is empty")
         outcome = prepare(repo, value, evidence, key=key, algorithm=algorithm, actor=holder,
@@ -172,6 +175,12 @@ def sync_target(repo: Any, queue: str) -> str | None:
     current = repo.read_ref(target)  # before the value: a head read later is never older
     value = get(repo, queue)
     if value["head"] and current != value["head"]:
+        from opentine.coord._merge_land import _contains
+
+        if current is not None and (
+            not repo.has(current) or not _contains(repo, value["head"], current)
+        ):
+            return value["head"]  # moved outside the queue: never clobber it (land refuses)
         try:
             repo.update_ref(value["target"], value["head"], expected_old=current, actor="merge")
         except RefCasMismatch:

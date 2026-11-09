@@ -89,6 +89,19 @@ def test_claim_land_and_fencing(tmp_path):
     assert repo.fsck().ok
 
 
+def test_a_target_moved_outside_the_queue_is_never_overwritten(tmp_path):
+    repo, runs = _repo(tmp_path / "r", 2)
+    queue.init(repo, "main", "heads/main")
+    queue.enqueue(repo, "main", runs[0], "ci")
+    repo.update_ref("heads/main", runs[1])  # a direct push, not through the queue
+    held = queue.claim(repo, "main", "w1", 30)
+    assert repo.read_ref("heads/main") == runs[1]
+    with pytest.raises(LeaseError) as diverged:
+        queue.land(repo, "main", "w1", held["fencing"], key=_key())
+    assert diverged.value.code == "diverged"
+    assert repo.read_ref("heads/main") == runs[1]
+
+
 def test_an_expired_lease_is_taken_over_and_its_holder_fenced_off(tmp_path, monkeypatch):
     repo, runs = _repo(tmp_path / "r", 1)
     queue.init(repo, "main", "heads/main")
