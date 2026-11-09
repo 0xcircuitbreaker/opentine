@@ -16,6 +16,7 @@ import json
 from typing import Any
 
 from opentine import _memory, _prompt
+from opentine._signed_record import RecordError
 from opentine.repository import _registry_refs as refs
 
 PREFIXES = ("memory/", "prompts/")
@@ -102,8 +103,12 @@ def sync(
         parts = name.split("/")
         try:
             if parts[0] == "memory" and name not in local:
+                if not team:  # no team file: no key to trust a fetched note with
+                    raise RecordError("memory.untrusted-signer", "no team to trust a note with")
                 record = _fetch_blob(repo, remote, oid, **kw)
                 _memory.check(record, team=team)
+                if refs.note_ref(record) != name:
+                    raise RecordError("memory.malformed", "the ref does not name its note")
                 refs.add_note(repo, record)
                 received.append(name)
             elif parts[0] == "prompts" and parts[-1] == "head":

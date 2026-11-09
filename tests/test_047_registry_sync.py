@@ -73,3 +73,14 @@ def test_a_diverged_prompt_history_is_a_conflict(tmp_path, monkeypatch):
     result = sync(bob, "https://remote", tenant="acme", token="t")
     assert result["sent"] == [] and result["conflicts"] == ["prompts/review/head"]
     assert refs.prompt_head(bob, "review")["template"] == "Bob's {{diff}} again"
+
+
+def test_without_a_team_no_fetched_note_is_accepted(tmp_path, monkeypatch):
+    _remote(tmp_path, monkeypatch)
+    alice, bob = Repo.init(tmp_path / "alice"), Repo.init(tmp_path / "bob")
+    refs.add_note(alice, _note("Use the venv python"))
+    sync(alice, "https://remote", tenant="acme", token="t")
+    pulled = sync(bob, "https://remote", tenant="acme", token="t")
+    assert pulled["received"] == []
+    assert [r["reason"] for r in pulled["refused"]] == ["memory.untrusted-signer"]
+    assert refs.notes(bob) == []

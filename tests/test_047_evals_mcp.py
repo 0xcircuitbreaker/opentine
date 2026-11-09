@@ -183,6 +183,41 @@ def test_the_task_store_clamps_expires_and_never_keeps_a_late_result():
         store.wire(long["taskId"])
 
 
+def test_cancelling_or_expiring_a_task_stops_its_tool():
+    from dataclasses import dataclass
+
+    from opentine._mcp_tasks import TaskMiddleware
+
+    @dataclass
+    class Ctx:
+        method: str
+        protocol_version: str
+        params: dict
+
+    now = [1000.0]
+    store = TaskStore(clock=lambda: now[0])
+    landed: list[str] = []
+
+    async def slow(ctx):
+        await asyncio.sleep(3600)
+        landed.append(ctx.params["name"])  # a write that must never land
+
+    async def scenario() -> list:
+        mw = TaskMiddleware(store)
+        ctxs = [Ctx("tools/call", "2025-11-25", {"name": n, "task": {"ttl": 1000}}) for n in "ab"]
+        mw_tasks = [await mw(ctx, slow) for ctx in ctxs]
+        await asyncio.sleep(0)
+        store.cancel(mw_tasks[0]["task"]["taskId"])
+        now[0] += 5
+        store.list()  # the second one expires
+        await asyncio.sleep(0.05)
+        return [t["task"]["taskId"] for t in mw_tasks]
+
+    asyncio.run(scenario())
+    assert landed == []
+    assert store._work == {}
+
+
 def test_a_task_augmented_tool_call_runs_in_the_background(tmp_path, monkeypatch):
     pytest.importorskip("mcp.server.mcpserver")
     from mcp import Client
@@ -216,3 +251,21 @@ def test_a_task_augmented_tool_call_runs_in_the_background(tmp_path, monkeypatch
     assert result["isError"] is False and result["structuredContent"] == {"result": []}
     assert [t["taskId"] for t in listed["tasks"]] == [created["task"]["taskId"]]
     assert plain.is_error is False  # without `task`, a call is answered directly
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '[[eval]]\nname = "a"\ndataset = "../outside.jsonl"\nscorer = "exact"\n',
+        '[[eval]]\nname = "a"\ndataset = "/etc/passwd"\nscorer = "exact"\n',
+        '[[eval]]\nname = "a"\ndataset = "C:/x.jsonl"\nscorer = "exact"\n',
+        '[[eval]]\nname = "a"\ndataset = "d.jsonl"\noutputs = "a\\\\b"\nscorer = "exact"\n',
+        '[defaults]\nthreshhold = 0.5\n[[eval]]\nname = "a"\ndataset = "d"\nscorer = "exact"\n',
+        'evals = 1\n[[eval]]\nname = "a"\ndataset = "d.jsonl"\nscorer = "exact"\n',
+    ],
+)
+def test_an_eval_config_cannot_leave_the_repository_or_misspell_a_key(tmp_path, body):
+    path = tmp_path / "evals.toml"
+    path.write_text(body, encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load(path)

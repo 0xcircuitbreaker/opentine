@@ -36,6 +36,8 @@ CONFIG = Path(".tine") / "evals.toml"
 _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 _KEYS = {"name", "dataset", "scorer", "outputs", "run", "threshold", "min_pass_rate",
          "judge_prompt"}  # fmt: skip
+_DEFAULT_KEYS = {"threshold", "min_pass_rate"}
+_TOP_KEYS = {"defaults", "eval"}
 _JUDGE_VARIABLES = {"input", "expected", "output"}
 MAX_EVALS = 64
 
@@ -62,6 +64,9 @@ def load(path: Path) -> list[dict[str, Any]]:
     tables = config.get("eval", [])
     if not isinstance(defaults, dict) or not isinstance(tables, list) or not tables:
         raise ConfigError("the config needs at least one [[eval]] table")
+    if set(config) - _TOP_KEYS or set(defaults) - _DEFAULT_KEYS:
+        unknown = sorted((set(config) - _TOP_KEYS) | (set(defaults) - _DEFAULT_KEYS))
+        raise ConfigError(f"unknown key in the eval config: {unknown}")
     if len(tables) > MAX_EVALS:
         raise ConfigError(f"at most {MAX_EVALS} evals")
     out, seen = [], set()
@@ -76,12 +81,24 @@ def load(path: Path) -> list[dict[str, Any]]:
             if not isinstance(table.get(key), str):
                 raise ConfigError(f"eval {name} needs a {key}")
         merged = {"threshold": 1.0, "min_pass_rate": 1.0, "outputs": None, "run": None,
-                  "judge_prompt": None, **{k: v for k, v in defaults.items() if k in _KEYS},
-                  **table}  # fmt: skip
+                  "judge_prompt": None, **defaults, **table}  # fmt: skip
+        for key in ("dataset", "outputs"):
+            _relative(merged[key], f"eval {name}: {key}")
         merged["threshold"] = _fraction(merged["threshold"], "threshold")
         merged["min_pass_rate"] = _fraction(merged["min_pass_rate"], "min_pass_rate")
         out.append(merged)
     return out
+
+
+def _relative(value: Any, what: str) -> None:
+    """A config path stays inside the repository: relative, no ``..``, no drive."""
+    if value is None:
+        return
+    if not isinstance(value, str) or not value or "\\" in value or ":" in value:
+        raise ConfigError(f"{what} must be a relative path inside the repository")
+    parts = value.split("/")
+    if value.startswith("/") or any(part in ("", ".", "..") for part in parts):
+        raise ConfigError(f"{what} must be a relative path inside the repository")
 
 
 def judge_template(record: dict[str, Any]) -> str:

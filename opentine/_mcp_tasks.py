@@ -50,11 +50,23 @@ class TaskStore:
     def __init__(self, clock: Any = time.time) -> None:
         self._clock = clock
         self._tasks: dict[str, dict[str, Any]] = {}
+        self._work: dict[str, Any] = {}
+
+    def attach(self, task_id: str, handle: Any) -> None:
+        """The running work of *task_id*: cancelled with the task or when it expires."""
+        self._work[task_id] = handle
+        handle.add_done_callback(lambda _: self._work.pop(task_id, None))
+
+    def _stop(self, task_id: str) -> None:
+        handle = self._work.pop(task_id, None)
+        if handle is not None:
+            handle.cancel()
 
     def _expire(self) -> None:
         now = self._clock()
         for task_id in [k for k, t in self._tasks.items() if now > t["expires"]]:
             del self._tasks[task_id]
+            self._stop(task_id)  # an expired task's tool does not keep running unseen
 
     def create(self, ttl: Any = None) -> dict[str, Any]:
         self._expire()
@@ -89,8 +101,8 @@ class TaskStore:
         return out
 
     def _move(self, task_id: str, status: str, **fields: Any) -> None:
-        task = self._get(task_id)
-        if task["status"] in FINAL:
+        task = self._tasks.get(task_id)
+        if task is None or task["status"] in FINAL:
             return  # a cancelled task keeps no late result
         task.update(status=status, updated=self._clock(), **fields)
 
@@ -104,6 +116,7 @@ class TaskStore:
         if self._get(task_id)["status"] in FINAL:
             raise TaskError("the task has already finished")
         self._move(task_id, "cancelled", message="cancelled by the client")
+        self._stop(task_id)  # the tool stops too: a cancelled write must not land later
         return self.wire(task_id)
 
     def result(self, task_id: str) -> dict[str, Any]:
@@ -191,11 +204,14 @@ class TaskMiddleware:
             try:
                 self.tasks.complete(task["taskId"], _dump(await call_next(inner)))
             except Exception as exc:  # noqa: BLE001 - reported as the task's failure
-                self.tasks.fail(task["taskId"], f"{type(exc).__name__}: {exc}"[:2000])
+                # The type only: a protocol error's text can echo arguments or paths,
+                # which the tool-level sanitizer never saw.
+                self.tasks.fail(task["taskId"], f"the tool call failed ({type(exc).__name__})")
 
         running = asyncio.get_running_loop().create_task(work())
         _RUNNING.add(running)  # held until done, so the loop cannot drop it
         running.add_done_callback(_RUNNING.discard)
+        self.tasks.attach(task["taskId"], running)
         return {"task": task}
 
 

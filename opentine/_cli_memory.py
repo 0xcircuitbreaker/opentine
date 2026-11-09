@@ -61,7 +61,9 @@ def team(repo: Any) -> list[str]:
     except FileNotFoundError:
         return []
     keys = value.get("keys") if isinstance(value, dict) else None
-    if not isinstance(keys, list) or not all(isinstance(k, str) and len(k) == 64 for k in keys):
+    if not isinstance(keys, list) or not all(
+        isinstance(k, str) and len(k) == 64 and not k.strip("0123456789abcdef") for k in keys
+    ):
         raise ValueError(f"{TEAM_FILE} is malformed")
     return sorted(set(keys))
 

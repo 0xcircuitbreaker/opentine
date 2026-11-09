@@ -3217,7 +3217,10 @@ The server supports MCP 2025-11-25 tasks for `tools/call`: a call carrying
 the background; `tasks/get` returns the task, `tasks/result` the tool's result
 once the task is `completed` (or its error once `failed`), `tasks/list` the
 tasks this server holds, and `tasks/cancel` moves a `working` task to
-`cancelled`. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
+`cancelled` and stops the tool's work, so a cancelled call never lands a
+result or a write later; a task that outlives its ttl is forgotten and its
+work stopped the same way. A failed task's message names only the exception
+type. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
 (default 5 min); at most 64 tasks are held and the oldest finished one is
 forgotten first. The tool runs under the same read-only/allow-writes rules as
 a direct call.

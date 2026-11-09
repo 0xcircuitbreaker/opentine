@@ -128,6 +128,7 @@ def _link(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
 
 def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     from opentine import _prompt
+    from opentine._signed_record import RecordError
     from opentine.repository import Repo
     from opentine.repository import _registry_refs as refs
 
@@ -167,6 +168,8 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
 
         pinned = ed25519_public_from_file(args.pubkey).public_bytes_raw()
     last = _prompt.check(history[0], public_key=pinned)
+    if history[0]["version"] != 1:  # a history cut short is not a verified chain
+        raise RecordError("prompt.chain-break", f"the history of {args.name} misses version 1")
     for previous, record in zip(history, history[1:]):
         last = _prompt.check(record, previous=previous)
     result = {**last, "versions": len(history), "state": "verified" if pinned else "verified-tofu"}

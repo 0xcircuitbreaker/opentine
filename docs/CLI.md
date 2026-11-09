@@ -1245,7 +1245,8 @@ their embedded keys). MCP `recall` returns the same notes under `memories`
 
 `memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
 and fetch the ones this repository lacks, one ref at a time over the ordinary
-push and fetch routes: a fetched note must verify under the team, and a fetched
+push and fetch routes: a fetched note must verify under the team (with no
+team file, no fetched note is accepted) and sit under its own digest's ref, and a fetched
 prompt history must chain onto the local one. A prompt history that diverged
 is listed in `conflicts` and never merged or overwritten. `python
 tine-verify.pyz FILE.json [--pubkey K]` checks a prompt version, a history
@@ -1512,7 +1513,9 @@ check the same verdicts without opentine installed.
 `--config`) with `eval run` into `--out` (default `.tine/evals`), signed with the
 one `--key`, and exits 1 unless every eval's `passed / items` reaches its
 `min_pass_rate` (default 1; `[defaults]` sets `threshold` and `min_pass_rate`
-for all). Each table takes `name`, `dataset` and `scorer`, and optionally
+for all; any other key, there or at the top level, is refused). `dataset` and
+`outputs` are relative paths inside the repository (no `..`, no absolute or
+drive paths). Each table takes `name`, `dataset` and `scorer`, and optionally
 `outputs`, `run`, `threshold`, `min_pass_rate` and `judge_prompt`: a
 registered prompt (`NAME@LABEL`) whose `{{input}}`, `{{expected}}` and
 `{{output}}` become the `llm-judge` template, so every verdict's
