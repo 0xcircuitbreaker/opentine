@@ -666,6 +666,26 @@ outside key `verify` proves integrity only (its `anchor` check is `skip`);
 fails `anchor` when the kit carries another. `verify` refuses links and special
 files in a kit directory, and unsafe, linked, duplicate or oversized zip entries.
 
+## Leaving a hosted service: `tine tenant` (0.50)
+
+```
+tine tenant export [--remote REMOTE] [--tenant T] [--token-file F] --out DIR [--json]
+tine tenant import DIR [--repo PATH | --remote REMOTE [--tenant T] [--token-file F]] [--json]
+```
+
+`export` writes everything a `tine serve` tenant holds that leaves in a format
+frozen at 0.48: `tenant.tbundle` (a bundle of every tenant ref whose closure the
+server holds, with tombstones and `tine-sig/3` sidecars), `reviews/ID.json`
+(each Review as its `opentine-review-bundle-1`), `log/checkpoint.json` and
+`log/entries.json` (the server's signed checkpoint and this tenant's log
+entries, as the API returned them) and `shares.json` (share-link ids, runs and
+expiry; never a token). `import` installs the bundle and the Reviews into a
+local repository under the same ref names, refusing to move a ref that already
+points elsewhere, or with `--remote` pushes them to another `tine serve` tenant.
+`tine verify . --offline --json` then prints the same bytes in either place.
+`--json` writes `tine-cli-tenant-1`. The walkthrough, and what cannot move, is
+[LEAVING.md](LEAVING.md).
+
 ## Alerts: `tine alert` (0.49)
 
 ```

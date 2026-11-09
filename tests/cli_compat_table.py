@@ -4979,4 +4979,20 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "watch", "target": ".", "once": True, "alerts": True},
     ),
+    (
+        "plain:tenant export --remote origin --out exp --json",
+        "plain",
+        ["tenant", "export", "--remote", "origin", "--out", "exp", "--json"],
+        "opentine._cli_tenant:cmd_tenant",
+        False,
+        {"command": "tenant", "tenant_action": "export", "remote": "origin", "out": "exp"},
+    ),
+    (
+        "plain:tenant import exp --repo r",
+        "plain",
+        ["tenant", "import", "exp", "--repo", "r"],
+        "opentine._cli_tenant:cmd_tenant",
+        False,
+        {"command": "tenant", "tenant_action": "import", "source": "exp", "repo": "r"},
+    ),
 )

@@ -3,7 +3,8 @@
 ``tine-share-1`` is a share link as ``tine serve`` lists it (never the token);
 ``tine-list-page-1`` a cursor page of ``GET list/runs|list/refs|log/entries``.
 ``tine-cli-share-1`` and ``tine-cli-open-1`` are the ``--json`` outputs of
-``tine share create|revoke|list`` and ``tine open``.
+``tine share create|revoke|list`` and ``tine open``; ``tine-cli-tenant-1`` of
+``tine tenant export|import`` (0.50).
 """
 
 from __future__ import annotations
@@ -42,9 +43,21 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "The web page `tine open` would open for a run.",
         closed(["command", "run", "tenant", "url"], {
             "command": {"const": "open"}, "run": _OID, "tenant": STR, "url": STR})),
+    "tine-cli-tenant-1": doc("tine-cli-tenant-1", "tine tenant export|import --json",
+        "`tine tenant export` (0.50): the refs bundled to `out`, refs whose closure the "
+        "server lacks (`skipped_refs`), the Reviews, log entries and share links written. "
+        "`tine tenant import`: the refs and Reviews installed `into` a repository or tenant.",
+        open_(["command", "schema", "refs", "reviews"], {
+            "command": {"enum": ["tenant-export", "tenant-import"]},
+            "schema": {"const": "tine-cli-tenant/1"},
+            "refs": {"type": "object", "additionalProperties": _OID},
+            "reviews": {"type": "array", "items": STR},
+            "skipped_refs": {"type": "array", "items": STR}, "tenant": STR, "out": STR,
+            "into": STR, "log_entries": INT, "project_versions": INT, "shares": INT,
+            "bundle": opt(STR)})),
 }  # fmt: skip
 
-#: ``share`` output carries ``schema: tine-cli-share/1`` (it needs a live remote to drive).
+#: ``share`` and ``tenant`` outputs carry their ``schema`` tag (they need a live remote to drive).
 COMMAND_SCHEMAS: dict[str, str] = {"open": "tine-cli-open-1"}
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

@@ -3443,6 +3443,16 @@ what it fetches by recomputing every oid (2.8, and the TS SDK's
 `@opentine/sdk/verified`). `tests/api_conformance/` is the black-box suite an
 implementation runs against its base URL. No byte format changed.
 
+Leaving a server (0.50) uses these routes only, and writes formats defined
+elsewhere in this document: a bundle (`opentine-bundle/1`, with its optional
+`tombstones` and `signatures` keys) of every tenant ref, each Review's
+`opentine-review-bundle-1`, each `opentine.project` version, and the
+`log/entries` and `transparency/checkpoint` responses as served. Importing
+replays them through the same routes (`packs`, `refs`, `tombstones`,
+`reviews`, `project`); a server's transparency log and share tokens are its
+own and are not moved. `docs/LEAVING.md` is the walkthrough. No byte format
+changed.
+
 <a id="s-8.16"></a>
 ## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
 
