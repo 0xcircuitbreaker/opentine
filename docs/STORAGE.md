@@ -93,9 +93,16 @@ The manifest is `TINECDC1`, the total size (u64), the chunk count (u32) and,
 for each chunk, its SHA-256 and size (u32), all big-endian. Readers fetch
 only the chunks a range needs, check each chunk's SHA-256, and `get`
 re-hashes the joined envelope against its oid. A grown transcript shares its
-earlier chunks with the previous version. Deleting a chunked object deletes
+earlier chunks with the previous version; when a new object reuses a chunk,
+the chunk's retention is extended (never shortened, governance raised to
+compliance when either side asks for it) so it lasts as long as the newest
+object that needs it (`s3:PutObjectRetention`, or Azure
+`set_immutability_policy`). Deleting a chunked object deletes
 its chunks that no other object uses; a chunk still inside retention stays
-until its date passes. Numbers are in `docs/bench/0.49-fastcdc-store.md`.
+until its date passes. Tombstones and holds stay in the server's state
+directory (`<root>/objects/.tombstones`, `<root>/objects/.holds`). `tine serve
+admin purge` defers every unreferenced object on this store (object storage
+gives it no age to check), and `admin reseal` refuses it. Numbers are in `docs/bench/0.49-fastcdc-store.md`.
 
 Chunk names are plaintext SHA-256 digests, so someone who can list the bucket
 learns when two objects in a tenant share a chunk. The chunk bytes are sealed.

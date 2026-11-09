@@ -95,3 +95,16 @@ class BlobClient(Protocol):
     def delete(self, key: str) -> None: ...  # RetentionLocked when the cloud refuses
     def retention(self, key: str) -> BlobRetention: ...
     def set_legal_hold(self, key: str, on: bool) -> None: ...
+    def extend(self, key: str, mode: str, until: datetime.datetime) -> None: ...
+
+
+def stronger(current: BlobRetention, policy_mode: str, until: datetime.datetime) -> str | None:
+    """The mode to re-lock *current* with so it lasts until *until*, or None if it does.
+
+    A reused chunk must stay retained as long as the newest object that uses it,
+    so its date only ever moves later and governance only ever becomes compliance.
+    """
+    mode = COMPLIANCE if COMPLIANCE in (current.mode, policy_mode) else policy_mode
+    if current.until is not None and current.until >= until and current.mode == mode:
+        return None
+    return mode

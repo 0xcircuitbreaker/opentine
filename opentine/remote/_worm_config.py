@@ -57,6 +57,7 @@ def object_store_from_env(
     *,
     env: Mapping[str, str] | None = None,
     client: Any = None,
+    uncompressed_tenants: frozenset[str] = frozenset(),
 ) -> Any | None:
     """A ``WormObjectStore`` when ``TINE_REMOTE_OBJECT_STORE`` names one, else None."""
     env = os.environ if env is None else env
@@ -79,5 +80,10 @@ def object_store_from_env(
             raise ValueError(f"azblob:// needs {AZURE_ENV}")
         client = AzureBlobClient.from_connection_string(connection, name)
     return WormObjectStore(
-        client, keys, policy_from_env(env), prefix=prefix, holds_root=state / "objects"
+        client,
+        keys,
+        policy_from_env(env),
+        prefix=prefix,
+        holds_root=state / "objects",
+        uncompressed_tenants=uncompressed_tenants,
     )

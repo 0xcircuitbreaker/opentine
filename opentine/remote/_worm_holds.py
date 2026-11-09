@@ -77,7 +77,12 @@ class WormHoldsMixin:
         return self.has(tenant, oid)  # type: ignore[attr-defined]
 
     def tombstoned(self, tenant: str, oid: str) -> bool:
-        return False  # tombstones live in the server's state root, not in the bucket
+        """Tombstones live beside the holds file in the server's state, not the bucket."""
+        if self.holds_root is None:
+            return False
+        from opentine.remote._tombstone_store import has
+
+        return has(self.holds_root, tenant, oid)
 
     def delete(self, tenant: str, oid: str) -> None:
         tenant = valid_tenant(tenant)
@@ -86,7 +91,10 @@ class WormHoldsMixin:
         if self.retention:
             self.retention.before_delete(tenant, oid)
         key = self._key(tenant, oid)  # type: ignore[attr-defined]
-        state = self.client.retention(key)
+        try:
+            state = self.client.retention(key)
+        except KeyError:
+            raise FileNotFoundError(oid) from None
         if state.locked():
             raise RetentionLocked(f"{oid} is {state.describe()}")
         digests = self._chunk_digests(tenant, oid)
@@ -97,8 +105,11 @@ class WormHoldsMixin:
         shared = self._chunks_in_use(tenant)
         for digest in set(digests) - shared:
             chunk_key = self._chunk_key(tenant, digest)  # type: ignore[attr-defined]
-            if not self.client.retention(chunk_key).locked():
-                self.client.delete(chunk_key)
+            try:
+                if not self.client.retention(chunk_key).locked():
+                    self.client.delete(chunk_key)
+            except (KeyError, PermissionError):
+                pass  # already gone, or the cloud keeps it: a later sweep's job
             # a chunk still inside retention stays until a later sweep: the cloud
             # would refuse, and its bytes are unreachable without a manifest.
 

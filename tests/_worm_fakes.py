@@ -50,6 +50,14 @@ class FakeBlobClient:
         state = self.retention(key)
         self.locks[key] = BlobRetention(state.mode, state.until, on)
 
+    def extend(self, key, mode, until):
+        state = self.retention(key)
+        if state.until is not None and state.until > until:
+            raise RetentionLocked("retention can only be extended")
+        if state.mode == COMPLIANCE and mode != COMPLIANCE:
+            raise RetentionLocked("compliance cannot become governance")
+        self.locks[key] = BlobRetention(mode, until, state.legal_hold)
+
     def expire(self, key: str) -> None:
         """Move *key*'s retention date into the past (time passing)."""
         state = self.locks[key]

@@ -50,7 +50,9 @@ def reference_app(
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
-    objects = object_store_from_env(state, key_provider) or FilesystemObjectStore(
+    objects = object_store_from_env(
+        state, key_provider, uncompressed_tenants=frozenset(uncompressed_tenants)
+    ) or FilesystemObjectStore(
         state / "objects", key_provider, uncompressed_tenants=frozenset(uncompressed_tenants)
     )
     chain_key = audit_key

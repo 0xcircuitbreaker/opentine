@@ -108,3 +108,11 @@ class S3BlobClient:
         self.s3.put_object_legal_hold(
             Bucket=self.bucket, Key=key, LegalHold={"Status": "ON" if on else "OFF"}
         )
+
+    def extend(self, key: str, mode: str, until: datetime.datetime) -> None:
+        """Move retention later (never sooner; S3 refuses a shortening anyway)."""
+        self.s3.put_object_retention(
+            Bucket=self.bucket,
+            Key=key,
+            Retention={"Mode": mode.upper(), "RetainUntilDate": until},
+        )

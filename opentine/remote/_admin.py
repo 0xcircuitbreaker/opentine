@@ -214,6 +214,8 @@ class RemoteAdmin:
         )
 
     def _age(self, tenant: str, oid: str, now: float) -> float:
+        if not hasattr(self.objects, "_path"):
+            return 0.0  # object storage keeps no age here: defer, never purge early
         try:
             return now - os.lstat(self.objects._path(tenant, oid)).st_mtime
         except FileNotFoundError:

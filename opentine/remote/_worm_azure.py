@@ -99,3 +99,10 @@ class AzureBlobClient:
 
     def set_legal_hold(self, key: str, on: bool) -> None:
         self._blob(key).set_legal_hold(on)
+
+    def extend(self, key: str, mode: str, until: datetime.datetime) -> None:
+        from azure.storage.blob import ImmutabilityPolicy
+
+        self._blob(key).set_immutability_policy(
+            ImmutabilityPolicy(expiry_time=until, policy_mode=_AZURE_MODE[mode])
+        )

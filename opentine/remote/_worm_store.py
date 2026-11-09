@@ -22,7 +22,7 @@ from opentine.kernel import ObjectEnvelope, parse_oid
 from opentine.remote._chunk_manifest import MARKER, Manifest, verified
 from opentine.remote._fastcdc import CHUNK_THRESHOLD, DEFAULT_PARAMS, ChunkParams, chunks
 from opentine.remote._sealed import OBJECT, seal, seal_object, storage_codec, unseal
-from opentine.remote._worm import BlobClient, WormPolicy
+from opentine.remote._worm import BlobClient, WormPolicy, stronger
 from opentine.remote._worm_holds import WormHoldsMixin
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import KeyProvider, RetentionHook
@@ -41,6 +41,7 @@ class WormObjectStore(WormHoldsMixin):
         retention: RetentionHook | None = None,
         holds_root: str | Path | None = None,
         codec: str | None = "default",
+        uncompressed_tenants: frozenset[str] = frozenset(),
         chunk_threshold: int = CHUNK_THRESHOLD,
         chunk_params: ChunkParams = DEFAULT_PARAMS,
     ):
@@ -49,6 +50,8 @@ class WormObjectStore(WormHoldsMixin):
         self.prefix = prefix.strip("/") + "/" if prefix.strip("/") else ""
         self.retention = retention
         self.holds_root = Path(holds_root) if holds_root is not None else None
+        self.root = self.holds_root  # tombstone records live here, as for the filesystem
+        self.uncompressed_tenants = uncompressed_tenants
         self.codec = storage_codec(codec)
         self.chunk_threshold, self.chunk_params = chunk_threshold, chunk_params
 
@@ -80,22 +83,29 @@ class WormObjectStore(WormHoldsMixin):
                 raise ValueError("object id collision")
             return
         if len(data) < self.chunk_threshold:
-            sealed = seal_object(self.keys, tenant, oid, data, self.codec)
+            codec = None if tenant in self.uncompressed_tenants else self.codec
+            sealed = seal_object(self.keys, tenant, oid, data, codec)
             self._write(self._key(tenant, oid), sealed)
             return
         pieces = list(chunks(data, self.chunk_params))
         manifest = Manifest.of(pieces)
+        until = self.policy.until()
         for (digest, _), piece in zip(manifest.chunks, pieces, strict=True):
             key = self._chunk_key(tenant, digest)
             if not self.client.exists(key):  # chunks are shared: write each once
                 self._write(key, self._seal_chunk(tenant, digest, piece))
+            elif self.policy.mode and until is not None:
+                # a reused chunk must outlive this object's retention too
+                mode = stronger(self.client.retention(key), self.policy.mode, until)
+                if mode is not None:
+                    self.client.extend(key, mode, until)
         self._write(self._key(tenant, oid, "chunked"), b"")
         sealed = seal(self.keys, OBJECT, tenant, oid, manifest.encode())
         self._write(self._key(tenant, oid), MARKER + sealed)  # last: readers never see half
 
     def _seal_chunk(self, tenant: str, digest: str, piece: bytes) -> bytes:
         sealer = getattr(self.keys, "seal_compressed", None)
-        if self.codec and callable(sealer):
+        if self.codec and tenant not in self.uncompressed_tenants and callable(sealer):
             return sealer(CHUNK, tenant, digest, piece, self.codec)
         return seal(self.keys, CHUNK, tenant, digest, piece)
 
