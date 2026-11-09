@@ -1262,8 +1262,8 @@ See [PROMPTS_AND_MEMORY.md](PROMPTS_AND_MEMORY.md).
 
 ```
 tine plugins list [--kind importer|signer|scorer|snapshot] [--json]
-tine plugins allow KIND NAME [--json]
-tine plugins check KIND NAME [--json]
+tine plugins allow scorer|signer|importer|snapshot NAME [--json]
+tine plugins check scorer|signer|importer|snapshot NAME [--json]
 tine experts PATH [--rev REV] [--pubkey KEY] [--limit N] [--json]
 ```
 

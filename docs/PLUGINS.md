@@ -57,8 +57,8 @@ is a trust decision, like installing the package was.
 
 ```
 tine plugins list [--kind K] [--json]      # installed plugins, allowed or why not
-tine plugins allow KIND NAME [--json]      # pin the installed distribution + version
-tine plugins check KIND NAME [--json]      # load it and check its interface
+tine plugins allow scorer NAME [--json]    # pin the installed distribution + version
+tine plugins check scorer NAME [--json]    # load it and check its interface
 ```
 
 `--json` follows `tine-cli-plugins-1`; the allow-list file follows
