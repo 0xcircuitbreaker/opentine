@@ -43,7 +43,7 @@ def _v2_timed(result: ReceiptResult, root, envelope: dict, material, leaf) -> Re
     try:
         when = token_time(material, envelope, root, leaf)
     except (TsaBindError, ValueError) as exc:
-        code = getattr(exc, "code", "keyless.tsa-invalid")
+        code = getattr(exc, "code", "keyless.malformed")
         return ReceiptResult(False, "invalid", f"{code}: {exc}", result.log_index, None)
     if when is None:
         return result

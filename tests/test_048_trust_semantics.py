@@ -86,7 +86,7 @@ def test_a_token_from_an_untrusted_tsa_is_refused(v2):
     root.timestamp_authorities = [(pki()[:1], _Window(NOW - timedelta(days=30), None))]
     result = _keyless_root.root_receipt(root, envelope, [entry], signer.public_key(),
                                         material(signature), _leaf())  # fmt: skip
-    assert result.status == "invalid" and "keyless.tsa-invalid" in result.reason
+    assert result.status == "invalid" and result.reason.startswith("timestamp.untrusted-root:")
 
 
 def test_a_malformed_timestamp_list_is_refused(v2):

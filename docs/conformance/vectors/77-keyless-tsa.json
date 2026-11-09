@@ -209,6 +209,47 @@
       "checklist": [
         8
       ],
+      "expect": "reject",
+      "id": "keyless-tsa.compact-time",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "20260601T100500Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a compact ISO 8601 genTime is not RFC 3339",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.malformed",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"20260601T100500Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_valid...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "keyless input is malformed: token 0 gen_time is not an RFC 3339 time with a zone"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
       "expect": "accept",
       "id": "keyless-tsa.earliest",
       "input": {
@@ -255,6 +296,88 @@
       "section": "8.12.1",
       "tier": "core",
       "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:07:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa_v...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.float-accuracy",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$f": "0.0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "accuracy_us is an integer, not a float",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.malformed",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$f\": \"0.0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\", \"tsa...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "keyless input is malformed: token 0: accuracy_us is a non-negative integer"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "keyless-tsa.microseconds",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00.000123Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime keeps microsecond precision in the signing time",
+      "op": "keyless.signing-time",
+      "output": {
+        "signing_time": "2026-06-01T10:05:00.000123Z",
+        "status": "verified"
+      },
+      "profile": "verifier",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00.000123Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\",...",
       "x_reference": null
     },
     {
@@ -460,6 +583,88 @@
       "tier": "core",
       "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha384\", \"message_imprint\": \"f689e1bf2a76002ba07261b9cc36c8649bc4b9a18bcf5eeb2eaee1d0dfab41b7138539ad7...",
       "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.spaced-imprint",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T10:05:00Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd 3f 70 22 67 48 9f c7 22 ca a5 ca ab 3a 78 e2 f9 57 e6 e3 1a 47 ae b5 72 8d 46 ce d7 2c 2e 0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "an imprint with whitespace is not hex",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.malformed",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T10:05:00Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd 3f 70 22 67 48 9f c7 22 ca a5 ca ab 3a 78 e2 f9 57 e6 e3 1a 47 ae b5 7...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "keyless input is malformed: token 0: message_imprint is not hex"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "keyless-tsa.sub-ms-before-cert",
+      "input": {
+        "value": {
+          "leaf": {
+            "end": "2026-06-01T10:10:00Z",
+            "start": "2026-06-01T10:00:00Z"
+          },
+          "receipt": "verified",
+          "signature": "6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==",
+          "tokens": [
+            {
+              "accuracy_us": {
+                "$i": "0"
+              },
+              "gen_time": "2026-06-01T09:59:59.999999Z",
+              "hash_algorithm": "sha256",
+              "message_imprint": "bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e",
+              "tsa_valid_for": {
+                "start": "2025-01-01T00:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "intent": "a genTime a microsecond before notBefore is refused",
+      "op": "keyless.signing-time",
+      "profile": "verifier",
+      "reason": "keyless.cert-not-valid-at-signing",
+      "section": "8.12.1",
+      "tier": "core",
+      "x_display": "{\"leaf\": {\"end\": \"2026-06-01T10:10:00Z\", \"start\": \"2026-06-01T10:00:00Z\"}, \"receipt\": \"verified\", \"signature\": \"6jxd9MtJvQhM4eOMk7Iw+7zmrUrLWXayl/0W8M/TGaGiLZfZ85JYC4TYhnZQ63R0kxCzHVguloQkOTi/UKDpBQ==\", \"tokens\": [{\"accuracy_us\": {\"$i\": \"0\"}, \"gen_time\": \"2026-06-01T09:59:59.999999Z\", \"hash_algorithm\": \"sha256\", \"message_imprint\": \"bd3f702267489fc722caa5caab3a78e2f957e6e31a47aeb5728d46ced72c2e0e\",...",
+      "x_reference": {
+        "exception": "TsaBindError",
+        "message": "token 0: the certificate was not valid at genTime 2026-06-01T09:59:59.999999Z"
+      }
     },
     {
       "checklist": [

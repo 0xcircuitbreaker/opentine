@@ -898,14 +898,14 @@
       "verdict": 0
     },
     {
-      "core": 13,
-      "count": 13,
+      "core": 18,
+      "count": 18,
       "file": "vectors/77-keyless-tsa.json",
       "name": "keyless-tsa",
       "ops": [
         "keyless.signing-time"
       ],
-      "reject": 9,
+      "reject": 13,
       "section": "8.12.1",
       "stress": 0,
       "verdict": 0
@@ -946,7 +946,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "1f4855d6948b2bcbf9c6d51b62abca3c997fa4b1d04af5f55514b377584cb20e",
+    "README.md": "68743ef74213d3ee04cb619c5c32d480b3c1b663b984d805ab50ea76acaffaf2",
     "REASON_CODES.md": "b87d8733e053dd0bdf6a6d96d2677015192826a7e8ef4746b8e131b4e30480e3",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -2061,7 +2061,7 @@
     "vectors/74-review-finding.json": "ba4a9b96dee059e34dd42d5aa4a0f00431c7e8934ee98f3ce1007a1b7ae4fda4",
     "vectors/75-oms.json": "96a1c8bf2ae629593ebb221d84b35a80190a97d4298fcb97baf8d938a111ae04",
     "vectors/76-delegation-revocation.json": "95cf0e382d6b6bef540a473aeddb187f877962f889325a8e80e1053e02466e32",
-    "vectors/77-keyless-tsa.json": "34cf59441cf0f0ad2df1c42454a6dce90e26b230cc41bd8624a20522a4daa6f6",
+    "vectors/77-keyless-tsa.json": "4653498fbacb1df5e7080f1b6b07c14c999280adb5953f6c9e77a58c41017f23",
     "vectors/78-fleet.json": "3096854959ef2e815c7521763bb6124541c8f2dead801fbb8530a1409d4ce335",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
@@ -3214,12 +3214,12 @@
   "spec_version": "0.48.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1107,
-    "core": 1097,
+    "cases": 1112,
+    "core": 1102,
     "families": 55,
     "ops": 68,
     "reason_codes": 223,
-    "reject": 485,
+    "reject": 489,
     "stress": 10,
     "verdict": 178
   }

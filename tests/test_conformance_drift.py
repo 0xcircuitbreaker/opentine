@@ -125,7 +125,7 @@ EXPECTED_COUNTS = {
     "vectors/69-memory.json": (18, 12),
     "vectors/74-review-finding.json": (21, 15),
     "vectors/76-delegation-revocation.json": (7, 5),
-    "vectors/77-keyless-tsa.json": (13, 9),
+    "vectors/77-keyless-tsa.json": (18, 13),
     "vectors/78-fleet.json": (10, 8),
     "vectors/99-repair.json": (14, 14),
 }

@@ -23,15 +23,20 @@ function fail(code: string, message: string): never {
   throw new TineError(prefix + message, `keyless.${code}`);
 }
 
-function time(value: JValue | undefined, what: string): number {
+/** Microseconds since the epoch, as Python's datetime keeps them (Date only has ms). */
+function time(value: JValue | undefined, what: string): bigint {
+  let ms: number;
   try {
-    return parseTime(value, what);
+    ms = parseTime(value, what);
   } catch {
     return fail("malformed", `${what} is not an RFC 3339 time with a zone`);
   }
+  const fraction = /:\d{2}\.(\d{1,6})/.exec(value as string);
+  const micros = fraction ? BigInt(fraction[1].padEnd(6, "0").slice(3)) : 0n;
+  return BigInt(Math.floor(ms)) * 1000n + micros;
 }
 
-function window(value: JValue | undefined, what: string): [number, number | null] {
+function window(value: JValue | undefined, what: string): [bigint, bigint | null] {
   if (!isObject(value) || !value.has("start") || [...value.keys()].some((key) => key !== "start" && key !== "end")) {
     fail("malformed", `${what} must be {start, end?}`);
   }
@@ -39,9 +44,10 @@ function window(value: JValue | undefined, what: string): [number, number | null
   return [time((value as JObject).get("start"), `${what}.start`), end ? time(end, `${what}.end`) : null];
 }
 
-function stamp(ms: number): string {
-  const text = new Date(ms).toISOString();
-  return text.endsWith(".000Z") ? `${text.slice(0, -5)}Z` : `${text.slice(0, -1)}000Z`;
+function stamp(us: bigint): string {
+  const micros = ((us % 1000000n) + 1000000n) % 1000000n;
+  const text = new Date(Number((us - micros) / 1000n)).toISOString().slice(0, 19);
+  return micros ? `${text}.${String(micros).padStart(6, "0")}Z` : `${text}Z`;
 }
 
 export function keylessSigningTime(input: JValue): { signing_time: string | null; status: string } {
@@ -59,7 +65,7 @@ export function keylessSigningTime(input: JValue): { signing_time: string | null
   if (!Array.isArray(tokens) || tokens.length > MAX_TOKENS) fail("malformed", `tokens must be a list of at most ${MAX_TOKENS}`);
   const [start, end] = window(value.get("leaf"), "leaf");
   if (!tokens.length) return { signing_time: null, status: "unchecked" };
-  const times: number[] = [];
+  const times: bigint[] = [];
   (tokens as JValue[]).forEach((item, index) => {
     if (!isObject(item) || !HASHES.includes(item.get("hash_algorithm") as string)) {
       fail("malformed", `token ${index}: hash_algorithm is one of sha256, sha384, sha512`);
@@ -80,11 +86,11 @@ export function keylessSigningTime(input: JValue): { signing_time: string | null
       const [tsaStart, tsaEnd] = window(tsa, `token ${index} tsa_valid_for`);
       if (gen < tsaStart || (tsaEnd !== null && gen > tsaEnd)) fail("tsa-retired", `token ${index}: genTime is outside its TSA's validFor`);
     }
-    const slack = Number(accuracy as bigint) / 1000;
+    const slack = accuracy as bigint;
     if (!(start <= gen - slack && (end === null || gen + slack <= end))) {
       fail("cert-not-valid-at-signing", `token ${index}: the certificate was not valid at genTime ${stamp(gen)}`);
     }
     times.push(gen);
   });
-  return { signing_time: stamp(Math.min(...times)), status: "verified" };
+  return { signing_time: stamp(times.reduce((a, b) => (b < a ? b : a))), status: "verified" };
 }

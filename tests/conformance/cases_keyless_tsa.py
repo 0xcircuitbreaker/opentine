@@ -73,6 +73,19 @@ KEYLESS_TSA = Family(
            [GOOD], "keyless.receipt-invalid", receipt="invalid"),
         _k("bad-hash", REJECT, "an imprint hash outside SHA-256/384/512 is refused",
            [_token("2026-06-01T10:05:00Z", alg="md5")], "keyless.malformed"),
+        # 0.48 review: pin the microsecond and grammar edges both verifiers share.
+        _k("microseconds", ACCEPT, "a genTime keeps microsecond precision in the signing time",
+           [_token("2026-06-01T10:05:00.000123Z")]),
+        _k("sub-ms-before-cert", REJECT, "a genTime a microsecond before notBefore is refused",
+           [_token("2026-06-01T09:59:59.999999Z")], "keyless.cert-not-valid-at-signing"),
+        _k("compact-time", REJECT, "a compact ISO 8601 genTime is not RFC 3339",
+           [_token("20260601T100500Z")], "keyless.malformed"),
+        _k("spaced-imprint", REJECT, "an imprint with whitespace is not hex",
+           [{**GOOD, "message_imprint": " ".join(GOOD["message_imprint"][i:i + 2]
+                                                  for i in range(0, 64, 2))}],
+           "keyless.malformed"),
+        _k("float-accuracy", REJECT, "accuracy_us is an integer, not a float",
+           [{**GOOD, "accuracy_us": 0.0}], "keyless.malformed"),
     ),
 )  # fmt: skip
 

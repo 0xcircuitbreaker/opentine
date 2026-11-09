@@ -24,12 +24,18 @@ import base64
 import binascii
 import hashlib
 import hmac
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
 from opentine._key_lifecycle import parse_time
 
 HASHES = ("sha256", "sha384", "sha512")
+# The same grammar the TS verifier accepts: no compact or week-date ISO forms.
+_RFC3339 = re.compile(
+    r"\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:[Zz]|[+-]\d{2}:?\d{2})", re.ASCII
+)
+_HEX = re.compile(r"(?:[0-9a-fA-F]{2})*", re.ASCII)
 MAX_TOKENS = 16
 _FROM_TSP = {
     "timestamp.imprint-mismatch": "tsa-imprint-mismatch",
@@ -49,6 +55,8 @@ def _no(code: str, message: str) -> TsaBindError:
 
 
 def _time(value: Any, what: str) -> datetime:
+    if not isinstance(value, str) or not _RFC3339.fullmatch(value):
+        raise _no("malformed", f"{what} is not an RFC 3339 time with a zone")
     try:
         return parse_time(value, what)
     except ValueError as exc:
@@ -81,15 +89,16 @@ def bind(*, signature: bytes, tokens: Any, leaf: Any, receipt: str) -> dict[str,
     for index, token in enumerate(tokens):
         if not isinstance(token, dict) or token.get("hash_algorithm") not in HASHES:
             raise _no("malformed", f"token {index}: hash_algorithm is one of {HASHES}")
-        try:
-            imprint = bytes.fromhex(str(token.get("message_imprint")))
-        except ValueError:
-            raise _no("malformed", f"token {index}: message_imprint is not hex") from None
+        raw = token.get("message_imprint")
+        if not isinstance(raw, str) or not _HEX.fullmatch(raw):
+            raise _no("malformed", f"token {index}: message_imprint is not hex")
+        imprint = bytes.fromhex(raw)
         expected = hashlib.new(token["hash_algorithm"], signature).digest()
         if not hmac.compare_digest(imprint, expected):
             raise _no("tsa-imprint-mismatch", f"token {index} does not cover the signature")
         gen = _time(token.get("gen_time"), f"token {index} gen_time")
-        accuracy = token.get("accuracy_us") or 0
+        accuracy = token.get("accuracy_us")
+        accuracy = 0 if accuracy is None else accuracy
         if type(accuracy) is not int or accuracy < 0:
             raise _no("malformed", f"token {index}: accuracy_us is a non-negative integer")
         if token.get("tsa_valid_for") is not None:
@@ -109,7 +118,9 @@ def bind_request(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise _no("malformed", "the request is not an object")
     try:
-        signature = base64.b64decode(str(value.get("signature")), validate=True)
+        if not isinstance(value.get("signature"), str):
+            raise binascii.Error
+        signature = base64.b64decode(value["signature"], validate=True)
     except binascii.Error:
         raise _no("malformed", "signature is not base64") from None
     return bind(signature=signature, tokens=value.get("tokens"), leaf=value.get("leaf"),
@@ -152,8 +163,12 @@ def token_time(material: Any, envelope: dict, root: Any, leaf: Any) -> datetime 
     for index, token in enumerate(raw):
         verdict = verify_token(token, signature, [], root.timestamp_authorities)
         if not verdict.ok:
-            code = _FROM_TSP.get(verdict.reason, "tsa-invalid")
-            raise _no(code, f"token {index}: {verdict.reason}: {verdict.detail}")
+            # SPEC 8.12.1: the CMS layer is 8.6's, so its timestamp.* code stands.
+            code = _FROM_TSP.get(verdict.reason)
+            message = f"token {index}: {verdict.reason}: {verdict.detail}"
+            if code is None:
+                raise TsaBindError(verdict.reason, message)
+            raise _no(code, message)
         name = verdict.info["hash_algorithm"]
         decoded.append({"hash_algorithm": name, "gen_time": verdict.info["gen_time"],
                         "message_imprint": hashlib.new(name, signature).hexdigest(),

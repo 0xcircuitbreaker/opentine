@@ -13,6 +13,7 @@ import base64
 import binascii
 import hashlib
 import hmac
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -20,6 +21,10 @@ from ._gitobj import Refused
 
 HASHES = ("sha256", "sha384", "sha512")
 MAX_TOKENS = 16
+_RFC3339 = re.compile(
+    r"\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:[Zz]|[+-]\d{2}:?\d{2})", re.ASCII
+)
+_HEX = re.compile(r"(?:[0-9a-fA-F]{2})*", re.ASCII)
 
 
 def _no(code: str, message: str) -> Refused:
@@ -29,7 +34,8 @@ def _no(code: str, message: str) -> Refused:
 
 def _time(value: Any, what: str) -> datetime:
     try:
-        when = datetime.fromisoformat(value) if isinstance(value, str) else None
+        ok = isinstance(value, str) and _RFC3339.fullmatch(value)
+        when = datetime.fromisoformat(value) if ok else None
     except ValueError:
         when = None
     if when is None or when.tzinfo is None:
@@ -52,14 +58,15 @@ def _stamp(when: datetime) -> str:
 def _check(index: int, token: Any, signature: bytes, start, end) -> datetime:
     if not isinstance(token, dict) or token.get("hash_algorithm") not in HASHES:
         raise _no("malformed", f"token {index}: hash_algorithm is one of {HASHES}")
-    try:
-        imprint = bytes.fromhex(str(token.get("message_imprint")))
-    except ValueError:
-        raise _no("malformed", f"token {index}: message_imprint is not hex") from None
+    raw = token.get("message_imprint")
+    if not isinstance(raw, str) or not _HEX.fullmatch(raw):
+        raise _no("malformed", f"token {index}: message_imprint is not hex")
+    imprint = bytes.fromhex(raw)
     if not hmac.compare_digest(imprint, hashlib.new(token["hash_algorithm"], signature).digest()):
         raise _no("tsa-imprint-mismatch", f"token {index} does not cover the signature")
     gen = _time(token.get("gen_time"), f"token {index} gen_time")
-    accuracy = token.get("accuracy_us") or 0
+    accuracy = token.get("accuracy_us")
+    accuracy = 0 if accuracy is None else accuracy
     if type(accuracy) is not int or accuracy < 0:
         raise _no("malformed", f"token {index}: accuracy_us is a non-negative integer")
     if token.get("tsa_valid_for") is not None:
@@ -78,7 +85,9 @@ def signing_time(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise _no("malformed", "the request is not an object")
     try:
-        signature = base64.b64decode(str(value.get("signature")), validate=True)
+        if not isinstance(value.get("signature"), str):
+            raise binascii.Error
+        signature = base64.b64decode(value["signature"], validate=True)
     except binascii.Error:
         raise _no("malformed", "signature is not base64") from None
     if value.get("receipt") != "verified":
