@@ -1,10 +1,11 @@
 """The OMS model-signature factor in a run's ``assurance`` object (0.48, SPEC 4.26).
 
 ``tine verify RUN --model-signature BUNDLE --model PATH --model-pubkey PEM``
-checks an OpenSSF Model Signing bundle over the model the run used and records
+checks an OpenSSF Model Signing bundle over the model files given and records
 the outcome in ``assurance.factors``; a factor that does not verify fails the
 ``model-signature`` check, so the run does not verify. The factor never raises
-the assurance tier: it says which model ran, not how the run was captured.
+the assurance tier, and it is not bound to the run: it says the given files are
+what the key signed, not that the run used them (SPEC 4.26).
 """
 
 from __future__ import annotations

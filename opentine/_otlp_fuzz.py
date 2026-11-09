@@ -6,8 +6,9 @@ the traces or logs decoder, the item caps) and then the GenAI span or log
 importer. The oracle: every input either imports or is refused with a
 ``ValueError`` (``WireError``, ``_Refused``) or a ``RecursionError`` the
 endpoints already answer as 400/413. Anything else -- an ``IndexError``, a
-``TypeError``, a ``KeyError`` -- is a crash, and so is one input taking longer
-than ``SLOW_SECONDS``.
+``TypeError``, a ``KeyError`` -- is a crash. An input taking longer than
+``SLOW_SECONDS`` is reported apart (``Report.slow``): the script fails on it,
+the in-suite run does not, as wall-clock time depends on the machine.
 
 ``scripts/fuzz_otlp.py`` drives it: a scaled run in CI (an iteration count), the
 72-hour acceptance run by hand (``--hours 72``), and atheris when installed
@@ -171,6 +172,9 @@ class Report:
     iterations: int = 0
     crashes: list[dict[str, str]] = field(default_factory=list)
     slowest: float = 0.0
+    #: Inputs slower than SLOW_SECONDS: a wall-clock signal for the long run, not a crash
+    #: (machine load decides it, so the in-suite run never fails on it).
+    slow: list[dict[str, str]] = field(default_factory=list)
 
 
 def fuzz(
@@ -198,7 +202,7 @@ def fuzz(
             elapsed = time.perf_counter() - started
             report.slowest = max(report.slowest, elapsed)
             if elapsed > SLOW_SECONDS:
-                report.crashes.append({"route": route, "input": data.hex(), "trace": "slow"})
+                report.slow.append({"route": route, "input": data.hex(), "trace": "slow"})
             if len(data) < 4096 and rng.random() < 0.05:
                 pool.append(data)
                 del pool[: max(0, len(pool) - 512)]

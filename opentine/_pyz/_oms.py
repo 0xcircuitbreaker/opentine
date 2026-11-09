@@ -62,6 +62,8 @@ def oms_verify(bundle: Any, files: Any, key_hex: Any) -> dict:
         raise _no("malformed", "OMS bundle is malformed: no dsseEnvelope")
     if not isinstance(env.get("signatures"), list) or not env["signatures"]:
         raise _no("malformed", "OMS bundle is malformed: no signatures")
+    if len(env["signatures"]) > 16:
+        raise _no("malformed", "OMS bundle is malformed: more than 16 signatures")
     if env.get("payloadType") != TYPE:
         raise _no("unsupported", "OMS bundle payloadType is not in-toto JSON")
     body = _unb64(env.get("payload"), "payload")

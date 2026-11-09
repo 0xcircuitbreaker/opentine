@@ -880,6 +880,116 @@
       "checklist": [
         8
       ],
+      "expect": "reject",
+      "id": "oms.too-many-signatures",
+      "input": {
+        "value": {
+          "bundle": {
+            "dsseEnvelope": {
+              "payload": "eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM0NDkwNjFhYjg3ODQ4Y2YxYTEzZWFmZGYzM2IyYyIsICJuYW1lIjogIm1vZGVsLnNhZmV0ZW5zb3JzIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOTExMTY5ZGRhYWYxNDZhZmY1MzlmNThjMjZjNDg5YWYzYjg5MmRmZjBmZTI4M2MxYzI2NGM2NWFlNWFhNTlhMiIsICJuYW1lIjogInRva2VuaXplci92b2NhYi50eHQifV0sICJzZXJpYWxpemF0aW9uIjogeyJhbGxvd19zeW1saW5rcyI6IGZhbHNlLCAiaGFzaF90eXBlIjogInNoYTI1NiIsICJpZ25vcmVfcGF0aHMiOiBbIi5jYWNoZSJdLCAibWV0aG9kIjogImZpbGVzIn19LCAicHJlZGljYXRlVHlwZSI6ICJodHRwczovL21vZGVsX3NpZ25pbmcvc2lnbmF0dXJlL3YxLjAiLCAic3ViamVjdCI6IFt7ImRpZ2VzdCI6IHsic2hhMjU2IjogIjY4ZWZhYTJlOTlhZTYxNzNhMThlMGJhODBmYzBmZjcyNTE1OTg0ZmNhNWU4OWY3Mzk4YWRhYWUzZmE5MjlkOWYifSwgIm5hbWUiOiAidGlueS1tb2RlbCJ9XX0=",
+              "payloadType": "application/vnd.in-toto+json",
+              "signatures": [
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEUCIQCeALKPB+13cefIkaG3MUiIV5KdDIbmCozOasf1Bv6g1QIgHdPnVNvrpZ9KaJYhNWt9qNRO3IIbFGjXVJOI8S8ibNA="
+                },
+                {
+                  "keyid": "",
+                  "sig": "MEQCIBiUm1fMvIrnQ2ll3SKB32WKij5jL4Sm3wMGjMxzEIokAiARpexM25LdPrc/eZdhNJ8Q94goGZ7OavknvEyL6UBISA=="
+                }
+              ]
+            },
+            "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+            "verificationMaterial": {
+              "publicKey": {
+                "hint": "test"
+              }
+            }
+          },
+          "files": {
+            "config.json": "592cd9f87eba928b21c1d1ec50f40de50e5c86c216b432d3951b45ad75a697f1",
+            "model.safetensors": "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c",
+            "tokenizer/vocab.txt": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2"
+          },
+          "public_key": "0498847f0e0b09dc06405e7e953d18e4e4feca7021ce8bdc538fa13ffa41856497510a199deb8310f88c1af2cc6a1f1215e6edaa007479a444921e062d0c6428ec"
+        }
+      },
+      "intent": "more than 16 DSSE signatures (a verify-cost bound)",
+      "op": "oms.verify",
+      "profile": "verifier",
+      "reason": "oms.malformed",
+      "section": "4.26",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"dsseEnvelope\": {\"payload\": \"eyJfdHlwZSI6ICJodHRwczovL2luLXRvdG8uaW8vU3RhdGVtZW50L3YxIiwgInByZWRpY2F0ZSI6IHsicmVzb3VyY2VzIjogW3siYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiNTkyY2Q5Zjg3ZWJhOTI4YjIxYzFkMWVjNTBmNDBkZTUwZTVjODZjMjE2YjQzMmQzOTUxYjQ1YWQ3NWE2OTdmMSIsICJuYW1lIjogImNvbmZpZy5qc29uIn0sIHsiYWxnb3JpdGhtIjogInNoYTI1NiIsICJkaWdlc3QiOiAiOWExMjkwMzhkOWEwMGFlZDBjZjZhN2VhMDU5Y2E1MGE4MTM...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "OMS bundle is malformed: more than 16 signatures"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
       "expect": "accept",
       "id": "oms.verified",
       "input": {

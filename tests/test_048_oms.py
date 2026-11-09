@@ -31,9 +31,9 @@ FAMILY = ROOT / "docs" / "conformance" / "vectors" / "75-oms.json"
 
 
 @pytest.mark.parametrize("verifier", ["python", "pyz"])
-def test_the_73_family_agrees_in_python_and_the_pyz(verifier):
+def test_the_75_family_agrees_in_python_and_the_pyz(verifier):
     cases = json.loads(FAMILY.read_text("utf-8"))["cases"]
-    assert len(cases) == 21
+    assert len(cases) == 22
     for case in cases:
         value = tagged.decode(case["input"]["value"])
         key = value["public_key"]
@@ -181,3 +181,13 @@ def test_no_key_and_no_flag(signed, capsys):
     assert report["assurance"]["factors"][0]["reason"] == "oms.no-key" and code != 0
     code, report = _verify(capsys, run)
     assert "factors" not in report["assurance"]
+
+
+def test_a_bundle_with_too_many_signatures_is_refused_before_any_verify(monkeypatch):
+    calls = []
+    monkeypatch.setattr(_p256, "verify", lambda *a: calls.append(a) or False)
+    sig = {"sig": "AAAA"}
+    envelope = {"payloadType": _oms.PAYLOAD_TYPE, "payload": "e30=", "signatures": [sig] * 17}
+    with pytest.raises(RecordError) as caught:
+        _oms.check({"dsseEnvelope": envelope}, None, b"\x04" + b"\x00" * 64)
+    assert caught.value.code == "oms.malformed" and not calls

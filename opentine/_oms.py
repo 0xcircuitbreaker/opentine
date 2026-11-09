@@ -36,6 +36,8 @@ FACTOR = "oms-model-signature"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 #: Files a directory walk reads before it refuses (a model is many files, not millions).
 MAX_FILES = 100_000
+#: DSSE signatures one bundle may carry (each costs a pure-Python ECDSA verify).
+MAX_SIGNATURES = 16
 
 
 def _no(code: str, message: str) -> RecordError:
@@ -64,6 +66,8 @@ def _envelope(bundle: Any) -> tuple[dict[str, Any], bytes]:
     signatures = envelope.get("signatures")
     if not isinstance(signatures, list) or not signatures:
         raise _no("malformed", "OMS bundle is malformed: no signatures")
+    if len(signatures) > MAX_SIGNATURES:
+        raise _no("malformed", f"OMS bundle is malformed: more than {MAX_SIGNATURES} signatures")
     if envelope.get("payloadType") != PAYLOAD_TYPE:
         raise _no("unsupported", "OMS bundle payloadType is not in-toto JSON")
     return envelope, _b64(envelope.get("payload"), "payload")

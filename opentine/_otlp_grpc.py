@@ -32,7 +32,7 @@ SERVICES = {
     "opentelemetry.proto.collector.trace.v1.TraceService": "add_spans",
     "opentelemetry.proto.collector.logs.v1.LogsService": "add_logs",
 }
-WORKERS, MAX_RPCS, MAX_METADATA = 8, 64, 16 * 1024
+WORKERS, MAX_RPCS, MAX_METADATA = 8, 16, 16 * 1024
 EXTRA_HINT = "OTLP/gRPC needs the grpc extra: pip install 'opentine[grpc]'"
 
 
@@ -57,11 +57,14 @@ def response(rejected: int, message: str = "") -> bytes:
 def _authorized(context: Any, token: bytes | None) -> bool:
     if token is None:
         return True
+    found = False
     for key, value in context.invocation_metadata() or ():
         if key.lower() == "authorization":
             given = value.encode("utf-8") if isinstance(value, str) else bytes(value)
-            return hmac.compare_digest(given, b"Bearer " + token)
-    return False
+            found = hmac.compare_digest(given, b"Bearer " + token)
+            if not found:  # every authorization value must match, not just the first
+                return False
+    return found
 
 
 def _method(grpc: Any, collector: OtlpCollector, route: str, token: bytes | None) -> Any:
@@ -91,6 +94,11 @@ def options(max_bytes: int) -> list[tuple[str, int]]:
         ("grpc.http2.min_ping_interval_without_data_ms", 10_000),
         ("grpc.keepalive_permit_without_calls", 0),
         ("grpc.max_connection_idle_ms", 300_000),
+        # slow loris: a connection must finish its (TLS and HTTP/2) handshake in
+        # 10 s, and no connection lives past 30 min (+30 s grace for its calls).
+        ("grpc.server_handshake_timeout_ms", 10_000),
+        ("grpc.max_connection_age_ms", 1_800_000),
+        ("grpc.max_connection_age_grace_ms", 30_000),
     ]
 
 
@@ -125,7 +133,8 @@ def read_token(path: str | None) -> bytes | None:
     if not path:
         return None
     token = Path(path).read_bytes().strip()
-    if len(token) < 16 or len(token) > 4096 or not token.isascii() or b" " in token:
+    printable = all(0x21 <= byte <= 0x7E for byte in token)
+    if len(token) < 16 or len(token) > 4096 or not printable:
         raise SystemExit("--otlp-token-file must hold one printable token of 16..4096 bytes")
     return token
 

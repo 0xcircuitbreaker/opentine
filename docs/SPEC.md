@@ -2599,7 +2599,8 @@ digest and no other file may remain. A pass is `{model, root_digest:
 "sha256:<hex>", files, key: "sha256:" + hex(SHA-256(point)), state:
 "verified", label: "model signature verified (OMS v1.0, pinned key)"}`. A
 verifier MUST refuse, with the first applicable code, in this order:
-`oms.malformed` (no `dsseEnvelope` or no signatures);
+`oms.malformed` (no `dsseEnvelope`, no signatures, or more than 16 signatures,
+a bound on verify cost);
 `oms.unsupported` (another `payloadType`); `oms.malformed` (the payload is not
 base64); `oms.unsupported` (a keyless bundle: `verificationMaterial` holds
 `certificate` or `x509CertificateChain`, whose Fulcio chain and Rekor entry
@@ -2617,8 +2618,10 @@ Vectors: `75-oms.json` (op `oms.verify`).
 [--model-pubkey PEM]` adds `factors: [{factor: "oms-model-signature", ok,
 reason, detail, bundle, ...the pass fields...}]` to the run's assurance object
 (`tine-assurance-1`); without `--model` the files are not compared
-(`files_checked: false`). A factor never raises the assurance tier (§8): it
-names the model that ran, not how the run was captured. A failed factor fails
+(`files_checked: false`). A factor never raises the assurance tier (§8). It
+binds the signature to the model files the verifier was **given**, not to the
+run: no field of the run ties those files to the steps it recorded, so a pass
+says "this model is the one the key signed", never "this run used it". A failed factor fails
 `tine verify` with exit 4 and, under `--offline`, a `model-signature` check
 whose reason is the refusal code.
 

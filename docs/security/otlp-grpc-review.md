@@ -63,14 +63,20 @@ anything itself on this path. (OTLP/HTTP gzip bodies are inflated by
 
 ## Resource exhaustion
 
-* A fixed pool of 8 handler threads; `maximum_concurrent_rpcs=64`, so the
-  65th concurrent call is refused with `RESOURCE_EXHAUSTED` instead of
-  queueing without bound.
+* A fixed pool of 8 handler threads; `maximum_concurrent_rpcs=16`, so the
+  17th concurrent call is refused with `RESOURCE_EXHAUSTED` instead of
+  queueing without bound (16 messages of at most `--max-body-mb` each are
+  the most one receiver buffers at once).
 * `grpc.max_concurrent_streams=16` per HTTP/2 connection; idle connections are
   closed after 5 minutes (`grpc.max_connection_idle_ms`); keepalive pings
   without data are limited (`grpc.http2.max_pings_without_data=2`,
   `min_ping_interval_without_data_ms=10000`,
   `keepalive_permit_without_calls=0`).
+* Slow loris: a connection must complete its TLS and HTTP/2 handshake within
+  10 s (`grpc.server_handshake_timeout_ms`), and no connection lives past
+  30 minutes (`grpc.max_connection_age_ms`, then a 30 s grace for its calls).
+  A peer that sends a message slowly still holds a stream until the
+  connection ages out; that is bounded by the stream and RPC caps above.
 * Pending spans and log records are held by the collector until their trace
   ends or goes idle; the collector's overflow flush (shared with OTLP/HTTP)
   bounds what one group may hold.
@@ -126,8 +132,9 @@ gRPC-Web, so a page cannot reach the gRPC methods.
   deep nesting) over valid traces and logs export requests. The target is
   exactly the gRPC handler's work: `decode_protobuf` (decoder plus item caps)
   and the GenAI span or log importer. The oracle: an import, or a
-  `ValueError`/`RecursionError`/413 refusal; anything else, or one input
-  taking more than 5 s, is a crash.
+  `ValueError`/`RecursionError`/413 refusal; anything else is a crash. One
+  input taking more than 5 s is reported separately as slow: the script fails
+  on it, the in-suite run does not (wall-clock time depends on the machine).
 * `scripts/fuzz_otlp.py --iterations N --seed S` (CI: the `fuzz-otlp` job,
   1,000,000 inputs per run, seeded by the run id; crash inputs are uploaded as
   an artifact), `--hours 72` for the acceptance run, `--atheris` for
@@ -147,3 +154,5 @@ gRPC-Web, so a page cannot reach the gRPC methods.
    expansion (a dict per field); at the 16 MiB default that is hundreds of
    MiB in the worst case for one in-flight call. Lower `--max-body-mb` on
    small hosts.
+5. Only a single bearer value is accepted: a call that carries several
+   `authorization` metadata entries is refused unless every one matches.

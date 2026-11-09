@@ -87,3 +87,35 @@ def test_grpc_requires_the_bearer_token(grpc_receiver):
     good = (("authorization", "Bearer " + "t" * 32),)
     assert _call(channel, TRACES, _otlp_fuzz.traces_seed(1), metadata=good) == b""
     assert len(collector.kept) == 1
+
+
+def test_every_authorization_value_must_match():
+    from types import SimpleNamespace
+
+    from opentine._otlp_grpc import _authorized
+
+    token = b"t" * 32
+    good, bad = ("authorization", "Bearer " + "t" * 32), ("authorization", "Bearer x")
+    cases = (((good,), True), ((good, bad), False), ((bad, good), False), ((), False))
+    for metadata, expected in cases:
+        context = SimpleNamespace(invocation_metadata=lambda m=metadata: m)
+        assert _authorized(context, token) is expected
+
+
+def test_slow_handshakes_and_long_connections_are_bounded():
+    from opentine._otlp_grpc import options
+
+    found = dict(options(1 << 20))
+    assert found["grpc.server_handshake_timeout_ms"] > 0
+    assert found["grpc.max_connection_age_ms"] > 0
+
+
+def test_the_token_file_must_be_one_printable_token(tmp_path):
+    from opentine._otlp_grpc import read_token
+
+    path = tmp_path / "token"
+    path.write_bytes(b"a" * 16 + b"\tb" * 8)
+    with pytest.raises(SystemExit):
+        read_token(str(path))
+    path.write_bytes(b"a" * 32 + b"\n")
+    assert read_token(str(path)) == b"a" * 32

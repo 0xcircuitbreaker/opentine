@@ -73,6 +73,9 @@ def main(argv: list[str] | None = None) -> int:
                                  on_crash=keep)  # fmt: skip
         total += report.iterations
         crashes += len(report.crashes)
+        for found in report.slow:  # the long run fails on slow inputs too; keep them
+            keep(found["route"], bytes.fromhex(found["input"]), "slow")
+        crashes += len(report.slow)
         slowest = max(slowest, report.slowest)
         print(f"fuzz_otlp: {total} inputs, {crashes} crashes, slowest {slowest:.3f}s", flush=True)
     return 1 if crashes else 0

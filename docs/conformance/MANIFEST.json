@@ -872,14 +872,14 @@
       "verdict": 0
     },
     {
-      "core": 21,
-      "count": 21,
+      "core": 22,
+      "count": 22,
       "file": "vectors/75-oms.json",
       "name": "oms",
       "ops": [
         "oms.verify"
       ],
-      "reject": 16,
+      "reject": 17,
       "section": "4.26",
       "stress": 0,
       "verdict": 0
@@ -907,7 +907,7 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "0b5a18424abfbad2e73f9793ae2423f4dc9d64e61e5802d555ee9a1acae3d5dc",
+    "README.md": "9405c15d2b9cccf0e37913f5445ed2726efe5a0cc10c3314833b87ec2890149a",
     "REASON_CODES.md": "228e4258bef15208f1b30e9ed38818e4d1ec6cbc1104de72f83da2fdfcbbacb2",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
@@ -2020,7 +2020,7 @@
     "vectors/72-forge-claim.json": "bbf9c0a24008fac77295decb086f2106b7fc422cb0c28b42a83476d1abaa78a8",
     "vectors/73-forge-check.json": "08c3d3843ae41d5a88e11207d8580633259402524a9dd837e9a642979b1c792b",
     "vectors/74-review-finding.json": "ba4a9b96dee059e34dd42d5aa4a0f00431c7e8934ee98f3ce1007a1b7ae4fda4",
-    "vectors/75-oms.json": "31175e6dffa827393ed326f83a4b0faf964787677dc2657797d0192b439f7b46",
+    "vectors/75-oms.json": "96a1c8bf2ae629593ebb221d84b35a80190a97d4298fcb97baf8d938a111ae04",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.47.0",
@@ -3136,12 +3136,12 @@
   "spec_version": "0.48.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1076,
-    "core": 1066,
+    "cases": 1077,
+    "core": 1067,
     "families": 52,
     "ops": 66,
     "reason_codes": 214,
-    "reject": 462,
+    "reject": 463,
     "stress": 10,
     "verdict": 178
   }

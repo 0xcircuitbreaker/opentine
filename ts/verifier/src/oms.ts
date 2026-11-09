@@ -104,6 +104,7 @@ export function verifyOms(bundleValue: JValue, filesValue: JValue | null, keyHex
   if (!isRecord(env)) no("malformed", "OMS bundle is malformed: no dsseEnvelope");
   const signatures = env.signatures;
   if (!Array.isArray(signatures) || signatures.length === 0) no("malformed", "OMS bundle is malformed: no signatures");
+  if (signatures.length > 16) no("malformed", "OMS bundle is malformed: more than 16 signatures");
   if (env.payloadType !== TYPE) no("unsupported", "OMS bundle payloadType is not in-toto JSON");
   const body = unbase64(env.payload, "payload");
   const material = (bundle as { [key: string]: Plain }).verificationMaterial;
