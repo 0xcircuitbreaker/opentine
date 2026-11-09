@@ -25,6 +25,7 @@ import os
 import stat
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,8 @@ TIMEOUT = 10.0
 
 
 def _get(url: str) -> tuple[int, bytes]:
+    if urllib.parse.urlsplit(url).scheme not in ("http", "https"):
+        raise ValueError("--url must be http(s)")
     try:
         with urllib.request.urlopen(url, timeout=TIMEOUT) as reply:  # noqa: S310
             return reply.status, reply.read(MAX_REPLY)
@@ -110,7 +113,7 @@ def _served(url: str, vkeys: list[str], entry: Any, out: list[dict[str, Any]]) -
     try:
         status, body = _get(base + "/health")
         health = json.loads(body) if status == 200 else {}
-        ok = status == 200 and health.get("status") == "ok"
+        ok = status == 200 and isinstance(health, dict) and health.get("status") == "ok"
         out.append({"check": "health", "ok": ok, "detail": f"HTTP {status}"})
         status, body = _get(base + "/keys")
         served = body.decode("utf-8", "replace").splitlines() if status == 200 else []

@@ -277,3 +277,13 @@ def test_the_published_example_registry_meets_the_policy():
     doc = json.loads((ROOT / "deploy/witness/network.example.json").read_text("utf-8"))
     assert _witness_network.validate(doc) is doc
     assert _schemas.validate(doc) == ("opentine-witness-network-1", [])
+
+
+def test_witness_doctor_refuses_a_non_http_url(tmp_path):
+    from opentine import _witness_doctor
+
+    secret = tmp_path / "secret.txt"
+    secret.write_text('{"status": "ok"}', encoding="utf-8")
+    out: list = []
+    _witness_doctor._served(secret.as_uri(), [], None, out)
+    assert out == [{"check": "health", "ok": False, "detail": "unreachable: --url must be http(s)"}]
