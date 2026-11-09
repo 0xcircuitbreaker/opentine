@@ -1064,11 +1064,11 @@ Python, the TS verifier and the pyz.
 ## Projects: `tine project` (0.46)
 
 ```
-tine project init ID --tenant T --forge F --url URL --ed25519-key-file K
+tine project init ID --tenant T --forge github --url URL --ed25519-key-file K
                   [--forge-repo-id X] [--default-branch B] [--visibility public|private]
                   [--upstream-visibility public|private] [--owner HEX]... [--forked-from ID]
                   [--key-id ID] [--json] [--repo R]
-tine project link [--role primary|secondary] --forge F --url URL --ed25519-key-file K [...]
+tine project link [--role primary|secondary] --forge git --url URL --ed25519-key-file K [...]
 tine project show|history [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
 tine project verify [--remote R] [--owner-key HEX] [--json] [--repo R]
 tine project push [--remote R] [--json] [--repo R]
