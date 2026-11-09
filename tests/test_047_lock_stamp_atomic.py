@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import errno
 import os
+from pathlib import Path
 
 import pytest
 
@@ -37,13 +38,14 @@ def test_a_held_lock_refuses_and_leaves_no_temporary_file(tmp_path):
 
 def test_the_lock_never_exists_before_its_stamp(tmp_path, monkeypatch):
     lock = tmp_path / "main.lock"
-    real_write = os.write
+    real_link = os.link
 
-    def write(fd, data):
+    def link(src, dst):
         assert not lock.exists(), "lock visible before it was stamped"
-        return real_write(fd, data)
+        assert len(Path(src).read_bytes().split()) == 5  # stamped before it is linked
+        return real_link(src, dst)
 
-    monkeypatch.setattr(_lockfile.os, "write", write)
+    monkeypatch.setattr(_lockfile.os, "link", link)
     os.close(_lockfile.acquire(lock))
     assert len(_fields(lock)) == 5
 
