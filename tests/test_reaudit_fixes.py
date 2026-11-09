@@ -467,10 +467,12 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
     real_close = store_module.os.close
     real_fdopen = store_module.os.fdopen
     closes: list[int] = []
+    transferred: list[int] = []
 
     class BrokenFile:
         def __init__(self, fd: int) -> None:
             self._fd = fd
+            transferred.append(fd)
 
         def __enter__(self):
             return self
@@ -493,12 +495,17 @@ def test_l3_ref_write_error_does_not_double_close_transferred_fd(monkeypatch, tm
         return BrokenFile(fd)
 
     monkeypatch.setattr(store_module.os, "fdopen", broken_fdopen)
-    monkeypatch.setattr(store_module.os, "close", closes.append)
+    def close(fd: int) -> None:
+        closes.append(fd)
+        if fd not in transferred:
+            real_close(fd)  # e.g. the lock's own stamp file: not under test
+
+    monkeypatch.setattr(store_module.os, "close", close)
     with pytest.raises(OSError, match="simulated"):
         repo.update_ref("tags/main", new, expected_old=old)
     # The transferred fds were set to -1 before the failure, so commit_ref's
     # finally must not os.close them a second time.
-    assert closes == []
+    assert transferred and not set(closes) & set(transferred)
 
 
 def _b64(value: bytes) -> str:
