@@ -14,6 +14,8 @@ signature does not verify, ``422`` when the proof does not show consistency
 (a fork or rollback: the split-view refusal) and ``400`` for a malformed body.
 The decisions themselves are :func:`_witness.witness`; this module is wire only.
 
+0.47 (``_witness_ops``): ``GET /health``, ``GET /keys``, a per-client rate
+limit (``429`` with ``Retry-After``) and several cosigning keys for rotation.
 The client (:func:`submit`) starts with ``old 0`` (or a caller's guess), and on
 ``409`` builds the consistency proof from a local tile mirror and retries once.
 """
@@ -21,6 +23,8 @@ The client (:func:`submit`) starts with ``old 0`` (or a caller's guess), and on
 from __future__ import annotations
 
 import base64
+import json
+import math
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -34,6 +38,7 @@ from opentine.repository import _tlog, _tlog_note, _tlog_proof
 MAX_BODY = 1 << 16
 MAX_PROOF_LINES = 63
 SIZE_TYPE = "text/x.tlog.size"
+JSON = "application/json"
 
 
 class WitnessHTTPError(ValueError):
@@ -100,34 +105,57 @@ def add_checkpoint(
 
 
 def make_server(
-    address: tuple[str, int], logs: dict[str, str], private: Any, name: str, state: Path
-) -> ThreadingHTTPServer:
+    address: tuple[str, int], logs: dict[str, str], private: Any, name: str, state: Path,
+    *, operator: Any = None,
+) -> ThreadingHTTPServer:  # fmt: skip
+    from opentine._witness_ops import Operator
+
+    keys = list(private) if isinstance(private, list | tuple) else [private]
+    ops = operator or Operator(keys, name, logs, state, rate_limit=0)
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_args: Any) -> None:  # quiet by default
             return
 
-        def _send(self, status: int, body: bytes, kind: str = "text/plain") -> None:
+        def _send(self, status: int, body: bytes, kind: str = "text/plain", **extra) -> None:
             self.send_response(status)
             self.send_header("Content-Type", kind)
+            for header, value in extra.items():
+                self.send_header(header.replace("_", "-"), value)
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
 
+        def do_GET(self) -> None:  # noqa: N802 - http.server API
+            if self.path == "/health":
+                status, body = ops.health()
+                return self._send(status, json.dumps(body, sort_keys=True).encode(), JSON)
+            if self.path == "/keys":
+                return self._send(200, "".join(v + "\n" for v in ops.vkeys()).encode())
+            self._send(404, b"not found\n")
+
         def do_POST(self) -> None:  # noqa: N802 - http.server API
             if self.path != "/add-checkpoint":
                 return self._send(404, b"not found\n")
+            wait = ops.limiter.allow(str(self.client_address[0]))
+            if wait:
+                ops.count("429")
+                return self._send(429, b"rate limited\n", Retry_After=str(math.ceil(wait)))
             text = self.headers.get("Content-Length") or "0"
             length = int(text) if text.isdigit() else 0
             if not 0 < length <= MAX_BODY:
                 return self._send(400, b"bad length\n")
             try:
-                lines = add_checkpoint(self.rfile.read(length), logs, private, name, state)
+                lines = add_checkpoint(self.rfile.read(length), logs, keys, name, state)
             except WitnessHTTPError as exc:
+                ops.count(str(exc.status))
                 kind = SIZE_TYPE if exc.status == 409 else "text/plain"
                 text = str(exc).split(": ", 1)[1]
                 return self._send(exc.status, (text + "\n").encode(), kind)
             except (OSError, ValueError):  # no local paths or state details on the wire
+                ops.count("500")
                 return self._send(500, b"internal error\n")
+            ops.count("200")
             self._send(200, lines)
 
     return ThreadingHTTPServer(address, Handler)

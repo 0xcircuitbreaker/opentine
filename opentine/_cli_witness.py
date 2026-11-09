@@ -12,6 +12,12 @@ runs the same decisions behind the C2SP tlog-witness HTTP endpoint
 ``POST /add-checkpoint`` (``_witness_http``), and ``witness submit CHECKPOINT
 --url U... [--tiles DIR]`` collects cosignatures from running witnesses.
 
+0.47, for operators of the hosted trust network (``_witness_ops``): ``serve``
+takes ``--key`` more than once (each cosigns, the first is current: rotate by
+adding the next key, then dropping the old one once verifiers pin both),
+``--rate-limit N`` (requests per minute per client, default 60, 0 = off) and
+answers ``GET /health`` and ``GET /keys`` (the vkeys to pin, current first).
+
 ``scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM]``
 checks a COSE_Sign1 signed statement and its receipts offline (``_scitt``); it
 refuses to run without ``--experimental``.
@@ -52,6 +58,8 @@ def add_witness_parsers(sub: Any) -> None:
     serve.add_argument("--log-vkey", action="append", required=True, help="A log to witness")
     serve.add_argument("--listen", default="127.0.0.1:0", help="HOST:PORT (default: free port)")
     serve.add_argument("--state", help="Witness state directory (default: XDG state dir)")
+    serve.add_argument("--rate-limit", type=int, default=60, metavar="N",
+                       help="Requests per minute per client (0: no limit)")  # fmt: skip
     submit = actions.add_parser("submit", help="Collect cosignatures from witnesses over HTTP")
     submit.add_argument("checkpoint", metavar="CHECKPOINT", help="Signed-note checkpoint file")
     submit.add_argument("--url", action="append", required=True, help="Witness base URL")
@@ -59,7 +67,8 @@ def add_witness_parsers(sub: Any) -> None:
     submit.add_argument("--out", metavar="FILE", help="Write the cosigned checkpoint here")
     submit.add_argument("--json", action="store_true", help="Emit a JSON object instead")
     for parser in (cosign, vkey, serve):
-        parser.add_argument("--key", required=True, metavar="KEY", help="Ed25519 key file")
+        many = {"action": "append"} if parser is serve else {}
+        parser.add_argument("--key", required=True, metavar="KEY", help="Ed25519 key file", **many)
         parser.add_argument("--name", required=True, help="Witness name (e.g. example.com/w1)")
         if parser is not serve:
             parser.add_argument("--json", action="store_true", help="Emit a JSON object instead")
@@ -90,9 +99,9 @@ def cmd_witness(args: argparse.Namespace) -> None:
     if args.witness_command == "submit":
         return _submit(args)
     try:
-        key = ed25519_private_from_file(args.key)
         if args.witness_command == "serve":
-            return _serve(args, key)
+            return _serve(args, [ed25519_private_from_file(path) for path in args.key])
+        key = ed25519_private_from_file(args.key)
         if args.witness_command == "vkey":
             vkey = witness_vkey(args.name, key.public_key().public_bytes_raw())
             print(json.dumps({"vkey": vkey}) if args.json else vkey)
@@ -119,15 +128,17 @@ def cmd_witness(args: argparse.Namespace) -> None:
         print(result["checkpoint"], end="")
 
 
-def _serve(args: argparse.Namespace, key: Any) -> None:
+def _serve(args: argparse.Namespace, keys: list[Any]) -> None:
     from opentine import _witness_http
+    from opentine._witness_ops import Operator
     from opentine.repository._tlog_note import parse_vkey
 
     host, _, port = args.listen.rpartition(":")
     logs = {parse_vkey(v)[0]: v for v in args.log_vkey}
     state = Path(args.state or _state_default())
+    operator = Operator(keys, args.name, logs, state, rate_limit=args.rate_limit)
     server = _witness_http.make_server(
-        (host or "127.0.0.1", int(port)), logs, key, args.name, state
+        (host or "127.0.0.1", int(port)), logs, keys, args.name, state, operator=operator
     )
     bound_host, bound_port = server.server_address[:2]
     print(f"listening on http://{bound_host}:{bound_port}", flush=True)

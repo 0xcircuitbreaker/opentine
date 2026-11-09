@@ -57,7 +57,11 @@ def witness(
     tiles: Path | None = None,
     timestamp: int | None = None,
 ) -> dict[str, Any]:
-    """Cosign ``note`` or raise LogError naming the fork or rollback."""
+    """Cosign ``note`` or raise LogError naming the fork or rollback.
+
+    *private* is one key or a list of them (0.47 key rotation): each adds its
+    own cosignature line, the current key first.
+    """
     origin, size, root = _tlog_note.open_checkpoint(note, log_vkey)
     durable_directory(state)
     path = _state(state, origin)
@@ -72,7 +76,9 @@ def witness(
             else:
                 hashes = consistency_from(old_size, size, proof=proof, tiles=tiles)
                 _tlog_proof.verify_consistency(old_size, size, old_root, root, hashes)
-        cosigned = _tlog_cosign.cosign(note, private, name, timestamp)
+        cosigned = note
+        for key in private if isinstance(private, list | tuple) else [private]:
+            cosigned = _tlog_cosign.cosign(cosigned, key, name, timestamp)
         atomic_bytes(path, note)
     return {"checkpoint": cosigned.decode("utf-8"), "origin": origin, "previous_size": old_size,
             "size": size, "witness": name}  # fmt: skip
