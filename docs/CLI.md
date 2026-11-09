@@ -665,6 +665,7 @@ outside key `verify` proves integrity only (its `anchor` check is `skip`);
 `verify --pubkey FILE` pins the run signatures to a key obtained separately and
 fails `anchor` when the kit carries another. `verify` refuses links and special
 files in a kit directory, and unsafe, linked, duplicate or oversized zip entries.
+
 ## Alerts: `tine alert` (0.49)
 
 ```
