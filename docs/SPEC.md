@@ -1319,8 +1319,8 @@ Always emitted: `cost`, `duration`, `error`, `id`, `inputs`, `kind`,
 
 Emitted **only when non-empty** (§6.2): `causal_ids`, `provider`, `usage`,
 `billing`, and `v3_kind`. `v3_kind` (since 0.8.2) carries a step's v3 event kind
-when the v2 `kind` enum cannot spell it — exactly `human`, `policy`, `approval`,
-`subagent` or (0.47) `merge` — and is never written for any other step, whose `kind` already
+when the v2 `kind` enum cannot spell it — exactly `human`, `policy`, `approval`
+or `subagent` — and is never written for any other step, whose `kind` already
 says it. Without it a `subagent` roll-up saved to v2 read back as `model`, and a
 pricing pass billed it a second time; readers that price steps MUST prefer
 `v3_kind` over `kind` when it is present.
@@ -2209,7 +2209,7 @@ every implementation computes the same merge event oid and merge run oid
    else `completed`. A conflicted merge is resolved by a later run with it as
    `parents[0]`.
 
-The merge event's `kind` is `merge`; a v2 step carries it in `v3_kind` (3.3).
+The merge event's `kind` is `merge`; a `.tine` v2 export does not carry it (3.3), so a merge step exported to v2 reads back as `model`.
 
 **Pick.** A pick copies events of other runs onto ours, in order: each copy is
 the source event's payload with `parent_ids` = the current tips, `causal_ids`
@@ -3522,7 +3522,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; 3.3 adds `merge` to the `v3_kind` values; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
+| 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
