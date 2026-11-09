@@ -153,10 +153,15 @@ def prune(
         return result
 
 
-def _rewrite_packs(repo, victims: set[str], result: PrunePlan, quarantine) -> set[str]:
-    """Drop *victims* from their packs; return those whose pack a writer re-touched."""
+def _rewrite_packs(
+    repo, victims: set[str], result: PrunePlan, quarantine, also: frozenset[str] = frozenset()
+) -> set[str]:
+    """Drop *victims* from their packs (and rewrite the packs in *also*); return
+    those whose pack a writer re-touched."""
     _, _, members = _ages(repo)
-    affected = sorted(digest for digest, oids in members.items() if oids & victims)
+    affected = sorted(
+        digest for digest, oids in members.items() if oids & victims or digest in also
+    )
     stamps = {d: os.stat(internal_path(repo.path, "packs", f"{d}.tpk")).st_mtime for d in affected}
     fresh = [d for d in affected if stamps[d] > result.cutoff]  # re-touched since the plan
     touched: set[str] = set().union(*(members[d] & victims for d in fresh))

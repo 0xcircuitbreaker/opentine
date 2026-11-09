@@ -136,23 +136,33 @@ def block_dict(stored_head: bytes) -> str | None:
     return wanted.hex()
 
 
-def referenced(root: Path) -> set[str]:
-    """Every dictionary digest a v3 pack of *root* names."""
+def naming_packs(root: Path) -> dict[str, set[str]]:
+    """Each v3 pack of *root* that names a dictionary, with the digests it names."""
     from opentine.repository._packs import _NAME as PACK_NAME
     from opentine.repository._packs import _read_file, load_index
 
     directory = internal_path(root, "packs")
     names = sorted(os.listdir(directory)) if directory.is_dir() else []
-    found: set[str] = set()
+    found: dict[str, set[str]] = {}
     for digest in sorted({name[:64] for name in names if PACK_NAME.fullmatch(name)}):
         table, _, version = load_index(root, digest)
         path = internal_path(root, "packs", f"{digest}.tpk")
         for row in table if version == 3 else ():
-            head = _read_file(path, row[0], min(row[1], 64), limit=64)
-            name = block_dict(head)
+            name = block_dict(_read_file(path, row[0], min(row[1], 64), limit=64))
             if name:
-                found.add(name)
+                found.setdefault(digest, set()).add(name)
     return found
+
+
+def referenced(root: Path) -> set[str]:
+    """Every dictionary digest a v3 pack of *root* names."""
+    return set().union(*naming_packs(root).values())
+
+
+def stored(root: Path) -> bool:
+    """Whether *root* keeps any dictionary file."""
+    directory = internal_path(root, _DIR)
+    return directory.is_dir() and any(_NAME.fullmatch(n) for n in os.listdir(directory))
 
 
 def forget_latest(root: Path) -> None:

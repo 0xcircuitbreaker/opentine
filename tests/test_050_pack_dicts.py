@@ -160,3 +160,34 @@ def test_cli_opt_in_and_out(dict_repo, capsys):
     json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert main(["gc", "--repo", str(dict_repo.path.parent), "--no-dictionaries"]) in (0, None)
     assert "pack_dicts" not in read_config(internal_path(dict_repo.path, "config.json"))
+
+
+def test_purge_rewrites_packs_naming_a_dictionary_and_deletes_the_old_ones(dict_repo):
+    from opentine import _tombstone
+    from opentine.repository._purge import purge
+
+    before = _pack_dicts._latest(dict_repo.path)["blob"]
+    blob = sorted(o for o in pack_set(dict_repo.path).oids() if o.startswith("blob:"))[0]
+    record = _tombstone.build(blob, "erasure request", "alice")
+    signed = _tombstone.sign(record, b"ab" * 32, algorithm="hmac-sha256", key_id="k1")
+    assert purge(dict_repo, signed)["purged"]
+    # The blob dictionary was trained on the purged bytes; what is left was trained
+    # afresh on what stays (deterministic: an unchanged kind may get the same one).
+    assert f"{before}.zdict" not in _dicts(dict_repo)
+    assert set(_pack_dicts._latest(dict_repo.path).values()) == {n[:64] for n in _dicts(dict_repo)}
+    assert _pack_dicts.referenced(dict_repo.path) <= {n[:64] for n in _dicts(dict_repo)}
+    reader = Repo.open(dict_repo.path)
+    assert not reader.has(blob)
+    for oid in pack_set(reader.path).oids():
+        assert oid_of(reader.raw(oid)) == oid
+
+
+def test_dictionary_bytes_are_not_prune_roots_and_count_in_the_footprint(dict_repo):
+    from opentine.repository import _du, _prune_roots
+    from opentine.repository._gc import footprint
+
+    assert "dicts" in _prune_roots._STORE  # trained bytes hold oid text: never a root
+    size = sum(p.stat().st_size for p in (dict_repo.path / "dicts").iterdir())
+    packs = sum(p.stat().st_size for p in (dict_repo.path / "packs").iterdir())
+    assert footprint(dict_repo.path)[0] >= size + packs
+    assert _du.usage(dict_repo)["packed"]["file_bytes"] == size + packs

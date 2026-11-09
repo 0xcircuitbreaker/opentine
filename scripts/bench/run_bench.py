@@ -168,7 +168,6 @@ def bench(seed: int, runs: int, steps: int, work: Path) -> dict:
     packs = _tree_bytes(repo.path / "packs")
     results["gc"] = _row(packs, gc_seconds, logical, codec=getattr(outcome, "codec", None))
 
-    results.update(_dict_rows(repo, logical))
     reopened = Repo.open(repo.path)
     started = time.perf_counter()
     wire = reopened.pack(order)
@@ -184,6 +183,10 @@ def bench(seed: int, runs: int, steps: int, work: Path) -> dict:
     started = time.perf_counter()
     _bundle.verify(bundle)
     results["bundle"]["read_mb_per_s"] = round(logical / MB / (time.perf_counter() - started), 2)
+
+    # Last: it repacks the store, so wire and bundle above read the same gc packs
+    # in every version benched (the speed ratios compare like with like).
+    results.update(_dict_rows(repo, logical))
 
     return {
         "schema": "opentine-bench/1",

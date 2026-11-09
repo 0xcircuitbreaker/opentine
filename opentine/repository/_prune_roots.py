@@ -29,7 +29,7 @@ from opentine.repository._paths import internal_path
 
 OID_BYTES = re.compile(rb"(?:blob|event|run|attestation|annotation):sha256:[0-9a-f]{64}")
 #: Repository files never treated as roots: the object store itself and caches.
-_STORE = {"objects", "packs", "indexes", "config.json", "gc.lock", "prune-quarantine"}
+_STORE = {"objects", "packs", "indexes", "config.json", "gc.lock", "prune-quarantine", "dicts"}
 MAX_ROOT_FILE = 16 * 1024 * 1024
 
 

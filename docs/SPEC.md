@@ -1184,7 +1184,9 @@ tells the formats apart by magic; a version-3 repository may hold both.
   --dictionaries`; `tine gc --no-dictionaries` rewrites every pack without
   them before removing both), so an older reader refuses the repository at
   open. `dicts/kinds.json` is a writer's hint (the latest dictionary per kind)
-  that readers ignore. gc deletes a dictionary no pack names. Dictionaries
+  that readers ignore. gc deletes a dictionary no pack names unless it is the
+  latest for its kind; `tine purge` rewrites every pack that names one and
+  deletes the old dictionaries, which may hold text of the blob. Dictionaries
   are a stored form: every object is still rebuilt and checked against its id,
   and transfer formats (wire packs, bundles, `.tine`) never carry codec 3.
 - **`.tidx`:** binary, big-endian:
