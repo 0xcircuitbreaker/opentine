@@ -27,7 +27,7 @@
     {
       "id": "902-13.accurate-result",
       "cite": "FRE 902(13); FRE 901(b)(9)",
-      "text": "The process or system produces an accurate result.",
+      "text": "Part of showing the process or system produces an accurate result: the record offered is the unaltered output the identified recorder signed. Whether the agent's output is itself accurate is not evidenced here.",
       "scope": "in",
       "evidence": ["integrity", "signature.authenticated"],
       "note": "Shows the record is unaltered since it was signed. Whether the agent itself produced an accurate result is for the certifying witness."

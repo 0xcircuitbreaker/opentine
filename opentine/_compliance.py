@@ -16,6 +16,7 @@ notice: these are drafts, not legal advice, pending counsel review.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,14 @@ _SOURCE = Path(__file__).resolve().parents[1] / "docs" / "compliance"
 _TOP = {"profile", "profile_version", "title", "jurisdiction", "notice", "counsel_review",
         "sources", "requirements"}  # fmt: skip
 _REQ = {"id", "cite", "text", "scope", "evidence", "note"}
+
+
+#: A citation names an article, rule or point number, never just a title.
+_CITED = re.compile(r"\d")
+
+
+def _text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 class ProfileError(ValueError):
@@ -70,16 +79,33 @@ def validate(data: Any, source: str = "<profile>") -> None:
         raise bad("counsel_review must be 'outstanding' or 'recorded'")
     if not isinstance(data["profile_version"], int) or isinstance(data["profile_version"], bool):
         raise bad("profile_version must be an integer")
+    if not all(_text(data[k]) for k in ("profile", "title", "jurisdiction")):
+        raise bad("profile, title and jurisdiction are non-empty strings")
+    sources = data["sources"]
+    if (
+        not isinstance(sources, list)
+        or not sources
+        or not all(
+            isinstance(s, dict) and set(s) == {"id", "title", "url"} and all(map(_text, s.values()))
+            for s in sources
+        )
+    ):
+        raise bad("sources is a non-empty list of {id, title, url} primary texts")
+    reqs = data["requirements"]
     seen: set[str] = set()
-    for req in data["requirements"] if isinstance(data["requirements"], list) else [None]:
+    for req in reqs if isinstance(reqs, list) and reqs else [None]:
         if (
             not isinstance(req, dict)
             or not {"id", "cite", "text", "scope", "evidence"} <= set(req)
             or not set(req) <= _REQ
+            or not all(_text(req[k]) for k in ("id", "cite", "text"))
+            or not isinstance(req["evidence"], list)
+            or not all(isinstance(f, str) for f in req["evidence"])
+            or ("note" in req and not _text(req["note"]))
         ):
-            raise bad(f"each requirement has the keys {sorted(_REQ)} ('note' optional)")
-        if req["id"] in seen or not isinstance(req["cite"], str) or not req["cite"].strip():
-            raise bad(f"requirement {req['id']!r}: duplicate id or empty cite")
+            raise bad(f"each requirement has the string keys {sorted(_REQ)} ('note' optional)")
+        if req["id"] in seen or not _CITED.search(req["cite"]):
+            raise bad(f"requirement {req['id']!r}: duplicate id, or a cite without a number")
         seen.add(req["id"])
         if req["scope"] not in ("in", "out"):
             raise bad(f"requirement {req['id']!r}: scope is 'in' or 'out'")

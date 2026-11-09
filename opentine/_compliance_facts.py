@@ -51,33 +51,47 @@ def _fact(ok: bool, detail: str) -> dict[str, str]:
     return {"status": "evidenced" if ok else "missing", "detail": detail}
 
 
-def from_report(report: dict[str, Any], run: Any) -> dict[str, dict[str, str]]:
-    """The facts a ``tine-verify-report/2`` document and the loaded run show."""
-    checks = {c["name"]: c for c in report.get("checks", []) if isinstance(c, dict)}
+def from_report(
+    report: dict[str, Any], run: Any, signer_authenticated: bool = False
+) -> dict[str, dict[str, str]]:
+    """The facts a ``tine-verify-report/2`` document and the loaded run show.
+
+    A fact is evidenced only when every check of its name passes (a run may
+    carry several timestamp tokens) and the verdict is ``pass``: one failing
+    check (a tampered digest, a forged token) taints every fact the report
+    gives. *signer_authenticated* is True only when the ``signature`` check
+    itself passed under a supplied, pinned or HMAC key; the report-wide
+    ``authorship`` may come from another check (a delegation chain).
+    """
+    rows = [c for c in report.get("checks", []) if isinstance(c, dict)]
+    good = report.get("verdict") == "pass" and report.get("ok") is True
+    failed = sorted({str(c.get("name")) for c in rows if c.get("outcome") == "fail"})
+    taint = "" if good else f" (but the verify verdict is fail: {', '.join(failed) or '?'})"
     facts: dict[str, dict[str, str]] = {}
     for fact, name in _CHECK_FACTS.items():
-        check = checks.get(name)
-        if check is None:
+        mine = [c for c in rows if c.get("name") == name]
+        if not mine:
             facts[fact] = _fact(False, f"no {name} check in the verify report")
-        else:
-            facts[fact] = _fact(check["outcome"] == "pass", f"{check['reason']}: {check['detail']}")
-    who = report.get("authorship")
+            continue
+        ok = all(c.get("outcome") == "pass" for c in mine)
+        detail = "; ".join(f"{c.get('reason')}: {c.get('detail')}" for c in mine)
+        facts[fact] = _fact(ok and good, detail + (taint if ok else ""))
     signed = facts["signature"]["status"] == "evidenced"
     facts["signature.authenticated"] = _fact(
-        bool(signed and who),
-        f"signer identified by {who}"
-        if signed and who
+        bool(signed and signer_authenticated),
+        f"signer identified by {report.get('authorship')}"
+        if signed and signer_authenticated
         else "no key identifies the signer "
         "(pass --pubkey or --pin; an embedded key is trust on first use)",
     )
-    tier = (report.get("assurance") or {}).get("verified", "T0")
+    tier = (report.get("assurance") or {}).get("verified", "T0") if good else "T0"
     facts["capture.independent"] = _fact(tier in ("T2", "T3"), f"verified assurance tier {tier}")
     steps = list(getattr(run, "steps", []) or [])
-    facts["log.events"] = _fact(bool(steps), f"{len(steps)} recorded step(s)")
+    facts["log.events"] = _fact(bool(steps) and good, f"{len(steps)} recorded step(s){taint}")
     started = bool(getattr(run, "created_at", 0))
     timed = bool(steps) and all(getattr(s, "timestamp", 0) for s in steps)
     facts["log.period"] = _fact(
-        started and timed,
+        started and timed and good,
         "start time and a time on every step" if started and timed else
         "the run lacks a start time or a step lacks a time",
     )  # fmt: skip
@@ -106,11 +120,17 @@ def _retention(repo: Any, run_digest: str | None) -> dict[str, str]:
         policy = RetentionPolicy.for_repo(repo)
     except (OSError, ValueError) as exc:
         return _fact(False, f"retention.toml unreadable: {exc}")
-    held = bool(run_digest) and any(run_digest in oid for oid in policy.legal_hold)
+    want = _bare(run_digest)
+    held = bool(want) and any(_bare(oid) == want for oid in policy.legal_hold)
     if held:
         return _fact(True, "the run is under legal_hold")
     days = float(policy.keep_days)
     return _fact(days >= SIX_MONTHS_DAYS, f"keep_days = {days:g} (needs >= {SIX_MONTHS_DAYS:g})")
+
+
+def _bare(oid: str | None) -> str:
+    """``run:sha256:HEX``, ``sha256:HEX`` or ``HEX`` as lowercase hex: whole digests match."""
+    return (oid or "").strip().lower().rsplit(":", 1)[-1]
 
 
 def _custody(repo: Any) -> dict[str, str]:

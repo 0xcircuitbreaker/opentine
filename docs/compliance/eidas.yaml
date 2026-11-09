@@ -55,7 +55,7 @@
     },
     {
       "id": "art35.1-36.advanced-seal",
-      "cite": "Reg. 910/2014 Art. 3(25)-(26), Art. 35(1), Art. 36(1)",
+      "cite": "Reg. 910/2014 Art. 3(25)-(26), Art. 35(1), Art. 36(1)(a), (b), (d)",
       "text": "An electronic seal of a legal person is admissible as evidence; an advanced seal is uniquely linked to and identifies its creator and detects subsequent change.",
       "scope": "in",
       "evidence": ["signature.authenticated", "integrity"],

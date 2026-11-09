@@ -13,6 +13,7 @@ then a missing in-scope requirement exits 4 (verification_failed).
 from __future__ import annotations
 
 import argparse
+import re
 from typing import Any
 
 from opentine._cli_errors import NOT_FOUND, USAGE, VERIFICATION_FAILED, fail
@@ -67,11 +68,15 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     path = _find_run(args.run_id)
     if not path:
         fail(f"run not found: {args.run_id}", NOT_FOUND, prefix="tine compliance: ")
-    report = build_report(_verify_args(args, str(path)), Path(path), args.run_id).as_json()
+    verified = build_report(_verify_args(args, str(path)), Path(path), args.run_id)
+    report = verified.as_json()
     _, run = _read(Path(path))
-    facts = _compliance_facts.from_report(report, run)
-    digest = next((c["detail"] for c in report["checks"] if c["name"] == "digest"), "")
-    run_digest = digest.rsplit(":", 1)[-1].strip() if "sha256" in digest else None
+    signer = any(c.name == "signature" and c.outcome == "pass" and c.authenticates
+                 for c in verified.checks)  # fmt: skip
+    facts = _compliance_facts.from_report(report, run, signer_authenticated=signer)
+    digest = next((c for c in verified.checks if c.name == "digest"), None)
+    found = re.search(r"sha256:([0-9a-f]{64})", digest.detail) if digest else None
+    run_digest = found.group(1) if found and digest.outcome == "pass" else None
     facts.update(_compliance_facts.repo_facts(args.repo, run_digest))
     body = _compliance.evaluate(profile, facts)
     return {"run": str(getattr(run, "id", "") or args.run_id), **body}
@@ -124,7 +129,9 @@ def _print_check(doc: dict[str, Any]) -> None:
     console.print(f"{escape(doc['title'])}  run {escape(doc['run'])}")
     for row in doc["requirements"]:
         color = colors[row["status"]]
-        console.print(f"[{color}]{row['status']:>12}[/]  {escape(row['cite'])}: {row['id']}")
+        console.print(
+            f"[{color}]{row['status']:>12}[/]  {escape(row['cite'])}: {escape(row['id'])}"
+        )
         for item in row["evidence"]:
             if item["status"] != "evidenced":
                 console.print(f"{'':>14}{item['fact']}: {escape(item['detail'])}")

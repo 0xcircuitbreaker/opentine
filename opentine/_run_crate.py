@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 from opentine._citation_export import OPENTINE_URL, RO_CRATE_CONTEXT, RO_CRATE_SPEC
 
@@ -45,9 +46,9 @@ def _instrument(step: Any) -> tuple[str, str]:
     tool = getattr(step, "tool_info", {}) or {}
     name = tool.get("name") if isinstance(tool, dict) else None
     if isinstance(name, str) and name:
-        return f"#tool-{name}", name
+        return f"#tool-{quote(name, safe='')}", name
     model = getattr(step, "model_info", "") or "opentine"
-    return f"#model-{model}", model
+    return f"#model-{quote(str(model), safe='')}", str(model)
 
 
 def _steps(run: Any) -> tuple[list[dict], list[dict], list[dict], list[dict], list[float]]:
