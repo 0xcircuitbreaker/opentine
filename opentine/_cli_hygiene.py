@@ -17,8 +17,8 @@ from typing import Any
 
 from rich.markup import escape
 
-from opentine._cli_audit_kit import add_audit_kit_parser, cmd_audit_kit
 from opentine._cli_alert import add_alert_parser, cmd_alert
+from opentine._cli_audit_kit import add_audit_kit_parser, cmd_audit_kit
 from opentine._cli_common import console
 from opentine._cli_compliance import add_compliance_parser, cmd_compliance
 from opentine._cli_extend import COMMANDS as EXTEND_COMMANDS

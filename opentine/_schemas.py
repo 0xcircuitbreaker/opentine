@@ -27,10 +27,10 @@ from typing import Any
 
 from opentine import _jsonschema
 from opentine._schema_defs import SCHEMAS as _OBJECTS
-from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
-from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
 from opentine._schema_defs_alerts import COMMAND_SCHEMAS as _ALERT_COMMANDS
 from opentine._schema_defs_alerts import SCHEMAS as _ALERTS
+from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
+from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
 from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
