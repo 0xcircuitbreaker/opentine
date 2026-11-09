@@ -425,9 +425,9 @@ def test_verify_reads_each_block_once(tmp_path, compress_on, monkeypatch):
     calls: list[int] = []
     real = _codec.unwrap
 
-    def counting(data, *, limit):
+    def counting(data, *, limit, dictionaries=None):
         calls.append(1)
-        return real(data, limit=limit)
+        return real(data, limit=limit, dictionaries=dictionaries)
 
     monkeypatch.setattr(_codec, "unwrap", counting)
     assert _pack_write.verify_packs(repo.path) == []

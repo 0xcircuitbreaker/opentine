@@ -23,7 +23,7 @@ export const MAX_CONFIG_BYTES = 64 * 1024;
 const OBJECTS_V4 = 4n;
 const VERSIONS = [1n, 2n, 3n];
 /** The newest `min_reader` this verifier honours (the reference's READER_VERSION). */
-export const READER_VERSION: [number, number, number] = [0, 40, 0];
+export const READER_VERSION: [number, number, number] = [0, 50, 0];
 const SEMVER = /^(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,5})$/;
 const FIXED_V3: [string, JValue][] = [
   ["format", 3n],
