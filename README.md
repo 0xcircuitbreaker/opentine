@@ -872,13 +872,16 @@ tine mcp-proxy --save mcp.tine -- python my_server.py
 ```
 
 Receive live OpenTelemetry from any OTLP/HTTP exporter (JSON, or protobuf for
-traces, decoded without a protobuf dependency); each trace is saved
+traces and logs, decoded without a protobuf dependency) or, with the
+`opentine[grpc]` extra, any OTLP/gRPC exporter; each trace is saved
 as a run when its root span ends, after `--otlp-idle` quiet seconds, or on
-Ctrl-C:
+Ctrl-C. gRPC off loopback needs TLS and a bearer token
+([security review](docs/security/otlp-grpc-review.md)):
 
 ```text
 tine serve --otlp --otlp-port 4318
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 OTEL_EXPORTER_OTLP_PROTOCOL=http/json python my_agent.py
+tine serve --otlp --otlp-protocol grpc --otlp-grpc-port 4317
 ```
 
 Rewind the files a run changed to how they were after a step. It is a dry run
@@ -994,7 +997,8 @@ tine export <run> --endpoint https://collector.example/v1/traces
 `tine import` reads a foreign agent trace — `otel-json` (a complete OTLP/JSON
 export document), `otel-spans` (a JSON array of GenAI spans, or one per line),
 `otlp-proto` (an OTLP protobuf `ExportTraceServiceRequest`; auto-detected for
-`.binpb`/`.pb` files), `har` (the LLM API calls in a HAR 1.2 archive; headers
+`.binpb`/`.pb` files), `otlp-proto-logs` (an OTLP protobuf
+`ExportLogsServiceRequest`), `har` (the LLM API calls in a HAR 1.2 archive; headers
 and query strings are never read), `jsonl` (OpenTine `TraceEvent` records), or one of `langchain`, `llamaindex`,
 `autogen`, `crewai`, `openai-agents` — from a file or `-` for stdin, and records
 it as an ordinary run. At least one destination is required: `--save PATH`

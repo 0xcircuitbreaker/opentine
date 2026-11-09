@@ -56,6 +56,8 @@ kms-gcp = ["google-cloud-kms>=3.0"]
 keyring = ["keyring>=25"]
 # 0.48 `tine code-graph`: tree-sitter parses Python; without it the map is a regex outline.
 graph = ["tree-sitter>=0.23", "tree-sitter-python>=0.23"]
+# 0.48 OTLP/gRPC ingest (`tine serve --otlp --otlp-protocol grpc`); OTLP/HTTP needs nothing.
+grpc = ["grpcio>=1.66"]
 all = [
     "anthropic>=0.87",
     "openai>=1.75.0",

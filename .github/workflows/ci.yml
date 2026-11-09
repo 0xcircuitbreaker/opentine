@@ -200,3 +200,35 @@ jobs:
 
       - name: tine --fips accepts an approved run
         run: .venv/bin/tine --fips ls
+
+  fuzz-otlp:
+    # 0.48: the scaled run of the OTLP protobuf/gRPC ingest fuzzer (an iteration
+    # count, seeded per run). The 72 h acceptance run is scripts/fuzz_otlp.py --hours 72.
+    name: Fuzz OTLP ingest (scaled)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # a hung run fails the job instead of holding CI for 6 h
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Fuzz 1,000,000 mutated export requests
+        run: uv run python scripts/fuzz_otlp.py --iterations 1000000 --seed "$GITHUB_RUN_ID" --report-every 60
+
+      - name: Keep crash inputs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: fuzz-otlp-crashes
+          path: fuzz-crashes
+          if-no-files-found: ignore

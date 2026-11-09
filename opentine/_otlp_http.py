@@ -3,9 +3,10 @@
 ``POST /v1/traces`` and ``POST /v1/logs`` accept OTLP/JSON
 (``application/json``, optionally gzip-encoded) and answer the OTLP success body
 ``{}`` -- or ``{"partialSuccess": ...}`` when spans without a ``traceId`` were
-rejected. ``/v1/traces`` also takes ``application/x-protobuf``, decoded by the
-stdlib reader in :mod:`opentine.trace._otlp_proto` (and answered in JSON);
-protobuf logs are refused with 415 and a hint to use ``http/json``. Bodies are
+rejected. Both routes also take ``application/x-protobuf``, decoded by the
+stdlib readers in :mod:`opentine.trace._otlp_proto` and (0.48, logs)
+:mod:`opentine.trace._otlp_logs_proto`, and answered in JSON; any other
+protobuf media type is refused with 415 and a hint. Bodies are
 bounded before they are read (413) and decompressed under the same bound; a
 body that is not JSON is a 400. Grouping and saving live in
 :mod:`opentine._otlp_collect`.
@@ -24,8 +25,8 @@ from opentine._otlp_collect import OtlpCollector
 from opentine.trace._import_guard import shape_checked
 
 PROTOBUF_HINT = (
-    "OTLP/HTTP protobuf logs are not supported; set OTEL_EXPORTER_OTLP_PROTOCOL=http/json "
-    "to send OTLP/JSON"
+    "OTLP/HTTP protobuf must be sent as Content-Type application/x-protobuf "
+    "(OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf), or send OTLP/JSON"
 )
 ROUTES = {"/v1/traces": "add_spans", "/v1/logs": "add_logs"}
 #: Spans plus log records one request may carry, and attributes on one item.
@@ -39,7 +40,7 @@ class _Refused(Exception):
         self.status = status
 
 
-def _inflate(data: bytes, limit: int) -> bytes:
+def inflate(data: bytes, limit: int) -> bytes:
     decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
     try:
         out = decoder.decompress(data, limit + 1)
@@ -50,7 +51,7 @@ def _inflate(data: bytes, limit: int) -> bytes:
     return out
 
 
-def _check_limits(document: Any) -> None:
+def check_limits(document: Any) -> None:
     """Refuse a document with too many spans or log records, or attributes on one."""
     items, stack = 0, [document]
     while stack:
@@ -73,14 +74,16 @@ def _check_limits(document: Any) -> None:
             stack.append(value)
 
 
-def _protobuf(data: bytes) -> Any:
+def decode_protobuf(data: bytes, route: str) -> Any:
+    """A traces or logs export request, decoded and checked against the item caps."""
+    from opentine.trace._otlp_logs_proto import decode_logs
     from opentine.trace._otlp_proto import decode_traces
 
     try:
-        document = decode_traces(data)
+        document = (decode_logs if route == "add_logs" else decode_traces)(data)
     except ValueError as exc:
         raise _Refused(400, f"body is not valid OTLP protobuf: {exc}") from exc
-    _check_limits(document)
+    check_limits(document)
     return document
 
 
@@ -118,7 +121,7 @@ class OtlpHandler(BaseHTTPRequestHandler):
     def _body(self, route: str = "add_spans") -> Any:
         kind = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         protobuf = kind == "application/x-protobuf"
-        if "protobuf" in kind and not (protobuf and route == "add_spans"):
+        if "protobuf" in kind and not protobuf:
             raise _Refused(415, PROTOBUF_HINT)
         if kind != "application/json" and not protobuf:
             raise _Refused(415, f"unsupported Content-Type {kind or '(none)'!r}; send JSON")
@@ -132,18 +135,18 @@ class OtlpHandler(BaseHTTPRequestHandler):
         data = self.rfile.read(length)
         encoding = (self.headers.get("Content-Encoding") or "identity").strip().lower()
         if encoding == "gzip":
-            data = _inflate(data, self.max_bytes)
+            data = inflate(data, self.max_bytes)
         elif encoding != "identity":
             raise _Refused(415, f"unsupported Content-Encoding {encoding!r}")
         if protobuf:
-            return _protobuf(data)
+            return decode_protobuf(data, route)
         try:
             document = json.loads(shape_checked(data).decode("utf-8"))
         except (RecursionError, UnicodeDecodeError, ValueError) as exc:
             raise _Refused(400, f"body is not valid OTLP/JSON: {exc}") from exc
         if not isinstance(document, dict):
             raise _Refused(400, "body is not valid OTLP/JSON: expected an object")
-        _check_limits(document)
+        check_limits(document)
         return document
 
     def _check_origin(self) -> None:
@@ -218,24 +221,12 @@ def start(collector: OtlpCollector, host: str = "127.0.0.1", port: int = 4318, *
     return server
 
 
-def serve_otlp(args: Any, console: Any) -> None:
-    """``tine serve --otlp``: receive until Ctrl-C, then save what is pending."""
-    from opentine._cli_render import _save_run_receipt
-
-    if min(args.otlp_idle, args.max_body_mb) <= 0:
-        raise SystemExit("--otlp-idle and --max-body-mb must be positive")
-    collector = OtlpCollector(
-        lambda run: _save_run_receipt(run, None), idle=args.otlp_idle, report=console.print
-    )
-    server = start(collector, args.host, args.otlp_port, max_bytes=args.max_body_mb << 20)
-    host, port = server.server_address[:2]
-    console.print(f"OpenTine OTLP/HTTP receiver on http://{host}:{port} (/v1/traces, /v1/logs)")
-    try:
-        threading.Event().wait()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.stop()
-
-
-__all__ = ["PROTOBUF_HINT", "OtlpHandler", "OtlpServer", "serve_otlp", "start"]
+__all__ = [
+    "PROTOBUF_HINT",
+    "check_limits",
+    "decode_protobuf",
+    "inflate",
+    "OtlpHandler",
+    "OtlpServer",
+    "start",
+]

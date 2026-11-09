@@ -816,6 +816,22 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 `127.0.0.1:0` (the chosen port is printed on stderr). See
 [CAPTURE.md](CAPTURE.md#6b-live-capture-an-mcp-session-038).
 
+## OTLP ingest: protobuf logs and gRPC (0.48)
+
+| Command | What it does |
+| --- | --- |
+| `tine serve --otlp [--otlp-port 4318]` | OTLP/HTTP: `/v1/traces` and `/v1/logs` take OTLP/JSON or `application/x-protobuf` (logs protobuf is new in 0.48); loopback only unless `--insecure-dev-any-host` |
+| `tine serve --otlp --otlp-protocol grpc\|both [--otlp-grpc-port 4317]` | OTLP/gRPC (`TraceService/Export`, `LogsService/Export`) into the same collector; needs `opentine[grpc]` |
+| `... --otlp-token-file FILE` | Every gRPC call must send `authorization: Bearer <token>` (16..4096 bytes, compared in constant time) |
+| `... --cert PEM --key PEM` | Serves gRPC over TLS; off loopback both TLS and a token are required, with no override |
+| `tine import FILE --format otlp-proto-logs` | Imports an OTLP protobuf `ExportLogsServiceRequest` |
+
+`--max-body-mb` bounds a gRPC message both on the wire and after
+decompression. The controls and what is left open are in
+[security/otlp-grpc-review.md](security/otlp-grpc-review.md);
+`scripts/fuzz_otlp.py` is the fuzzer (CI runs it scaled; the 72-hour run is
+`--hours 72`).
+
 ## Assurance tiers (0.39)
 
 | Command | What it does |
@@ -824,6 +840,7 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 | `tine verify RUN --min-assurance T0..T3` | Exits 4 (`verification_failed`) when the *verified* tier is below the floor |
 | `tine verify RUN --proxy-pubkey FILE` | Also trusts this proxy public key as a T2 witness (repeatable) |
 | `tine verify RUN --min-assurance T3 --tsa-roots FILE.pem` | Lets an attached RFC 3161 token count toward T3 (outside `--offline`, `--tsa-roots` needs a floor) |
+| `tine verify RUN --model-signature BUNDLE [--model PATH] [--model-pubkey PEM]` | 0.48: checks an OpenSSF Model Signing (OMS v1.0) bundle under a pinned P-256 key, and the model's files when `--model` is given, as the `oms-model-signature` factor in `assurance.factors`; a failed factor exits 4. Keyless bundles are refused as `oms.unsupported` (SPEC 4.24) |
 | `tine verify RUN --compare-capture OTHER [--json]` | Divergence report: the better-witnessed run against the other, step by step (MCP `tools/call` and prompts); exits 4 when they diverge |
 
 Tiers: **T0** self-reported import, **T1** hook-captured, **T2** witnessed by

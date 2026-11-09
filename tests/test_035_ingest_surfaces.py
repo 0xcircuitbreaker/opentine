@@ -12,7 +12,7 @@ import pytest
 
 from opentine import _codec, _record_proxy
 from opentine._otlp_collect import OtlpCollector
-from opentine._otlp_http import MAX_ATTRIBUTES, MAX_ITEMS, _check_limits, _Refused, start
+from opentine._otlp_http import MAX_ATTRIBUTES, MAX_ITEMS, _Refused, check_limits, start
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def test_a_scalar_or_array_body_is_a_400_not_a_reset(otlp, body):
 def test_too_many_spans_are_refused():
     spans = [{"traceId": "a" * 32, "spanId": "b"}] * (MAX_ITEMS + 1)
     with pytest.raises(_Refused) as caught:
-        _check_limits({"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]})
+        check_limits({"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]})
     assert caught.value.status == 413
 
 

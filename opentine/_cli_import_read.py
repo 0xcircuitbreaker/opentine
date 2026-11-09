@@ -65,6 +65,13 @@ def _otlp_proto_events(data: bytes) -> list[TraceEvent]:
     return otel_genai_events(decode_traces(data))
 
 
+def _otlp_proto_log_events(data: bytes) -> list[TraceEvent]:
+    from opentine.trace._otel_log_import import otel_log_events
+    from opentine.trace._otlp_logs_proto import decode_logs
+
+    return otel_log_events(decode_logs(data))
+
+
 def _har_events(data: bytes) -> list[TraceEvent]:
     from opentine.trace._import_har import har_events
 
@@ -80,6 +87,7 @@ def _agent_trace_events(data: bytes) -> list[TraceEvent]:
 #: Formats read as raw bytes rather than text: protobuf, HAR, Agent Trace records.
 BINARY_FORMATS = {
     "otlp-proto": _otlp_proto_events,
+    "otlp-proto-logs": _otlp_proto_log_events,
     "har": _har_events,
     "agent-trace": _agent_trace_events,
 }
