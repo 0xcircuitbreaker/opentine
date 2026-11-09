@@ -29,6 +29,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, paddin
 from cryptography.x509 import ocsp
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
+_BROKEN = (ValueError, TypeError, UnsupportedAlgorithm, x509.InvalidVersion)
 _COMPROMISE = (x509.ReasonFlags.key_compromise, x509.ReasonFlags.ca_compromise)
 
 
@@ -142,12 +143,13 @@ def revocation_problem(
     crls: list[bytes], responses: list[bytes], path: list[x509.Certificate], when: datetime
 ) -> tuple[str, str] | None:
     """``(reason, detail)`` when embedded revocation data fails the token at *when*."""
-    for der in crls:
-        found = _crl_problem(der, path, when)
-        if found:
-            return found
-    for der in responses:
-        found = _ocsp_problem(der, path, when)
+    checks = [(_crl_problem, der, "CRL") for der in crls]
+    checks += [(_ocsp_problem, der, "OCSP response") for der in responses]
+    for check, der, kind in checks:
+        try:  # cryptography parses lazily: a flaw can surface on any accessor
+            found = check(der, path, when)
+        except _BROKEN:
+            found = "timestamp.revocation-invalid", f"an embedded {kind} is malformed"
         if found:
             return found
     return None

@@ -212,3 +212,27 @@ def test_garbage_in_the_crls_field_is_a_clean_failure(world):
         "timestamp.malformed",
         "timestamp.revocation-invalid",
     )
+
+
+def test_a_corrupted_crl_or_ocsp_response_never_raises(world):
+    """cryptography parses CRLs lazily: a flaw found late is still a verdict."""
+    ca, ca_key, tsa, _ = world
+    base = crl(ca, ca_key, [(tsa.serial_number, NOW + timedelta(days=1), None), (5, NOW, None)])
+    resp = ocsp_der(tsa, ca, ca_key, status=ocsp.OCSPCertStatus.GOOD)
+    bad_version = bytearray(base)
+    bad_version[base.index(b"\x02\x01\x01") + 2] = 0x2A  # CRL version 42
+    cases = [crls_field(bytes(bad_version))]
+    for der, wrap in ((base, lambda d: crls_field(d)), (resp, lambda d: crls_field(ocsps=(d,)))):
+        for at in range(4, len(der)):
+            for value in (0x00, 0xFF):
+                mutated = bytearray(der)
+                mutated[at] = value
+                if mutated != der:
+                    cases.append(wrap(bytes(mutated)))
+    for field in cases:
+        verdict = check(world, field)
+        assert verdict.reason in (
+            "timestamp.verified",  # an item the parser drops, as if stripped
+            "timestamp.malformed",
+            "timestamp.revocation-invalid",
+        ), verdict
