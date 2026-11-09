@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.parse
 import urllib.request
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -36,16 +37,31 @@ def fetch_runs(repo: str, branch: str, pages: int = 3) -> list[dict[str, Any]]:
     for page in range(1, pages + 1):
         url = (
             f"{API}/repos/{repo}/actions/workflows/{WORKFLOW}/runs"
-            f"?event=schedule&branch={branch}&per_page=100&page={page}"
+            f"?event=schedule&branch={urllib.parse.quote(branch, safe='')}"
+            f"&per_page=100&page={page}"
         )
         request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
         if token:
             request.add_header("Authorization", f"Bearer {token}")
         with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310 - fixed https host
-            batch = json.load(response).get("workflow_runs", [])
+            batch = _runs(json.load(response))
         runs.extend(batch)
         if len(batch) < 100:
             break
+    return runs
+
+
+def _runs(data: Any) -> list[dict[str, Any]]:
+    """The ``workflow_runs`` list of an API page; a page without one is an API error."""
+    if isinstance(data, list):
+        runs = data
+    elif isinstance(data, dict) and isinstance(data.get("workflow_runs"), list):
+        runs = data["workflow_runs"]
+    else:
+        message = data.get("message") if isinstance(data, dict) else None
+        raise ValueError(f"not a workflow-runs page: {message or type(data).__name__}")
+    if not all(isinstance(run, dict) for run in runs):
+        raise ValueError("a workflow run is not an object")
     return runs
 
 
@@ -108,16 +124,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.runs_file:
-            data = json.loads(Path(args.runs_file).read_text("utf-8"))
-            runs = data.get("workflow_runs", []) if isinstance(data, dict) else data
+            runs = _runs(json.loads(Path(args.runs_file).read_text("utf-8")))
         else:
             runs = fetch_runs(args.repo, args.branch)
-    except (OSError, ValueError) as exc:
+        today = date.fromisoformat(args.today) if args.today else datetime.now(UTC).date()
+        result = {"workflow": WORKFLOW, "branch": args.branch, "need": args.need}
+        result.update(streak(runs, today))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        # HTTPError/URLError/timeouts are OSError; a rate-limit or error body, a
+        # malformed run or a bad --today is not a streak of zero: exit 2.
         print(json.dumps({"error": f"{type(exc).__name__}: {exc}"}))
         return 2
-    today = date.fromisoformat(args.today) if args.today else datetime.now(UTC).date()
-    result = {"workflow": WORKFLOW, "branch": args.branch, "need": args.need}
-    result.update(streak(runs, today))
     result["met"] = result["streak"] >= args.need
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["met"] else 1
