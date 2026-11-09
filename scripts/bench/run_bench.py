@@ -9,6 +9,8 @@ Builds the synthetic corpus from ``scripts/bench/corpus.py`` through the public
 
 * ``loose``: the object store before any packing;
 * ``gc``: ``tine gc`` packs (whatever pack format and codec the code writes);
+* ``gc_v3`` and ``gc_dicts``: ``tine gc --upgrade`` packs, then the same with
+  ``--dictionaries`` (0.50; the row is absent for a library without them);
 * ``wire``: ``Repo.pack()``, the transfer pack push/fetch send;
 * ``bundle``: ``tine bundle create`` output;
 * ``zstd19_per_object``: every object compressed alone at zstd level 19;
@@ -35,6 +37,11 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+if "--library" in sys.argv:  # bench another checkout's opentine with this interpreter
+    import importlib.machinery
+
+    sys.path.insert(0, str(Path(sys.argv[sys.argv.index("--library") + 1]).resolve()))
+    sys.meta_path.insert(0, importlib.machinery.PathFinder)  # ahead of an editable install
 
 from corpus import generate  # noqa: E402
 
@@ -101,6 +108,29 @@ def _row(size: int, seconds: float, logical: int, **extra) -> dict:
     }
 
 
+def _dict_rows(repo: Repo, logical: int) -> dict:
+    """``gc_v3`` (storage v3 packs) and ``gc_dicts`` (v3 with per-kind dictionaries,
+    0.50, P3: packs plus the ``dicts/`` they need). Absent before the code had them."""
+    rows: dict = {}
+    started = time.perf_counter()
+    gc(repo, upgrade=True, repack=True)
+    seconds = time.perf_counter() - started
+    rows["gc_v3"] = _row(_tree_bytes(repo.path / "packs"), seconds, logical)
+    try:
+        from opentine.repository import _gc_dicts
+    except ImportError:
+        return rows
+    _gc_dicts.enable(repo)
+    started = time.perf_counter()
+    gc(repo, repack=True)
+    seconds = time.perf_counter() - started
+    dicts = repo.path / "dicts"
+    stored = _tree_bytes(repo.path / "packs") + (_tree_bytes(dicts) if dicts.is_dir() else 0)
+    used = len(list(dicts.glob("*.zdict"))) if dicts.is_dir() else 0
+    rows["gc_dicts"] = _row(stored, seconds, logical, dictionaries=used)
+    return rows
+
+
 def bench(seed: int, runs: int, steps: int, work: Path) -> dict:
     os.environ["OPENTINE_AUTO_PACK"] = "off"  # measure loose, then gc, explicitly
     repo = Repo.init(work / "repo")
@@ -138,6 +168,7 @@ def bench(seed: int, runs: int, steps: int, work: Path) -> dict:
     packs = _tree_bytes(repo.path / "packs")
     results["gc"] = _row(packs, gc_seconds, logical, codec=getattr(outcome, "codec", None))
 
+    results.update(_dict_rows(repo, logical))
     reopened = Repo.open(repo.path)
     started = time.perf_counter()
     wire = reopened.pack(order)
@@ -194,6 +225,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--steps", type=int, default=24)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--compare", type=Path, help="an earlier report to compare against")
+    parser.add_argument("--library", type=Path, help="a checkout whose opentine/ to bench")
     args = parser.parse_args(argv)
     work = Path(tempfile.mkdtemp(prefix="tine-bench-"))
     try:

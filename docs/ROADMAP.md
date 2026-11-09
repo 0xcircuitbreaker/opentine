@@ -760,7 +760,7 @@ Rules for this stretch:
 
 - **Format freeze review.** Python, TS and pyz parity on the full pinned vector set (criterion 2). Deprecation policy published (criterion 7). Third-party security audit started, covering the CLI and the hosted service (criterion 1).
 - **RFC 4998 evidence records** with PQ re-timestamping (`attest --renew`) and embedded CRL/OCSP, moved from the 1.0 track. *Justification: long-term evidence must be fixed before the freeze, or 1.0 freezes formats that cannot carry it.*
-- **Per-kind dictionaries (P3).** Compression bench within 5% of 0.40 (criterion 6).
+- **Per-kind dictionaries (P3).** Compression bench within 5% of 0.40 (criterion 6). *Status: dictionaries ship opt-in (`tine gc --dictionaries`, codec 3 in local v3 packs only; the TS verifier refuses it by name). The bench job gates stored bytes against 0.40.0 on the same runner; speed is reported, not gated. Numbers: `docs/bench/0.50-dictionaries.md`.*
 - **Nightly stress** runs green for 30 days (criterion 5). The 0.34 peer compatibility job stays green (criterion 3).
 - **"Leave the hosted service" test:** export, then `tine serve` import, then a byte-identical verify.
 
