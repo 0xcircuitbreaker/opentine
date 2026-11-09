@@ -1,6 +1,6 @@
 """0.47: Reviews, their signed gate decisions and ``caps.reviews`` (SPEC 4.19, 8.19).
 
-The 68-review family agrees in Python and the pyz (the TS verifier runs it in
+The 70-review family agrees in Python and the pyz (the TS verifier runs it in
 ``ts/verifier``'s conformance test); ``tine review`` writes a chain only a
 reviewer can extend and gate decisions only a reviewer can sign; an exported
 Review verifies with the built ``tine-verify.pyz`` (which refuses every network
@@ -29,7 +29,7 @@ from tests.conformance import tagged
 from tests.test_0461_projects import _remote
 
 ROOT = Path(__file__).resolve().parents[1]
-CASES = json.loads((ROOT / "docs/conformance/vectors/68-review.json").read_text("utf-8"))["cases"]
+CASES = json.loads((ROOT / "docs/conformance/vectors/70-review.json").read_text("utf-8"))["cases"]
 SEED, STRANGER = "ab" * 32, "cd" * 32
 RUN = "run:sha256:" + "1" * 64
 
@@ -260,3 +260,23 @@ def test_push_to_tine_serve_and_read_back_a_verifiable_bundle(repo, capsys, tmp_
     reader = http("r").put("/v1/tenants/acme/reviews/auth", json={"expected_old": head,
                                                                  "version": {}})  # fmt: skip
     assert reader.status_code == 403
+
+
+def test_a_repeated_decision_is_stored_once_and_the_lock_is_released(repo, capsys):
+    _built(capsys, repo)
+    assert _review_cli(capsys, repo, "gate", "auth", "ship", "--reject")[0] == 0
+    current = store.load(repo, "auth")
+    store.decide(repo, current["decisions"][-1])
+    assert store.load(repo, "auth") == current
+    assert not list(store._path(repo, "auth").parent.glob("*.lock"))
+
+
+def test_the_remote_store_publishes_a_record_whole_or_not_at_all(tmp_path):
+    from opentine.remote import _review_store as remote
+
+    record = {"review_id": "auth", "seq": 0, "x": 1}
+    assert remote.append(tmp_path, "acme", record) is True
+    assert remote.append(tmp_path, "acme", {**record, "x": 2}) is False
+    folder = tmp_path / ".reviews" / "acme" / "auth" / "v"
+    assert sorted(p.name for p in folder.iterdir()) == ["00000000.json"]
+    assert remote.versions(tmp_path, "acme", "auth") == [record]

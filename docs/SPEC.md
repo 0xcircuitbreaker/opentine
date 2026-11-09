@@ -2358,7 +2358,7 @@ version); `review-gate.blocked`. One version checks to `{review_id, seq,
 digest, signer, state}` (`verified` when the reviewer set came from a checked
 predecessor or the pinned key, else `verified-tofu`); one decision to
 `{review_id, gate, decision, seq, signer, state: "verified"}`. Vectors:
-`68-review.json` (ops `review.verify`, `review-gate.verify` and
+`70-review.json` (ops `review.verify`, `review-gate.verify` and
 `review.bundle`). `tine review export` writes a bundle and
 `tine-verify.pyz --offline FILE` checks it, every gate decision included,
 without a network.

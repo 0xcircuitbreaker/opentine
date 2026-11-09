@@ -3,15 +3,17 @@
 Beside ``.projects`` and ``.tombstones``, outside every tenant's object tree and
 ref listing. ``v/<seq>.json`` holds each ``opentine.review`` version and
 ``d/<n>.json`` each gate decision, in arrival order, exactly as their
-reviewers signed them: the server never signs one. Every file is created with
-``O_EXCL``, so two writers racing for the same next version cannot both win
-(the compare-and-swap behind ``PUT reviews/<id>``).
+reviewers signed them: the server never signs one. Every file is published
+whole with a hard link, which fails when the name exists, so two writers
+racing for the same next version cannot both win (the compare-and-swap behind
+``PUT reviews/<id>``).
 """
 
 from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -61,23 +63,26 @@ def names(root: Path, tenant: str) -> list[str]:
 
 
 def _create(path: Path, record: dict[str, Any]) -> bool:
+    """Publish *record* at *path* whole or not at all: written to a temporary
+    file first, then hard-linked into place, which fails if *path* exists. A
+    reader never sees a half-written record and a crash leaves none behind."""
     data = canonical_json(record)
     if len(data) > MAX_BYTES:
         raise ValueError("review record exceeds its size limit")
     path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o644)
-    except FileExistsError:
-        return False
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
-    except BaseException:
-        path.unlink(missing_ok=True)
-        raise
-    return True
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            return False
+        return True
+    finally:
+        os.unlink(temporary)
 
 
 def append(root: Path, tenant: str, record: dict[str, Any]) -> bool:

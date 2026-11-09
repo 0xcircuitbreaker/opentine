@@ -121,7 +121,7 @@ def _b(name, expect, intent, versions, decisions, reason=None, **extra) -> Case:
 
 
 REVIEW = Family(
-    "68-review.json",
+    "70-review.json",
     "4.19",
     "review",
     (

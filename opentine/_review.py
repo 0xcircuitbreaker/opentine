@@ -21,7 +21,7 @@ offline, decision by decision; only decisions over the head version count
 towards the gate status. :func:`check`, :func:`check_gate` and
 :func:`verify_bundle` are the references for the ``review.verify``,
 ``review-gate.verify`` and ``review.bundle`` conformance ops
-(``vectors/68-review.json``), ported to the pyz and the TS verifier.
+(``vectors/70-review.json``), ported to the pyz and the TS verifier.
 """
 
 from __future__ import annotations

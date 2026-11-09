@@ -1203,7 +1203,7 @@ reviewer. `verify` does the same check here (exit 4 on failure), `import`
 adopts a bundle that extends the local copy, and `push` sends what a remote's
 `caps.reviews` (SPEC 8.19) lacks; the remote checks every record, stores it
 exactly as signed, logs it in its transparency log and never signs one.
-`--json` follows `tine-cli-review-1`. The `68-review.json` conformance family
+`--json` follows `tine-cli-review-1`. The `70-review.json` conformance family
 pins Python, the TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)

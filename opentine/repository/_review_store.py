@@ -12,6 +12,10 @@ as a bundle (``tine review export``) or through a remote's ``caps.reviews``.
 from __future__ import annotations
 
 import json
+import os
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from opentine import _review
@@ -47,6 +51,30 @@ def names(repo: Any) -> list[str]:
     return sorted(p.stem for p in folder.iterdir() if p.suffix == ".json" and ID.fullmatch(p.stem))
 
 
+@contextmanager
+def _locked(repo: Any, review_id: str, timeout: float = 30.0) -> Iterator[None]:
+    """Serialize every read-modify-write of one Review's file (a lost update
+    would silently drop a version or a signed decision)."""
+    from opentine.repository import _winretry
+    from opentine.repository._lockfile import acquire
+
+    path = _path(repo, review_id).with_suffix(".lock")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            os.close(acquire(path, 0o600))
+            break
+        except FileExistsError:
+            if time.monotonic() > deadline:
+                raise ValueError(f"review {review_id} is locked ({path.as_posix()})")
+            time.sleep(0.01)
+    try:
+        yield
+    finally:
+        _winretry.unlink(path)
+
+
 def _save(repo: Any, review_id: str, value: dict[str, Any]) -> None:
     path = _path(repo, review_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,6 +88,11 @@ def append(repo: Any, record: dict[str, Any], *, expected: str | None = None) ->
     is refused rather than forked.
     """
     review_id = str(record.get("review_id"))
+    with _locked(repo, review_id):
+        return _append(repo, review_id, record, expected)
+
+
+def _append(repo: Any, review_id: str, record: dict[str, Any], expected: str | None) -> str:
     current = load(repo, review_id)
     versions = [] if current is None else current["versions"]
     head = _review.digest(versions[-1]) if versions else None
@@ -76,6 +109,11 @@ def append(repo: Any, record: dict[str, Any], *, expected: str | None = None) ->
 def decide(repo: Any, record: dict[str, Any]) -> dict[str, Any]:
     """Store a gate decision on a version of its Review (``check_gate`` first)."""
     review_id = str(record.get("review_id"))
+    with _locked(repo, review_id):
+        return _decide(repo, review_id, record)
+
+
+def _decide(repo: Any, review_id: str, record: dict[str, Any]) -> dict[str, Any]:
     current = load(repo, review_id)
     if current is None:
         raise KeyError(f"no review {review_id} here")
@@ -86,6 +124,9 @@ def decide(repo: Any, record: dict[str, Any]) -> dict[str, Any]:
 
         raise RecordError("review-gate.wrong-review", "the decision names no version of it")
     found = _review.check_gate(record, version)
+    known = {_review.digest(d) for d in current["decisions"]}
+    if _review.digest(record) in known:  # a repeat is not stored twice
+        return found
     decisions = [*current["decisions"], record]
     _save(repo, review_id, _review.bundle(current["versions"], decisions))
     return found
@@ -95,6 +136,11 @@ def install(repo: Any, value: dict[str, Any]) -> dict[str, int]:
     """Adopt a verified bundle that extends this repository's copy of the Review."""
     _review.verify_bundle(value)
     review_id = value["versions"][0]["review_id"]
+    with _locked(repo, review_id):
+        return _install(repo, review_id, value)
+
+
+def _install(repo: Any, review_id: str, value: dict[str, Any]) -> dict[str, int]:
     current = load(repo, review_id)
     ours = [] if current is None else [_review.digest(v) for v in current["versions"]]
     theirs = [_review.digest(v) for v in value["versions"]]
