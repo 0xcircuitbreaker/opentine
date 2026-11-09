@@ -1,10 +1,10 @@
-"""Reference ops for SPEC 4.21 (prompt versions) and 4.22 (memory notes)."""
+"""Reference ops for SPEC 4.21 (prompt versions), 4.22 (memory notes), 4.25 (findings)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from opentine import _memory, _prompt
+from opentine import _memory, _prompt, _review_finding
 
 
 def _key(value: dict[str, Any]) -> bytes | None:
@@ -24,4 +24,12 @@ def op_memory_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
     return _memory.check(value["record"], public_key=_key(value), team=value.get("team") or ())
 
 
-OPS = {"prompt.verify": op_prompt_verify, "memory.verify": op_memory_verify}
+def op_review_finding_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
+    """SPEC 4.25: one review finding, under a pinned key or the Review's reviewers."""
+    value = inp.value
+    return _review_finding.check(value["record"], public_key=_key(value),
+                                 reviewers=value.get("reviewers") or ())  # fmt: skip
+
+
+OPS = {"prompt.verify": op_prompt_verify, "memory.verify": op_memory_verify,
+       "review-finding.verify": op_review_finding_verify}  # fmt: skip

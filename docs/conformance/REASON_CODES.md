@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (201)
+## The codes (206)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -220,6 +220,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `ref.target-type` | 2.5 | `_refs.TYPED_REF_NAMESPACES` | a typed-namespace ref pointing at the wrong object type | let heads/ point at an event because the oid parses |
 | `reflog.actor-too-long` | 2.6 | `_reflog.reflog_entry` | a reflog actor longer than 4096 characters | truncate the actor |
 | `reflog.time-not-string` | 2.6 | -- | a time_ns that is not decimal digits inside a JSON string | emit the nanosecond timestamp as a JSON number |
+| `review-finding.bad-signature` | 4.25 | -- | a review finding whose tine-sig/3 block does not hold | accept a finding whose severity was lowered after signing |
+| `review-finding.malformed` | 4.25 | -- | a review finding with a missing, extra or ill-formed field | point a reviewer at a path outside the repository, or show ill-formed text |
+| `review-finding.unsigned` | 4.25 | -- | a review finding with no signature block | count an unsigned finding as a reviewer's |
+| `review-finding.untrusted-signer` | 4.25 | -- | a review finding signed by a key that is not one of the Review's reviewers | count a stranger's finding against a Review |
+| `review-finding.wrong-key` | 4.25 | -- | a review finding not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
 | `review-gate.bad-signature` | 4.20 | -- | a gate decision whose tine-sig/3 block does not hold | count a decision edited after signing |
 | `review-gate.blocked` | 4.20 | -- | an approval while a monitor of that version fails or a critical finding is open | approve past a failing monitor |
 | `review-gate.malformed` | 4.20 | -- | a gate decision with a missing, extra or ill-formed field | read an unknown decision as an approval |

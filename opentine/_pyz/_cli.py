@@ -25,6 +25,7 @@ from . import (
     _artifact,
     _evalv,
     _evidence,
+    _finding,
     _mergerec,
     _projfile,
     _records,
@@ -125,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if _reviewfile.is_bundle(path):  # 0.47: a Review and every gate decision
         result = report("review", path, _reviewfile.verify(path, pubkey), args.strict)
+    elif _finding.is_finding(path):  # 0.48: a review finding, or a Review's list of them
+        result = report("review-finding", path, _finding.verify(path, pubkey), args.strict)
     elif _registry.kind(path):  # 0.47: a prompt version (or history) or a memory note
         mode = _registry.kind(path) or "prompt"
         result = report(mode, path, _registry.verify(path, pubkey), args.strict)

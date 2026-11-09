@@ -1141,6 +1141,36 @@ REASONS: dict[str, Reason] = {
         "a memory note signed by a key outside the reader's team",
         "recall a stranger's note as team memory",
     ),
+    "review-finding.malformed": R(
+        "4.25",
+        None,
+        "a review finding with a missing, extra or ill-formed field",
+        "point a reviewer at a path outside the repository, or show ill-formed text",
+    ),
+    "review-finding.unsigned": R(
+        "4.25",
+        None,
+        "a review finding with no signature block",
+        "count an unsigned finding as a reviewer's",
+    ),
+    "review-finding.bad-signature": R(
+        "4.25",
+        None,
+        "a review finding whose tine-sig/3 block does not hold",
+        "accept a finding whose severity was lowered after signing",
+    ),
+    "review-finding.wrong-key": R(
+        "4.25",
+        None,
+        "a review finding not signed by the pinned key, or not Ed25519",
+        "accept the embedded key when the caller pinned one",
+    ),
+    "review-finding.untrusted-signer": R(
+        "4.25",
+        None,
+        "a review finding signed by a key that is not one of the Review's reviewers",
+        "count a stranger's finding against a Review",
+    ),
     "git-object.malformed": R(
         "4.18",
         None,

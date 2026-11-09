@@ -859,6 +859,19 @@
       "verdict": 0
     },
     {
+      "core": 21,
+      "count": 21,
+      "file": "vectors/74-review-finding.json",
+      "name": "review-finding",
+      "ops": [
+        "review-finding.verify"
+      ],
+      "reject": 15,
+      "section": "4.25",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -881,8 +894,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "d46189aa0df75918f15810b2857c3fb60aa2b4d56dcaf576245eecdd9eec560f",
-    "REASON_CODES.md": "e324276c3bc6de0b64682f194e3ae4c1f75569cc611a4d5ce8cc71509aad8ea2",
+    "README.md": "6e67fa079e719dbf7c34db04b8f45675798481895273abd8bc92c4ff01322bdd",
+    "REASON_CODES.md": "9e3b3d6d22f62d7cad3338d384c4658ea901d4e14cb94793ab990c530f0baede",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1993,6 +2006,7 @@
     "vectors/71-prompt.json": "104ee0ba5346a664205ab0dbb3ce1337366fe448b24e3793b16560bc957935f1",
     "vectors/72-forge-claim.json": "bbf9c0a24008fac77295decb086f2106b7fc422cb0c28b42a83476d1abaa78a8",
     "vectors/73-forge-check.json": "08c3d3843ae41d5a88e11207d8580633259402524a9dd837e9a642979b1c792b",
+    "vectors/74-review-finding.json": "ba4a9b96dee059e34dd42d5aa4a0f00431c7e8934ee98f3ce1007a1b7ae4fda4",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.47.0",
@@ -2786,6 +2800,26 @@
       "summary": "SPEC 2.6 one canonical reflog row plus its LF",
       "unordered": []
     },
+    "review-finding.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "finding_id",
+        "severity",
+        "path",
+        "line",
+        "digest",
+        "signer",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.25: an opentine.review-finding under a pinned key or the reviewers",
+      "unordered": []
+    },
     "review-gate.verify": {
       "args": [],
       "input": [
@@ -3070,12 +3104,12 @@
   "spec_version": "0.48.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1034,
-    "core": 1024,
-    "families": 50,
-    "ops": 64,
-    "reason_codes": 201,
-    "reject": 431,
+    "cases": 1055,
+    "core": 1045,
+    "families": 51,
+    "ops": 65,
+    "reason_codes": 206,
+    "reject": 446,
     "stress": 10,
     "verdict": 178
   }

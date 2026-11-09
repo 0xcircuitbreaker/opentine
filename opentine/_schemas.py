@@ -9,7 +9,9 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_merge` (merges, 0.47) and
 :mod:`opentine._schema_defs_review` (Reviews, 0.47) and
 :mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
-:mod:`opentine._schema_defs_extend` (plugins, experts); ``docs/schemas`` is
+:mod:`opentine._schema_defs_extend` (plugins, experts) and
+:mod:`opentine._schema_defs_integrate` (review findings, ``tine graph``, 0.48);
+``docs/schemas`` is
 their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
 stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -36,6 +38,9 @@ from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
+from opentine._schema_defs_integrate import COMMAND_SCHEMAS as _INTEGRATE_COMMANDS
+from opentine._schema_defs_integrate import KIND_SCHEMAS as _INTEGRATE_KINDS
+from opentine._schema_defs_integrate import SCHEMAS as _INTEGRATE
 from opentine._schema_defs_merge import COMMAND_SCHEMAS as _MERGE_COMMANDS
 from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
 from opentine._schema_defs_merge import SCHEMAS as _MERGE
@@ -71,6 +76,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_REGISTRY,
     **_EXTEND,
     **_FORGE,
+    **_INTEGRATE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -84,6 +90,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_REGISTRY_COMMANDS,
     **_EXTEND_COMMANDS,
     **_FORGE_COMMANDS,
+    **_INTEGRATE_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
@@ -94,6 +101,7 @@ KIND_SCHEMAS: dict[str, str] = {
     **_REVIEW_KINDS,
     **_REGISTRY_KINDS,
     **_FORGE_KINDS,
+    **_INTEGRATE_KINDS,
 }
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.

@@ -1271,6 +1271,49 @@ adopts a bundle that extends the local copy, and `push` sends what a remote's
 exactly as signed, logs it in its transparency log and never signs one.
 `--json` follows `tine-cli-review-1`. The `70-review.json` conformance family
 pins Python, the TS verifier and the pyz.
+
+### Multi-agent review through the fleet: `tine review run` (0.48)
+
+```
+tine review run ID --fleet reviewers.toml [--trust] [--base REV | --diff-file FILE]
+                --ed25519-key-file K [--key-id ID] [--json] [--repo R]
+tine review findings ID [--json] [--repo R]
+```
+
+`run` runs a reviewer fleet (a `fleet.toml`, inert until its exact bytes are
+trusted with `--trust`, like `tine fleet up`) on the change: `git diff REV`
+(default `HEAD`, the uncommitted change) or the diff in `--diff-file`, redacted
+before any reviewer sees it. Each member gets `OPENTINE_REVIEW_ID`,
+`OPENTINE_REVIEW_CONTEXT` (the file holding the change) and
+`OPENTINE_REVIEW_FINDINGS` (the file it writes), and writes one JSON object
+per line: `{"severity", "message", "path"?, "line"?}`. Every well-formed line
+becomes one signed `opentine.review-finding` (SPEC 4.25), its message redacted
+first, signed by `--ed25519-key-file` (which must be a reviewer of the head
+version) and kept in `.tine/review-findings/ID.json`; a malformed line is
+skipped and counted, never guessed at. The Review then gets one new version
+listing every new finding as open, so a `critical` one blocks approval.
+`findings` lists the stored findings, each checked against the head version's
+reviewers; `python tine-verify.pyz .tine/review-findings/ID.json` checks the
+same file offline, one row per finding. `--json` follows `tine-cli-review-1`;
+the `74-review-finding.json` conformance family pins Python, the TS verifier and
+the pyz.
+
+## Code map: `tine graph` (0.48)
+
+```
+tine graph [PATH]... [--symbol NAME] [--repo DIR] [--json]
+```
+
+Maps the work tree: every tracked source file (Python, JavaScript, TypeScript,
+Go, Rust, Java, Kotlin), its classes, functions, methods and types with their
+1-based lines, its imports, and the import edges between files of the
+repository. With the optional `graph` extra (`pip install 'opentine[graph]'`,
+tree-sitter) Python files are parsed by tree-sitter; everything else, and every
+file without the extra, gets a regex outline, and each file says which
+(`backend`). `--symbol` keeps only the files that define NAME. Read-only and
+offline. `--json` follows `tine-graph-1`; the MCP server exposes the same map as
+the read-only `code_graph` tool.
+
 ## Prompts and team memory: `tine prompt`, `tine memory` (0.47)
 
 ```text

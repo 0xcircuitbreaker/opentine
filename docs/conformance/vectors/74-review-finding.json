@@ -1,0 +1,1065 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.absolute-path",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "/etc/passwd",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2de600e9045f359fd1a2c3cc864d138ad79d760c96a93bfbcfbd7750b2f043bfde59b9adb4bdc0d0a161ddbe758b49a169f305ba395aaf373447d0e7907fcd01"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a path is repository-relative",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"/etc/passwd\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"ve...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: path is a repository-relative POSIX path or null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.backslash-path",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src\\auth.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "7617d0b14c5ab39c18850f356bbc04bb75a7e3d6e9e7f2a5bcd3c147408a1fb3fec084d12a405b7da36073ad72675bd167cafa00db6223b795fca14751b42902"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a path is POSIX",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src\\\\auth.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"v...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: path is a repository-relative POSIX path or null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.bad-run",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": "blob:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "ce7df30c2f180e191399c2d564eaa6781ccd54842ecd4c6e6476034f512c79c6fd50a71c44e495bd5c87d0aec5ad32eb1776f88c32d7a5630f4f3ab3a461fd0d"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "run is a run oid or null",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": \"blob:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: run is a run oid or null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.bad-severity",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "blocker",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "e1c19ae06c67b34c4788b408cb38cd4125fabcdc4700d729afa14f5f94cfeda92d3e4605c4691b4210f892fe7077bb57bdc856143dd74d21f797d6900d20b209"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "severity is one of the five Review severities",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"blocker\", \"signature\": {\"alg\": \"ed25519\", \"key...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: severity is info, low, medium, high or critical"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.control-character",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "ring\u0007the bell",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "1133b28e72836ecb3a0a8cec4534ef1f35c7b4046f8483ebdd6823c3bab0abebfaf5489c978fbbabd5f78f315ddcefda71f3bb52436e0e4b697f57ac1021b803"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a message holds no control character",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"ring\\u0007the bell\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: message is 1 to 1024 bytes of text"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.dotdot-path",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/../../secret",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "24d26547796886921fc60115fca2a214b6155ebd5d728cc7d22840000c818bd56dc1514e0945e03c5a2da5134a1d1bec5bc8dfdd41e9d2877cdbd01c8a6dcd0e"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a path never climbs out of the repository",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/../../secret\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: path is a repository-relative POSIX path or null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.extra-field",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            },
+            "verdict": "pass"
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a field the format does not define",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.hmac",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2f735bc4f5c0e0fb770a52f04a21ceaf9022051b90dba250b0e15265bba1a87a"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a review finding is Ed25519 only",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.wrong-key",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"hmac-sha256\", \"ke...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "a review finding is signed with an Ed25519 key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.line-without-path",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": null,
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bee9368198482d91c139c85b386a27897a2be1350ea10d3bc0d41575090416fd5e9891913b2efbeb1e405e3ddef6e00c8270c44a47220fac93a49045e79c2f01"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a line needs a path",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": null, \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"p...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: line counts from 1, with a path, or is null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.line-zero",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "0"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "aebdc630fd12a1b5da52ac240320a22c7f1c81c0d614fb30ad3a7920adf84debaeb6f8a61ab7c7916a985afdc577d50cf33d31231fe72700b7e60da7db4bf507"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "lines count from 1",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"0\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: line counts from 1, with a path, or is null"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.oversized-message",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "dfc711adce3bfbfb4a27853ce35ba2627fa5dc3c650e67214f4813239d22d428863c172d7787ed787cc5ca3899445b4518716cf7dc0550d4f4020f2167dc840a"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a message is at most 1024 bytes",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.malformed",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review finding is malformed: message is 1 to 1024 bytes of text"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.tampered",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "low",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a severity lowered after signing fails",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.bad-signature",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"low\", \"signature\": {\"alg\": \"ed25519\", \"key_id\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review finding signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.unsigned",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high"
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a finding without a signature is refused",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.unsigned",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\"}, \"reviewers\": []}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review finding is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.untrusted-signer",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": [
+            "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+          ]
+        }
+      },
+      "intent": "a finding by a key that is not a reviewer",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.untrusted-signer",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review finding's signer is not a reviewer"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-no-location",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": null,
+            "message": "the session token is written to the debug log",
+            "path": null,
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "info",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "b409c9f6eccdfe96d171420a2d96a61a78ea5e5c80e48a468c3850c3073d2440a619ef7d41497483401f41ed5d589dca8b307c04e37ff8214a68e768ad56730d"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a finding about the change as a whole",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:4ac97c24eac9f6cb7684e9198d2cd2d5edf1509888e8cc274a4436fd3137f140",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": null,
+        "path": null,
+        "review_id": "auth",
+        "severity": "info",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": null, \"message\": \"the session token is written to the debug log\", \"path\": null, \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"info\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_ke...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-path-only",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": null,
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2a135331070066564a7037272b4a4e3d086c30f27b4f3721ea4047c9667a76eb3f6e4d6f22ba32a57deb1e9d96ec31a03e3e9212616ac86816363399f02bc107"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a path without a line",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:fd400232ee889bc3b226d2d890d547161e36bfd9aa0149be2ed7c2b916cbd3d7",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": null,
+        "path": "src/auth/login.py",
+        "review_id": "auth",
+        "severity": "high",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": null, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vect...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-pinned",
+      "input": {
+        "value": {
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a finding under the pinned key",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:a67e45fbfd7e877fa45223aa5fde7a84133cc5801be0b3d98020d4671164f97f",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": 42,
+        "path": "src/auth/login.py",
+        "review_id": "auth",
+        "severity": "high",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": nul...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-reviewers",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": [
+            "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ]
+        }
+      },
+      "intent": "a finding signed by a reviewer of the Review",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:a67e45fbfd7e877fa45223aa5fde7a84133cc5801be0b3d98020d4671164f97f",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": 42,
+        "path": "src/auth/login.py",
+        "review_id": "auth",
+        "severity": "high",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-run",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": "run:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "5530066ecbf1834ab57590abaf50dcccc2fc01f16ffe96cefd249f11f8e18dfabd6356bda1ea4638144525ceec628b53232a9c23753a8e3a121b63e26d8aa80e"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "the reviewer recorded its run",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:828dc8541369104d16ef24673752b9ea88a0b7e6a0c2a5b57d9e9b4869ffdce2",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": 42,
+        "path": "src/auth/login.py",
+        "review_id": "auth",
+        "severity": "high",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": \"run:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-finding.valid-tofu",
+      "input": {
+        "value": {
+          "public_key": null,
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "a finding resting on its embedded key",
+      "op": "review-finding.verify",
+      "output": {
+        "digest": "blob:sha256:a67e45fbfd7e877fa45223aa5fde7a84133cc5801be0b3d98020d4671164f97f",
+        "finding_id": "rf-0a1b2c3d4e5f",
+        "line": 42,
+        "path": "src/auth/login.py",
+        "review_id": "auth",
+        "severity": "high",
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": null, \"severity\": \"high\", \"signature\": {\"alg\": \"ed25519\", \"key_id...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-finding.wrong-pinned-key",
+      "input": {
+        "value": {
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "created_at": "2026-11-09T00:00:00Z",
+            "finding_id": "rf-0a1b2c3d4e5f",
+            "finding_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-finding",
+            "line": {
+              "$i": "42"
+            },
+            "message": "the session token is written to the debug log",
+            "path": "src/auth/login.py",
+            "review_id": "auth",
+            "reviewer": "security-0",
+            "run": null,
+            "severity": "high",
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2859542ba395247559f673e9e8ff62eb7937896448d68ae19b2811d9c72226baea475e148dd2b756231113ab12dc35cf47ea89b39d9eee975b7b23919b3bf003"
+            }
+          },
+          "reviewers": []
+        }
+      },
+      "intent": "signed by a key other than the pinned one",
+      "op": "review-finding.verify",
+      "profile": "verifier",
+      "reason": "review-finding.wrong-key",
+      "section": "4.25",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"created_at\": \"2026-11-09T00:00:00Z\", \"finding_id\": \"rf-0a1b2c3d4e5f\", \"finding_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-finding\", \"line\": {\"$i\": \"42\"}, \"message\": \"the session token is written to the debug log\", \"path\": \"src/auth/login.py\", \"review_id\": \"auth\", \"reviewer\": \"security-0\", \"run\": nul...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    }
+  ],
+  "family": "review-finding",
+  "section": "4.25",
+  "suite_version": 1
+}

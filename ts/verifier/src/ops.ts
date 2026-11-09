@@ -22,6 +22,7 @@ import { checkGitObject } from "./gitobject.js";
 import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 import { verifyForgeClaim } from "./forgeclaim.js";
 import { verifyForgeCheck } from "./forgecheck.js";
+import { verifyReviewFinding } from "./finding.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -290,6 +291,12 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const key = value.get("public_key");
       const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
       return verifyMemory(value.get("record") as JValue, pinned, (value.get("team") ?? []) as JValue);
+    }
+    case "review-finding.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyReviewFinding(value.get("record") as JValue, pinned, (value.get("reviewers") ?? []) as JValue);
     }
     case "forge-claim.verify": {
       const value = valueOf(input) as JObject;

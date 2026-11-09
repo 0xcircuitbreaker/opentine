@@ -691,7 +691,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.
 
 ## CLI Reference
 
-`tine` ships 118 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 119 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -1192,13 +1192,12 @@ Reference:
 
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
-- [conformance/](docs/conformance/README.md): 1034 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
+- [conformance/](docs/conformance/README.md): 1055 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
 - [PLUGINS.md](docs/PLUGINS.md): the entry-point plugin API, its loading rules and allow-list, and `tine experts`.
 - [PROJECTS.md](docs/PROJECTS.md): project manifests, mirror-state host statements, the git object check and the `tine serve` project routes.
-- [FORGES.md](docs/FORGES.md): `tine forge publish`, PR checks, statuses and comments on GitHub, GitLab, Forgejo and Entire, and the least-privilege token scopes each needs.
 - [PROMPTS_AND_MEMORY.md](docs/PROMPTS_AND_MEMORY.md): the signed prompt registry, team memory in MCP `recall`, `tine eval ci` and MCP tasks.
 - [EVENTS.md](docs/EVENTS.md): `tine watch`, the remote's SSE event stream, and signed webhooks with a 20-line verifier.
 - [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.

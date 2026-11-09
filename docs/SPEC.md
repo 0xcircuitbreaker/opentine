@@ -2526,6 +2526,44 @@ bundle completely before linking it. The comment text is built from the
 record alone (counts, fixed words, validated paths, the URL and digest), so no
 run content, environment variable or token reaches a forge.
 
+<a id="s-4.25"></a>
+## 4.25 `opentine.review-finding` — signed review findings (0.48.0+)
+
+`tine review run` runs reviewer harnesses through a fleet (§4.11) on a change
+and turns each finding one of them reports into one record: a JSON object with
+exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.review-finding"` |
+| `finding_version` | `1` |
+| `review_id` | the Review's id (§4.20) |
+| `finding_id` | `^[a-z0-9][a-z0-9._-]{0,63}$`; the id of the finding row that lists it in the Review |
+| `severity` | `info`, `low`, `medium`, `high` or `critical` (as a Review finding's) |
+| `path` | a repository-relative POSIX path, `^[A-Za-z0-9_.@+-][A-Za-z0-9_.@+/ -]{0,1023}$` with no empty, `.` or `..` part, or `null` |
+| `line` | an integer from 1 to 2^31-1 when `path` is not `null`, else `null` (a path may also stand without a line) |
+| `message` | 1 to 1024 UTF-8 bytes of text without control characters, not only whitespace |
+| `reviewer` | a name (as in §4.14's `actor`): the fleet member that found it |
+| `run` | the reviewer's `run` oid, or `null` |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` Ed25519 block over `b"opentine.review-finding.v1:"` + JCS(`{"body", "header"}`) |
+
+Its digest is the `blob` oid of its canonical JSON bytes. A verifier refuses,
+in order: `review-finding.malformed`; `review-finding.unsigned`;
+`review-finding.wrong-key` (not Ed25519, or not the pinned key);
+`review-finding.bad-signature`; and, given the Review's reviewers (a set of
+Ed25519 public keys), `review-finding.untrusted-signer`. It returns
+`{review_id, finding_id, severity, path, line, digest, signer, state}`, state
+`verified` under a pinned key or the reviewers and `verified-tofu` otherwise.
+
+`tine review run` signs every finding with the key that runs it (a reviewer of
+the head version), keeps them in `.tine/review-findings/<review_id>.json` (local
+state, not a ref), and signs the Review's next version listing each one as an
+open finding with the same `finding_id` (`rf-` + the first 12 hex digits of the
+digest of the finding as built with `finding_id` `"rf-pending"`), so a critical
+finding blocks an approval (§4.20). A finding's message is redacted before it
+is signed. Vectors: `74-review-finding.json` (op `review-finding.verify`).
+
 ---
 
 <a id="part-5"></a>
@@ -3918,7 +3956,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`. No existing byte format changed. |
+| 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`.; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine graph`, `tine-graph/1`). This is the last object kind added before 1.0. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |

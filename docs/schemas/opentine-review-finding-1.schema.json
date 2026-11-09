@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-review-finding-1.schema.json",
+  "title": "opentine.review-finding (finding_version 1)",
+  "description": "One reviewer's finding on a Review (SPEC 4.25), as `tine review run` signs it: the review and finding ids, severity, an optional repository-relative path and 1-based line, the message, the reviewer (fleet member) and its run. `signature` is an Ed25519 tine-sig/3 block over `opentine.review-finding.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "finding_version",
+    "review_id",
+    "finding_id",
+    "severity",
+    "path",
+    "line",
+    "message",
+    "reviewer",
+    "run",
+    "created_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.review-finding"
+    },
+    "finding_version": {
+      "const": 1
+    },
+    "review_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "finding_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "severity": {
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "path": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "line": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "reviewer": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+    },
+    "run": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

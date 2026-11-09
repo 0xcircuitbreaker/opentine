@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-graph-1.schema.json",
+  "title": "tine graph --json",
+  "description": "The code map (`tine-graph/1`): every source file's symbols and imports, the import edges between files of the repository, and which parser produced each file (`tree-sitter` with the `graph` extra, else `regex`). The MCP `code_graph` tool returns the same document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "backend",
+    "tree_sitter",
+    "files",
+    "edges",
+    "counts"
+  ],
+  "properties": {
+    "command": {
+      "const": "graph"
+    },
+    "schema": {
+      "const": "tine-graph/1"
+    },
+    "backend": {
+      "enum": [
+        "tree-sitter",
+        "regex",
+        "mixed"
+      ]
+    },
+    "tree_sitter": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "language",
+          "backend",
+          "symbols",
+          "imports"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "language": {
+            "type": "string"
+          },
+          "backend": {
+            "enum": [
+              "tree-sitter",
+              "regex"
+            ]
+          },
+          "symbols": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "kind",
+                "line",
+                "parent"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "class",
+                    "function",
+                    "method",
+                    "type"
+                  ]
+                },
+                "line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "parent": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "imports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "files",
+        "symbols",
+        "edges"
+      ],
+      "properties": {
+        "files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "symbols": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edges": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

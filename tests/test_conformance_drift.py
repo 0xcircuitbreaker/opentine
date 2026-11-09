@@ -122,6 +122,7 @@ EXPECTED_COUNTS = {
     "vectors/70-review.json": (40, 31),
     "vectors/71-prompt.json": (24, 18),
     "vectors/69-memory.json": (18, 12),
+    "vectors/74-review-finding.json": (21, 15),
     "vectors/99-repair.json": (14, 14),
 }
 

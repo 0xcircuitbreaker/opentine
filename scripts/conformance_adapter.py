@@ -161,6 +161,14 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("no key for", "merge-approval.no-key"),
         ("trusted key", "merge-approval.wrong-key"),
     ),
+    "review-finding.verify": (
+        ("review finding is malformed", "review-finding.malformed"),
+        ("review finding is unsigned", "review-finding.unsigned"),
+        ("review finding signature", "review-finding.bad-signature"),
+        ("signed with an Ed25519 key", "review-finding.wrong-key"),
+        ("trusted key", "review-finding.wrong-key"),
+        ("not a reviewer", "review-finding.untrusted-signer"),
+    ),
     "forge-claim.verify": (
         ("no forge claim", "forge-claim.missing"),
         ("forge claim is malformed", "forge-claim.malformed"),

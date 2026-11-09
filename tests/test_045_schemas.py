@@ -243,6 +243,7 @@ DRIVEN = (
         + ("--repo", "repo", "--dry-run", "--json"),
         "tine-cli-forge-1",
     ),
+    (("graph", "--repo", "repo", "--json"), "tine-graph-1"),  # 0.48
 )
 
 
