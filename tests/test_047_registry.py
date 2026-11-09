@@ -1,6 +1,6 @@
 """0.47: the prompt registry and team memory (SPEC 4.21, 4.22).
 
-The 68-prompt and 69-memory families agree in Python and the pyz (the TS
+The 71-prompt and 69-memory families agree in Python and the pyz (the TS
 verifier runs them in ``ts/verifier``'s conformance test); ``tine prompt``
 keeps a signed chain whose labels move and whose versions never do, and links a
 version to a run; ``tine memory`` refuses a secret, keeps a hex digest, and
@@ -60,8 +60,8 @@ def _answer(verifier: str, op: str, value: dict):
 
 
 @pytest.mark.parametrize("verifier", ["python", "pyz"])
-@pytest.mark.parametrize(("family", "count"), [("68-prompt.json", 24), ("69-memory.json", 18)])
-def test_the_68_and_69_families_agree_in_python_and_the_pyz(verifier, family, count):
+@pytest.mark.parametrize(("family", "count"), [("71-prompt.json", 24), ("69-memory.json", 18)])
+def test_the_71_and_69_families_agree_in_python_and_the_pyz(verifier, family, count):
     cases = _cases(family)
     assert len(cases) == count
     for case in cases:
@@ -75,7 +75,7 @@ def test_the_68_and_69_families_agree_in_python_and_the_pyz(verifier, family, co
 
 
 def test_the_record_schemas_hold_the_accepted_vectors():
-    for name in ("68-prompt.json", "69-memory.json"):
+    for name in ("71-prompt.json", "69-memory.json"):
         for case in _cases(name):
             if case["expect"] == "accept":
                 record = tagged.decode(case["input"]["value"])["record"]
@@ -85,7 +85,7 @@ def test_the_record_schemas_hold_the_accepted_vectors():
 
 def test_the_built_pyz_checks_a_prompt_history_and_a_memory_note(tmp_path):
     cases = {c["id"]: tagged.decode(c["input"]["value"]) for c in
-             _cases("68-prompt.json") + _cases("69-memory.json")}  # fmt: skip
+             _cases("71-prompt.json") + _cases("69-memory.json")}  # fmt: skip
     history = tmp_path / "history.json"
     first, second = cases["prompt.valid-first"]["record"], cases["prompt.valid-next"]["record"]
     history.write_text(json.dumps({"versions": [first, second]}))

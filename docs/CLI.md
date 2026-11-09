@@ -1271,7 +1271,7 @@ team file, no fetched note is accepted) and sit under its own digest's ref, and 
 prompt history must chain onto the local one. A prompt history that diverged
 is listed in `conflicts` and never merged or overwritten. `python
 tine-verify.pyz FILE.json [--pubkey K]` checks a prompt version, a history
-(`{"versions": [...]}`) or a note offline; the `68-prompt.json` and
+(`{"versions": [...]}`) or a note offline; the `71-prompt.json` and
 `69-memory.json` conformance families pin Python, the TS verifier and the pyz.
 See [PROMPTS_AND_MEMORY.md](PROMPTS_AND_MEMORY.md).
 ## Plugins and experts: `tine plugins`, `tine experts` (0.47)
