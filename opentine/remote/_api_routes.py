@@ -3,8 +3,8 @@
 Every route :class:`opentine.remote.app.RemoteApp` dispatches is listed here,
 with the capability key that advertises it in ``GET /v1/capabilities``
 (``None`` for the core protocol) and its status: ``stable`` routes are served
-by this build; ``planned`` routes are reserved shapes the hosted web app needs
-and are served only once their capability is advertised.
+by this build; ``planned`` routes (none since 0.46.1) are reserved shapes the
+hosted web app needs and are served only once their capability is advertised.
 ``tests/test_api_v1_openapi.py`` probes the live app with every entry, so the
 table, the spec and the dispatcher cannot drift apart.
 
@@ -117,14 +117,17 @@ ROUTES: tuple[Route, ...] = (
           "Store a client-signed tombstone; for a held blob, purge it (admin)",
           "tombstones", "stable", "upload", "Tombstone",
           (("201", "TombstoneStored"), ("400", "Error"), *_ERR)),
-    # Reserved for opentine-web projects (ROADMAP 0.46.0, §11); served once advertised.
-    Route("GET", T + "/project", "getProject", "The opentine-project/1 manifest",
-          "project", "planned", "read_ref", None, (("200", OBJECT), *_ERR)),
-    Route("GET", T + "/project/history", "projectHistory", "Every logged manifest version",
-          "project", "planned", "read_ref", None, (("200", "ProjectHistory"), *_ERR)),
-    Route("POST", T + "/project", "updateProject", "CAS project/manifest to a client-signed one",
-          "project", "planned", "update_ref", "ProjectUpdate",
-          (("200", "Updated"), ("409", "Updated"), ("400", "Error"), *_ERR)),
+    # 0.46.1 projects (ROADMAP §11): the manifest only; tine serve stores no code.
+    Route("GET", T + "/project", "getProject", "The current opentine.project manifest",
+          "project", "stable", "read_ref", None, (("200", "Project"), *_ERR)),
+    Route("GET", T + "/project/history", "projectHistory", "Manifest versions, oldest first, paged",
+          "project", "stable", "read_ref", None,
+          (("200", "ProjectHistory"), ("400", "Error"), *_ERR)),
+    Route("PUT", T + "/project", "updateProject", "CAS project/manifest to a client-signed version",
+          "project", "stable", "update_ref", "ProjectUpdate",
+          (("200", "ProjectUpdated"), ("409", "ProjectUpdated"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/social", "socialCounts", "Count-only stars and watches (self-host parity)",
+          "social_export", "stable", "read_ref", None, (("200", "SocialCounts"), *_ERR)),
 )  # fmt: skip
 
 

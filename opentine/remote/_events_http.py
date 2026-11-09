@@ -146,6 +146,12 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         from opentine.remote._tombstone_http import tombstone_routes
 
         return tombstone_routes(app, identity, tenant, resource, method, environ, sr)
+    if resource in ("project", "project/history", "social"):  # 0.46.1 (``_project_http``)
+        from opentine.remote._project_http import project_routes
+
+        found = project_routes(app, identity, tenant, resource, method, environ, sr)
+        if found is not None:
+            return found
     return app._json_response(sr, "404 Not Found", {"error": "not found"})
 
 

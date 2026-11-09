@@ -691,7 +691,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.
 
 ## CLI Reference
 
-`tine` ships 108 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 109 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
@@ -1192,10 +1192,11 @@ Reference:
 
 - [CHANGELOG.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/CHANGELOG.md): release-level changes and compatibility.
 - [SPEC.md](docs/SPEC.md): the normative, byte-level format specification — written for someone implementing a reader, writer or verifier in another language.
-- [conformance/](docs/conformance/README.md): 815 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
+- [conformance/](docs/conformance/README.md): 868 runnable conformance vectors for that specification, language-neutral, with a stdlib-only runner and an ~80-line adapter contract.
 - [TINE_FORMAT.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/TINE_FORMAT.md): portable v2 and repository v3 boundaries.
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
+- [PROJECTS.md](docs/PROJECTS.md): project manifests, mirror-state host statements, the git object check and the `tine serve` project routes.
 - [EVENTS.md](docs/EVENTS.md): `tine watch`, the remote's SSE event stream, and signed webhooks with a 20-line verifier.
 - [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
 - [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.0/docs/RELEASING.md): trusted publication and release verification.

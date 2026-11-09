@@ -124,6 +124,25 @@ DRIVEN = (
         ("hook", "resume", "--agent", "codex", "--session", "s1", "--message", "go", "--dry-run"),
         "tine-cli-hook-resume-1",
     ),
+    (
+        (
+            "project",
+            "init",
+            "demo",
+            "--tenant",
+            "acme",
+            "--forge",
+            "github",
+            "--url",
+            "https://github.com/example/app.git",
+            "--ed25519-key-file",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-project-1",
+    ),  # fmt: skip
 )
 
 

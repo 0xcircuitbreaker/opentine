@@ -38,6 +38,8 @@ def check_move(
 ) -> tuple[str, bool]:
     """``(normalized name, whether it is a forced rewrite)``; raises when refused."""
     name = normalize_ref(name)
+    if name.startswith("project/"):  # 0.46: owner-signed, chained: only PUT project moves it
+        raise ValueError("project/manifest moves only through the project route (caps.project)")
     extra = ref_permission(name, expected_old)
     if extra:  # promotions/*, or moving an existing tags/* ref (_ref_policy)
         service._authorize(identity, extra, tenant)

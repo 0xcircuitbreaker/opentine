@@ -97,7 +97,32 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("redacted exceeds objects", "redacted-copy.inconsistent"),
         ("run oids must be equal", "redacted-copy.inconsistent"),
     ),
+    "project.verify": (
+        ("breaks the project chain", "project.chain-break"),
+        ("project manifest is malformed", "project.malformed"),
+        ("private upstream", "project.private-upstream"),
+        ("plaintext locator", "project.plaintext-locator"),
+        ("manifest is unsigned", "project.unsigned"),
+        ("manifest signature", "project.bad-signature"),
+        ("Ed25519 key", "project.wrong-signer"),
+        ("not signed by", "project.wrong-signer"),
+    ),
+    "mirror-state.verify": (
+        ("mirror state is malformed", "mirror-state.malformed"),
+        ("mirror state is unsigned", "mirror-state.unsigned"),
+        ("mirror state signature", "mirror-state.bad-signature"),
+        ("signed by a project owner", "mirror-state.user-signed"),
+        ("host key", "mirror-state.wrong-key"),
+        ("trusted key", "mirror-state.wrong-key"),
+        ("unknown mirror reason", "mirror-state.unknown-reason"),
+        ("do not explain status", "mirror-state.inconsistent"),
+    ),
+    "git-object.check": (
+        ("git object is malformed", "git-object.malformed"),
+        ("do not hash to", "git-object.mismatch"),
+    ),
 }
+_OP_CODES["project.chain"] = _OP_CODES["project.verify"]
 
 #: message fragment -> code, longest fragment wins.
 _CODES: tuple[tuple[str, str], ...] = (

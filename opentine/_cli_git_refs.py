@@ -44,11 +44,9 @@ def cmd_remote(args: argparse.Namespace, console) -> None:
         if name in remotes:
             raise ValueError(f"remote {name!r} already exists; `tine remote rm {name}` first")
         entry: dict[str, Any] = {"url": porcelain.check_url(args.url)}
-        if args.tenant:
-            entry["tenant"] = args.tenant
-        if args.token_file:
-            # Only the *path* is stored; the token is read at use time.
-            entry["token_file"] = args.token_file
+        for field in ("tenant", "token_file", "project"):  # a token's *path*, read at use
+            if getattr(args, field, None):  # project: 0.46.1, pins the remote's project_id
+                entry[field] = getattr(args, field)
         remotes[name] = entry
     elif action in ("rm", "remove"):
         if remotes.pop(args.name, None) is None:

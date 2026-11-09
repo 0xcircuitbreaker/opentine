@@ -79,10 +79,10 @@ def _validated(value: Any) -> dict[str, Any]:
         raise ValueError(f"{FILE_NAME} has an unexpected shape")
     for name, remote in remotes.items():
         check_remote_name(name)
-        if not isinstance(remote, dict) or set(remote) - {"url", "tenant", "token_file"}:
+        if not isinstance(remote, dict) or set(remote) - {"url", "tenant", "token_file", "project"}:
             raise ValueError(f"remote {name!r} has an unexpected shape")
         check_url(remote.get("url"))
-        for field in ("tenant", "token_file"):
+        for field in ("tenant", "token_file", "project"):
             if remote.get(field) is not None and not _short_text(remote[field]):
                 raise ValueError(f"remote {name!r} has an invalid {field}")
     for key, item in config.items():

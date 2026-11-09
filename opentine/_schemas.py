@@ -27,6 +27,9 @@ from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
+from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
+from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
+from opentine._schema_defs_project import SCHEMAS as _PROJECT
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
@@ -44,6 +47,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_SHARE,
     **_CI,
     **_HOOK,
+    **_PROJECT,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -51,8 +55,9 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_HOSTED_COMMANDS,
     **_SHARE_COMMANDS,
     **_HOOK_COMMANDS,
+    **_PROJECT_COMMANDS,
 }
-KIND_SCHEMAS: dict[str, str] = {**_REDACT_KINDS, **_SHARE_KINDS, **_CI_KINDS}
+KIND_SCHEMAS: dict[str, str] = {**_REDACT_KINDS, **_SHARE_KINDS, **_CI_KINDS, **_PROJECT_KINDS}
 ENVELOPE = "tine-cli-envelope-1"
 #: Keys a document names its own format with, in the order they are tried.
 TAG_KEYS = ("schema", "scheme", "format", "protocol")

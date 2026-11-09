@@ -1061,6 +1061,56 @@ redacted-copy record offline (modes `tombstone`, `redacted-copy`); the
 `63-tombstone.json` and `64-redacted-copy.json` conformance families pin
 Python, the TS verifier and the pyz.
 
+## Projects: `tine project` (0.46)
+
+```
+tine project init ID --tenant T --forge F --url URL --ed25519-key-file K
+                  [--forge-repo-id X] [--default-branch B] [--visibility public|private]
+                  [--upstream-visibility public|private] [--owner HEX]... [--forked-from ID]
+                  [--key-id ID] [--json] [--repo R]
+tine project link [--role primary|secondary] --forge F --url URL --ed25519-key-file K [...]
+tine project show|history [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
+tine project verify [--remote R] [--owner-key HEX] [--json] [--repo R]
+tine project push [--remote R] [--json] [--repo R]
+tine remote add NAME URL [--tenant T] [--token-file P] [--project ID]
+```
+
+A project binds this run repository to the code repositories it is linked to,
+through a signed, hash-chained `opentine.project` manifest (SPEC 4.16) kept
+under the `project/manifest` ref. `init` writes the first version, signed by
+the `--ed25519-key-file` key, which becomes its first owner (`--owner` adds
+more). `link` signs the next version with a slot set: `--role primary`
+replaces the primary slot, `--role secondary` adds or replaces the secondary.
+`--forge` is `github`, `gitlab`, `forgejo`, `git` or `entire`;
+`--forge-repo-id` is the forge's own id where it has one (never for `git`). A
+public project may not reference a private upstream (`project.private-upstream`).
+A private project (`--visibility private`) names each upstream by a salted
+commitment, never its URL: the URL and salt stay in
+`.tine/project-locators.json`, which is never pushed, bundled or served. Every
+version must be signed by an owner of the version before it; a version that
+does not chain, or is signed by anyone else, is refused (exit 4) and the ref
+does not move.
+
+`show` prints the current version, `history` every version oldest first, and
+`verify` checks every signature and chain link (`--owner-key` pins the first
+owner; without it the first version rests on trust on first use,
+`verified-tofu`); a failure exits 4 with its `project.*` code. With `--remote`
+they read the remote's `caps.project` routes (SPEC 8.18) instead, and refuse a
+remote whose project is not the one `tine remote add --project ID` pinned.
+`push` sends each version the remote lacks with `PUT project`, a
+compare-and-swap on the remote's head; the remote checks the chain and the
+owner's signature, stores the manifest exactly as signed, logs the move in its
+transparency log, and never signs one. `--json` follows `tine-cli-project-1`.
+
+`tine serve` stores no code and offers no mirror: the code mirror, its sync
+worker and its `opentine.mirror-state` host statements (SPEC 4.17) are
+opentine-web services. `python tine-verify.pyz FILE.json [--pubkey K]` checks a
+manifest, a history (`tine project history --json` output) or a mirror state
+offline; a mirror state never passes (verdict `host-statement`). The
+`65-project.json` and `66-mirror-state.json` conformance families (the git
+object check among them) pin Python, the TS verifier and the pyz. See
+[PROJECTS.md](PROJECTS.md).
+
 ## Run summaries: `tine explain` (0.42)
 
 ```

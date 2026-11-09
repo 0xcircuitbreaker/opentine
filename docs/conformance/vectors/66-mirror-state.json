@@ -1,0 +1,1142 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "git-object.bad-id",
+      "input": {
+        "value": {
+          "data_b64": "aGVsbG8K",
+          "oid": "CE013625030BA8DBA906F756967F9E9CA394464A",
+          "type": "blob"
+        }
+      },
+      "intent": "an id is 40 or 64 lowercase hex",
+      "op": "git-object.check",
+      "profile": "verifier",
+      "reason": "git-object.malformed",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"aGVsbG8K\", \"oid\": \"CE013625030BA8DBA906F756967F9E9CA394464A\", \"type\": \"blob\"}",
+      "x_reference": {
+        "exception": "GitObjectError",
+        "message": "git object is malformed: the id is 40 or 64 lowercase hex"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "git-object.blob-sha1",
+      "input": {
+        "value": {
+          "data_b64": "aGVsbG8K",
+          "oid": "ce013625030ba8dba906f756967f9e9ca394464a",
+          "type": "blob"
+        }
+      },
+      "intent": "a blob matches its SHA-1 id",
+      "op": "git-object.check",
+      "output": {
+        "label": "matches its id (checked by you)",
+        "links": [],
+        "object_format": "sha1",
+        "oid": "ce013625030ba8dba906f756967f9e9ca394464a",
+        "state": "matches",
+        "type": "blob"
+      },
+      "profile": "verifier",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"aGVsbG8K\", \"oid\": \"ce013625030ba8dba906f756967f9e9ca394464a\", \"type\": \"blob\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "git-object.commit-sha1",
+      "input": {
+        "value": {
+          "data_b64": "dHJlZSAyZTgxMTcxNDQ4ZWI5ZjJlZTM4MjFlM2Q0NDdhYTZiMmZlM2RkYmExCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=",
+          "oid": "63f8b0a5675c422d4a97b4773da58c1720c7a95b",
+          "type": "commit"
+        }
+      },
+      "intent": "a commit matches and links its tree",
+      "op": "git-object.check",
+      "output": {
+        "label": "matches its id (checked by you)",
+        "links": [
+          "2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1"
+        ],
+        "object_format": "sha1",
+        "oid": "63f8b0a5675c422d4a97b4773da58c1720c7a95b",
+        "state": "matches",
+        "type": "commit"
+      },
+      "profile": "verifier",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"dHJlZSAyZTgxMTcxNDQ4ZWI5ZjJlZTM4MjFlM2Q0NDdhYTZiMmZlM2RkYmExCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=\", \"oid\": \"63f8b0a5675c422d4a97b4773da58c1720c7a95b\", \"type\": \"commit\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "git-object.commit-sha256",
+      "input": {
+        "value": {
+          "data_b64": "dHJlZSAzNzFhYWM0NWMzYmE0MDFkMTNjMmNlOThjOTUzN2I0ZTUzYzYwNDliOTUwYmY4YTMzY2JjNDAwNzEyZDlmNGZhCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=",
+          "oid": "2ea1734db8545be670a0c06157dfd6934869f2f9ec10cbff8be35e9038375328",
+          "type": "commit"
+        }
+      },
+      "intent": "a commit matches its SHA-256 id",
+      "op": "git-object.check",
+      "output": {
+        "label": "matches its id (checked by you)",
+        "links": [
+          "371aac45c3ba401d13c2ce98c9537b4e53c6049b950bf8a33cbc400712d9f4fa"
+        ],
+        "object_format": "sha256",
+        "oid": "2ea1734db8545be670a0c06157dfd6934869f2f9ec10cbff8be35e9038375328",
+        "state": "matches",
+        "type": "commit"
+      },
+      "profile": "verifier",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"dHJlZSAzNzFhYWM0NWMzYmE0MDFkMTNjMmNlOThjOTUzN2I0ZTUzYzYwNDliOTUwYmY4YTMzY2JjNDAwNzEyZDlmNGZhCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=\", \"oid\": \"2ea1734db8545be670a0c06157dfd6934869f2f9ec10cbff8be35e9038375328\", \"type\": \"commit\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "git-object.one-byte",
+      "input": {
+        "value": {
+          "data_b64": "aGVsbHAK",
+          "oid": "ce013625030ba8dba906f756967f9e9ca394464a",
+          "type": "blob"
+        }
+      },
+      "intent": "one changed byte is a mismatch",
+      "op": "git-object.check",
+      "profile": "verifier",
+      "reason": "git-object.mismatch",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"aGVsbHAK\", \"oid\": \"ce013625030ba8dba906f756967f9e9ca394464a\", \"type\": \"blob\"}",
+      "x_reference": {
+        "exception": "GitObjectError",
+        "message": "the bytes do not hash to blob ce013625030ba8dba906f756967f9e9ca394464a"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "git-object.sha1-links-in-sha256",
+      "input": {
+        "value": {
+          "data_b64": "dHJlZSAyZTgxMTcxNDQ4ZWI5ZjJlZTM4MjFlM2Q0NDdhYTZiMmZlM2RkYmExCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=",
+          "oid": "86f8bcc53bb04fcac7312dda9644f50b5a174a44426effc8dc60bbe7799df594",
+          "type": "commit"
+        }
+      },
+      "intent": "a sha256 commit cannot link a sha1 tree",
+      "op": "git-object.check",
+      "profile": "verifier",
+      "reason": "git-object.malformed",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"dHJlZSAyZTgxMTcxNDQ4ZWI5ZjJlZTM4MjFlM2Q0NDdhYTZiMmZlM2RkYmExCmF1dGhvciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCmNvbW1pdHRlciB0IDx0QGV4YW1wbGUuY29tPiAwICswMDAwCgpmaXJzdAo=\", \"oid\": \"86f8bcc53bb04fcac7312dda9644f50b5a174a44426effc8dc60bbe7799df594\", \"type\": \"commit\"}",
+      "x_reference": {
+        "exception": "GitObjectError",
+        "message": "git object is malformed: a commit links sha256 ids"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "git-object.tree-sha1",
+      "input": {
+        "value": {
+          "data_b64": "MTAwNjQ0IGEudHh0AM4BNiUDC6jbqQb3VpZ/npyjlEZK",
+          "oid": "2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1",
+          "type": "tree"
+        }
+      },
+      "intent": "a tree matches and links its entry",
+      "op": "git-object.check",
+      "output": {
+        "label": "matches its id (checked by you)",
+        "links": [
+          "ce013625030ba8dba906f756967f9e9ca394464a"
+        ],
+        "object_format": "sha1",
+        "oid": "2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1",
+        "state": "matches",
+        "type": "tree"
+      },
+      "profile": "verifier",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"MTAwNjQ0IGEudHh0AM4BNiUDC6jbqQb3VpZ/npyjlEZK\", \"oid\": \"2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1\", \"type\": \"tree\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "git-object.tree-sha256",
+      "input": {
+        "value": {
+          "data_b64": "MTAwNjQ0IGEudHh0ACz42D2e4pVDs0qHcnQh/ey34/Ohg9M3Y5Al3ldtueu0",
+          "oid": "371aac45c3ba401d13c2ce98c9537b4e53c6049b950bf8a33cbc400712d9f4fa",
+          "type": "tree"
+        }
+      },
+      "intent": "a tree matches its SHA-256 id",
+      "op": "git-object.check",
+      "output": {
+        "label": "matches its id (checked by you)",
+        "links": [
+          "2cf8d83d9ee29543b34a87727421fdecb7e3f3a183d337639025de576db9ebb4"
+        ],
+        "object_format": "sha256",
+        "oid": "371aac45c3ba401d13c2ce98c9537b4e53c6049b950bf8a33cbc400712d9f4fa",
+        "state": "matches",
+        "type": "tree"
+      },
+      "profile": "verifier",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"MTAwNjQ0IGEudHh0ACz42D2e4pVDs0qHcnQh/ey34/Ohg9M3Y5Al3ldtueu0\", \"oid\": \"371aac45c3ba401d13c2ce98c9537b4e53c6049b950bf8a33cbc400712d9f4fa\", \"type\": \"tree\"}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "git-object.wrong-type",
+      "input": {
+        "value": {
+          "data_b64": "aGVsbG8K",
+          "oid": "ce013625030ba8dba906f756967f9e9ca394464a",
+          "type": "tree"
+        }
+      },
+      "intent": "the same bytes under another type",
+      "op": "git-object.check",
+      "profile": "verifier",
+      "reason": "git-object.mismatch",
+      "section": "4.18",
+      "tier": "core",
+      "x_display": "{\"data_b64\": \"aGVsbG8K\", \"oid\": \"ce013625030ba8dba906f756967f9e9ca394464a\", \"type\": \"tree\"}",
+      "x_reference": {
+        "exception": "GitObjectError",
+        "message": "the bytes do not hash to tree ce013625030ba8dba906f756967f9e9ca394464a"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.failed",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.upstream-unreachable"
+            ],
+            "refs": {},
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "385477ff975c5f968c40196ddaf59a5d9888efb809185135336e4ec9844955b68e532760b8e42e4825c6fa69df16b84edcc57f3e841af01cd252709ccd413a0e"
+            },
+            "slot": "primary",
+            "status": "failed",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a failed sync names why the upstream is unavailable",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [
+          "mirror.upstream-unreachable"
+        ],
+        "refs": 0,
+        "slot": "primary",
+        "state": "host-statement",
+        "status": "failed",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.u...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.host-statement",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "37268647bfa17be9d5960e633c36e4885b2512aa39aa96920752918d6112a1a78590e0921cf9582888356ff9c6257dc54544ecc146c7ed6fff27bc69f433bf0a"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a synced state under the pinned host key: never a pass",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [],
+        "refs": 2,
+        "slot": "primary",
+        "state": "host-statement",
+        "status": "synced",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.host-statement-tofu",
+      "input": {
+        "value": {
+          "host_key": null,
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "37268647bfa17be9d5960e633c36e4885b2512aa39aa96920752918d6112a1a78590e0921cf9582888356ff9c6257dc54544ecc146c7ed6fff27bc69f433bf0a"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "with no host key it rests on its embedded key",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [],
+        "refs": 2,
+        "slot": "primary",
+        "state": "host-statement-tofu",
+        "status": "synced",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": null, \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\": {\"refs/heads/main\": \"4b825dc642cb6eb9a060e54bf8d69288fbee490...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.pass-status",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "718a2d966690f1ca762470f187b5e1eddb9f993208e97d2fb07c7f54bb042f0e46a862aa08f5f2554f2c5a7dd8b0d652d1c4649924789fe63055ec3379ef6008"
+            },
+            "slot": "primary",
+            "status": "verified",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "there is no pass status for a host to claim",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.malformed",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "mirror state is malformed: status is one of synced, stale, failed, paused"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.paused",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.limit-exceeded"
+            ],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "d24d57122dd2c68245d26f9fc0b44dc78d9c8dcb41b048ad1b7cc44c39f6504762818af9986335fe51f061da8625f9840ec1c678ffba910ea17e1bcf13305501"
+            },
+            "slot": "primary",
+            "status": "paused",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a mirror over its limit stops advancing",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [
+          "mirror.limit-exceeded"
+        ],
+        "refs": 2,
+        "slot": "primary",
+        "state": "host-statement",
+        "status": "paused",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.l...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.sha256-refs",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha256",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "a765e74f1bb713db33e4d7741b84de39df33863d1584cb8956f8bd42425a6f63c216f02726925c167d348e8a6d2621d51f0d94d98569780e486927ed5449720c"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a sha256 upstream records 64-hex commit ids",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [],
+        "refs": 1,
+        "slot": "primary",
+        "state": "host-statement",
+        "status": "synced",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha256\", \"project_id\": \"app\", \"reasons\": [], \"ref...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "mirror-state.stale",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.stale",
+              "mirror.upstream-unverifiable"
+            ],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "c02d1ba1f07b0ed1a393870fb00cbc60da9c1b6d55b7307028065cdf6573b224f4e2e41caacb5b92fc31bcf16d840ad550637160b9a1d80d9b6d7046e8700e01"
+            },
+            "slot": "primary",
+            "status": "stale",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a stale mirror says so with mirror.stale",
+      "op": "mirror-state.verify",
+      "output": {
+        "label": "host statement, not verified by you",
+        "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+        "project_id": "app",
+        "reasons": [
+          "mirror.stale",
+          "mirror.upstream-unverifiable"
+        ],
+        "refs": 2,
+        "slot": "primary",
+        "state": "host-statement",
+        "status": "stale",
+        "synced_at": "2026-11-08T00:00:00Z"
+      },
+      "profile": "verifier",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.s...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.stale-without-reason",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "6d855648d8fdda462e401fd24a56b9bd6712a078f69b3e12b8305b85ddfaaeed93e2e09343f1289f6c3b6ebd6c6e11e1d4e2cf7501f7580329495db173616808"
+            },
+            "slot": "primary",
+            "status": "stale",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "stale needs mirror.stale",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.inconsistent",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the reasons do not explain status stale"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.synced-but-unreachable",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.upstream-unreachable"
+            ],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "2c4052b450b6ce8ca1ff28962d927d05799d1f8db2436c007af8f390bad9dff5c0b159d3ad5938f934a7edb9b6ab5fb3ef8accef4693e274d67c4a562e5b7501"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "synced contradicts an unavailable upstream",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.inconsistent",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.u...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the reasons do not explain status synced"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.tampered-ref",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "cccccccccccccccccccccccccccccccccccccccc"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "37268647bfa17be9d5960e633c36e4885b2512aa39aa96920752918d6112a1a78590e0921cf9582888356ff9c6257dc54544ecc146c7ed6fff27bc69f433bf0a"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a ref moved after signing",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.bad-signature",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the mirror state signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.unknown-reason",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.stale",
+              "pass"
+            ],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "f3dbcc88665bf2cbb27c6d2a38a3ef2606ec52f909d8dae8e90b51cdb392681b115cdfda64fb51e3d2f0ae4210a97ddc97a7c0859c3ac03a2f8585bcbebf2001"
+            },
+            "slot": "primary",
+            "status": "stale",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "only the seven mirror.* codes",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.unknown-reason",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.s...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "unknown mirror reason pass"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.unsigned",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a state without a signature is refused",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.unsigned",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the mirror state is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.unsorted-reasons",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [
+              "mirror.upstream-unverifiable",
+              "mirror.stale"
+            ],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "af15395c76282034f21bd9a0ab104b27037b4220bca130e8c5cae141a633f5bcf41df25cf67ae968dd95fd58712aecd909f44cc5b35bf60b91c60e475d7ff701"
+            },
+            "slot": "primary",
+            "status": "stale",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "reasons are sorted and distinct",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.malformed",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [\"mirror.u...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "mirror state is malformed: reasons are sorted and distinct"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.user-signed",
+      "input": {
+        "value": {
+          "host_key": null,
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "68eb1d0b0b525707b6451d8671825235b343c079b8f1406ecd0095589478c5c9290b8905da1651eaab8f7902137597f9e048a277792059249920456441b30f03"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a project owner's key never signs a host statement",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.user-signed",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": null, \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\": {\"refs/heads/main\": \"4b825dc642cb6eb9a060e54bf8d69288fbee490...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a project owner, not the host key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.wrong-host-key",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+              "refs/tags/v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "670758b35d6cc08cd4110d864cdf663a3be4ddfd3083a26b048027c58c8053bb336f0e9c080b10ec379769e4a123a0a6c3895e34bb0647a75171a9c1b0828004"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "signed by a key other than the pinned host key",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.wrong-key",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "signed by a key other than the trusted key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "mirror-state.wrong-width",
+      "input": {
+        "value": {
+          "host_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+          "owners": [
+            "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+          ],
+          "state": {
+            "kind": "opentine.mirror-state",
+            "manifest": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "mirror_state_version": {
+              "$i": "1"
+            },
+            "object_format": "sha1",
+            "project_id": "app",
+            "reasons": [],
+            "refs": {
+              "refs/heads/main": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "host",
+              "public_key": "2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-08T00:00:00Z",
+              "value": "6dd82a72a4d94b8ca2af06096714f40146299d354f5274bdc07a47dd9d2c6cd0676b0b374712465759d29cb461a49d6520a003fd5007a83688887bbea4b61f0e"
+            },
+            "slot": "primary",
+            "status": "synced",
+            "synced_at": "2026-11-08T00:00:00Z",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a sha1 state holds 40-hex ids",
+      "op": "mirror-state.verify",
+      "profile": "verifier",
+      "reason": "mirror-state.malformed",
+      "section": "4.17",
+      "tier": "core",
+      "x_display": "{\"host_key\": \"2543b92ff1095511476adc8369db6ddc933665a11978dda1404ee1066ca9559d\", \"owners\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"state\": {\"kind\": \"opentine.mirror-state\", \"manifest\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"mirror_state_version\": {\"$i\": \"1\"}, \"object_format\": \"sha1\", \"project_id\": \"app\", \"reasons\": [], \"refs\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "mirror state is malformed: refs maps refs/heads/* and refs/tags/* names to commit ids"
+      }
+    }
+  ],
+  "family": "mirror-state",
+  "section": "4.17",
+  "suite_version": 1
+}

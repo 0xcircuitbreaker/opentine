@@ -10,6 +10,7 @@
 
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { hmac } from "@noble/hashes/hmac.js";
+import { sha1 } from "@noble/hashes/legacy.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 const hexOf = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -45,6 +46,7 @@ function only256(algorithm: string): void {
 }
 
 export function createHash(algorithm: string): Digest {
+  if (algorithm === "sha1") return new Digest((data) => sha1(data)); // git object ids (SPEC 4.18)
   only256(algorithm);
   return new Digest((data) => sha256(data));
 }

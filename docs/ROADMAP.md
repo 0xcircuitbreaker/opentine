@@ -668,7 +668,7 @@ Rules for this stretch:
   - Ref namespace `project/` with the single ref `project/manifest`; fsck requires an `opentine-project/1` object there.
   - Git object check in `verify-browser`: recompute sha1 (SHA-1DC) or sha256 oids and check tree and commit links. A pass reads `matches its id (checked by you)`; it says nothing about whether the upstream holds that oid.
   - Ten new `tine-verify-report/2` reason codes, including `fail:manifest-signature`, `fail:git-object-mismatch`, `caveat:mirror-stale`, `caveat:history-truncated` and `unavailable:blob-not-mirrored`.
-  - `tine serve`: `caps.project` (`GET /api/v1/project[/history]`, `POST /api/v1/project` as a CAS on `project/manifest` that accepts only a client-signed manifest from the previous owner set) and `caps.social_export` (count-only stars and watches, for self-host parity). `tine serve` gets no code storage, no upload-pack or receive-pack for code, and no mirror cap.
+  - `tine serve`: `caps.project` (`GET /v1/tenants/<t>/project[/history]`, `PUT /v1/tenants/<t>/project` as a CAS on `project/manifest` that accepts only a client-signed manifest from the previous owner set) and `caps.social_export` (count-only stars and watches, for self-host parity). `tine serve` gets no code storage, no upload-pack or receive-pack for code, and no mirror cap.
   - CLI: `tine project init|show|verify|link|unlink|set-upstream|link-check|mirror-diff`, `tine remote add --project` (pins the `project_id`), `tine git attribute --project`.
 
 **Rationale:** Entire, Traces and the harness vendors all give users a page they can link to. We match that, and the page shows a result the viewer's browser computed. Tombstones and the pre-push gate (0.45) must exist before any transcript is hosted.

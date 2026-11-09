@@ -47,6 +47,14 @@ def _common(parser: argparse.ArgumentParser, *, json: bool = True) -> None:
         parser.add_argument("--json", action="store_true", help="Emit a JSON object instead")
 
 
+def _project_id(value: str) -> str:
+    from opentine._project_rules import PROJECT_ID
+
+    if not PROJECT_ID.fullmatch(value):
+        raise argparse.ArgumentTypeError("a project id is [a-z0-9][a-z0-9._-]{0,63}")
+    return value
+
+
 def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     add_bundle_parsers(sub)
     remote = sub.add_parser("remote", help="Manage named remotes (stored in .tine/porcelain.json)")
@@ -56,6 +64,8 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     add.add_argument("url")
     add.add_argument("--tenant")
     add.add_argument("--token-file", metavar="PATH", help="Read the bearer token from PATH")
+    add.add_argument("--project", type=_project_id, metavar="PROJECT_ID",
+                     help="Pin the remote's project (tine project show/push check it)")  # fmt: skip
     for verb in ("rm", "remove"):
         actions.add_parser(verb, help="Remove a remote").add_argument("name")
     rename = actions.add_parser("rename", help="Rename a remote")

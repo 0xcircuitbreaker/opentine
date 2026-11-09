@@ -896,7 +896,7 @@ that would ignore the file refuses the repository instead of missing its refs.
 The stored name has any leading `refs/` removed. It MUST match:
 
 ```text
-^(?:annotations|coord|heads|tags|experiments|promotions|remotes)/[a-z0-9._/-]+$
+^(?:annotations|coord|heads|tags|experiments|promotions|project|remotes)/[a-z0-9._/-]+$
 ```
 
 and additionally: be ≤ 512 bytes total; be equal to its own case-fold (i.e.
@@ -916,6 +916,7 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `promotions/` | `run` |
 | `annotations/` | `annotation` |
 | `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
+| `project/` | `blob` (0.46+: only `project/manifest`, an `opentine.project` manifest, §4.16) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
@@ -923,6 +924,12 @@ An `annotations/*` ref carries one further rule: its target annotation's
 `target_id` MUST be a `run` oid, and the ref name after `annotations/` MUST
 equal that run's 64-hex digest. So `annotations/<digest>` is the only
 `annotations/*` name that may point at an annotation of `run:sha256:<digest>`.
+
+The `project/` namespace (0.46+) holds exactly one ref, `project/manifest`: a
+`blob` whose bytes are the canonical JSON of a well-formed `opentine.project`
+manifest (§4.16). Any other `project/*` name is refused, and `fsck` refuses a
+`project/manifest` that names anything else. A remote never moves it through
+`PUT refs/…` or `POST ref-txn` (`400`): only `PUT project` (§8.18) does.
 
 ### Update protocol
 
@@ -2011,6 +2018,145 @@ and `source_run == public_run` disagree); `redacted-copy.pack-mismatch` (the
 record names a pack other than the one it came with). Vectors:
 `64-redacted-copy.json`.
 
+<a id="s-4.16"></a>
+## 4.16 `opentine.project` — signed, hash-chained project manifests (0.46.0+)
+
+A project binds a tenant's run repository to the code repositories it is
+linked to. Its manifest is a JSON object with exactly these keys plus a
+`signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.project"` |
+| `project_version` | `1` |
+| `project_id` | `[a-z0-9][a-z0-9._-]{0,63}`; never changes along a chain |
+| `tenant` | the tenant name (`[a-z0-9][a-z0-9._-]{0,127}`); never changes along a chain |
+| `seq` | `0` for the first version, then one more than the previous version's |
+| `prev` | `null` exactly when `seq` is 0; else the previous version's digest (below) |
+| `visibility` | `"public"` or `"private"` |
+| `owners` | 1 to 16 distinct Ed25519 public keys, 64 lowercase hex each |
+| `slots` | a primary code slot first, then at most one `secondary` slot |
+| `forked_from` | `null` or a `project_id` |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block, **Ed25519 only**, over `b"opentine.project.v1:"` + JCS(`{"body": <the manifest without signature>, "header": <header>}`) |
+
+A slot has exactly `role` (`primary`/`secondary`), `forge` (`github`,
+`gitlab`, `forgejo`, `git` or `entire`), `forge_repo_id` (`null`, or the
+forge's own repository id `[A-Za-z0-9_.:/-]{1,128}` where the forge has one;
+always `null` for `git`), `upstream_visibility` (`public`/`private`),
+`default_branch` (a branch name: `[A-Za-z0-9._/-]{1,255}`, no `..`, not
+starting with `/` or `-`) and `locator`, an object with exactly one key:
+
+* `url`: an `https://`, `ssh://` or `git@` clone URL of printable ASCII, at
+  most 2048 bytes, with no `user:password@` credentials; or
+* `commitment`: `"sha256:" + hex(SHA-256(b"opentine.project.locator.v1:" ||
+  salt || 0x00 || UTF-8 url))`, with a salt of at least 16 bytes the owner
+  keeps (`tine project` keeps it in `.tine/project-locators.json`, which is
+  never pushed, bundled or served).
+
+A public project names every upstream by `url` and may not reference a private
+upstream; a private project names every upstream by `commitment`, so neither
+the manifest nor the transparency log ever holds a private URL or repository
+name.
+
+**Digest and chain.** A version's digest is the blob oid (§1.3) of its
+canonical bytes, signature included: `blob:sha256:` + hex(SHA-256(`b"blob\0"
+b"1\0"` || JCS(manifest))). Version *n* + 1 names version *n*'s digest in
+`prev`, has `seq` one greater and the same `project_id` and `tenant`, and is
+signed by a key in version *n*'s `owners`; the first version is signed by a
+key in its own `owners`. So changing the owners, the upstream or the
+visibility is always a new, owner-signed version, and a server cannot write
+one.
+
+A verifier MUST refuse, with the first applicable code:
+`project.malformed` (a missing, extra or ill-formed key or slot, or a public
+project naming an upstream by commitment); `project.private-upstream` (a public
+project with a private upstream); `project.plaintext-locator` (a private
+project with a `url` locator); `project.unsigned`; `project.wrong-signer` (not
+Ed25519, or the signer is not in the owner set that governs the version, or,
+for a first version checked against a pinned owner key, not that key);
+`project.bad-signature`; `project.chain-break` (`prev`, `seq`, `project_id` or
+`tenant` does not follow the predecessor, or a history that does not start at
+`seq` 0). The result of checking one version is `{project_id, tenant, seq,
+digest, signer, visibility, state}`: `state` is `verified` when the owner set
+came from a checked predecessor or the pinned key, else `verified-tofu` (trust
+on first use of the first version). A whole history, oldest first, gives
+`{project_id, tenant, head, seq, versions, visibility, state}` with the first
+version's state. Vectors: `65-project.json` (ops `project.verify` and
+`project.chain`).
+
+<a id="s-4.17"></a>
+## 4.17 `opentine.mirror-state` — host statements about a code mirror (0.46.0+)
+
+A code mirror (an opentine-web service; `tine serve` has none) states what it
+last fetched for one slot of one manifest version, as a JSON object with
+exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.mirror-state"` |
+| `mirror_state_version` | `1` |
+| `tenant`, `project_id` | as in §4.16 |
+| `manifest` | the digest of the manifest version it mirrors |
+| `slot` | `primary` or `secondary` |
+| `object_format` | `sha1` or `sha256`, the upstream's |
+| `refs` | `refs/heads/*` and `refs/tags/*` names to commit ids (40 or 64 lowercase hex, by `object_format`), at most 10000 |
+| `synced_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `status` | `synced`, `stale`, `failed` or `paused` |
+| `reasons` | sorted, distinct `mirror.*` reason codes (below) |
+| `signature` | a `tine-sig/3` Ed25519 block by the **host service key**, over `b"opentine.mirror-state.v1:"` + JCS(`{"body", "header"}`) |
+
+It is a host statement: a verifier can check who said it, never that the
+upstream holds those commits. A verifier MUST NOT report a mirror state as a
+pass: a good one is reported with state `host-statement` (under the pinned
+host key) or `host-statement-tofu` (on its embedded key) and the label `host
+statement, not verified by you`. It MUST refuse, in order:
+`mirror-state.malformed`; `mirror-state.unsigned`; `mirror-state.wrong-key`
+(not Ed25519, or not the pinned host key); `mirror-state.bad-signature`;
+`mirror-state.user-signed` (signed by one of the project's owners: a user key
+never speaks as the host); `mirror-state.unknown-reason`;
+`mirror-state.inconsistent` (`synced` with a `mirror.stale` or an
+`unavailable` reason, `stale` without `mirror.stale`, `failed` without an
+`unavailable` reason, `paused` without `mirror.limit-exceeded`). Vectors:
+`66-mirror-state.json` (op `mirror-state.verify`).
+
+**The ten project reason codes.** A `tine-verify-report/2` check about a
+project uses these codes, with the outcome shown (ROADMAP 0.46.0 writes them
+as `outcome:detail`); a mirror state may carry the seven `mirror.*` ones:
+
+| Code | Outcome | Meaning |
+|---|---|---|
+| `project.manifest-signature` | fail | a manifest version's signature or signer does not hold |
+| `project.manifest-chain` | fail | the manifest history does not chain |
+| `git-object.mismatch` | fail | mirrored bytes do not hash to their git object id (§4.18) |
+| `mirror.stale` | caveat | the mirror has not synced within its window |
+| `mirror.history-truncated` | caveat | the mirror holds a shallow or cut history |
+| `mirror.host-statement` | caveat | what is shown rests on a host statement |
+| `mirror.upstream-unverifiable` | caveat | upstream read access cannot be checked (a plain git URL) |
+| `mirror.blob-not-mirrored` | unavailable | the object was not mirrored (size or type limit) |
+| `mirror.upstream-unreachable` | unavailable | the last sync could not reach the upstream |
+| `mirror.limit-exceeded` | unavailable | a published limit stopped the mirror advancing |
+
+<a id="s-4.18"></a>
+## 4.18 The git object check (0.46.0+)
+
+A git object id is the hash of `<type> SP <decimal byte length> NUL <bytes>`:
+SHA-1 for a 40-hex id (`sha1` repositories), SHA-256 for a 64-hex id
+(`sha256` repositories). A verifier given a `type` (`blob`, `tree`, `commit`
+or `tag`), the bytes and an id recomputes the id and, on a match, returns
+`{oid, type, object_format, links, state: "matches", label: "matches its id
+(checked by you)"}`, where `links` are the ids the object names, in order: a
+tree's entries (`<octal mode> SP <name> NUL <raw id>`, 20 or 32 bytes), a
+commit's `tree` header then its `parent` headers, a tag's `object` header. It
+refuses `git-object.malformed` (an id that is not 40 or 64 lowercase hex, an
+unknown type, more than 64 MiB, a tree entry that does not parse, a name that
+is not one path component, a commit or tag without its first header, or a link
+of the other width) and `git-object.mismatch` (the bytes do not hash to the
+id). A match says only that the bytes are the object the id names, never that
+an upstream holds that id. SHA-1 here is plain SHA-1: SHA-1DC collision
+detection is not part of this check. Vectors: `66-mirror-state.json` (op
+`git-object.check`).
+
 ---
 
 <a id="part-5"></a>
@@ -2640,9 +2786,9 @@ the document, the table and the dispatcher disagree. Every operation carries
 `x-opentine-cap` (the key in `GET /v1/capabilities` that advertises it, or
 `null` for the core protocol) and `x-opentine-status`: `stable` routes are
 served by this release, including every hosted-beta route of 8.14 and the
-`tombstones` routes of 4.14; `planned` routes (the `project` cap) are reserved
-shapes, and a client calls any capability-tagged route only when its cap is
-advertised.
+`tombstones` routes of 4.14 and the `project` and `social_export` routes of
+8.18; a `planned` route (none remain) is a reserved shape, and a client calls
+any capability-tagged route only when its cap is advertised.
 
 Rules every implementation keeps: tenant routes are private by default (no
 anonymous read; `401` without valid credentials); every read is authorized
@@ -2718,6 +2864,40 @@ this a VSA one tenant's ref earned could be replayed for another's), **failed** 
 **missing-level**; otherwise **valid**. Reference: `opentine/_vsa_verify.py`
 (standard library plus an injectable Ed25519, vendored into
 `tine-verify.pyz`). Vectors for 8.17: `61-vsa.json`.
+
+<a id="s-8.18"></a>
+## 8.18 Projects on a remote: `caps.project` and `caps.social_export` (0.46.0)
+
+A remote that stores project manifests lists `project` (`{"path":
+"project", "history": "project/history", "max_page": 100, "kind":
+"opentine.project", "update": "PUT"}`) and `social_export` (`{"path":
+"social", "counts": ["stars", "watches"]}`) in `GET /v1/capabilities`. Under
+`/v1/tenants/<t>/`:
+
+- `GET project` (`read_ref`): `{manifest, digest, seq}` of the current version.
+- `GET project/history?cursor=N` (`read_ref`): `{versions, next_cursor,
+  total}`, versions oldest first from `seq` N, at most 100 per page,
+  `next_cursor` `null` on the last page.
+- `PUT project` (`update_ref`: writers and admins) with `{expected_old,
+  manifest}`: a compare-and-swap of `project/manifest`. `expected_old` is the
+  current version's digest, or `null` when there is none; otherwise the answer
+  is `409 {"updated": false}`. The manifest must name this tenant, follow the
+  current version and be signed by one of its owners (§4.16), else `400`
+  carrying the refusal `code`. On success `200 {"updated": true, "digest"}`,
+  and the move is an `update_ref` row of the audit chain (name
+  `project/manifest`, new = the digest), so it is in the transparency log
+  (§8.10).
+- `GET social` (`read_ref`): `{"stars", "watches"}`, counts only.
+
+A tenant without a project, a caller without `read_ref`, and another tenant
+all answer the same `404 {"error":"not found"}`; an unauthenticated request is
+the same `401` for an existing private tenant and a tenant that does not exist.
+The server stores manifests exactly as signed and never signs one; it keeps
+them outside the ref listing, so `GET refs`, fetch, clone and push are what
+they were for 0.34–0.45 clients. `tine serve` stores no code: it has no
+upload-pack or receive-pack for code, no mirror route and no `mirror`
+capability. A client pins a remote's project with `tine remote add --project
+ID` and refuses one that serves another.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -3222,7 +3402,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
-| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
+| 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`; 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
 | 0.45.0 | Versioned header and citation; stable `part-N` / `s-N.M` anchors; Part 12, published JSON Schemas and the `--json` envelope. The offline `delegation` check passes with `delegation.verified` (was the bare `ok`, which the reason grammar of §8.2 does not allow). No byte format changed. |
 | 0.41.0 | Part 11: `TINEAES6` remote at-rest sealing. |

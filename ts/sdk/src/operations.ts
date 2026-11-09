@@ -46,9 +46,10 @@ export const OPERATIONS = {
   readSharedObject: { method: "GET", path: "/v1/share/{token}/objects/{oid}", cap: "share", status: "stable" },
   getTombstone: { method: "GET", path: "/v1/tenants/{tenant}/tombstones/{oid}", cap: "tombstones", status: "stable" },
   putTombstone: { method: "PUT", path: "/v1/tenants/{tenant}/tombstones/{oid}", cap: "tombstones", status: "stable" },
-  getProject: { method: "GET", path: "/v1/tenants/{tenant}/project", cap: "project", status: "planned" },
-  projectHistory: { method: "GET", path: "/v1/tenants/{tenant}/project/history", cap: "project", status: "planned" },
-  updateProject: { method: "POST", path: "/v1/tenants/{tenant}/project", cap: "project", status: "planned" },
+  getProject: { method: "GET", path: "/v1/tenants/{tenant}/project", cap: "project", status: "stable" },
+  projectHistory: { method: "GET", path: "/v1/tenants/{tenant}/project/history", cap: "project", status: "stable" },
+  updateProject: { method: "PUT", path: "/v1/tenants/{tenant}/project", cap: "project", status: "stable" },
+  socialCounts: { method: "GET", path: "/v1/tenants/{tenant}/social", cap: "social_export", status: "stable" },
 } as const satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof OPERATIONS;
