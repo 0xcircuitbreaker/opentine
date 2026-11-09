@@ -1260,6 +1260,41 @@ record and the request plan without a token or the network. The command exits
 0 whatever the conclusion (the CI gate decides the job); `--json` follows
 `tine-cli-forge-1`. Token scopes and CI recipes: [FORGES.md](FORGES.md).
 
+## Publishing run bundles: `tine publish zenodo`, `tine publish hf` (0.49)
+
+```
+tine publish zenodo REF... --creator NAME [--creator NAME]... [--attach FILE]...
+                    [--title T] [--description D] [--access-right open|closed]
+                    [--license ID] [--publish] [--sandbox] [--allow-unredacted REASON]
+                    [--api-url URL] [--token-env NAME] [--repo R] [--dry-run] [--json]
+tine publish hf REF --dataset OWNER/NAME (--key-file K | --ed25519-key-file K)
+                [--key-id ID] [--revision BRANCH] [--create [--private]]
+                [--api-url URL] [--token-env NAME] [--repo R] [--dry-run] [--json]
+```
+
+`zenodo` bundles the named refs (`tine bundle create`) and deposits the bundle,
+plus each `--attach` file (for example a `tine export --format run-crate`
+crate), through the Zenodo REST API: create a deposition, upload into its
+bucket, set the metadata (`upload_type` dataset, the creators, the bundle
+digest). Without `--publish` the deposition stays a draft to review on Zenodo;
+`--publish` mints a DOI and cannot be undone. `--sandbox` targets
+`sandbox.zenodo.org`. The token is `ZENODO_TOKEN` (or `--token-env`).
+
+`hf` publishes one run's redacted public copy, the same signed bundle as
+`tine bundle create --redacted-public`, to a Hugging Face Hub dataset: the
+bundle goes up through the Hub's LFS batch API as `runs/<id>.tbundle`, and one
+commit adds it with a dataset card (`README.md`) tagged `agent-traces`. The
+token is `HF_TOKEN` (or `--token-env`); an LFS upload URL on another host gets
+only the headers the Hub names for it, never the token.
+
+Both run the pre-push redaction gate over every object they would upload before
+any request: a hit refuses. `zenodo` takes `--allow-unredacted REASON` (logged,
+like `tine push`); `hf` has no override, since a Hub dataset is public. Each
+successful upload is recorded as an op-log entry with where it went and the
+bundle digest. Tokens are never printed or logged; a failure names the HTTP
+status only. `--dry-run` gates and plans without a token or the network.
+`--json` follows `tine-cli-publish-1`.
+
 ## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
 
 ```

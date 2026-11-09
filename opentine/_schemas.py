@@ -52,6 +52,8 @@ from opentine._schema_defs_merge import SCHEMAS as _MERGE
 from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
 from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
+from opentine._schema_defs_publish import COMMAND_SCHEMAS as _PUBLISH_COMMANDS
+from opentine._schema_defs_publish import SCHEMAS as _PUBLISH
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
@@ -84,6 +86,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_INTEGRATE,
     **_COMPLIANCE,
     **_AUDIT_KIT,
+    **_PUBLISH,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -100,6 +103,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_INTEGRATE_COMMANDS,
     **_COMPLIANCE_COMMANDS,
     **_AUDIT_KIT_COMMANDS,
+    **_PUBLISH_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

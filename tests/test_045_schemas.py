@@ -251,6 +251,11 @@ DRIVEN = (
     ),  # fmt: skip
     (("audit-kit", "build", "run.tine", "--out", "kit", "--json"), "tine-cli-audit-kit-build-1"),
     (("audit-kit", "verify", "kit", "--json"), "tine-cli-audit-kit-verify-1"),  # 0.49
+    (
+        ("publish", "zenodo", "heads/main", "--creator", "Doe, Jane", "--repo", "repo")
+        + ("--dry-run", "--json"),
+        "tine-cli-publish-1",
+    ),  # 0.49
 )
 
 

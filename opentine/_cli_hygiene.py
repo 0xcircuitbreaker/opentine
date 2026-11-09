@@ -29,6 +29,7 @@ from opentine._cli_merge import COMMANDS as MERGE_COMMANDS
 from opentine._cli_merge import add_merge_parsers
 from opentine._cli_project import add_project_parser, cmd_project
 from opentine._cli_prompt import add_prompt_parser, cmd_prompt
+from opentine._cli_publish import add_publish_parser, cmd_publish
 from opentine._cli_purge import add_purge_parser, cmd_purge
 from opentine._cli_redact import add_redact_parser, cmd_redact
 from opentine._cli_review import add_review_parser, cmd_review
@@ -44,6 +45,7 @@ def add_hygiene_parsers(sub: Any) -> None:
     add_memory_parser(sub)  # 0.47: tine memory, opentine.memory notes
     add_extend_parsers(sub)  # 0.47: tine plugins, tine experts
     add_forge_parser(sub)  # 0.48: tine forge publish, opentine.forge-check
+    add_publish_parser(sub)  # 0.49: tine publish zenodo | hf
     add_graph_parser(sub)  # 0.48: tine code-graph, the code map
     add_compliance_parser(sub)  # 0.48: tine compliance list|check
     add_audit_kit_parser(sub)  # 0.49: tine audit-kit build|verify
@@ -88,6 +90,7 @@ COMMANDS["prompt"] = cmd_prompt  # 0.47
 COMMANDS["memory"] = cmd_memory  # 0.47
 COMMANDS.update(EXTEND_COMMANDS)  # 0.47
 COMMANDS["forge"] = cmd_forge  # 0.48
+COMMANDS["publish"] = cmd_publish  # 0.49
 COMMANDS["code-graph"] = cmd_graph  # 0.48
 COMMANDS["compliance"] = cmd_compliance  # 0.48
 COMMANDS["audit-kit"] = cmd_audit_kit  # 0.49
