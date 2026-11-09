@@ -11,7 +11,10 @@ still needs people.
 - `tine verify` checks CRLs and RFC 5940 OCSP responses embedded in an RFC 3161
   timestamp token (`SignedData.crls`) after the chain, offline, and fails the
   token with `timestamp.revoked` or `timestamp.revocation-invalid`. The field is
-  outside the TSA signature, so it can only fail a token, never pass one.
+  outside the TSA signature, so it can only fail a token, never pass one. A
+  malformed embedded CRL or OCSP response gives `timestamp.revocation-invalid`
+  rather than an exception. Python only: the TS verifier and the pyz do not
+  check embedded revocation data, and there are no shared vectors for it.
 - Readers (Python and the TS verifier) accept `min_reader` up to 0.50.0
   (`_config.READER_VERSION`); `layout.config.min-reader-newer` names the
   version. The TS verifier refuses a dictionary-compressed block by name.
@@ -27,7 +30,9 @@ still needs people.
   2): the pyz answers every reader and verifier case outside the repository
   storage families case by case; `scripts/check_parity.py` runs the three
   implementations on every case and fails on any disagreement, a crash
-  counted as a refusal, or a gap; a new CI `parity` job runs it with the TS
+  counted as a refusal, a gap, or a TS skip outside the writer profile
+  (TS skips only the 14 writer-profile redaction and `attest.sign` cases);
+  a new CI `parity` job runs it with the TS
   column required. Families 79-84 add vectors for `tine-verify-report/2`,
   `tine-custody/1` and its log records, `replay/v1`, the TINEAES6 header,
   `opentine-line-attribution/1` and `tine-cost-statement/1`.
@@ -56,7 +61,9 @@ still needs people.
   the 1,000-round prune race, ref retry, the 64-entry merge-queue chaos test
   on three OSes, the full-size coord scale test, a one-hour OTLP fuzz) with a
   `nightly-summary.json`; `scripts/stress_streak.py` reports the green streak
-  from the Actions API, counted back from today.
+  from the Actions API, counted back from today. An API error body, a
+  malformed run or a bad `--today` exits 2 with a JSON error, never a zero
+  streak.
 - The 0.34 peer compatibility job (`scripts/peer_compat_034.py`, ROADMAP §2):
   the published 0.34.0 reads a repository, a pack and `--for-legacy` `.tine`
   files this tree writes (runs, a trace-recorded run, the 0.46 project
@@ -101,6 +108,10 @@ still needs people.
   renewal token needs a new `tine-timestamp-sidecar/1` bound form, which is a
   new wire format the 0.48 cutoff forbids. Root-bound tokens (up to 16) can
   still be added over time.
+- Parity on rejection reasons: when an implementation refuses a case without
+  naming a reason code (124 pyz and 150 Python refusals, e.g. `agent.*`,
+  `artifact.malformed-json`, `oid.parse.*`; TS likewise), the pinned reason
+  is not compared. Parity holds on accept/refuse and accepted outputs only.
 - **For humans:** engaging the third-party security audit
   (`docs/security/AUDIT-SCOPE.md`); 30 consecutive green nightly days; counsel
   sign-off on the compliance profiles; the 72 h fuzz run; operating the public
@@ -122,7 +133,8 @@ still needs people.
    audit is scoped, not engaged).
 2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
    yet** (parity holds locally on every case each answers; the `parity` CI job
-   has not run green and the storage-family exclusion needs sign-off).
+   has not run green, the storage-family exclusion needs sign-off, and
+   reason codes are not compared where an implementation names none).
 3. The 0.34 peer compatibility job green for every release: **not met yet**
    (the job ships in 0.50 and has not run green in CI).
 4. The pyz air-gap-tested on Linux, macOS and Windows: **not met yet** (the
