@@ -28,9 +28,12 @@ BODIES = {
     "addWebhook": {"url": "https://hooks.example/x"},
     "createShare": {"run": "run:sha256:" + "a" * 64},
     "putTombstone": {"kind": "opentine.tombstone"},
+    "updateReview": {"expected_old": None, "version": {"kind": "opentine.review"}},
+    "decideReviewGate": {"decision": {"kind": "opentine.review-gate"}},
 }
 VALUES = {"tenant": "acme", "ref": "heads%2Fmain", "upload_id": "0" * 32, "webhook_id": "wh_x"}
 VALUES |= {"oid": OID, "share_id": "s1", "token": "tine_share_" + "x" * 43}
+VALUES |= {"review_id": "auth-rework"}
 
 
 @pytest.fixture

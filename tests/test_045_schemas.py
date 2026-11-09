@@ -169,6 +169,23 @@ DRIVEN = (
             "--json",
         ),
         "tine-cli-merge-queue-1",
+    ),
+    (
+        (
+            "review",
+            "create",
+            "demo",
+            "--title",
+            "Demo",
+            "--gate",
+            "ship",
+            "--ed25519-key-file",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-review-1",
     ),  # fmt: skip
 )
 

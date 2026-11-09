@@ -2639,6 +2639,61 @@
       "summary": "SPEC 2.6 one canonical reflog row plus its LF",
       "unordered": []
     },
+    "review-gate.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "gate",
+        "decision",
+        "seq",
+        "signer",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify an opentine.review-gate decision on the version it names",
+      "unordered": []
+    },
+    "review.bundle": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "head",
+        "seq",
+        "versions",
+        "state",
+        "decisions",
+        "gates",
+        "status"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify a review bundle, every version and every gate decision",
+      "unordered": []
+    },
+    "review.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "seq",
+        "digest",
+        "signer",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify an opentine.review version after its predecessor",
+      "unordered": []
+    },
     "run.graph": {
       "args": [
         "present",

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-review-1.schema.json",
+  "title": "tine review ACTION --json",
+  "description": "Every `tine review` action. `create`/`add`: the new `version` and its `digest`; `gate`: the signed `decision`, its `digest` and the `gate` check; `show`, `export`, `verify`: `result`, the bundle check (`show` adds the head `version`); `import`: `added`; `push`: `versions`, `decisions`, `head`. A refusal is the error envelope, exit 4 for a verification failure.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "ok"
+  ],
+  "properties": {
+    "command": {
+      "const": "review"
+    },
+    "action": {
+      "enum": [
+        "create",
+        "add",
+        "gate",
+        "show",
+        "export",
+        "verify",
+        "import",
+        "push"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "version": {
+      "$ref": "opentine-review-1.schema.json"
+    },
+    "decision": {
+      "$ref": "opentine-review-gate-1.schema.json"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "gate": {
+      "type": "object",
+      "required": [
+        "review_id",
+        "gate",
+        "decision",
+        "seq",
+        "state"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "gate": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "review_id",
+        "head",
+        "seq",
+        "versions",
+        "decisions",
+        "gates",
+        "status",
+        "state"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "head": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "versions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decisions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gates": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "approved",
+              "rejected",
+              "pending"
+            ]
+          }
+        },
+        "status": {
+          "enum": [
+            "approved",
+            "rejected",
+            "pending"
+          ]
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "added": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "versions",
+        "decisions"
+      ],
+      "properties": {
+        "versions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decisions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "versions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decisions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "head": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

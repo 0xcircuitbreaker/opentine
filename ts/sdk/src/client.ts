@@ -23,6 +23,11 @@ import type {
   RefList,
   RefTxnUpdate,
   RefUpdate,
+  Review,
+  ReviewDecided,
+  ReviewGate,
+  ReviewSummary,
+  ReviewVersion,
   SearchResult,
   Share,
   SharedRun,
@@ -292,6 +297,26 @@ export class TineClient {
   /** Count-only stars and watches (`caps.social_export`). */
   socialCounts(): Promise<SocialCounts> {
     return this.json("socialCounts");
+  }
+
+  /** Every Review of the tenant with its head (`caps.reviews`). */
+  async listReviews(): Promise<ReviewSummary[]> {
+    return (await this.json<{ reviews: ReviewSummary[] }>("listReviews")).reviews;
+  }
+
+  /** A Review as a bundle; verify it (SPEC 4.19, `verifyReviewBundle`) before trusting it. */
+  getReview(reviewId: string): Promise<Review> {
+    return this.json("getReview", { params: { review_id: reviewId } });
+  }
+
+  /** CAS a Review to its next reviewer-signed version; false when `expectedOld` is stale (409). */
+  updateReview(reviewId: string, version: ReviewVersion, expectedOld: Oid | null): Promise<boolean> {
+    return this.cas("updateReview", { params: { review_id: reviewId }, json: { version, expected_old: expectedOld } });
+  }
+
+  /** Store a reviewer-signed gate decision; the server checks it and never signs one. */
+  decideReviewGate(reviewId: string, decision: ReviewGate): Promise<ReviewDecided> {
+    return this.json("decideReviewGate", { params: { review_id: reviewId }, json: { decision } });
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */

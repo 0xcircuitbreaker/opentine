@@ -128,6 +128,18 @@ ROUTES: tuple[Route, ...] = (
           (("200", "ProjectUpdated"), ("409", "ProjectUpdated"), ("400", "Error"), *_ERR)),
     Route("GET", T + "/social", "socialCounts", "Count-only stars and watches (self-host parity)",
           "social_export", "stable", "read_ref", None, (("200", "SocialCounts"), *_ERR)),
+    # 0.47 Reviews (SPEC 4.19, 8.19): stored as their reviewers signed them.
+    Route("GET", T + "/reviews", "listReviews", "Every Review of the tenant, with its head",
+          "reviews", "stable", "read_ref", None, (("200", "ReviewList"), *_ERR)),
+    Route("GET", T + "/reviews/{review_id}", "getReview", "A Review as a verifiable bundle",
+          "reviews", "stable", "read_ref", None, (("200", "Review"), *_ERR)),
+    Route("PUT", T + "/reviews/{review_id}", "updateReview",
+          "CAS a Review to its next client-signed version", "reviews", "stable", "update_ref",
+          "ReviewUpdate",
+          (("200", "ReviewUpdated"), ("409", "ReviewUpdated"), ("400", "Error"), *_ERR)),
+    Route("POST", T + "/reviews/{review_id}/decisions", "decideReviewGate",
+          "Store a client-signed gate decision", "reviews", "stable", "update_ref",
+          "ReviewDecision", (("201", "ReviewDecided"), ("400", "Error"), *_ERR)),
 )  # fmt: skip
 
 

@@ -1159,6 +1159,52 @@ landing records; `--run` also checks the merged run here) or an approval and
 exits 4 when it fails; `python tine-verify.pyz FILE.json [--pubkey K]` checks
 either offline. `--json` follows `tine-cli-merge-1`, `tine-cli-pick-1` and
 `tine-cli-merge-queue-1`.
+## Reviews: `tine review` (0.47)
+
+```
+tine review create ID --title T [--code-repo NAME[=PROJECT]]... [--reviewer HEX]...
+                   [--gate NAME]... --ed25519-key-file K [--key-id ID] [--json] [--repo R]
+tine review add ID [--run OID]... [--commit SHA]... [--at NAME] [--finding SEVERITY:MESSAGE]...
+                [--resolve FINDING_ID]... [--monitor risk|intent-drift|coverage
+                (--score S --threshold T [--scorer X] | --verdict FILE)] [--gate NAME]...
+                [--reviewer HEX]... [--code-repo NAME[=PROJECT]]... --ed25519-key-file K
+tine review gate ID GATE (--approve | --reject) [--reason TEXT] --ed25519-key-file K
+tine review show ID [--reviewer-key HEX] [--json] [--repo R]
+tine review export ID -o FILE [--reviewer-key HEX] [--json] [--repo R]
+tine review verify FILE [--reviewer-key HEX] [--json]
+tine review import FILE [--json] [--repo R]
+tine review push ID [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
+```
+
+A Review is a unit of work across runs and commits, in one repository or
+several (SPEC 4.19). `create` writes version 0, signed by the
+`--ed25519-key-file` key, which becomes its first reviewer (`--reviewer` adds
+more); `--code-repo` names each repository it spans (default one named
+`default`), optionally with the `opentine.project` id it belongs to. `add`
+signs the next version with what is added: runs and commits (`--at` picks the
+code repo, default the first), findings (`info`, `low`, `medium`, `high` or
+`critical`; `--resolve` closes one by id), gates, reviewers and monitors. A
+monitor is an eval scorer's score against a threshold, `risk`, `intent-drift`
+or `coverage`; `--verdict` takes the scorer, score and threshold from a signed
+`tine-eval-verdict/1` (`tine eval run`) and records its digest. Every version
+must be signed by a reviewer of the version before it; anything else is
+refused (exit 4) and the Review does not change.
+
+`gate` signs one decision on one gate of the head version. Only a reviewer can
+sign one, and an approval is refused (`review-gate.blocked`, exit 4) while a
+monitor of that version fails or a `critical` finding is open; a rejection is
+always allowed. `show` verifies the Review and prints each gate's status
+(`approved`, `rejected` or `pending`; a decision on an earlier version never
+counts for the head). The Review lives in `.tine/reviews/ID.json` as its
+bundle; `export` writes that `opentine.review-bundle`, and
+`python tine-verify.pyz FILE` verifies it offline, every version and every
+gate decision (one check row each), with `--pubkey` pinning the first
+reviewer. `verify` does the same check here (exit 4 on failure), `import`
+adopts a bundle that extends the local copy, and `push` sends what a remote's
+`caps.reviews` (SPEC 8.19) lacks; the remote checks every record, stores it
+exactly as signed, logs it in its transparency log and never signs one.
+`--json` follows `tine-cli-review-1`. The `68-review.json` conformance family
+pins Python, the TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)
 

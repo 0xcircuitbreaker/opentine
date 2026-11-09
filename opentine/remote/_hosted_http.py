@@ -49,8 +49,9 @@ def capabilities(service: Any) -> dict[str, Any]:
         caps["share"] = {"path": "shares", "public": "/v1/share/{token}", "max_ttl": MAX_TTL,
                          "scopes": list(SCOPES)}  # fmt: skip
     from opentine.remote._project_http import capabilities as project_caps
+    from opentine.remote._review_http import capabilities as review_caps
 
-    return {**caps, **project_caps(service)}  # 0.46.1: project, social_export
+    return {**caps, **project_caps(service), **review_caps(service)}  # 0.46.1 project; 0.47
 
 
 def _query(environ) -> dict[str, str]:

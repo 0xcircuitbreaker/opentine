@@ -19,6 +19,7 @@ import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
 import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.js";
 import { checkGitObject } from "./gitobject.js";
+import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -260,6 +261,20 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const host = value.get("host_key");
       const key = typeof host === "string" ? Uint8Array.from(Buffer.from(host, "hex")) : null;
       return verifyMirrorState(value.get("state") as JValue, key, value.get("owners") as JValue);
+    }
+    case "review.verify": {
+      const value = valueOf(input) as JObject;
+      const pin = value.get("reviewer_key");
+      return verifyReview(value.get("version") as JValue, (value.get("previous") as JValue) ?? null, typeof pin === "string" ? pin : null);
+    }
+    case "review-gate.verify": {
+      const value = valueOf(input) as JObject;
+      return verifyReviewGate(value.get("decision") as JValue, value.get("version") as JValue);
+    }
+    case "review.bundle": {
+      const value = valueOf(input) as JObject;
+      const pin = value.get("reviewer_key");
+      return verifyReviewBundle(value.get("bundle") as JValue, typeof pin === "string" ? pin : null);
     }
     case "git-object.check": {
       const value = valueOf(input) as JObject;

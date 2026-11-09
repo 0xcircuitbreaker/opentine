@@ -1,0 +1,4424 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-gate.approve",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "coverage and risk hold",
+            "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a reviewer approves a gate of the version it names",
+      "op": "review-gate.verify",
+      "output": {
+        "decision": "approve",
+        "gate": "ship",
+        "review_id": "auth-rework",
+        "seq": 2,
+        "signer": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"29acbae...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.bad-decision",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "maybe",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "10353213a8e1c5ade2f227cb4a89e1462c27a299e24ab7829dfeaaea5e0b8951651b586381a2f2a04738226629c826e085c669d9772e7290cccde6c07c499806"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a decision is approve or reject",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"maybe\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review gate decision is malformed: decision is approve or reject"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.blocked-critical",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:7f95fcc0d4ac4791cc3dc1402f7906c513a482aa0aa1520914bf847dc0149aad",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "0cefdae9503ee4663dfb9e31383244d31d83d44e32475f4202263f144d1aa49e5f8542e66256e693b8192e9615de3115585004bd879077be773d883271ea4c0d"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "critical",
+                "status": "open",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "1f79bd4da05af97ba28b77a3033b7fb639271ac9f688b5b9ae96b6aa958e4659b82fb537a671d06c5d14c5a851c208fa9530741ce5046a7575e95aa6f59f5c0a"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "no approval while a critical finding is open",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.blocked",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:7f95fcc0d4ac4791cc3dc1402f7906c513a482aa0aa1520914bf847dc0149aad\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "an approval is blocked: critical finding f1 is open"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.blocked-monitor",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "7a1ccfce14f83697534b9f1d172d2ad95e6a6d1cf2c2ea6fc481119f6a3a4e4e9ae068e7b32689ee41e07d4318ebc1b91db7cea3b34657eed615c66cb2bc6109"
+            }
+          },
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "intent-drift",
+                "passed": false,
+                "score": "0.4",
+                "scorer": "exact",
+                "threshold": "0.7",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3fed605fc14409a9ab4e0c68c4e0cc28f6063b78f07e515932a1759dea983d2337f560ab1b778e63dbc9a01c1cee1e8533c730f5ee1d06f9e1150c2aa8813e0b"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "no approval while a monitor fails",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.blocked",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "an approval is blocked: monitor intent-drift fails (0.4 < 0.7)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.other-version",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "fbf3a5c4155bccd7e4261744ebe706b75bf7435c99de79fe77262b617f1aeed78ecd07b8bc3eca346efe8412c66c5be21fcd715f7f69120467cf34f7c752000e"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a decision on one version checked against another",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.wrong-review",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the decision names another review version"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review-gate.reject-blocked",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "reject",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "intent drifted",
+            "review": "blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "41cfa11fa38e32b3727aa79561551162dd95d7a56fa3df3b4f17b17b9f7d5088c170af54ded63432c72b5dc24555b2969c746a164a41a21eb458d28bd4d12d0a"
+            }
+          },
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "intent-drift",
+                "passed": false,
+                "score": "0.4",
+                "scorer": "exact",
+                "threshold": "0.7",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "3fed605fc14409a9ab4e0c68c4e0cc28f6063b78f07e515932a1759dea983d2337f560ab1b778e63dbc9a01c1cee1e8533c730f5ee1d06f9e1150c2aa8813e0b"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a reject needs no passing monitor",
+      "op": "review-gate.verify",
+      "output": {
+        "decision": "reject",
+        "gate": "ship",
+        "review_id": "auth-rework",
+        "seq": 1,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"reject\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"intent drifted\", \"review\": \"blob:sha256:23a3fe4af1d3309d7370da1d254a76dac4daa0c3bbce5bbf67f6c6ec3d28dbee\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.stranger",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "c2cad4e9a496d02425793a3fd4dcf594776c99d72468f83bd00ccf2a18ff4408784c005c5ec158d9a7ee2ccaec1f90d9cf352a237f8971b1cbc97cb6c1097c06"
+            }
+          },
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a key that is not a reviewer of that version",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.wrong-signer",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"29acbae141bccaf0b22e1a94d34d0...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the decision is not signed by a reviewer"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.tampered",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "10e64ced49e234308834fa563d34a5846c383bffe1150682502c1aba3cd6dabedbbe18eec324a667f2276fbe5102395194caa3e99827cd6ec1c931260dab3302"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a reject turned into an approval after signing",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review gate decision signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.unknown-gate",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "deploy",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "861e04b617bc6b7afee4639ecbb08194f742a5d304904b9676522805b8284c1daa7570ee955bb38b496afd874f9f34eb679e5b4116212ee6b452d04d78b08805"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a gate the version does not list",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.unknown-gate",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"deploy\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", \"public_key\": \"03a107bff3ce10be1d70dd18e74...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "gate deploy is not a gate of it"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review-gate.unsigned",
+      "input": {
+        "value": {
+          "decision": {
+            "decided_at": "2026-11-09T00:00:00Z",
+            "decision": "approve",
+            "gate": "ship",
+            "gate_version": {
+              "$i": "1"
+            },
+            "kind": "opentine.review-gate",
+            "reason": "",
+            "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+            "review_id": "auth-rework",
+            "seq": {
+              "$i": "2"
+            }
+          },
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a decision without a signature is refused",
+      "op": "review-gate.verify",
+      "profile": "verifier",
+      "reason": "review-gate.unsigned",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"decision\": {\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}}, \"version\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"stat...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review gate decision is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.bad-commit",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "56f9a8520d4cc95059e3042f05839e86db3aa4023cb9abf0ec460cca6e7f76ee196aae84ddca4e40acd95ac70a0c0085dd30d4ed20100af337a27c1de343930c"
+            },
+            "subjects": [
+              {
+                "id": "HEAD",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a commit id is 40 or 64 lowercase hex",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: a subject is a run oid or commit id in a listed repo"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.bundle.approved",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "",
+                "review": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "fbf3a5c4155bccd7e4261744ebe706b75bf7435c99de79fe77262b617f1aeed78ecd07b8bc3eca346efe8412c66c5be21fcd715f7f69120467cf34f7c752000e"
+                }
+              },
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "coverage and risk hold",
+                "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+                }
+              }
+            ],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "resolved",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  },
+                  {
+                    "name": "risk",
+                    "passed": true,
+                    "score": "0.95",
+                    "scorer": "exact",
+                    "threshold": "0.9",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "every gate of the head version approved",
+      "op": "review.bundle",
+      "output": {
+        "decisions": 2,
+        "gates": {
+          "ship": "approved"
+        },
+        "head": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+        "review_id": "auth-rework",
+        "seq": 2,
+        "state": "verified-tofu",
+        "status": "approved",
+        "versions": 3
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.bundle.extra-key",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [],
+            "kind": "opentine.review-bundle",
+            "signatures": [],
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "a bundle has exactly its four keys",
+      "op": "review.bundle",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [], \"kind\": \"opentine.review-bundle\", \"signatures\": [], \"versions\": [{\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e7...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: not a review bundle"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.bundle.foreign-decision",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "coverage and risk hold",
+                "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+                }
+              }
+            ],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "a decision on a version the bundle does not hold",
+      "op": "review.bundle",
+      "profile": "verifier",
+      "reason": "review-gate.wrong-review",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the decision names no version here"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.bundle.forged-decision",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "forged",
+                "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+                }
+              }
+            ],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "resolved",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  },
+                  {
+                    "name": "risk",
+                    "passed": true,
+                    "score": "0.95",
+                    "scorer": "exact",
+                    "threshold": "0.9",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "a decision edited inside the bundle",
+      "op": "review.bundle",
+      "profile": "verifier",
+      "reason": "review-gate.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"forged\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vec...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review gate decision signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.bundle.pending",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "",
+                "review": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "fbf3a5c4155bccd7e4261744ebe706b75bf7435c99de79fe77262b617f1aeed78ecd07b8bc3eca346efe8412c66c5be21fcd715f7f69120467cf34f7c752000e"
+                }
+              }
+            ],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "resolved",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  },
+                  {
+                    "name": "risk",
+                    "passed": true,
+                    "score": "0.95",
+                    "scorer": "exact",
+                    "threshold": "0.9",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "a decision on an older version does not count for the head",
+      "op": "review.bundle",
+      "output": {
+        "decisions": 1,
+        "gates": {
+          "ship": "pending"
+        },
+        "head": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+        "review_id": "auth-rework",
+        "seq": 2,
+        "state": "verified-tofu",
+        "status": "pending",
+        "versions": 3
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"\", \"review\": \"blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"1\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\", ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.bundle.rejected",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "approve",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "coverage and risk hold",
+                "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+                }
+              },
+              {
+                "decided_at": "2026-11-09T00:00:00Z",
+                "decision": "reject",
+                "gate": "ship",
+                "gate_version": {
+                  "$i": "1"
+                },
+                "kind": "opentine.review-gate",
+                "reason": "no",
+                "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+                "review_id": "auth-rework",
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "32b10fcc16416a6284d0209e2dd205253ff5a6d5a063788394ed4b745beef168b8189012da8216f957925b16fd0e45350fe067e067db9fcf5be184047f6b1e0d"
+                }
+              }
+            ],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "resolved",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  },
+                  {
+                    "name": "risk",
+                    "passed": true,
+                    "score": "0.95",
+                    "scorer": "exact",
+                    "threshold": "0.9",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "2"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "one reject outweighs an approval",
+      "op": "review.bundle",
+      "output": {
+        "decisions": 2,
+        "gates": {
+          "ship": "rejected"
+        },
+        "head": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+        "review_id": "auth-rework",
+        "seq": 2,
+        "state": "verified-tofu",
+        "status": "rejected",
+        "versions": 3
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [{\"decided_at\": \"2026-11-09T00:00:00Z\", \"decision\": \"approve\", \"gate\": \"ship\", \"gate_version\": {\"$i\": \"1\"}, \"kind\": \"opentine.review-gate\", \"reason\": \"coverage and risk hold\", \"review\": \"blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8\", \"review_id\": \"auth-rework\", \"seq\": {\"$i\": \"2\"}, \"signature\": {\"alg\": \"ed25519\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.bundle.reordered",
+      "input": {
+        "value": {
+          "bundle": {
+            "bundle_version": {
+              "$i": "1"
+            },
+            "decisions": [],
+            "kind": "opentine.review-bundle",
+            "versions": [
+              {
+                "findings": [
+                  {
+                    "id": "f1",
+                    "message": "a token is logged",
+                    "severity": "high",
+                    "status": "open",
+                    "subject": {
+                      "$i": "0"
+                    }
+                  }
+                ],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [
+                  {
+                    "name": "coverage",
+                    "passed": true,
+                    "score": "0.9",
+                    "scorer": "exact",
+                    "threshold": "0.8",
+                    "verdict": null
+                  }
+                ],
+                "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+                ],
+                "seq": {
+                  "$i": "1"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+                },
+                "subjects": [
+                  {
+                    "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                    "repo": "app",
+                    "type": "run"
+                  },
+                  {
+                    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "repo": "infra",
+                    "type": "commit"
+                  }
+                ],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              },
+              {
+                "findings": [],
+                "gates": [
+                  "ship"
+                ],
+                "kind": "opentine.review",
+                "monitors": [],
+                "prev": null,
+                "repos": [
+                  {
+                    "name": "app",
+                    "project": "app"
+                  },
+                  {
+                    "name": "infra",
+                    "project": null
+                  }
+                ],
+                "review_id": "auth-rework",
+                "review_version": {
+                  "$i": "1"
+                },
+                "reviewers": [
+                  "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+                ],
+                "seq": {
+                  "$i": "0"
+                },
+                "signature": {
+                  "alg": "ed25519",
+                  "key_id": "vector",
+                  "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                  "scheme": "tine-sig/3",
+                  "signed_at": "2026-11-09T00:00:00Z",
+                  "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+                },
+                "subjects": [],
+                "title": "Rework the auth flow",
+                "updated_at": "2026-11-09T00:00:00Z"
+              }
+            ]
+          },
+          "reviewer_key": null
+        }
+      },
+      "intent": "versions are oldest first",
+      "op": "review.bundle",
+      "profile": "verifier",
+      "reason": "review.chain-break",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"bundle\": {\"bundle_version\": {\"$i\": \"1\"}, \"decisions\": [], \"kind\": \"opentine.review-bundle\", \"versions\": [{\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], ...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the history does not start at seq 0: it breaks the review chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.chain-break-id",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "other",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "55bcf2bb393dbc96774415425defedbdba3cd0a8ed6986854a89cfc4f915cfda44d230c7bf40a500dfb7f71863fbe29eb04770b480e854f360bd307048decf0c"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a version cannot move to another review",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.chain-break",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 1 breaks the review chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.chain-break-prev",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "9f3be905e28dc8256df854ab3adca5998d3ebbb2b24261086e34df5e567bbd7cc44a7ba74741b56af7d4d03e63c82669be223c308d445c9e849e6e589ffeb602"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "prev names something other than the predecessor",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.chain-break",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 1 breaks the review chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.chain-break-seq",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "cf20b0ffc421c9f067a8384063191fc80da5dc1128d7b6f5d4a7b5250405ef9ab1c2cebab60bc9b6c9677272ada631779f8ed19208a58ae898ba0e46058f9e02"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "seq skips a version",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.chain-break",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "version 2 breaks the review chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.extra-field",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "assignee": "bob",
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a field the review format does not define",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"assignee\": \"bob\", \"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: wrong set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.finding-subject",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "open",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "540f733ab92c3f1c95ce72292882313f7b3b8bdedeefd89a056389010c5f9b6d8201d28654c203105685cc90948d33cd3700cc43d98b55ff641de1559223510a"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a finding's subject indexes the subjects list",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewe...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: a finding has an id, severity, status, message, subject"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.first-with-prev",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37717cd0df12570dae353f3859dd2cdf53079e0c3d0fe3e2a990288b84595e43ccd415b7ae3ce5ccf2f95b84712153e0981df5223d809da20e4282e434331d01"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "seq 0 has no predecessor",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": \"blob:sha256:1111111111111111111111111111111111111111111111111111111111111111\", \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: prev and seq disagree"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.not-ed25519",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "hmac-sha256",
+              "key_id": "vector",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "a299ccc732fb987bbaa4c31431297f64c84d728acce8ff10fa195fcd9a73e63b"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a review is signed with a reviewer's Ed25519 key",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.wrong-signer",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "a review is signed with a reviewer's Ed25519 key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.passed-disagrees",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.5",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              }
+            ],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "c78cb171ba239bc86b409e77ca84443208fc22bc67928e844c714b0d3eb6c132e68ab129c7c1eaf72c35a51b72be7e2ec08d79ac3050d16d6f295412be13d306"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a monitor that passes below its threshold",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.inconsistent",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.5\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"revie...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "monitor coverage: passed disagrees with its score"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.self-added",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "5fbfe77e5fffd2140437b006bee6b46440969074fb34299aa476e56a32af184fc774e438c736a938f8a9f5281e615e80dfe67283175dbe5003a4ae301070bf00"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a stranger cannot add itself and sign that same version",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.wrong-signer",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review is not signed by a reviewer"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.tampered",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Something else",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a title edited after signing fails",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.bad-signature",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review signature does not hold (mismatch: signature mismatch)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.trailing-zero",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.90",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              }
+            ],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "435ca939f1af6cb6a24322e3198bca35ce15f3566616ad9b88e3464525187d3667223d1107e753f259d7488cd990804584e838839b75d033628f74725e9d390f"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a score is a canonical decimal (no trailing zero)",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.90\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"revi...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: a monitor is risk, intent-drift or coverage with a score"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.unknown-monitor",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "vibes",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              }
+            ],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "2a766ddbebfa3337372fb0d3774bbfc9ba1e7c1bbb6d6125a285f1714b05296aea42e5f3f39b767cc306adcffff1c956c398500de15e8d77745fbf24cd55190f"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "monitors are risk, intent-drift and coverage",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"vibes\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewer...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: a monitor is risk, intent-drift or coverage with a score"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.unknown-repo",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "102cfa8cdfee5565f11886a887ebc50254c7a2ed0f75f47ba449bd78cb8370148b83513e4dca8bd25e38dc5571858f30b59aa4ce9aacf38880f932c94e4e3604"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "docs",
+                "type": "run"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a subject names a repo the review does not span",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: a subject is a run oid or commit id in a listed repo"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.unsigned",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a version without a signature is refused",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.unsigned",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"subjects\":...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review is unsigned"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.unsorted-gates",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship",
+              "security"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "b3138bb5bb0a157ca6b4786d692be6a71b0084ec0ee0c430569155e7251f1d21eaf98457e5b47efbf9be80eb5d8ec59a5c9e18773b53c827fc08ecafb7cda208"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "gates are sorted and distinct",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\", \"security\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"},...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: gates is at most 32 sorted, distinct gate names"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.unsorted-repos",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "infra",
+                "project": null
+              },
+              {
+                "name": "app",
+                "project": "app"
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "077e53caae7d1fac2d9fce98661d340ff0d50352a834e145da92b48f14887a43fe82a12ae20c4cf5fe3868d5a28b0455ea79f1535061bdd47530ad1346c4a50c"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "repos are sorted by distinct name",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.malformed",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"infra\", \"project\": null}, {\"name\": \"app\", \"project\": \"app\"}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "review is malformed: repos is 1 to 16 repos, sorted by distinct name"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.valid-added-reviewer",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "open",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "resolved",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              },
+              {
+                "name": "risk",
+                "passed": true,
+                "score": "0.95",
+                "scorer": "exact",
+                "threshold": "0.9",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "2"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a reviewer the previous version added signs the next",
+      "op": "review.verify",
+      "output": {
+        "digest": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+        "review_id": "auth-rework",
+        "seq": 2,
+        "signer": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [{\"id\": \"f1\", \"message\": \"a token is logged\", \"severity\": \"high\", \"status\": \"open\", \"subject\": {\"$i\": \"0\"}}], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [{\"name\": \"coverage\", \"passed\": true, \"score\": \"0.9\", \"scorer\": \"exact\", \"threshold\": \"0.8\", \"verdict\": null}], \"prev\": \"blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a\", \"repos...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.valid-first",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a first version signed by its own reviewer (trust on first use)",
+      "op": "review.verify",
+      "output": {
+        "digest": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+        "review_id": "auth-rework",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified-tofu"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.valid-first-pinned",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a first version under the pinned reviewer key",
+      "op": "review.verify",
+      "output": {
+        "digest": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+        "review_id": "auth-rework",
+        "seq": 0,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "review.valid-next",
+      "input": {
+        "value": {
+          "previous": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          },
+          "reviewer_key": null,
+          "version": {
+            "findings": [
+              {
+                "id": "f1",
+                "message": "a token is logged",
+                "severity": "high",
+                "status": "open",
+                "subject": {
+                  "$i": "0"
+                }
+              }
+            ],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [
+              {
+                "name": "coverage",
+                "passed": true,
+                "score": "0.9",
+                "scorer": "exact",
+                "threshold": "0.8",
+                "verdict": null
+              }
+            ],
+            "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+            ],
+            "seq": {
+              "$i": "1"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+            },
+            "subjects": [
+              {
+                "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "repo": "app",
+                "type": "run"
+              },
+              {
+                "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "repo": "infra",
+                "type": "commit"
+              }
+            ],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "runs and commits in two repos, a finding and a monitor",
+      "op": "review.verify",
+      "output": {
+        "digest": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+        "review_id": "auth-rework",
+        "seq": 1,
+        "signer": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+        "state": "verified"
+      },
+      "profile": "verifier",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\": {\"alg\": \"ed25519\", \"key_id\": \"vector\"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.wrong-pinned",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a first version under another pinned reviewer key",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.wrong-signer",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "not signed by the pinned reviewer key"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "review.wrong-signer-first",
+      "input": {
+        "value": {
+          "previous": null,
+          "reviewer_key": null,
+          "version": {
+            "findings": [],
+            "gates": [
+              "ship"
+            ],
+            "kind": "opentine.review",
+            "monitors": [],
+            "prev": null,
+            "repos": [
+              {
+                "name": "app",
+                "project": "app"
+              },
+              {
+                "name": "infra",
+                "project": null
+              }
+            ],
+            "review_id": "auth-rework",
+            "review_version": {
+              "$i": "1"
+            },
+            "reviewers": [
+              "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+            ],
+            "seq": {
+              "$i": "0"
+            },
+            "signature": {
+              "alg": "ed25519",
+              "key_id": "vector",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-11-09T00:00:00Z",
+              "value": "02af2be339475200cbbc073151429177415cfc958362e5d84786a51880788435d1c71bc9fce40d973f5263df302be268c62cf4b4e5c94d3b2f1d3dc85ec95b0a"
+            },
+            "subjects": [],
+            "title": "Rework the auth flow",
+            "updated_at": "2026-11-09T00:00:00Z"
+          }
+        }
+      },
+      "intent": "a first version signed by a key it does not list",
+      "op": "review.verify",
+      "profile": "verifier",
+      "reason": "review.wrong-signer",
+      "section": "4.19",
+      "tier": "core",
+      "x_display": "{\"previous\": null, \"reviewer_key\": null, \"version\": {\"findings\": [], \"gates\": [\"ship\"], \"kind\": \"opentine.review\", \"monitors\": [], \"prev\": null, \"repos\": [{\"name\": \"app\", \"project\": \"app\"}, {\"name\": \"infra\", \"project\": null}], \"review_id\": \"auth-rework\", \"review_version\": {\"$i\": \"1\"}, \"reviewers\": [\"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"], \"seq\": {\"$i\": \"0\"}, \"signature\"...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "the review is not signed by a reviewer"
+      }
+    }
+  ],
+  "family": "review",
+  "section": "4.19",
+  "suite_version": 1
+}

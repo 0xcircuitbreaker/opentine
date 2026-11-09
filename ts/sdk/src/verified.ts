@@ -4,7 +4,7 @@
  * share link can only withhold objects; it cannot hand back altered ones.
  */
 
-import { inspectPack, ObjectEnvelope, webhookClass } from "@opentine/verify";
+import { inspectPack, ObjectEnvelope, parseText, STRICT, verifyReviewBundle, webhookClass } from "@opentine/verify";
 
 import type { TineClient } from "./client.js";
 import type { Capabilities, FetchRequest, Oid } from "./types.js";
@@ -49,6 +49,24 @@ export async function readObjectVerified(client: TineClient, oid: Oid): Promise<
 /** `runClosure`, verified, and holding the run itself. */
 export async function runClosureVerified(client: TineClient, oid: Oid): Promise<Map<Oid, Uint8Array>> {
   return verifyPack(await client.runClosure(oid), [oid]);
+}
+
+/**
+ * `getReview`, verified: every version reviewer-signed and chained, every gate
+ * decision signed by a reviewer of the version it names (SPEC 4.19). The
+ * answer is the bundle check: `{review_id, head, seq, versions, state,
+ * decisions, gates, status}`. `reviewerKey` pins the first reviewer.
+ */
+export async function getReviewVerified(client: TineClient, reviewId: string, reviewerKey: string | null = null): Promise<Record<string, unknown>> {
+  const review = await client.getReview(reviewId);
+  let result: Record<string, unknown>;
+  try {
+    result = verifyReviewBundle(parseText(JSON.stringify(review.bundle), STRICT), reviewerKey);
+  } catch (error) {
+    throw new VerificationError(`review ${reviewId} failed verification: ${(error as Error).message}`);
+  }
+  if (result.head !== review.head) throw new VerificationError(`review ${reviewId}: the server's head is not the bundle's`);
+  return result;
 }
 
 /** Decode base64url without Node's Buffer, so this module also runs in browsers. */

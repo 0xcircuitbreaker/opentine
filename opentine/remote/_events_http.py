@@ -152,6 +152,12 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         found = project_routes(app, identity, tenant, resource, method, environ, sr)
         if found is not None:
             return found
+    if resource == "reviews" or resource.startswith("reviews/"):  # 0.47 (``_review_http``)
+        from opentine.remote._review_http import review_routes
+
+        found = review_routes(app, identity, tenant, resource, method, environ, sr)
+        if found is not None:
+            return found
     return app._json_response(sr, "404 Not Found", {"error": "not found"})
 
 

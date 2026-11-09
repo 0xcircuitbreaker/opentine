@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-review-gate-1.schema.json",
+  "title": "opentine.review-gate (gate_version 1)",
+  "description": "One reviewer's signed decision on one gate of one Review version (SPEC 4.19), named by its digest and seq; an approval is refused while a monitor of that version fails or a critical finding is open. Signed (Ed25519 tine-sig/3) over `opentine.review-gate.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "gate_version",
+    "review_id",
+    "review",
+    "seq",
+    "gate",
+    "decision",
+    "reason",
+    "decided_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.review-gate"
+    },
+    "gate_version": {
+      "const": 1
+    },
+    "review_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "review": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gate": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "reject"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 1024
+    },
+    "decided_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

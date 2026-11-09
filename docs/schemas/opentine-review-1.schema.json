@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-review-1.schema.json",
+  "title": "opentine.review (review_version 1)",
+  "description": "One version of a Review (SPEC 4.19): the repos it spans, the runs and commits it covers, its findings, its monitors (eval scorers) and its gates. `prev` is the previous version's blob-oid digest (null for seq 0); `signature` is an Ed25519 tine-sig/3 block by a reviewer of the previous version, over `opentine.review.v1:` + JCS({body, header}).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "review_version",
+    "review_id",
+    "seq",
+    "prev",
+    "title",
+    "reviewers",
+    "repos",
+    "subjects",
+    "findings",
+    "monitors",
+    "gates",
+    "updated_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.review"
+    },
+    "review_version": {
+      "const": 1
+    },
+    "review_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "prev": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "project"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repo",
+          "type",
+          "id"
+        ],
+        "properties": {
+          "repo": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+          },
+          "type": {
+            "enum": [
+              "run",
+              "commit"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^(run:sha256:[0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1024
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "severity",
+          "subject",
+          "message",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "status": {
+            "enum": [
+              "open",
+              "resolved"
+            ]
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1024
+    },
+    "monitors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "scorer",
+          "score",
+          "threshold",
+          "passed",
+          "verdict"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "risk",
+              "intent-drift",
+              "coverage"
+            ]
+          },
+          "scorer": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "score": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          },
+          "threshold": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 64
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+      },
+      "minItems": 0,
+      "maxItems": 32
+    },
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

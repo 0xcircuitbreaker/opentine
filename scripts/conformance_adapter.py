@@ -145,6 +145,26 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
 }
 _OP_CODES["project.chain"] = _OP_CODES["project.verify"]
+#: 0.47 Reviews: the gate fragments first, so a decision's refusal is never read as a version's.
+_OP_CODES["review.bundle"] = (
+    ("review gate decision is malformed", "review-gate.malformed"),
+    ("review gate decision is unsigned", "review-gate.unsigned"),
+    ("review gate decision signature", "review-gate.bad-signature"),
+    ("review gate decision is signed with", "review-gate.wrong-signer"),
+    ("decision is not signed by", "review-gate.wrong-signer"),
+    ("names another review version", "review-gate.wrong-review"),
+    ("decision names no", "review-gate.wrong-review"),
+    ("is not a gate of it", "review-gate.unknown-gate"),
+    ("approval is blocked", "review-gate.blocked"),
+    ("review is malformed", "review.malformed"),
+    ("review is unsigned", "review.unsigned"),
+    ("review signature", "review.bad-signature"),
+    ("review is signed with", "review.wrong-signer"),
+    ("not signed by", "review.wrong-signer"),
+    ("breaks the review chain", "review.chain-break"),
+    ("passed disagrees", "review.inconsistent"),
+)
+_OP_CODES["review.verify"] = _OP_CODES["review-gate.verify"] = _OP_CODES["review.bundle"]
 
 #: message fragment -> code, longest fragment wins.
 _CODES: tuple[tuple[str, str], ...] = (

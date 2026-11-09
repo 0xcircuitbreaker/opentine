@@ -22,6 +22,7 @@ from opentine._cli_merge import add_merge_parsers
 from opentine._cli_project import add_project_parser, cmd_project
 from opentine._cli_purge import add_purge_parser, cmd_purge
 from opentine._cli_redact import add_redact_parser, cmd_redact
+from opentine._cli_review import add_review_parser, cmd_review
 
 
 def add_hygiene_parsers(sub: Any) -> None:
@@ -29,6 +30,7 @@ def add_hygiene_parsers(sub: Any) -> None:
     add_purge_parser(sub)  # 0.46: tine purge, tombstones
     add_project_parser(sub)  # 0.46.1: tine project, opentine.project manifests
     add_merge_parsers(sub)  # 0.47: tine merge, tine pick, tine merge-queue
+    add_review_parser(sub)  # 0.47: tine review, opentine.review and its gate decisions
     doctor = sub.add_parser("doctor", help="Check environment, keys, hooks, harnesses, remotes")
     doctor.add_argument("--repo", default=".")
     doctor.add_argument("--bundle", metavar="PATH", help="Write a redacted support bundle")
@@ -65,5 +67,6 @@ COMMANDS = {
     "project": cmd_project,
     **MERGE_COMMANDS,
 }
+COMMANDS["review"] = cmd_review  # 0.47
 
 __all__ = ["COMMANDS", "add_hygiene_parsers", "cmd_doctor", "cmd_purge", "cmd_redact"]

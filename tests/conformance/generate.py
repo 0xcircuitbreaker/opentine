@@ -39,6 +39,7 @@ from tests.conformance import (
     cases_redaction_report,
     cases_repair,
     cases_repo,
+    cases_review,
     cases_share,
     cases_sig_pq,
     cases_sig_v4,
@@ -103,6 +104,7 @@ FAMILY_MODULES = (
     cases_project,
     cases_hook,
     cases_merge,
+    cases_review,
 )
 
 

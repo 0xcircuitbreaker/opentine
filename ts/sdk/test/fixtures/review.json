@@ -1,0 +1,224 @@
+{
+ "bundle": {
+  "bundle_version": 1,
+  "decisions": [
+   {
+    "decided_at": "2026-11-09T00:00:00Z",
+    "decision": "approve",
+    "gate": "ship",
+    "gate_version": 1,
+    "kind": "opentine.review-gate",
+    "reason": "",
+    "review": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+    "review_id": "auth-rework",
+    "seq": 1,
+    "signature": {
+     "alg": "ed25519",
+     "key_id": "vector",
+     "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+     "scheme": "tine-sig/3",
+     "signed_at": "2026-11-09T00:00:00Z",
+     "value": "fbf3a5c4155bccd7e4261744ebe706b75bf7435c99de79fe77262b617f1aeed78ecd07b8bc3eca346efe8412c66c5be21fcd715f7f69120467cf34f7c752000e"
+    }
+   },
+   {
+    "decided_at": "2026-11-09T00:00:00Z",
+    "decision": "approve",
+    "gate": "ship",
+    "gate_version": 1,
+    "kind": "opentine.review-gate",
+    "reason": "coverage and risk hold",
+    "review": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+    "review_id": "auth-rework",
+    "seq": 2,
+    "signature": {
+     "alg": "ed25519",
+     "key_id": "vector",
+     "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+     "scheme": "tine-sig/3",
+     "signed_at": "2026-11-09T00:00:00Z",
+     "value": "99cc2b1f43f02a730d263d5d0beb191367082601848c8c6e3b569071003b33f575bc8510908b955e05229f86238cd261757e6771535fd49e3fb9a11f4c23580f"
+    }
+   }
+  ],
+  "kind": "opentine.review-bundle",
+  "versions": [
+   {
+    "findings": [],
+    "gates": [
+     "ship"
+    ],
+    "kind": "opentine.review",
+    "monitors": [],
+    "prev": null,
+    "repos": [
+     {
+      "name": "app",
+      "project": "app"
+     },
+     {
+      "name": "infra",
+      "project": null
+     }
+    ],
+    "review_id": "auth-rework",
+    "review_version": 1,
+    "reviewers": [
+     "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+    ],
+    "seq": 0,
+    "signature": {
+     "alg": "ed25519",
+     "key_id": "vector",
+     "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+     "scheme": "tine-sig/3",
+     "signed_at": "2026-11-09T00:00:00Z",
+     "value": "37e6cb02d47798d07d09b53a55a06595580f392ee2db76fe1da37349c9fda65a44d442ddcd8e8bbcb813f5db8e0ec5d3408118fbef6f6135e5b7d321ead71d09"
+    },
+    "subjects": [],
+    "title": "Rework the auth flow",
+    "updated_at": "2026-11-09T00:00:00Z"
+   },
+   {
+    "findings": [
+     {
+      "id": "f1",
+      "message": "a token is logged",
+      "severity": "high",
+      "status": "open",
+      "subject": 0
+     }
+    ],
+    "gates": [
+     "ship"
+    ],
+    "kind": "opentine.review",
+    "monitors": [
+     {
+      "name": "coverage",
+      "passed": true,
+      "score": "0.9",
+      "scorer": "exact",
+      "threshold": "0.8",
+      "verdict": null
+     }
+    ],
+    "prev": "blob:sha256:074f2c024cfd2a8de0d6c88609287e37d6a9641a33d31dfbe2c00bc66198116a",
+    "repos": [
+     {
+      "name": "app",
+      "project": "app"
+     },
+     {
+      "name": "infra",
+      "project": null
+     }
+    ],
+    "review_id": "auth-rework",
+    "review_version": 1,
+    "reviewers": [
+     "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+     "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+    ],
+    "seq": 1,
+    "signature": {
+     "alg": "ed25519",
+     "key_id": "vector",
+     "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+     "scheme": "tine-sig/3",
+     "signed_at": "2026-11-09T00:00:00Z",
+     "value": "7772e7475a8d0c4dca55a43258bc0d1172f07d3958e1f893ebb5ad357d8842d112f96d653cfa6df2089f1bff0662071af946c050d9c9f9814b2b43adc780e906"
+    },
+    "subjects": [
+     {
+      "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "repo": "app",
+      "type": "run"
+     },
+     {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repo": "infra",
+      "type": "commit"
+     }
+    ],
+    "title": "Rework the auth flow",
+    "updated_at": "2026-11-09T00:00:00Z"
+   },
+   {
+    "findings": [
+     {
+      "id": "f1",
+      "message": "a token is logged",
+      "severity": "high",
+      "status": "resolved",
+      "subject": 0
+     }
+    ],
+    "gates": [
+     "ship"
+    ],
+    "kind": "opentine.review",
+    "monitors": [
+     {
+      "name": "coverage",
+      "passed": true,
+      "score": "0.9",
+      "scorer": "exact",
+      "threshold": "0.8",
+      "verdict": null
+     },
+     {
+      "name": "risk",
+      "passed": true,
+      "score": "0.95",
+      "scorer": "exact",
+      "threshold": "0.9",
+      "verdict": null
+     }
+    ],
+    "prev": "blob:sha256:08696befac88b59160dbedfb06093fb8bb25d76f418acbc819b80e286fa66419",
+    "repos": [
+     {
+      "name": "app",
+      "project": "app"
+     },
+     {
+      "name": "infra",
+      "project": null
+     }
+    ],
+    "review_id": "auth-rework",
+    "review_version": 1,
+    "reviewers": [
+     "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+     "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+    ],
+    "seq": 2,
+    "signature": {
+     "alg": "ed25519",
+     "key_id": "vector",
+     "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+     "scheme": "tine-sig/3",
+     "signed_at": "2026-11-09T00:00:00Z",
+     "value": "bc363baa7e04047ad94c3db90c02fbab783c94124862e37d1f7986ac3f87f81ac82eadae6568a1ee17c58f890b97cd994abffc946938f36e8a64cbb391818e0f"
+    },
+    "subjects": [
+     {
+      "id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "repo": "app",
+      "type": "run"
+     },
+     {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repo": "infra",
+      "type": "commit"
+     }
+    ],
+    "title": "Rework the auth flow",
+    "updated_at": "2026-11-09T00:00:00Z"
+   }
+  ]
+ },
+ "head": "blob:sha256:4823b337c3796b60cbe18189f455ea754390776cf5fb61ff5016327c90dafac8",
+ "seq": 2
+}

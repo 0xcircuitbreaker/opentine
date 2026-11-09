@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { TineClient, type Capabilities } from "../src/index.js";
-import { fetchVerified, readObjectVerified, VerificationError, verifyPack, verifyWebhook } from "../src/verified.js";
+import { fetchVerified, getReviewVerified, readObjectVerified, VerificationError, verifyPack, verifyWebhook } from "../src/verified.js";
 
 const fixtures = new URL("../../test/fixtures/", import.meta.url);
 const pack = new Uint8Array(readFileSync(new URL("run.pack", fixtures)));
@@ -56,4 +56,19 @@ test("webhook deliveries verify against the advertised keys", () => {
   const altered = body.slice();
   altered[0] ^= 1;
   assert.equal(verifyWebhook(altered, header, caps, now), "bad-signature");
+});
+
+test("a fetched Review verifies whole, every gate decision included", async () => {
+  const review = readFileSync(new URL("review.json", fixtures), "utf8");
+  const client = (text: string) =>
+    new TineClient({
+      baseUrl: "https://t",
+      tenant: "a",
+      fetch: (async () => new Response(text, { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch,
+    });
+  const result = await getReviewVerified(client(review), "auth-rework");
+  assert.equal(result.status, "approved");
+  assert.equal(result.decisions, 2);
+  const forged = review.replace("coverage and risk hold", "forged approval");
+  await assert.rejects(getReviewVerified(client(forged), "auth-rework"), VerificationError);
 });

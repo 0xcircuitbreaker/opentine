@@ -199,6 +199,19 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `ref.target-type` | 2.5 | `_refs.TYPED_REF_NAMESPACES` | a typed-namespace ref pointing at the wrong object type | let heads/ point at an event because the oid parses |
 | `reflog.actor-too-long` | 2.6 | `_reflog.reflog_entry` | a reflog actor longer than 4096 characters | truncate the actor |
 | `reflog.time-not-string` | 2.6 | -- | a time_ns that is not decimal digits inside a JSON string | emit the nanosecond timestamp as a JSON number |
+| `review-gate.bad-signature` | 4.19 | -- | a gate decision whose tine-sig/3 block does not hold | count a decision edited after signing |
+| `review-gate.blocked` | 4.19 | -- | an approval while a monitor of that version fails or a critical finding is open | approve past a failing monitor |
+| `review-gate.malformed` | 4.19 | -- | a gate decision with a missing, extra or ill-formed field | read an unknown decision as an approval |
+| `review-gate.unknown-gate` | 4.19 | -- | a decision on a gate the version does not list | invent a gate after the fact |
+| `review-gate.unsigned` | 4.19 | -- | a gate decision with no signature block | count an unsigned approval |
+| `review-gate.wrong-review` | 4.19 | -- | a decision checked against a version it does not name, or naming none in the bundle | carry an approval over to a later version |
+| `review-gate.wrong-signer` | 4.19 | -- | a gate decision not signed by a reviewer of the version it names, or not Ed25519 | count anyone's approval |
+| `review.bad-signature` | 4.19 | -- | a review version whose tine-sig/3 block does not hold over its body | show findings or gates nobody signed |
+| `review.chain-break` | 4.19 | -- | a version not following its predecessor, or a history not starting at seq 0 | drop or reorder a version after the fact |
+| `review.inconsistent` | 4.19 | -- | a monitor whose passed disagrees with score >= threshold | trust a monitor's verdict over its own numbers |
+| `review.malformed` | 4.19 | -- | a review version or bundle with a missing, extra or ill-formed field | verify a signature over fields the review format does not define |
+| `review.unsigned` | 4.19 | -- | a review version with no signature block | treat an unsigned version as a reviewer's |
+| `review.wrong-signer` | 4.19 | -- | a version not signed (Ed25519) by a reviewer of its predecessor, its own or the pin | accept any valid signature as a reviewer's |
 | `shallow.carriage-return` | 2.7 | -- | a CR anywhere in a shallow file | normalize CRLF to LF |
 | `shallow.duplicate` | 2.7 | -- | a duplicate oid in a shallow file | de-duplicate the set |
 | `shallow.empty-line` | 2.7 | -- | an empty line inside a shallow file | skip blank lines |

@@ -26,6 +26,7 @@ export interface Capabilities {
   admin?: Record<string, unknown>;
   project?: Record<string, unknown>;
   social_export?: Record<string, unknown>;
+  reviews?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -171,4 +172,45 @@ export interface ProjectHistory {
 export interface SocialCounts {
   stars: number;
   watches: number;
+}
+
+/** An `opentine.review` version (SPEC 4.19), as its reviewer signed it. Verify before trusting. */
+export interface ReviewVersion {
+  kind: "opentine.review";
+  seq: number;
+  signature: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** An `opentine.review-gate` decision (SPEC 4.19), as its reviewer signed it. */
+export interface ReviewGate {
+  kind: "opentine.review-gate";
+  review: Oid;
+  signature: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** A Review whole: what `tine review export` writes and `verifyReviewBundle` checks. */
+export interface ReviewBundle {
+  kind: "opentine.review-bundle";
+  bundle_version: 1;
+  versions: ReviewVersion[];
+  decisions: ReviewGate[];
+}
+
+export interface Review {
+  bundle: ReviewBundle;
+  head: Oid;
+  seq: number;
+}
+
+export interface ReviewSummary {
+  review_id: string;
+  seq: number;
+  head: Oid;
+}
+
+export interface ReviewDecided {
+  stored: boolean;
+  digest: Oid;
 }

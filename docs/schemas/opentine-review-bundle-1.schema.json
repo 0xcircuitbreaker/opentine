@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-review-bundle-1.schema.json",
+  "title": "opentine.review-bundle (bundle_version 1)",
+  "description": "A Review whole (SPEC 4.19): every version oldest first and every gate decision, as `tine review export` writes it and `tine-verify.pyz --offline` checks it. Unsigned itself; everything in it is signed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "bundle_version",
+    "versions",
+    "decisions"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.review-bundle"
+    },
+    "bundle_version": {
+      "const": 1
+    },
+    "versions": {
+      "type": "array",
+      "items": {
+        "$ref": "opentine-review-1.schema.json"
+      },
+      "minItems": 1,
+      "maxItems": 10000
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "opentine-review-gate-1.schema.json"
+      },
+      "minItems": 0,
+      "maxItems": 10000
+    }
+  }
+}

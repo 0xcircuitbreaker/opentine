@@ -60,6 +60,7 @@ SCHEMAS: dict[str, Any] = {
             "vsa": {"type": "object"},
             "project": {"type": "object"},
             "social_export": {"type": "object"},
+            "reviews": {"type": "object"},
         },
     ),
     "RefList": _obj({"refs": {"type": "object", "additionalProperties": _oid}}, extra=False),
@@ -200,6 +201,49 @@ SCHEMAS: dict[str, Any] = {
     ),
     "ProjectUpdated": _obj({"updated": {"type": "boolean"}}, {"digest": _blob}, extra=False),
     "SocialCounts": _obj({"stars": _int, "watches": _int}, extra=False),
+    # 0.47 (caps.reviews): opentine.review versions and opentine.review-gate decisions.
+    "ReviewVersion": _obj(
+        {"kind": {"const": "opentine.review"}, "seq": _int, "signature": {"type": "object"}}
+    ),
+    "ReviewGate": _obj(
+        {
+            "kind": {"const": "opentine.review-gate"},
+            "review": _blob,
+            "signature": {"type": "object"},
+        }
+    ),  # fmt: skip
+    "ReviewList": _obj(
+        {
+            "reviews": {
+                "type": "array",
+                "items": _obj({"review_id": _str, "seq": _int, "head": _blob}, extra=False),
+            }
+        },
+        extra=False,
+    ),  # fmt: skip
+    "Review": _obj(
+        {
+            "bundle": _obj(
+                {
+                    "kind": {"const": "opentine.review-bundle"},
+                    "bundle_version": {"const": 1},
+                    "versions": {"type": "array", "items": _ref("ReviewVersion")},
+                    "decisions": {"type": "array", "items": _ref("ReviewGate")},
+                },
+                extra=False,
+            ),
+            "head": _blob,
+            "seq": _int,
+        },
+        extra=False,
+    ),
+    "ReviewUpdate": _obj(
+        {"version": _ref("ReviewVersion"), "expected_old": {"anyOf": [_blob, {"type": "null"}]}},
+        extra=False,
+    ),
+    "ReviewUpdated": _obj({"updated": {"type": "boolean"}}, {"digest": _blob}, extra=False),
+    "ReviewDecision": _obj({"decision": _ref("ReviewGate")}, extra=False),
+    "ReviewDecided": _obj({"stored": {"type": "boolean"}, "digest": _blob}, extra=False),
 }
 
 __all__ = ["OID", "SCHEMAS"]

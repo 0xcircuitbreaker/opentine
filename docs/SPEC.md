@@ -2275,6 +2275,93 @@ attestation's `gates` by the SHA-256 of its JCS.
 
 Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
 `merge-approval.verify`).
+## 4.19 Reviews: `opentine.review`, `opentine.review-gate` and the review bundle (0.47.0+)
+
+A Review is a unit of work across runs and commits, in one repository or
+several, with findings, monitors and gates. It is three kinds:
+
+**Versions.** An `opentine.review` version is a JSON object with exactly these
+keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.review"` |
+| `review_version` | `1` |
+| `review_id` | `[a-z0-9][a-z0-9._-]{0,63}`; never changes along a chain |
+| `seq` | `0` for the first version, then one more than the previous version's |
+| `prev` | `null` exactly when `seq` is 0; else the previous version's digest (as in §4.16: the blob oid of its canonical bytes, signature included) |
+| `title` | 1 to 256 UTF-8 bytes of text without control characters |
+| `reviewers` | 1 to 16 distinct Ed25519 public keys, 64 lowercase hex each |
+| `repos` | 1 to 16 objects `{name, project}`, sorted by distinct `name` (`[a-z0-9][a-z0-9._-]{0,63}`); `project` is `null` or an `opentine.project` id (§4.16) |
+| `subjects` | at most 1024 distinct objects `{repo, type, id}`: `repo` a `name` in `repos`, `type` `run` (`id` a run oid) or `commit` (`id` 40 or 64 lowercase hex) |
+| `findings` | at most 1024 objects `{id, severity, subject, message, status}`: distinct `id`s, `severity` `info`, `low`, `medium`, `high` or `critical`, `subject` `null` or an index into `subjects`, `message` 1 to 1024 bytes of text, `status` `open` or `resolved` |
+| `monitors` | at most 64 objects `{name, scorer, score, threshold, passed, verdict}` with distinct `name`s (`risk`, `intent-drift`, `coverage`) |
+| `gates` | at most 32 sorted, distinct gate names (`[a-z0-9][a-z0-9._-]{0,63}`) |
+| `updated_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block, **Ed25519 only**, over `b"opentine.review.v1:"` + JCS(`{"body": <the version without signature>, "header": <header>}`) |
+
+**The multi-repo object model.** A Review names each repository it spans once,
+in `repos`, by a local `name` and, where the repository is an OpenTine project,
+its `project` id; every subject names its repository by that `name`. A run is
+named by its run oid, a commit by its git object id in the repository's own
+object format (§4.18). The Review lives with whichever run repository records
+it and moves whole, as a bundle; it never copies a subject's objects, and no
+subject has to be present for the Review to verify.
+
+**Monitors are eval scorers.** `scorer` is a scorer id
+(`[a-z0-9][a-z0-9-]{0,63}`, as in `tine-eval-verdict/1`, §4.12); `score` and
+`threshold` are that format's decimal strings (`0`, `1` or `0.` and at most
+six digits with no trailing zero); `passed` MUST equal `score >= threshold`,
+compared exactly (in millionths), else `review.inconsistent`. `verdict` is
+`null` or the `sha256:` digest of the `tine-eval-verdict/1` the monitor was
+taken from. A score is a goodness: a risk or intent-drift monitor passes when
+its scorer says the risk or drift is low enough.
+
+**Chain.** Version *n* + 1 names version *n*'s digest in `prev`, has `seq` one
+greater and the same `review_id`, and is signed by a key in version *n*'s
+`reviewers`; the first version is signed by a key in its own `reviewers`.
+
+**Gate decisions.** An `opentine.review-gate` is a JSON object with exactly
+`kind` (`"opentine.review-gate"`), `gate_version` (`1`), `review_id`, `review`
+(the digest of the version decided), `seq` (that version's `seq`), `gate` (a
+gate name), `decision` (`approve` or `reject`), `reason` (at most 1024 bytes of
+text, may be empty) and `decided_at`, plus a `signature`: Ed25519 only, over
+`b"opentine.review-gate.v1:"` + JCS(`{body, header}`), by a key in the decided
+version's `reviewers`. An approval is refused while a monitor of that version
+fails or one of its `critical` findings is `open`; a rejection never is.
+
+**The bundle.** An `opentine.review-bundle` is `{"kind":
+"opentine.review-bundle", "bundle_version": 1, "versions": [...], "decisions":
+[...]}`, exactly these keys: every version oldest first (at most 10,000) and
+every decision (at most 10,000). It is not signed itself; everything in it is.
+A verifier checks the chain, then each decision against the version whose
+digest it names. The result is `{review_id, head, seq, versions, state,
+decisions, gates, status}`: `gates` maps each gate of the head version to
+`rejected` (some decision on the head rejects it), `approved` (one approves it
+and none rejects it) or `pending`; a decision on an earlier version verifies
+but never counts for the head. `status` is `rejected` when a gate is,
+`approved` when the head has gates and every one is approved, else `pending`.
+
+A verifier MUST refuse, with the first applicable code, for a version:
+`review.malformed`; `review.inconsistent`; `review.unsigned`;
+`review.wrong-signer` (not Ed25519); `review.bad-signature`;
+`review.chain-break` (`prev`, `seq` or `review_id` does not follow the
+predecessor, or a history that does not start at `seq` 0);
+`review.wrong-signer` (not in the reviewer set that governs the version, or,
+for a first version checked against a pinned reviewer key, not that key); and
+for a decision: `review-gate.malformed`;
+`review-gate.unsigned`; `review-gate.wrong-signer` (not Ed25519);
+`review-gate.bad-signature`; `review-gate.wrong-review` (checked against a
+version it does not name, or naming none in the bundle);
+`review-gate.unknown-gate`; `review-gate.wrong-signer` (not a reviewer of that
+version); `review-gate.blocked`. One version checks to `{review_id, seq,
+digest, signer, state}` (`verified` when the reviewer set came from a checked
+predecessor or the pinned key, else `verified-tofu`); one decision to
+`{review_id, gate, decision, seq, signer, state: "verified"}`. Vectors:
+`68-review.json` (ops `review.verify`, `review-gate.verify` and
+`review.bundle`). `tine review export` writes a bundle and
+`tine-verify.pyz --offline FILE` checks it, every gate decision included,
+without a network.
 
 ---
 
@@ -3019,6 +3106,38 @@ upload-pack or receive-pack for code, no mirror route and no `mirror`
 capability. A client pins a remote's project with `tine remote add --project
 ID` and refuses one that serves another.
 
+<a id="s-8.19"></a>
+## 8.19 Reviews on a remote: `caps.reviews` (0.47.0)
+
+A remote that stores Reviews lists `reviews` (`{"path": "reviews", "kind":
+"opentine.review", "decisions": "decisions", "update": "PUT", "max_versions":
+10000}`) in `GET /v1/capabilities`. Under `/v1/tenants/<t>/`:
+
+- `GET reviews` (`read_ref`): `{"reviews": [{review_id, seq, head}]}`.
+- `GET reviews/<id>` (`read_ref`): `{bundle, head, seq}`, the Review as an
+  `opentine.review-bundle` (§4.19) that verifies offline.
+- `PUT reviews/<id>` (`update_ref`: writers and admins) with `{expected_old,
+  version}`: a compare-and-swap on the head version's digest (`null` for a new
+  Review), else `409 {"updated": false}`. The version must name this
+  `review_id`, follow the head (with no head it must be `seq` 0) and be signed
+  by a reviewer of the head (§4.19), else `400` carrying the refusal `code`. On
+  success `200 {"updated": true, "digest"}`.
+- `POST reviews/<id>/decisions` (`update_ref`) with `{decision}`: one
+  `opentine.review-gate`, checked against the stored version whose digest it
+  names, else `400` with its code (`review-gate.wrong-review` when it names
+  none). On success `201 {"stored": true, "digest"}`; a decision already stored
+  is not stored twice.
+
+Every stored version and decision is an `update_ref` row of the audit chain
+(name `reviews/<id>` or `reviews/<id>/decisions`, new = its digest), so it is
+in the transparency log (§8.10). A Review that does not exist, a caller without
+`read_ref`, an id that is not a review id and another tenant all answer the
+same `404 {"error":"not found"}`, for the writes too (a reader who may not
+write gets `403`); an unauthenticated request is the same `401` for every
+tenant. The server stores versions and decisions exactly as signed, never signs
+one, and keeps them outside the ref listing, so fetch, clone and push are
+unchanged for older clients.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -3523,6 +3642,7 @@ Versions are the opentine release that changed this document.
 | Spec version | Change |
 |---|---|
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`. No existing byte format changed. |
+| 0.47.0 | 4.19, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |
