@@ -2958,7 +2958,7 @@ Reason codes are dotted `area.detail` strings matching
 | claims | `claims.match`, `claims.absent`, `claims.no-run`, `claims.no-tool-step`, `claims.output-mismatch`, `claims.digest-mismatch`, `claims.unclaimed-step`, `claims.unreadable`, `claims.unrecomputable` |
 | locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
 | provenance (§9.9) | `provenance.none` (no `upgraded_from`, or not v4), `provenance.recorded` (the record is shown as a claim, `unavailable-offline`), `provenance.source-match`, `provenance.source-mismatch` (with `--source PATH`) |
-| timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable` |
+| timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable`, `timestamp.revoked`, `timestamp.revocation-invalid` (0.50) |
 | delegation (§4.10) | `delegation.verified`, `delegation.unsigned`, and the chain codes of §4.10 |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
 
@@ -3111,9 +3111,23 @@ serial, or subject key identifier, among the token's certificates) has the
 is `timestamp.no-roots`, `unavailable-offline`). A timestamp check is never
 required and never establishes authorship: it shows *when* the digest
 existed, not *who* recorded it. With no token and no `--tsa-roots` the report
-is unchanged from 0.30. Not checked: revocation (no CRL or OCSP offline),
-the `nonce`, `accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
+is unchanged from 0.30. Not checked: revocation status that the token does not
+carry (opentine never fetches a CRL or asks an OCSP responder), the `nonce`,
+`accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
 (reported `timestamp.unsupported-algorithm`).
+
+**Embedded revocation data (0.50).** The token format is unchanged: RFC 5652
+`SignedData.crls` may already carry CRLs and RFC 5940
+`OtherRevocationInfoFormat` entries; those with format `id-ri-ocsp-response`
+(1.3.6.1.5.5.7.16.2) hold an OCSP response, and other formats are ignored.
+After the chain check, each one must parse and be signed by a CA on the TSA's
+path (for OCSP, that CA or a responder it issued with `id-kp-OCSPSigning`),
+else `timestamp.revocation-invalid`. A certificate on the path listed as
+revoked at or before `genTime`, or for `keyCompromise` or `cACompromise` at any
+time, fails the token with `timestamp.revoked`. The field lies outside the TSA
+signature and can be stripped, so this data can only fail a token, never
+strengthen one; its absence is not a finding, and `thisUpdate`/`nextUpdate`
+are not judged.
 
 **Signature binding (0.39, X20).** `bound` may instead be
 `sig:sha256:<hex>`: the SHA-256 of the canonical JSON (§0.2) of one signature

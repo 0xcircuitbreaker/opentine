@@ -38,6 +38,9 @@ class Token:
     tst_info: bytes
     #: DER certificates carried in SignedData.certificates.
     certs: list[bytes] = field(default_factory=list)
+    #: SignedData.crls (0.50): DER CRLs, and RFC 5940 OCSP responses.
+    crls: list[bytes] = field(default_factory=list)
+    ocsp: list[bytes] = field(default_factory=list)
     signer_serial: int | None = None
     signer_issuer: bytes | None = None
     signer_ski: bytes | None = None
@@ -154,6 +157,20 @@ def _signer(token: Token, node: _der.Node) -> None:
     token.signature = items[5].expect(OCTETS, "signature").value
 
 
+OCSP_FORMAT = "1.3.6.1.5.5.7.16.2"  # id-ri-ocsp-response (RFC 5940)
+
+
+def _revocation(token: Token, node: _der.Node) -> None:
+    """SignedData.crls: CRLs, and OtherRevocationInfoFormat OCSP responses."""
+    for item in node.children():
+        if item.tag == SEQUENCE:
+            token.crls.append(item.raw)
+        elif item.tag == 0xA1:
+            fmt, info = item.children()
+            if _der.as_oid(fmt) == OCSP_FORMAT:
+                token.ocsp.append(info.raw)
+
+
 def parse(data: bytes) -> Token:
     """Decode *data*; ``ValueError`` names the first structural flaw."""
     try:
@@ -168,6 +185,9 @@ def parse(data: bytes) -> Token:
         rest = signed[3:]
         if rest and rest[0].tag == 0xA0:
             token.certs = [cert.raw for cert in rest[0].children()]
+            rest = rest[1:]
+        if rest and rest[0].tag == 0xA1:
+            _revocation(token, rest[0])
         signers = rest[-1].expect(SET, "signerInfos").children()
         if len(signers) != 1:
             raise DerError("expected exactly one SignerInfo")

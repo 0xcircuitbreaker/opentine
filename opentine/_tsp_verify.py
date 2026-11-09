@@ -18,6 +18,9 @@ Roots from a trusted root's ``timestampAuthorities`` come with their
 whose genTime lies inside the window. A token minted before an authority was
 retired keeps verifying; one dated after ``validFor.end`` (or before
 ``validFor.start``) fails closed with ``timestamp.tsa-retired``.
+
+0.50 (``_tsp_revocation``): CRLs and OCSP responses embedded in
+``SignedData.crls`` are checked last; they can only fail a token.
 Nothing here opens a connection or fetches a certificate.
 """
 
@@ -39,6 +42,7 @@ from cryptography.hazmat.primitives.serialization import Encoding
 from opentine import _der
 from opentine._tsp import ATTR_CONTENT_TYPE, ATTR_MESSAGE_DIGEST, HASHES, TST_INFO, Token, parse
 from opentine._tsp_checks import eku_problem, ess_problem, extension_problem, issuer_ok
+from opentine._tsp_revocation import revocation_problem
 
 _PSS = "1.2.840.113549.1.1.10"
 _MAX_CHAIN = 8
@@ -115,6 +119,20 @@ def _chain(leaf: x509.Certificate, pool: list[x509.Certificate], roots, when) ->
             return False
         current = nxt
     return False
+
+
+def _path(leaf: x509.Certificate, pool, roots, when) -> list[x509.Certificate]:
+    """The certificates :func:`_chain` walks from *leaf* to its anchor."""
+    path, current = [leaf], leaf
+    for _ in range(_MAX_CHAIN):
+        if current.subject == current.issuer:
+            break
+        issuers = [c for c in [*roots, *pool] if c.subject == current.issuer]
+        current = next((c for c in issuers if _issued(path[-1], c, when)), None)
+        if current is None or current in path:
+            break
+        path.append(current)
+    return path
 
 
 def _issued(child: x509.Certificate, parent: x509.Certificate, when: datetime) -> bool:
@@ -199,6 +217,10 @@ def verify_token(
         return Verdict(False, "timestamp.no-roots", detail, info, no_roots=True)
     if not _chain(cert, pool, roots, token.gen_time):
         return Verdict(False, "timestamp.untrusted-root", "TSA chain reaches no trusted root", info)
+    path = _path(cert, pool, roots, token.gen_time)
+    revoked = revocation_problem(token.crls, token.ocsp, path, token.gen_time)
+    if revoked:
+        return Verdict(False, revoked[0], revoked[1], info)
     detail = f"genTime {info['gen_time']} by {info['tsa']} ({token.hash_name})"
     return Verdict(True, "timestamp.verified", detail, info)
 
