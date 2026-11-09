@@ -95,3 +95,21 @@ other.
 `docs/conformance/vectors/65-project.json` (ops `project.verify`,
 `project.chain`) and `66-mirror-state.json` (ops `mirror-state.verify`,
 `git-object.check`), answered by Python, the TS verifier and the pyz.
+
+## Forge claims and forks (0.47)
+
+A project is claimed **from the upstream** by committing `.opentine/project`
+on the default branch (`tine project claim --code DIR` writes it): an unsigned
+`opentine.forge-claim` holding the `project_id`, the `tenant` and a
+`fingerprint` of the project's first manifest version (SPEC 4.19). Only
+someone who can write the upstream's default branch can put it there, which is
+its whole authority. It reaches opentine-web through the code mirror, so it
+reads `claimed by upstream (as mirrored)` and never reaches a pass on its own;
+a claim only on a feature branch, for another id or tenant, or for another
+project with the same id (a fork, a re-created project) is refused.
+
+`tine project fork DEST --project-id ID` copies the run repository, never
+code, under a new project whose `forked_from` names the source. The fork point
+stays in `.tine/project-fork.json`, and `tine project verify --source PATH`
+checks `forked_from` against the source's history. A fork never inherits the
+source's forge claim: the fingerprint names the source's first version.

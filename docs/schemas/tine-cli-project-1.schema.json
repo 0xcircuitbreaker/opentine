@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-project-1.schema.json",
   "title": "tine project ACTION --json",
-  "description": "Every `tine project` action. `init`/`link`: the new version (`manifest`, `digest`, `project`); `show`: the current one; `history`: `versions` oldest first; `verify`: `result`, the chain check; `push`: `sent`, `head`, `versions`. A refusal is the error envelope, exit 4 for a verification failure.",
+  "description": "Every `tine project` action. `init`/`link`: the new version (`manifest`, `digest`, `project`); `show`: the current one; `history`: `versions` oldest first; `verify`: `result`, the chain check (and `fork`, with `--source`); `push`: `sent`, `head`, `versions`; `claim`: the `claim` written and its `path` and `branch`, or with `--check` a `result` that is never a pass; `fork`: the fork's first version and its `fork_point`. A refusal is the error envelope, exit 4 for a verification failure.",
   "type": "object",
   "required": [
     "command",
@@ -20,7 +20,9 @@
         "show",
         "history",
         "verify",
-        "push"
+        "push",
+        "claim",
+        "fork"
       ]
     },
     "ok": {
@@ -104,18 +106,106 @@
       ]
     },
     "result": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "project_id",
+            "head",
+            "seq",
+            "versions",
+            "state"
+          ],
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "head": {
+              "type": "string",
+              "pattern": "^blob:sha256:[0-9a-f]{64}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "versions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "state": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project_id",
+            "tenant",
+            "fingerprint",
+            "branch",
+            "state",
+            "label"
+          ],
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "tenant": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "branch": {
+              "type": "string"
+            },
+            "state": {
+              "const": "claimed-as-mirrored"
+            },
+            "label": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "claim": {
+      "$ref": "opentine-forge-claim-1.schema.json"
+    },
+    "path": {
+      "const": ".opentine/project"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "fork_point": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "project_id",
+        "tenant",
+        "genesis",
         "head",
-        "seq",
-        "versions",
-        "state"
+        "seq"
       ],
       "properties": {
         "project_id": {
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "tenant": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        },
+        "genesis": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
         },
         "head": {
           "type": "string",
@@ -124,13 +214,48 @@
         "seq": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "fork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forked_from",
+        "source_head",
+        "source_versions",
+        "fork_point",
+        "state"
+      ],
+      "properties": {
+        "forked_from": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
         },
-        "versions": {
+        "source_head": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        "source_versions": {
           "type": "integer",
           "minimum": 0
         },
+        "fork_point": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^blob:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "state": {
-          "type": "string"
+          "enum": [
+            "fork-verified",
+            "fork-unrecorded"
+          ]
         }
       }
     }

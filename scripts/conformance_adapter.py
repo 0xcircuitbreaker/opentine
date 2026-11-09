@@ -161,6 +161,13 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("no key for", "merge-approval.no-key"),
         ("trusted key", "merge-approval.wrong-key"),
     ),
+    "forge-claim.verify": (
+        ("no forge claim", "forge-claim.missing"),
+        ("forge claim is malformed", "forge-claim.malformed"),
+        ("not the default branch", "forge-claim.not-default-branch"),
+        ("names another project or tenant", "forge-claim.wrong-project"),
+        ("fingerprint names another project", "forge-claim.wrong-fingerprint"),
+    ),
 }
 _OP_CODES["project.chain"] = _OP_CODES["project.verify"]
 #: 0.47 Reviews: the gate fragments first, so a decision's refusal is never read as a version's.

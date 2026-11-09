@@ -20,6 +20,7 @@ import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records
 import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.js";
 import { checkGitObject } from "./gitobject.js";
 import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
+import { verifyForgeClaim } from "./forgeclaim.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
@@ -288,6 +289,10 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const key = value.get("public_key");
       const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
       return verifyMemory(value.get("record") as JValue, pinned, (value.get("team") ?? []) as JValue);
+    }
+    case "forge-claim.verify": {
+      const value = valueOf(input) as JObject;
+      return { ...verifyForgeClaim(value.get("claim") as JValue, value.get("branch") as JValue, value.get("project") as JValue) };
     }
     case "git-object.check": {
       const value = valueOf(input) as JObject;

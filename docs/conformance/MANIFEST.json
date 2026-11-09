@@ -833,6 +833,19 @@
       "verdict": 0
     },
     {
+      "core": 11,
+      "count": 11,
+      "file": "vectors/72-forge-claim.json",
+      "name": "forge-claim",
+      "ops": [
+        "forge-claim.verify"
+      ],
+      "reject": 9,
+      "section": "4.19",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -856,7 +869,7 @@
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
     "README.md": "17680bf0f1c8cdb866d91caff643ccbb6339eb1475042bfdbf4e07042b566e23",
-    "REASON_CODES.md": "48c2f1b962cde7a04b39ac581ac27e1e39a2d279fe8cb66ccf4073de850512c0",
+    "REASON_CODES.md": "a76c0b0c562283d734eddf3d983b12bec5b783767483200e98e752b17fda2f6f",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1965,6 +1978,7 @@
     "vectors/69-memory.json": "b8378925c84ab0bc0bb104080ed79cc84b18ea83a22dd7d59a2cad75b773e6ce",
     "vectors/70-review.json": "66f384ce78dbfd2468c948b2500acb3334e64eac8b1ba31c58ef9149addbc2f9",
     "vectors/71-prompt.json": "22a924366caab92b1cef8c2323af2b63ff86e88bc7f57456d0cec612ae2855b1",
+    "vectors/72-forge-claim.json": "6e808badbd74b9a52f5a244d9a15b4d5814c2398df34a8359ccab25261a9270f",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
   "generated_by": "opentine 0.46.1",
@@ -2183,6 +2197,24 @@
       "profile": "reader",
       "requires": [],
       "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
+      "unordered": []
+    },
+    "forge-claim.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "project_id",
+        "tenant",
+        "fingerprint",
+        "branch",
+        "state",
+        "label"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: an opentine.forge-claim as mirrored (never a pass)",
       "unordered": []
     },
     "git-object.check": {
@@ -3005,12 +3037,12 @@
   "spec_version": "0.47.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1004,
-    "core": 994,
-    "families": 48,
-    "ops": 62,
-    "reason_codes": 192,
-    "reject": 408,
+    "cases": 1015,
+    "core": 1005,
+    "families": 49,
+    "ops": 63,
+    "reason_codes": 197,
+    "reject": 417,
     "stress": 10,
     "verdict": 178
   }

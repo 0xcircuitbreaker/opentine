@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (192)
+## The codes (197)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -89,6 +89,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `forge-claim.malformed` | 4.19 | -- | a claim with a missing, extra or ill-formed field (a signature included) | accept fields the claim format does not define |
+| `forge-claim.missing` | 4.19 | -- | no .opentine/project on the upstream's default branch | read a missing file as an unclaimed, therefore open, project |
+| `forge-claim.not-default-branch` | 4.19 | -- | a claim found only on a branch other than the slot's default branch | let anyone who can push a branch claim the repository |
+| `forge-claim.wrong-fingerprint` | 4.19 | -- | a claim whose fingerprint names another project's first version | match a claim by project id alone, so a fork inherits it |
+| `forge-claim.wrong-project` | 4.19 | -- | a claim naming another project_id or tenant | show one project's claim on another |
 | `git-object.malformed` | 4.18 | -- | an ill-formed id, type, tree entry or commit/tag header | guess the object format or skip an unparseable link |
 | `git-object.mismatch` | 4.18 | -- | bytes that do not hash to the git object id given | trust a mirrored object without rehashing it |
 | `graph.causal-outside-graph` | 1.5.3 | -- | a locally present event whose causal link is not in the run's events | add the missing link to events |

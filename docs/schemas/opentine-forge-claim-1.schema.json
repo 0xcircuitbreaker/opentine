@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-forge-claim-1.schema.json",
+  "title": "opentine.forge-claim (claim_version 1)",
+  "description": "An upstream's claim of its project (SPEC 4.19): the unsigned file `.opentine/project` on the default branch. `fingerprint` is sha256 of `opentine.forge-claim.v1:` + the digest of the project's first manifest version. A verifier reports a match as `claimed by upstream (as mirrored)`, never a pass.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "claim_version",
+    "project_id",
+    "tenant",
+    "fingerprint"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.forge-claim"
+    },
+    "claim_version": {
+      "const": 1
+    },
+    "project_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "tenant": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

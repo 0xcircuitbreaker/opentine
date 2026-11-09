@@ -2427,6 +2427,51 @@ A note is stored as the blob `memory/<scope>/<64 hex of its digest>`, so it
 syncs like any ref; a reader shows only notes that verify under its team and
 are not superseded by another such note. Vectors: `69-memory.json` (op
 `memory.verify`).
+## 4.19 `opentine.forge-claim` and project forks (0.47.0+)
+
+A **forge claim** is an upstream's own statement that it belongs to a project:
+the file `.opentine/project` committed on the default branch of a code slot,
+holding canonical JSON (§0.2) and a newline, at most 4096 bytes, with exactly
+these keys and **no signature**:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.forge-claim"` |
+| `claim_version` | `1` |
+| `project_id` | the project's `project_id` (§4.16) |
+| `tenant` | the project's `tenant` |
+| `fingerprint` | `"sha256:" + hex(SHA-256(b"opentine.forge-claim.v1:" \|\| ASCII genesis))`, where *genesis* is the digest of the project's first manifest version (`seq` 0) |
+
+Its authority is where it sits: only someone who can write the upstream's
+default branch can commit it, so `tine project claim` writes it and the
+owner commits and pushes it like any other file. The fingerprint binds the
+claim to one chain, not to a `project_id` a fork or a re-created project could
+reuse. A claim reaches a verifier only through a code mirror, so a verifier
+can say only what the mirror shows: given the parsed file (or none), the branch
+it was found on and `{project_id, tenant, genesis, default_branch}` of the
+project, a match is `{project_id, tenant, fingerprint, branch, state:
+"claimed-as-mirrored", label: "claimed by upstream (as mirrored)"}` and never
+a pass. A verifier MUST refuse, with the first applicable code:
+`forge-claim.missing` (no file on the default branch);
+`forge-claim.malformed` (a missing, extra or ill-formed key, a `signature`
+included, or a malformed branch name); `forge-claim.not-default-branch` (the
+file is only on another branch); `forge-claim.wrong-project` (another
+`project_id` or `tenant`); `forge-claim.wrong-fingerprint`. Vectors:
+`72-forge-claim.json` (op `forge-claim.verify`).
+
+**Forks.** `tine project fork SOURCE DEST` copies a run repository, never
+code: the objects and refs of SOURCE except the `project/` namespace, then a
+new first manifest (`seq` 0, a new `project_id` or `tenant`, signed by the
+forker) whose `forked_from` is the source's `project_id`. The fork point, the
+source's `{project_id, tenant, genesis, head, seq}` at the time, is kept in
+`.tine/project-fork.json` beside the fork (like the locator file, never pushed,
+bundled or served). `tine project verify --source PATH|REMOTE` on a fork checks
+`forked_from` against the source's history: the source chain verifies (§4.16),
+its `project_id` is `forked_from`, the fork is not the same project (`project_id`
+and `tenant` differ in at least one), and the recorded head and genesis are in
+the source's history, so a source that rewrote its history since the fork is
+refused (`project.chain-break`). A fork never inherits the source's forge
+claim: the fingerprint names the source's genesis.
 
 ---
 
@@ -3257,6 +3302,55 @@ agent when the note crediting it has a valid signature (by the pinned key,
 when one is given) and every range's content hash matches the commit. Rows
 are ordered by lines descending, verified runs descending, kind, then id,
 and numbered from 1.
+## 8.19 The remote task backend: `caps.coord` (0.47.0)
+
+A remote that runs `opentine-coord/1` tasks (the `tine task` records of
+`coord/tasks/<id>`, annotation chains moved by compare-and-swap) lists `coord`
+(`{"path": "coord/tasks", "format": "opentine-coord/1", "actions": ["add",
+"claim", "heartbeat", "done"], "clock": "server"}`) in `GET /v1/capabilities`.
+Under `/v1/tenants/<t>/`:
+
+- `GET coord/tasks` (`read_ref`): `{"tasks": [...]}`; `GET coord/tasks/<id>`
+  (`read_ref`): `{"task": {...}}`. A task value is `{task, title, status,
+  holder, fencing, lease_expires_ms, updated_ms}`.
+- `POST coord/tasks` (`update_ref`) with `{task, title}`: `201 {"task"}`.
+- `POST coord/tasks/<id>/claim` with `{holder, ttl}`, `.../heartbeat` with
+  `{holder, fencing, ttl}` and `.../done` with `{holder, fencing}`
+  (`update_ref`): `200 {"task"}`, or `409 {"error", "code"}` with the lease
+  code `exists`, `held`, `done`, `stale` or `contended`.
+
+The server applies exactly the local rules (one compare-and-swap per claim;
+heartbeat and done only for the current holder and fencing token before the
+lease ends; the token only grows) on **its own clock**, never the client's, and
+every move is an `update_ref` row of the audit chain, so it is in the
+transparency log (§8.10). A missing task, a caller without `read_ref` and
+another tenant all answer the same `404 {"error":"not found"}`, for the write
+routes too; a reader who may not write gets `403`. The acceptance load is
+1,000 tasks claimed by 50 concurrent workers, some abandoning their leases,
+with zero lost tasks, zero tasks finished twice, zero fencing tokens granted
+twice and zero stale `done` calls accepted (`scripts/coord_scale.py`).
+
+<a id="s-8.20"></a>
+## 8.20 Operating a witness: `tine witness serve` (0.47.0)
+
+A witness of the hosted trust network serves the C2SP tlog-witness protocol
+(`POST /add-checkpoint`, §8.10) and, for operators:
+
+- **Persistence.** The last checkpoint cosigned for each origin is written
+  atomically, under a lock, before a cosignature is returned; a restarted
+  witness answers `409` with the size it holds, so it never cosigns a view
+  inconsistent with one it signed before the restart.
+- **Key rotation.** A witness may hold several keys under one name; each adds
+  a `cosignature/v1` line, the current key first. `GET /keys` lists their
+  vkeys, current first. A rotation adds the next key, waits until verifiers
+  pin both, then drops the old one, so no checkpoint carries only an unpinned
+  cosignature.
+- **Rate limits.** A token bucket per client address; an empty bucket is `429`
+  with `Retry-After` (seconds). `GET` routes are not limited.
+- **Health.** `GET /health` is `200 {"status": "ok", "witness", "keys",
+  "logs": {origin: size}, "uptime_seconds", "requests": {status: count}}`, or
+  `503` with `"status": "degraded"` when its state cannot be written or read.
+  It names no local path.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -3765,6 +3859,7 @@ Versions are the opentine release that changed this document.
 | 0.47.0 | 4.19, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`. No existing byte format changed. |
 | 0.47.0 | 4.19, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.20, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.19, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`. No existing byte format changed. |
 | 0.47.0 | 8.19, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`. No existing byte format changed. |
+| 0.47.0 | 4.19, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.19, `caps.coord`, the remote task backend; 8.20, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

@@ -815,7 +815,7 @@ tine fleet up fleet.toml --trust                      Run a declared fleet (fan-
 tine fleet status|stop|cost <id>                      Members, a stop that kills every process tree, cost
 tine fleet record run.tine --sign-key k --out rec.json  A run's fleet record, signed (--attest: in-toto fleet/v1)
 tine fleet resume|logs|send <id>                      Resume unfinished members, read output, steer one
-tine task add|claim|heartbeat|done|list               Leases with fencing tokens (opentine-coord/1)
+tine task add|claim|heartbeat|done|list [--remote R]  Leases with fencing tokens, local or on tine serve
 tine dataset add d.jsonl --from-run <run> --expected X  Build an eval dataset (import/export JSONL or HF)
 tine eval run d.jsonl --scorer exact --key k --out ev  Score every item; one signed verdict each
 tine eval verify ev / tine eval compare a b            Verify verdicts offline; diff two evals

@@ -387,11 +387,23 @@ on any break (SPEC §8.9).
 tine witness vkey --key KEY --name NAME
 tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
                     [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
-tine witness serve --key KEY --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+tine witness serve --key KEY... --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+                   [--rate-limit N]
 tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
 tine bundle create FILE REF... --transparency
 ```
+
+0.47, for witness operators (SPEC 8.20): `serve` takes `--key` more than once;
+every key cosigns, the first is current, so a key is rotated by adding the next
+one, waiting until verifiers pin both vkeys, then dropping the old one. `GET
+/keys` lists the vkeys (current first) and `GET /health` answers `200
+{"status": "ok", "witness", "keys", "logs": {origin: size}, "uptime_seconds",
+"requests"}` (`503` `degraded` when `--state` cannot be written; no local path
+is ever shown). `--rate-limit N` (default 60, 0 = off) is a per-client token
+bucket on `POST /add-checkpoint`: an empty bucket is `429` with `Retry-After`.
+The per-origin state is written before a cosignature is returned, so a
+restarted witness still refuses a view inconsistent with one it signed.
 
 0.44 (X33). `witness cosign` checks a signed-note checkpoint against the pinned
 log key and against the last checkpoint this witness cosigned for that origin
@@ -1077,6 +1089,10 @@ tine project link [--role primary|secondary] --forge git --url URL --ed25519-key
 tine project show|history [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
 tine project verify [--remote R] [--owner-key HEX] [--json] [--repo R]
 tine project push [--remote R] [--json] [--repo R]
+tine project claim [--code DIR] [--json] [--repo R]
+tine project claim --check FILE [--branch B] | --missing [--json] [--repo R]
+tine project fork DEST --project-id ID [--tenant T] --ed25519-key-file K [--json] [--repo R]
+tine project verify --source PATH [--json] [--repo R]
 tine remote add NAME URL [--tenant T] [--token-file P] [--project ID]
 ```
 
@@ -1279,6 +1295,21 @@ plugin is used as `tine eval run --scorer plugin:NAME`. `--json` follows
 `experts` ranks agents (by model, from line attribution notes) and humans (by
 commit author) by the committed lines they wrote under PATH, then by verified
 runs. `--json` follows `tine-experts-1`. See [PLUGINS.md](PLUGINS.md).
+0.47 (SPEC 4.19). `claim` writes `.opentine/project`, an unsigned
+`opentine.forge-claim` naming this project and the fingerprint of its first
+version, into the code checkout `--code` (default `.`); commit it on the
+default branch. `claim --check FILE [--branch B]` checks one against this
+repository's project (`--missing`: the upstream has none) and at best reports
+`claimed by upstream (as mirrored)`, never a pass; a refusal exits 4 with its
+`forge-claim.*` code (`missing`, `malformed`, `not-default-branch`,
+`wrong-project`, `wrong-fingerprint`). `fork DEST` copies this run repository
+(objects and refs, never code, never the source's manifests) into DEST under a
+new project signed by `--ed25519-key-file`, whose `forked_from` is this
+project; the fork point is kept in `.tine/project-fork.json` (never pushed).
+`verify --source PATH` on a fork checks `forked_from` against the source's
+project history and refuses (exit 4, `project.chain-break`) a source that no
+longer holds the fork point. The `72-forge-claim.json` family pins Python, the
+TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)
 
@@ -1461,6 +1492,7 @@ carries no content, so nothing is recorded as a write.
 | `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
 | `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
 | `tine task list --repo PATH` | Every task, its status, holder, token and lease end |
+| `tine task ACTION ... --remote NAME\|URL [--tenant T] [--token-file P]` | 0.47: the same action on a `tine serve` tenant (`caps.coord`, SPEC 8.19), on the server's clock |
 | `tine fleet resume fleet.toml --id ID [--trust]` | Runs the members of fleet `ID` that did not finish; the manifest digest must match the record |
 | `tine fleet logs ID [--member KEY]` | Prints each member's captured output |
 | `tine fleet send ID --member M --message TEXT --repo PATH` | Queues a steer message in `coord/mailbox/ID/M` |

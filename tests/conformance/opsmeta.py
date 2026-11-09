@@ -473,6 +473,15 @@ OP_META: dict[str, dict[str, object]] = {
         "requires": [],
         "summary": "SPEC 4.18: bytes hash to a git blob, tree, commit or tag id (SHA-1 or SHA-256)",
     },
+    "forge-claim.verify": {
+        "profile": VERIFIER,
+        "input": ["value"],
+        "args": [],
+        "output": ["project_id", "tenant", "fingerprint", "branch", "state", "label"],
+        "unordered": [],
+        "requires": [],
+        "summary": "SPEC 4.19: an opentine.forge-claim as mirrored (never a pass)",
+    },
     "actions.chain": {
         "profile": VERIFIER,
         "input": ["value"],

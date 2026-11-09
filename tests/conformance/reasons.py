@@ -1226,6 +1226,36 @@ REASONS: dict[str, Reason] = {
         "a merge approval whose tine-sig/3 block does not hold over its body",
         "trust the run or decision of an approval without checking the signature",
     ),
+    "forge-claim.missing": R(
+        "4.19",
+        None,
+        "no .opentine/project on the upstream's default branch",
+        "read a missing file as an unclaimed, therefore open, project",
+    ),
+    "forge-claim.malformed": R(
+        "4.19",
+        None,
+        "a claim with a missing, extra or ill-formed field (a signature included)",
+        "accept fields the claim format does not define",
+    ),
+    "forge-claim.not-default-branch": R(
+        "4.19",
+        None,
+        "a claim found only on a branch other than the slot's default branch",
+        "let anyone who can push a branch claim the repository",
+    ),
+    "forge-claim.wrong-project": R(
+        "4.19",
+        None,
+        "a claim naming another project_id or tenant",
+        "show one project's claim on another",
+    ),
+    "forge-claim.wrong-fingerprint": R(
+        "4.19",
+        None,
+        "a claim whose fingerprint names another project's first version",
+        "match a claim by project id alone, so a fork inherits it",
+    ),
 }
 
 #: Codes the reference genuinely cannot tell apart. A Level 2 runner accepts any
