@@ -68,6 +68,11 @@ KINDS: dict[str, tuple[str, tuple[str, ...], tuple[str, ...], tuple[str, ...], o
                T("tests/test_047_registry.py")),
     "forge claim": ("4.23", ("opentine.forge-claim",), ("opentine-forge-claim-1",),
                     ("72-forge-claim",), CONFORM),
+    "forge check": ("4.24", ("opentine.forge-check",), ("opentine-forge-check-1",),
+                    ("73-forge-check",), T("tests/test_048_forge.py")),
+    "review finding": ("4.25", ("opentine.review-finding",), ("opentine-review-finding-1",),
+                       ("74-review-finding",), T("tests/test_048_review_finding.py")),
+    "OMS model signature": ("4.26", (), (), ("75-oms",), T("tests/test_048_oms.py")),
     "transparency log": ("8.10", ("opentine-log/1",),
                          ("opentine-tlog-checkpoint-1", "opentine-tlog-receipt-1"),
                          ("57-tlog",), CONFORM),
@@ -102,7 +107,8 @@ NOT_KINDS = (
     "agent-trace-0.1", "opentine-merge-gates-1", "opentine-plugin-allow-1", "tine-ai-share-1",
     "tine-assurance-1", "tine-blame-1", "tine-ci-gate-1", "tine-experts-1", "tine-help-1",
     "tine-list-page-1", "tine-redaction-rules-1", "tine-repo-show-1", "tine-search-results-1",
-    "tine-share-1", "tine-verify-dataset-1", "tine-watch-1",
+    "tine-share-1", "tine-verify-dataset-1", "tine-watch-1", "tine-graph-1",
+    "opentine-compliance-profile-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS = {
     "tine-verify-report-2": "tine-verify-report/2",
