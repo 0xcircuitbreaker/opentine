@@ -137,8 +137,9 @@ still needs people.
    reason codes are not compared where an implementation names none).
 3. The 0.34 peer compatibility job green for every release: **not met yet**
    (the job ships in 0.50 and has not run green in CI).
-4. The pyz air-gap-tested on Linux, macOS and Windows: **not met yet** (the
-   audit-kit CI job has not yet run on GitHub).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met** (the audit-kit
+   CI job, with the network refused and an extra Linux run in a network
+   namespace, passed on all three in the 0.49.0 pull request).
 5. Nightly stress green for 30 days: **not met** (the streak starts with this
    release).
 6. Compression bench within 5% of 0.40: **not met yet** (the gate ships; it
