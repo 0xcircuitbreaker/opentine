@@ -205,3 +205,19 @@ def test_a_plugin_classifier_kind_that_is_not_a_name_is_reported_as_other():
 
     kinds = [hit.kind for hit in find("abcd efgh", Loose())]
     assert kinds == ["classifier:other", "classifier:dob"]
+
+
+def _cards(text: str) -> list[str]:
+    return [
+        m[0]
+        for kind, pat, ok in _pii.DETECTORS
+        if kind == "card"
+        for m in pat.finditer(text)
+        if ok(m[0])
+    ]
+
+
+def test_card_digits_inside_hex_digests_are_not_cards():
+    """Run records carry sha256 oids; their digit runs can pass issuer and Luhn checks."""
+    assert _cards("event:sha256:dce900f91b1fe6c98029f1df3f0f3573423289175fa5e3c2a34") == []
+    assert _cards("pay 4111 1111 1111 1111.") == ["4111 1111 1111 1111"]
