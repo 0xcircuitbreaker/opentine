@@ -1210,6 +1210,7 @@ Reference:
 - [PLUGINS.md](docs/PLUGINS.md): the entry-point plugin API, its loading rules and allow-list, and `tine experts`.
 - [PROJECTS.md](docs/PROJECTS.md): project manifests, mirror-state host statements, the git object check and the `tine serve` project routes.
 - [PROMPTS_AND_MEMORY.md](docs/PROMPTS_AND_MEMORY.md): the signed prompt registry, team memory in MCP `recall`, `tine eval ci` and MCP tasks.
+- [STORAGE.md](docs/STORAGE.md): `tine serve` on S3 Object Lock or Azure immutable blobs, retention modes, legal holds, and FastCDC chunking with lazy fetch.
 - [EVENTS.md](docs/EVENTS.md): `tine watch`, the remote's SSE event stream, and signed webhooks with a 20-line verifier.
 - [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.48.0/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
 - [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.48.0/docs/RELEASING.md): trusted publication and release verification.

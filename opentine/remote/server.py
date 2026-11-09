@@ -15,6 +15,7 @@ from opentine.remote._events_setup import attach_events
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from opentine.remote._serve_admission import add_admission_arguments, serve_admission
 from opentine.remote._serve_auth import add_auth_arguments, serve_identities
+from opentine.remote._worm_config import object_store_from_env
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
 from opentine.remote.interfaces import IdentityProvider, KeyProvider
@@ -49,7 +50,7 @@ def reference_app(
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
-    objects = FilesystemObjectStore(
+    objects = object_store_from_env(state, key_provider) or FilesystemObjectStore(
         state / "objects", key_provider, uncompressed_tenants=frozenset(uncompressed_tenants)
     )
     chain_key = audit_key
