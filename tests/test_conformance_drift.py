@@ -127,6 +127,12 @@ EXPECTED_COUNTS = {
     "vectors/76-delegation-revocation.json": (7, 5),
     "vectors/77-keyless-tsa.json": (18, 13),
     "vectors/78-fleet.json": (10, 8),
+    "vectors/79-verify-report.json": (8, 0),
+    "vectors/80-custody.json": (14, 6),
+    "vectors/81-replay.json": (9, 7),
+    "vectors/82-sealed6.json": (7, 5),
+    "vectors/83-line-attribution.json": (7, 0),
+    "vectors/84-cost-statement.json": (6, 0),
     "vectors/99-repair.json": (14, 14),
 }
 

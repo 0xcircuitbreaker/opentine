@@ -157,4 +157,33 @@ def verify(
     return {"ok": True, "records": records, "size": len(records), "vkey": vkey_used, "basis": basis}
 
 
-__all__ = ["ACTIONS", "FORMAT", "ORIGIN", "log_root", "read", "record", "verify"]
+def check_records(records: Any, public_key: Any | None = None) -> dict[str, Any]:
+    """The hash chain and every signature of custody records as exported, oldest first.
+
+    The part of :func:`verify` that needs no log and no TSA roots: each record is an
+    ``opentine-custody/1`` record, its ``prev`` is the leaf hash of the previous
+    record's canonical JSON (the log entry bytes), and its signature verifies.
+    ``LogError`` on the first failure; SPEC 8.4 and the 80-custody vectors.
+    """
+    if not isinstance(records, list):
+        raise _tlog.LogError("custody records must be a list")
+    out, prev = [], None
+    for index, rec in enumerate(records):
+        if not isinstance(rec, dict) or rec.get("format") != FORMAT:
+            raise _tlog.LogError(f"custody record {index} is not an {FORMAT} record")
+        if rec.get("prev") != prev:
+            raise _tlog.LogError(f"custody record {index} breaks the hash chain")
+        body = {k: v for k, v in rec.items() if k != "signature"}
+        verdict = _signed_doc.verify(DOMAIN, body, rec.get("signature"), public_key=public_key)
+        if not verdict.ok:
+            raise _tlog.LogError(f"custody record {index}: signature {verdict.reason}")
+        prev = _tlog.leaf_hash(canonical_json(rec)).hex()
+        out.append({"index": index, "action": rec.get("action"), "subject": rec.get("subject"),
+                    "signer": verdict.signer, "state": verdict.state,
+                    "sig_bound": signature_bound(rec["signature"])})  # fmt: skip
+    return {"size": len(out), "records": out, "head": prev}
+
+
+__all__ = [
+    "ACTIONS", "FORMAT", "ORIGIN", "check_records", "log_root", "read", "record", "verify",
+]  # fmt: skip

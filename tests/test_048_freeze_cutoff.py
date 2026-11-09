@@ -91,10 +91,16 @@ def pyz_conform(tmp_path_factory):
             del sys.modules[name]
 
 
+KEYS = {
+    name: bytes.fromhex(text)
+    for name, text in json.loads((ROOT / "docs/conformance/keys.json").read_text("utf-8")).items()
+}
+
+
 def _answer(conform, case):
     payload, _ = op_input(case)
     try:
-        return "accept", conform.answer(case.op, payload.raw, payload.value, case.args)
+        return "accept", conform.answer(case.op, payload.raw, payload.value, case.args, KEYS)
     except Exception as exc:  # noqa: BLE001 -- a refusal is the answer
         return "reject", exc
 
@@ -109,7 +115,7 @@ def test_the_built_pyz_answers_the_family(pyz_conform, name):
     }
     answered = 0
     for case in FAMILIES[name].cases:
-        if case.op not in pyz_conform.OPS:
+        if case.op not in pyz_conform.OPS and case.op not in pyz_conform.KEYED:
             continue
         answered += 1
         record = records[case.id]
@@ -126,27 +132,24 @@ def test_the_built_pyz_answers_the_family(pyz_conform, name):
 
 
 def test_pyz_op_gaps_are_exactly_the_pinned_ones():
+    conform = importlib.import_module("opentine._pyz._conform")
     gaps = {
         op
         for op, profile in _ops(CONFORM_FAMILIES)
-        if profile != "writer" and op not in importlib.import_module("opentine._pyz._conform").OPS
+        if profile != "writer" and op not in conform.OPS and op not in conform.KEYED
     }
     assert gaps == set(inv.PYZ_OP_GAPS), "a gap was closed (shrink the list) or opened"
 
 
-@pytest.mark.parametrize(
-    "name, path",
-    sorted((n, e[4][1]) for e in inv.KINDS.values() if e[4] != inv.CONFORM for n in e[3]),
-)
-def test_a_named_test_runs_the_family_through_the_pyz(name, path):
-    source = (ROOT / path).read_text("utf-8")
-    assert "opentine._pyz" in source and f"{name}.json" in source, (name, path)
+def test_every_family_is_answered_case_by_case_and_no_gap_is_left():
+    """0.50 (criterion 2): no whole-file-only family, no op gap, no family pinned by a test."""
+    assert all(entry[4] == inv.CONFORM for entry in inv.KINDS.values())
+    assert inv.PYZ_FILE_LEVEL == {} and inv.PYZ_OP_GAPS == {}
 
 
-def test_the_deferred_list_only_names_kinds_without_a_family():
-    assert len(inv.DEFERRED) == 6, "DEFERRED may only shrink: add vectors, then remove"
-    for name in inv.DEFERRED:
-        assert name not in {n for e in inv.KINDS.values() for n in e[1]}
+def test_the_deferred_list_is_empty():
+    """0.50 added families 79-84 for the six kinds 0.48 deferred; none may come back."""
+    assert inv.DEFERRED == {} and inv.DEFERRED_SCHEMAS == {}
 
 
 def test_the_cutoff_is_documented():

@@ -1,0 +1,912 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.chain",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "received",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "three signed records, each chained to the previous",
+      "op": "custody.chain",
+      "output": {
+        "head": "2ac429bd9e401584d3c8fafc3e75ab8f534d10145955f3274c42e2df54c6c7f0",
+        "records": [
+          {
+            "action": "exported",
+            "index": 0,
+            "sig_bound": "sig:sha256:93055b34f29859ca90ba3e89d85016b5d64dd2aa60b940ffb85501b2424f006e",
+            "signer": "alice",
+            "state": "verified-tofu",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          },
+          {
+            "action": "received",
+            "index": 1,
+            "sig_bound": "sig:sha256:933e8b73f884dd2d9fc4b58b8fda2efa69c5d3ebddcca42f7a1a963113c6a026",
+            "signer": "alice",
+            "state": "verified-tofu",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          },
+          {
+            "action": "verified",
+            "index": 2,
+            "sig_bound": "sig:sha256:80f95f62262b73b7cf108287119eaa06e336febdf5e0af6a098ca664ff086feb",
+            "signer": "alice",
+            "state": "verified-tofu",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ],
+        "size": 3
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"8f2897593af2d71fb98756368563a047b3435b...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.dropped",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "a record dropped from the middle breaks the chain",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.chain-broken",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"8f2897593af2d71fb98756368563a047b3435b...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody record 1 breaks the hash chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.edited-action",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "stored",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "an action changed after signing",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"8f2897593af2d71fb98756368563a047b3435b...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody record 1: signature signature mismatch"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.empty",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": []
+        }
+      },
+      "intent": "no records is an empty chain",
+      "op": "custody.chain",
+      "output": {
+        "head": null,
+        "records": [],
+        "size": 0
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": []}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.not-a-list",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": {
+            "0": {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          }
+        }
+      },
+      "intent": "records are a list",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": {\"0\": {\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"8f2897593af2d71fb98756368563a047b...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody records must be a list"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.pinned",
+      "input": {
+        "value": {
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "received",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "the chain verifies under the supplied key",
+      "op": "custody.chain",
+      "output": {
+        "head": "2ac429bd9e401584d3c8fafc3e75ab8f534d10145955f3274c42e2df54c6c7f0",
+        "records": [
+          {
+            "action": "exported",
+            "index": 0,
+            "sig_bound": "sig:sha256:93055b34f29859ca90ba3e89d85016b5d64dd2aa60b940ffb85501b2424f006e",
+            "signer": "alice",
+            "state": "verified",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          },
+          {
+            "action": "received",
+            "index": 1,
+            "sig_bound": "sig:sha256:933e8b73f884dd2d9fc4b58b8fda2efa69c5d3ebddcca42f7a1a963113c6a026",
+            "signer": "alice",
+            "state": "verified",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          },
+          {
+            "action": "verified",
+            "index": 2,
+            "sig_bound": "sig:sha256:80f95f62262b73b7cf108287119eaa06e336febdf5e0af6a098ca664ff086feb",
+            "signer": "alice",
+            "state": "verified",
+            "subject": "run:sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ],
+        "size": 3
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"sign...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.record-bad-hex",
+      "input": {
+        "value": {
+          "record": {
+            "exported_at": "2026-01-01T00:00:00+00:00",
+            "exported_by": "alice",
+            "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "opentine_version": "0.50.0",
+            "runs": [
+              {
+                "file": "runs/a.tine",
+                "run_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+                "sha256": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            "schema": "tine-custody/1",
+            "signature": {
+              "algorithm": "ed25519",
+              "key_fingerprint": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "value": "zz"
+            }
+          }
+        }
+      },
+      "intent": "a signature value that is not hex is not valid",
+      "op": "custody.record",
+      "output": {
+        "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "schema": "tine-custody/1",
+        "signed": true,
+        "valid": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"record\": {\"exported_at\": \"2026-01-01T00:00:00+00:00\", \"exported_by\": \"alice\", \"manifest_sha256\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\", \"opentine_version\": \"0.50.0\", \"runs\": [{\"file\": \"runs/a.tine\", \"run_id\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"sha256\": \"1212121212121212121212121212121212121212121212121212121212121212\"}], \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.record-edited",
+      "input": {
+        "value": {
+          "record": {
+            "exported_at": "2026-01-01T00:00:00+00:00",
+            "exported_by": "alice",
+            "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "opentine_version": "0.50.0",
+            "runs": [],
+            "schema": "tine-custody/1",
+            "signature": {
+              "algorithm": "ed25519",
+              "key_fingerprint": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "value": "bd9744e2b22eef49300828eab19276dba17cd205c9b92e6bd42a234fe9e9671d77f28dcca767727c29f22d7ad48da605fca3e6afe3a325dfe24f10c052059602"
+            }
+          }
+        }
+      },
+      "intent": "a run list edited after signing is not valid",
+      "op": "custody.record",
+      "output": {
+        "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "schema": "tine-custody/1",
+        "signed": true,
+        "valid": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"record\": {\"exported_at\": \"2026-01-01T00:00:00+00:00\", \"exported_by\": \"alice\", \"manifest_sha256\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\", \"opentine_version\": \"0.50.0\", \"runs\": [], \"schema\": \"tine-custody/1\", \"signature\": {\"algorithm\": \"ed25519\", \"key_fingerprint\": \"sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c\", \"public_key\": \"03a107bff3ce10be...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.record-other-key",
+      "input": {
+        "value": {
+          "record": {
+            "exported_at": "2026-01-01T00:00:00+00:00",
+            "exported_by": "alice",
+            "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "opentine_version": "0.50.0",
+            "runs": [
+              {
+                "file": "runs/a.tine",
+                "run_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+                "sha256": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            "schema": "tine-custody/1",
+            "signature": {
+              "algorithm": "ed25519",
+              "key_fingerprint": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+              "value": "bd9744e2b22eef49300828eab19276dba17cd205c9b92e6bd42a234fe9e9671d77f28dcca767727c29f22d7ad48da605fca3e6afe3a325dfe24f10c052059602"
+            }
+          }
+        }
+      },
+      "intent": "a signature by another key under the embedded one",
+      "op": "custody.record",
+      "output": {
+        "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "schema": "tine-custody/1",
+        "signed": true,
+        "valid": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"record\": {\"exported_at\": \"2026-01-01T00:00:00+00:00\", \"exported_by\": \"alice\", \"manifest_sha256\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\", \"opentine_version\": \"0.50.0\", \"runs\": [{\"file\": \"runs/a.tine\", \"run_id\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"sha256\": \"1212121212121212121212121212121212121212121212121212121212121212\"}], \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.record-signed",
+      "input": {
+        "value": {
+          "record": {
+            "exported_at": "2026-01-01T00:00:00+00:00",
+            "exported_by": "alice",
+            "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "opentine_version": "0.50.0",
+            "runs": [
+              {
+                "file": "runs/a.tine",
+                "run_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+                "sha256": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            "schema": "tine-custody/1",
+            "signature": {
+              "algorithm": "ed25519",
+              "key_fingerprint": "sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "value": "bd9744e2b22eef49300828eab19276dba17cd205c9b92e6bd42a234fe9e9671d77f28dcca767727c29f22d7ad48da605fca3e6afe3a325dfe24f10c052059602"
+            }
+          }
+        }
+      },
+      "intent": "an evidence folder's signed custody.jsonl record",
+      "op": "custody.record",
+      "output": {
+        "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "schema": "tine-custody/1",
+        "signed": true,
+        "valid": true
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"record\": {\"exported_at\": \"2026-01-01T00:00:00+00:00\", \"exported_by\": \"alice\", \"manifest_sha256\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\", \"opentine_version\": \"0.50.0\", \"runs\": [{\"file\": \"runs/a.tine\", \"run_id\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"sha256\": \"1212121212121212121212121212121212121212121212121212121212121212\"}], \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "custody.record-unsigned",
+      "input": {
+        "value": {
+          "record": {
+            "exported_at": "2026-01-01T00:00:00+00:00",
+            "exported_by": "alice",
+            "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+            "opentine_version": "0.50.0",
+            "runs": [
+              {
+                "file": "runs/a.tine",
+                "run_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+                "sha256": "1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            ],
+            "schema": "tine-custody/1"
+          }
+        }
+      },
+      "intent": "an unsigned custody.jsonl record is read, not valid",
+      "op": "custody.record",
+      "output": {
+        "manifest_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "schema": "tine-custody/1",
+        "signed": false,
+        "valid": false
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"record\": {\"exported_at\": \"2026-01-01T00:00:00+00:00\", \"exported_by\": \"alice\", \"manifest_sha256\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\", \"opentine_version\": \"0.50.0\", \"runs\": [{\"file\": \"runs/a.tine\", \"run_id\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"sha256\": \"1212121212121212121212121212121212121212121212121212121212121212\"}], \"...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.reordered",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": [
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "received",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "records out of order break the chain",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.chain-broken",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": [{\"action\": \"verified\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000002\", \"note\": \"\", \"prev\": \"b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"sign...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody record 0 breaks the hash chain"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.wrong-format",
+      "input": {
+        "value": {
+          "public_key": null,
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/2",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "received",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "only opentine-custody/1 records",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/2\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"8f2897593af2d71fb98756368563a047b3435b...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody record 0 is not an opentine-custody/1 record"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "custody.wrong-key",
+      "input": {
+        "value": {
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "records": [
+            {
+              "action": "exported",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000000",
+              "note": "",
+              "prev": null,
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "8f2897593af2d71fb98756368563a047b3435b1f95659278315639b1600f3a26c3e587bce686f6487a05c9a8d69a45daa17868ab33c397074d0e78588dd3cf0f"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "received",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000001",
+              "note": "",
+              "prev": "0522d71c3cb95f8a06f14b40e9a6c20ba8ee0fc184b11dfebc8f108673d00caf",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "7f4cfa4fe133617e773660f8d2b93dfba1b58d3f64c97e2bc5c86f25fc19a490f08d463d3a0c7dc2f03484cf3501429b664012f673cd197e87b7e2859345850a"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            },
+            {
+              "action": "verified",
+              "actor": "alice",
+              "format": "opentine-custody/1",
+              "id": "0000000000000002",
+              "note": "",
+              "prev": "b90038caaa5866c5290824a95528fffd97fd5a1fdee3a00f602880965e03db87",
+              "signature": {
+                "alg": "ed25519",
+                "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+                "scheme": "tine-sig/3",
+                "signed_at": "2026-01-01T00:00:00Z",
+                "signer": "alice",
+                "value": "54697d4eeb52c66dbb074fa1d0a4da83654c20aa2a8f74b873f8b2b81983cde8277a5b70d9dcd2bdcc7ce5b5de9e3245a0f4c7b4a63f1ad82fdfa302d39c5900"
+              },
+              "subject": "run:sha256:abababababababababababababababababababababababababababababababab",
+              "time": "2026-01-01T00:00:00Z"
+            }
+          ]
+        }
+      },
+      "intent": "records checked against another key",
+      "op": "custody.chain",
+      "profile": "verifier",
+      "reason": "custody.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.4",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"records\": [{\"action\": \"exported\", \"actor\": \"alice\", \"format\": \"opentine-custody/1\", \"id\": \"0000000000000000\", \"note\": \"\", \"prev\": null, \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"sign...",
+      "x_reference": {
+        "exception": "LogError",
+        "message": "custody record 0: signature embedded public key is not the trusted key"
+      }
+    }
+  ],
+  "family": "custody",
+  "section": "8.4",
+  "suite_version": 1
+}

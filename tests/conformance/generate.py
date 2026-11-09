@@ -50,6 +50,7 @@ from tests.conformance import (
     cases_share,
     cases_sig_pq,
     cases_sig_v4,
+    cases_signed_docs,
     cases_signing,
     cases_tlog,
     cases_vsa,
@@ -119,6 +120,7 @@ FAMILY_MODULES = (
     cases_oms,
     cases_keyless_tsa,
     cases_fleet,
+    cases_signed_docs,
 )
 
 

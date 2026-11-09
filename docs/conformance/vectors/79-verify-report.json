@@ -1,0 +1,467 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.edited-check",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a check edited after signing breaks the signature",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.signature-invalid",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": false,
+          "reason": "signature mismatch",
+          "signed_at": "2026-01-01T00:00:00Z",
+          "signer": "alice",
+          "state": "mismatch",
+          "trust_basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.edited-verdict",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "fail"
+          }
+        }
+      },
+      "intent": "a verdict changed after signing breaks the signature",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.signature-invalid",
+        "report_verdict": "fail",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": false,
+          "reason": "signature mismatch",
+          "signed_at": "2026-01-01T00:00:00Z",
+          "signer": "alice",
+          "state": "mismatch",
+          "trust_basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"b1ec7c55a354bfa4eb095b66314c90c4e...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.hmac",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "hmac-sha256",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a report signature is Ed25519 only",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.signature-invalid",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": false,
+          "reason": "Ed25519 only",
+          "signed_at": null,
+          "signer": null,
+          "state": "error",
+          "trust_basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"hmac-sha256\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"b1ec7c55a354bfa4eb095b66314c9...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.pinned",
+      "input": {
+        "value": {
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a signed report verifies under the supplied key",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": true,
+        "ok": true,
+        "path": "run.tine",
+        "reason": "report.verified",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": true,
+          "reason": "ok",
+          "signed_at": "2026-01-01T00:00:00Z",
+          "signer": "alice",
+          "state": "verified",
+          "trust_basis": "supplied key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.tofu",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a signed report verifies under its embedded key, as TOFU",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": true,
+        "ok": true,
+        "path": "run.tine",
+        "reason": "report.verified",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": true,
+          "reason": "ok",
+          "signed_at": "2026-01-01T00:00:00Z",
+          "signer": "alice",
+          "state": "verified-tofu",
+          "trust_basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"b1ec7c55a354bfa4eb095b66314c90c4e...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.unsigned",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "an unsigned /2 report is read but is not evidence",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.unsigned",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": null,
+        "signed": false,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"verdict\": \"pass\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.v1",
+      "input": {
+        "value": {
+          "public_key": null,
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a /1 report is never evidence, signed or not",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.unsigned",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/1",
+        "signature": null,
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": null, \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/1\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", \"signer\": \"alice\", \"value\": \"b1ec7c55a354bfa4eb095b66314c90c4e...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "verify-report.wrong-key",
+      "input": {
+        "value": {
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "report": {
+            "checks": [
+              {
+                "name": "digest",
+                "outcome": "pass",
+                "reason": "digest.match"
+              }
+            ],
+            "path": "run.tine",
+            "schema": "tine-verify-report/2",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "b1ec7c55a354bfa4eb095b66314c90c4e7fd7c364cce2bf9bb78bc891f2f350277e053ca6179721eb8081335d18f912d3228cf89d215f2b3622e75130c79df01"
+            },
+            "verdict": "pass"
+          }
+        }
+      },
+      "intent": "a report checked against another key is not evidence",
+      "op": "verify-report.verify",
+      "output": {
+        "evidence": false,
+        "ok": false,
+        "path": "run.tine",
+        "reason": "report.signature-invalid",
+        "report_verdict": "pass",
+        "schema": "tine-verify-report/2",
+        "signature": {
+          "ok": false,
+          "reason": "embedded public key is not the trusted key",
+          "signed_at": "2026-01-01T00:00:00Z",
+          "signer": "alice",
+          "state": "mismatch",
+          "trust_basis": "supplied key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c"
+        },
+        "signed": true,
+        "signing_time": null,
+        "timestamps": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.7",
+      "tier": "core",
+      "x_display": "{\"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"report\": {\"checks\": [{\"name\": \"digest\", \"outcome\": \"pass\", \"reason\": \"digest.match\"}], \"path\": \"run.tine\", \"schema\": \"tine-verify-report/2\", \"signature\": {\"alg\": \"ed25519\", \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"scheme\": \"tine-sig/3\", \"signed_at\": \"2026-01-01T00:00:00Z\", ...",
+      "x_reference": null
+    }
+  ],
+  "family": "verify-report",
+  "section": "8.7",
+  "suite_version": 1
+}

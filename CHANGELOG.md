@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+Not a release section: the 0.50.0 notes are written at release time. This entry
+only restates the conformance census the drift gate checks.
+
+- The suite is now **1163 conformance vectors**; 507 of the 1163 refuse input, and the adapter contract still has one entry point: 75 ops.
+
 ## 0.49.0 — Audit kit and public proof (2026-11-09)
 
 ### Behaviour changes

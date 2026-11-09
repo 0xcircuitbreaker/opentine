@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (223)
+## The codes (229)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -68,6 +68,9 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `config.incompatible` | 2.2 | -- | a config.json missing or contradicting any of the four required pairs | accept format 2, or default a missing object_hash to sha256 |
 | `config.malformed` | 2.2 | -- | a config.json that is not parseable JSON, or fails the 10 000-token scan | fall back to repository defaults |
 | `config.oversized` | 2.2 | `_config.MAX_CONFIG_BYTES` = 65536 | a config.json larger than 65 536 bytes | read the first 64 KiB and parse that |
+| `custody.bad-signature` | 8.4 | -- | a custody record whose Ed25519 tine-sig/3 block fails or names another key | accept a record edited after signing because its chain still links |
+| `custody.chain-broken` | 8.4 | -- | a custody record whose prev is not the leaf hash of the record before it | re-link a dropped or reordered record, or verify the records one by one |
+| `custody.malformed` | 8.4 | -- | custody records that are not a list of opentine-custody/1 records | skip a record of another format and verify the rest of the chain |
 | `delegation.bad-signature` | 4.10 | -- | a certificate whose tine-sig/3 block fails or is not by the named issuer | trust the certificate body without checking its signature |
 | `delegation.broken-chain` | 4.10 | -- | a link whose issuer or parent digest does not match the certificate above it | verify each certificate alone and accept a chain that does not connect |
 | `delegation.expired` | 4.10 | -- | a chain whose certificate window does not contain the signing time | accept an expired or not-yet-valid certificate because its signature verifies |
@@ -237,6 +240,8 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `ref.target-type` | 2.5 | `_refs.TYPED_REF_NAMESPACES` | a typed-namespace ref pointing at the wrong object type | let heads/ point at an event because the oid parses |
 | `reflog.actor-too-long` | 2.6 | `_reflog.reflog_entry` | a reflog actor longer than 4096 characters | truncate the actor |
 | `reflog.time-not-string` | 2.6 | -- | a time_ns that is not decimal digits inside a JSON string | emit the nanosecond timestamp as a JSON number |
+| `replay.bad-signature` | 8.8 | -- | a replay/v1 envelope no signature of the pinned key verifies | trust the statement's payload without a verifying signature |
+| `replay.malformed` | 8.8 | -- | a DSSE envelope or replay/v1 statement that departs from the predicate's shape | read a statement of another predicate type, or coerce a field, as replay/v1 |
 | `review-finding.bad-signature` | 4.25 | -- | a review finding whose tine-sig/3 block does not hold | accept a finding whose severity was lowered after signing |
 | `review-finding.malformed` | 4.25 | -- | a review finding with a missing, extra or ill-formed field | point a reviewer at a path outside the repository, or show ill-formed text |
 | `review-finding.unsigned` | 4.25 | -- | a review finding with no signature block | count an unsigned finding as a reviewer's |
@@ -255,6 +260,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `review.malformed` | 4.20 | -- | a review version or bundle with a missing, extra or ill-formed field | verify a signature over fields the review format does not define |
 | `review.unsigned` | 4.20 | -- | a review version with no signature block | treat an unsigned version as a reviewer's |
 | `review.wrong-signer` | 4.20 | -- | a version not signed (Ed25519) by a reviewer of its predecessor, its own or the pin | accept any valid signature as a reviewer's |
+| `sealed6.malformed` | 11 | -- | a TINEAES6 header with another magic, an empty or non-ASCII key id, unknown flags or no room for its nonce and tag | ignore an unknown flag bit, or read a TINEAES5 object as TINEAES6 |
 | `shallow.carriage-return` | 2.7 | -- | a CR anywhere in a shallow file | normalize CRLF to LF |
 | `shallow.duplicate` | 2.7 | -- | a duplicate oid in a shallow file | de-duplicate the set |
 | `shallow.empty-line` | 2.7 | -- | an empty line inside a shallow file | skip blank lines |

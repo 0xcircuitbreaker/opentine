@@ -113,6 +113,43 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo unshare --net -- "$PWD/.venv/bin/python" scripts/audit_kit_offline.py verify kit
 
+  parity:
+    # 0.50 (1.0 criterion 2): the reference, the TS verifier and the built
+    # tine-verify.pyz answer every pinned conformance case the same way. Any
+    # disagreement, or a case one of them does not answer, fails the job.
+    name: Python / TS / pyz vector parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20  # a hung run fails the job instead of holding CI for 6 h
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Set up Node 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Build the TS verifier
+        working-directory: ts/verifier
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+
+      - name: Compare every case across the three implementations
+        run: uv run python scripts/check_parity.py --require-ts
+
   ts-verifier:
     name: TS verifier (Node 20)
     runs-on: ubuntu-24.04

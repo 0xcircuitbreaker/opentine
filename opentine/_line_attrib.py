@@ -158,7 +158,11 @@ def write_note(cwd: Path | str, sha: str, record: dict[str, Any]) -> None:
 
 def verify(cwd: Path | str, sha: str, record: dict[str, Any], public_key: Any = None) -> dict:
     """Signature verdict plus whether every range's hash matches *sha*'s lines now."""
-    added = added_lines(cwd, sha)
+    return verify_lines(record, added_lines(cwd, sha), public_key)
+
+
+def verify_lines(record: dict[str, Any], added: dict[str, dict[int, str]], public_key: Any = None):
+    """:func:`verify` against the commit's added lines (``path -> {line: text}``)."""
     stale = []
     for entry in record.get("files") or []:
         lines = added.get(entry.get("path"), {})
@@ -197,6 +201,7 @@ __all__ = [
     "DOMAIN",
     "PREFIX",
     "SCHEMA",
+    "verify_lines",
     "Writer",
     "added_lines",
     "attribute",

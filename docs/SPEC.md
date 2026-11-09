@@ -2780,6 +2780,20 @@ answered by the reference, the TS verifier and the pyz (through
 `tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0 and
 0.50.0 add no object kind and no wire format.
 
+**The 0.50 freeze review** closed those lists without adding a kind or a
+format. The pyz now answers every reader and verifier case of every family
+outside the repository storage set case by case (`.tine` parsing, the v2
+integrity digest and verdict, every scheme's signed message and the full
+seven-field signature verdict, stored-object loading and links, and every
+record family that was pinned only by a named test), and the six kinds above
+have families 79-84 (§8.7, §8.4 and §8.9, §8.8, Part 11, §8.24, §8.25). The
+storage set that remains outside the pyz is refs, reflogs, shallow files, the
+repository layout and config, and packs (families 16, 22, 24, 26-29, 99):
+repository internals a verifier of exported files never opens; the TS
+verifier answers them. `scripts/check_parity.py` runs the reference, the TS
+verifier and the built pyz on every case and fails on any disagreement. The
+frozen list and the review result are `docs/FREEZE.md`.
+
 ---
 
 <a id="part-6"></a>
@@ -3644,6 +3658,37 @@ A witness of the hosted trust network serves the C2SP tlog-witness protocol
   are distinct; a checkpoint then needs cosignatures from `N` distinct listed
   witnesses, any listed key of a witness counting once. No byte format
   changes.
+
+<a id="s-8.24"></a>
+## 8.24 Line attribution: `opentine-line-attribution/1` (0.42)
+
+`tine git attribute COMMIT` stores one line in the commit's `refs/notes/tine`
+note: `Tine-Attribution: ` followed by the record as JSON with sorted keys and
+no whitespace. The record is `{schema, files, lines_added, lines_attributed[,
+signature]}`; `files` is a list of `{path, ranges}`, each range `{start_line,
+end_line, content_hash, run, step, seq, tool, model}` with 1-based inclusive
+line numbers in the commit's new file and `content_hash` =
+`"sha256:" + hex(SHA-256(UTF-8 of the covered lines joined by "\n"))`. The
+record never names its commit, so the note stays true when git copies it to a
+rewritten commit. A verifier recomputes each range's hash from the lines the
+commit adds; a range whose lines are missing or differ is stale (reported as
+`path:start-end`). The optional `signature` is an Ed25519 `tine-sig/3` block
+over `opentine.line-attribution.v1:` + JCS of `{"body": <the record without
+signature>, "header": <the five-key header>}`; without a trusted key the
+embedded key is used and the verdict is `verified-tofu`. Vectors: family 83.
+
+<a id="s-8.25"></a>
+## 8.25 Cost statements: `tine-cost-statement/1` (0.44)
+
+`tine cost RUN --statement PATH` writes `{schema, aggregate[, signature]}`
+as canonical JSON; `aggregate` is `{run_id, total_cost, total_tokens,
+input_tokens, output_tokens, by_model, by_kind, currency}` computed from the
+run. A verifier recomputes the statement from the run (`matches_run`, Python
+`==` over the parsed values) and checks the optional Ed25519 `tine-sig/3`
+block over `opentine.cost-statement.v1:` + JCS of `{"body": <the statement
+without signature>, "header": ...}`. `ok` needs both; an unsigned statement
+is never `ok`. Vectors: family 84 (the run's statement is given as
+`expected`).
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
