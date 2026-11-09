@@ -31,6 +31,22 @@ class InventoryError(ValueError):
     pass
 
 
+def wheel_force_included(tracked: set[str]) -> dict[str, str]:
+    """Wheel path -> tracked source for ``[tool.hatch.build.targets.wheel.force-include]``.
+
+    0.48: ``docs/compliance`` ships as ``opentine/data/compliance``.
+    """
+    with (ROOT / "pyproject.toml").open("rb") as handle:
+        build = tomllib.load(handle)["tool"]["hatch"]["build"]["targets"]["wheel"]
+    mapped: dict[str, str] = {}
+    for source, target in build.get("force-include", {}).items():
+        prefix = source.rstrip("/") + "/"
+        for name in tracked:
+            if name.startswith(prefix):
+                mapped[target.rstrip("/") + "/" + name[len(prefix) :]] = name
+    return mapped
+
+
 def _project() -> tuple[str, str]:
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = data["project"]
@@ -188,7 +204,8 @@ def check_wheel(
         f"{dist_info}/entry_points.txt",
         f"{dist_info}/licenses/LICENSE",
     }
-    expected = {name for name in tracked if name.startswith("opentine/")} | generated
+    forced = wheel_force_included(tracked)
+    expected = {name for name in tracked if name.startswith("opentine/")} | generated | set(forced)
     names: list[str] = []
     hashes: dict[str, bytes] = {}
     with zipfile.ZipFile(path) as archive:
@@ -207,7 +224,9 @@ def check_wheel(
     _difference(set(names), expected)
     if sdist_hashes is not None:
         package = sorted(name for name in expected if name.startswith("opentine/"))
-        mismatched = [name for name in package if hashes[name] != sdist_hashes[name]]
+        mismatched = [
+            name for name in package if hashes[name] != sdist_hashes[forced.get(name, name)]
+        ]
         if mismatched:
             raise InventoryError("wheel content differs from sdist: " + ", ".join(mismatched))
 
