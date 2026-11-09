@@ -1197,6 +1197,7 @@ Reference:
 - [PRICING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/PRICING.md): signed catalogs and billing semantics.
 - [REPOSITORY.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/REPOSITORY.md): objects, packs, migration, remote, and MCP.
 - [PROJECTS.md](docs/PROJECTS.md): project manifests, mirror-state host statements, the git object check and the `tine serve` project routes.
+- [PROMPTS_AND_MEMORY.md](docs/PROMPTS_AND_MEMORY.md): the signed prompt registry, team memory in MCP `recall`, `tine eval ci` and MCP tasks.
 - [EVENTS.md](docs/EVENTS.md): `tine watch`, the remote's SSE event stream, and signed webhooks with a 20-line verifier.
 - [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/SECURITY_MODEL.md): trust, redaction, signing, and remote security.
 - [RELEASING.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/RELEASING.md): trusted publication and release verification.

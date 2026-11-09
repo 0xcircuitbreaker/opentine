@@ -3216,7 +3216,7 @@ The server supports MCP 2025-11-25 tasks for `tools/call`: a call carrying
 "working", createdAt, lastUpdatedAt, ttl, pollInterval}}` and runs the tool in
 the background; `tasks/get` returns the task, `tasks/result` the tool's result
 once the task is `completed` (or its error once `failed`), `tasks/list` the
-tasks of this session, and `tasks/cancel` moves a `working` task to
+tasks this server holds, and `tasks/cancel` moves a `working` task to
 `cancelled`. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
 (default 5 min); at most 64 tasks are held and the oldest finished one is
 forgotten first. The tool runs under the same read-only/allow-writes rules as

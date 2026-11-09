@@ -1205,6 +1205,53 @@ adopts a bundle that extends the local copy, and `push` sends what a remote's
 exactly as signed, logs it in its transparency log and never signs one.
 `--json` follows `tine-cli-review-1`. The `70-review.json` conformance family
 pins Python, the TS verifier and the pyz.
+## Prompts and team memory: `tine prompt`, `tine memory` (0.47)
+
+```text
+tine prompt push NAME (--file F | --template TEXT) --key KEY [--model M] [--label L]...
+tine prompt label NAME[@vN] LABEL
+tine prompt get NAME[@LABEL|@vN] [--var KEY=VALUE]...
+tine prompt list
+tine prompt verify NAME [--pubkey PUB]
+tine prompt link NAME[@LABEL|@vN] RUN
+tine prompt sync [--remote R [--tenant T] [--token-file P]]
+tine memory add TOPIC TEXT --key KEY [--scope S] [--tag T]... [--subject OID]
+                [--supersedes DIGEST] [--author NAME]
+tine memory list [--scope S] [--any-signer]
+tine memory recall QUERY [--limit N]
+tine memory trust PUB
+tine memory sync [--remote R [--tenant T] [--token-file P]]
+```
+
+Every action takes `--repo PATH` and `--json`. `prompt push` signs the next
+version of a named template (`opentine.prompt`, SPEC 4.19: Ed25519,
+hash-chained through `prev`, the next version signed by the same key) and moves
+`prompts/NAME/head`; `{{name}}` placeholders become its `variables`. A label
+(`prompts/NAME/labels/LABEL`) names one version and moves with `prompt label`;
+a version never changes, so what a run or an eval named stays the same bytes.
+`prompt get --var` renders a version and refuses a missing value; `prompt
+verify` checks the whole history and exits 4 on a `prompt.*` failure; `prompt
+link` records `{name, version, digest}` as `metadata.prompt` in the run's
+annotation. `--json` follows `tine-cli-prompt-1`.
+
+`memory add` signs a team-memory note (`opentine.memory`, SPEC 4.20) and stores
+it as `memory/SCOPE/<hex digest>`; it refuses text a secret detector fires on,
+because a signed note is never redacted afterwards (a hex digest or an oid is
+not a secret). `memory trust` adds a key to `.tine/memory-team.json`; `list`
+and `recall` show only notes that verify under those keys and that no other
+such note supersedes (with no team file, `list --any-signer` shows notes on
+their embedded keys). MCP `recall` returns the same notes under `memories`
+(SPEC 8.19). `--json` follows `tine-cli-memory-1`.
+
+`memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
+and fetch the ones this repository lacks, one ref at a time over the ordinary
+push and fetch routes: a fetched note must verify under the team, and a fetched
+prompt history must chain onto the local one. A prompt history that diverged
+is listed in `conflicts` and never merged or overwritten. `python
+tine-verify.pyz FILE.json [--pubkey K]` checks a prompt version, a history
+(`{"versions": [...]}`) or a note offline; the `68-prompt.json` and
+`69-memory.json` conformance families pin Python, the TS verifier and the pyz.
+See [PROMPTS_AND_MEMORY.md](PROMPTS_AND_MEMORY.md).
 
 ## Run summaries: `tine explain` (0.42)
 
@@ -1425,6 +1472,7 @@ tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
               [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
 tine eval verify DIR [--pubkey PUB]
 tine eval compare A B [--pubkey PUB] [--exit-code]
+tine eval ci --key KEY [--config TOML] [--out DIR] [--repo PATH] [--created-at TIME]
 ```
 
 A dataset is JSON Lines, one item per line: `id` and `input` are required,
@@ -1459,6 +1507,19 @@ verifies both evals, then lists `regressed` (pass to fail), `fixed`,
 `--exit-code` exits 1 on any regression. A failed verification exits 4.
 `tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
 check the same verdicts without opentine installed.
+
+`eval ci` (0.47) runs every `[[eval]]` table of `.tine/evals.toml` (or
+`--config`) with `eval run` into `--out` (default `.tine/evals`), signed with the
+one `--key`, and exits 1 unless every eval's `passed / items` reaches its
+`min_pass_rate` (default 1; `[defaults]` sets `threshold` and `min_pass_rate`
+for all). Each table takes `name`, `dataset` and `scorer`, and optionally
+`outputs`, `run`, `threshold`, `min_pass_rate` and `judge_prompt`: a
+registered prompt (`NAME@LABEL`) whose `{{input}}`, `{{expected}}` and
+`{{output}}` become the `llm-judge` template, so every verdict's
+`scorer_version` pins its bytes and the output names its digest. An unknown key
+is refused before anything runs. The same command runs locally, in CI (the
+gate action's `evals-config` input) or on a self-hosted runner. `--json`
+follows `tine-cli-eval-ci-1`.
 
 ## JSON Schemas and `tine help --json` (0.45)
 
