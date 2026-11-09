@@ -3321,8 +3321,12 @@ Under `/v1/tenants/<t>/`:
 
 The server applies exactly the local rules (one compare-and-swap per claim;
 heartbeat and done only for the current holder and fencing token before the
-lease ends; the token only grows) on **its own clock**, never the client's, and
-every move is an `update_ref` row of the audit chain, so it is in the
+lease ends; the token only grows) on **its own clock**, never the client's.
+It binds each fencing token to the authenticated caller who claimed it (an
+`opentine-coord/1` `lease` record `{task, fencing, subject}` at
+`coord/leases/<id>`): a heartbeat or done from any other caller, even one
+naming the same holder and token, is `409` `stale`. Every move is an
+`update_ref` row of the audit chain, so it is in the
 transparency log (§8.10). A missing task, a caller without `read_ref` and
 another tenant all answer the same `404 {"error":"not found"}`, for the write
 routes too; a reader who may not write gets `403`. The acceptance load is

@@ -24,6 +24,7 @@ from urllib.parse import unquote
 
 from opentine.coord import FORMAT
 from opentine.coord import _tasks as tasks
+from opentine.coord._store import read, swap
 from opentine.kernel import ObjectEnvelope
 from opentine.remote import _hosted_reads as reads
 from opentine.repository._ref_retry import RefCasMismatch
@@ -31,6 +32,8 @@ from opentine.repository._ref_retry import RefCasMismatch
 NOT_FOUND = {"error": "not found"}
 ACTIONS = ("claim", "heartbeat", "done")
 PREFIX = "coord/tasks"
+#: Which caller holds each fencing token: ``coord/leases/<task>``.
+LEASES = "coord/leases/"
 
 
 def capabilities(service: Any) -> dict[str, Any]:
@@ -89,13 +92,34 @@ def _write(app: Any, repo: CoordRepo, task: str | None, action: str, environ) ->
         raise ValueError("ttl is a number of seconds")
     tasks.get(repo, task)  # a missing task is the uniform 404, not a lease code
     if action == "claim":
-        return "200 OK", tasks.claim(repo, task, holder, float(ttl))
+        value = tasks.claim(repo, task, holder, float(ttl))
+        _bind(repo, task, value["fencing"])
+        return "200 OK", value
     fencing = request.get("fencing")
     if not isinstance(fencing, int) or isinstance(fencing, bool):
         raise ValueError("fencing is the integer token claim returned")
+    _, lease = read(repo, LEASES + task, "lease")
+    if lease is None or lease.get("fencing") != fencing or lease.get("subject") != _who(repo):
+        raise tasks.LeaseError("stale", f"task {task}: fencing {fencing} was not claimed by you")
     if action == "heartbeat":
         return "200 OK", tasks.heartbeat(repo, task, holder, fencing, float(ttl))
     return "200 OK", tasks.done(repo, task, holder, fencing)
+
+
+def _who(repo: CoordRepo) -> str:
+    return str(getattr(repo.identity, "subject", "") or "")
+
+
+def _bind(repo: CoordRepo, task: str, fencing: int) -> None:
+    """Record that the caller holds *fencing*, so no other caller can use the token."""
+    value = {"task": task, "fencing": fencing, "subject": _who(repo)}
+    for _ in range(tasks.MAX_ATTEMPTS):
+        oid, old = read(repo, LEASES + task, "lease")
+        if old is not None and int(old.get("fencing", 0)) >= fencing:
+            return  # a later claim already bound a newer token
+        if swap(repo, LEASES + task, "lease", value, oid) is not None:
+            return
+    raise tasks.LeaseError("contended", f"task {task}: too many concurrent claims")
 
 
 def _target(resource: str) -> tuple[str | None, str | None]:

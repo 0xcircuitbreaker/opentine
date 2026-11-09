@@ -32,7 +32,8 @@ def remote(tmp_path, monkeypatch):
     from opentine.repository import _http
 
     identities = StaticTokenIdentityProvider({
-        "w": Identity("w", "acme", ("writer",)), "r": Identity("r", "acme", ("reader",)),
+        "w": Identity("w", "acme", ("writer",)), "v": Identity("v", "acme", ("writer",)),
+        "r": Identity("r", "acme", ("reader",)),
         "o": Identity("x", "other", ("admin",)),
     })  # fmt: skip
     service = RemoteService(
@@ -121,6 +122,17 @@ def test_reads_and_writes_are_a_uniform_404_or_403(remote):
     assert http(None).get("/v1/tenants/acme/coord/tasks").status_code == 401
     bad = http().post("/v1/tenants/acme/coord/tasks/x/claim", json={"holder": "h", "ttl": "x"})
     assert bad.status_code == 400
+
+
+def test_another_writer_cannot_use_a_holders_fencing_token(remote):
+    _service, http = remote
+    http().post("/v1/tenants/acme/coord/tasks", json={"task": "x"})
+    token = http().post("/v1/tenants/acme/coord/tasks/x/claim", json={"holder": "h"}).json()
+    forged = {"holder": "h", "fencing": token["task"]["fencing"]}
+    for action in ("heartbeat", "done"):
+        stolen = http("v").post(f"/v1/tenants/acme/coord/tasks/x/{action}", json=forged)
+        assert stolen.status_code == 409 and stolen.json()["code"] == "stale"
+    assert http().post("/v1/tenants/acme/coord/tasks/x/done", json=forged).status_code == 200
 
 
 def test_the_scaled_claim_test_loses_and_duplicates_nothing(remote):
