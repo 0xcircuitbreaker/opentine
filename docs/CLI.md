@@ -651,7 +651,7 @@ files in a kit directory, and unsafe, linked, duplicate or oversized zip entries
 
 ```
 tine alert add NAME --on verify.failed|policy.denied|cost.threshold|witness.disagreement
-    [--threshold USD] [--webhook URL [--allow-private]] [--otlp ENDPOINT] [--replace]
+    [--threshold USD] [--webhook URL] [--otlp ENDPOINT] [--allow-private] [--replace]
 tine alert list | remove NAME
 tine alert test [NAME] [--event FILE] [--always] [--dry-run]
 tine watch [REPO|REMOTE] --alerts
@@ -669,7 +669,10 @@ prints its `kid` and `public_key` for the receiver to pin. Targets must be
 `https://` global addresses unless `--allow-private`; 408/429/5xx are retried
 (3 attempts). An OTLP delivery POSTs one OTLP/JSON log record per alert to
 `ENDPOINT/v1/logs` (severity `ERROR` for verify and witness alerts, else
-`WARN`; `opentine.alert.*` attributes). `test` evaluates the newest op-log entry
+`WARN`; `opentine.alert.*` attributes); it may be `http://` but, like a webhook,
+must not carry credentials or name (or resolve to) a private, loopback or
+reserved address unless `--allow-private`. Stored rules are re-checked when
+read, so a hand-edited `rules.json` cannot bypass these checks. `test` evaluates the newest op-log entry
 (or `--event FILE`: an event or a `tine watch --json` line) and delivers what
 trips; `--always` also sends a `test: true` alert for each other rule. `--json`
 writes `tine-cli-alert-1`; `test` exits 1 when a delivery failed. `tine watch

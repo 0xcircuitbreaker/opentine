@@ -86,3 +86,21 @@ def test_cli_imports_each_format(monkeypatch, capsys, tmp_path, fmt, source, ste
     assert doc["format"] == fmt and doc["run"]["step_count"] == steps
     assert _schemas.validate(doc, _schemas.detect(doc))[1] == []
     assert out_path.is_file()
+
+
+def test_presigned_uris_lose_their_tokens():
+    from opentine.trace._import_a2a import a2a_events, bare_uri
+
+    assert bare_uri("https://u:p@b.s3.example/k.png?X-Amz-Signature=abc#f") == (
+        "https://b.s3.example/k.png"
+    )
+    msg = {
+        "kind": "message",
+        "role": "agent",
+        "messageId": "m1",
+        "parts": [
+            {"kind": "file", "file": {"name": "a.png", "uri": "https://h.example/a?token=SECRET"}}
+        ],
+    }
+    events = a2a_events(json.dumps(msg))
+    assert "SECRET" not in json.dumps([e.outputs for e in events], default=str)

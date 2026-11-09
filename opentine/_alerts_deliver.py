@@ -117,11 +117,16 @@ def send_webhook(url: str, payload: dict[str, Any], key: Any, allow_private: boo
             "attempts": attempt, "delivery": payload["delivery"]}  # fmt: skip
 
 
-def send_otlp(endpoint: str, document: dict[str, Any], *, sender: Any = None) -> dict:
+def send_otlp(endpoint: str, document: dict[str, Any], *, sender: Any = None,
+              allow_private: bool = False) -> dict:  # fmt: skip
+    from opentine._alerts import check_otlp
+    from opentine.remote._webhooks import resolve
     from opentine.trace._otlp_push import post
 
     url = logs_url(endpoint)
     try:
+        if sender is None:  # every address the host resolves to is checked first
+            resolve(*check_otlp(endpoint, allow_private), allow_private)
         status, detail = (sender or post)(url, json.dumps(document).encode("utf-8"))
     except Exception as exc:  # noqa: BLE001 - httpx errors, deadline: one failed delivery
         status, detail = type(exc).__name__, ""
@@ -166,7 +171,8 @@ def deliver(
                 )
             else:
                 document = otlp_logs(event, [alert], time.time_ns())
-                rows.append(send_otlp(rule["otlp"], document, sender=senders.get("otlp")))
+                rows.append(send_otlp(rule["otlp"], document, sender=senders.get("otlp"),
+                                      allow_private=bool(rule.get("allow_private"))))  # fmt: skip
         out.append({**alert, "deliveries": rows})
     return out
 

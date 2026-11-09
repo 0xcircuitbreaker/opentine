@@ -86,6 +86,7 @@ def test_rules_are_checked_and_stored(monkeypatch, capsys, repo):
         "1.5",
         "--otlp",
         "http://127.0.0.1:4318",
+        "--allow-private",
         "--json",
     )
     assert code == 0
@@ -175,7 +176,9 @@ def _op(oid: str) -> dict:
 
 
 def _rule(name, on, threshold=None):
-    return _alerts.make_rule(name, on, threshold=threshold, otlp="http://127.0.0.1:1")
+    return _alerts.make_rule(
+        name, on, threshold=threshold, otlp="http://127.0.0.1:1", allow_private=True
+    )
 
 
 def test_engine_triggers_on_announced_runs():
@@ -224,7 +227,7 @@ def test_webhook_delivery_retries_then_succeeds(tmp_path):
 
 def test_watch_alerts_evaluates_each_event(monkeypatch, capsys, repo, receiver):
     assert _tine(monkeypatch, capsys, "alert", "add", "c", "--on", "cost.threshold",
-                 "--threshold", "0", "--otlp", receiver.url)[0] == 0  # fmt: skip
+                 "--threshold", "0", "--otlp", receiver.url, "--allow-private")[0] == 0  # fmt: skip
     calls = []
     real = _alerts.Engine.evaluate
 
@@ -235,3 +238,40 @@ def test_watch_alerts_evaluates_each_event(monkeypatch, capsys, repo, receiver):
     monkeypatch.setattr(_alerts.Engine, "evaluate", spy)
     code, _ = _tine(monkeypatch, capsys, "watch", ".", "--from-start", "--once", "--alerts")
     assert code == 0 and calls == ["op.logged"]
+
+
+def test_otlp_sink_refuses_private_targets_and_credentials(monkeypatch, capsys, repo):
+    for endpoint in (
+        "http://127.0.0.1:4318",
+        "http://localhost:4318",
+        "http://10.0.0.1",
+        "http://169.254.169.254/latest",
+        "https://user:pw@collector.example",
+    ):
+        with pytest.raises(ValueError):
+            _alerts.make_rule("o", "policy.denied", otlp=endpoint)
+    _alerts.make_rule("o", "policy.denied", otlp="http://collector.example:4318")
+    with pytest.raises(ValueError):
+        _alerts.make_rule("o", "policy.denied", otlp="https://u:p@127.0.0.1", allow_private=True)
+
+
+def test_send_otlp_checks_resolved_addresses(monkeypatch):
+    from opentine.remote import _webhooks
+
+    real = _webhooks.resolve
+
+    def private(host, port, allow_private):
+        return real(host, port, allow_private, lambda *a, **k: [(0, 0, 0, "", ("10.1.2.3", 0))])
+
+    monkeypatch.setattr(_webhooks, "resolve", private)
+    row = _alerts_deliver.send_otlp("https://rebind.example", {"resourceLogs": []})
+    assert row["outcome"] == "failed" and row["status"] == "ValueError"
+
+
+def test_hand_edited_rules_are_rechecked(repo):
+    path = _alerts.state_dir(repo) / "rules.json"
+    rule = {"name": "x", "on": "policy.denied", "threshold": None, "webhook": None,
+            "otlp": "http://169.254.169.254/", "allow_private": False}  # fmt: skip
+    path.write_text(json.dumps({"rules": [rule]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="rules.json"):
+        _alerts.load_rules(repo)

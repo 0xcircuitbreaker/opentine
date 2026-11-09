@@ -91,7 +91,7 @@ def _artifact(art: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, Any]]
     if "changeSet" in art:
         change = _get(art, "changeSet")
         patch = _get(change, "gitPatch")
-        return ("jules.change_set", {"source": _clip(change.get("source"), 1024)}, {
+        return ("jules.change_set", redact_value({"source": _clip(change.get("source"), 1024)}), {
             "patch": _clip(patch.get("unidiffPatch")),
             "base_commit": _clip(patch.get("baseCommitId"), 64),
             "suggested_commit_message": _clip(patch.get("suggestedCommitMessage"))})  # fmt: skip
@@ -139,7 +139,9 @@ def jules_events(data: bytes | str) -> list[TraceEvent]:
     trace = bounded_id(session.get("id") or first.split("/activities")[0] or "session", "jules")
     base = {"jules.state": _clip(session.get("state"), 64)}
     if session.get("url"):
-        base["jules.url"] = _clip(session["url"], 2048)
+        from opentine.trace._import_a2a import bare_uri
+
+        base["jules.url"] = bare_uri(session["url"])
     events: list[TraceEvent] = []
     if session.get("prompt"):
         prompt = redact_value({"role": "user", "text": _clip(session["prompt"])})

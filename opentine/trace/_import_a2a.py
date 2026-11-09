@@ -18,14 +18,16 @@ of ``message/send``/``message/stream``) or a response (``result``). Mapping:
   ``input-required``/``auth-required`` -> an ``approval`` step.
 
 Parts keep ``text`` and ``data``; ``file`` parts keep name, MIME type and
-URI, never inline bytes. Messages repeated across ``history`` and stream
-events are de-duplicated by ``messageId``. Every payload is redacted.
+URI (without credentials, query or fragment), never inline bytes. Messages
+repeated across ``history`` and stream events are de-duplicated by ``messageId``.
+Every payload is redacted.
 """
 
 from __future__ import annotations
 
 from dataclasses import replace
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from opentine.redaction import redact_value
 from opentine.trace._import_jules import documents
@@ -38,6 +40,17 @@ _PAUSE = {"input-required", "auth-required"}
 _FAIL = {"failed", "rejected"}
 
 
+def bare_uri(value: Any) -> str:
+    """*value* without credentials, query or fragment: a presigned URL's token
+    (``X-Amz-Signature``, ``sig=``, ``token=``) lives there and is never kept."""
+    text = str(value or "")[:2048]
+    parts = urlsplit(text)
+    if not parts.scheme or not parts.netloc:
+        return text.split("?", 1)[0].split("#", 1)[0]
+    host = parts.netloc.rsplit("@", 1)[-1]
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
+
+
 def _parts(parts: Any) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for part in parts if isinstance(parts, list) else []:
@@ -48,7 +61,9 @@ def _parts(parts: Any) -> list[dict[str, Any]]:
             out.append({"kind": "text", "text": str(part.get("text") or "")[:TEXT]})
         elif kind == "file":
             file = part.get("file") if isinstance(part.get("file"), dict) else {}
-            keep = {k: str(file[k])[:2048] for k in ("name", "mimeType", "uri") if k in file}
+            keep = {k: str(file[k])[:2048] for k in ("name", "mimeType") if k in file}
+            if "uri" in file:
+                keep["uri"] = bare_uri(file["uri"])
             out.append({"kind": "file", **keep})
         else:
             out.append({"kind": "data", "data": part.get("data")})
@@ -174,4 +189,4 @@ def a2a_events(data: bytes | str) -> list[TraceEvent]:
     return [replace(item, trace_id=trace) for item in run.events]
 
 
-__all__ = ["a2a_events"]
+__all__ = ["a2a_events", "bare_uri"]

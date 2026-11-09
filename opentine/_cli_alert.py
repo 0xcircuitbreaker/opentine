@@ -36,8 +36,11 @@ def add_alert_parser(sub: Any) -> None:
     add.add_argument("--threshold", type=float, metavar="USD", help="cost.threshold: run cost")
     add.add_argument("--webhook", metavar="URL", help="Signed tine-webhook/1 POST target")
     add.add_argument("--otlp", metavar="ENDPOINT", help="OTLP/HTTP endpoint (adds /v1/logs)")
-    add.add_argument("--allow-private", action="store_true",
-                     help="Allow http:// and private addresses for --webhook")  # fmt: skip
+    add.add_argument(
+        "--allow-private",
+        action="store_true",
+        help="Allow http:// webhooks and private/loopback addresses for both sinks",
+    )
     add.add_argument("--replace", action="store_true", help="Replace a rule of the same name")
     actions.add_parser("list", help="The rules and the webhook signing key")
     remove = actions.add_parser("remove", help="Remove an alert rule")

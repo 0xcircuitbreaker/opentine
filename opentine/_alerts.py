@@ -53,10 +53,26 @@ def load_rules(repo_path: Path) -> list[dict[str, Any]]:
         raw = (state_dir(repo_path) / RULES_FILE).read_text(encoding="utf-8")
     except FileNotFoundError:
         return []
-    rules = json.loads(raw).get("rules")
+    document = json.loads(raw)
+    rules = document.get("rules") if isinstance(document, dict) else None
     if not isinstance(rules, list) or not all(isinstance(rule, dict) for rule in rules):
         raise ValueError(f"{RULES_FILE}: 'rules' must be a list of objects")
-    return rules
+    return [_recheck(rule) for rule in rules[:MAX_RULES]]
+
+
+def _recheck(rule: dict[str, Any]) -> dict[str, Any]:
+    """A stored rule re-checked as ``add`` would, so a hand edit cannot widen a sink."""
+    try:
+        return make_rule(
+            str(rule.get("name")),
+            str(rule.get("on")),
+            threshold=rule.get("threshold"),
+            webhook=rule.get("webhook"),
+            otlp=rule.get("otlp"),
+            allow_private=rule.get("allow_private") is True,
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{RULES_FILE}: alert {rule.get('name')!r}: {exc}") from exc
 
 
 def save_rules(repo_path: Path, rules: list[dict[str, Any]]) -> None:
@@ -83,10 +99,27 @@ def make_rule(name: str, on: str, *, threshold: float | None = None, webhook: st
         raise ValueError("an alert needs a sink: --webhook URL and/or --otlp ENDPOINT")
     if webhook:
         check_url(webhook, allow_private)
-    if otlp and not re.match(r"^https?://", otlp):
-        raise ValueError("--otlp must be an http(s):// OTLP/HTTP endpoint")
+    if otlp:
+        check_otlp(otlp, allow_private)
     return {"name": name, "on": on, "threshold": threshold, "webhook": webhook or None,
             "otlp": otlp or None, "allow_private": bool(allow_private)}  # fmt: skip
+
+
+def check_otlp(endpoint: Any, allow_private: bool) -> tuple[str, int]:
+    """``(host, port)`` of an acceptable OTLP endpoint: http(s), no credentials,
+    and (unless *allow_private*) not a private, loopback or reserved address."""
+    from urllib.parse import urlsplit
+
+    from opentine.remote._webhooks import check_url
+
+    if not isinstance(endpoint, str) or not re.match(r"^https?://", endpoint):
+        raise ValueError("--otlp must be an http(s):// OTLP/HTTP endpoint")
+    parts = urlsplit(endpoint)
+    try:  # the webhook address rules, with http:// allowed for a collector
+        _, host, port = check_url(parts._replace(scheme="https").geturl(), allow_private)
+    except ValueError as exc:
+        raise ValueError(str(exc).replace("webhook url", "--otlp endpoint")) from exc
+    return host, parts.port or (443 if parts.scheme == "https" else 80)
 
 
 def add_rule(repo_path: Path, rule: dict[str, Any], *, replace: bool = False) -> list[dict]:
