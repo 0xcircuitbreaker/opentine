@@ -72,3 +72,30 @@ def test_the_freeze_page_lists_every_inventoried_kind_and_family():
 def test_ci_runs_the_parity_check_with_the_ts_column_required():
     workflow = (ROOT / ".github/workflows/ci.yml").read_text("utf-8")
     assert "scripts/check_parity.py --require-ts" in workflow
+
+
+def test_a_pyz_crash_is_not_a_refusal(monkeypatch, capsys):
+    """A pyz that raises a programming error on a reject case does not agree with it."""
+    module = _module()
+    real = module._built_pyz
+
+    class Crashing:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def answer(self, op, *args):
+            if op == "artifact.parse":
+                raise KeyError("bug")
+            return self._inner.answer(op, *args)
+
+    @module.contextlib.contextmanager
+    def crashing():
+        with real() as conform:
+            yield Crashing(conform)
+
+    monkeypatch.setattr(module, "_built_pyz", crashing)
+    assert module.run() == 1
+    assert "pyz disagrees: artifact.duplicate-key" in capsys.readouterr().err

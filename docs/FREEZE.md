@@ -95,9 +95,14 @@ case.
 
 ## The 0.50 freeze review
 
-**Result: criterion 2 is met for the pinned suite.** On the 61 families and
-1163 cases of `docs/conformance` (MANIFEST totals), `scripts/check_parity.py`
-reports:
+**Result: no disagreement and no unanswered case on the pinned suite, with
+one scoped exclusion.** Criterion 2 is not declared met here: the pyz does not
+answer the eight repository storage families below (by design), so "the same
+vectors" holds for every family except those, and accepting that reading is a
+decision for the release owner. The CI `parity` job has not yet run on a pushed
+commit; until it is green there, the numbers below are from a local run. On the
+61 families and 1163 cases of `docs/conformance` (MANIFEST totals),
+`scripts/check_parity.py` reports:
 
 | Implementation | Cases answered and agreeing | Not answered, by design |
 |---|---|---|
@@ -137,6 +142,15 @@ What the vectors do not cover, recorded rather than hidden:
 - **`TINEAES6` decryption**: family 82 pins the header; opening a sealed object
   needs a tenant key no verifier of exported files holds, and XAES-256-GCM is
   covered by its own known-answer tests.
+- **RFC 3161 tokens inside custody records** (`action: "timestamp"`): the
+  `custody.chain` op checks the hash chain and each record's signature, which
+  binds the token bytes, but does not verify the token (that needs TSA roots)
+  and reports no signing time from it. `tine custody verify` checks the tokens.
+- **Reason codes**: a refusal is compared by reason code only when the
+  implementation names one (the TS verifier always does; the reference and the
+  pyz mostly raise uncoded errors, see `tests/conformance/reasons.py`). A
+  programming error (`KeyError`, `TypeError` and the like) never counts as a
+  refusal.
 - **Line attribution against git**: family 83 gives the commit's added lines as
   input; reading them from git is the CLI's job, not the format's.
 - **Cost statements against a run**: family 84 gives the statement the run

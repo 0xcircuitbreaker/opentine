@@ -49,6 +49,11 @@ from tests.conformance.generate import families  # noqa: E402
 SUITE = ROOT / "docs" / "conformance"
 TS_PARITY = ROOT / "ts" / "verifier" / "dist" / "src" / "parity.js"
 TS_SKIPS = {"object.put", "redact.blob", "redact.value", "attest.sign"}
+#: A programming error is a crash, not a refusal: it never agrees with a reject case.
+CRASHES = (
+    AssertionError, AttributeError, ImportError, IndexError, KeyError, NameError,
+    NotImplementedError, RecursionError, TypeError,
+)  # fmt: skip
 
 
 def _keys() -> dict[str, bytes]:
@@ -132,7 +137,10 @@ def run(require_ts: bool = False) -> int:
                 record = records[case.id]
                 seen = observe(case)
                 code = getattr(seen.exception, "code", None)
-                ok = _agrees(record, seen.disposition != "reject", seen.output, None, groups)
+                crashed = isinstance(seen.exception, CRASHES)
+                ok = not crashed and _agrees(
+                    record, seen.disposition != "reject", seen.output, code, groups
+                )
                 counts["python"] += ok
                 if not ok:
                     problems.append(f"python disagrees: {case.id}")
@@ -149,7 +157,9 @@ def run(require_ts: bool = False) -> int:
                             ok = _agrees(record, True, out, None, groups)
                         except Exception as exc:  # noqa: BLE001 -- a refusal is the answer
                             code = getattr(exc, "code", None)
-                            ok = _agrees(record, False, None, code, groups)
+                            ok = not isinstance(exc, CRASHES) and _agrees(
+                                record, False, None, code, groups
+                            )
                         counts["pyz"] += ok
                         counts["pyz_cases"] += 1
                         if not ok:

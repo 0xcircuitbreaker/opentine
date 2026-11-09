@@ -766,7 +766,7 @@ Rules for this stretch:
 
 **Rationale:** 0.50 exists to meet the 1.0 criteria, not to add features.
 
-**Progress (format freeze review):** Python, TS and the pyz answer every case of the pinned suite (61 families, 1163 cases), checked case by case by `scripts/check_parity.py` and the CI `parity` job; the freeze-audit allow-lists in `tests/freeze_inventory.py` are empty and the six kinds 0.48 deferred have families 79-84. The pyz still excludes, by design, the repository storage families (it never opens a repository). The frozen list and the review result are [`docs/FREEZE.md`](FREEZE.md). The other 0.50 items are open.
+**Progress (format freeze review):** Python, TS and the pyz agree on every case of the pinned suite each answers (61 families, 1163 cases; the pyz answers 990, the TS verifier 1149), checked case by case by `scripts/check_parity.py` and the CI `parity` job; the freeze-audit allow-lists in `tests/freeze_inventory.py` are empty and the six kinds 0.48 deferred have families 79-84. The pyz still excludes, by design, the repository storage families (it never opens a repository). The frozen list and the review result are [`docs/FREEZE.md`](FREEZE.md). Criterion 2 is not yet declared met: the storage-family exclusion needs the release owner's sign-off, and the `parity` job has not yet run green in CI. The other 0.50 items are open.
 
 **Acceptance:** every 1.0 criterion except the completion of the audit is met. The leave-the-service test passes on every release from here on.
 
