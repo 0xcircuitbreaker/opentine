@@ -2,6 +2,7 @@ package dev.opentine.ide
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.ide.impl.isTrusted
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -31,6 +32,8 @@ private fun notify(project: Project?, text: String, type: NotificationType) {
 
 /** The work tree (the project's base directory) and the file's repository-relative path. */
 private fun locate(project: Project, file: VirtualFile): Pair<File, String> {
+    // `tine` runs in the work tree: never in a project the user has not trusted.
+    check(project.isTrusted()) { "trust this project first (OpenTine runs tine in it)" }
     val root = project.guessProjectDir() ?: error("the project has no base directory")
     val base = Path.of(root.path)
     return base.toFile() to TineCli.repoRelative(base, Path.of(file.path))

@@ -18,6 +18,13 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension runs the `tine` executable in the workspace; it stays off until the workspace is trusted."
+    },
+    "virtualWorkspaces": false
+  },
   "contributes": {
     "commands": [
       {
@@ -43,6 +50,7 @@
         "opentine.tinePath": {
           "type": "string",
           "default": "tine",
+          "scope": "machine",
           "description": "The `tine` executable (a name on PATH or an absolute path)."
         },
         "opentine.timeoutSeconds": {

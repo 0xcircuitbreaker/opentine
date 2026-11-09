@@ -137,4 +137,15 @@ def check(record: Any, *, public_key: bytes | None = None, reviewers: Any = ()) 
     }
 
 
-__all__ = ["DOMAIN", "FIELDS", "KIND", "body", "build", "check", "digest", "path_ok", "sign"]
+__all__ = [
+    "CODE",
+    "DOMAIN",
+    "FIELDS",
+    "KIND",
+    "body",
+    "build",
+    "check",
+    "digest",
+    "path_ok",
+    "sign",
+]

@@ -59,5 +59,8 @@ export function repoRelative(root: string, file: string, sep: string = path.sep)
   if (rel === "" || rel.startsWith("..") || (sep === "\\" ? path.win32 : path.posix).isAbsolute(rel)) {
     throw new Error(`${file} is not inside ${root}`);
   }
-  return rel.split(sep).join("/");
+  const posix = rel.split(sep).join("/");
+  // `tine` would read a leading '-' as an option: refuse such a name instead.
+  if (posix.startsWith("-")) throw new Error(`${file}: a path starting with '-' is not supported`);
+  return posix;
 }

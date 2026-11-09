@@ -144,6 +144,8 @@ def build(root: Path, only: list[str] | None = None) -> dict[str, Any]:
     out, edges, backends = [], [], set()
     for name in names:
         path = root / name
+        if path.is_symlink():  # never read outside the work tree
+            continue
         try:
             raw = path.read_bytes() if path.stat().st_size <= MAX_FILE else None
         except OSError:

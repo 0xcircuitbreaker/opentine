@@ -60,6 +60,7 @@ class TineCli(private val command: List<String>, private val timeoutSeconds: Lon
             val rel = root.toAbsolutePath().normalize().relativize(file.toAbsolutePath().normalize())
             val text = rel.joinToString("/") { it.toString() }
             require(text.isNotEmpty() && !text.startsWith("..")) { "$file is not inside $root" }
+            require(!text.startsWith("-")) { "$file: a path starting with '-' is not supported" }
             return text
         }
 

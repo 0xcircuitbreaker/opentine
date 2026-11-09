@@ -43,6 +43,8 @@ def context(root: Path, base: str | None, diff_file: str | None) -> str:
     if diff_file:
         raw = Path(diff_file).read_bytes()[:MAX_CONTEXT]
     else:
+        if base and base.startswith("-"):
+            raise ValueError("--base must name a revision, not an option")
         argv = ["git", "-C", root.as_posix(), "diff", "--no-color", "--no-ext-diff"]
         done = subprocess.run([*argv, base or "HEAD"], capture_output=True, check=False)
         if done.returncode != 0:
@@ -96,9 +98,12 @@ def _store_path(repo: Any, review_id: str) -> Path:
 def load(repo: Any, review_id: str) -> list[dict[str, Any]]:
     """The stored signed findings of *review_id* (oldest first)."""
     try:
-        return json.loads(_store_path(repo, review_id).read_text("utf-8"))
+        found = json.loads(_store_path(repo, review_id).read_text("utf-8"))
     except FileNotFoundError:
         return []
+    if not isinstance(found, list):
+        raise ValueError(f"the findings store of {review_id} is not a list")
+    return found
 
 
 def save(repo: Any, review_id: str, records: list[dict[str, Any]]) -> None:
@@ -144,13 +149,20 @@ def next_version(head: dict[str, Any], signed: list[dict[str, Any]]) -> dict[str
     return _review.build(head["review_id"], previous=head, findings=findings, **fields)
 
 
-def verify_all(records: list[dict[str, Any]], reviewers: list[str]) -> list[dict[str, Any]]:
+def verify_all(records: list[Any], reviewers: list[str], review_id: str) -> list[dict[str, Any]]:
+    """Each record checked against *reviewers*; one filed under another Review fails."""
     out = []
     for record in records:
         try:
-            out.append(_review_finding.check(record, reviewers=reviewers))
+            row = _review_finding.check(record, reviewers=reviewers)
+            if row["review_id"] != review_id:
+                other = row["review_id"]
+                raise RecordError(f"{_review_finding.CODE}.wrong-review",
+                                  f"the review finding belongs to review {other}")  # fmt: skip
+            out.append(row)
         except RecordError as exc:
-            out.append({"finding_id": record.get("finding_id"), "state": "failed",
+            fid = record.get("finding_id") if isinstance(record, dict) else None
+            out.append({"finding_id": fid, "state": "failed",
                         "code": exc.code, "message": str(exc)})  # fmt: skip
     return out
 

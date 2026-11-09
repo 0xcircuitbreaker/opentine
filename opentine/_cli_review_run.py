@@ -66,7 +66,10 @@ def _run(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
 
     def read(member: dict[str, Any]) -> str:
         path = work / f"{member['key']}.findings.jsonl"
-        return path.read_text("utf-8", "replace") if path.is_file() else ""
+        if path.is_symlink() or not path.is_file():
+            return ""
+        with path.open("rb") as handle:  # a member cannot make the run read without bound
+            return handle.read(_review_run.MAX_CONTEXT).decode("utf-8", "replace")
 
     signed, skipped = _review_run.sign_all(head, members, read, key, args.key_id)
     stored = _review_run.load(repo, args.review_id)
@@ -77,7 +80,7 @@ def _run(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
     if signed:
         version = _review.sign(_review_run.next_version(head, signed), key, key_id=args.key_id)
         digest = store.append(repo, version, expected=_review.digest(head))
-    rows = _review_run.verify_all(signed, head["reviewers"])
+    rows = _review_run.verify_all(signed, head["reviewers"], args.review_id)
     body = {"review_id": args.review_id, "fleet": fleet.name, "fleet_id": state.id,
             "exit_code": code, "members": members, "findings": rows, "skipped": skipped,
             "head": digest}  # fmt: skip
@@ -94,7 +97,7 @@ def _findings(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]
     if current is None:
         raise KeyError(f"no review {args.review_id} here")
     reviewers = current["versions"][-1]["reviewers"]
-    rows = _review_run.verify_all(_review_run.load(repo, args.review_id), reviewers)
+    rows = _review_run.verify_all(_review_run.load(repo, args.review_id), reviewers, args.review_id)
     lines = [f"{r['finding_id']} {r.get('severity', '?')} {r.get('path') or '-'}"
              f":{r.get('line') or ''} {r['state']}" for r in rows]  # fmt: skip
     return {"review_id": args.review_id, "findings": rows}, "\n".join(lines) or "no findings"

@@ -47,4 +47,5 @@ test("paths reach tine repository-relative and POSIX on every platform", () => {
   assert.equal(repoRelative("/w", "/w/src/app.py", "/"), "src/app.py");
   assert.equal(repoRelative("C:\\w", "C:\\w\\src\\app.py", "\\"), "src/app.py");
   assert.throws(() => repoRelative("/w", "/other/x.py", "/"), /not inside/);
+  assert.throws(() => repoRelative("/w", "/w/-rf.py", "/"), /starting with '-'/);
 });

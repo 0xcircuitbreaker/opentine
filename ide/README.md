@@ -16,6 +16,13 @@ from:
 `tine` is called with an argument list, never through a shell, in the
 workspace root, with repository-relative POSIX paths on every platform.
 
+Neither runs anything in a workspace or project the user has not trusted (VS
+Code: `untrustedWorkspaces.supported: false`; JetBrains: the trusted-project
+check), and the `tine` executable is a machine/application setting, so a
+repository's own settings cannot point it at a program of its choosing. A
+file whose repository-relative path starts with `-` is refused rather than
+handed to `tine`, where it would read as an option.
+
 ## `vscode/`: VS Code
 
 TypeScript, pinned dev dependencies only (`typescript`, `@types/node`,
