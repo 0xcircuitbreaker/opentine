@@ -40,7 +40,8 @@ DETECTORS: tuple[tuple[str, re.Pattern[str], Callable[[str], bool]], ...] = (
         r"(?<![\w.%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*"
         r"\.[A-Za-z]{2,24}(?![\w-])"), ids.email),
     ("iban", re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\b"), ids.iban),
-    ("card", re.compile(r"(?<![\d-])\d(?:[ -]?\d){12,18}(?![\d-])"), ids.card),
+    # \w, not \d: digit runs inside hex digests and ids are not card numbers.
+    ("card", re.compile(r"(?<![\w-])\d(?:[ -]?\d){12,18}(?![\w-])"), ids.card),
     ("gov-id:us-ssn", re.compile(r"(?<![\d-])\d{3}-\d{2}-\d{4}(?![\d-])"), ids.us_ssn),
     ("gov-id:uk-nino", re.compile(r"\b[A-Z]{2} ?\d{2} ?\d{2} ?\d{2} ?[A-D]\b"), ids.uk_nino),
     ("gov-id:es-dni", re.compile(r"\b[XYZ\d]\d{7}-?[A-Z]\b"), ids.es_dni),
