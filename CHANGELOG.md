@@ -243,6 +243,11 @@ still needs people.
   change-set `source`. Media and file bytes are never imported.
 - A chunk reused by a newer object is re-locked to the newer retention, never
   shortened, and becomes compliance if either object is.
+- A lock being published by another process (two names for one file until
+  its temp name is removed) no longer trips the repository's hard-link guard;
+  a concurrent `tine gc` again reports "another tine gc is running" instead
+  of "repository path contains a hard-linked file". Only `*.lock` names may
+  have two links; every other repository file still must have one.
 - `tine witness doctor` refuses a non-http(s) `--url`.
 
 ### Compatibility
