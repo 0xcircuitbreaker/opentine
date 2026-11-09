@@ -1,8 +1,194 @@
 # Changelog
 
-## Unreleased
+## 0.47.0 — Merge it, review it (2026-11-09)
 
+### Behaviour changes
+
+- `tine mcp` `recall` also returns team-signed memory notes under `memories`;
+  with no `.tine/memory-team.json`, none are returned.
+- A merge step exported to `.tine` v2 reads back as `model`; v2 has no
+  `merge` kind.
+- `tine eval ci` refuses unknown keys in `.tine/evals.toml` (top level and
+  `[defaults]`) and dataset or output paths outside the repository.
+- Leases taken through `caps.coord` are bound to the caller who claimed them.
+
+### Added
+
+- **Run merge and pick** (SPEC 4.19): `tine merge OURS THEIRS [--ref R]`
+  writes a deterministic merge run with parents `[OURS, THEIRS]` and one
+  `merge` event. Workspace trees merge three ways; conflicting paths and a
+  differing policy manifest are recorded in the merge event, leave the run
+  `paused` and exit 1. `tine pick ONTO EVENT...` copies events onto a run's
+  tip, each marked with `picked_from`.
+- **`opentine.merge` (merge/v1)**, new kind: a signed attestation naming the
+  merged run, its parents, the target, the fencing token and a digest of each
+  gate piece; it can also be checked against the merged run.
+  **`opentine.merge-approval`**, new kind: a signed approve or reject decision
+  on a candidate run for a target.
+- **Merge queue:** `tine merge-queue init|add|claim|heartbeat|land|work|show|approve|verify`
+  on `coord/merge-queue/<id>`, with leases and fencing tokens. A landing
+  commits with one compare-and-swap of the queue record, so a stale holder is
+  refused and an entry never lands twice; a chaos test that kills workers
+  proves it. Gate policy `opentine-merge-gates/1` combines a pinned server
+  VSA, signed eval verdicts and signed approvals.
+- **Reviews** (SPEC 4.20), new kinds: `opentine.review` is a reviewer-signed,
+  hash-chained unit of work across runs and commits in one or more
+  repositories, with findings, monitors (risk, intent drift, coverage) and
+  gates; `opentine.review-gate` is a signed gate decision;
+  `opentine.review-bundle` verifies offline. `tine review
+  create|add|gate|show|export|verify|import|push`. An approval is refused
+  while a monitor fails or a critical finding is open (`review-gate.blocked`),
+  and `--verdict` takes a monitor's score from a signed eval verdict.
+- **`tine serve` `caps.reviews`** (SPEC 8.19): `GET reviews`, `GET|PUT
+  reviews/{id}` (compare-and-swap) and `POST reviews/{id}/decisions`. Uniform
+  404, transparency-logged, never signed by the server. The TS SDK adds
+  `listReviews`, `getReview`, `updateReview`, `decideReviewGate` and
+  `getReviewVerified`.
+- **Prompt registry** (`opentine.prompt`, SPEC 4.21): `tine prompt
+  push|label|get|list|verify|link|sync`. Versions are Ed25519-signed,
+  hash-chained and signed by the same key as the version before. Labels move,
+  and `link` records the version in a run's annotation.
+- **Team memory** (`opentine.memory`, SPEC 4.22): `tine memory
+  add|list|recall|trust|sync`. Notes are signed and shown only when a key in
+  `.tine/memory-team.json` signed them. A note can supersede another, and
+  `add` refuses text the secret detector flags.
+- **MCP tasks** (SPEC 8.20): MCP 2025-11-25 tasks for `tools/call`.
+  Cancelling a task, or letting it expire, stops its tool.
+- **Push-triggered evals:** `tine eval ci` reads `.tine/evals.toml` and gates
+  on each eval's `min_pass_rate`. A registered `judge_prompt` is pinned into
+  every verdict. The gate action gains `evals-config` and `eval-key-file`.
+- **Plugin API** (SPEC 8.21): entry-point plugins in four groups
+  (`opentine.importers`, `opentine.signers`, `opentine.scorers`,
+  `opentine.snapshots`). Nothing loads automatically; a plugin loads only when
+  it matches an entry in `$XDG_CONFIG_HOME/opentine/plugins.json` on kind,
+  name, distribution and exact version, is installed in this interpreter's
+  site-packages and its module resolves to a file its own distribution
+  installed. `OPENTINE_NO_PLUGINS=1` turns loading off. These rules choose
+  which code runs; they are not a sandbox. `tine plugins list|allow|check`,
+  and `tine eval run --scorer plugin:NAME`, whose verdict pins the plugin's
+  name, distribution and version.
+- **`tine experts PATH`** (`tine-experts/1`): ranks agents (by model, from
+  line attribution notes) and humans (by commit author e-mail) by attributed
+  lines, then verified runs.
+- **`@opentine/capture`** (`ts/capture`), no runtime dependencies: turns
+  Vercel AI SDK v4/v5 results and OpenAI Agents SDK `RunResult` objects into
+  `opentine-hook/1` events and delivers them to `tine hook capture` without a
+  shell.
+- **Remote task backend** (`caps.coord`, SPEC 8.22): `tine serve` runs
+  `opentine-coord/1` tasks over HTTP. Leases are compare-and-swap with fencing
+  on the server's clock, and every move is an audited `update_ref`. `tine
+  task ... --remote` uses it; the six `coord` routes are stable in OpenAPI,
+  the route table, the TS SDK and the API conformance suite.
+- **Scale acceptance:** 1,000 tasks × 50 workers with abandoned leases give
+  zero lost or duplicated claims and zero stale `done` calls accepted
+  (`scripts/coord_scale.py`; CI runs 100 × 10).
+- **Witness operations** (SPEC 8.23): `--key` can be given more than once and
+  every key cosigns, current key first, so keys rotate without a gap. `GET
+  /keys`, `GET /health` (503 `degraded` when state cannot be written),
+  `--rate-limit N` per client with 429 and `Retry-After`. Cosigning state
+  survives a restart.
+- **Forge claims** (`opentine.forge-claim`, new kind, SPEC 4.23): the
+  committed `.opentine/project` carries a fingerprint of the project's first
+  manifest version. A match reads "claimed by upstream (as mirrored)" and is
+  never a pass. `tine project claim` writes it; `claim --check` and `claim
+  --missing` check it.
+- **Project forks:** `tine project fork DEST --project-id ID` copies the run
+  repository, never code, and sets `forked_from`; `tine project verify
+  --source PATH` checks `forked_from` against the source's history.
+- `tine-verify.pyz` verifies merge records, review bundles (every gate
+  decision listed as its own check), prompt versions and histories, and
+  memory notes offline.
+- **Schemas:** `opentine-merge-1`, `opentine-merge-approval-1`,
+  `opentine-merge-gates-1`, `opentine-review-1`, `opentine-review-gate-1`,
+  `opentine-review-bundle-1`, `opentine-prompt-1`, `opentine-memory-1`,
+  `opentine-plugin-allow-1`, `opentine-forge-claim-1`, `tine-cli-merge-1`,
+  `tine-cli-pick-1`, `tine-cli-merge-queue-1`, `tine-cli-review-1`,
+  `tine-cli-prompt-1`, `tine-cli-memory-1`, `tine-cli-eval-ci-1`,
+  `tine-cli-plugins-1` and `tine-experts-1`; new `docs/PLUGINS.md`,
+  `docs/PROMPTS_AND_MEMORY.md` and `docs/design/F2-merge.md`.
+- **CLI:** eight new commands (`merge`, `pick`, `merge-queue`, `review`,
+  `prompt`, `memory`, `plugins`, `experts`), 117 in total.
+- **Conformance:** new families `68-merge` (52 cases), `69-memory` (18),
+  `70-review` (40), `71-prompt` (24) and `72-forge-claim` (11), answered by
+  Python, the TS verifier and the pyz.
 - The suite is now **1015 conformance vectors**; 417 of the 1015 refuse input, and the adapter contract still has one entry point: 63 ops.
+
+### Security
+
+- The merge queue never overwrites a target ref moved outside it: `land`
+  refuses with `diverged`, and the target only follows the queue head when the
+  head contains every event of the current target.
+- Merge gates count approvals from distinct listed keys, and one reject from a
+  listed key blocks; eval verdicts are checked against the candidate run and
+  the allowed signers; VSAs need the pinned key.
+- A Review gate decision is tied to the digest, seq and id of one version, so
+  it cannot be reused on another, and only a reviewer of that version can sign
+  it. The server stores Review records as their reviewers signed them,
+  publishes each atomically (temporary file, then a hard link that fails if
+  the name exists) and never signs one. Local Review writes take a per-Review
+  lock, and a repeated decision is stored once.
+- Memory sync accepts a fetched note only from a team key, under the ref named
+  by its own digest; with no team file it accepts none
+  (`memory.untrusted-signer`). Team-file keys must be lowercase hex.
+- `tine prompt verify` reports a history that does not reach version 1 as
+  `prompt.chain-break`.
+- A failed MCP task reports only the exception type, never its text.
+- Plugin loading refuses a module in the current directory or on
+  `PYTHONPATH`, a stdlib target and namespace packages. On POSIX the allow-list
+  file and its directory must be owned by you or root, and none of the
+  allow-list, its directory, the module file or the module's directory may be
+  group- or world-writable (a sticky bit does not exempt a directory). `tine
+  plugins allow` refuses when more than one distribution provides the same
+  name.
+- `caps.coord` binds each fencing token to the caller who claimed it (a
+  `coord/leases/<id>` record written by compare-and-swap), so another writer's
+  `heartbeat` or `done` with a token it read is `409 stale`. A missing task,
+  another tenant and a caller who cannot read all get the same 404; a reader
+  who tries to write gets 403.
+- The witness `/health` never shows local paths, and its rate limit keys on
+  the client's socket address, not on `X-Forwarded-For`.
+
+### Compatibility
+
+- No existing byte format changed. The new kinds (`opentine.merge`,
+  `opentine.merge-approval`, `opentine.review`, `opentine.review-gate`,
+  `opentine.prompt`, `opentine.memory`, `opentine.forge-claim`) are new
+  objects; `caps.reviews` and `caps.coord` are negotiated by `caps`, and
+  Reviews are kept outside the ref listing, so fetch, clone and push are
+  unchanged for 0.34–0.46.1 clients.
+- SPEC 0.47.0 adds 4.19–4.23 and 8.19–8.23. The conformance families are
+  numbered 68–72.
+- Leases written through `caps.coord` before the caller binding have no
+  `coord/leases` record; their holders claim again.
+
+### Deferred
+
+- Merges: raising `min_reader` for repositories that hold merges; octopus
+  merges; TS-side gate evaluation; a remote merge-queue backend. Approvals
+  name only the run and the target (no queue id, nonce or expiry), `land` can
+  run without a signing key (a gated landing then records no attestation), a
+  gated entry reached without evidence is rejected for good, `merge-queue
+  work` polls a held lease with no limit, and there is no command to recover a
+  diverged queue.
+- Reviews: no pull from a remote (only `import` of a bundle file); an exported
+  Review does not include its runs' bundles; monitors do not run scorers
+  themselves; no CLI flag links a finding to a subject; `--verdict` does not
+  pin the scorer's key; a reviewer of version N can replace the reviewer list
+  in version N+1 (by design, not yet documented as a trust caveat).
+- Prompts and memory: a prompt's first version is trusted on first use (no
+  team-key pinning for prompts); `tine eval verify` does not re-check the
+  judge prompt link; MCP tasks are held per server and advertised only through
+  the `io.opentine/tasks` extension; sync makes one round trip per ref and
+  never resends a label the remote already has.
+- Plugins: importer, signer and snapshot plugins load only from Python;
+  `tine import`, `tine sign` and `tine rewind` do not use them yet. `tine
+  experts` counts lines from notes that are not validly signed (only
+  `verified_runs` reflects signatures). SCITT emission stays behind
+  `--experimental` and no emitter ships. The capture SDK's fixtures are
+  hand-written.
+- Projects: remote `--source`; a signed fork point; claim files on the pyz
+  command line; `claim --check` without `--branch` assumes the default branch;
+  the witness has no `--json`.
 
 ## 0.46.1 — Project formats (2026-11-09)
 
