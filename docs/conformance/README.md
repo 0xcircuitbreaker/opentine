@@ -43,7 +43,7 @@ No opentine, no Python, no build step.
 
 52 vector files, one per SPEC area. `MANIFEST.families` carries the current
 census — case counts, reject counts, and the ops each family uses — so no
-number is restated here where it could drift. **42% of the suite is negative:
+number is restated here where it could drift. **44% of the suite is negative:
 inputs the format requires be refused.** That ratio is deliberate, and a drift
 gate pins the figure against `MANIFEST.totals`.
 
