@@ -1,8 +1,9 @@
-"""JSON Schemas for projects (0.46.1, SPEC 4.16-4.18).
+"""JSON Schemas for projects (0.46.1, SPEC 4.16-4.18, 4.23).
 
-``opentine-project-1`` (an ``opentine.project`` manifest version) and
-``opentine-mirror-state-1`` (a host's ``opentine.mirror-state`` statement) are
-the two records; ``tine-cli-project-1`` is the ``--json`` output of every
+``opentine-project-1`` (an ``opentine.project`` manifest version),
+``opentine-mirror-state-1`` (a host's ``opentine.mirror-state`` statement) and,
+since 0.47, ``opentine-forge-claim-1`` (an upstream's ``.opentine/project``) are
+the records; ``tine-cli-project-1`` is the ``--json`` output of every
 ``tine project`` action. The schemas check shape; the signature, the chain and
 the visibility rules are the verifier's (``opentine._project``).
 """
@@ -36,6 +37,8 @@ _SLOT = closed(["role", "forge", "forge_repo_id", "upstream_visibility", "locato
     "upstream_visibility": _VISIBILITY, "locator": _LOCATOR,
     "default_branch": {"type": "string", "pattern": "^[A-Za-z0-9._/-]{1,255}$"}})  # fmt: skip
 _MANIFEST = {"$ref": "opentine-project-1.schema.json"}
+_FP: dict[str, Any] = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+_CLAIM = {"$ref": "opentine-forge-claim-1.schema.json"}
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "opentine-project-1": doc("opentine-project-1", "opentine.project (project_version 1)",
@@ -68,21 +71,47 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "synced_at": _WHEN, "status": {"enum": ["synced", "stale", "failed", "paused"]},
             "reasons": {"type": "array", "items": {"type": "string", "pattern": "^mirror\\."}},
             "signature": SIG})),
+    "opentine-forge-claim-1": doc("opentine-forge-claim-1",
+        "opentine.forge-claim (claim_version 1)",
+        "An upstream's claim of its project (SPEC 4.23): the unsigned file `.opentine/project` "
+        "on the default branch. `fingerprint` is sha256 of `opentine.forge-claim.v1:` + the "
+        "digest of the project's first manifest version. A verifier reports a match as "
+        "`claimed by upstream (as mirrored)`, never a pass.",
+        closed(["kind", "claim_version", "project_id", "tenant", "fingerprint"], {
+            "kind": {"const": "opentine.forge-claim"}, "claim_version": {"const": 1},
+            "project_id": _ID, "tenant": _TENANT, "fingerprint": _FP})),
     "tine-cli-project-1": doc("tine-cli-project-1", "tine project ACTION --json",
         "Every `tine project` action. `init`/`link`: the new version (`manifest`, `digest`, "
         "`project`); `show`: the current one; `history`: `versions` oldest first; `verify`: "
-        "`result`, the chain check; `push`: `sent`, `head`, `versions`. A refusal is the "
-        "error envelope, exit 4 for a verification failure.",
+        "`result`, the chain check (and `fork`, with `--source`); `push`: `sent`, `head`, "
+        "`versions`; `claim`: the `claim` written and its `path` and `branch`, or with "
+        "`--check` a `result` that is never a pass; `fork`: the fork's first version and its "
+        "`fork_point`. A refusal is the error envelope, exit 4 for a verification failure.",
         open_(["command", "action", "ok"], {
             "command": {"const": "project"},
-            "action": {"enum": ["init", "link", "show", "history", "verify", "push"]},
+            "action": {"enum": ["init", "link", "show", "history", "verify", "push", "claim",
+                                "fork"]},
             "ok": BOOL, "manifest": _MANIFEST, "digest": opt(_BLOB),
             "project": closed(["project_id", "tenant", "seq", "visibility"], {
                 "project_id": _ID, "tenant": _TENANT, "seq": INT, "visibility": _VISIBILITY}),
             "versions": {"anyOf": [{"type": "array", "items": _MANIFEST}, INT]},
             "total": INT, "sent": INT, "head": opt(_BLOB),
-            "result": open_(["project_id", "head", "seq", "versions", "state"], {
-                "project_id": _ID, "head": _BLOB, "seq": INT, "versions": INT, "state": STR})})),
+            "result": {"anyOf": [
+                open_(["project_id", "head", "seq", "versions", "state"], {
+                    "project_id": _ID, "head": _BLOB, "seq": INT, "versions": INT,
+                    "state": STR}),
+                closed(["project_id", "tenant", "fingerprint", "branch", "state", "label"], {
+                    "project_id": _ID, "tenant": _TENANT, "fingerprint": _FP, "branch": STR,
+                    "state": {"const": "claimed-as-mirrored"}, "label": STR})]},
+            "claim": _CLAIM, "path": {"const": ".opentine/project"}, "branch": STR,
+            "fork_point": closed(["project_id", "tenant", "genesis", "head", "seq"], {
+                "project_id": _ID, "tenant": _TENANT, "genesis": _BLOB, "head": _BLOB,
+                "seq": INT}),
+            "fork": closed(["forked_from", "source_head", "source_versions", "fork_point",
+                            "state"], {
+                "forked_from": _ID, "source_head": _BLOB, "source_versions": INT,
+                "fork_point": opt(_BLOB),
+                "state": {"enum": ["fork-verified", "fork-unrecorded"]}})})),
 }  # fmt: skip
 
 COMMAND_SCHEMAS: dict[str, str] = {"project": "tine-cli-project-1"}
@@ -91,6 +120,7 @@ COMMAND_SCHEMAS: dict[str, str] = {"project": "tine-cli-project-1"}
 KIND_SCHEMAS: dict[str, str] = {
     "opentine.project": "opentine-project-1",
     "opentine.mirror-state": "opentine-mirror-state-1",
+    "opentine.forge-claim": "opentine-forge-claim-1",
 }
 
 __all__ = ["COMMAND_SCHEMAS", "KIND_SCHEMAS", "SCHEMAS"]

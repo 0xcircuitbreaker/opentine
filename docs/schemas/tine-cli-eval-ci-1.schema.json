@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-ci-1.schema.json",
+  "title": "tine eval ci --json",
+  "description": "Every eval `.tine/evals.toml` declares, run and signed: per eval its id, folder, counts, pass rate and gate, and the registered `judge_prompt` it used (name, version, digest) or null. `ok` is true only when every eval reaches its `min_pass_rate`; the command then exits 0, else 1.",
+  "type": "object",
+  "required": [
+    "command",
+    "ok",
+    "config",
+    "out",
+    "evals"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval ci"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "config": {
+      "type": "string"
+    },
+    "out": {
+      "type": "string"
+    },
+    "evals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "eval",
+          "dir",
+          "items",
+          "passed",
+          "mean_score",
+          "pass_rate",
+          "min_pass_rate",
+          "ok",
+          "judge_prompt"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+          },
+          "eval": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "dir": {
+            "type": "string"
+          },
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "passed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mean_score": {
+            "type": "string"
+          },
+          "pass_rate": {
+            "type": "number"
+          },
+          "min_pass_rate": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "judge_prompt": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "version",
+                  "digest"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^blob:sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "note": "Shape of an ai@4 generateText result: toolCalls[].args and toolResults[].result.",
+  "text": "Done.",
+  "steps": [
+    {
+      "text": "",
+      "toolCalls": [{"type": "tool-call", "toolCallId": "a", "toolName": "readFile", "args": {"path": "README.md"}}],
+      "toolResults": [{"type": "tool-result", "toolCallId": "a", "toolName": "readFile", "args": {"path": "README.md"}, "result": "# Title"}]
+    },
+    {"text": "Done.", "toolCalls": [], "toolResults": []}
+  ]
+}

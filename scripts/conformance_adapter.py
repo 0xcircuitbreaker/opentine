@@ -117,12 +117,79 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("unknown mirror reason", "mirror-state.unknown-reason"),
         ("do not explain status", "mirror-state.inconsistent"),
     ),
+    "prompt.verify": (
+        ("prompt version is malformed", "prompt.malformed"),
+        ("prompt version is unsigned", "prompt.unsigned"),
+        ("prompt version signature", "prompt.bad-signature"),
+        ("signed with an Ed25519 key", "prompt.wrong-key"),
+        ("trusted key", "prompt.wrong-key"),
+        ("predecessor's key", "prompt.wrong-signer"),
+        ("does not follow its predecessor", "prompt.chain-break"),
+        ("placeholders", "prompt.variables-mismatch"),
+    ),
+    "memory.verify": (
+        ("memory note is malformed", "memory.malformed"),
+        ("memory note is unsigned", "memory.unsigned"),
+        ("memory note signature", "memory.bad-signature"),
+        ("signed with an Ed25519 key", "memory.wrong-key"),
+        ("trusted key", "memory.wrong-key"),
+        ("not on the team", "memory.untrusted-signer"),
+    ),
     "git-object.check": (
         ("git object is malformed", "git-object.malformed"),
         ("do not hash to", "git-object.mismatch"),
     ),
+    "merge.compute": (
+        ("cannot merge a run with itself", "merge.same-run"),
+        ("up to date", "merge.up-to-date"),
+        ("merge input is malformed", "merge.malformed"),
+    ),
+    "merge.pick": (("pick", "merge.malformed"),),
+    "merge.verify": (
+        ("merge record is malformed", "merge.malformed"),
+        ("merge record is unsigned", "merge.unsigned"),
+        ("no key for", "merge.no-key"),
+        ("merge record signature", "merge.bad-signature"),
+        ("trusted key", "merge.wrong-key"),
+        ("names another run", "merge.run-mismatch"),
+        ("other parents", "merge.run-mismatch"),
+    ),
+    "merge-approval.verify": (
+        ("merge-approval record is malformed", "merge-approval.malformed"),
+        ("merge-approval record is unsigned", "merge-approval.unsigned"),
+        ("merge-approval record signature", "merge-approval.bad-signature"),
+        ("no key for", "merge-approval.no-key"),
+        ("trusted key", "merge-approval.wrong-key"),
+    ),
+    "forge-claim.verify": (
+        ("no forge claim", "forge-claim.missing"),
+        ("forge claim is malformed", "forge-claim.malformed"),
+        ("not the default branch", "forge-claim.not-default-branch"),
+        ("names another project or tenant", "forge-claim.wrong-project"),
+        ("fingerprint names another project", "forge-claim.wrong-fingerprint"),
+    ),
 }
 _OP_CODES["project.chain"] = _OP_CODES["project.verify"]
+#: 0.47 Reviews: the gate fragments first, so a decision's refusal is never read as a version's.
+_OP_CODES["review.bundle"] = (
+    ("review gate decision is malformed", "review-gate.malformed"),
+    ("review gate decision is unsigned", "review-gate.unsigned"),
+    ("review gate decision signature", "review-gate.bad-signature"),
+    ("review gate decision is signed with", "review-gate.wrong-signer"),
+    ("decision is not signed by", "review-gate.wrong-signer"),
+    ("names another review version", "review-gate.wrong-review"),
+    ("decision names no", "review-gate.wrong-review"),
+    ("is not a gate of it", "review-gate.unknown-gate"),
+    ("approval is blocked", "review-gate.blocked"),
+    ("review is malformed", "review.malformed"),
+    ("review is unsigned", "review.unsigned"),
+    ("review signature", "review.bad-signature"),
+    ("review is signed with", "review.wrong-signer"),
+    ("not signed by", "review.wrong-signer"),
+    ("breaks the review chain", "review.chain-break"),
+    ("passed disagrees", "review.inconsistent"),
+)
+_OP_CODES["review.verify"] = _OP_CODES["review-gate.verify"] = _OP_CODES["review.bundle"]
 
 #: message fragment -> code, longest fragment wins.
 _CODES: tuple[tuple[str, str], ...] = (

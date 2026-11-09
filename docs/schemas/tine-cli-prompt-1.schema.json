@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-prompt-1.schema.json",
+  "title": "tine prompt ACTION --json",
+  "description": "Every `tine prompt` action. `push`/`get`: `prompt` (the version's summary), its `labels` and the signed `record` (`get --var` adds `rendered`); `label`: `prompt` and `labels`; `list`: `prompts`; `verify`: `result`, the history check; `link`: `run` and `prompt`. A refusal is the error envelope, exit 4 for a verification failure.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "ok"
+  ],
+  "properties": {
+    "command": {
+      "const": "prompt"
+    },
+    "action": {
+      "enum": [
+        "push",
+        "label",
+        "get",
+        "list",
+        "verify",
+        "link"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "digest",
+        "variables",
+        "model"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+          }
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "record": {
+      "$ref": "opentine-prompt-1.schema.json"
+    },
+    "rendered": {
+      "type": "string"
+    },
+    "run": {
+      "type": "string"
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "digest",
+          "labels"
+        ],
+        "properties": {
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "digest",
+        "signer",
+        "versions",
+        "state"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "versions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "verified",
+            "verified-tofu"
+          ]
+        }
+      }
+    }
+  }
+}

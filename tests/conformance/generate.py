@@ -31,13 +31,17 @@ from tests.conformance import (
     cases_compat,
     cases_delegation,
     cases_eval,
+    cases_forge_claim,
     cases_hook,
     cases_localpack,
+    cases_merge,
     cases_objects,
     cases_project,
     cases_redaction_report,
+    cases_registry,
     cases_repair,
     cases_repo,
+    cases_review,
     cases_share,
     cases_sig_pq,
     cases_sig_v4,
@@ -101,6 +105,10 @@ FAMILY_MODULES = (
     cases_share,
     cases_project,
     cases_hook,
+    cases_merge,
+    cases_review,
+    cases_registry,
+    cases_forge_claim,
 )
 
 

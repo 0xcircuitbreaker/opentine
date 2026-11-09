@@ -13,6 +13,7 @@ commitment, and the URL and salt stay in ``.tine/project-locators.json``.
 ``caps.project`` with ``--remote`` (whose ``tine remote add --project ID`` pin
 must match). ``verify`` checks the whole chain and exits 4 when it fails.
 ``push`` sends the versions a remote lacks (:mod:`opentine._cli_project_remote`).
+0.47: ``claim``, ``fork`` and ``verify --source`` (:mod:`opentine._cli_project_claim`).
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from opentine._cli_errors import VERIFICATION_FAILED, fail
 from opentine._cli_json import emit
 from opentine._cli_remote_target import add_remote_args
 
-ACTIONS = ("init", "link", "show", "history", "verify", "push")
+ACTIONS = ("init", "link", "show", "history", "verify", "push", "claim", "fork")
 
 
 def _slot_args(parser: argparse.ArgumentParser) -> None:
@@ -64,9 +65,15 @@ def add_project_parser(sub: Any) -> None:
         reader = actions.add_parser(name, help=text)
         add_remote_args(reader)
         reader.add_argument("--owner-key", metavar="HEX", help="verify: pin the first owner")
+    verify = actions.choices["verify"]
+    verify.add_argument("--source", metavar="PATH", help="A fork: check its forked_from here")
     push = actions.add_parser("push", help="Send the versions a remote lacks (caps.project)")
     add_remote_args(push)
-    for parser in (init, link, push, *(actions.choices[n] for n in ("show", "history", "verify"))):
+    from opentine._cli_project_claim import add_claim_parsers
+
+    extra = add_claim_parsers(actions)
+    readers = (actions.choices[n] for n in ("show", "history", "verify"))
+    for parser in (init, link, push, *readers, *extra):
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true")
 
@@ -163,6 +170,10 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
             body,
             f"project {body['project']['project_id']} v{body['project']['seq']}: {body['digest']}",
         )
+    if action in ("claim", "fork"):
+        from opentine import _cli_project_claim
+
+        return getattr(_cli_project_claim, action)(args)
     if action == "push":
         from opentine._cli_project_remote import push
 
@@ -180,6 +191,14 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         from opentine._cli_project_remote import check_fork
 
         check_fork(args, versions)
+    if args.source:
+        from opentine._cli_project_claim import verify_source
+
+        fork = verify_source(args)
+        return {"result": result, "fork": fork}, (
+            f"verified {result['versions']} version(s); fork of {fork['forked_from']} "
+            f"({fork['state']})"
+        )
     return {"result": result}, f"verified {result['versions']} version(s) ({result['state']})"
 
 

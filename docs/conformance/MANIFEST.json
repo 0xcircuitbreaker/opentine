@@ -776,6 +776,76 @@
       "verdict": 35
     },
     {
+      "core": 52,
+      "count": 52,
+      "file": "vectors/68-merge.json",
+      "name": "merge",
+      "ops": [
+        "merge-approval.verify",
+        "merge.compute",
+        "merge.pick",
+        "merge.verify"
+      ],
+      "reject": 31,
+      "section": "4.19",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 18,
+      "count": 18,
+      "file": "vectors/69-memory.json",
+      "name": "memory",
+      "ops": [
+        "memory.verify"
+      ],
+      "reject": 12,
+      "section": "4.22",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 40,
+      "count": 40,
+      "file": "vectors/70-review.json",
+      "name": "review",
+      "ops": [
+        "review-gate.verify",
+        "review.bundle",
+        "review.verify"
+      ],
+      "reject": 31,
+      "section": "4.20",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 24,
+      "count": 24,
+      "file": "vectors/71-prompt.json",
+      "name": "prompt",
+      "ops": [
+        "prompt.verify"
+      ],
+      "reject": 18,
+      "section": "4.21",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 11,
+      "count": 11,
+      "file": "vectors/72-forge-claim.json",
+      "name": "forge-claim",
+      "ops": [
+        "forge-claim.verify"
+      ],
+      "reject": 9,
+      "section": "4.23",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -798,8 +868,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "3282fa62f0811bd0aa5df0298f58d93078c273e6846490874d502f22577ae1d7",
-    "REASON_CODES.md": "08f277fefc3909c211fad4fe15e19808fdefa02d96c5c30b6119853dd2a2b5ec",
+    "README.md": "8ba55635370dd3b743020298759f852b29635cb5b3dbd8f793c00df200fae4c0",
+    "REASON_CODES.md": "ef4f1098ecf12e3bc7cd3efbe6e7969f5dac1935242784148b964e9e2a3b9e1d",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -1904,9 +1974,14 @@
     "vectors/65-project.json": "1933ddf22e0cba8c444d7702fdf2c2012dd5c3f269d6dc9baebbc992182253c8",
     "vectors/66-mirror-state.json": "6f4b05fe0d3c1e94027b77b5b06a8187c97c755c8c8fcd0ffd7e330f2e6f5218",
     "vectors/67-hook.json": "fe9e362e926fe2d9d03e557012f291932c8534c6636f5f6617a8d8af17208c14",
+    "vectors/68-merge.json": "dad813a99455b47d0a6bf723d544921cf77ebb4669a5cee371896d0dfbb48786",
+    "vectors/69-memory.json": "d820a50169019530471976301c64fdef4839f06c2370127ac4441a0a2fe571ac",
+    "vectors/70-review.json": "b73d559ab97d120175fab70d800a428da58e7c1cd28bf6ef8b3e6e740174ed86",
+    "vectors/71-prompt.json": "104ee0ba5346a664205ab0dbb3ce1337366fe448b24e3793b16560bc957935f1",
+    "vectors/72-forge-claim.json": "bbf9c0a24008fac77295decb086f2106b7fc422cb0c28b42a83476d1abaa78a8",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.46.1",
+  "generated_by": "opentine 0.47.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2124,6 +2199,24 @@
       "summary": "SPEC 1.5.2 cost/duration/time_unix/usage rules",
       "unordered": []
     },
+    "forge-claim.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "project_id",
+        "tenant",
+        "fingerprint",
+        "branch",
+        "state",
+        "label"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.23: an opentine.forge-claim as mirrored (never a pass)",
+      "unordered": []
+    },
     "git-object.check": {
       "args": [],
       "input": [
@@ -2242,6 +2335,91 @@
       "unordered": [
         "objects"
       ]
+    },
+    "memory.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "scope",
+        "topic",
+        "digest",
+        "signer",
+        "subject",
+        "supersedes",
+        "tags",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.22: an opentine.memory note under a pinned key or a team",
+      "unordered": []
+    },
+    "merge-approval.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "target",
+        "decision",
+        "approver",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify a signed opentine.merge-approval",
+      "unordered": []
+    },
+    "merge.compute": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "event",
+        "tree",
+        "status",
+        "conflicts"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 4.19: the deterministic merge of two run payloads -> its oids",
+      "unordered": []
+    },
+    "merge.pick": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "events"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC 4.19: events copied onto a run's tips -> the new run and events",
+      "unordered": []
+    },
+    "merge.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "run",
+        "parents",
+        "target",
+        "fencing",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.19: verify a signed opentine.merge attestation (and its run)",
+      "unordered": []
     },
     "mirror-state.verify": {
       "args": [],
@@ -2443,6 +2621,24 @@
       "summary": "SPEC 4.16: verify an opentine.project manifest after its predecessor",
       "unordered": []
     },
+    "prompt.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "name",
+        "version",
+        "digest",
+        "signer",
+        "variables",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.21: an opentine.prompt version, after its predecessor when given",
+      "unordered": []
+    },
     "redact.blob": {
       "args": [],
       "input": [
@@ -2555,6 +2751,61 @@
       "profile": "writer",
       "requires": [],
       "summary": "SPEC 2.6 one canonical reflog row plus its LF",
+      "unordered": []
+    },
+    "review-gate.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "gate",
+        "decision",
+        "seq",
+        "signer",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.20: verify an opentine.review-gate decision on the version it names",
+      "unordered": []
+    },
+    "review.bundle": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "head",
+        "seq",
+        "versions",
+        "state",
+        "decisions",
+        "gates",
+        "status"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.20: verify a review bundle, every version and every gate decision",
+      "unordered": []
+    },
+    "review.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "review_id",
+        "seq",
+        "digest",
+        "signer",
+        "state"
+      ],
+      "profile": "verifier",
+      "requires": [],
+      "summary": "SPEC 4.20: verify an opentine.review version after its predecessor",
       "unordered": []
     },
     "run.graph": {
@@ -2783,15 +3034,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.46.1",
+  "spec_version": "0.47.0",
   "suite_version": 1,
   "totals": {
-    "cases": 870,
-    "core": 860,
-    "families": 44,
-    "ops": 53,
-    "reason_codes": 155,
-    "reject": 316,
+    "cases": 1015,
+    "core": 1005,
+    "families": 49,
+    "ops": 63,
+    "reason_codes": 197,
+    "reject": 417,
     "stress": 10,
     "verdict": 178
   }

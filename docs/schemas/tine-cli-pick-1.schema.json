@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-pick-1.schema.json",
+  "title": "tine pick ONTO EVENT... --json",
+  "description": "The run written, the run it continues and each picked event's copy.",
+  "type": "object",
+  "required": [
+    "command",
+    "ok",
+    "run",
+    "forked_from",
+    "picked"
+  ],
+  "properties": {
+    "command": {
+      "const": "pick"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "forked_from": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "picked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "event"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "pattern": "^event:sha256:[0-9a-f]{64}$"
+          },
+          "event": {
+            "type": "string",
+            "pattern": "^event:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

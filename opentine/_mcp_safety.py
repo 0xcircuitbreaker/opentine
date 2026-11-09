@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_text import BIDI_FORMATTING, INVISIBLE, plain_text
+from opentine._mcp_tasks import construct as construct  # 0.47: MCP tasks (SPEC 8.20)
 
 MAX_MCP_RUN_BYTES = 256 * 1024 * 1024
 

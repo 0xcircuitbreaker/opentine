@@ -19,3 +19,5 @@ export { parseTrailers, TrailerError, type Link as TrailerLink } from "./trailer
 export { verifyRedactionReport, REPORT_KIND as REDACTION_REPORT_KIND, type ReportResult } from "./redactreport.js";
 export { inspectPack, type InspectedPack } from "./pack.js";
 export { webhookClass } from "./webhook.js";
+export { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
+export { verifyMemory, verifyPrompt } from "./registry.js";

@@ -1,11 +1,12 @@
-"""Reference ops for SPEC 4.16 (project manifests), 4.17 (mirror states) and 4.18 (git objects)."""
+"""Reference ops for SPEC 4.16-4.18 and 4.23: project manifests, mirror states, git objects,
+forge claims."""
 
 from __future__ import annotations
 
 import base64
 from typing import Any
 
-from opentine import _git_object, _mirror_state, _project
+from opentine import _forge_claim, _git_object, _mirror_state, _project
 
 
 def op_project_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
@@ -37,9 +38,16 @@ def op_git_object_check(inp, args: dict[str, Any]) -> dict[str, Any]:
     return _git_object.check(value["type"], base64.b64decode(value["data_b64"]), value["oid"])
 
 
+def op_forge_claim_verify(inp, args: dict[str, Any]) -> dict[str, Any]:
+    """SPEC 4.23: an upstream's claim, as mirrored (never a pass)."""
+    value = inp.value
+    return _forge_claim.check(value["claim"], branch=value["branch"], project=value["project"])
+
+
 OPS = {
     "project.verify": op_project_verify,
     "project.chain": op_project_chain,
     "mirror-state.verify": op_mirror_state_verify,
     "git-object.check": op_git_object_check,
+    "forge-claim.verify": op_forge_claim_verify,
 }

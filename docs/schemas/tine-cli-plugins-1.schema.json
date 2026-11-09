@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-plugins-1.schema.json",
+  "title": "tine plugins ACTION --json",
+  "description": "`list`: every installed entry point in the four plugin groups with the loading verdict (`allowed`, `reason`); `check`/`allow`: the one plugin named. Listing imports nothing. A refusal is the error envelope.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "ok",
+    "plugins"
+  ],
+  "properties": {
+    "command": {
+      "const": "plugins"
+    },
+    "action": {
+      "enum": [
+        "list",
+        "check",
+        "allow"
+      ]
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "name",
+          "value",
+          "distribution",
+          "version",
+          "allowed",
+          "reason"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "importer",
+              "signer",
+              "scorer",
+              "snapshot"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "distribution": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

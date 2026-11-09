@@ -387,11 +387,23 @@ on any break (SPEC §8.9).
 tine witness vkey --key KEY --name NAME
 tine witness cosign CHECKPOINT --log-vkey V --key KEY --name NAME
                     [--proof P.json | --tiles DIR] [--state DIR] [--out FILE] [--json]
-tine witness serve --key KEY --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+tine witness serve --key KEY... --name NAME --log-vkey V... [--listen HOST:PORT] [--state DIR]
+                   [--rate-limit N]
 tine witness submit CHECKPOINT --url URL... [--tiles DIR] [--out FILE] [--json]
 tine verify TARGET --offline --witnesses N-of-M --witness-vkey V... [--log-vkey V...]
 tine bundle create FILE REF... --transparency
 ```
+
+0.47, for witness operators (SPEC 8.23): `serve` takes `--key` more than once;
+every key cosigns, the first is current, so a key is rotated by adding the next
+one, waiting until verifiers pin both vkeys, then dropping the old one. `GET
+/keys` lists the vkeys (current first) and `GET /health` answers `200
+{"status": "ok", "witness", "keys", "logs": {origin: size}, "uptime_seconds",
+"requests"}` (`503` `degraded` when `--state` cannot be written; no local path
+is ever shown). `--rate-limit N` (default 60, 0 = off) is a per-client token
+bucket on `POST /add-checkpoint`: an empty bucket is `429` with `Retry-After`.
+The per-origin state is written before a cosignature is returned, so a
+restarted witness still refuses a view inconsistent with one it signed.
 
 0.44 (X33). `witness cosign` checks a signed-note checkpoint against the pinned
 log key and against the last checkpoint this witness cosigned for that origin
@@ -425,7 +437,12 @@ tine scitt verify STATEMENT --key PEM [--receipt R]... [--service-key PEM] --exp
 0.44, **experimental**: a COSE_Sign1 SCITT signed statement and its
 RFC9162_SHA256 receipts, verified offline against pinned keys (SPEC §8.12).
 Without `--experimental` it exits 2. Interop with scitt-api-emulator is not
-claimed.
+claimed. 0.47 re-checked the roadmap's condition for dropping the flag and
+for emitting statements (interop with scitt-api-emulator shown offline from
+recorded fixtures) and it is not met: the repository holds no
+emulator-produced statement or receipt, and the emulator's receipts follow
+CCF and earlier draft layouts rather than the RFC9162_SHA256 leaf rule of
+SPEC §8.12. Verification stays behind `--experimental` and no emitter ships.
 
 ```
 tine evidence export RUN... --out DIR [--sign KEY] [--pubkey P] [--pin FPR]
@@ -1072,6 +1089,10 @@ tine project link [--role primary|secondary] --forge git --url URL --ed25519-key
 tine project show|history [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
 tine project verify [--remote R] [--owner-key HEX] [--json] [--repo R]
 tine project push [--remote R] [--json] [--repo R]
+tine project claim [--code DIR] [--json] [--repo R]
+tine project claim --check FILE [--branch B] | --missing [--json] [--repo R]
+tine project fork DEST --project-id ID [--tenant T] --ed25519-key-file K [--json] [--repo R]
+tine project verify --source PATH [--json] [--repo R]
 tine remote add NAME URL [--tenant T] [--token-file P] [--project ID]
 ```
 
@@ -1110,6 +1131,185 @@ offline; a mirror state never passes (verdict `host-statement`). The
 `65-project.json` and `66-mirror-state.json` conformance families (the git
 object check among them) pin Python, the TS verifier and the pyz. See
 [PROJECTS.md](PROJECTS.md).
+
+## Merge, pick and the merge queue: `tine merge`, `tine pick`, `tine merge-queue` (0.47)
+
+```
+tine merge OURS THEIRS [--ref REF] [--json] [--repo R]
+tine pick ONTO EVENT... [--ref REF] [--json] [--repo R]
+tine merge-queue init QUEUE --target REF [--gates FILE] [--json] [--repo R]
+tine merge-queue add QUEUE RUN [--by NAME]
+tine merge-queue claim QUEUE --holder H [--ttl 60]
+tine merge-queue heartbeat QUEUE --holder H --fencing 1 [--ttl 60]
+tine merge-queue land QUEUE --holder H --fencing 1 --ed25519-key-file K [--evidence FILE]
+tine merge-queue work QUEUE --holder H --ed25519-key-file K [--evidence FILE] [--ttl 60] [--max 2]
+tine merge-queue show QUEUE
+tine merge-queue approve RUN --target REF --approver NAME --ed25519-key-file K [--reject]
+tine merge-queue verify FILE|BLOB_OID [--public-key HEX] [--run]
+```
+
+`tine merge` writes the deterministic merge of two runs (SPEC 4.19): the
+events both share, then each side's own, then one `merge` event whose parents
+are the union's leaves; the new run's `parents` are `[OURS, THEIRS]`. The same
+two runs give the same merge oid in every repository and in the TS verifier and
+the pyz (`68-merge.json`). When both sides carry workspace trees they merge
+three ways per path; a path both sides changed differently, or a differing
+`policy` manifest, is a conflict recorded in the merge event's output, the run
+is `paused`, and the command exits 1. `--ref` moves a ref to the result by
+compare-and-swap from the value it read. `tine pick` copies events of other
+runs onto ONTO's tip, in order, each copy naming its source in `picked_from`.
+
+A merge queue (`coord/merge-queue/QUEUE`) owns one target ref. `add` queues a
+run; a worker `claim`s the queue's lease, which prints its fencing token, and
+`land`s the first entry with that token: the gates are checked, the entry is
+merged onto the head, an `opentine.merge` attestation naming the target and
+the fencing token is signed with `--ed25519-key-file`, and one compare-and-swap
+of the queue record pops the entry, moves the head and releases the lease. A
+holder with a stale token (its lease expired or was taken over) is refused, so
+no entry lands twice, even when workers are killed mid-land. A conflicted
+merge, one that adds nothing, or a failed gate moves the entry to `rejected`.
+`work` claims and lands until the queue is empty.
+
+`--gates FILE` is an `opentine-merge-gates/1` policy: a pinned server VSA key
+(and required levels, policy, resource), a minimum number of passing signed
+eval verdicts (optionally from listed signers), and a number of approvals from
+listed Ed25519 keys. `--evidence FILE` holds `{"vsa": [...], "evals": [...],
+"approvals": [...]}`; `approve` signs an `opentine.merge-approval` (`--reject`
+signs a veto). `verify` checks an attestation (a file, or the blob oid a
+landing records; `--run` also checks the merged run here) or an approval and
+exits 4 when it fails; `python tine-verify.pyz FILE.json [--pubkey K]` checks
+either offline. `--json` follows `tine-cli-merge-1`, `tine-cli-pick-1` and
+`tine-cli-merge-queue-1`.
+## Reviews: `tine review` (0.47)
+
+```
+tine review create ID --title T [--code-repo NAME[=PROJECT]]... [--reviewer HEX]...
+                   [--gate NAME]... --ed25519-key-file K [--key-id ID] [--json] [--repo R]
+tine review add ID [--run OID]... [--commit SHA]... [--at NAME] [--finding SEVERITY:MESSAGE]...
+                [--resolve FINDING_ID]... [--monitor risk|intent-drift|coverage
+                (--score S --threshold T [--scorer X] | --verdict FILE)] [--gate NAME]...
+                [--reviewer HEX]... [--code-repo NAME[=PROJECT]]... --ed25519-key-file K
+tine review gate ID GATE (--approve | --reject) [--reason TEXT] --ed25519-key-file K
+tine review show ID [--reviewer-key HEX] [--json] [--repo R]
+tine review export ID -o FILE [--reviewer-key HEX] [--json] [--repo R]
+tine review verify FILE [--reviewer-key HEX] [--json]
+tine review import FILE [--json] [--repo R]
+tine review push ID [--remote R [--tenant T] [--token-file P]] [--json] [--repo R]
+```
+
+A Review is a unit of work across runs and commits, in one repository or
+several (SPEC 4.20). `create` writes version 0, signed by the
+`--ed25519-key-file` key, which becomes its first reviewer (`--reviewer` adds
+more); `--code-repo` names each repository it spans (default one named
+`default`), optionally with the `opentine.project` id it belongs to. `add`
+signs the next version with what is added: runs and commits (`--at` picks the
+code repo, default the first), findings (`info`, `low`, `medium`, `high` or
+`critical`; `--resolve` closes one by id), gates, reviewers and monitors. A
+monitor is an eval scorer's score against a threshold, `risk`, `intent-drift`
+or `coverage`; `--verdict` takes the scorer, score and threshold from a signed
+`tine-eval-verdict/1` (`tine eval run`) and records its digest. Every version
+must be signed by a reviewer of the version before it; anything else is
+refused (exit 4) and the Review does not change.
+
+`gate` signs one decision on one gate of the head version. Only a reviewer can
+sign one, and an approval is refused (`review-gate.blocked`, exit 4) while a
+monitor of that version fails or a `critical` finding is open; a rejection is
+always allowed. `show` verifies the Review and prints each gate's status
+(`approved`, `rejected` or `pending`; a decision on an earlier version never
+counts for the head). The Review lives in `.tine/reviews/ID.json` as its
+bundle; `export` writes that `opentine.review-bundle`, and
+`python tine-verify.pyz FILE` verifies it offline, every version and every
+gate decision (one check row each), with `--pubkey` pinning the first
+reviewer. `verify` does the same check here (exit 4 on failure), `import`
+adopts a bundle that extends the local copy, and `push` sends what a remote's
+`caps.reviews` (SPEC 8.19) lacks; the remote checks every record, stores it
+exactly as signed, logs it in its transparency log and never signs one.
+`--json` follows `tine-cli-review-1`. The `70-review.json` conformance family
+pins Python, the TS verifier and the pyz.
+## Prompts and team memory: `tine prompt`, `tine memory` (0.47)
+
+```text
+tine prompt push NAME (--file F | --template TEXT) --key KEY [--model M] [--label L]...
+tine prompt label NAME[@vN] LABEL
+tine prompt get NAME[@LABEL|@vN] [--var KEY=VALUE]...
+tine prompt list
+tine prompt verify NAME [--pubkey PUB]
+tine prompt link NAME[@LABEL|@vN] RUN
+tine prompt sync [--remote R [--tenant T] [--token-file P]]
+tine memory add TOPIC TEXT --key KEY [--scope S] [--tag T]... [--subject OID]
+                [--supersedes DIGEST] [--author NAME]
+tine memory list [--scope S] [--any-signer]
+tine memory recall QUERY [--limit N]
+tine memory trust PUB
+tine memory sync [--remote R [--tenant T] [--token-file P]]
+```
+
+Every action takes `--repo PATH` and `--json`. `prompt push` signs the next
+version of a named template (`opentine.prompt`, SPEC 4.21: Ed25519,
+hash-chained through `prev`, the next version signed by the same key) and moves
+`prompts/NAME/head`; `{{name}}` placeholders become its `variables`. A label
+(`prompts/NAME/labels/LABEL`) names one version and moves with `prompt label`;
+a version never changes, so what a run or an eval named stays the same bytes.
+`prompt get --var` renders a version and refuses a missing value; `prompt
+verify` checks the whole history and exits 4 on a `prompt.*` failure; `prompt
+link` records `{name, version, digest}` as `metadata.prompt` in the run's
+annotation. `--json` follows `tine-cli-prompt-1`.
+
+`memory add` signs a team-memory note (`opentine.memory`, SPEC 4.22) and stores
+it as `memory/SCOPE/<hex digest>`; it refuses text a secret detector fires on,
+because a signed note is never redacted afterwards (a hex digest or an oid is
+not a secret). `memory trust` adds a key to `.tine/memory-team.json`; `list`
+and `recall` show only notes that verify under those keys and that no other
+such note supersedes (with no team file, `list --any-signer` shows notes on
+their embedded keys). MCP `recall` returns the same notes under `memories`
+(SPEC 8.20). `--json` follows `tine-cli-memory-1`.
+
+`memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
+and fetch the ones this repository lacks, one ref at a time over the ordinary
+push and fetch routes: a fetched note must verify under the team (with no
+team file, no fetched note is accepted) and sit under its own digest's ref, and a fetched
+prompt history must chain onto the local one. A prompt history that diverged
+is listed in `conflicts` and never merged or overwritten. `python
+tine-verify.pyz FILE.json [--pubkey K]` checks a prompt version, a history
+(`{"versions": [...]}`) or a note offline; the `71-prompt.json` and
+`69-memory.json` conformance families pin Python, the TS verifier and the pyz.
+See [PROMPTS_AND_MEMORY.md](PROMPTS_AND_MEMORY.md).
+## Plugins and experts: `tine plugins`, `tine experts` (0.47)
+
+```
+tine plugins list [--kind importer|signer|scorer|snapshot] [--json]
+tine plugins allow scorer|signer|importer|snapshot NAME [--json]
+tine plugins check scorer|signer|importer|snapshot NAME [--json]
+tine experts PATH [--rev REV] [--pubkey KEY] [--limit N] [--json]
+```
+
+`plugins list` shows every installed entry point in the `opentine.importers`,
+`opentine.signers`, `opentine.scorers` and `opentine.snapshots` groups and
+whether the loading rules (SPEC 8.21) let it load; it imports nothing.
+`allow` pins the installed distribution and version that provide a plugin in
+`$XDG_CONFIG_HOME/opentine/plugins.json`, the only allow-list read. `check`
+loads one and checks its interface (exit 1 when it may not load). A scorer
+plugin is used as `tine eval run --scorer plugin:NAME`. `--json` follows
+`tine-cli-plugins-1`; an unsafe or malformed allow-list exits 2.
+
+`experts` ranks agents (by model, from line attribution notes) and humans (by
+commit author) by the committed lines they wrote under PATH, then by verified
+runs. `--json` follows `tine-experts-1`. See [PLUGINS.md](PLUGINS.md).
+0.47 (SPEC 4.23). `claim` writes `.opentine/project`, an unsigned
+`opentine.forge-claim` naming this project and the fingerprint of its first
+version, into the code checkout `--code` (default `.`); commit it on the
+default branch. `claim --check FILE [--branch B]` checks one against this
+repository's project (`--missing`: the upstream has none) and at best reports
+`claimed by upstream (as mirrored)`, never a pass; a refusal exits 4 with its
+`forge-claim.*` code (`missing`, `malformed`, `not-default-branch`,
+`wrong-project`, `wrong-fingerprint`). `fork DEST` copies this run repository
+(objects and refs, never code, never the source's manifests) into DEST under a
+new project signed by `--ed25519-key-file`, whose `forked_from` is this
+project; the fork point is kept in `.tine/project-fork.json` (never pushed).
+`verify --source PATH` on a fork checks `forked_from` against the source's
+project history and refuses (exit 4, `project.chain-break`) a source that no
+longer holds the fork point. The `72-forge-claim.json` family pins Python, the
+TS verifier and the pyz.
 
 ## Run summaries: `tine explain` (0.42)
 
@@ -1292,6 +1492,7 @@ carries no content, so nothing is recorded as a write.
 | `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
 | `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
 | `tine task list --repo PATH` | Every task, its status, holder, token and lease end |
+| `tine task ACTION ... --remote NAME\|URL [--tenant T] [--token-file P]` | 0.47: the same action on a `tine serve` tenant (`caps.coord`, SPEC 8.22), on the server's clock |
 | `tine fleet resume fleet.toml --id ID [--trust]` | Runs the members of fleet `ID` that did not finish; the manifest digest must match the record |
 | `tine fleet logs ID [--member KEY]` | Prints each member's captured output |
 | `tine fleet send ID --member M --message TEXT --repo PATH` | Queues a steer message in `coord/mailbox/ID/M` |
@@ -1330,6 +1531,7 @@ tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
               [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
 tine eval verify DIR [--pubkey PUB]
 tine eval compare A B [--pubkey PUB] [--exit-code]
+tine eval ci --key KEY [--config TOML] [--out DIR] [--repo PATH] [--created-at TIME]
 ```
 
 A dataset is JSON Lines, one item per line: `id` and `input` are required,
@@ -1364,6 +1566,21 @@ verifies both evals, then lists `regressed` (pass to fail), `fixed`,
 `--exit-code` exits 1 on any regression. A failed verification exits 4.
 `tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
 check the same verdicts without opentine installed.
+
+`eval ci` (0.47) runs every `[[eval]]` table of `.tine/evals.toml` (or
+`--config`) with `eval run` into `--out` (default `.tine/evals`), signed with the
+one `--key`, and exits 1 unless every eval's `passed / items` reaches its
+`min_pass_rate` (default 1; `[defaults]` sets `threshold` and `min_pass_rate`
+for all; any other key, there or at the top level, is refused). `dataset` and
+`outputs` are relative paths inside the repository (no `..`, no absolute or
+drive paths). Each table takes `name`, `dataset` and `scorer`, and optionally
+`outputs`, `run`, `threshold`, `min_pass_rate` and `judge_prompt`: a
+registered prompt (`NAME@LABEL`) whose `{{input}}`, `{{expected}}` and
+`{{output}}` become the `llm-judge` template, so every verdict's
+`scorer_version` pins its bytes and the output names its digest. An unknown key
+is refused before anything runs. The same command runs locally, in CI (the
+gate action's `evals-config` input) or on a self-hosted runner. `--json`
+follows `tine-cli-eval-ci-1`.
 
 ## JSON Schemas and `tine help --json` (0.45)
 

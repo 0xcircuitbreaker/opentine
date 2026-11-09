@@ -1,0 +1,429 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.bad-fingerprint",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:ABC",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a fingerprint is sha256:<64 hex>",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.malformed",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:ABC\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim is malformed: bad fingerprint"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.bad-version",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "2"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "claim_version is 1",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.malformed",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"2\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim is malformed: claim_version is not 1"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.extra-field",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "owner": "someone",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a field the claim format does not define",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.malformed",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"owner\": \"someone\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\":...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim is malformed: wrong kind or set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-claim.match",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "the default branch claims this project: as mirrored, never a pass",
+      "op": "forge-claim.verify",
+      "output": {
+        "branch": "main",
+        "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+        "label": "claimed by upstream (as mirrored)",
+        "project_id": "app",
+        "state": "claimed-as-mirrored",
+        "tenant": "acme"
+      },
+      "profile": "verifier",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "forge-claim.match-trunk",
+      "input": {
+        "value": {
+          "branch": "trunk",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "trunk",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "the default branch is whatever the slot names",
+      "op": "forge-claim.verify",
+      "output": {
+        "branch": "trunk",
+        "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+        "label": "claimed by upstream (as mirrored)",
+        "project_id": "app",
+        "state": "claimed-as-mirrored",
+        "tenant": "acme"
+      },
+      "profile": "verifier",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"trunk\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"trunk\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.missing",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": null,
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "no .opentine/project on the default branch",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.missing",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": null, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "no forge claim: the upstream holds no .opentine/project"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.non-default-branch-only",
+      "input": {
+        "value": {
+          "branch": "feature/claim",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a claim only on a feature branch does not count",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.not-default-branch",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"feature/claim\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim is only on feature/claim, not the default branch main"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.signed",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "signature": {
+              "alg": "ed25519"
+            },
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a claim is unsigned: its authority is the upstream itself",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.malformed",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"signature\": {\"alg\": \"ed25519\"}, \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"ap...",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim is malformed: wrong kind or set of fields"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.wrong-fp",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:1d2fad88f3a7b47d9fcdbc2dd0aaf9b9e1c3199fb679269b3f51e27d42beeac2",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "the same id, another project (a fork or a re-created one)",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.wrong-fingerprint",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:1d2fad88f3a7b47d9fcdbc2dd0aaf9b9e1c3199fb679269b3f51e27d42beeac2\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim fingerprint names another project"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.wrong-id",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "other",
+            "tenant": "acme"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a claim for another project id",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.wrong-project",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"other\", \"tenant\": \"acme\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim names another project or tenant"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "forge-claim.wrong-tenant",
+      "input": {
+        "value": {
+          "branch": "main",
+          "claim": {
+            "claim_version": {
+              "$i": "1"
+            },
+            "fingerprint": "sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac",
+            "kind": "opentine.forge-claim",
+            "project_id": "app",
+            "tenant": "evil"
+          },
+          "project": {
+            "default_branch": "main",
+            "genesis": "blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f",
+            "project_id": "app",
+            "tenant": "acme"
+          }
+        }
+      },
+      "intent": "a claim for the same id under another tenant",
+      "op": "forge-claim.verify",
+      "profile": "verifier",
+      "reason": "forge-claim.wrong-project",
+      "section": "4.23",
+      "tier": "core",
+      "x_display": "{\"branch\": \"main\", \"claim\": {\"claim_version\": {\"$i\": \"1\"}, \"fingerprint\": \"sha256:98bf495e960e406d921d7a6751bc8dfa4d9b9c679232103e24613b46accc64ac\", \"kind\": \"opentine.forge-claim\", \"project_id\": \"app\", \"tenant\": \"evil\"}, \"project\": {\"default_branch\": \"main\", \"genesis\": \"blob:sha256:db7a853f1f67616f4578e16b95649947631b1f557624d3df211427bcfa45010f\", \"project_id\": \"app\", \"tenant\": \"acme\"}}",
+      "x_reference": {
+        "exception": "RecordError",
+        "message": "forge claim names another project or tenant"
+      }
+    }
+  ],
+  "family": "forge-claim",
+  "section": "4.23",
+  "suite_version": 1
+}

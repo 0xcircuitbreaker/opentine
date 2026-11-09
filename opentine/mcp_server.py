@@ -12,8 +12,8 @@ from opentine._mcp_readonly import ReadOnlyTools, writes_allowed
 from opentine._mcp_safety import MAX_MCP_RUN_BYTES as MAX_MCP_RUN_BYTES
 from opentine._mcp_safety import clip as _clip
 from opentine._mcp_safety import confined_run as _confined_run
+from opentine._mcp_safety import construct, safe_errors, scrubbed, server_class, total_bytes
 from opentine._mcp_safety import hidden_name as _hidden_name
-from opentine._mcp_safety import safe_errors, scrubbed, server_class, total_bytes
 from opentine.core import Run
 
 MAX_MCP_SCAN_RUNS = 5_000
@@ -206,7 +206,7 @@ def create_server(
     read_only: bool | None = None,
 ):
     """Create an MCP server; read tools only unless ``read_only=False`` or opted in."""
-    mcp = safe_errors(server := server_class()("opentine"))  # every error sanitized
+    mcp = safe_errors(server := construct(server_class(), "opentine"))  # 0.47: + MCP tasks
     writes = writes_allowed() if read_only is None else not read_only  # opt-in only
     mcp = ReadOnlyTools(mcp, allow_writes=writes)  # the registry's tools for this mode
 

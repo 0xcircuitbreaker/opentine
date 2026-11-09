@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (155)
+## The codes (197)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -89,6 +89,11 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `eval-verdict.judge-mismatch` | 4.12 | -- | an llm-judge verdict without a judge_run, or another scorer with one | accept a model's judgement that no recorded run backs |
 | `eval-verdict.malformed` | 4.12 | -- | a verdict with a missing, extra or ill-formed key, or a non-canonical score | compare scores as floats, or accept a verdict whose fields differ from the schema |
 | `eval-verdict.wrong-key` | 4.12 | -- | a verdict signed by a key other than the trusted one | accept any embedded key when the caller supplied a trusted one |
+| `forge-claim.malformed` | 4.23 | -- | a claim with a missing, extra or ill-formed field (a signature included) | accept fields the claim format does not define |
+| `forge-claim.missing` | 4.23 | -- | no .opentine/project on the upstream's default branch | read a missing file as an unclaimed, therefore open, project |
+| `forge-claim.not-default-branch` | 4.23 | -- | a claim found only on a branch other than the slot's default branch | let anyone who can push a branch claim the repository |
+| `forge-claim.wrong-fingerprint` | 4.23 | -- | a claim whose fingerprint names another project's first version | match a claim by project id alone, so a fork inherits it |
+| `forge-claim.wrong-project` | 4.23 | -- | a claim naming another project_id or tenant | show one project's claim on another |
 | `git-object.malformed` | 4.18 | -- | an ill-formed id, type, tree entry or commit/tag header | guess the object format or skip an unparseable link |
 | `git-object.mismatch` | 4.18 | -- | bytes that do not hash to the git object id given | trust a mirrored object without rehashing it |
 | `graph.causal-outside-graph` | 1.5.3 | -- | a locally present event whose causal link is not in the run's events | add the missing link to events |
@@ -119,6 +124,23 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `localpack.index-order` | 2.8 | -- | index entries not strictly sorted by object id | sort them, or keep the first of a duplicate |
 | `localpack.object-id-mismatch` | 2.8 | -- | an object rebuilt from its stored form whose bytes or size do not match its id | return the rebuilt bytes |
 | `localpack.slim-default` | 2.8 | -- | a slim event that stores a field holding its default value | accept the redundant field |
+| `memory.bad-signature` | 4.22 | -- | a memory note whose tine-sig/3 block does not hold | recall a note edited after it was signed |
+| `memory.malformed` | 4.22 | -- | a memory note with a missing, extra or ill-formed field | put ill-formed text into an agent's context |
+| `memory.unsigned` | 4.22 | -- | a memory note with no signature block | recall an unsigned note as team memory |
+| `memory.untrusted-signer` | 4.22 | -- | a memory note signed by a key outside the reader's team | recall a stranger's note as team memory |
+| `memory.wrong-key` | 4.22 | -- | a memory note not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
+| `merge-approval.bad-signature` | 4.19 | -- | a merge approval whose tine-sig/3 block does not hold over its body | trust the run or decision of an approval without checking the signature |
+| `merge-approval.malformed` | 4.19 | -- | a merge approval with a missing, extra or ill-formed field | count an approval whose decision or target cannot be read |
+| `merge-approval.unsigned` | 4.19 | -- | a merge approval with no signature block | count an unsigned approval towards a gate |
+| `merge-approval.wrong-key` | 4.19 | -- | a merge approval signed by a key other than the approver's | count an approval by a key the gate does not list |
+| `merge.bad-signature` | 4.19 | -- | a merge attestation whose tine-sig/3 block does not hold over its body | trust the fencing token or gates of an attestation without checking the signature |
+| `merge.malformed` | 4.19 | -- | a merge input or attestation with a missing, extra or ill-formed field | merge or verify around fields the format does not define |
+| `merge.no-key` | 4.19 | -- | an HMAC merge attestation checked with no key | report an HMAC-signed attestation as verified without its key |
+| `merge.run-mismatch` | 4.19 | -- | a merged run that does not hash to the attested run, or has other parents | accept an attestation for a run it does not name |
+| `merge.same-run` | 4.19 | -- | a merge of a run with itself | write a merge run with one parent named twice |
+| `merge.unsigned` | 4.19 | -- | a merge attestation with no signature block | treat an unsigned record as proof of who landed a merge |
+| `merge.up-to-date` | 4.19 | -- | a merge whose second run is already contained in the first | write an empty merge that adds no events |
+| `merge.wrong-key` | 4.19 | -- | a merge attestation signed by a key other than the trusted one | accept the embedded key when the caller supplied a trusted one |
 | `metrics.meter-not-finite` | 1.5.2 | `_run_graph._meter` | a cost/duration/time_unix that is not finite and (except time_unix) non-negative | clamp a negative meter to zero, or accept a value float() cannot represent |
 | `metrics.meter-too-long` | 1.5.2 | -- | a numeric-meter string longer than 128 characters | truncate the string and parse the prefix |
 | `metrics.token-dimension-unsafe` | 1.5.2 | `_run_graph._MAX_SAFE_INTEGER` = 9007199254740991 | a known token dimension that is fractional or above 2**53-1 | round a fractional token count |
@@ -160,6 +182,13 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `project.private-upstream` | 4.16 | -- | a public project that references a private upstream | publish a private repository through a public project |
 | `project.unsigned` | 4.16 | -- | a manifest with no signature block | treat an unsigned manifest as the owner's |
 | `project.wrong-signer` | 4.16 | -- | a manifest not signed by an owner of its predecessor (first version: its own, or the pin) | accept any valid signature as the project owner's |
+| `prompt.bad-signature` | 4.21 | -- | a prompt version whose tine-sig/3 block does not hold | run a template edited after it was signed |
+| `prompt.chain-break` | 4.21 | -- | a version that does not follow its predecessor | reorder or rewrite a prompt's history |
+| `prompt.malformed` | 4.21 | -- | a prompt version with a missing, extra or ill-formed field | verify a signature over fields the format does not define |
+| `prompt.unsigned` | 4.21 | -- | a prompt version with no signature block | run an unsigned prompt as a registered one |
+| `prompt.variables-mismatch` | 4.21 | -- | variables that are not the template's sorted, distinct placeholders | render a template with variables it does not declare |
+| `prompt.wrong-key` | 4.21 | -- | a prompt version not signed by the pinned key, or not Ed25519 | accept the embedded key when the caller pinned one |
+| `prompt.wrong-signer` | 4.21 | -- | a next version signed by a key other than its predecessor's | let a stranger extend a prompt's history |
 | `redacted-copy.bad-signature` | 4.15 | -- | a record whose tine-sig/3 block does not hold over its body | link a public copy to a private run without checking the signature |
 | `redacted-copy.inconsistent` | 4.15 | -- | a signed record whose redacted count disagrees with its run oids or exceeds objects | read the counts without re-deriving them from the run oids |
 | `redacted-copy.malformed` | 4.15 | -- | a redacted-copy record with a missing, extra or ill-formed field | verify a signature over fields the record format does not define |
@@ -187,6 +216,19 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `ref.target-type` | 2.5 | `_refs.TYPED_REF_NAMESPACES` | a typed-namespace ref pointing at the wrong object type | let heads/ point at an event because the oid parses |
 | `reflog.actor-too-long` | 2.6 | `_reflog.reflog_entry` | a reflog actor longer than 4096 characters | truncate the actor |
 | `reflog.time-not-string` | 2.6 | -- | a time_ns that is not decimal digits inside a JSON string | emit the nanosecond timestamp as a JSON number |
+| `review-gate.bad-signature` | 4.20 | -- | a gate decision whose tine-sig/3 block does not hold | count a decision edited after signing |
+| `review-gate.blocked` | 4.20 | -- | an approval while a monitor of that version fails or a critical finding is open | approve past a failing monitor |
+| `review-gate.malformed` | 4.20 | -- | a gate decision with a missing, extra or ill-formed field | read an unknown decision as an approval |
+| `review-gate.unknown-gate` | 4.20 | -- | a decision on a gate the version does not list | invent a gate after the fact |
+| `review-gate.unsigned` | 4.20 | -- | a gate decision with no signature block | count an unsigned approval |
+| `review-gate.wrong-review` | 4.20 | -- | a decision checked against a version it does not name, or naming none in the bundle | carry an approval over to a later version |
+| `review-gate.wrong-signer` | 4.20 | -- | a gate decision not signed by a reviewer of the version it names, or not Ed25519 | count anyone's approval |
+| `review.bad-signature` | 4.20 | -- | a review version whose tine-sig/3 block does not hold over its body | show findings or gates nobody signed |
+| `review.chain-break` | 4.20 | -- | a version not following its predecessor, or a history not starting at seq 0 | drop or reorder a version after the fact |
+| `review.inconsistent` | 4.20 | -- | a monitor whose passed disagrees with score >= threshold | trust a monitor's verdict over its own numbers |
+| `review.malformed` | 4.20 | -- | a review version or bundle with a missing, extra or ill-formed field | verify a signature over fields the review format does not define |
+| `review.unsigned` | 4.20 | -- | a review version with no signature block | treat an unsigned version as a reviewer's |
+| `review.wrong-signer` | 4.20 | -- | a version not signed (Ed25519) by a reviewer of its predecessor, its own or the pin | accept any valid signature as a reviewer's |
 | `shallow.carriage-return` | 2.7 | -- | a CR anywhere in a shallow file | normalize CRLF to LF |
 | `shallow.duplicate` | 2.7 | -- | a duplicate oid in a shallow file | de-duplicate the set |
 | `shallow.empty-line` | 2.7 | -- | an empty line inside a shallow file | skip blank lines |

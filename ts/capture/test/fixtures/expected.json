@@ -1,0 +1,39 @@
+{
+  "note": "The opentine-hook/1 events each adapter must produce for its fixture. tests/test_047_capture_sdk.py feeds these same events to the Python receiver, so the TS producer and the Python recorder are held to one file.",
+  "cases": [
+    {
+      "fixture": "vercel-ai-v5.json",
+      "adapter": "fromVercelAI",
+      "options": {"session": "vercel-v5", "prompt": "Weather in Paris?", "cwd": "/work", "end": true},
+      "events": [
+        {"protocol": "opentine-hook/1", "event": "prompt", "session": "vercel-v5", "prompt": "Weather in Paris?", "cwd": "/work"},
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "vercel-v5", "tool": {"name": "weather", "input": {"city": "Paris"}, "output": {"celsius": 18}}, "cwd": "/work"},
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "vercel-v5", "tool": {"name": "forecast", "input": {"city": "Paris", "days": 2}, "output": {"error": "rate limited"}}, "cwd": "/work"},
+        {"protocol": "opentine-hook/1", "event": "turn_end", "session": "vercel-v5", "message": "It is 18 degrees in Paris.", "cwd": "/work"},
+        {"protocol": "opentine-hook/1", "event": "session_end", "session": "vercel-v5", "cwd": "/work"}
+      ]
+    },
+    {
+      "fixture": "vercel-ai-v4.json",
+      "adapter": "fromVercelAI",
+      "options": {"session": "vercel-v4"},
+      "events": [
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "vercel-v4", "tool": {"name": "readFile", "input": {"path": "README.md"}, "output": "# Title"}},
+        {"protocol": "opentine-hook/1", "event": "turn_end", "session": "vercel-v4", "message": "Done."}
+      ]
+    },
+    {
+      "fixture": "openai-agents.json",
+      "adapter": "fromOpenAIAgents",
+      "options": {"session": "agents-1", "prompt": "Refund order A-17", "end": true},
+      "events": [
+        {"protocol": "opentine-hook/1", "event": "prompt", "session": "agents-1", "prompt": "Refund order A-17"},
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "agents-1", "tool": {"name": "transfer_to_refunds", "input": {}, "output": {"type": "text", "text": "{\"assistant\":\"Refunds\"}"}}},
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "agents-1", "tool": {"name": "file_refund", "input": {"order": "A-17", "amount": 12.5}, "output": "ok"}},
+        {"protocol": "opentine-hook/1", "event": "tool", "session": "agents-1", "tool": {"name": "notify", "input": "not json"}},
+        {"protocol": "opentine-hook/1", "event": "turn_end", "session": "agents-1", "message": "Your refund has been filed."},
+        {"protocol": "opentine-hook/1", "event": "session_end", "session": "agents-1"}
+      ]
+    }
+  ]
+}

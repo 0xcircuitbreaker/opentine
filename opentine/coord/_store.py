@@ -33,12 +33,23 @@ def read(repo: Any, name: str, kind: str) -> tuple[str | None, dict[str, Any] | 
 
 
 def swap(
-    repo: Any, name: str, kind: str, value: dict[str, Any], expected_old: str | None
+    repo: Any,
+    name: str,
+    kind: str,
+    value: dict[str, Any],
+    expected_old: str | None,
+    links: list[str] | None = None,
 ) -> str | None:
-    """Write *value* as the next version; its oid, or ``None`` if the ref moved."""
+    """Write *value* as the next version; its oid, or ``None`` if the ref moved.
+
+    *links* (0.47) go in ``evidence_ids``, so the objects a version names (a
+    merge queue's landed runs and attestations) are kept like any link.
+    """
     payload: dict[str, Any] = {"coord": FORMAT, "kind": kind, "value": value}
     if expected_old:
         payload["previous_id"] = expected_old
+    if links:
+        payload["evidence_ids"] = list(dict.fromkeys(links))
     oid = repo.put("annotation", payload)
     try:
         repo.update_ref(name, oid, expected_old=expected_old, actor="coord")

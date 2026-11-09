@@ -60,6 +60,7 @@ SCHEMAS: dict[str, Any] = {
             "vsa": {"type": "object"},
             "project": {"type": "object"},
             "social_export": {"type": "object"},
+            "reviews": {"type": "object"},
         },
     ),
     "RefList": _obj({"refs": {"type": "object", "additionalProperties": _oid}}, extra=False),

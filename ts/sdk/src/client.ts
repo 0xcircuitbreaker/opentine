@@ -18,11 +18,17 @@ import type {
   Project,
   ProjectHistory,
   ProjectManifest,
+  Task,
   LogEntry,
   RefEntry,
   RefList,
   RefTxnUpdate,
   RefUpdate,
+  Review,
+  ReviewDecided,
+  ReviewGate,
+  ReviewSummary,
+  ReviewVersion,
   SearchResult,
   Share,
   SharedRun,
@@ -292,6 +298,53 @@ export class TineClient {
   /** Count-only stars and watches (`caps.social_export`). */
   socialCounts(): Promise<SocialCounts> {
     return this.json("socialCounts");
+  }
+
+  /** Every Review of the tenant with its head (`caps.reviews`). */
+  async listReviews(): Promise<ReviewSummary[]> {
+    return (await this.json<{ reviews: ReviewSummary[] }>("listReviews")).reviews;
+  }
+
+  /** A Review as a bundle; verify it (SPEC 4.20, `verifyReviewBundle`) before trusting it. */
+  getReview(reviewId: string): Promise<Review> {
+    return this.json("getReview", { params: { review_id: reviewId } });
+  }
+
+  /** CAS a Review to its next reviewer-signed version; false when `expectedOld` is stale (409). */
+  updateReview(reviewId: string, version: ReviewVersion, expectedOld: Oid | null): Promise<boolean> {
+    return this.cas("updateReview", { params: { review_id: reviewId }, json: { version, expected_old: expectedOld } });
+  }
+
+  /** Store a reviewer-signed gate decision; the server checks it and never signs one. */
+  decideReviewGate(reviewId: string, decision: ReviewGate): Promise<ReviewDecided> {
+    return this.json("decideReviewGate", { params: { review_id: reviewId }, json: { decision } });
+  }
+
+  /** Every coordination task of the tenant (`caps.coord`). */
+  async listTasks(): Promise<Task[]> {
+    return (await this.json<{ tasks: Task[] }>("listTasks")).tasks;
+  }
+
+  async getTask(task: string): Promise<Task> {
+    return (await this.json<{ task: Task }>("getTask", { params: { task } })).task;
+  }
+
+  async addTask(task: string, title = ""): Promise<Task> {
+    return (await this.json<{ task: Task }>("addTask", { json: { task, title } })).task;
+  }
+
+  /** Take the lease; a 409 (`held`, `done`, `contended`) throws `TineApiError` with the code. */
+  async claimTask(task: string, holder: string, ttl = 60): Promise<Task> {
+    return (await this.json<{ task: Task }>("claimTask", { params: { task }, json: { holder, ttl } })).task;
+  }
+
+  async heartbeatTask(task: string, holder: string, fencing: number, ttl = 60): Promise<Task> {
+    const json = { holder, fencing, ttl };
+    return (await this.json<{ task: Task }>("heartbeatTask", { params: { task }, json })).task;
+  }
+
+  async finishTask(task: string, holder: string, fencing: number): Promise<Task> {
+    return (await this.json<{ task: Task }>("finishTask", { params: { task }, json: { holder, fencing } })).task;
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */

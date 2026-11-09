@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -49,6 +50,21 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     signed = next(case["report"] for case in vectors if case["id"].endswith("ed25519"))
     (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
     (tmp_path / "purge.key").write_text("ab" * 32, encoding="utf-8")  # 0.46: tine purge
+    item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
+    (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
+    (tmp_path / "evals.toml").write_text(
+        '[[eval]]\nname = "smoke"\ndataset = "d.jsonl"\nscorer = "exact"\n', encoding="utf-8"
+    )
+    if shutil.which("git"):  # 0.47: tine experts blames a committed tree
+        for role in ("AUTHOR", "COMMITTER"):
+            monkeypatch.setenv(f"GIT_{role}_NAME", "schema")
+            monkeypatch.setenv(f"GIT_{role}_EMAIL", "schema@example.invalid")
+        code = tmp_path / "code"
+        code.mkdir()
+        (code / "a.txt").write_text("one\n", encoding="utf-8")
+        for argv in (("init", "-q"), ("add", "a.txt"), ("commit", "-q", "-m", "c")):
+            subprocess.run(["git", "-c", "commit.gpgsign=false", *argv], cwd=code, check=True,
+                           capture_output=True)  # fmt: skip
     return tmp_path
 
 
@@ -67,6 +83,9 @@ def _jsonschema_errors(document: object, name: str) -> list[str] | None:
 
 
 PURGED = "blob:sha256:06447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39ce16446"
+# 0.47: the golden repository's main tip, absent from its heads/experiment fork.
+MAIN_TIP = "event:sha256:6dc1725e0e6fafee882214a92946453481af791810e4b8cc3cea6417d21cbe1f"
+RUN0 = "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36"
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 DRIVEN = (
@@ -143,11 +162,89 @@ DRIVEN = (
         ),
         "tine-cli-project-1",
     ),  # fmt: skip
+    (("merge", "heads/experiment", "heads/main", "--repo", "repo", "--json"), "tine-cli-merge-1"),
+    (
+        ("pick", "heads/experiment", MAIN_TIP, "--repo", "repo", "--json"),
+        "tine-cli-pick-1",
+    ),
+    (
+        ("merge-queue", "init", "q", "--target", "heads/main", "--repo", "repo", "--json"),
+        "tine-cli-merge-queue-1",
+    ),
+    (
+        (
+            "merge-queue",
+            "approve",
+            RUN0,
+            "--target",
+            "heads/main",
+            "--approver",
+            "alice",
+            "--ed25519-key-file",
+            "purge.key",
+            "--json",
+        ),
+        "tine-cli-merge-queue-1",
+    ),
+    (
+        (
+            "review",
+            "create",
+            "demo",
+            "--title",
+            "Demo",
+            "--gate",
+            "ship",
+            "--ed25519-key-file",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-review-1",
+    ),  # fmt: skip
+    (
+        (
+            "prompt",
+            "push",
+            "review",
+            "--template",
+            "Review {{diff}}",
+            "--key",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-prompt-1",
+    ),
+    (
+        (
+            "memory",
+            "add",
+            "testing",
+            "Use the venv python",
+            "--key",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-memory-1",
+    ),
+    (
+        ("eval", "ci", "--config", "evals.toml", "--key", "purge.key", "--repo", "repo", "--json"),
+        "tine-cli-eval-ci-1",
+    ),
+    (("plugins", "list", "--json"), "tine-cli-plugins-1"),
+    (("experts", "code", "--json"), "tine-experts-1"),
 )
 
 
 @pytest.mark.parametrize(("argv", "expected"), DRIVEN, ids=[" ".join(a) for a, _ in DRIVEN])
 def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, expected):
+    if argv[0] == "experts" and shutil.which("git") is None:
+        pytest.skip("tine experts blames with git")
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)

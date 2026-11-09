@@ -14,7 +14,10 @@ import re
 from typing import Any
 
 from opentine.remote._api_routes import API_VERSION, ROUTES, Route
-from opentine.remote._openapi_schemas import SCHEMAS
+from opentine.remote._openapi_schemas import SCHEMAS as _SCHEMAS_BASE
+from opentine.remote._openapi_schemas_047 import SCHEMAS_047
+
+SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047}
 
 _PARAM = re.compile(r"\{([a-z_]+)\}")
 _PLAIN_KEY = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$-]*$")
@@ -33,6 +36,8 @@ _PARAM_DOCS = {
     "oid": "Typed object id (TYPE:sha256:HEX), percent-encoded.",
     "share_id": "Share id from POST shares.",
     "token": "A share token (tine_share_...); a bearer secret, never logged.",
+    "review_id": "Review id ([a-z0-9][a-z0-9._-]{0,63}).",
+    "task": "Task id ([a-z0-9][a-z0-9._-]{0,63}).",
 }
 _PAGE = [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size, 1-500.")]
 _QUERY = {

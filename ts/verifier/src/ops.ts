@@ -19,10 +19,14 @@ import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
 import { verifyMirrorState, verifyProject, verifyProjectChain } from "./project.js";
 import { checkGitObject } from "./gitobject.js";
+import { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
+import { verifyForgeClaim } from "./forgeclaim.js";
 import { tlogConsistency, tlogInclusion, tlogQuorum } from "./tlog.js";
 import { vsaVerify } from "./vsa.js";
 import { webhookVerify } from "./webhook.js";
 import { hookNormalize, hookRespond } from "./hook.js";
+import { mergeCompute, mergePick, verifyMerge, verifyMergeApproval } from "./merge.js";
+import { verifyMemory, verifyPrompt } from "./registry.js";
 import { integrityDigest, verifyIntegrity } from "./integrity.js";
 import { readLocalPack } from "./localpack.js";
 import { checkInstall, inspectPack, packManifest, strictBase64 } from "./pack.js";
@@ -260,10 +264,56 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       const key = typeof host === "string" ? Uint8Array.from(Buffer.from(host, "hex")) : null;
       return verifyMirrorState(value.get("state") as JValue, key, value.get("owners") as JValue);
     }
+    case "review.verify": {
+      const value = valueOf(input) as JObject;
+      const pin = value.get("reviewer_key");
+      return verifyReview(value.get("version") as JValue, (value.get("previous") as JValue) ?? null, typeof pin === "string" ? pin : null);
+    }
+    case "review-gate.verify": {
+      const value = valueOf(input) as JObject;
+      return verifyReviewGate(value.get("decision") as JValue, value.get("version") as JValue);
+    }
+    case "review.bundle": {
+      const value = valueOf(input) as JObject;
+      const pin = value.get("reviewer_key");
+      return verifyReviewBundle(value.get("bundle") as JValue, typeof pin === "string" ? pin : null);
+    }
+    case "prompt.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyPrompt(value.get("record") as JValue, (value.get("previous") ?? null) as JValue | null, pinned);
+    }
+    case "memory.verify": {
+      const value = valueOf(input) as JObject;
+      const key = value.get("public_key");
+      const pinned = typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : null;
+      return verifyMemory(value.get("record") as JValue, pinned, (value.get("team") ?? []) as JValue);
+    }
+    case "forge-claim.verify": {
+      const value = valueOf(input) as JObject;
+      return { ...verifyForgeClaim(value.get("claim") as JValue, value.get("branch") as JValue, value.get("project") as JValue) };
+    }
     case "git-object.check": {
       const value = valueOf(input) as JObject;
       const data = Uint8Array.from(Buffer.from(value.get("data_b64") as string, "base64"));
       return { ...checkGitObject(value.get("type"), data, value.get("oid")) };
+    }
+    case "merge.compute":
+      return mergeCompute(valueOf(input) as JObject);
+    case "merge.pick":
+      return mergePick(valueOf(input) as JObject);
+    case "merge.verify":
+    case "merge-approval.verify": {
+      const value = valueOf(input) as JObject;
+      const hexKey = (name: string) => {
+        const key = value.get(name);
+        return typeof key === "string" ? Uint8Array.from(Buffer.from(key, "hex")) : undefined;
+      };
+      if (op === "merge-approval.verify") {
+        return verifyMergeApproval(value.get("record") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"));
+      }
+      return verifyMerge(value.get("record") as JValue, hexKey("hmac_key_hex"), hexKey("public_key"), value.get("run"));
     }
     case "tombstone.verify":
     case "redacted-copy.verify": {

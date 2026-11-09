@@ -128,6 +128,33 @@ ROUTES: tuple[Route, ...] = (
           (("200", "ProjectUpdated"), ("409", "ProjectUpdated"), ("400", "Error"), *_ERR)),
     Route("GET", T + "/social", "socialCounts", "Count-only stars and watches (self-host parity)",
           "social_export", "stable", "read_ref", None, (("200", "SocialCounts"), *_ERR)),
+    # 0.47 Reviews (SPEC 4.20, 8.19): stored as their reviewers signed them.
+    Route("GET", T + "/reviews", "listReviews", "Every Review of the tenant, with its head",
+          "reviews", "stable", "read_ref", None, (("200", "ReviewList"), *_ERR)),
+    Route("GET", T + "/reviews/{review_id}", "getReview", "A Review as a verifiable bundle",
+          "reviews", "stable", "read_ref", None, (("200", "Review"), *_ERR)),
+    Route("PUT", T + "/reviews/{review_id}", "updateReview",
+          "CAS a Review to its next client-signed version", "reviews", "stable", "update_ref",
+          "ReviewUpdate",
+          (("200", "ReviewUpdated"), ("409", "ReviewUpdated"), ("400", "Error"), *_ERR)),
+    Route("POST", T + "/reviews/{review_id}/decisions", "decideReviewGate",
+          "Store a client-signed gate decision", "reviews", "stable", "update_ref",
+          "ReviewDecision", (("201", "ReviewDecided"), ("400", "Error"), *_ERR)),
+    # 0.47 remote task backend (SPEC 8.22): opentine-coord/1 leases on the server's clock.
+    Route("GET", T + "/coord/tasks", "listTasks", "Every coordination task of the tenant",
+          "coord", "stable", "read_ref", None, (("200", "TaskList"), *_ERR)),
+    Route("POST", T + "/coord/tasks", "addTask", "Create an open task",
+          "coord", "stable", "update_ref", "TaskAdd",
+          (("201", "TaskReply"), ("409", "LeaseRefusal"), ("400", "Error"), *_ERR)),
+    Route("GET", T + "/coord/tasks/{task}", "getTask", "One task and its lease",
+          "coord", "stable", "read_ref", None, (("200", "TaskReply"), *_ERR)),
+    *(Route("POST", T + "/coord/tasks/{task}/" + action, op, text, "coord", "stable",
+            "update_ref", "TaskLease",
+            (("200", "TaskReply"), ("409", "LeaseRefusal"), ("400", "Error"), *_ERR))
+      for action, op, text in (
+          ("claim", "claimTask", "Take the lease by compare-and-swap; returns the fencing token"),
+          ("heartbeat", "heartbeatTask", "Extend the lease (holder and current fencing token)"),
+          ("done", "finishTask", "Close the task (holder and current fencing token)"))),
 )  # fmt: skip
 
 

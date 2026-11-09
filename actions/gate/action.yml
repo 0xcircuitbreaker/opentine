@@ -37,6 +37,16 @@ inputs:
     description: Public key for `tine eval verify --pubkey`.
     required: false
     default: ""
+  evals-config:
+    description: >-
+      A .tine/evals.toml to run with `tine eval ci` (0.47) before the gate; its
+      eval folders join `eval-dirs` and a missed `min_pass_rate` fails the job.
+    required: false
+    default: ""
+  eval-key-file:
+    description: Ed25519 private key file that signs the `evals-config` verdicts.
+    required: false
+    default: ""
   vsa:
     description: A remote's DSSE-signed admission VSA (SPEC 8.17) to gate on.
     required: false
@@ -105,6 +115,8 @@ runs:
         RUNS: ${{ inputs.runs }}
         PUBKEY: ${{ inputs.pubkey }}
         EVAL_DIRS: ${{ inputs.eval-dirs }}
+        EVALS_CONFIG: ${{ inputs.evals-config }}
+        EVAL_KEY_FILE: ${{ inputs.eval-key-file }}
         EVAL_PUBKEY: ${{ inputs.eval-pubkey }}
         VSA: ${{ inputs.vsa }}
         VSA_KEY: ${{ inputs.vsa-key }}
@@ -113,7 +125,20 @@ runs:
         VSA_POLICY: ${{ inputs.vsa-policy }}
         VSA_LEVELS: ${{ inputs.vsa-levels }}
         OUT: ${{ runner.temp }}/opentine-gate
-      run: python -m opentine._ci_run
+      run: |
+        set -uo pipefail
+        if [ -n "$EVALS_CONFIG" ]; then
+          mkdir -p "$OUT"
+          if tine eval ci --config "$EVALS_CONFIG" --key "$EVAL_KEY_FILE" --out "$OUT/evals" --json > "$OUT/evals.json"; then
+            echo "evals_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "evals_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+          found="$(python3 -c 'import json,sys; print("\n".join(e["dir"] for e in json.load(open(sys.argv[1])).get("evals", [])))' "$OUT/evals.json" || true)"
+          EVAL_DIRS="$(printf '%s\n%s' "$EVAL_DIRS" "$found")"
+          export EVAL_DIRS
+        fi
+        python -m opentine._ci_run
 
     - name: PR comment
       if: ${{ always() && inputs.comment == 'true' && github.event.pull_request.number }}
@@ -123,3 +148,10 @@ runs:
         OPENTINE_PR: ${{ github.event.pull_request.number }}
         BODY: ${{ runner.temp }}/opentine-gate/comment.md
       run: python -m opentine._ci_comment github --body "$BODY"
+
+    - name: Fail on a missed eval gate
+      if: ${{ always() && inputs.evals-config != '' && steps.gate.outputs.evals_ok != 'true' }}
+      shell: bash
+      run: |
+        echo "tine eval ci: an eval missed its min_pass_rate or could not run" >&2
+        exit 1

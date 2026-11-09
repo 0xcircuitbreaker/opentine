@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.46.1 (draft until opentine 0.46.1 is tagged). **Previous
-version:** 0.46.0. Changes between versions are listed in
+**Spec version:** 0.47.0 (draft until opentine 0.47.0 is tagged). **Previous
+version:** 0.46.1. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.46.1.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.46.1/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.47.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.47.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -896,7 +896,7 @@ that would ignore the file refuses the repository instead of missing its refs.
 The stored name has any leading `refs/` removed. It MUST match:
 
 ```text
-^(?:annotations|coord|heads|tags|experiments|promotions|project|remotes)/[a-z0-9._/-]+$
+^(?:annotations|coord|heads|tags|experiments|promotions|project|prompts|memory|remotes)/[a-z0-9._/-]+$
 ```
 
 and additionally: be ≤ 512 bytes total; be equal to its own case-fold (i.e.
@@ -917,6 +917,8 @@ ending in `.` or a space, and whose pre-`.` prefix is not a Windows device name
 | `annotations/` | `annotation` |
 | `coord/` | `annotation` (0.43+, `opentine-coord/1`) |
 | `project/` | `blob` (0.46+: only `project/manifest`, an `opentine.project` manifest, §4.16) |
+| `prompts/` | `blob` (0.47+: `opentine.prompt` versions, §4.21) |
+| `memory/` | `blob` (0.47+: `opentine.memory` notes, §4.22) |
 | `tags/` | *(unconstrained)* |
 | `remotes/` | *(unconstrained)* |
 
@@ -2161,6 +2163,322 @@ an upstream holds that id. SHA-1 here is plain SHA-1: SHA-1DC collision
 detection is not part of this check. Vectors: `66-mirror-state.json` (op
 `git-object.check`).
 
+<a id="s-4.19"></a>
+## 4.19 Run merge, pick, `opentine.merge` and the merge queue (0.47.0+)
+
+**Merge.** A merge combines run *ours* (`parents[0]`, the mainline) and run
+*theirs* into one new run. It is a pure function of the two run payloads and,
+when both sides carry workspace trees (1.5.7), the three flattened trees, so
+every implementation computes the same merge event oid and merge run oid
+(`opentine._merge.merge_payloads`):
+
+1. Refuse `merge.same-run` when the two payloads have one oid and
+   `merge.up-to-date` when every event of theirs is already in ours; refuse
+   `merge.malformed` for a payload without a non-empty, unique `events` list
+   or with `roots`/`tips` outside it.
+2. **Events:** the events both runs hold, in ours' order; then ours' own; then
+   theirs' own; then the merge event. Each side's order already puts parents
+   first and a shared event is identical by content addressing, so the union
+   satisfies the run ordering rule.
+3. **Merge event** (an `event` object): `{"billing": {}, "causal_ids": [],
+   "cost": 0, "duration": 0, "error": {}, "kind": "merge", "model": "",
+   "output_blob": O, "parent_ids": L, "time_unix": T, "tool": {}, "usage": {}}`
+   plus `tree` when trees merged. `L` is the leaves of the union: ours' tips
+   then theirs' tips, first occurrence kept, minus any event the other side
+   holds as a non-tip. `T` is the larger numeric `created_at` of the two runs
+   (0 when neither has one). `O` is the schema-1 blob of the canonical JSON
+   `{"conflicts": [...], "merged": [ours oid, theirs oid], "type":
+   "opentine.merge"}`.
+4. **Trees.** A flat tree maps a `/`-joined path to its leaf `{"mode", "oid"}`
+   (`100644`, `100755` or `120000`; `"redacted": true` kept). Per path, with
+   base `b`, ours `o`, theirs `t` (absent = null): `o == t` or `t == b` takes
+   `o`, `o == b` takes `t`, anything else is a conflict `{"kind": "tree",
+   "path", "base", "ours", "theirs"}` (blob oids or null) and keeps `o`.
+   Conflicts are listed in the UTF-8 byte order of the path. The merged flat
+   tree is written back as nested schema-2 tree blobs (directories are the
+   path prefixes, entries sorted by UTF-8 name); a path that is a file on one
+   side and a directory on the other, a path with an empty, `.` or `..`
+   component, or a directory leaf is `merge.malformed`. The base tree is that
+   of the last shared event carrying one; each side's is that of its last
+   event carrying one. With a tree on one side only, no tree is merged.
+5. **Manifests** are ours'; a `policy` manifest blob that differs is a
+   conflict `{"kind": "manifest", "name": "policy", "base": null, "ours",
+   "theirs"}`, listed after the tree conflicts.
+6. **Run:** ours' payload without `forked_from` and `parents`, with `events`
+   as above, `roots` = ours' roots then theirs' (first occurrence kept),
+   `tips` = `[merge event]`, `parents` = `[ours oid, theirs oid]`,
+   `created_at` = `T` and `status` = `paused` when there is any conflict,
+   else `completed`. A conflicted merge is resolved by a later run with it as
+   `parents[0]`.
+
+The merge event's `kind` is `merge`; a `.tine` v2 export does not carry it (3.3), so a merge step exported to v2 reads back as `model`.
+
+**Pick.** A pick copies events of other runs onto ours, in order: each copy is
+the source event's payload with `parent_ids` = the current tips, `causal_ids`
+kept only where the new run holds them (an earlier pick maps to its copy) and
+`picked_from` = the source event's oid; it becomes the only tip. The new run
+is ours' payload with `events`, `tips` and `forked_from` = ours' oid (no
+`parents`). A source that is already in the run, picked twice, or whose
+payload does not hash to its oid is `merge.malformed`.
+
+**`opentine.merge` (merge/v1).** A signed record of a landed merge, exactly
+these fields plus a `tine-sig/3` block over `opentine.merge.v1:` + JCS of
+`{body, header}` (the 4.14 record rules: an HMAC record needs its key, a
+supplied key never falls back to the embedded one, an Ed25519 record with no
+key verifies `verified-tofu`):
+
+| Field | Value |
+|---|---|
+| `kind` | `"opentine.merge"` |
+| `merge_version` | `1` |
+| `run` | the merged run oid |
+| `parents` | 2 to 64 unique run oids, not `run`; ours first |
+| `target` | the ref it landed on, or null |
+| `fencing` | the merge queue's fencing token, or null |
+| `gates` | up to 256 `{"gate": "vsa"\|"eval"\|"approval", "digest": "sha256:<64 hex>"}` |
+| `conflicts` | a count |
+| `actor` | a name (`[A-Za-z0-9_.:/@+-]{1,256}`) |
+| `merged_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+
+Given the merged run's payload too, a verifier also refuses
+`merge.run-mismatch` when the payload does not hash to `run` or its `parents`
+differ. Reason codes: `merge.malformed`, `merge.unsigned`, `merge.no-key`,
+`merge.wrong-key`, `merge.bad-signature`, `merge.run-mismatch`.
+
+**`opentine.merge-approval`.** One person's signed decision on a candidate
+run: `kind`, `approval_version` (1), `run`, `target`, `decision` (`approve`
+or `reject`), `approver` (a name), `approved_at`, and a `tine-sig/3` block
+over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
+`merge-approval.malformed|unsigned|no-key|wrong-key|bad-signature`.
+
+**Merge queue.** A queue is the `opentine-coord/1` record
+`coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
+`queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),
+`head`, `entries`, `holder`, `fencing`, `lease_expires_ms`, `landed` (the last
+1,024 `{run, merge, fencing, attestation}`), `rejected` and `updated_ms`. A
+worker claims the lease (fencing one higher, as 0.43 tasks) and lands the first
+entry: it checks the gates, merges the entry onto `head` (or fast-forwards an
+empty or contained `head`), signs an `opentine.merge` naming `target` and its
+fencing token, and then commits with **one** compare-and-swap of the record
+that pops the entry, moves `head`, appends to `landed` and releases the lease;
+that version links the merged run and the attestation in `evidence_ids`. The
+CAS is the commit point: a holder whose token is not the record's current one,
+or whose lease expired, is refused (`stale`), so an entry lands at most once;
+a holder killed before the CAS leaves only unreferenced objects, which the
+next holder rewrites byte for byte. The target ref then follows `head`. A
+conflicted merge, a merge that adds nothing or a failed gate moves the entry to
+`rejected`. Gates (`opentine._merge_gates`): **vsa**, one DSSE envelope that
+classifies `valid` (8.17) for the candidate under the pinned server key;
+**evals**, every `tine-eval-verdict/1` about the candidate verifies and passed,
+at least `min` of them, by listed `signers` when given; **approvals**, at least
+`required` distinct listed keys signed `approve` for this run and target, and
+no listed key signed `reject`. Each piece that admitted the run is named in the
+attestation's `gates` by the SHA-256 of its JCS.
+
+Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
+`merge-approval.verify`).
+
+<a id="s-4.20"></a>
+## 4.20 Reviews: `opentine.review`, `opentine.review-gate` and the review bundle (0.47.0+)
+
+A Review is a unit of work across runs and commits, in one repository or
+several, with findings, monitors and gates. It is three kinds:
+
+**Versions.** An `opentine.review` version is a JSON object with exactly these
+keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.review"` |
+| `review_version` | `1` |
+| `review_id` | `[a-z0-9][a-z0-9._-]{0,63}`; never changes along a chain |
+| `seq` | `0` for the first version, then one more than the previous version's |
+| `prev` | `null` exactly when `seq` is 0; else the previous version's digest (as in §4.16: the blob oid of its canonical bytes, signature included) |
+| `title` | 1 to 256 UTF-8 bytes of text without control characters |
+| `reviewers` | 1 to 16 distinct Ed25519 public keys, 64 lowercase hex each |
+| `repos` | 1 to 16 objects `{name, project}`, sorted by distinct `name` (`[a-z0-9][a-z0-9._-]{0,63}`); `project` is `null` or an `opentine.project` id (§4.16) |
+| `subjects` | at most 1024 distinct objects `{repo, type, id}`: `repo` a `name` in `repos`, `type` `run` (`id` a run oid) or `commit` (`id` 40 or 64 lowercase hex) |
+| `findings` | at most 1024 objects `{id, severity, subject, message, status}`: distinct `id`s, `severity` `info`, `low`, `medium`, `high` or `critical`, `subject` `null` or an index into `subjects`, `message` 1 to 1024 bytes of text, `status` `open` or `resolved` |
+| `monitors` | at most 64 objects `{name, scorer, score, threshold, passed, verdict}` with distinct `name`s (`risk`, `intent-drift`, `coverage`) |
+| `gates` | at most 32 sorted, distinct gate names (`[a-z0-9][a-z0-9._-]{0,63}`) |
+| `updated_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` block, **Ed25519 only**, over `b"opentine.review.v1:"` + JCS(`{"body": <the version without signature>, "header": <header>}`) |
+
+**The multi-repo object model.** A Review names each repository it spans once,
+in `repos`, by a local `name` and, where the repository is an OpenTine project,
+its `project` id; every subject names its repository by that `name`. A run is
+named by its run oid, a commit by its git object id in the repository's own
+object format (§4.18). The Review lives with whichever run repository records
+it and moves whole, as a bundle; it never copies a subject's objects, and no
+subject has to be present for the Review to verify.
+
+**Monitors are eval scorers.** `scorer` is a scorer id
+(`[a-z0-9][a-z0-9-]{0,63}`, as in `tine-eval-verdict/1`, §4.12); `score` and
+`threshold` are that format's decimal strings (`0`, `1` or `0.` and at most
+six digits with no trailing zero); `passed` MUST equal `score >= threshold`,
+compared exactly (in millionths), else `review.inconsistent`. `verdict` is
+`null` or the `sha256:` digest of the `tine-eval-verdict/1` the monitor was
+taken from. A score is a goodness: a risk or intent-drift monitor passes when
+its scorer says the risk or drift is low enough.
+
+**Chain.** Version *n* + 1 names version *n*'s digest in `prev`, has `seq` one
+greater and the same `review_id`, and is signed by a key in version *n*'s
+`reviewers`; the first version is signed by a key in its own `reviewers`.
+
+**Gate decisions.** An `opentine.review-gate` is a JSON object with exactly
+`kind` (`"opentine.review-gate"`), `gate_version` (`1`), `review_id`, `review`
+(the digest of the version decided), `seq` (that version's `seq`), `gate` (a
+gate name), `decision` (`approve` or `reject`), `reason` (at most 1024 bytes of
+text, may be empty) and `decided_at`, plus a `signature`: Ed25519 only, over
+`b"opentine.review-gate.v1:"` + JCS(`{body, header}`), by a key in the decided
+version's `reviewers`. An approval is refused while a monitor of that version
+fails or one of its `critical` findings is `open`; a rejection never is.
+
+**The bundle.** An `opentine.review-bundle` is `{"kind":
+"opentine.review-bundle", "bundle_version": 1, "versions": [...], "decisions":
+[...]}`, exactly these keys: every version oldest first (at most 10,000) and
+every decision (at most 10,000). It is not signed itself; everything in it is.
+A verifier checks the chain, then each decision against the version whose
+digest it names. The result is `{review_id, head, seq, versions, state,
+decisions, gates, status}`: `gates` maps each gate of the head version to
+`rejected` (some decision on the head rejects it), `approved` (one approves it
+and none rejects it) or `pending`; a decision on an earlier version verifies
+but never counts for the head. `status` is `rejected` when a gate is,
+`approved` when the head has gates and every one is approved, else `pending`.
+
+A verifier MUST refuse, with the first applicable code, for a version:
+`review.malformed`; `review.inconsistent`; `review.unsigned`;
+`review.wrong-signer` (not Ed25519); `review.bad-signature`;
+`review.chain-break` (`prev`, `seq` or `review_id` does not follow the
+predecessor, or a history that does not start at `seq` 0);
+`review.wrong-signer` (not in the reviewer set that governs the version, or,
+for a first version checked against a pinned reviewer key, not that key); and
+for a decision: `review-gate.malformed`;
+`review-gate.unsigned`; `review-gate.wrong-signer` (not Ed25519);
+`review-gate.bad-signature`; `review-gate.wrong-review` (checked against a
+version it does not name, or naming none in the bundle);
+`review-gate.unknown-gate`; `review-gate.wrong-signer` (not a reviewer of that
+version); `review-gate.blocked`. One version checks to `{review_id, seq,
+digest, signer, state}` (`verified` when the reviewer set came from a checked
+predecessor or the pinned key, else `verified-tofu`); one decision to
+`{review_id, gate, decision, seq, signer, state: "verified"}`. Vectors:
+`70-review.json` (ops `review.verify`, `review-gate.verify` and
+`review.bundle`). `tine review export` writes a bundle and
+`tine-verify.pyz --offline FILE` checks it, every gate decision included,
+without a network.
+
+<a id="s-4.21"></a>
+## 4.21 `opentine.prompt` — signed, hash-chained prompt versions (0.47.0+)
+
+The prompt registry stores each version of a named prompt template as a JSON
+object with exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.prompt"` |
+| `prompt_version` | `1` |
+| `name` | `^[a-z0-9][a-z0-9._-]{0,63}$` |
+| `version` | an integer counting from 1 (at most 2³¹−1) |
+| `prev` | `null` for version 1; otherwise the previous version's digest |
+| `template` | 1 to 65536 UTF-8 bytes of text without NUL |
+| `variables` | the template's `{{name}}` placeholders (`\{\{([A-Za-z_][A-Za-z0-9_]{0,63})\}\}`), sorted and distinct |
+| `model` | a name (as in §4.14's `actor`) or `null` |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` Ed25519 block over `b"opentine.prompt.v1:"` + JCS(`{"body", "header"}`) |
+
+A version's **digest** is the `blob` oid of its canonical JSON bytes (the
+`signature` included). A verifier refuses, in order: `prompt.malformed` (a
+missing, extra or ill-formed field, or `prev` that disagrees with `version`);
+`prompt.variables-mismatch`; `prompt.unsigned`; `prompt.wrong-key` (not
+Ed25519, or not the pinned key); `prompt.bad-signature`. Given the previous
+version it also refuses `prompt.chain-break` (`prev` is not its digest,
+`version` is not one more, or `name` differs) and `prompt.wrong-signer` (a
+key other than the previous version's). On success it returns `{name, version,
+digest, signer, variables, state}` with state `verified` under a pinned key
+and `verified-tofu` otherwise.
+
+In a repository a prompt's newest version is the blob `prompts/<name>/head`;
+a label is the ref `prompts/<name>/labels/<label>` naming one version. A label
+moves; a version never changes, so a run annotation or an eval that names a
+version's digest keeps naming the same bytes. Vectors: `71-prompt.json` (op
+`prompt.verify`).
+
+<a id="s-4.22"></a>
+## 4.22 `opentine.memory` — signed team-memory notes (0.47.0+)
+
+A memory note is a JSON object with exactly these keys plus a `signature`:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.memory"` |
+| `memory_version` | `1` |
+| `scope`, `topic` | `^[a-z0-9][a-z0-9._-]{0,63}$` |
+| `text` | 1 to 8192 UTF-8 bytes, not only spaces, tabs and LFs, without control characters other than tab and LF |
+| `tags` | at most 32 sorted, distinct `^[a-z0-9][a-z0-9._:-]{0,63}$` |
+| `subject` | a `run` or `blob` oid, or `null` |
+| `supersedes` | the digest of the note it replaces, or `null` |
+| `author` | a name (as in §4.14's `actor`) |
+| `created_at` | `YYYY-MM-DDTHH:MM:SSZ` |
+| `signature` | a `tine-sig/3` Ed25519 block over `b"opentine.memory.v1:"` + JCS(`{"body", "header"}`) |
+
+Its digest is the `blob` oid of its canonical JSON bytes. A verifier refuses,
+in order: `memory.malformed`; `memory.unsigned`; `memory.wrong-key` (not
+Ed25519, or not the pinned key); `memory.bad-signature`; and, given the
+reader's team (a set of Ed25519 public keys), `memory.untrusted-signer`. It
+returns `{scope, topic, digest, signer, subject, supersedes, tags, state}`,
+state `verified` under a pinned key or a team and `verified-tofu` otherwise.
+A note is stored as the blob `memory/<scope>/<64 hex of its digest>`, so it
+syncs like any ref; a reader shows only notes that verify under its team and
+are not superseded by another such note. Vectors: `69-memory.json` (op
+`memory.verify`).
+
+<a id="s-4.23"></a>
+## 4.23 `opentine.forge-claim` and project forks (0.47.0+)
+
+A **forge claim** is an upstream's own statement that it belongs to a project:
+the file `.opentine/project` committed on the default branch of a code slot,
+holding canonical JSON (§0.2) and a newline, at most 4096 bytes, with exactly
+these keys and **no signature**:
+
+| Key | Value |
+|---|---|
+| `kind` | `"opentine.forge-claim"` |
+| `claim_version` | `1` |
+| `project_id` | the project's `project_id` (§4.16) |
+| `tenant` | the project's `tenant` |
+| `fingerprint` | `"sha256:" + hex(SHA-256(b"opentine.forge-claim.v1:" \|\| ASCII genesis))`, where *genesis* is the digest of the project's first manifest version (`seq` 0) |
+
+Its authority is where it sits: only someone who can write the upstream's
+default branch can commit it, so `tine project claim` writes it and the
+owner commits and pushes it like any other file. The fingerprint binds the
+claim to one chain, not to a `project_id` a fork or a re-created project could
+reuse. A claim reaches a verifier only through a code mirror, so a verifier
+can say only what the mirror shows: given the parsed file (or none), the branch
+it was found on and `{project_id, tenant, genesis, default_branch}` of the
+project, a match is `{project_id, tenant, fingerprint, branch, state:
+"claimed-as-mirrored", label: "claimed by upstream (as mirrored)"}` and never
+a pass. A verifier MUST refuse, with the first applicable code:
+`forge-claim.missing` (no file on the default branch);
+`forge-claim.malformed` (a missing, extra or ill-formed key, a `signature`
+included, or a malformed branch name); `forge-claim.not-default-branch` (the
+file is only on another branch); `forge-claim.wrong-project` (another
+`project_id` or `tenant`); `forge-claim.wrong-fingerprint`. Vectors:
+`72-forge-claim.json` (op `forge-claim.verify`).
+
+**Forks.** `tine project fork SOURCE DEST` copies a run repository, never
+code: the objects and refs of SOURCE except the `project/` namespace, then a
+new first manifest (`seq` 0, a new `project_id` or `tenant`, signed by the
+forker) whose `forked_from` is the source's `project_id`. The fork point, the
+source's `{project_id, tenant, genesis, head, seq}` at the time, is kept in
+`.tine/project-fork.json` beside the fork (like the locator file, never pushed,
+bundled or served). `tine project verify --source PATH|REMOTE` on a fork checks
+`forked_from` against the source's history: the source chain verifies (§4.16),
+its `project_id` is `forked_from`, the fork is not the same project (`project_id`
+and `tenant` differ in at least one), and the recorded head and genesis are in
+the source's history, so a source that rewrote its history since the fork is
+refused (`project.chain-break`). A fork never inherits the source's forge
+claim: the fingerprint names the source's genesis.
+
 ---
 
 <a id="part-5"></a>
@@ -2904,6 +3222,152 @@ upload-pack or receive-pack for code, no mirror route and no `mirror`
 capability. A client pins a remote's project with `tine remote add --project
 ID` and refuses one that serves another.
 
+<a id="s-8.19"></a>
+## 8.19 Reviews on a remote: `caps.reviews` (0.47.0)
+
+A remote that stores Reviews lists `reviews` (`{"path": "reviews", "kind":
+"opentine.review", "decisions": "decisions", "update": "PUT", "max_versions":
+10000}`) in `GET /v1/capabilities`. Under `/v1/tenants/<t>/`:
+
+- `GET reviews` (`read_ref`): `{"reviews": [{review_id, seq, head}]}`.
+- `GET reviews/<id>` (`read_ref`): `{bundle, head, seq}`, the Review as an
+  `opentine.review-bundle` (§4.20) that verifies offline.
+- `PUT reviews/<id>` (`update_ref`: writers and admins) with `{expected_old,
+  version}`: a compare-and-swap on the head version's digest (`null` for a new
+  Review), else `409 {"updated": false}`. The version must name this
+  `review_id`, follow the head (with no head it must be `seq` 0) and be signed
+  by a reviewer of the head (§4.20), else `400` carrying the refusal `code`. On
+  success `200 {"updated": true, "digest"}`.
+- `POST reviews/<id>/decisions` (`update_ref`) with `{decision}`: one
+  `opentine.review-gate`, checked against the stored version whose digest it
+  names, else `400` with its code (`review-gate.wrong-review` when it names
+  none). On success `201 {"stored": true, "digest"}`; a decision already stored
+  is not stored twice.
+
+Every stored version and decision is an `update_ref` row of the audit chain
+(name `reviews/<id>` or `reviews/<id>/decisions`, new = its digest), so it is
+in the transparency log (§8.10). A Review that does not exist, a caller without
+`read_ref`, an id that is not a review id and another tenant all answer the
+same `404 {"error":"not found"}`, for the writes too (a reader who may not
+write gets `403`); an unauthenticated request is the same `401` for every
+tenant. The server stores versions and decisions exactly as signed, never signs
+one, and keeps them outside the ref listing, so fetch, clone and push are
+unchanged for older clients.
+
+<a id="s-8.20"></a>
+## 8.20 MCP: memory in `recall`, and tasks (0.47.0)
+
+`tine mcp` answers `recall(query, limit)` with the runs the search index
+finds (0.44) and, under `memories`, the memory notes (§4.22) whose topic,
+tags or text contain every word of the query, at most `limit`, each `{scope,
+topic, text, tags, subject, digest, signer, state}`. Only notes that verify
+under the repository's team file `.tine/memory-team.json` (`{"keys": [<hex
+Ed25519 public key>, ...]}`) are returned; with no team file, none are.
+
+The server supports MCP 2025-11-25 tasks for `tools/call`: a call carrying
+`params.task` (`{"ttl": <ms>}`) returns at once `{"task": {taskId, status:
+"working", createdAt, lastUpdatedAt, ttl, pollInterval}}` and runs the tool in
+the background; `tasks/get` returns the task, `tasks/result` the tool's result
+once the task is `completed` (or its error once `failed`), `tasks/list` the
+tasks this server holds, and `tasks/cancel` moves a `working` task to
+`cancelled` and stops the tool's work, so a cancelled call never lands a
+result or a write later; a task that outlives its ttl is forgotten and its
+work stopped the same way. A failed task's message names only the exception
+type. A task's id is 128 random bits; a ttl is clamped to 1 s .. 1 h
+(default 5 min); at most 64 tasks are held and the oldest finished one is
+forgotten first. The tool runs under the same read-only/allow-writes rules as
+a direct call.
+
+<a id="s-8.21"></a>
+## 8.21 Plugin loading and `tine-experts/1` (0.47.0)
+
+**Plugins.** An implementation that loads third-party code for importers,
+signers, scorers or snapshot providers does so from Python entry points in
+the groups `opentine.importers`, `opentine.signers`, `opentine.scorers` and
+`opentine.snapshots`. It MUST NOT load any plugin implicitly (on import, on
+opening a repository or on running a command that did not name it), and it
+MUST NOT read the allow-list from a repository, the current directory or a
+path an environment variable names. The allow-list is the user's
+`$XDG_CONFIG_HOME/opentine/plugins.json` (`opentine-plugin-allow/1`, Part 12):
+each entry pins `kind`, entry-point `name`, PEP 503-normalised
+`distribution` and exact `version`. A plugin loads only when (1) an entry
+matches all four, (2) its distribution is installed under one of the
+interpreter's site-packages directories, (3) the top-level module its entry
+point names resolves, before import, to a file that distribution's `RECORD`
+lists, and (4) on POSIX neither the allow-list file, its directory, the
+module file nor the module's directory is writable by group or others (a
+sticky bit does not exempt a directory), and the allow-list file and its
+directory are owned by the user or root. `OPENTINE_NO_PLUGINS=1`
+disables loading. These rules select code; they do not confine it: a loaded
+plugin has the process's full rights. An eval verdict scored by a plugin
+names the scorer `plugin` and pins `scorer_version` to
+`1+sha256:` + the first 16 hex digits of SHA-256(`plugin` NUL name NUL
+distribution NUL version); no verdict field or format changed.
+
+**Experts.** `tine-experts/1` ranks who wrote the committed text files under a
+path at a revision. Each blamed line counts for the agent (by model) that the
+originating commit's line attribution note (`refs/notes/tine`) credits it
+to, else for the commit's author (by e-mail). A run is *verified* for an
+agent when the note crediting it has a valid signature (by the pinned key,
+when one is given) and every range's content hash matches the commit. Rows
+are ordered by lines descending, verified runs descending, kind, then id,
+and numbered from 1.
+
+<a id="s-8.22"></a>
+## 8.22 The remote task backend: `caps.coord` (0.47.0)
+
+A remote that runs `opentine-coord/1` tasks (the `tine task` records of
+`coord/tasks/<id>`, annotation chains moved by compare-and-swap) lists `coord`
+(`{"path": "coord/tasks", "format": "opentine-coord/1", "actions": ["add",
+"claim", "heartbeat", "done"], "clock": "server"}`) in `GET /v1/capabilities`.
+Under `/v1/tenants/<t>/`:
+
+- `GET coord/tasks` (`read_ref`): `{"tasks": [...]}`; `GET coord/tasks/<id>`
+  (`read_ref`): `{"task": {...}}`. A task value is `{task, title, status,
+  holder, fencing, lease_expires_ms, updated_ms}`.
+- `POST coord/tasks` (`update_ref`) with `{task, title}`: `201 {"task"}`.
+- `POST coord/tasks/<id>/claim` with `{holder, ttl}`, `.../heartbeat` with
+  `{holder, fencing, ttl}` and `.../done` with `{holder, fencing}`
+  (`update_ref`): `200 {"task"}`, or `409 {"error", "code"}` with the lease
+  code `exists`, `held`, `done`, `stale` or `contended`.
+
+The server applies exactly the local rules (one compare-and-swap per claim;
+heartbeat and done only for the current holder and fencing token before the
+lease ends; the token only grows) on **its own clock**, never the client's.
+It binds each fencing token to the authenticated caller who claimed it (an
+`opentine-coord/1` `lease` record `{task, fencing, subject}` at
+`coord/leases/<id>`): a heartbeat or done from any other caller, even one
+naming the same holder and token, is `409` `stale`. Every move is an
+`update_ref` row of the audit chain, so it is in the
+transparency log (§8.10). A missing task, a caller without `read_ref` and
+another tenant all answer the same `404 {"error":"not found"}`, for the write
+routes too; a reader who may not write gets `403`. The acceptance load is
+1,000 tasks claimed by 50 concurrent workers, some abandoning their leases,
+with zero lost tasks, zero tasks finished twice, zero fencing tokens granted
+twice and zero stale `done` calls accepted (`scripts/coord_scale.py`).
+
+<a id="s-8.23"></a>
+## 8.23 Operating a witness: `tine witness serve` (0.47.0)
+
+A witness of the hosted trust network serves the C2SP tlog-witness protocol
+(`POST /add-checkpoint`, §8.10) and, for operators:
+
+- **Persistence.** The last checkpoint cosigned for each origin is written
+  atomically, under a lock, before a cosignature is returned; a restarted
+  witness answers `409` with the size it holds, so it never cosigns a view
+  inconsistent with one it signed before the restart.
+- **Key rotation.** A witness may hold several keys under one name; each adds
+  a `cosignature/v1` line, the current key first. `GET /keys` lists their
+  vkeys, current first. A rotation adds the next key, waits until verifiers
+  pin both, then drops the old one, so no checkpoint carries only an unpinned
+  cosignature.
+- **Rate limits.** A token bucket per client address; an empty bucket is `429`
+  with `Retry-After` (seconds). `GET` routes are not limited.
+- **Health.** `GET /health` is `200 {"status": "ok", "witness", "keys",
+  "logs": {origin: size}, "uptime_seconds", "requests": {status: count}}`, or
+  `503` with `"status": "degraded"` when its state cannot be written or read.
+  It names no local path.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -3407,6 +3871,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |
 | 0.46.1 | 4.16, `opentine.project` signed, hash-chained project manifests and the `project/` ref namespace (2.4); 4.17, `opentine.mirror-state` host statements and the ten project reason codes; 4.18, the git object check; 8.18, `caps.project` and `caps.social_export`; Part 12 adds `opentine-project-1`, `opentine-mirror-state-1` and `tine-cli-project-1`. No existing byte format changed. |
 | 0.46.0 | 4.13.1, redaction report version 2 (`opentine-redaction/3`: PII detectors, a classifier name and per-finding detectors, signed under `opentine.redaction-report.v2:`; version 1 reports are unchanged); 4.14, `opentine.tombstone` signed purge records, the `tombstones/` directory, the bundle `tombstones` key and the remote `tombstones` routes; 4.15, `opentine.redacted-copy` and the bundle `redacted_public` key; 8.16, admission VSAs, `opentine.admission-policy` named server trust policies and the VSA verification order; Part 12 adds their schemas and `opentine-admission-policy-1` and `tine-ci-gate-1`. No existing byte format changed. |
 | 0.45.1 | 4.13, `opentine.redaction-report` signed redaction reports (a supplied HMAC key never falls back to the embedded key); 8.13, `tine-webhook/1` signed webhook payloads; Part 12 adds the event, webhook, watch, redaction and `tine-ai-share/1` schemas. No existing byte format changed. |

@@ -6,6 +6,12 @@ rows: run id, status, models and a snippet of at most ``MAX_RECALL_SNIPPET``
 characters. It never scans the object store and never writes: with no index it
 says so (``indexed: false``) and names the command that builds one. The text it
 returns is recorded run content -- untrusted, like every other read tool's.
+
+0.47 (SPEC 8.20): ``memories`` holds the team-memory notes (SPEC 4.22) whose
+topic, tags or text hold every word of the query -- only notes that verify
+under ``.tine/memory-team.json`` and are not superseded; with no team file,
+none. A note is signed by a teammate, not recorded run output, but it is still
+text for the model to weigh, not an instruction.
 """
 
 from __future__ import annotations
@@ -18,6 +24,16 @@ from opentine.repository._search_query import ranked_rows
 MAX_RECALL_RESULTS = 50
 MAX_RECALL_SNIPPET = 240
 MAX_RECALL_QUERY_CHARS = 4096
+
+
+def _memories(repo: Any, query: str, limit: int) -> list[dict[str, Any]]:
+    from opentine._cli_memory import recall_notes
+
+    keep = ("scope", "topic", "text", "tags", "subject", "digest", "signer", "state")
+    try:
+        return [{key: row[key] for key in keep} for row in recall_notes(repo, query, limit)]
+    except (OSError, ValueError):
+        return []
 
 
 def recall_index(repo: Any, query: str, limit: int = 10) -> dict[str, Any]:
@@ -33,6 +49,7 @@ def recall_index(repo: Any, query: str, limit: int = 10) -> dict[str, Any]:
             "indexed": False,
             "query": query,
             "results": [],
+            "memories": _memories(repo, query, limit),
             "hint": "no search index: run `tine repo-search --rebuild-index`",
         }
     results = [
@@ -44,12 +61,14 @@ def recall_index(repo: Any, query: str, limit: int = 10) -> dict[str, Any]:
         }
         for run_id, status, models, _cost, _latency, snippet in rows
     ]
-    return {"indexed": True, "query": query, "results": results}
+    memories = _memories(repo, query, limit)
+    return {"indexed": True, "query": query, "results": results, "memories": memories}
 
 
 def register_recall(mcp: Any, repo: Any, visible: Any) -> None:
     @mcp.tool()
     def recall(query: str, limit: int = 10) -> dict[str, Any]:
         """Recall runs whose stored prompts, completions, tools or paths mention
-        every word of ``query``, best BM25 match first (read-only, at most 50)."""
+        every word of ``query``, best BM25 match first (read-only, at most 50), and
+        the team's signed memory notes that mention them (``memories``)."""
         return visible(recall_index(repo, query, limit))

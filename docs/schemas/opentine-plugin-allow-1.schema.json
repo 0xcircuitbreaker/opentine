@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-plugin-allow-1.schema.json",
+  "title": "opentine-plugin-allow/1",
+  "description": "The plugin allow-list, read only from `$XDG_CONFIG_HOME/opentine/plugins.json`. Each entry pins an entry point (kind, name) to the distribution that provides it at an exact version; a plugin loads only when an entry matches (docs/PLUGINS.md).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "allow"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine-plugin-allow/1"
+    },
+    "allow": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "name",
+          "distribution",
+          "version"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "importer",
+              "signer",
+              "scorer",
+              "snapshot"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "distribution": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9.+!_-]{0,63}$"
+          }
+        }
+      }
+    }
+  }
+}

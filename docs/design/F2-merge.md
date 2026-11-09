@@ -1,7 +1,20 @@
 # F2: merging run histories (design, 0.43)
 
-Status: design only. 0.43 ships the `parents` run field and nothing that
-writes a merge. Merge, pick and the merge queue are 0.45+ (ROADMAP F2).
+Status: 0.43 shipped the `parents` run field; 0.47 ships `tine merge`, `tine
+pick` and `tine merge-queue` (SPEC 4.19, the normative text; vectors
+`68-merge.json`). Where 0.47 departs from this design:
+
+- Conflicts are listed in the merge event's output blob (content-addressed in
+  the merge run itself), not in a separate `kind: "conflict"` annotation.
+- Merges are two-way; octopus merges (more than two parents) are not written
+  yet, though `merge/v1` and `parents` allow up to 64.
+- The queue commits a landing with one compare-and-swap of its own
+  `coord/merge-queue/<id>` record, which owns the target's head; the target ref
+  then follows it. The remote ref-transaction variant (`caps.coord`) is not
+  built yet.
+- `min_reader` is not raised for repositories holding merges: this build's
+  config reader accepts repositories up to 0.40.0, so raising it to 0.43.0 is a
+  format-compatibility change of its own (still open).
 
 ## Problem
 

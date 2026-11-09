@@ -1,0 +1,13 @@
+{
+  "note": "Shape of an @openai/agents RunResult after JSON serialisation of newItems (RunToolCallItem, RunToolCallOutputItem, RunHandoffCallItem, RunHandoffOutputItem, RunMessageOutputItem), trimmed.",
+  "finalOutput": "Your refund has been filed.",
+  "newItems": [
+    {"type": "handoff_call_item", "rawItem": {"type": "function_call", "callId": "h1", "name": "transfer_to_refunds", "arguments": "{}", "status": "completed"}},
+    {"type": "handoff_output_item", "rawItem": {"type": "function_call_result", "callId": "h1", "name": "transfer_to_refunds", "status": "completed", "output": {"type": "text", "text": "{\"assistant\":\"Refunds\"}"}}},
+    {"type": "tool_call_item", "rawItem": {"type": "function_call", "callId": "c1", "name": "file_refund", "arguments": "{\"order\":\"A-17\",\"amount\":12.5}", "status": "completed"}},
+    {"type": "tool_call_output_item", "rawItem": {"type": "function_call_result", "callId": "c1", "name": "file_refund", "status": "completed", "output": {"type": "text", "text": "ok"}}, "output": "ok"},
+    {"type": "tool_call_item", "rawItem": {"type": "function_call", "callId": "c2", "name": "notify", "arguments": "not json", "status": "completed"}},
+    {"type": "reasoning_item", "rawItem": {"type": "reasoning", "content": []}},
+    {"type": "message_output_item", "rawItem": {"type": "message", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "Your refund has been filed."}]}}
+  ]
+}
