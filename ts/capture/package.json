@@ -24,7 +24,7 @@
     "test": "tsc -p tsconfig.json && node --test dist/test/events.test.js dist/test/adapters.test.js dist/test/sink.test.js"
   },
   "devDependencies": {
-    "@types/node": "20.14.10",
+    "@types/node": "26.6.6",
     "typescript": "5.6.3"
   }
 }
